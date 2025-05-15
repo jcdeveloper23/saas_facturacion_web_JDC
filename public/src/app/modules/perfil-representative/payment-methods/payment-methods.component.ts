@@ -132,7 +132,9 @@ x
     // this.infoUser.email = 'osalas@paymentez.com';
     
     /// *** Obtenemos la url para agregar tarjetas al comercio seleccionado ***
-    this.urlByAddPayment = this.sanitizerUrl(`https://luncher-paymentez.web.app/indexFather.html?id=${this.infoUser.user_uid}&email=${this.infoUser.email}&idp=${this.infoUser.user_id}&opt=${this.providerSelected.provider_NAME_EC_CLIENT}&opt1=${this.providerSelected.provider_KEY_EC_CLIENT}`);
+    this.urlByAddPayment = this.sanitizerUrl(`https://tubarpay.web.app/indexFather.html?id=${this.infoUser.user_uid}&email=${this.infoUser.email}&idp=${this.infoUser.user_id}&opt=${this.providerSelected.provider_NAME_EC_CLIENT}&opt1=${this.providerSelected.provider_KEY_EC_CLIENT}`);
+    console.log(`https://tubarpay.web.app/indexFather.html?id=${this.infoUser.user_uid}&email=${this.infoUser.email}&idp=${this.infoUser.user_id}&opt=${this.providerSelected.provider_NAME_EC_CLIENT}&opt1=${this.providerSelected.provider_KEY_EC_CLIENT}`);
+    
   }
 
   /**
@@ -144,11 +146,11 @@ x
     if ($('#providerSelected').val() != '') {
       this.providerSelected = this.providersList[$('#providerSelected').val()];
     /// *** Obtenemos la url para agregar tarjetas al comercio seleccionado ***
-    this.urlByAddPayment = this.sanitizerUrl(`https://luncher-paymentez.web.app/indexFather.html?id=${this.infoUser.user_uid}&email=${this.infoUser.email}&idp=${this.infoUser.user_id}&opt=${this.providerSelected.provider_NAME_EC_CLIENT}&opt1=${this.providerSelected.provider_KEY_EC_CLIENT}`);
+    this.urlByAddPayment = this.sanitizerUrl(`https://tubarpay.web.app/indexFather.html?id=${this.infoUser.user_uid}&email=${this.infoUser.email}&idp=${this.infoUser.user_id}&opt=${this.providerSelected.provider_NAME_EC_CLIENT}&opt1=${this.providerSelected.provider_KEY_EC_CLIENT}`);
     } else {
       this.providerSelected = {};
     }
-    // console.log(`https://luncher-paymentez.web.app/indexFather.html?id=${this.infoUser.user_uid}&email=${this.infoUser.email}&idp=${this.infoUser.user_id}&opt=${this.providerSelected.provider_NAME_EC_CLIENT}&opt1=${this.providerSelected.provider_KEY_EC_CLIENT}`);
+    console.log(`https://tubarpay.web.app/indexFather.html?id=${this.infoUser.user_uid}&email=${this.infoUser.email}&idp=${this.infoUser.user_id}&opt=${this.providerSelected.provider_NAME_EC_CLIENT}&opt1=${this.providerSelected.provider_KEY_EC_CLIENT}`);
   }
 
   

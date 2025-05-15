@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Add Card</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://code.jquery.com/jquery-1.11.3.min.js"></script>
+
+  <link href="https://cdn.paymentez.com/ccapi/sdk/payment_stable.min.css" rel="stylesheet" type="text/css" />
+  <script src="https://cdn.paymentez.com/ccapi/sdk/payment_stable.min.js" charset="UTF-8"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.2.7/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.2.7/firebase-firestore.js"></script>
+
+  <style>
+    h3 {
+      color: #656565;
+      text-align: center;
+    }
+
+    .margin {
+      margin-top: 40px;
+
+    }
+
+    .panel {
+      margin: 0 auto;
+      background-color: #F5F5F7;
+      border: 1px solid #ddd;
+      padding: 20px;
+      display: block;
+      width: 80%;
+      border-radius: 6px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, .1);
+    }
+
+    .btn {
+      background: #99cc33;
+      /* Old browsers */
+      filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#44afe7', endColorstr='#3198df', GradientType=0);
+      color: #fff;
+      display: block;
+      width: 100%;
+      border: 1px solid rgba(46, 86, 153, 0.0980392);
+      border-bottom-color: rgba(46, 86, 153, 0.4);
+      border-top: 0;
+      border-radius: 4px;
+      font-size: 17px;
+      text-shadow: rgba(46, 86, 153, 0.298039) 0px -1px 0px;
+      line-height: 34px;
+      -webkit-font-smoothing: antialiased;
+      font-weight: bold;
+      display: block;
+      margin-top: 20px;
+    }
+
+    .btn:hover {
+      cursor: pointer;
+    }
+  </style>
+
+  <script>
+    var firestore;
+    $(document).ready(function () {
+      var config = {
+        apiKey: "AIzaSyDhucc6IYvGaOBDFp_sTAm92CYMIGJ308U",
+        authDomain: "tubarpay.firebaseapp.com",
+        projectId: "tubarpay",
+        storageBucket: "tubarpay.firebasestorage.app",
+        messagingSenderId: "1023644808997",
+        appId: "1:1023644808997:web:30349d87df80824a024ccc",
+        measurementId: "G-FJRD7XL844"
+      };
+
+      firebase.initializeApp(config);
+      firestore = firebase.firestore();
+    });
+  </script>
+
+</head>
+
+<body>
+  <div class="margin">
+    <div class="panel ">
+      <form id="add-card-form">
+        <h3>
+          Por favor complete la siguiente información
+          para agregar un método de pago en luncher. vR.2
+        </h3>
+        <div class="payment-form" id="my-card" data-capture-name="true"></div>
+        <button class="btn">Agregar método de pago</button>
+        <br />
+        <div id="messages"></div>
+      </form>
+    </div>
+  </div>
+</body>
+
+<script>
+  $(function () {
+    var queryString = window.location.search;
+    var urlParams = new URLSearchParams(queryString);
+    var uid = urlParams.get('id');
+    var email = urlParams.get('email');
+    var idp = urlParams.get('idp');
+    var opt1 = urlParams.get('opt1');
+    console.log(uid);
+    console.log(email);
+    console.log(opt1);
+
+    /**
+     * Init library
+     *
+     * @param env_mode `prod`, `stg`, `local` to change environment. Default is `stg`
+     * @param payment_client_app_code provided by Paymentez.
+     * @param payment_client_app_key provided by Paymentez.
+     */
+    Payment.init('stg', 'TPP3-EC-CLIENT', opt1);
+
+    let form = $("#add-card-form");
+    let submitButton = form.find("button");
+    let submitInitialText = submitButton.text();
+
+    $("#add-card-form").submit(function (e) {
+      let myCard = $('#my-card');
+      $('#messages').text("");
+      let cardToSave = myCard.PaymentForm('card');
+      if (cardToSave == null) {
+        $('#messages').text("Invalid Card Data");
+      } else {
+        submitButton.attr("disabled", "disabled").text("Card Processing...");
+
+        /// *** Recuperar los valores del formulario en variables locales ***
+        var cardNumber = myCard.PaymentForm('cardNumber');
+        var cardType = myCard.PaymentForm('cardType');
+        var name = myCard.PaymentForm('name');
+        var expiryMonth = myCard.PaymentForm('expiryMonth');
+        var expiryYear = myCard.PaymentForm('expiryYear');
+        var fiscalNumber = myCard.PaymentForm('fiscalNumber');
+        var validationOption = myCard.PaymentForm('validationOption');
+        /// *** Creamos el metodo de pago en paymentez ***
+        Payment.addCard(uid, email, cardToSave, successHandler, errorHandler);
+      }
+      e.preventDefault();
+    });
+
+
+    let successHandler = function (cardResponse) {
+      let card = cardResponse.card;
+      if (cardResponse.card.status === 'valid') {
+        /// *** Actualizamos el estado en el user *** ///
+        // var ref = firestore.collection("users").doc(uid.toString());
+        // ref.update({
+        //   'user_state_payment_method_provider': true
+        // }).then(function () {
+        //   console.log('*** OK 1 ***');
+        // }).catch(function (e) {
+        //   console.log(e);
+        // });
+
+        // /// *** Actualizamos el estado en el Bar *** ///
+        // var refP = firestore.collection("providers").doc(idp.toString());
+        // refP.update({
+        //   'provider_state_method': true
+        // }).then(function () {
+        //   console.log('*** OK 2 ***');
+        // }).catch(function (e) {
+        //   console.log(e);
+        // });
+
+        // /// *** Actualizamos el estado en el Bar *** ///
+        // var refPM = firestore.collection("providers").doc(idp.toString()).collection("payment_method").doc(card.transaction_reference.toString());
+        // refPM.set({
+        //   card
+        // }).then(function () {
+        //   console.log('*** OK 3 ***');
+        // }).catch(function (e) {
+        //   console.log(e);
+        // });
+
+        $('#messages').html('Tarjeta agregada con éxito<br>' +
+          'status: ' + cardResponse.card.status + '<br>' +
+          "Card Token: " + cardResponse.card.token + "<br>" +
+          "transaction_reference: " + cardResponse.card.transaction_reference
+        );
+      } else if (cardResponse.card.status === 'review') {
+        $('#messages').html('Tarjeta en revisión<br>' +
+          'status: ' + cardResponse.card.status + '<br>' +
+          "Card Token: " + cardResponse.card.token + "<br>" +
+          "transaction_reference: " + cardResponse.card.transaction_reference
+        );
+      } else {
+        $('#messages').html('Error<br>' +
+          'status: ' + cardResponse.card.status + '<br>' +
+          "message Token: " + cardResponse.card.message + "<br>"
+        );
+      }
+      submitButton.removeAttr("disabled");
+      submitButton.text(submitInitialText);
+    };
+
+    let errorHandler = function (err) {
+      $('#messages').html(err.error.type);
+      submitButton.removeAttr("disabled");
+      submitButton.text(submitInitialText);
+    };
+  });
+</script>
+
+</html>

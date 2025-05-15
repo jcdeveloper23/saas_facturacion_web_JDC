@@ -1,0 +1,72 @@
+body {
+    font-family: 'Montserrat', sans-serif;
+    background: #f7f9fc;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+}
+
+#payment_example_div {
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    padding: 32px;
+    width: 100%;
+    max-width: 400px;
+}
+
+h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    text-align: center;
+    color: #333;
+}
+
+#tokenize_example {
+    margin-bottom: 1rem;
+}
+
+#response {
+    margin-top: 1rem;
+    font-size: 0.875rem;
+    color: #444;
+    word-break: break-word;
+    background: #f0f4f8;
+    padding: 10px;
+    border-radius: 8px;
+}
+
+.tok_btn {
+    display: block;
+    width: 100%;
+    background-color: #0070f3;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 12px;
+    transition: background-color 0.3s ease;
+}
+
+.tok_btn:hover {
+    background-color: #0059c1;
+}
+
+.tok_btn:disabled {
+    background-color: #999;
+    cursor: not-allowed;
+}
+
+@media (max-width: 480px) {
+    #payment_example_div {
+        padding: 24px;
+        margin: 16px;
+    }
+}

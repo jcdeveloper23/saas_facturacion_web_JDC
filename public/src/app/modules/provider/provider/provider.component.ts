@@ -29,10 +29,10 @@ export class ProviderComponent implements OnInit {
     this.infoUser = JSON.parse(localStorage.getItem("infoUser"));
     if (this.infoUser) {
       this.provider_id = this.infoUser.user_id;
-      this.urlByAddPayment = this.sanitizerUrl(`https://luncher-paymentez.web.app/?id=${this.infoUser.user_uid}&email=${this.infoUser.email}&idp=${this.infoUser.user_id}`);
+      this.urlByAddPayment = this.sanitizerUrl(`https://tubarpay.web.app/?id=${this.infoUser.user_uid}&email=${this.infoUser.email}&idp=${this.infoUser.user_id}`);
     }
     this.provider = {};
-    this.getProvider()
+    this.getProvider() 
   }
 
   ngAfterViewInit() {
