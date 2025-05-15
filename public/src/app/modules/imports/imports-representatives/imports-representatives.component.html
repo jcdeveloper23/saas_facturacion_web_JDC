@@ -1,0 +1,40 @@
+<div class="main-content">
+    <div class="card">
+        <div class="col-sm-12">
+            <button (click)="clickUploadFile()" class="btn btn-primary"><i class="fa fa-cloud-download"
+                    aria-hidden="true"></i> Seleccionar
+                archivo</button> &nbsp; &nbsp; <span *ngIf="name_file">{{name_file |
+                slice:0:30}}</span>
+            <input hidden accept=".csv" class="form-control form-control-lg" id="upload_file" type="file"
+                (change)="handleFileSelect($event)" />
+        </div>
+
+        <div class="col-sm-12 text-right">
+            <button (click)="save()" class="btn btn-info">
+                Save
+            </button>
+        </div>
+        <div class="col-sm-12">
+            
+            <table class="table table-bordered ">
+                
+                <tbody>
+                    <tr class="text-center bg-top">
+                        <th>Nro</th>
+                        <th>Cédula</th>
+                        <th>Nombre</th>
+                        <th>Apellido</th>
+                        <th>Email</th>
+                    </tr>
+                    <tr *ngFor="let r of arrayRepresentatives; let i = index">
+                        <td class="bg-number">{{i+1}}</td>
+                        <td>{{r.representative_identification}}</td>
+                        <td>{{r.representative_name}}</td>
+                        <td>{{r.representative_surname}}</td>
+                        <td>{{r.representative_email}}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

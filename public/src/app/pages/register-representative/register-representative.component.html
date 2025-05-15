@@ -1,0 +1,709 @@
+<!-- wizard container -->
+
+<div class="main-content bg-green">
+    <div class="row m-0 justify-content-center align-items-center  h-min ">
+        <div class="col-sm-12 col-md-10 col-lg-8 mr-auto ml-auto ">
+
+            <!--      Wizard container        -->
+            <div class="wizard-container">
+                <div class="card card-wizard " data-color="primary" id="wizardProfile">
+                    <form action="" method="">
+                        <!--        You can switch " data-color="primary" "  with one of the next bright colors: "green", "orange", "red", "blue"       -->
+                        <div class="card-header text-center">
+
+                            <div class="wizard-navigation">
+                                <ul>
+                                    <li class="nav-item ">
+                                        <a class="nav-link active p-event-none" href="#about" data-toggle="tab"
+                                            role="tab" aria-controls="about" aria-selected="false">
+                                            <span class="border-roundered">1</span> &nbsp;&nbsp;Datos personales
+                                        </a>
+                                    </li>
+                                    <li class="nav-item ">
+                                        <a class="nav-link p-event-none" href="#account" data-toggle="tab" role="tab"
+                                            aria-controls="account" aria-selected="false" aria-expanded="false">
+                                            <span class="border-roundered">2</span> &nbsp;&nbsp;Estudiante
+                                        </a>
+                                    </li>
+                                    <li class="nav-item ">
+                                        <a class="nav-link p-event-none" href="#address" data-toggle="tab" role="tab"
+                                            aria-controls="address" aria-selected="false">
+                                            <span class="border-roundered">3</span> &nbsp;&nbsp;Método de pago
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="card-body pt-0">
+                            <div class="tab-content pt-0 pb-0">
+                                <div class="tab-pane pt-0 show active" id="about">
+                                    <form #formRepresentative="ngForm" novalidate (ngSubmit)="saveRepresentative(formRepresentative.value,
+                                    formRepresentative.valid , formRepresentative)" id="form-representative">
+
+                                        <div class="row justify-content-center">
+                                            <div class="col-sm-4 d-flex align-items-center justify-content-center">
+                                                <div class="picture-container">
+                                                    <div class="picture">
+                                                        <img *ngIf="!previewUrlRepresentative && !representative.representative_image"
+                                                            src="./assets/img/default-avatar.png" class="picture-src"
+                                                            id="wizardPicturePreview" title="" />
+                                                        <img *ngIf="previewUrlRepresentative && !representative.representative_image || previewUrlRepresentative && representative.representative_image"
+                                                            src="{{previewUrlRepresentative}}" class="picture-src"
+                                                            id="wizardPicturePreview" title="" />
+                                                        <img *ngIf="!previewUrlRepresentative && representative.representative_image"
+                                                            src="{{representative.representative_image}}"
+                                                            class="picture-src" id="wizardPicturePreview" title="" />
+                                                        <input type="file" id="wizard-picture"
+                                                            (change)="fileProgressRepresentative($event)">
+                                                    </div>
+                                                    <h6 class="description">Seleccionar imagen</h6>
+                                                </div>
+                                            </div>
+                                            <div class="col-sm-8 pr-0 ">
+                                                <div class="card-body">
+                                                    <div class="row m-0 ">
+                                                        <div class="col-sm-12 border text-left">
+                                                            <div class="div-credencial text-center">
+                                                                <h4>Credenciales de Acceso del representante</h4>
+                                                            </div>
+
+                                                            <div class="form-group has-label ">
+                                                                <div class="row m-0 align-items-center ">
+                                                                    <div class="col-sm-6 pl-0">
+                                                                        <div class="input-group">
+                                                                            <div class="input-group-prepend">
+                                                                                <span class="input-group-text"><i
+                                                                                        class="nc-icon nc-single-02"></i></span>
+                                                                            </div>
+                                                                            <input type="text" class="form-control"
+                                                                                name="representative_identification"
+                                                                                onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))"
+                                                                                [(ngModel)]="representative.representative_identification"
+                                                                                required
+                                                                                id="representative_identification"
+                                                                                #representative_identification="ngModel"
+                                                                                placeholder="Identificación">
+
+                                                                        </div>
+                                                                        <small
+                                                                            [hidden]="representative_identification.valid || (representative_identification.pristine && !formRepresentative.submitted)"
+                                                                            class="text-danger">
+                                                                            El campo identificación es requerido.
+                                                                        </small>
+                                                                    </div>
+                                                                    <div class="col-sm-6 pr-0">
+                                                                        <div class="input-group">
+                                                                            <div class="input-group-prepend">
+                                                                                <span class="input-group-text"><i
+                                                                                        class="nc-icon nc-email-85"></i></span>
+                                                                            </div>
+                                                                            <input (blur)="onBlurMethodEmailRep()"
+                                                                                type="email" class="form-control"
+                                                                                name="representative_email"
+                                                                                [(ngModel)]="representative.representative_email"
+                                                                                required #representative_email="ngModel"
+                                                                                id="representative_email"
+                                                                                pattern="^[a-zA-Z0-9_.+\-]+@[a-zA-Z0-9\-]+\.[a-zA-Z0-9\-\.]+$"
+                                                                                placeholder="Email">
+
+                                                                        </div>
+                                                                        <small
+                                                                            [hidden]="representative_email.valid || (representative_email.pristine && !formRepresentative.submitted)"
+                                                                            class="text-danger">
+                                                                            El campo Email es requerido
+                                                                           .
+
+                                                                        </small>
+                                                                        <small [hidden]="!alertEmailRepresentative"
+                                                                            class="text-danger">
+                                                                            El email ingresado ya existe.
+                                                                        </small>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div class="form-group has-label">
+                                                                <div class="row m-0 align-items-center ">
+                                                                    <div class="col-sm-6 pl-0">
+                                                                        <div class="input-group">
+                                                                            <div class="input-group-prepend">
+                                                                                <span class="input-group-text"><i
+                                                                                        class="nc-icon nc-key-25"></i></span>
+                                                                            </div>
+                                                                            <input type="password" class="form-control"
+                                                                                name="representative_password"
+                                                                                [(ngModel)]="representative.representative_password"
+                                                                                required
+                                                                                #representative_password="ngModel"
+                                                                                id="representative_password"
+                                                                                placeholder="Contraseña" minlength="6">
+
+                                                                        </div>
+                                                                        <small
+                                                                            [hidden]="representative_password.valid || (representative_password.pristine && !formRepresentative.submitted)"
+                                                                            class="text-danger">
+                                                                            El campo Contraseña es requerido y debe
+                                                                            contener
+                                                                            mínimo 6 caracteres .
+                                                                        </small>
+                                                                    </div>
+                                                                    <div class="col-sm-6 pr-0">
+                                                                        <div class="input-group">
+                                                                            <div class="input-group-prepend">
+                                                                                <span class="input-group-text"><i
+                                                                                        class="nc-icon nc-key-25"></i></span>
+                                                                            </div>
+                                                                            <input type="password" class="form-control"
+                                                                                name="representative_password_confirm"
+                                                                                id="representative_password_confirm"
+                                                                                [(ngModel)]="representative.representative_password_confirm"
+                                                                                required
+                                                                                #representative_password_confirm="ngModel"
+                                                                                placeholder="Confirmar contraseña">
+
+                                                                        </div>
+                                                                        <small
+                                                                            [hidden]="representative_password_confirm.valid &&  representative.representative_password_confirm === representative.representative_password
+                                                                            || (representative_password_confirm.pristine && !formRepresentative.submitted)"
+                                                                            class="text-danger">
+                                                                            Los campos contraseña y confirmar contraseña
+                                                                            no coinciden.
+                                                                        </small>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                </div>
+
+                                            </div>
+                                            <div class="col-lg-12 mt-3">
+                                                <div class="form-group has-label">
+                                                    <div class="row m-0 align-items-center ">
+                                                        <div class="col-sm-6 pl-0">
+                                                            <div class="input-group">
+
+                                                                <div class="input-group-prepend">
+                                                                    <span class="input-group-text"><i
+                                                                            class="nc-icon nc-badge"></i></span>
+                                                                </div>
+                                                                <input type="text" class="form-control"
+                                                                    name="representative_name"
+                                                                    [(ngModel)]="representative.representative_name"
+                                                                    required #representative_name="ngModel"
+                                                                    id="representative_name" placeholder="Nombre">
+
+                                                            </div>
+                                                            <small
+                                                                [hidden]="representative_name.valid || (representative_name.pristine && !formRepresentative.submitted)"
+                                                                class="text-danger">
+                                                                El campo nombre es requerido.
+                                                            </small>
+                                                        </div>
+
+                                                        <div class="col-sm-6 pr-0">
+                                                            <div class="input-group">
+                                                                <div class="input-group-prepend">
+                                                                    <span class="input-group-text"><i
+                                                                            class="nc-icon nc-badge"></i></span>
+                                                                </div>
+                                                                <input type="text" class="form-control"
+                                                                    name="representative_surname"
+                                                                    [(ngModel)]="representative.representative_surname"
+                                                                    required #representative_surname="ngModel"
+                                                                    id="representative_surname" placeholder="Apellido">
+
+
+                                                            </div>
+                                                            <small
+                                                                [hidden]="representative_surname.valid || (representative_surname.pristine && !formRepresentative.submitted)"
+                                                                class="text-danger">
+                                                                El campo apellido es requerido.
+                                                            </small>
+                                                        </div>
+
+
+
+                                                    </div>
+
+                                                </div>
+                                                <div class="form-group has-label">
+                                                    <div class="row m-0 align-items-center ">
+                                                        <div class="col-sm-12 p-0">
+                                                            <div class="input-group">
+                                                                <div class="input-group-prepend">
+                                                                    <span class="input-group-text"><i
+                                                                            class="nc-icon nc-map-big"></i></span>
+                                                                </div>
+                                                                <input type="text" class="form-control"
+                                                                    name="representative_address"
+                                                                    [(ngModel)]="representative.representative_address"
+                                                                    required #representative_address="ngModel"
+                                                                    id="representative_address" placeholder="Dirección">
+
+                                                            </div>
+                                                            <small
+                                                                [hidden]="representative_address.valid || (representative_address.pristine && !formRepresentative.submitted)"
+                                                                class="text-danger">
+                                                                El campo dirección es requerido.
+                                                            </small>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group has-label">
+                                                    <div class="row m-0 align-items-center ">
+                                                        <div class="col-sm-6 pl-0">
+                                                            <div class="input-group">
+
+                                                                <div class="input-group-prepend">
+                                                                    <span class="input-group-text"><i
+                                                                            class="nc-icon nc-mobile"></i></span>
+                                                                </div>
+                                                                <input
+                                                                    onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))"
+                                                                    type="text" class="form-control"
+                                                                    name="representative_phone"
+                                                                    [(ngModel)]="representative.representative_phone"
+                                                                    #representative_phone="ngModel"
+                                                                    placeholder="Teléfono">
+
+                                                            </div>
+                                                        </div>
+
+
+
+                                                        <div class="col-sm-6 pr-0">
+                                                            <div class="input-group"
+                                                                [ngClass]="{'input-group-focus':focus2===true}">
+
+                                                                <div class="input-group-prepend">
+                                                                    <span class="input-group-text"><i
+                                                                            class="nc-icon nc-mobile"></i></span>
+                                                                </div>
+                                                                <input
+                                                                    onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))"
+                                                                    type="text" class="form-control"
+                                                                    name="representative_mobile"
+                                                                    id="representative_mobile"
+                                                                    [(ngModel)]="representative.representative_mobile"
+                                                                    #representative_mobile="ngModel"
+                                                                    placeholder="Teléfono Celular">
+
+                                                            </div>
+                                                            <small
+                                                                [hidden]="representative_mobile.valid || (representative_mobile.pristine && !formRepresentative.submitted)"
+                                                                class="text-danger">
+                                                                El campo teléfono celular es requerido.
+                                                            </small>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button type="submit" id="submit-form-representative" hidden></button>
+                                    </form>
+
+                                </div>
+                                <div class="tab-pane pt-0" id="account">
+                                    <div class="row d-flex ">
+                                        <div class="col-sm-8">
+                                            <div class="row">
+                                                <div class="col-sm-4 nav-item"
+                                                    *ngFor="let student of students , let i = index">
+                                                    <div class="choice cursor-pointer" data-toggle="wizard-checkbox"
+                                                        *ngIf="student" (click)="selectStudent(student , i)">
+                                                        <input type="checkbox" name="jobb" value="Design">
+                                                        <div class="icon"
+                                                            *ngIf="arrayStudentsFail && arrayStudentsFail[i]">
+                                                            <i class="nc-icon nc-single-02"></i>
+                                                        </div>
+                                                        <div class="icon"
+                                                            *ngIf="arrayStudentsFail && !arrayStudentsFail[i]">
+                                                            <i class="nc-icon nc-single-02" aria-hidden="true"></i>
+                                                            <!-- <i class="nc-icon nc-simple-remove text-danger icon-mini"></i> -->
+                                                        </div>
+                                                        <h6 *ngIf="student && student.student_name">
+                                                            {{student.student_name}}
+                                                            , {{student.student_lastname}} </h6>
+
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-4">
+                                            <div class="choice cursor-pointer" data-toggle="wizard-checkbox"
+                                                (click)="addStudent()">
+                                                <input type="checkbox" name="jobb" value="Design">
+                                                <div class="icon">
+                                                    <i class="nc-icon nc-simple-add"></i>
+                                                </div>
+                                                <h6> Agregar estudiante.</h6>
+                                            </div>
+                                        </div>
+
+
+                                    </div>
+
+                                    <form id="form-students" #formStudent="ngForm" novalidate
+                                        (ngSubmit)="saveStudent(formStudent.value, formStudent.valid , formStudent)">
+                                        <div class="row m-0 justify-content-center ">
+
+                                            <div class="col-sm-12 border">
+                                                <div class="div-credencial text-center">
+                                                    <h4>Credenciales de Acceso del estudiante</h4>
+                                                </div>
+                                                <div class="form-group has-label">
+
+                                                    <div class="row">
+                                                        <div class="col-sm-6">
+                                                            <div class="input-group">
+                                                                <div class="input-group-prepend">
+                                                                    <span class="input-group-text"><i
+                                                                            class="nc-icon nc-single-02"></i></span>
+                                                                </div>
+
+                                                                <input type="text"
+                                                                    onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))"
+                                                                    class="form-control" name="student_identification"
+                                                                    [(ngModel)]="student.student_identification"
+                                                                    required #student_identification="ngModel"
+                                                                    placeholder="Identificación">
+
+                                                            </div>
+                                                            <small
+                                                                [hidden]="student_identification.valid || (student_identification.pristine && !formStudent.submitted)"
+                                                                class="text-danger">
+                                                                El campo identificación es requerido.
+                                                            </small>
+                                                        </div>
+                                                        <div class="col-sm-6">
+                                                            <div class="input-group">
+                                                                <div class="input-group-prepend">
+                                                                    <span class="input-group-text"><i
+                                                                            class="nc-icon nc-single-02"></i></span>
+                                                                </div>
+                                                                <input
+                                                                    (blur)="onBlurMethodEmailStudent(student.student_email, student)"
+                                                                    pattern="^[a-zA-Z0-9_.+\-]+@[a-zA-Z0-9\-]+\.[a-zA-Z0-9\-\.]+$"
+                                                                    type="email" class="form-control"
+                                                                    name="student_email"
+                                                                    [(ngModel)]="student.student_email" required
+                                                                    #student_email="ngModel" placeholder="Email">
+
+                                                            </div>
+                                                            <small
+                                                                [hidden]="student_email.valid || (student_email.pristine && !formStudent.submitted)"
+                                                                class="text-danger">
+                                                                El campo email es requerido.
+                                                            </small>
+                                                            <small [hidden]="student.student_email_is_valid" class="text-danger">
+                                                                El email ingresado ya  existe, por favor modifiquelo.
+                                                            </small>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group has-label">
+
+                                                    <div class="row m-0 align-items-center ">
+                                                        <div class="col-sm-6 pl-0">
+                                                            <div class="input-group">
+                                                                <div class="input-group-prepend">
+                                                                    <span class="input-group-text"><i
+                                                                            class="nc-icon nc-key-25"></i></span>
+                                                                </div>
+                                                                <input type="password" class="form-control"
+                                                                    name="student_password"
+                                                                    [(ngModel)]="student.student_password" required
+                                                                    #student_password="ngModel" id="student_password"
+                                                                    placeholder="Contraseña" minlength="6">
+
+                                                            </div>
+                                                            <small
+                                                                [hidden]="student_password.valid || (student_password.pristine && !formStudent.submitted)"
+                                                                class="text-danger">
+                                                                El campo contraseña es requerido debe contener
+                                                                mínimo 6 caracteres .
+                                                            </small>
+                                                        </div>
+                                                        <div class="col-sm-6 pr-0">
+                                                            <div class="input-group">
+                                                                <div class="input-group-prepend">
+                                                                    <span class="input-group-text"><i
+                                                                            class="nc-icon nc-key-25"></i></span>
+                                                                </div>
+                                                                <input type="password" class="form-control"
+                                                                    name="student_password_confirm"
+                                                                    id="student_password_confirm"
+                                                                    [(ngModel)]="student.student_password_confirm"
+                                                                    required #student_password_confirm="ngModel"
+                                                                    placeholder="Confirmar contraseña">
+
+                                                            </div>
+                                                            <small
+                                                                [hidden]="student_password_confirm.valid &&  student.student_password_confirm === student.student_password
+                                                                    || (student_password_confirm.pristine && !formStudent.submitted)"
+                                                                class="text-danger">
+                                                                Los campos contraseña y confirmar contraseña no
+                                                                coinciden.
+                                                            </small>
+                                                        </div>
+                                                    </div>
+
+                                                </div>
+                                            </div>
+
+                                            <div class="col-lg-12 p-0 ">
+                                                <hr>
+                                                <div class="form-group has-label">
+
+                                                    <div class="row m-0 w-100 align-items-center ">
+                                                        <div class="col-sm-6 pl-0">
+                                                            <div class="input-group">
+                                                                <div class="input-group-prepend">
+                                                                    <span class="input-group-text"><i
+                                                                            class="nc-icon nc-badge"></i></span>
+                                                                </div>
+
+                                                                <input type="text" class="form-control"
+                                                                    name="student_name"
+                                                                    [(ngModel)]="student.student_name" required
+                                                                    #student_name="ngModel" placeholder="Nombre">
+
+                                                            </div>
+                                                            <small
+                                                                [hidden]="student_name.valid || (student_name.pristine && !formStudent.submitted)"
+                                                                class="text-danger">
+                                                                El campo nombre es requerido.
+                                                            </small>
+                                                        </div>
+                                                        <div class="col-sm-6 pr-0">
+                                                            <div class="input-group">
+                                                                <div class="input-group-prepend">
+                                                                    <span class="input-group-text"><i
+                                                                            class="nc-icon nc-badge"></i></span>
+                                                                </div>
+                                                                <input type="text" class="form-control"
+                                                                    name="student_lastname"
+                                                                    [(ngModel)]="student.student_lastname" required
+                                                                    #student_lastname="ngModel" placeholder="Apellido">
+
+                                                            </div>
+                                                            <small
+                                                                [hidden]="student_lastname.valid || (student_lastname.pristine && !formStudent.submitted)"
+                                                                class="text-danger">
+                                                                El campo apellido es requerido.
+                                                            </small>
+                                                        </div>
+
+                                                    </div>
+                                                </div>
+                                                <div class="form-group has-label">
+                                                    <div class="row m-0 align-items-center ">
+                                                        <div class="col-sm-6 pl-0 ">
+
+                                                            <mat-select name="student_gender" placeholder="Género"
+                                                                panelClass="Género" class=" form-control"
+                                                                [formControl]="genderForm"
+                                                                [(ngModel)]="student.student_gender">
+                                                                <mat-option *ngFor="let gender of array_gender"
+                                                                    [value]="gender">{{gender}}
+                                                                </mat-option>
+                                                            </mat-select>
+                                                        </div>
+                                                        <div class="col-sm-6 pr-0">
+                                                            <div class="input-group">
+                                                                <div class="input-group-prepend">
+                                                                    <span class="input-group-text"><i
+                                                                            class="nc-icon nc-calendar-60"></i></span>
+                                                                </div>
+                                                                <input type="date" class="form-control"
+                                                                    name="student_date_of_birth"
+                                                                    [(ngModel)]="student.student_date_of_birth"
+                                                                    #student_date_of_birth="ngModel"
+                                                                    placeholder="Fecha de nacimiento">
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group has-label">
+                                                    <div class="row m-0 align-items-center ">
+                                                        <div class="col-sm-6 pl-0">
+
+                                                            <mat-select name="student_level" placeholder="Nível"
+                                                                panelClass="Nivel" class=" form-control"
+                                                                [formControl]="levelsForm"
+                                                                [(ngModel)]="student.student_level" #student_level
+                                                                (selectionChange)="selectLevel($event)">
+                                                                <mat-option *ngFor="let level of levels"
+                                                                    [value]="level.level_id">{{level.level_name}}
+                                                                </mat-option>
+                                                            </mat-select>
+                                                            <small *ngIf="student.student_level === undefined"
+                                                                class="text-danger">
+                                                                El campo nivel es requerido, seleccione una opción.
+                                                            </small>
+                                                        </div>
+                                                        <div class="col-sm-6 pr-0">
+
+                                                            <mat-select name="parallel_id" placeholder="Paralelo"
+                                                                panelClass="Paralelo" class=" form-control"
+                                                                [formControl]="parallelsForm"
+                                                                [(ngModel)]="student.student_parallel">
+                                                                <mat-option *ngFor="let parallel of parallels"
+                                                                    [value]="parallel.parallel_id">
+                                                                    {{parallel.parallel_name}}
+                                                                </mat-option>
+                                                            </mat-select>
+                                                            <small *ngIf="student.student_parallel === undefined"
+                                                                class="text-danger">
+                                                                El campo paralelo es requerido, seleccione una opción.
+                                                            </small>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div
+                                                    class="col-12 p-0 d-flex justify-content-end align-items-end  pr-2">
+                                                    <button hidden type="submit" id="send-form-student"
+                                                        class="btn btn-primary">Registrar</button>
+                                                </div>
+
+                                            </div>
+
+                                        </div>
+                                    </form>
+                                    <div class="col-lg-12 p-0">
+                                        <button type="button" class="btn btn-sm btn-danger"
+                                            (click)="deleteStudent(student)"><i class="fa fa-minus-circle"
+                                                aria-hidden="true"></i> Eliminar estudiante</button>
+                                    </div>
+                                </div>
+
+                                <div class="tab-pane " id="address">
+                                    <form id="form-payment_methods" #formPaymentMethod="ngForm" novalidate>
+
+
+                                        <div class="row justify-content-center align-items-center">
+                                            <h5>Seleccione un método de pago predeterminada </h5>
+                                            <div class="col-lg-12">
+                                                <div class="row justify-content-center  align-items-center  ">
+                                                    <div class="col-sm-4 "
+                                                        (click)="representative.representative_payment_method = 'Efectivo'">
+                                                        <div class="choice " data-toggle="wizard-checkbox">
+
+                                                            <div
+                                                                class="icon {{representative.representative_payment_method === 'Efectivo' ? 'is-select' : ''}}">
+                                                                <i *ngIf="representative.representative_payment_method !== 'Efectivo'"
+                                                                    class="nc-icon nc-money-coins"></i>
+                                                                <i *ngIf="representative.representative_payment_method === 'Efectivo'"
+                                                                    class="nc-icon nc-check-2 text-primary"></i>
+
+                                                            </div>
+                                                            <h6>Efectivo/Transferencia</h6>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-sm-4"
+                                                        (click)="representative.representative_payment_method = 'Tarjeta'">
+                                                        <div class="choice " data-toggle="wizard-checkbox">
+
+                                                            <div
+                                                                class="icon {{representative.representative_payment_method === 'Tarjeta' ? 'is-select' : ''}}">
+                                                                <i *ngIf="representative.representative_payment_method !== 'Tarjeta'"
+                                                                    class="nc-icon nc-credit-card"></i>
+                                                                <i *ngIf="representative.representative_payment_method === 'Tarjeta'"
+                                                                    class="nc-icon nc-check-2 text-primary"></i>
+
+                                                            </div>
+                                                            <h6>Tarjeta</h6>
+                                                        </div>
+                                                    </div>
+
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </form>
+
+                                </div>
+
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <div class="pull-right">
+                                <button [disabled]="alertEmailRepresentative || alertEmailStudent" (click)="nextForm()" type='Submit'
+                                    class='btn btn-next btn-primary  btn-fill btn-rose btn-wd' name='next'> Siguiente
+                                </button>
+                                <button [disabled]="!representative.representative_payment_method"
+                                    (click)="registerInfo()" type='button'
+                                    class='btn btn-finish btn-primary btn-fill btn-rose btn-wd' name='finish'
+                                    value='Finalizar'>Finalizar</button>
+                            </div>
+                            <div class="pull-left">
+                                <button type='button' class='btn btn-previous  btn-fill btn-info btn-default btn-wd'
+                                    name='previous' value='Anterior'> Anterior</button>
+                            </div>
+                            <div class="clearfix"></div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- </form> -->
+        </div>
+    </div>
+    <input hidden [(ngModel)]="isValidFormStudent" id="input-validate-student" name="input-validate-student">
+
+</div>
+
+<!-- MODAL DE LOADING-->
+
+<div class="modal fade modal-primary  h-min " id="modalLoading" tabindex="-1" data-backdrop="static" role="dialog"
+    aria-labelledby="modalLoading" aria-hidden="true">
+    <div class="modal-dialog modal-sm row justify-content-center align-items-center " style="min-height: 80vh;">
+        <i class="fa fa-spinner fa-pulse fa-3x fa-fw text-primary font-loading"></i>
+        <span class="sr-only">Loading...</span>
+    </div>
+</div>
+
+
+
+<!-- MODAL DE CONFIRMACIÓN DE REGISTRO-->
+<div class="modal fade" id="modalRegister" tabindex="-1" role="dialog" data-backdrop="static"
+    aria-labelledby="ModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content style-modal-content">
+            <div class="card card-testimonial" *ngIf="representative">
+                <div class="card-body ">
+                    <div class="icon icon-primary">
+                        <i class="fa fa-quote-right"></i>
+                    </div>
+                    <p class="card-description">
+                        ¡ Hola estimado representante , te damos la bienvenida a Luncher!.
+                        <br>
+                    </p>
+                </div>
+                <div class="card-footer ">
+                    <h4 class="card-title">{{representative.representative_name}} ,
+                        {{representative.representative_surname}}</h4>
+                    <h6 class="card-category">{{representative.representative_email}}</h6>
+                    <div class="avatar">
+                        <a href="javascript:void(0)">
+                            <img *ngIf="representative.representative_image" class="img"
+                                src="{{representative.representative_image}}">
+                            <img *ngIf="!representative.representative_image" class="img"
+                                src="./assets/img/default-avatar.png">
+
+                        </a>
+
+                    </div>
+                    <h6 class="card-description"> Por favor , haz click en...</h6>
+                    <button class="btn btn-primary btn-sm" (click)="confirmRegister()">"Confirmar registro"</button>
+                    <br>
+                    <h6 class="card-description"> para continuar con el proceso de registro.</h6>
+                    <p class="card-category">
+                        ¿Tienes alguna duda? Consulta nuestra ayuda o escríbenos y estaremos encantados de ayudarte.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,27 @@
+.simple-text {
+  text-transform: none !important;
+}
+
+.span-primary {
+  color: #4880FF;
+  font-weight: bold;
+}
+
+.active-blue {
+  background-color: #007bff;
+  color: #ffffff;
+  border-radius: 8px;
+  /* padding: 10px 15px;*/
+  /* margin-left: 15px; 
+  margin-right: 15px;  */
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+}
+
+/* Asegura que los textos e iconos internos se mantengan blancos */
+.active-blue a,
+.active-blue i,
+.active-blue p,
+.active-blue span {
+  color: #ffffff !important;
+}

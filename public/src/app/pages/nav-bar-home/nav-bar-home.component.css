@@ -1,0 +1,42 @@
+.img-logo  {
+    width: 100px;
+}
+
+.nav-style {
+    font-size: 16px;
+}
+
+.content-menu {
+    background-color: transparent;
+}
+
+.btn-login {
+    background-color: rgb(80, 80, 80);
+    color: white;
+    border-radius: 10px;
+    width: 120px;
+    text-transform: none;
+    padding: 1.5rem;
+    border-bottom-left-radius: 60px;
+    border-bottom-right-radius: 30px;
+    border-top-left-radius: 30px;
+    border-top-right-radius: 60px;
+}
+
+.g-color-menu {
+    background-color: white;
+}
+
+.nav-item {
+    color: rgb(71, 71, 71) !important;
+}
+.lis {
+    font-weight: bold !important;
+    color: white !important;
+}
+
+.button-contacts {
+    background: #f39200;
+    border-radius: 50px;
+    padding: 10px;
+}

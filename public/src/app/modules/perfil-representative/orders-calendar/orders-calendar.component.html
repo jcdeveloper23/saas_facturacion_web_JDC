@@ -1,0 +1,82 @@
+<div class="main-content">
+  <div class="container-fluid">
+    <app-top-bar [typeComponent]='typeComponent' [student_id]="student_id"></app-top-bar>
+
+    <div class="row align-items-center justify-content-center" *ngIf="!setInfoCalendar">
+      <div class="col-11 p-0  col-md-offset-1">
+        <div class="card card-calendar">
+          <div class="card-content">
+            <full-calendar id="fullCalendar" [options]="calendarOptions"></full-calendar>
+
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 d-flex justify-content-center align-items-center"
+      *ngIf="setInfoCalendar">
+      <i class="fa fa-circle-o-notch fa-spin fa-3x fa-fw text-primary"></i>
+      <span class="sr-only">Loading...</span>
+    </div>
+  </div>
+</div>
+
+<!-- small modal -->
+<div class="modal fade modal-primary" id="myModaldetailOrder" tabindex="-1" role="dialog" aria-labelledby="myModalLabel"
+  aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header justify-content-center">
+        <div class="modal-profile ml-auto mr-auto">
+          <i class="nc-icon nc-bag-16"></i>
+        </div>
+      </div>
+      <div class="modal-body pl-1 pr-1" *ngIf="detailOrder">
+
+        <div class="col-12 p-0 ">
+          <table class="table table-bordered table-responsive">
+            <thead>
+              <tr>
+                <th scope="col" class="text-center text-title-table">#</th>
+                <th scope="col" class="text-center text-title-table">Estatus de entrega</th>
+                <th scope="col" class="text-center text-title-table">Fecha de entrega</th>
+                <th scope="col" class="text-center text-title-table">Hora de entrega</th>
+                <th scope="col" class="text-center text-title-table">Producto</th>
+                <th scope="col" class="text-center text-title-table">Descripción</th>
+                <th scope="col" class="text-center text-title-table">Fecha</th>
+                <th scope="col" class="text-center text-title-table">Cantidad</th>
+                <th scope="col" class="text-center text-title-table">Costo(u)</th>
+                <th scope="col" class="text-center text-title-table">Subtotal</th>
+
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let product of detailOrder.arrayProductCart , let i = index">
+                <th scope="row">{{i + 1}}</th>
+                <td class="text-center">
+                  <span *ngIf="!product.product_state_in_order"><i
+                      class="nc-icon nc-simple-delete text-warning font-bold"></i></span>
+                  <span *ngIf="product.product_state_in_order"><i
+                      class="nc-icon nc-check-2 text-success font-bold"></i></span>
+                </td>
+                <td class="text-center">{{product.product_delivery_date | date}}</td>
+                <td class="text-center">{{product.product_dalivery_time}}</td>
+                <td class="text-center">{{product.product_name}}</td>
+                <td class="text-center">{{product.product_description |slice:0:30}}</td>
+                <td class="text-center">{{product.product_order_delivery_date | date }}</td>
+                <td class="text-center">{{product.product_quantity_in_cart}}</td>
+                <td class="text-center">{{product.product_price | currency}}</td>
+                <td class="text-center"> {{product.product_subtotal | currency}}</td>
+
+              </tr>
+
+            </tbody>
+          </table>
+        </div>
+        <div class="col-12 text-right p-0 pr-4">
+          <h2 class="text-primary">{{detailOrder.order_total_to_pay | currency}}</h2>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

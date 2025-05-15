@@ -1,0 +1,64 @@
+>>>.mat-form-field-infix {
+    padding: .5em 0;
+    border-top: .0px solid transparent !important; 
+}
+
+>>>.mat-datepicker-toggle-default-icon {
+    width: 2.5em !important;
+    color: gray;
+}
+
+>>>.mat-datepicker-toggle-default-icon:active{
+    border: none !important;
+    background-color: transparent !important;
+}
+
+>>>.mat-calendar-body-selected {
+    background-color: rgb(29,207,145)  !important;
+    color: #fff;
+}
+/* .mat-calendar-body-in-range::before {
+    background: rgba(63,81,181,.2);
+} */
+
+>>>.mat-form-field-appearance-legacy.mat-form-field-disabled .mat-form-field-underline {
+    background-image: none !important; 
+}
+
+>>>.mat-form-field-appearance-fill.mat-form-field-disabled .mat-form-field-flex {
+    background-color: transparent !important; 
+}
+
+>>> .mat-form-field-appearance-fill .mat-form-field-flex {
+    border-radius: 4px 4px 0 0;
+    padding: 0px !important;
+    align-items: center !important;
+}
+
+>>>.mat-form-field-suffix .mat-icon-button .mat-datepicker-toggle-default-icon {
+    margin: auto;
+    margin-bottom: 15px !important;
+}
+
+.span-info {
+    color: gray;
+}
+
+.card-border-none {
+    border-radius: 5px !important;
+}
+
+.img-wrapper {
+    width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  overflow: hidden;
+  margin: 0 auto; }
+
+.img-row {
+  max-width: 60px;
+  width: 60px; }
+
+  .cursor-pointer {
+      cursor: pointer;
+  }

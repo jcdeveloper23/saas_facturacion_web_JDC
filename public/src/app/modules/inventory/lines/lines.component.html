@@ -1,0 +1,173 @@
+<div class="main-content">
+    <div class="container-fluid p-0">
+        <div class="row" class="collapse multi-collapse " id="multiCollapseLine">
+            <div class="col-sm-12 p-0">
+                <div class="card">
+                    <form #formLine="ngForm" novalidate (ngSubmit)="saveLine(formLine.value, formLine.valid, formLine)">
+
+                        <div class="card-header ">
+                            <h4 class="card-title">{{isEditLine ? 'Editar' : 'Nueva'}} Categoría</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group has-label">
+                                <div class="row m-0 w-100 align-items-center justify-content-center  ">
+                                    <div class="col-sm-2">
+                                        <label class="control-label" for="">Código:
+                                            <span class="star">*</span>
+                                        </label>
+                                        <input readonly type="text" class="form-control" name="category_id"
+                                            [(ngModel)]="line.category_id" required #category_id="ngModel">
+                                        <small
+                                            [hidden]="category_id.valid || (category_id.pristine && !formLine.submitted)"
+                                            class="text-danger">
+                                            Código es requerido.
+                                        </small>
+                                    </div>
+                                    <div class="col-sm-3">
+                                        <label class="control-label" for="">Nombre:
+                                            <span class="star">*</span>
+                                        </label>
+                                        <input type="text" class="form-control" name="category_name"
+                                            [(ngModel)]="line.category_name" required #category_name="ngModel">
+                                        <small
+                                            [hidden]="category_name.valid || (category_name.pristine && !formLine.submitted)"
+                                            class="text-danger">
+                                            Nombre es requerido.
+                                        </small>
+                                    </div>
+                                    <div class="col-sm-3">
+                                        <label class="control-label" for="">Estado:
+                                            <span class="star">*</span>
+                                        </label>
+                                        <br>
+                                        <bSwitch name="category_state" [(ngModel)]="line.category_state"
+                                            [switch-on-color]="'primary'" [switch-off-color]="'primary'"
+                                            [switch-off-text]="'&#x2715;'" [switch-on-text]="'&#x2714;'">
+                                        </bSwitch>
+                                    </div>
+                                    <div class="col-sm-4 d-flex align-items-end justify-content-center p-0">
+                                        <div class="row m-0 w-100 justify-content-end align-items-end ">
+                                            <div class="col-6 p-0 d-flex align-items-end mt-3">
+                                                <button type="submit"
+                                                    class="btn btn-primary text-btn-form">Registrar</button>
+                                            </div>
+                                            <div class="col-6 p-0 d-flex align-items-end mt-3">
+                                                <button type="button" (click)="cancelViewForm()"
+                                                    class="btn btn-danger text-btn-form">Cancelar</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+
+
+                            <div class="category"> <span class="star">*</span> Campos obligatorios</div>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
+
+
+        </div>
+        <!-- LISTA - Lineas -->
+        <div class="row m-0">
+            <div class="col-sm-12 p-0">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="col-12 p-0 ">
+                            <div class="row m-0">
+                                <div class="col-sm-6 d-flex justify-content-start">
+                                    <div>
+                                        <button class="btn btn-primary" (click)="newLine()">Nueva Categoría</button>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6 p-0 d-flex justify-content-end">
+                                    <!-- <div class="container"> -->
+                                    <mat-form-field>
+                                        <!-- <mat-label>Filter</mat-label> -->
+                                        <mat-label>Buscar</mat-label>
+                                        <input matInput (keyup)="applyFilter($event)"
+                                            class="input-search-table" #input>
+                                    </mat-form-field>
+                                    <!-- </div> -->
+                                </div>
+                            </div>
+
+                            <div class="col-12 p-0 w-100">
+
+                                <table #table mat-table matSort [dataSource]="dataSource"
+                                    class="mat-elevation-z8 table-reponsive table-bordered " style="min-width: 100%;">
+                                    <ng-container matColumnDef="code">
+                                        <th mat-header-cell *matHeaderCellDef class="text-center title-table">
+                                            Código </th>
+                                        <td mat-cell *matCellDef="let row" class="text-center">
+                                            <span>{{row.category_id
+                                                |
+                                                slice:6}}</span>
+                                        </td>
+                                    </ng-container>
+                                    <ng-container matColumnDef="name">
+                                        <th mat-header-cell *matHeaderCellDef class="text-center title-table">
+                                            Nombre </th>
+                                        <td mat-cell *matCellDef="let row" class="text-center">
+                                            <span>{{row.category_name}}</span>
+                                        </td>
+                                    </ng-container>
+
+                                    <ng-container matColumnDef="status">
+                                        <th mat-header-cell *matHeaderCellDef class="text-center title-table">
+                                            Estado </th>
+                                        <td mat-cell *matCellDef="let row" class="text-center">
+                                            <i *ngIf="row.category_state" class="fa fa-check text-primary"
+                                                aria-hidden="true"></i>
+                                            <i *ngIf="!row.category_state" class="fa fa-times text-danger"
+                                                aria-hidden="true"></i>
+
+                                        </td>
+                                    </ng-container>
+
+                                    <ng-container matColumnDef="edit">
+                                        <th mat-header-cell *matHeaderCellDef class="text-center title-table">
+                                            Editar
+                                        </th>
+                                        <td mat-cell *matCellDef="let row" class="text-center">
+                                            <small *ngIf="row.category_is_menu">
+                                                No aplica
+                                            </small>
+                                            <i [hidden]="row.category_is_menu" class="fa fa-pencil-square cursor-pointer text-warning btn-functions  cursor-pointer"
+                                                aria-hidden="true" (click)="editLine(row)"></i>
+                                        </td>
+                                    </ng-container>
+
+                                    <ng-container matColumnDef="delete">
+                                        <th mat-header-cell *matHeaderCellDef class="text-center title-table">
+                                            Eliminar
+                                        </th>
+                                        <td mat-cell *matCellDef="let row" class="text-center">
+                                            <small *ngIf="row.category_is_menu">
+                                                No aplica
+                                            </small>
+                                            <i [hidden]="row.category_is_menu" class="fa fa-trash text-danger cursor-pointer btn-functions cursor-pointer "
+                                                aria-hidden="true" type="button" (click)="deleteLine(row)"></i>
+                                        </td>
+                                    </ng-container>
+
+                                    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+                                    <tr mat-row *matRowDef="let row; columns: displayedColumns ; let i = index;"></tr>
+
+                                </table>
+                                <!-- [pageSizeOptions]="[10, 50]"-->
+                                <mat-paginator [pageSizeOptions]="[10, 25, 50]" #tableLines showFirstLastButtons>
+                                </mat-paginator>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>

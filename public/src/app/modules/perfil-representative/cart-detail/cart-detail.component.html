@@ -1,0 +1,546 @@
+<div class="main-content">
+  <div class="container-fluid p-0" *ngIf="productsCart">
+    <app-top-bar
+      [typeComponent]="typeComponent"
+      [provider_id]="provider_id"
+      [student_id]="student_id"
+    >
+    </app-top-bar>
+    <div class="row m-0">
+      <div class="col-sm-10"></div>
+      <div class="col-sm-2 text-center">
+        <span class="c-gray font-bold">Subtotal</span>
+      </div>
+    </div>
+    <div
+      class="row m-0 w-100 mt-2 h-max"
+      *ngFor="let product of productsCart; let i = index"
+    >
+      <div class="col-sm-10 card-content-product">
+        <div class="card card-content-product h-100">
+          <div class="row m-0 align-items-center justify-content-center h-max">
+            <div class="col-sm-6">
+              <div class="row m-0">
+                <div class="col-sm-12 pl-0 text-center">
+                  <h4 class="c-gray mb-0 font-bold">
+                    {{ product.product_name }}
+                  </h4>
+                </div>
+              </div>
+              <div class="row m-0">
+                <div class="col-sm-6">
+                  <div
+                    class="
+                      col-sm-12
+                      mx-auto
+                      p-0
+                      background-image-product
+                      p-0
+                      align-items-center
+                      justify-content-center
+                    "
+                    style="background-image: url({{product.product_images[0]}});"
+                  ></div>
+                  <div
+                    class="
+                      col-sm-12
+                      font-bold
+                      pl-0
+                      d-flex
+                      justify-content-center
+                      align-items-center
+                      text-center
+                    "
+                  >
+                    <h3 class="title-product text-warning mb-0">
+                      {{ product.product_price | currency }}
+                    </h3>
+                  </div>
+                </div>
+                <div class="col-sm-6">
+                  <div class="col-sm-12 display-col-center">
+                    <span class="span-text-description">{{
+                      product.product_description
+                    }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-sm-4 h-max">
+              <div
+                class="
+                  row
+                  p-0
+                  text-center
+                  h-max
+                  justify-content-center
+                  align-items-center
+                  h-max
+                "
+              >
+                <div class="col-8 p-0">
+                  <div class="form-group">
+                    <input
+                      readonly
+                      id="date"
+                      min="{{ minDate }}"
+                      [(ngModel)]="product.product_order_delivery_date"
+                      class="form-control cursor-pointer"
+                      placeholder="{{ product.product_order_delivery_date }}"
+                      name="dp"
+                      ngbDatepicker
+                      #d="ngbDatepicker"
+                    />
+                  </div>
+                </div>
+                <div class="col-8 p-0">
+                  <div
+                    class="card w-100 mb-0 card-content-count bg-warning pt-1"
+                  >
+                    <div class="row align-items-center justify-content-end">
+                      <div
+                        class="
+                          col-4
+                          h-100
+                          border-right
+                          d-flex
+                          justify-content-center
+                          align-items-center
+                          text-center
+                        "
+                      >
+                        <i
+                          (click)="decreaseAmount(product, i)"
+                          class="
+                            c-gray
+                            font-bold
+                            nc-icon nc-simple-delete
+                            cursor-pointer
+                            icon-small
+                          "
+                        ></i>
+                      </div>
+                      <div
+                        class="
+                          col-4
+                          h-100
+                          font-bold
+                          d-flex
+                          justify-content-center
+                          align-items-center
+                          c-gray
+                        "
+                      >
+                        {{ product.product_quantity_in_cart }}
+                      </div>
+                      <div
+                        class="
+                          col-4
+                          h-100
+                          border-left
+                          d-flex
+                          justify-content-start
+                          align-items-center
+                          pr-1
+                        "
+                      >
+                        <i
+                          (click)="increaseAmount(product, i)"
+                          class="
+                            c-gray
+                            font-bold
+                            nc-icon nc-simple-add
+                            cursor-pointer
+                            icon-small
+                          "
+                        ></i>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-sm-2 h-100">
+              <div
+                class="
+                  row
+                  p-0
+                  text-center
+                  h-100
+                  justify-content-center
+                  align-items-center
+                "
+              >
+                <i
+                  (click)="deleteProduct(product, i)"
+                  class="fa fa-trash-o text-danger fa-2x cursor-pointer"
+                  aria-hidden="true"
+                ></i>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div
+        class="
+          col-sm-2
+          text-center
+          d-flex
+          align-items-center
+          justify-content-center
+          card-content-product
+        "
+      >
+        <h2 class="c-gray font-bold">
+          {{ product.product_subtotal | currency }}
+        </h2>
+      </div>
+    </div>
+    <hr />
+    <div class="row m-0">
+      <div class="col-sm-12">
+        <div class="row m-0">
+          <div class="col-10 d-flex justify-content-end align-items-center">
+            <span class="c-gray font-bold"> Subtotal</span>
+          </div>
+          <div class="col-2 d-flex justify-content-center">
+            <h2 class="text-info font-bold m-0">
+              {{ order.order_subtotal_price | currency }}
+            </h2>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-12">
+        <div class="row m-0">
+          <div class="col-10 d-flex justify-content-end align-items-center">
+            <span class="c-gray font-bold"> Total</span>
+          </div>
+          <div class="col-2 d-flex justify-content-center">
+            <h2 class="text-primary font-bold m-0">
+              {{ order.order_total_to_pay | currency }}
+            </h2>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-12">
+        <div class="row m-0">
+          <div class="col-12 d-flex justify-content-end align-items-center">
+            <button (click)="completePurchase()" class="btn btn-primary">
+              Completar
+            </button>
+          </div>
+          <!-- <div class="col-12 d-flex justify-content-end align-items-center">
+                        <button (click)="setDataTest()" class="btn btn-primary">Setear</button>
+                    </div> -->
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- small modal -->
+<div
+  class="modal fade modal-primary"
+  id="myModalcompleteOrder"
+  tabindex="-1"
+  role="dialog"
+  aria-labelledby="myModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-lg" style="min-width: 80%">
+    <div class="modal-content">
+      <div class="modal-body pl-1 pr-1">
+        <form id="form-payment_methods" #formPaymentMethod="ngForm" novalidate>
+          <div class="row justify-content-center align-items-center p-4">
+            <h3>Confirmar método de pago</h3>
+            <div class="col-lg-12">
+              <div class="row justify-content-center align-items-center">
+                <div
+                  class="col-sm-4 text-center"
+                  (click)="order.order_payment_method = 'Efectivo'"
+                >
+                  <div
+                    class="choice border-select-payment-method {{
+                      order.order_payment_method === 'Efectivo'
+                        ? 'border-color-select'
+                        : ''
+                    }} ml-auto mr-auto"
+                  >
+                    <div
+                      class="icon  {{
+                        order.order_payment_method === 'Efectivo'
+                          ? 'is-select'
+                          : ''
+                      }}"
+                    >
+                      <i
+                        *ngIf="order.order_payment_method !== 'Efectivo'"
+                        class="nc-icon nc-money-coins"
+                      ></i>
+                      <i
+                        *ngIf="order.order_payment_method === 'Efectivo'"
+                        class="nc-icon nc-check-2 text-primary icon-peyment"
+                      ></i>
+                    </div>
+                  </div>
+                  <h6>Efectivo</h6>
+                </div>
+                <div
+                  class="col-sm-4 text-center"
+                  (click)="order.order_payment_method = 'Tarjeta'"
+                >
+                  <div
+                    class="choice  border-select-payment-method  ml-auto mr-auto {{
+                      order.order_payment_method === 'Tarjeta'
+                        ? 'border-color-select'
+                        : ''
+                    }} "
+                  >
+                    <div
+                      class="icon  {{
+                        order.order_payment_method === 'Tarjeta'
+                          ? 'is-select'
+                          : ''
+                      }}"
+                    >
+                      <i
+                        *ngIf="order.order_payment_method !== 'Tarjeta'"
+                        class="nc-icon nc-credit-card"
+                      ></i>
+                      <i
+                        *ngIf="order.order_payment_method === 'Tarjeta'"
+                        class="nc-icon nc-check-2 text-primary icon-peyment"
+                      ></i>
+                    </div>
+                  </div>
+
+                  <h6>Tarjeta</h6>
+                </div>
+              </div>
+            </div>
+
+            <div
+              class="col-lg-12"
+              *ngIf="order.order_payment_method === 'Efectivo'"
+            >
+              <div class="row m-0 justify-content-center align-items-center">
+                <div
+                  class="fileinput fileinput-new text-center"
+                  data-provides="fileinput"
+                >
+                  <div
+                    *ngIf="!order.order_image_payment_cash && !previe_url_image"
+                    class="thumbnail"
+                  >
+                    <img
+                      src="./assets/img/image_placeholder.jpg"
+                      alt="provider_image"
+                    />
+                  </div>
+                  <div
+                    *ngIf="previe_url_image && order.order_image_payment_cash"
+                    class="thumbnail"
+                  >
+                    <img src="{{ previe_url_image }}" alt="provider_image" />
+                  </div>
+                  <div
+                    *ngIf="previe_url_image && !order.order_image_payment_cash"
+                    class="thumbnail"
+                  >
+                    <img src="{{ previe_url_image }}" alt="provider_image" />
+                  </div>
+                  <!-- <div  class="fileinput-preview  thumbnail"></div> -->
+                  <div
+                    class="thumbnail"
+                    *ngIf="order.order_image_payment_cash && !previe_url_image"
+                  >
+                    <img
+                      src="{{ order.order_image_payment_cash }}"
+                      alt="provider_image"
+                    />
+                  </div>
+                  <div>
+                    <span class="btn btn-rose btn-file">
+                      <span
+                        class="fileinput-new"
+                        *ngIf="
+                          !order.order_image_payment_cash && !previe_url_image
+                        "
+                        >Seleccionar imagen</span
+                      >
+                      <span
+                        *ngIf="
+                          (!order.order_image_payment_cash &&
+                            previe_url_image) ||
+                          (order.order_image_payment_cash &&
+                            previe_url_image) ||
+                          (order.order_image_payment_cash && !previe_url_image)
+                        "
+                        >Cambiar</span
+                      >
+                      <input
+                        accept="image/*"
+                        type="file"
+                        id="provider_image"
+                        name="provider_image"
+                        (change)="fileProgress($event)"
+                      />
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <span class="text-confirm-payment-method">
+                <i class="nc-icon nc-alert-circle-i text-info icon-small"></i>
+                &nbsp; &nbsp;Para poder finalizar su compra deberá seleccionar
+                una imagen del comprobante de transferencía, recuerda que el
+                proveedor visualizará el detalle del comprobante para poder
+                confirmar la orden realizada.</span
+              >
+            </div>
+            <div
+              class="col-lg-12"
+              *ngIf="order.order_payment_method === 'Tarjeta'"
+            >
+              <div
+                *ngIf="
+                  arrayPaymentMethod.length == 0 &&
+                  provider.provider_NAME_EC_SERVER != undefined
+                "
+                class="alert alert-danger p-4"
+              >
+                No tienes métodos de pago agregados en el bar:
+                <b>{{ provider.provider_business_name | uppercase }}</b>
+              </div>
+              <div
+                *ngFor="let paymentMethod of arrayPaymentMethod"
+                class="card bg-grey"
+              >
+                <div *ngIf="order.order_total_to_pay < 1" class="row">
+                  <div class="col-12 p-3 m-3 text-center">
+                    <i class="fa fa-info-circle text-warning"></i><br />
+                    El monto mínimo para pagar con tarjeta debe ser $1 (valor
+                    actual {{ order.order_total_to_pay | currency }})
+                  </div>
+                </div>
+                <div class="row p-3">
+                  <div class="col-sm-2">
+                    <i class="fa fa-credit-card"></i>
+                  </div>
+                  <div class="col-sm-7 text-left">
+                    xxxx-xxxx-xxxx-{{ paymentMethod.number }} <br />
+                    {{ paymentMethod.holder_name }}
+                  </div>
+                  <div class="col-sm-3">
+                    <button
+                      [disabled]="order.order_total_to_pay < 1"
+                      data-toggle="modal"
+                      data-target="#modalCvc"
+                      class="btn btn-info btn-sm"
+                      (click)="selectedPaymentMethod(paymentMethod)"
+                    >
+                      Pagar
+                    </button>
+<!-- 
+                    <button
+                      [disabled]="order.order_total_to_pay < 1"
+                      (click)="finalizedWithPaymentMethod(paymentMethod)"
+                      class="btn btn-info btn-sm"
+                    >
+                      Pagar
+                    </button> -->
+                  </div>
+                </div>
+              </div>
+            </div>
+            <button
+              [disabled]="!previe_url_image"
+              [hidden]="this.order.order_payment_method === 'Tarjeta'"
+              (click)="registerOrder()"
+              type="submit"
+              class="btn btn-sm btn-success"
+            >
+              Finalizar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div
+  class="modal fade modal-primary"
+  id="modalCvc"
+  tabindex="-1"
+  role="dialog"
+  aria-labelledby="myModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-notice">
+    <div class="modal-content">
+      <div class="modal-header justify-content-center">
+        <button
+          type="button"
+          class="close"
+          data-dismiss="modal"
+          aria-label="Close"
+        >
+          <i class="nc-icon nc-simple-remove"></i>
+        </button>
+        <h4 class="title title-up">Ingrese el código CVC</h4>
+      </div>
+      <form id="form-payment_methods" #formCvc="ngForm" novalidate>
+        <div class="modal-body">
+          <div class="row p-4">
+              <div class="col-12">
+                <label class="control-label" for=""
+                >Código de seguridad o cvc
+                <span class="star">*</span>
+              </label>
+              <input
+                type="password"
+                class="form-control"
+                name="cvc"
+                [(ngModel)]="cvc"
+                required
+                maxlength="4"
+                minlength="3"
+                #cvcv="ngModel"
+                placeholder="Código de seguridad o cvc"
+                onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))"
+
+              />
+              <small
+                [hidden]="cvcv.valid || (cvcv.pristine && !formCvc.submitted)"
+                class="text-danger"
+              >
+                CVC requerido
+              </small>
+            </div>
+              </div>
+          </div>
+        <div class="modal-footer">
+          <div class="left-side mx-0">
+            <button type="button" data-dismiss="modal" class="btn btn-link btn-link">
+              Cancelar
+            </button>
+          </div>
+          <div class="divider"></div>
+          <div class="right-side mx-0">
+            <button
+            [disabled]="!cvcv.valid"
+              type="button"
+              (click)="finalizedWithPaymentMethod(paymentMethodSelected)"
+              class="btn btn-link btn-link"
+              data-dismiss="modal"
+            >
+              Confirmar
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

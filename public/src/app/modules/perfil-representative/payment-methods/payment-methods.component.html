@@ -1,0 +1,205 @@
+<div class="main-content">
+    <div class="row w-100 m-0 p-0">
+        <!-- *** numero de estudiantes *** -->
+        <div *ngFor="let paymentMethod of paymentMethodTypes" class="col-12 col-sm-6 col-md-4 col-lg-4 m-0 p-1">
+            <div class="card container-fluid-body text-center text-white p-0">
+                <div class="card-header">
+                    <h2 class="p-0 m-0 p-title">{{paymentMethod.payment_method_type_title}}</h2>
+                    <h5 class="p-0 m-0">{{paymentMethod.payment_method_type_subtitle}}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row w-100 m-0 p-0">
+                        <div class="col-12 col-md-12 m-0 p-0">
+                            <p class="p-info mb-3">{{paymentMethod.payment_method_type_description}}</p>
+                        </div>
+                        <div *ngFor="let details of paymentMethod.payment_method_type_details"
+                            class="col-12 col-md-12 text-left m-0 p-0">
+                            <li class="p-details m-0 p-0">{{details}}</li>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <p class="text-white mb-3">
+                        <button (click)="setPaymentMethod(paymentMethod.payment_method_type_value)"
+                            class="btn btn-block {{paymentMethodSelected == paymentMethod.payment_method_type_value ? 'btn-primary' : 'btn-outline'}}   text-center">
+                            {{paymentMethodSelected == paymentMethod.payment_method_type_value ? 'Seleccionado' :
+                            'Seleccionar'}}
+                        </button>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    <div class="row m-0 p-0 w-100 container-fluid-body m-0 p-0">
+        <div class="col-12 col-sm-12 col-md-12 p-1">
+            <!-- *** Pago con Tarjeta *** -->
+            <div *ngIf="paymentMethodSelected=='Tarjeta'" class="row m-1">
+                <div class="col-sm-12">
+                    <ul class="nav nav-pill nav-pills-primary nav-pills-icons" role="tablist">
+                        <li class="nav-item" *ngFor="let provider of providersList; let i = index">
+                            <a (click)="selectProviderTab(provider)" class="nav-link {{i==0?'active':''}}"
+                                data-toggle="tab" href="#pending" role="tablist">
+                                <i class="now-ui-icons objects_umbrella-13"></i>
+                                {{provider.provider_business_name}}
+                            </a>
+                        </li>
+                    </ul>
+                    <div class="row m-3 align-items-center justify-content-center">
+                        <div class="col-sm-12 p-2 col-content-products ">
+                            <div
+                                class="col-lg-6 col-md-6 col-6 p-0 col-content-category  d-flex justify-content-center pl-0  d-flex justify-content-center align-items-center">
+                                <h3 class="mb-0 font-category ">Mis métodos de pago registrados en:
+                                    {{providerSelected.provider_business_name}}</h3>
+                            </div>
+                            <div *ngIf="providerSelected.provider_NAME_EC_SERVER==undefined"
+                                class="alert alert-danger p-4">
+                                <h3>
+                                    El bar <b>{{providerSelected.provider_business_name | uppercase}}</b> no
+                                    tiene configurada la opción de pago con tarjeta
+                                </h3>
+                            </div>
+                            <div *ngIf="providerSelected.provider_NAME_EC_SERVER!=undefined" class="row">
+                                <div class="update ml-auto mr-auto">
+                                    <button type="submit" class="btn btn-primary btn-round" data-toggle="modal"
+                                        data-target="#myModaldetailPaymentMethod">
+                                        {{ 'Agregar Tarjeta' }}
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-12">
+                                    <div *ngIf="arrayPaymentMethod.length==0 && providerSelected.provider_NAME_EC_SERVER!=undefined"
+                                        class="alert alert-danger p-4">
+                                        No tienes métodos de pago agregados en el bar:
+                                        <b>{{providerSelected.provider_business_name | uppercase}}</b>
+                                    </div>
+                                    <div *ngFor="let item of arrayPaymentMethod" class="card bg-grey">
+                                        <div class="row p-3">
+                                            <div class="col-sm-2">
+                                                <i class="fa fa-credit-card"></i>
+                                            </div>
+                                            <div class="col-sm-7 text-left">
+                                                xxxx-xxxx-xxxx-{{item.number}} <br>
+                                                {{item.holder_name}}
+                                            </div>
+                                            <div class="col-sm-3">
+                                                <button (click)="deletePaymentMethod(item)" class="btn btn-danger">
+                                                    Eliminar
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div #myModaldetailPaymentMethod data-keyboard="false" data-backdrop="static" class="modal fade"
+                        id="myModaldetailPaymentMethod" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+                        aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header justify-content-center">
+                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"
+                                        (click)="searchPaymentMethod()">
+                                        <i class="nc-icon nc-simple-remove"></i>
+                                    </button>
+                                    <h4 class="title title-up">Ingresa la Tarjeta</h4>
+                                </div>
+                                <div class="modal-body">
+                                    Se agregará el método de pago en el bar:
+                                    {{providerSelected.provider_business_name}}
+
+                                    <iframe *ngIf="providerSelected.provider_name!=null" id="videoContainer"
+                                        width="100%" height="430" [src]="urlByAddPayment" frameborder="0"></iframe>
+                                </div>
+
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- *** Transferencia *** -->
+            <div *ngIf="paymentMethodSelected=='Efectivo'" class="row w-100 m-0 p-0">
+                <div class="col-sm-12 text-payment-method">
+                    <h3 class="text-white h-1">
+                        <span class="p-mini">Actualmente usas </span><span class="span-primary">Transferencia
+                            bancaria</span>
+                        <span class="p-mini">
+                            o efectivo como tu forma de pago principal.
+                            Puedes cambiarla cuando lo necesites desde
+                            tus métodos de pago.
+                        </span>
+                    </h3>
+                </div>
+
+                <div class="col-12 col-sm-6 col-md-4 col-lg-6 m-0 p-1">
+                    <div class="card card-stats container-fluid-body-dark">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-12 col-md-8">
+                                    <div class="numbers">
+                                        <h2 class="card-category">Pago a la cuenta bancaria</h2>
+                                        <h2 class="text-white mt-5 h-1">
+                                            Se mostrarán los datos al finalizar la compra
+                                        </h2>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-4 m-0 p-0">
+                                    <div class="m-0 mt-0 mb-3 text-center">
+                                        <div class=" container-fluid-body text-white text-center p-1">
+                                            <p class="p-0 m-0">
+                                                Recuerda adjuntar
+                                                el comprobante
+                                            </p>
+                                            <img src="../../../../assets/img/icons/fileUp.png" class="icon-white mx-0" alt="">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- *** Pago con DeUna! *** -->
+            <div *ngIf="paymentMethodSelected=='DeUna'" class="row w-100 m-0 p-0">
+                <div class="col-sm-12 text-payment-method">
+                    <h3 class="text-white">
+                        <span class="p-mini">Actualmente usas </span><span class="span-primary">Pago con DeUna!</span>
+                        <span class="p-mini">
+                            como tu forma de pago principal.
+                            Puedes cambiarla cuando lo necesites desde tus métodos de pago.
+                        </span>
+                    </h3>
+                </div>
+
+                <div class="col-6 col-sm-6 col-md-4 col-lg-6 m-0 p-1">
+                    <div class="card card-stats container-fluid-body-dark">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-7 col-md-8">
+                                    <div class="numbers">
+                                        <h2 class="card-category">Pago directo con DeUna!</h2>
+                                        <h2 class="text-white mt-5 h-1">
+                                            Se mostrará el Código QR para <br>
+                                            finalizar las compras
+                                        </h2>
+                                    </div>
+                                </div>
+                                <div class="col-5 col-md-4 m-0 p-0">
+                                    <div class=" mt-2 mr-3 mb-3 text-right">
+                                        <img src="../../../../assets/img/icons/deuna.png" class="icon-big" alt=""
+                                            srcset="">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

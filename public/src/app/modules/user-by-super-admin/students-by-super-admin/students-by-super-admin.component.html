@@ -1,0 +1,415 @@
+<div class="main-content">
+    <div class="container-fluid p-0">
+        <div class="col-sm-12 collapse multi-collapse" id="multiCollapseStudents">
+            <div class="card">
+                <div class="card-header">
+                    <div class="row m-0">
+                        <div class="col-6 p-0">
+                            <h5>Edición de Estudiante</h5>
+                        </div>
+
+                    </div>
+
+                </div>
+                <div class="card-body">
+                    <form #formStudent="ngForm" novalidate
+                        (ngSubmit)="updateStudent(formStudent.value, formStudent.valid , formStudent)">
+                        <div class="card-header ">
+                            <div class="row m-0">
+                                <div class="col-sm-6 d-flex align-items-center p-0 ">
+                                    <span class="text-info">Estudiante</span> &nbsp; {{student.student_name}}
+
+                                </div>
+                                <div class="col-sm-6 p-0 d-flex align-items-start justify-content-end">
+                                    <div class="fileinput fileinput-new text-center" data-provides="fileinput">
+                                        <div *ngIf="student && !student.student_img"
+                                            class="fileinput-new thumbnail img-circle">
+                                            <img src="./assets/img/placeholder.jpg" alt="...">
+                                        </div>
+                                        <div *ngIf="student && student.student_img" class=" thumbnail  img-circle">
+                                            <img src="{{student.student_img}}" alt="...">
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                        <div class="card-body">
+                            <div class="row m-0 ">
+                                <div class="col-sm-12 p-0">
+                                    <div class="form-group has-label">
+                                        <div class="row m-0 align-items-center ">
+                                            <div class="col-sm-4">
+                                                <label class="control-label" for="">Identificación:
+                                                    <span class="star">*</span>
+                                                </label>
+                                                <input type="text" class="form-control" name="student_identification"
+                                                    [(ngModel)]="student.student_identification" required
+                                                    #student_identification="ngModel">
+                                                <small
+                                                    [hidden]="student_identification.valid || (student_identification.pristine && !formStudent.submitted)"
+                                                    class="text-danger">
+                                                    Identificación es requerido.
+                                                </small>
+                                            </div>
+
+                                            <div class="col-sm-4">
+                                                <label class="control-label" for="">Nombre:
+                                                    <span class="star">*</span>
+                                                </label>
+                                                <input type="text" class="form-control" name="student_name"
+                                                    [(ngModel)]="student.student_name" required #student_name="ngModel">
+                                                <small
+                                                    [hidden]="student_name.valid || (student_name.pristine && !formStudent.submitted)"
+                                                    class="text-danger">
+                                                    Nombre es requerido.
+                                                </small>
+                                            </div>
+                                            <div class="col-sm-3">
+                                                <label class="control-label" for="">Apellido:
+                                                    <span class="star">*</span>
+                                                </label>
+                                                <input type="text" class="form-control" name="student_lastname"
+                                                    [(ngModel)]="student.student_lastname" required
+                                                    #student_lastname="ngModel">
+                                                <small
+                                                    [hidden]="student_lastname.valid || (student_lastname.pristine && !formStudent.submitted)"
+                                                    class="text-danger">
+                                                    Apellido es requerido.
+                                                </small>
+                                            </div>
+
+                                        </div>
+                                        <div class="form-group has-label">
+                                            <div class="row m-0 align-items-center ">
+                                                <div class="col-sm-4">
+                                                    <label class="control-label" for="">Email:
+                                                        <span class="star">*</span>
+                                                    </label>
+                                                    <input type="email" class="form-control" name="student_email"
+                                                        [(ngModel)]="student.student_email" required
+                                                        #student_email="ngModel"
+                                                        pattern="^[a-zA-Z0-9_.+\-]+@[a-zA-Z0-9\-]+\.[a-zA-Z0-9\-\.]+$">
+                                                    <small
+                                                        [hidden]="student_email.valid || (student_email.pristine && !formStudent.submitted)"
+                                                        class="text-danger">
+                                                        Email es requerido.
+                                                    </small>
+                                                </div>
+
+                                                <div class="col-sm-4">
+                                                    <label class="control-label" for="">Móvil:
+                                                    </label>
+                                                    <input onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))"  type="text" class="form-control" name="student_phone"
+                                                        [(ngModel)]="student.student_phone" #student_phone="ngModel"
+                                                        minlength="9" maxlength="10">
+
+                                                </div>
+                                                <div class="col-sm-4">
+                                                    <label class="control-label" for="">Género:
+                                                    </label>
+
+                                                    <div class="btn-group  w-100">
+                                                        <!-- <select [(ngModel)]="student.student_gender"
+                                                            name="student_gender" id="group_line"
+                                                            class="form-control w-100" data-size="7"
+                                                            title="Single Select">
+                                                            <option disabled selected>Seleccione
+                                                            </option>
+                                                            <option *ngFor="let gender of array_gender"
+                                                                [value]="gender">{{gender}}</option>
+                                                        </select> -->
+                                                        <mat-select name="student_gender" placeholder="Seleccione"
+                                                            panelClass="Seleccione" class=" form-control"
+                                                            [(ngModel)]="student.student_gender">
+                                                            <mat-option *ngFor="let gender of array_gender"
+                                                                [value]="gender">{{gender}}
+                                                            </mat-option>
+                                                        </mat-select>
+                                                    </div>
+
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="form-group has-label">
+                                            <div class="row m-0 align-items-center ">
+
+                                                <div class="col-sm-4">
+                                                    <label class="control-label" for="">Níveles:
+                                                    </label>
+
+                                                    <div class="btn-group  w-100">
+                                                        <!-- <select (change)="selectLevel($event)" [(ngModel)]="student.student_level"
+                                                            name="student_level" id="student_level"
+                                                            class="form-control w-100" data-size="7"
+                                                            title="Single Select">
+                                                            <option disabled selected>Seleccione
+                                                            </option>
+                                                            <option *ngFor="let level of levels"
+                                                                [value]="level.level_id">
+                                                                {{level.level_name}}</option>
+                                                        </select> -->
+                                                        <mat-select name="student_level" placeholder="Seleccione"
+                                                            panelClass="Seleccione" class=" form-control"
+                                                            (selectionChange)="selectLevel($event)"
+                                                            [(ngModel)]="student.student_level">
+                                                            <mat-option *ngFor="let level of levels"
+                                                                [value]="level.level_id">{{level.level_name}}
+                                                            </mat-option>
+                                                        </mat-select>
+                                                    </div>
+
+                                                </div>
+                                                <div class="col-sm-4">
+                                                    <label class="control-label" for="">Paralelos:
+                                                    </label>
+                                                    <div class="btn-group  w-100">
+                                                        <!-- <select  [(ngModel)]="student.student_parallel"
+                                                            name="student_parallel" id="group_line"
+                                                            class="form-control w-100" data-size="7"
+                                                            title="Single Select">
+                                                            <option selected="true" disabled="disabled">Seleccione
+                                                            </option>
+                                                            <option *ngFor="let parallel of parallels"
+                                                                [value]="parallel.parallel_id">
+                                                                {{parallel.parallel_name}}</option>
+                                                        </select> -->
+                                                        <mat-select name="student_parallel" placeholder="Seleccione"
+                                                            panelClass="Seleccione" class=" form-control"
+                                                            [(ngModel)]="student.student_parallel">
+                                                            <mat-option *ngFor="let parallel of parallels"
+                                                                [value]="parallel.parallel_id">
+                                                                {{parallel.parallel_name}}
+                                                            </mat-option>
+                                                        </mat-select>
+                                                    </div>
+
+                                                </div>
+                                                <div class="col-sm-4">
+                                                    <label class="control-label" for="">Fecha de
+                                                        nacimiento:
+                                                    </label>
+                                                    <input type="date" class="form-control" name="student_date_of_birth"
+                                                        [(ngModel)]="student.student_date_of_birth"
+                                                        #student_date_of_birth="ngModel">
+
+                                                </div>
+
+                                            </div>
+                                        </div>
+                                        <div class="form-group has-label">
+                                            <div class="row m-0 align-items-center ">
+
+                                                <div class="col-sm-4">
+                                                    <label class="control-label" for="">Dirección:
+                                                        <span class="star">*</span>
+                                                    </label>
+                                                    <input type="text" class="form-control" name="student_address"
+                                                        [(ngModel)]="student.student_address" required
+                                                        #student_address="ngModel">
+                                                    <small
+                                                        [hidden]="student_address.valid || (student_address.pristine && !formStudent.submitted)"
+                                                        class="text-danger">
+                                                        Dirección es requerida.
+                                                    </small>
+                                                </div>
+                                                <div class="col-sm-4">
+                                                    <div class="col-sm-4">
+                                                        <label class="control-label" for="">Estado:
+                                                        </label>
+                                                        <br>
+                                                        <bSwitch disabled name="group_state"
+                                                            [(ngModel)]="student.student_state"
+                                                            [switch-on-color]="'primary'" [switch-off-color]="'primary'"
+                                                            [switch-off-text]="'&#x2715;'"
+                                                            [switch-on-text]="'&#x2714;'">
+                                                        </bSwitch>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="category"> <span class="star">*</span> Campos obligatorios.
+                            </div>
+
+                        </div>
+                        <div class="card-footer  d-flex align-items-end justify-content-center p-0 ">
+                            <div class="row m-0 w-100  ">
+                                <div class="col-6 p-0 d-flex justify-content-start align-items-end">
+                                    <div (click)="viewTableRepresentative()" class="nav-tabs-wrapper">
+                                        <ul id="tabs" class="nav nav-tabs pb-2" role="tablist">
+                                            <li class="nav-item pb-2">
+                                                <a class="nav-link text-info-representative text-info cursor-pointer "
+                                                    data-toggle="tab" href="#info" role="tab" aria-expanded="true">
+                                                    <i class="fa fa-info-circle" aria-hidden="true"></i> &nbsp;
+                                                    Información del representante</a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="col-6 p-0 d-flex justify-content-end align-items-end">
+                                    <div class="col-4 p-0 d-flex align-items-end mt-2">
+                                        <button type="submit" class="btn btn-primary text-btn-form">Registrar</button>
+                                    </div>
+                                    <div class="col-4 p-0 d-flex align-items-end mt-3">
+                                        <button type="button" (click)="cancelForm()"
+                                            class="btn btn-danger text-btn-form">Cancelar</button>
+                                    </div>
+                                </div>
+                                <div id="my-tab-content" class="col-12 tab-content text-center">
+                                    <div class="tab-pane mt-3" id="info" role="tabpanel" aria-expanded="true">
+                                        <div class="" *ngIf="representative">
+                                            <table class="table">
+                                                <thead class="">
+                                                    <th>
+                                                        Nombre
+                                                    </th>
+                                                    <th>
+                                                        Apellido
+                                                    </th>
+                                                    <th>
+                                                        Dirección
+                                                    </th>
+                                                    <th>
+                                                        Email
+                                                    </th>
+                                                    <th class="text-right">
+                                                        Teléfono
+                                                    </th>
+                                                </thead>
+                                                <tbody>
+                                                    <tr>
+                                                        <td>
+                                                            {{representative.representative_name}}
+                                                        </td>
+                                                        <td>
+                                                            {{representative.representative_surname}}
+                                                        </td>
+                                                        <td>
+                                                            {{representative.representative_address}}
+                                                        </td>
+                                                        <td class="text-right">
+                                                            {{representative.representative_email}}
+                                                        </td>
+                                                        <td>
+                                                            {{representative.representative_mobile}}
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <!-- LISTA - LISTA REPRESENTANTES -->
+        <div class="row m-0">
+            <div class="col-sm-12 p-0">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="col-12 p-0 ">
+                            <div class="row m-0">
+                                <div class="col-sm-6 d-flex justify-content-start">
+
+                                </div>
+                                <div class="col-sm-6 p-0 d-flex justify-content-end">
+                                    <!-- <div class="container"> -->
+                                    <mat-form-field>
+                                        <mat-label>Buscar</mat-label>
+                                        <input matInput (keyup)="applyFilter($event)" class="input-search-table" #input>
+                                    </mat-form-field>
+                                    <!-- </div> -->
+                                </div>
+                            </div>
+
+                            <div class="col-12 p-0 w-100">
+
+                                <table #table mat-table matSort [dataSource]="dataSource"
+                                    class="mat-elevation-z8 table-reponsives table-bordered" style="min-width: 100%;">
+
+                                    <ng-container matColumnDef="identification">
+                                        <th mat-header-cell *matHeaderCellDef class="text-center title-table">
+                                            Código </th>
+                                        <td mat-cell *matCellDef="let row" class="text-center">
+                                            <span>{{row.student_id
+                                                |
+                                                slice:6}}</span>
+                                        </td>
+                                    </ng-container>
+                                    <ng-container matColumnDef="name">
+                                        <th mat-header-cell *matHeaderCellDef class="text-center title-table">
+                                            Nombre </th>
+                                        <td mat-cell *matCellDef="let row" class="text-center">
+                                            <span>{{row.student_name}}</span>
+                                        </td>
+                                    </ng-container>
+                                    <ng-container matColumnDef="lastname">
+                                        <th mat-header-cell *matHeaderCellDef class="text-center title-table">
+                                            Apellido </th>
+                                        <td mat-cell *matCellDef="let row" class="text-center">
+                                            <span>{{row.student_lastname | slice:0:20}}</span>
+                                        </td>
+                                    </ng-container>
+
+
+                                    <ng-container matColumnDef="email">
+                                        <th mat-header-cell *matHeaderCellDef class="text-center title-table">
+                                            Email </th>
+                                        <td mat-cell *matCellDef="let row" class="text-center">
+                                            <span>{{row.student_email }}</span>
+
+                                        </td>
+                                    </ng-container>
+                                    <ng-container matColumnDef="phone">
+                                        <th mat-header-cell *matHeaderCellDef class="text-center title-table">
+                                            Teléfono </th>
+                                        <td mat-cell *matCellDef="let row" class="text-center">
+                                            <span>{{row.student_phone }}</span>
+
+                                        </td>
+                                    </ng-container>
+
+                                    <ng-container matColumnDef="address">
+                                        <th mat-header-cell *matHeaderCellDef class="text-center title-table">
+                                            Dirección </th>
+                                        <td mat-cell *matCellDef="let row" class="text-center">
+                                            <span>{{row.student_address }}</span>
+
+                                        </td>
+                                    </ng-container>
+                                    <ng-container matColumnDef="edit">
+                                        <th mat-header-cell *matHeaderCellDef class="text-center title-table">
+                                            Editar
+                                        </th>
+                                        <td mat-cell *matCellDef="let row" class="text-center">
+                                            <i class="fa fa-pencil-square cursor-pointer text-warning btn-functions  cursor-pointer"
+                                                aria-hidden="true" (click)="editStudent(row)"></i>
+                                        </td>
+                                    </ng-container>
+
+                                    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+                                    <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+
+                                </table>
+                                <!-- [pageSizeOptions]="[10, 50]"-->
+                                <mat-paginator #tableStudents [pageSizeOptions]="[10, 25, 50]" showFirstLastButtons>
+                                </mat-paginator>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>

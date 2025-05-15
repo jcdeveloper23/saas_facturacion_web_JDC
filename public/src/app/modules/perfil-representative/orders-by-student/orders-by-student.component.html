@@ -1,0 +1,237 @@
+<div class="main-content">
+  <div class="container-fluid">
+    <div class="">
+      <div class="row  ">
+        <div class="card-body col-sm-12  bg-green text-center text-white">
+          <h1> Pedidos de {{student.student_name}} {{student.student_lastname}}</h1>
+        </div>
+
+        <div class="col-md-12 ml-auto mr-auto">
+          <div class="card card-plain card-subcategories">
+
+            <div class="card-body ">
+              <div class="row">
+                <div class="col-sm-2">
+                  <div (click)="goBehind()"
+                    class="col-1 div-content-behind d-flex justify-content-center align-items-center cursor-pointer  ">
+                    <i class="fa fa-arrow-left"></i>
+                  </div>
+                </div>
+                <div class="col-sm-10">
+                  <ul class="nav nav-pills nav-pills-primary nav-pills-icons" role="tablist">
+                    <li class="nav-item">
+                      <a class="nav-link active" data-toggle="tab" href="#pending" role="tablist">
+                        <i class="now-ui-icons objects_umbrella-13"></i> Pendiente
+                      </a>
+                    </li>
+    
+                    <li class="nav-item">
+                      <a class="nav-link" data-toggle="tab" href="#delivered" role="tablist">
+                        <i class="now-ui-icons ui-2_settings-90"></i> Entregados
+                      </a>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+              
+              <div class="tab-content tab-space tab-subcategories">
+                <div class="tab-pane active" id="pending">
+                  <div class="col-12 p-0 w-100 alert alert-danger text-center"
+                    *ngIf="arrayOrders && arrayOrders.length === 0">
+                    <i class="fa fa-info-circle"></i><br>
+                    <span>No hay ordenes pendientes.</span>
+                  </div>
+                  <div class="card p-3" *ngFor="let order of arrayOrders">
+                    <div class="row justify-content-center">
+                      <div class="col-sm-2">
+                        <h3>Orden</h3>
+                        #{{order.order_transaccion_id | slice:8}}
+                      </div>
+                      <div class="col-sm-2">
+                        <h3>Total</h3>
+                        ${{order.order_total_to_pay.toFixed(2)}}
+                      </div>
+                      <div class="col-sm-3">
+                        <h3>Fecha de la orden</h3>
+                        {{order.order_date}}
+                      </div>
+                      <div class="col-sm-3">
+                        <h3>Estado del pago</h3>
+                        <span class="state-order" *ngIf="!order.order_state_payment_method_string">
+                          <i class="nc-icon nc-refresh-69 text-warning font-bold">
+                          </i> &nbsp; En espera
+                        </span>
+                        <span *ngIf="order.order_state_payment_method_string === 'Rechazada'" class="state-order">
+                          <i class="nc-icon nc-simple-remove text-danger font-bold"></i> Rechazado
+                        </span>
+                        <span *ngIf="order.order_state_payment_method_string === 'Aceptada'" class="state-order">
+                          <i class="nc-icon nc-check-2 text-success font-bold"></i> Aprobado
+                        </span>
+                      </div>
+                      <div class="col-sm-2">
+                        <h3>Detalles</h3>
+                        <button (click)="viewProducts(order)" class="btn btn-primary btn-sm mt-0">
+                          Detalles
+                        </button>
+                      </div>
+
+                    </div>
+                  </div>
+                </div>
+
+                <div class="tab-pane" id="delivered">
+                  <div class="col-12 p-0 w-100 alert alert-danger text-center"
+                    *ngIf="arrayOrdersDelivered && arrayOrdersDelivered.length === 0">
+                    <i class="fa fa-info-circle"></i><br>
+                    <span>No hay ordenes entregadas.</span>
+                  </div>
+                  <div class="card p-3" *ngFor="let order of arrayOrdersDelivered">
+                    <div class="row">
+                      <div class="col-sm-3">
+                        <h3>Orden</h3>
+                        #{{order.order_transaccion_id | slice:8}}
+                      </div>
+                      <div class="col-sm-3">
+                        <h3>Total</h3>
+                        ${{order.order_total_to_pay.toFixed(2)}}
+                      </div>
+                      <div class="col-sm-3">
+                        <h3>Fecha de la orden</h3>
+                        {{order.order_date}}
+                      </div>
+                      <div class="col-sm-3">
+                        <h3>Detalles</h3>
+                        <button (click)="viewProducts(order)" class="btn btn-primary">
+                          Detalles
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- small modal -->
+  <div class="modal fade modal-primary" id="modalDetailsOrder" tabindex="-1" role="dialog"
+    aria-labelledby="modalDetailsOrderLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header justify-content-center bg-green">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <i class="nc-icon nc-simple-remove"></i>
+          </button>
+          <h4 class="title title-up text-white">Pedidos de {{student.student_name}} {{student.student_lastname}}</h4>
+        </div>
+        <div class="modal-body pl-1 pr-1" *ngIf="array_products">
+          <div class="col-12 p-0">
+            <div class="row m-0" *ngIf="order_detail">
+              <div class="col-6 mt-1">
+                <span>Orden:</span> &nbsp; <span>{{order_detail.order_transaccion_id}}</span>
+              </div>
+              <div class="col-6 mt-1">
+                <span>Método de pago:</span> &nbsp; <span>{{order_detail.order_payment_method}}</span>
+              </div>
+              <div class="col-6 mt-1">
+                <span>Fecha de orden:</span> &nbsp; <span>{{order_detail.order_date | date}}</span>
+              </div>
+              <div class="col-6 mt-1">
+                <span>Valor total de orden:</span> &nbsp; <span>{{order_detail.order_total_to_pay | currency}}</span>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 p-0 ">
+            <table class="table table-bordered ">
+              <thead>
+                <tr>
+                  <th scope="col" class="text-center">#</th>
+                  <th scope="col" class="text-center">Imagen</th>
+                  <th scope="col" class="text-center">Producto</th>
+                  <th scope="col" class="text-center">Descripción</th>
+                  <th scope="col" class="text-center">Fecha</th>
+                  <th scope="col" class="text-center">Típo de entrega</th>
+                  <th scope="col" class="text-center">Cant</th>
+                  <th scope="col" class="text-center">P.U</th>
+                  <th scope="col" class="text-center">Subtotal</th>
+                  <th scope="col" class="text-center">Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let product of array_products , let i = index">
+                  <td scope="row">{{i + 1}}</td>
+                  <td>
+                    <div class="pt-1 pb-1">
+                      <div class="img-ontent-product-table "
+                        style="background-image: url({{product.product_images[0]}}); background-size: contain;">
+                      </div>
+                    </div>
+                  </td>
+                  <td class="text-center">{{product.product_name}} </td>
+                  <td class="text-center">{{product.product_description |slice:0:30}}</td>
+                  <td class="text-center">{{product.product_order_delivery_date | date }}</td>
+                  <td class="text-center">
+                    <span class="text-warning font-text-bold "
+                      *ngIf="product.product_delivery_method === 'i withdraw'">Retiro</span>
+                    <span class="text-warning font-text-bold "
+                      *ngIf="product.product_delivery_method === 'delivery'">Delivery</span>
+
+                  </td>
+
+                  <td class="text-center">{{product.product_quantity_in_cart}}</td>
+                  <td class="text-center">{{product.product_price | currency}}</td>
+                  <td class="text-center"> {{product.product_subtotal | currency}}</td>
+                  <td class="text-center">
+                    <i *ngIf="product.product_state_in_order" class="fa fa-check text-success"></i>
+                    <i *ngIf="!product.product_state_in_order" class="fa fa-close text-danger"></i><br>
+                    <small>{{product.product_delivery_date}} {{product.product_dalivery_time}}</small>
+                  </td>
+                </tr>
+
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <div class="left-side mx-0">
+            <!-- <button type="button" class="btn btn-default btn-link" data-dismiss="modal">Never mind</button> -->
+          </div>
+          <!-- <div class="divider"></div> -->
+          <div class="right-side mx-0">
+            <button type="button" data-dismiss="modal" class="btn btn-danger btn-link">Cerrar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="modal fade" id="modalDetailsOrder1" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header justify-content-center">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <i class="nc-icon nc-simple-remove"></i>
+          </button>
+          <h4 class="title title-up">Modal title</h4>
+        </div>
+        <div class="modal-body">
+          <!-- {{product.product_order_delivery_date}} -->
+        </div>
+        <div class="modal-footer">
+          <div class="left-side mx-0">
+            <button type="button" class="btn btn-default btn-link" data-dismiss="modal">Never mind</button>
+          </div>
+          <div class="divider"></div>
+          <div class="right-side mx-0">
+            <button type="button" class="btn btn-danger btn-link">Delete</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>

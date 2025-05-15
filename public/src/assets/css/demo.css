@@ -1,0 +1,418 @@
+/*!
+
+ =========================================================
+ * Paper Dashboard Pro Angular - v1.4.0
+ =========================================================
+
+ * Product Page:  /product/paper-dashboard-pro-angular
+ * Copyright 2020 Creative Tim (http://www.creative-tim.com)
+
+ =========================================================
+
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+ */
+:root {
+  /* color */
+  --primary: #4880FF;
+  --bgDark: #1B2431;
+  --bgLight: #323D4E;
+  --bgLightTwo: #455266;
+  --secondary: #273142;
+  --green: #00B69B;
+  --greenCard: #4AD991;
+  --red: #F93C65;
+
+  --accent: #295474;
+
+  /* transitions speeds */
+  --transition-speed: 0.3s;
+}
+
+.tim-row {
+  margin-bottom: 20px;
+}
+
+.tim-white-buttons {
+  background-color: #777777;
+}
+
+.typography-line {
+  padding-left: 25%;
+  margin-bottom: 35px;
+  position: relative;
+  display: block;
+  width: 100%;
+}
+
+.typography-line span {
+  bottom: 10px;
+  color: #c0c1c2;
+  display: block;
+  font-weight: 400;
+  font-size: 13px;
+  line-height: 13px;
+  left: 0;
+  position: absolute;
+  width: 260px;
+  text-transform: none;
+}
+
+.tim-row {
+  padding-top: 60px;
+}
+
+.tim-row h3 {
+  margin-top: 0;
+}
+
+.offline-doc .page-header {
+  display: flex;
+  align-items: center;
+}
+
+.offline-doc .footer {
+  position: absolute;
+  width: 100%;
+  background: transparent;
+  bottom: 0;
+  color: #fff;
+  z-index: 1;
+}
+
+#map {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+}
+
+.demo-iconshtml {
+  font-size: 62.5%;
+}
+
+.demo-icons body {
+  font-size: 1.6rem;
+  font-family: 'Montserrat';
+  color: #333333;
+  background: white;
+}
+
+.demo-icons a {
+  color: #608CEE;
+  text-decoration: none;
+}
+
+.demo-icons header {
+  text-align: center;
+  padding: 100px 0 0;
+}
+
+.demo-icons header h1 {
+  font-size: 2.8rem;
+}
+
+.demo-icons header p {
+  font-size: 1.4rem;
+  margin-top: 1em;
+}
+
+.demo-icons header a:hover {
+  text-decoration: underline;
+}
+
+.demo-icons .nc-icon {
+  font-size: 34px;
+}
+
+.demo-icons section h2 {
+  border-bottom: 1px solid #e2e2e2;
+  padding: 0 0 1em .2em;
+  margin-bottom: 1em;
+}
+
+.demo-icons ul {
+  padding-left: 0;
+}
+
+.demo-icons ul::after {
+  clear: both;
+  content: "";
+  display: table;
+}
+
+.demo-icons ul li {
+  width: 20%;
+  float: left;
+  padding: 16px 0;
+  text-align: center;
+  border-radius: .25em;
+  -webkit-transition: background 0.2s;
+  -moz-transition: background 0.2s;
+  transition: background 0.2s;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  overflow: hidden;
+}
+
+.demo-icons ul li:hover {
+  background: #f4f4f4;
+}
+
+.demo-icons ul p,
+.demo-icons ul em,
+.demo-icons ul input {
+  display: inline-block;
+  font-size: 1rem;
+  color: #999999;
+  -webkit-user-select: auto;
+  -moz-user-select: auto;
+  -ms-user-select: auto;
+  user-select: auto;
+  white-space: nowrap;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.demo-icons ul p {
+  padding: 20px 0 0;
+  font-size: 12px;
+  margin: 0;
+}
+
+.demo-icons ul p::selection,
+.demo-icons ul em::selection {
+  background: #608CEE;
+  color: #efefef;
+}
+
+.demo-icons ul em {
+  font-size: 12px;
+}
+
+.demo-icons ul em::before {
+  content: '[';
+}
+
+.demo-icons ul em::after {
+  content: ']';
+}
+
+.demo-icons ul input {
+  text-align: center;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  outline: none;
+  display: none;
+}
+
+.container-fluid-body {
+  padding-right: 10px;
+  padding-left: 10px;
+  background-color: var(--secondary);
+  border-radius: 10px;
+}
+
+.container-fluid-body-light {
+  padding-right: 10px;
+  padding-left: 10px;
+  background-color: var(--bgLight);
+  border-radius: 10px;
+}
+
+.container-fluid-body-dark {
+  padding-right: 10px;
+  padding-left: 10px;
+  background-color: var(--bgDark);
+  border-radius: 10px;
+}
+
+.card-category,
+.card-title {
+  color: #FFFFFF !important;
+}
+
+.icon-mini {
+  width: 22px;
+}
+
+.w-100 {
+  width: 100% !important;
+}
+
+.form-control {
+  background-color: var(--bgLight);
+  height: 40px;
+  border: none !important;
+  color: #FFFFFF;
+}
+
+.form-control:focus {
+  background-color: var(--bgDark);
+  color: #FFFFFF;
+}
+
+input:-webkit-autofill {
+  background-color: var(--bgLight) !important;
+  /* Color azul claro */
+  color: #FFFFFF !important;
+  box-shadow: 0 0 0px 1000px var(--bgLight) inset !important;
+  /* Cambia el fondo */
+  transition: background-color 5000s ease-in-out 0s;
+  /* Elimina transición brusca */
+}
+
+input:-webkit-autofill::first-line {
+  color: #FFFFFF;
+}
+
+
+.control-label {
+  margin-top: 15px;
+  color: #FFFFFF !important;
+}
+
+.white-text-select .mat-select-value {
+  color: white !important;
+}
+
+.white-text-select .mat-select-placeholder {
+  color: white !important;
+  opacity: 1 !important;
+  /* Asegura que no esté desvanecido */
+}
+
+.border-dashed {
+  border: 2px dashed var(--bgLightTwo);
+  border-radius: 10px;
+  padding: 10px;
+}
+.avatar {
+  min-width: 130px !important;
+  min-height: 130px !important;
+  max-width: 130px !important;
+  max-height: 140px !important;
+  margin: 0 auto !important;
+  border-radius: 10px !important;
+  border: none !important;
+}
+
+.badge-secondary {
+  background-color: var(--bgDark);
+  font-size: 16px;
+}
+
+.border-none {
+  border: none !important;
+}
+
+.btn-close {
+  position: absolute;
+  right: 20px;
+  top: 1px;
+  float: right;
+}
+
+.p-mini {
+  font-size: 14px;
+  line-height: 1;
+  text-align: justify;
+  text-transform: none;
+}
+
+.span-primary {
+  color: #4880FF;
+  font-weight: bold;
+}
+
+.btn-danger-outline {
+  border: 1px solid var(--red);
+  background-color: white;
+  color: var(--red);
+  align-items: center;
+  align-items: center;
+  padding: 10px;
+  gap: 0.5rem;
+  text-decoration: none !important;
+  text-transform: none;
+}
+
+.btn-danger-outline:hover {
+  background-color: var(--red) !important;
+  color: #fff;
+  border: 1px solid var(--red);
+}
+
+.bg-purple-dark-img {
+  background-color: var(--bgLight);
+  border-top-right-radius: 10px;
+  border-top-left-radius: 10px;
+  min-height: 100px;
+  max-height: 100px;
+}
+.bg-purple-dark {
+  background-color: #8280FF;
+  border-radius: 10px;
+  width: 60px;
+  height: 60px;
+  float: right;
+}
+
+.bg-green-dark {
+  background-color: var(--greenCard);
+  border-radius: 10px;
+  width: 60px;
+  height: 60px;
+  float: right;
+}
+
+.bg-yellow-dark {
+  background-color: #FEC53D;
+  border-radius: 10px;
+  width: 60px;
+  height: 60px;
+  float: right;
+}
+
+/* .mat-table {
+  background-color: white !important;
+  color: black !important;
+  transition: none !important;
+  box-shadow: none !important;
+}
+
+.mat-paginator {
+  background-color: white !important;
+  color: black !important;
+}
+
+.mat-header-cell,
+.mat-cell {
+  color: black !important;
+
+}
+
+.bg-green {
+  background-color: #99CC33
+}
+
+;
+
+.mat-button.mat-primary.mat-button-disabled,
+.mat-button.mat-accent.mat-button-disabled,
+.mat-button.mat-warn.mat-button-disabled,
+.mat-button.mat-button-disabled.mat-button-disabled,
+.mat-icon-button.mat-primary.mat-button-disabled,
+.mat-icon-button.mat-accent.mat-button-disabled,
+.mat-icon-button.mat-warn.mat-button-disabled,
+.mat-icon-button.mat-button-disabled.mat-button-disabled,
+.mat-stroked-button.mat-primary.mat-button-disabled,
+.mat-stroked-button.mat-accent.mat-button-disabled,
+.mat-stroked-button.mat-warn.mat-button-disabled,
+.mat-stroked-button.mat-button-disabled.mat-button-disabled {
+  color: #1BCF92 !important;
+} */

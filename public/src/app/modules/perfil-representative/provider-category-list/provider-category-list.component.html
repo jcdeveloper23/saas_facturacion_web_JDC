@@ -1,0 +1,32 @@
+<div class="main-content">
+    <div class="container-fluid p-0">
+        <app-top-bar [info_provider]="info_provider" [student_id]="student_id"></app-top-bar>
+        <div class="row m-0 ">
+            <div class="col-sm-12">
+                <div (click)="goBehind()"  class="col-1 div-content-behind d-flex justify-content-center align-items-center cursor-pointer  ">
+                    <i class="fa fa-arrow-left"></i>
+                </div>
+            </div>
+          
+           
+        </div>
+        <div class="row m-0 mt-3">
+            <div class="col-sm-3" *ngFor="let level of categoriesList">
+                <div class="card cursor-pointer  " (click)="selectCategory(level , '')" >
+                    <div class="card-body text-center ">
+                        <h2 class="card-title ">{{level.category_name}}</h2>
+                        <button  class="btn btn-primary btn-round ">Seleccionar</button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-3" *ngIf="categoriesList && categoriesList.length > 0">
+                <div class="card ">
+                    <div class="card-body text-center ">
+                        <h3 class="card-title ">Todos</h3>
+                        <button (click)="selectCategory({},'todos')" class="btn btn-primary btn-round ">Seleccionar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

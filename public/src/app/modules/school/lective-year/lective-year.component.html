@@ -1,0 +1,172 @@
+<div class="row" class="collapse multi-collapse " id="multiCollapseLectiveYear">
+	<div class="col-sm-12 p-0">
+		<div class="card">
+			<form #formLectiveYear="ngForm" novalidate (ngSubmit)="saveLectiveYear(formLectiveYear.valid, formLectiveYear)">
+				<div class="card-header ">
+					<h4 class="card-title">{{isEdit ? 'Editar' : 'Nuevo'}} Año Lectivo</h4>
+				</div>
+				<div class="card-body">
+					<div class="row">
+						<div class="col-sm-12">
+							<div class="form-group has-label">
+								<div class="row">
+									<div class="col-sm-6">
+										<label class="control-label" for="">Código:
+											<span class="star">*</span>
+										</label>
+										<input readonly type="text" class="form-control" name="lectiveYear_id"
+										       [(ngModel)]="lectiveYear.lective_year_id" required #lectiveYear_id="ngModel">
+										<small
+												[hidden]="lectiveYear_id.valid || (lectiveYear_id.pristine && !formLectiveYear.submitted)"
+												class="text-danger">
+											Código es requerido.
+										</small>
+									</div>
+									<div class="col-sm-6">
+										<label class="control-label" for="">Nombre:
+											<span class="star">*</span>
+										</label>
+										<input type="text" class="form-control" name="lectiveYear_name"
+										       [(ngModel)]="lectiveYear.lective_year_name" required #lectiveYear_name="ngModel">
+										<small
+												[hidden]="lectiveYear_name.valid || (lectiveYear_name.pristine && !formLectiveYear.submitted)"
+												class="text-danger">
+											Descripción es requerida.
+										</small>
+									</div>
+								</div>
+								<br>
+								<div class="row">
+									<div class="col-sm-6">
+										<div class="form-group"> <!-- Date input -->
+											<label class="control-label" for="">Inicio
+												<span class="star">*</span>
+											</label>
+											<input type="date" class="form-control"
+											       required
+											       name="lective_year_init_date"
+											       [(ngModel)]="lectiveYear.lective_year_init_date"
+											       #lective_year_init_date="ngModel">
+										</div>
+									</div>
+									<div class="col-sm-6">
+										<div class="form-group"> <!-- Date input -->
+											<label class="control-label" for="">Fin
+												<span class="star">*</span>
+											</label>
+											<input type="date" class="form-control"
+											       required
+											       name="lective_year_finish_date"
+											       [(ngModel)]="lectiveYear.lective_year_finish_date"
+											       #lective_year_finish_date="ngModel">
+										</div>
+									</div>
+								</div>
+							
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="card-footer border-top">
+					<div class="row">
+						<div class="col-sm-8">
+							<div class="category"> <span class="star">*</span> Campos requeridos</div>
+						
+						</div>
+						<div class="col-sm-4">
+							<div class="row">
+								<div class="col-6">
+									<button type="submit" class="btn btn-primary text-btn-form">Registrar</button>
+								</div>
+								<div class="col-6">
+									<button type="button" (click)="cancelViewForm()"
+									        class="btn btn-danger text-btn-form">Cancelar</button>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</form>
+		</div>
+	</div>
+
+</div>
+<div class="card">
+	<div class="row m-0">
+		<div class="col-sm-6 d-flex justify-content-start">
+			<div>
+				<button class="btn btn-primary" (click)="newLectiveYear()">Nuevo Año Lectivo</button>
+			</div>
+		</div>
+		<div class="col-sm-6 d-flex justify-content-end">
+			<mat-form-field>
+				<label class="control-label" for="">Buscar:
+				</label>
+				<input matInput (keyup)="applyFilter($event)" class="" #input>
+			</mat-form-field>
+		</div>
+	</div>
+	<div class="p-4">
+		<div class="responsive-table">
+			<table class="table table-bordered mat-elevation-z8" mat-table matSort [dataSource]="dataSource"
+			       style="min-width: 100%;">
+				
+				<ng-container matColumnDef="code">
+					<th mat-header-cell *matHeaderCellDef class="text-center title-table">
+						Código </th>
+					<td mat-cell *matCellDef="let row" class="text-center">
+						<span>#{{row.lective_year_id | slice:8}}</span>
+					</td>
+				</ng-container>
+				
+				<ng-container matColumnDef="name">
+					<th mat-header-cell *matHeaderCellDef class="text-center title-table">
+						Descripción </th>
+					<td mat-cell *matCellDef="let row" class="text-center">
+						<span>{{row.lective_year_name}}</span>
+					</td>
+				</ng-container>
+				
+				<ng-container matColumnDef="initDate">
+					<th mat-header-cell *matHeaderCellDef class="text-center title-table">
+						Fecha Inicio </th>
+					<td mat-cell *matCellDef="let row" class="text-center">
+						<span>{{row.lective_year_init_date}}</span>
+					</td>
+				</ng-container>
+				
+				<ng-container matColumnDef="endDate">
+					<th mat-header-cell *matHeaderCellDef class="text-center title-table">
+						Fecha Fin </th>
+					<td mat-cell *matCellDef="let row" class="text-center">
+						<span>{{row.lective_year_finish_date}}</span>
+					</td>
+				</ng-container>
+				
+				<ng-container matColumnDef="edit">
+					<th mat-header-cell *matHeaderCellDef class="text-center title-table">
+						Editar
+					</th>
+					<td mat-cell *matCellDef="let row" class="text-center">
+						<i class="fa fa-pencil-square cursor-pointer text-warning btn-functions  cursor-pointer"
+						   aria-hidden="true" (click)="editLectiveYear(row)"></i>
+					</td>
+				</ng-container>
+				
+				<ng-container matColumnDef="delete">
+					<th mat-header-cell *matHeaderCellDef class="text-center title-table">
+						Eliminar
+					</th>
+					<td mat-cell *matCellDef="let row" class="text-center">
+						<i class="fa fa-trash text-danger cursor-pointer btn-functions cursor-pointer "
+						   aria-hidden="true" type="button" (click)="deleteLectiveYear(row)"></i>
+					</td>
+				</ng-container>
+				
+				<tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+				<tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+			</table>
+		
+		</div>
+	</div>
+</div>

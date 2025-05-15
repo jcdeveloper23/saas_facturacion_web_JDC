@@ -1,0 +1,12 @@
+.cursor-pointer {
+    cursor: pointer;
+}
+
+.fileinput .thumbnail > img {
+    max-height: 100px;
+    width: 100%;
+}
+
+.text-info-representative {
+    font-size: 14px;
+}

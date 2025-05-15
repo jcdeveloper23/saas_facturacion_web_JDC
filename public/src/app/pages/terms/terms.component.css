@@ -1,0 +1,20 @@
+.single_features .features_content .features_title {
+    font-size: 24px;
+    font-weight: 600;
+    color: #3A424E;
+    -webkit-transition: all 0.3s ease-out 0s;
+    transition: all 0.3s ease-out 0s;
+}
+
+.sub-title {
+    font-weight: bold;
+    display: block;
+    margin-left: 2rem;
+}
+
+.bg-green {
+    background-color: #99CC33;
+    color: white !important;
+}
+
+;

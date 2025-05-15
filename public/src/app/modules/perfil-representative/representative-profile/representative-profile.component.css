@@ -1,0 +1,40 @@
+.text-payment-method {
+  color: gray;
+  font-size: 12px;
+}
+
+.fa-credit-card {
+  font-size: 50px;
+}
+
+.nc-alert-circle-i {
+  font-size: 50px;
+}
+
+.col-content-products {
+  border: 2px solid gray;
+  border-radius: 10px;
+
+}
+
+.col-content-category {
+  background-color: #fff;
+  position: relative;
+  top: -20px;
+  left: 10px;
+}
+
+.font-category {
+  font-size: 12px;
+  font-weight: bold;
+  color: gray;
+}
+
+.bg-grey {
+  background-color: rgba(239, 239, 239, 0.592);
+}
+
+.icon-white {
+  color: #ffffff !important;
+}
+

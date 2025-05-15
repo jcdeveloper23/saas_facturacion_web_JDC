@@ -1,0 +1,56 @@
+.btn-outline {
+    border: 1px solid var(--primary);
+    color: var(--primary);
+    align-items: center;
+    align-items: center;
+    padding: 10px;
+    border-radius: 50px;
+    gap: 0.5rem;
+}
+
+.btn-outline:hover {
+    background-color: var(--primary) !important;
+    color: #fff;
+    border-color: var(--primary);
+}
+
+.btn-primary {
+    border: 1px solid var(--primary);
+    color: #fff;
+    align-items: center;
+    align-items: center;
+    padding: 10px;
+    border-radius: 50px;
+    gap: 0.5rem;
+}
+
+.p-info {
+    color: var(--primary);
+    font-size: 25px;
+    font-weight: bold;
+}
+
+.p-details {
+    font-size: 14px;
+}
+
+.p-title {
+    font-size: 18px !important;
+}
+
+.numbers {
+    font-size: 22px !important;
+}
+
+.icon-big {
+    height: 100px !important;
+}
+.icon-white {
+    height: 80px !important;
+    width: 80px;
+    margin: 0 auto;
+}
+
+.h-1 {
+    line-height: 1;
+}

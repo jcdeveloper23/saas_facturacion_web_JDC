@@ -1,0 +1,1089 @@
+<div class="main-content">
+    <div class="container-fluid p-0">
+        <div class="col-sm-12 collapse multi-collapse" id="multiCollapseRepresentative">
+            <div class="card">
+                <div class="card-header">
+                    <div class="row m-0">
+                        <div class="col-6 p-0">
+                            <h5>{{isEdit ? 'Edición de' : 'Nuevo'}} representante</h5>
+                        </div>
+
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-sm-4">
+                            <h3>Datos del representante</h3>
+                            <div class="col-sm-12 p-0 border">
+                                <form #formRepresentative="ngForm" novalidate
+                                    (ngSubmit)="saveRepresentative(formRepresentative.value, formRepresentative.valid , formRepresentative)">
+                                    <div class="card-header">
+                                        <div class="row">
+                                            <div class="col-sm-12 text-center mx-auto">
+                                                <div class="fileinput fileinput-new" data-provides="fileinput">
+                                                    <div *ngIf="representative && !representative.representative_image"
+                                                        class="fileinput-new thumbnail img-circle">
+                                                        <img src="./assets/img/placeholder.jpg" alt="...">
+                                                    </div>
+                                                    <div *ngIf="representative && representative.representative_image"
+                                                        class=" thumbnail img-circle">
+                                                        <img src="{{representative.representative_image}}" alt="...">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row m-0 ">
+                                            <div class="col-sm-12 p-0">
+                                                <div class="form-group has-label">
+                                                    <div class="row m-0 align-items-center">
+                                                        <div class="col-sm-12 pt-2">
+                                                            <label class="control-label" for="">Identificación:
+                                                                <span class="star">*</span>
+                                                            </label>
+                                                            <div class="input-group">
+
+                                                                <input type="text" class="form-control"
+                                                                    name="representative_identification"
+                                                                    [(ngModel)]="representative.representative_identification"
+                                                                    required #representative_identification="ngModel">
+
+                                                                <div class="input-group-append">
+                                                                    <button
+                                                                        class="btn btn-primary btn-outline-primary btn m-0"
+                                                                        type="button"
+                                                                        (click)="searchIdentifacation()"><i
+                                                                            class="fa fa-search" aria-hidden="true"></i>
+
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                            <small
+                                                                [hidden]="representative_identification.valid || (representative_identification.pristine && !formRepresentative.submitted)"
+                                                                class="text-danger">
+                                                                Identificación es requerido.
+                                                            </small>
+                                                        </div>
+                                                        <div class="col-sm-12">
+                                                            <label class="control-label" for="">Nombre:
+                                                                <span class="star">*</span>
+                                                            </label>
+                                                            <input type="text" class="form-control"
+                                                                name="representative_name"
+                                                                [(ngModel)]="representative.representative_name"
+                                                                required #representative_name="ngModel">
+                                                            <small
+                                                                [hidden]="representative_name.valid || (representative_name.pristine && !formRepresentative.submitted)"
+                                                                class="text-danger">
+                                                                Nombre es requerido.
+                                                            </small>
+                                                        </div>
+                                                        <div class="col-sm-12">
+                                                            <label class="control-label" for="">Apellido:
+                                                                <span class="star">*</span>
+                                                            </label>
+                                                            <input type="text" class="form-control"
+                                                                name="representative_surname"
+                                                                [(ngModel)]="representative.representative_surname"
+                                                                required #representative_surname="ngModel">
+                                                            <small
+                                                                [hidden]="representative_surname.valid || (representative_surname.pristine && !formRepresentative.submitted)"
+                                                                class="text-danger">
+                                                                Apellido es requerido.
+                                                            </small>
+                                                        </div>
+
+                                                    </div>
+                                                </div>
+                                                <div class="form-group has-label">
+                                                    <div class="row m-0 align-items-center ">
+                                                        <div class="col-sm-12">
+                                                            <label class="control-label" for="">Email:
+                                                                <span class="star">*</span>
+                                                            </label>
+                                                            <input type="email" class="form-control"
+                                                                name="representative_email"
+                                                                [(ngModel)]="representative.representative_email"
+                                                                required #representative_email="ngModel"
+                                                                pattern="^[a-zA-Z0-9_.+\-]+@[a-zA-Z0-9\-]+\.[a-zA-Z0-9\-\.]+$">
+                                                            <small
+                                                                [hidden]="representative_email.valid || (representative_email.pristine && !formRepresentative.submitted)"
+                                                                class="text-danger">
+                                                                Email es requerido.
+                                                            </small>
+                                                        </div>
+                                                        <div class="col-sm-12">
+                                                            <label class="control-label" for="">Teléfono:
+                                                            </label>
+                                                            <input
+                                                                onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))"
+                                                                type="text" class="form-control"
+                                                                name="representative_phone"
+                                                                [(ngModel)]="representative.representative_phone"
+                                                                #representative_phone="ngModel">
+                                                        </div>
+                                                        <div class="col-sm-12">
+                                                            <label class="control-label" for="">Móvil:
+                                                                <span class="star">*</span>
+                                                            </label>
+                                                            <input
+                                                                onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))"
+                                                                type="text" class="form-control"
+                                                                name="representative_mobile"
+                                                                [(ngModel)]="representative.representative_mobile"
+                                                                required #representative_mobile="ngModel" minlength="9"
+                                                                maxlength="10">
+                                                            <small
+                                                                [hidden]="representative_mobile.valid || (representative_mobile.pristine && !formRepresentative.submitted)"
+                                                                class="text-danger">
+                                                                Teléfono celular es requerido y no puede
+                                                                contener letras.
+                                                            </small>
+                                                        </div>
+
+                                                    </div>
+                                                </div>
+                                                <div class="form-group has-label">
+                                                    <div class="row m-0 align-items-center ">
+                                                        <div class="col-sm-12">
+                                                            <label class="control-label" for="">Dirección
+                                                                <span class="star">*</span>
+                                                            </label>
+                                                            <input type="text" class="form-control"
+                                                                name="representative_address"
+                                                                [(ngModel)]="representative.representative_address"
+                                                                required #representative_address="ngModel">
+                                                            <small
+                                                                [hidden]="representative_address.valid || (representative_address.pristine && !formRepresentative.submitted)"
+                                                                class="text-danger">
+                                                                Dirección es requerido.
+                                                            </small>
+                                                        </div>
+
+                                                        <div class="col-sm-12">
+                                                            <label class="control-label" for="">Estado:
+                                                            </label>
+                                                            <br>
+                                                            <bSwitch disabled name="group_state"
+                                                                [(ngModel)]="representative.representative_state"
+                                                                [switch-on-color]="'primary'"
+                                                                [switch-off-color]="'primary'"
+                                                                [switch-off-text]="'&#x2715;'"
+                                                                [switch-on-text]="'&#x2714;'">
+                                                            </bSwitch>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                            </div>
+                                        </div>
+                                        <div class="category"> <span class="star">*</span> Campos obligatorios.
+                                        </div>
+                                    </div>
+                                    <div class="card-footer text-right">
+                                        <div class="col-12 p-0 d-flex justify-content-end align-items-end  pr-2">
+                                            <button hidden type="submit" id="send-form"
+                                                class="btn btn-primary">Registrar</button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                        <div class="col-sm-8">
+                            <div class="col-12">
+                                        <h3>Estudiantes</h3>
+
+                            </div>
+                            <div class="col-sm-12 p-0 border">
+                                <div class="card-body">
+                                    <div class="col-12 p-0">
+                                        <div class="nav-tabs-navigation">
+                                            <div class="nav-tabs-wrapper">
+                                                <ul id="tabs" class="nav nav-tabs" role="tablist">
+                                                    <ng-container *ngFor="let student of arrayStudents, let i = index">
+                                                        <li class="nav-item" >
+                                                            <a id="student{{i}}" (click)="selectStudent(student , i)"
+                                                                class="nav-link {{i==0?'active':''}}" href="#student{{i}}"
+                                                                role="tab" data-toggle="tab"> <i
+                                                                    class="fa fa-address-card-o"></i>
+                                                                &nbsp; {{student.student_name}} {{student.student_lastname}}
+                                                                <span
+                                                                    *ngIf="student.student_name==''||student.student_name==null">
+                                                                    Estudiante {{i + 1}}
+                                                                </span>
+                                                            </a>
+                                                        </li> 
+                                                        <i class="fa fa-minus-circle text-danger p-0 cursor-pointer pt-2 {{student.student_id_school ? 'd-none' : 'd-block'}}"
+                                                        aria-hidden="true" (click)="deleteStudent(i)"></i>
+                                                    </ng-container> 
+                                                    <li class="nav-item">
+                                                        <a (click)="addStudent()"
+                                                            class="nav-link text-nav-link cursor-pointer text-primary">
+                                                            <i class="fa fa-plus" aria-hidden="true"></i> &nbsp;Añadir
+                                                            estudiante
+                                                        </a>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                   <div class="col-12 p-0">
+                                    <div class="tab-content text-center">
+                                        <!-- <div class="tab-pane active" id="student1" role="tabpanel" aria-expanded="true">
+                                        <p>Larger, yet dramatically thinner. More powerful, but remarkably power efficient. With a smooth metal surface that seamlessly meets the new Retina HD display.</p>
+                                      </div> -->
+
+                                        <div class="tab-pane {{selectedStudent === i ? 'active' : ''}}" id="student{{i}}"
+                                            *ngFor="let student of arrayStudents, let i = index" >
+                                            <form #formStudent="ngForm" novalidate
+                                                (ngSubmit)="saveStudent(formStudent.value, formStudent.valid , formStudent)">
+                                                <div class="card-header ">
+                                                   
+                                                </div>
+                                                <div class="card-body">
+                                                    <div class="row m-0 ">
+                                                        <div class="col-sm-8 p-0">
+                                                            <div class="form-group has-label">
+                                                                <div class="row m-0 align-items-center ">
+                                                                    <div class="col-sm-6">
+                                                                        <label class="control-label"
+                                                                            for="">Identificación:
+                                                                            <span class="star">*</span>
+                                                                        </label>
+                                                                        <input type="text" class="form-control"
+                                                                            name="student_identification"
+                                                                            [(ngModel)]="student.student_identification"
+                                                                            required #student_identification="ngModel">
+                                                                        <small
+                                                                            [hidden]="student_identification.valid || (student_identification.pristine && !formStudent.submitted)"
+                                                                            class="text-danger">
+                                                                            Identificación es requerido.
+                                                                        </small>
+                                                                    </div>
+
+                                                                    <div class="col-sm-6">
+                                                                        <label class="control-label" for="">Nombre:
+                                                                            <span class="star">*</span>
+                                                                        </label>
+                                                                        <input type="text" class="form-control"
+                                                                            name="student_name"
+                                                                            [(ngModel)]="student.student_name" required
+                                                                            #student_name="ngModel">
+                                                                        <small
+                                                                            [hidden]="student_name.valid || (student_name.pristine && !formStudent.submitted)"
+                                                                            class="text-danger">
+                                                                            Nombre es requerido.
+                                                                        </small>
+                                                                    </div>
+
+                                                                    <div class="col-sm-6">
+                                                                        <label class="control-label" for="">Apellido:
+                                                                            <span class="star">*</span>
+                                                                        </label>
+                                                                        <input type="text" class="form-control"
+                                                                            name="student_lastname"
+                                                                            [(ngModel)]="student.student_lastname"
+                                                                            required #student_lastname="ngModel">
+                                                                        <small
+                                                                            [hidden]="student_lastname.valid || (student_lastname.pristine && !formStudent.submitted)"
+                                                                            class="text-danger">
+                                                                            Apellido es requerido.
+                                                                        </small>
+                                                                    </div>
+
+                                                                    <div class="col-sm-6">
+                                                                        <label class="control-label" for="">Email:
+                                                                            <span class="star">*</span>
+                                                                        </label>
+                                                                        <input type="email" class="form-control"
+                                                                            name="student_email"
+                                                                            [(ngModel)]="student.student_email" required
+                                                                            #student_email="ngModel"
+                                                                            pattern="^[a-zA-Z0-9_.+\-]+@[a-zA-Z0-9\-]+\.[a-zA-Z0-9\-\.]+$">
+                                                                        <small
+                                                                            [hidden]="student_email.valid || (student_email.pristine && !formStudent.submitted)"
+                                                                            class="text-danger">
+                                                                            Email es requerido.
+                                                                        </small>
+                                                                    </div>
+
+                                                                    <div class="col-sm-6">
+                                                                        <label class="control-label" for="">Móvil:
+                                                                        </label>
+                                                                        <input
+                                                                            onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))"
+                                                                            type="text" class="form-control"
+                                                                            name="student_phone"
+                                                                            [(ngModel)]="student.student_phone"
+                                                                            #student_phone="ngModel">
+
+                                                                    </div>
+                                                                    <div class="col-sm-6">
+                                                                        <label class="control-label" for="">Género:
+                                                                        </label>
+
+                                                                        <div class="btn-group  w-100">
+
+                                                                            <mat-select name="student_gender"
+                                                                                placeholder="Seleccione"
+                                                                                panelClass="Seleccione"
+                                                                                class=" form-control"
+                                                                                [(ngModel)]="student.student_gender">
+                                                                                <mat-option
+                                                                                    *ngFor="let gender of array_gender"
+                                                                                    [value]="gender">{{gender}}
+                                                                                </mat-option>
+                                                                            </mat-select>
+                                                                            <!-- <select (change)="selectLevel($event)"
+                                                                        [(ngModel)]="student.student_level"
+                                                                        name="student_level" id="student_level"
+                                                                        class="form-control w-100" data-size="7"
+                                                                        title="Single Select">
+                                                                        <option selected>Seleccione
+                                                                        </option>
+                                                                        <option *ngFor="let level of levels"
+                                                                            [value]="level.level_id">
+                                                                            {{level.level_name}}</option>
+                                                                    </select> -->
+
+                                                                        </div>
+
+                                                                    </div>
+                                                                    <div class="col-sm-6">
+                                                                        <label class="control-label" for="">Níveles:
+                                                                        </label>
+
+                                                                        <div class="btn-group  w-100">
+                                                                            <!-- <select (change)="selectLevel($event)"
+                                                                            [(ngModel)]="student.student_level"
+                                                                            name="student_level" id="student_level"
+                                                                            class="form-control w-100" data-size="7"
+                                                                            title="Single Select">
+                                                                            <option selected>Seleccione
+                                                                            </option>
+                                                                            <option *ngFor="let level of levels"
+                                                                                [value]="level.level_id">
+                                                                                {{level.level_name}}</option>
+                                                                        </select> -->
+                                                                            <mat-select name="student_level"
+                                                                                placeholder="Seleccione"
+                                                                                panelClass="Seleccione"
+                                                                                class=" form-control"
+                                                                                (selectionChange)="selectLevel($event)"
+                                                                                [(ngModel)]="student.student_level">
+                                                                                <mat-option *ngFor="let level of levels"
+                                                                                    [value]="level.level_id">
+                                                                                    {{level.level_name}}
+                                                                                </mat-option>
+                                                                            </mat-select>
+                                                                        </div>
+
+
+                                                                    </div>
+                                                                    <div class="col-sm-6">
+                                                                        <label class="control-label" for="">Paralelos:
+                                                                        </label>
+                                                                        <div class="btn-group  w-100">
+                                                                            <!-- <select [(ngModel)]="student.student_parallel"
+                                                                            name="student_parallel" id="group_line"
+                                                                            class="form-control w-100" data-size="7"
+                                                                            title="Single Select">
+                                                                            <option selected="true" disabled="disabled">
+                                                                                Seleccione
+                                                                            </option>
+                                                                            <option *ngFor="let parallel of parallels"
+                                                                                [value]="parallel.parallel_id">
+                                                                                {{parallel.parallel_name}}</option>
+                                                                        </select> -->
+                                                                            <mat-select name="student_parallel"
+                                                                                placeholder="Seleccione"
+                                                                                panelClass="Seleccione"
+                                                                                class=" form-control"
+                                                                                [(ngModel)]="student.student_parallel">
+                                                                                <mat-option
+                                                                                    *ngFor="let parallel of parallels"
+                                                                                    [value]="parallel.parallel_id">
+                                                                                    {{parallel.parallel_name}}
+                                                                                </mat-option>
+                                                                            </mat-select>
+                                                                        </div>
+
+                                                                    </div>
+                                                                    <div class="col-sm-6">
+                                                                        <label class="control-label" for="">Fecha de
+                                                                            nacimiento:
+                                                                        </label>
+                                                                        <input type="date" class="form-control"
+                                                                            name="student_date_of_birth"
+                                                                            [(ngModel)]="student.student_date_of_birth"
+                                                                            #student_date_of_birth="ngModel">
+
+                                                                    </div>
+
+                                                                    <div class="col-sm-6">
+                                                                        <label class="control-label" for="">Dirección:
+                                                                            <span class="star">*</span>
+                                                                        </label>
+                                                                        <input type="text" class="form-control"
+                                                                            name="student_address"
+                                                                            [(ngModel)]="student.student_address"
+                                                                            required #student_address="ngModel">
+                                                                        <small
+                                                                            [hidden]="student_address.valid || (student_address.pristine && !formStudent.submitted)"
+                                                                            class="text-danger">
+                                                                            Dirección es requerida.
+                                                                        </small>
+                                                                    </div>
+                                                                    <div class="col-sm-6">
+                                                                        <label class="control-label" for="">Estado:
+                                                                        </label>
+                                                                        <br>
+                                                                        <bSwitch disabled name="group_state"
+                                                                            [(ngModel)]="student.student_state"
+                                                                            [switch-on-color]="'primary'"
+                                                                            [switch-off-color]="'primary'"
+                                                                            [switch-off-text]="'&#x2715;'"
+                                                                            [switch-on-text]="'&#x2714;'">
+                                                                        </bSwitch>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div
+                                                                class="col-12 p-0 d-flex justify-content-end align-items-end  pr-2">
+                                                                <button hidden type="submit" id="send-form-student{{i}}"
+                                                                    class="btn btn-primary">Registrar</button>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-sm-4">
+                                                            <div class="fileinput fileinput-new text-center"
+                                                                data-provides="fileinput">
+                                                                <div *ngIf="student && !student.student_img"
+                                                                    class="fileinput-new thumbnail img-circle">
+                                                                    <img src="./assets/img/placeholder.jpg" alt="...">
+                                                                </div>
+                                                                <div *ngIf="student && student.student_img"
+                                                                    class=" thumbnail  img-circle">
+                                                                    <img src="{{student.student_img}}" alt="...">
+                                                                </div>
+
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="category"> <span class="star">*</span> Campos obligatorios.
+                                                </div>
+                                            </form>
+                                        </div>
+                                        <div class="row m-0 justify-content-end">
+                                            <div class="col-3  pl-2  pr-2">
+                                                <button type="submit" (click)="sendForm()"
+                                                    class="btn btn-primary">Guardar</button>
+                                            </div>
+                                            <div class="col-3  pl-2 pr-2">
+                                                <button type="submit" (click)="cancelForm()"
+                                                    class="btn btn-danger">Cancelar</button>
+                                            </div>
+                                        </div>
+                                       
+                                    </div>
+                                   </div>
+                                   
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+
+
+
+
+                    <div class="row">
+                        <!-- <div class="col-lg-3 col-md-3 col-sm-12 col-12 p-0 border">
+                            <div class="nav-tabs-navigation vertical-navs p-0">
+                                <div class="nav-tabs-wrapper">
+                                    <ul class="nav nav-tabs flex-column nav-stacked" role="tablist">
+                                        <li class="nav-item">
+                                            <a class="nav-link active text-nav-link text-info" href="#representative"
+                                                role="tab" data-toggle="tab" id="optionRepresentative">
+                                                &nbsp;<i class="fa fa-user-circle-o" aria-hidden="true"></i>
+                                                Representante</a>
+                                        </li>
+
+
+                                        <li class="nav-item" *ngFor="let student of arrayStudents, let i = index">
+                                            <a (click)="selectStudent(student)" class="nav-link text-info"
+                                                href="#student{{i}}" role="tab" data-toggle="tab"> <i
+                                                    class="fa fa-address-card-o" aria-hidden="true"></i>
+                                                &nbsp;Estudiante {{i + 1}} &nbsp; </a>
+
+                                        </li>
+
+                                        <li class="nav-item">
+                                            <a (click)="addStudent()"
+                                                class="nav-link text-nav-link cursor-pointer text-primary">
+                                                <i class="fa fa-plus" aria-hidden="true"></i> &nbsp;Añadir
+                                                estudiante</a>
+                                        </li>
+                                        <li>
+                                            <div class="col-12 p-0 d-flex justify-content-end align-items-end  pr-2">
+                                                <button type="submit" (click)="sendForm()"
+                                                    class="btn btn-primary">Registrar</button>
+                                            </div>
+                                            <div class="col-12 p-0 d-flex justify-content-end align-items-end  pr-2">
+                                                <button type="submit" (click)="cancelForm()"
+                                                    class="btn btn-danger">Cancelar</button>
+                                            </div>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div> -->
+                        <div class="col-lg-9 col-md-9 col-sm-12 col-12 p-0">
+                            <!-- Tab panes -->
+                            <div class="tab-content">
+                                <div class="tab-pane active" id="representative">
+                                    <!-- <div class="col-12 p-0">
+                                        <form #formRepresentative="ngForm" novalidate
+                                            (ngSubmit)="saveRepresentative(formRepresentative.value, formRepresentative.valid , formRepresentative)">
+                                            <div class="card-header ">
+                                                <div class="row m-0">
+                                                    <div class="col-sm-6 d-flex align-items-center p-0 ">
+                                                        <span class="text-info">Representante</span>
+                                                    </div>
+                                                    <div
+                                                        class="col-sm-6 p-0 d-flex align-items-start justify-content-end">
+                                                        <div class="fileinput fileinput-new text-center"
+                                                            data-provides="fileinput">
+                                                            <div *ngIf="representative && !representative.representative_image"
+                                                                class="fileinput-new thumbnail img-circle">
+                                                                <img src="./assets/img/placeholder.jpg" alt="...">
+                                                            </div>
+                                                            <div *ngIf="representative && representative.representative_image"
+                                                                class=" thumbnail img-circle">
+                                                                <img src="{{representative.representative_image}}"
+                                                                    alt="...">
+                                                            </div>
+
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="row m-0 ">
+                                                    <div class="col-sm-12 p-0">
+                                                        <div class="form-group has-label">
+                                                            <div class="row m-0 align-items-center">
+                                                                <div class="col-sm-4 pt-2">
+                                                                    <label class="control-label" for="">Identificación:
+                                                                        <span class="star">*</span>
+                                                                    </label>
+                                                                    <div class="input-group">
+                                                                       
+                                                                        <input type="text" class="form-control"
+                                                                        name="representative_identification"
+                                                                        [(ngModel)]="representative.representative_identification"
+                                                                        required
+                                                                        #representative_identification="ngModel">
+                                                                    
+                                                                        <div class="input-group-append">
+                                                                          <button class="btn btn-primary btn-outline-primary btn m-0" type="button" (click)="searchIdentifacation()"><i
+                                                                            class="fa fa-search"
+                                                                            aria-hidden="true"></i>
+
+                                                                          </button>
+                                                                        </div>
+                                                                      </div>
+                                                                      <small
+                                                                        [hidden]="representative_identification.valid || (representative_identification.pristine && !formRepresentative.submitted)"
+                                                                        class="text-danger">
+                                                                        Identificación es requerido.
+                                                                    </small>
+                                                                    </div>
+                                                                <div class="col-sm-4">
+                                                                    <label class="control-label" for="">Nombre:
+                                                                        <span class="star">*</span>
+                                                                    </label>
+                                                                    <input type="text" class="form-control"
+                                                                        name="representative_name"
+                                                                        [(ngModel)]="representative.representative_name"
+                                                                        required #representative_name="ngModel">
+                                                                    <small
+                                                                        [hidden]="representative_name.valid || (representative_name.pristine && !formRepresentative.submitted)"
+                                                                        class="text-danger">
+                                                                        Nombre es requerido.
+                                                                    </small>
+                                                                </div>
+                                                                <div class="col-sm-4">
+                                                                    <label class="control-label" for="">Apellido:
+                                                                        <span class="star">*</span>
+                                                                    </label>
+                                                                    <input type="text" class="form-control"
+                                                                        name="representative_surname"
+                                                                        [(ngModel)]="representative.representative_surname"
+                                                                        required #representative_surname="ngModel">
+                                                                    <small
+                                                                        [hidden]="representative_surname.valid || (representative_surname.pristine && !formRepresentative.submitted)"
+                                                                        class="text-danger">
+                                                                        Apellido es requerido.
+                                                                    </small>
+                                                                </div>
+
+                                                            </div>
+                                                        </div>
+                                                        <div class="form-group has-label">
+                                                            <div class="row m-0 align-items-center ">
+                                                                <div class="col-sm-4">
+                                                                    <label class="control-label" for="">Email:
+                                                                        <span class="star">*</span>
+                                                                    </label>
+                                                                    <input type="email" class="form-control"
+                                                                        name="representative_email"
+                                                                        [(ngModel)]="representative.representative_email"
+                                                                        required #representative_email="ngModel"
+                                                                        pattern="^[a-zA-Z0-9_.+\-]+@[a-zA-Z0-9\-]+\.[a-zA-Z0-9\-\.]+$">
+                                                                    <small
+                                                                        [hidden]="representative_email.valid || (representative_email.pristine && !formRepresentative.submitted)"
+                                                                        class="text-danger">
+                                                                        Email es requerido.
+                                                                    </small>
+                                                                </div>
+                                                                <div class="col-sm-4">
+                                                                    <label class="control-label" for="">Teléfono:
+                                                                    </label>
+                                                                    <input onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))" type="text" 
+                                                                        class="form-control" name="representative_phone"
+                                                                        [(ngModel)]="representative.representative_phone"
+                                                                        #representative_phone="ngModel">
+                                                                </div>
+                                                                <div class="col-sm-4">
+                                                                    <label class="control-label" for="">Móvil:
+                                                                        <span class="star">*</span>
+                                                                    </label>
+                                                                    <input onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))" type="text" class="form-control"
+                                                                        name="representative_mobile"
+                                                                        [(ngModel)]="representative.representative_mobile"
+                                                                        required #representative_mobile="ngModel"
+                                                                        minlength="9" maxlength="10">
+                                                                    <small
+                                                                        [hidden]="representative_mobile.valid || (representative_mobile.pristine && !formRepresentative.submitted)"
+                                                                        class="text-danger">
+                                                                        Teléfono celular es requerido y no puede
+                                                                        contener letras.
+                                                                    </small>
+                                                                </div>
+
+                                                            </div>
+                                                        </div>
+                                                        <div class="form-group has-label">
+                                                            <div class="row m-0 align-items-center ">
+                                                                <div class="col-sm-4">
+                                                                    <label class="control-label" for="">Dirección
+                                                                        <span class="star">*</span>
+                                                                    </label>
+                                                                    <input type="text" class="form-control"
+                                                                        name="representative_address"
+                                                                        [(ngModel)]="representative.representative_address"
+                                                                        required #representative_address="ngModel">
+                                                                    <small
+                                                                        [hidden]="representative_address.valid || (representative_address.pristine && !formRepresentative.submitted)"
+                                                                        class="text-danger">
+                                                                        Dirección es requerido.
+                                                                    </small>
+                                                                </div>
+
+                                                                <div class="col-sm-4">
+                                                                    <label class="control-label" for="">Estado:
+                                                                    </label>
+                                                                    <br>
+                                                                    <bSwitch disabled name="group_state"
+                                                                        [(ngModel)]="representative.representative_state"
+                                                                        [switch-on-color]="'primary'"
+                                                                        [switch-off-color]="'primary'"
+                                                                        [switch-off-text]="'&#x2715;'"
+                                                                        [switch-on-text]="'&#x2714;'">
+                                                                    </bSwitch>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                    </div>
+                                                </div>
+                                                <div class="category"> <span class="star">*</span> Campos obligatorios.
+                                                </div>
+                                            </div>
+                                            <div class="card-footer text-right">
+                                                <div
+                                                    class="col-12 p-0 d-flex justify-content-end align-items-end  pr-2">
+                                                    <button hidden type="submit" id="send-form"
+                                                        class="btn btn-primary">Registrar</button>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div> -->
+                                </div>
+                                <div class="tab-pane" id="student{{i}}"
+                                    *ngFor="let student of arrayStudents, let i = index">
+                                    <!-- <form #formStudent="ngForm" novalidate
+                                        (ngSubmit)="saveStudent(formStudent.value, formStudent.valid , formStudent)">
+                                        <div class="card-header ">
+                                            <div class="row m-0">
+                                                <div class="col-sm-6 d-flex align-items-center p-0 ">
+                                                    <span class="text-info">Estudiante {{i + 1}}</span> &nbsp;
+                                                    {{arrayStudents[i].student_name}} &nbsp;&nbsp;<i
+                                                        class="fa fa-minus-circle text-danger p-0 cursor-pointer {{student.student_id_school ? 'd-none' : 'd-block'}}"
+                                                        aria-hidden="true" (click)="deleteStudent(i)"></i>
+                                                </div>
+                                                <div class="col-sm-6 p-0 d-flex align-items-start justify-content-end">
+                                                    <div class="fileinput fileinput-new text-center"
+                                                        data-provides="fileinput">
+                                                        <div *ngIf="student && !student.student_img"
+                                                            class="fileinput-new thumbnail img-circle">
+                                                            <img src="./assets/img/placeholder.jpg" alt="...">
+                                                        </div>
+                                                        <div *ngIf="student && student.student_img"
+                                                            class=" thumbnail  img-circle">
+                                                            <img src="{{student.student_img}}" alt="...">
+                                                        </div>
+
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="row m-0 ">
+                                                <div class="col-sm-6 p-0">
+                                                    <div class="form-group has-label">
+                                                        <div class="row m-0 align-items-center ">
+                                                            <div class="col-sm-4">
+                                                                <label class="control-label" for="">Identificación:
+                                                                    <span class="star">*</span>
+                                                                </label>
+                                                                <input type="text" class="form-control"
+                                                                    name="student_identification"
+                                                                    [(ngModel)]="student.student_identification"
+                                                                    required #student_identification="ngModel">
+                                                                <small
+                                                                    [hidden]="student_identification.valid || (student_identification.pristine && !formStudent.submitted)"
+                                                                    class="text-danger">
+                                                                    Identificación es requerido.
+                                                                </small>
+                                                            </div>
+
+                                                            <div class="col-sm-4">
+                                                                <label class="control-label" for="">Nombre:
+                                                                    <span class="star">*</span>
+                                                                </label>
+                                                                <input type="text" class="form-control"
+                                                                    name="student_name"
+                                                                    [(ngModel)]="student.student_name" required
+                                                                    #student_name="ngModel">
+                                                                <small
+                                                                    [hidden]="student_name.valid || (student_name.pristine && !formStudent.submitted)"
+                                                                    class="text-danger">
+                                                                    Nombre es requerido.
+                                                                </small>
+                                                            </div>
+
+                                                            <div class="col-sm-4">
+                                                                <label class="control-label" for="">Apellido:
+                                                                    <span class="star">*</span>
+                                                                </label>
+                                                                <input type="text" class="form-control"
+                                                                    name="student_lastname"
+                                                                    [(ngModel)]="student.student_lastname" required
+                                                                    #student_lastname="ngModel">
+                                                                <small
+                                                                    [hidden]="student_lastname.valid || (student_lastname.pristine && !formStudent.submitted)"
+                                                                    class="text-danger">
+                                                                    Apellido es requerido.
+                                                                </small>
+                                                            </div>
+
+                                                        </div>
+                                                        <div class="form-group has-label">
+                                                            <div class="row m-0 align-items-center ">
+                                                                <div class="col-sm-4">
+                                                                    <label class="control-label" for="">Email:
+                                                                        <span class="star">*</span>
+                                                                    </label>
+                                                                    <input type="email" class="form-control"
+                                                                        name="student_email"
+                                                                        [(ngModel)]="student.student_email" required
+                                                                        #student_email="ngModel"
+                                                                        pattern="^[a-zA-Z0-9_.+\-]+@[a-zA-Z0-9\-]+\.[a-zA-Z0-9\-\.]+$">
+                                                                    <small
+                                                                        [hidden]="student_email.valid || (student_email.pristine && !formStudent.submitted)"
+                                                                        class="text-danger">
+                                                                        Email es requerido.
+                                                                    </small>
+                                                                </div>
+
+                                                                <div class="col-sm-4">
+                                                                    <label class="control-label" for="">Móvil:
+                                                                    </label>
+                                                                    <input onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))" type="text" class="form-control"
+                                                                        name="student_phone"
+                                                                        [(ngModel)]="student.student_phone"
+                                                                        #student_phone="ngModel" >
+
+                                                                </div>
+                                                                <div class="col-sm-4">
+                                                                    <label class="control-label" for="">Género:
+                                                                    </label>
+
+                                                                    <div class="btn-group  w-100">
+                                                                     
+                                                                        <mat-select name="student_gender"
+                                                                            placeholder="Seleccione"
+                                                                            panelClass="Seleccione"
+                                                                            class=" form-control"
+                                                                            
+                                                                            [(ngModel)]="student.student_gender">
+                                                                            <mat-option
+                                                                                *ngFor="let gender of array_gender"
+                                                                                [value]="gender">{{gender}}
+                                                                            </mat-option>
+                                                                        </mat-select>
+                                                                        
+
+                                                                    </div>
+
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="form-group has-label">
+                                                            <div class="row m-0 align-items-center ">
+
+                                                                <div class="col-sm-4">
+                                                                    <label class="control-label" for="">Níveles:
+                                                                    </label>
+
+                                                                    <div class="btn-group  w-100">
+                                                                        
+                                                                        <mat-select name="student_level"
+                                                                        placeholder="Seleccione"
+                                                                        panelClass="Seleccione"
+                                                                        class=" form-control"
+                                                                        (selectionChange)="selectLevel($event)"
+                                                                        [(ngModel)]="student.student_level">
+                                                                        <mat-option
+                                                                        *ngFor="let level of levels"
+                                                                                [value]="level.level_id">{{level.level_name}}
+                                                                        </mat-option>
+                                                                        </mat-select>
+                                                                    </div>
+
+
+                                                                </div>
+                                                                <div class="col-sm-4">
+                                                                    <label class="control-label" for="">Paralelos:
+                                                                    </label>
+                                                                    <div class="btn-group  w-100">
+                                                                        <mat-select name="student_parallel"
+                                                                        placeholder="Seleccione"
+                                                                        panelClass="Seleccione"
+                                                                        class=" form-control"
+                                                                        
+                                                                        [(ngModel)]="student.student_parallel">
+                                                                        <mat-option
+                                                                        *ngFor="let parallel of parallels"
+                                                                        [value]="parallel.parallel_id">{{parallel.parallel_name}}
+                                                                        </mat-option>
+                                                                    </mat-select>
+                                                                    </div>
+
+                                                                </div>
+                                                                <div class="col-sm-4">
+                                                                    <label class="control-label" for="">Fecha de
+                                                                        nacimiento:
+                                                                    </label>
+                                                                    <input type="date" class="form-control"
+                                                                        name="student_date_of_birth"
+                                                                        [(ngModel)]="student.student_date_of_birth"
+                                                                        #student_date_of_birth="ngModel">
+
+                                                                </div>
+
+                                                            </div>
+                                                        </div>
+                                                        <div class="form-group has-label">
+                                                            <div class="row m-0 align-items-center ">
+
+                                                                <div class="col-sm-4">
+                                                                    <label class="control-label" for="">Dirección:
+                                                                        <span class="star">*</span>
+                                                                    </label>
+                                                                    <input type="text" class="form-control"
+                                                                        name="student_address"
+                                                                        [(ngModel)]="student.student_address" required
+                                                                        #student_address="ngModel">
+                                                                    <small
+                                                                        [hidden]="student_address.valid || (student_address.pristine && !formStudent.submitted)"
+                                                                        class="text-danger">
+                                                                        Dirección es requerida.
+                                                                    </small>
+                                                                </div>
+                                                                <div class="col-sm-4">
+                                                                    <div class="col-sm-4">
+                                                                        <label class="control-label" for="">Estado:
+                                                                        </label>
+                                                                        <br>
+                                                                        <bSwitch disabled name="group_state"
+                                                                            [(ngModel)]="student.student_state"
+                                                                            [switch-on-color]="'primary'"
+                                                                            [switch-off-color]="'primary'"
+                                                                            [switch-off-text]="'&#x2715;'"
+                                                                            [switch-on-text]="'&#x2714;'">
+                                                                        </bSwitch>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div
+                                                            class="col-12 p-0 d-flex justify-content-end align-items-end  pr-2">
+                                                            <button hidden type="submit" id="send-form-student{{i}}"
+                                                                class="btn btn-primary">Registrar</button>
+                                                        </div>
+
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="category"> <span class="star">*</span> Campos obligatorios.
+                                            </div>
+                                        </div>
+
+                                    </form> -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- LISTA - LISTA REPRESENTANTES -->
+        <div class="row m-0">
+            <div class="col-sm-12 p-0">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="col-12 p-0 ">
+                            <div class="row m-0">
+                                <div class="col-sm-6 d-flex justify-content-start">
+                                    <div>
+                                        <button class="btn btn-primary " (click)="newRepresentative()">Nuevo
+                                            Representante</button>
+
+                                    </div>
+
+                                </div>
+                                <div class="col-sm-6 p-0 d-flex justify-content-end">
+                                    <!-- <div class="container"> -->
+                                    <mat-form-field>
+                                        <mat-label>Buscar</mat-label>
+                                        <input matInput (keyup)="applyFilter($event)" class="input-search-table" #input>
+                                    </mat-form-field>
+                                    <!-- </div> -->
+                                </div>
+                            </div>
+
+                            <div class="col-12 p-0 w-100 responsive-table">
+
+                                <table #table mat-table matSort [dataSource]="dataSource"
+                                    class="mat-elevation-z8 table-reponsives table-bordered" style="min-width: 100%;">
+
+                                    <ng-container matColumnDef="identification">
+                                        <th mat-header-cell *matHeaderCellDef class="text-center title-table">
+                                            Código </th>
+                                        <td mat-cell *matCellDef="let row" class="text-center">
+                                            <span>{{row.representative_id
+                                                |
+                                                slice:6}}</span>
+                                        </td>
+                                    </ng-container>
+                                    <ng-container matColumnDef="name">
+                                        <th mat-header-cell *matHeaderCellDef class="text-center title-table">
+                                            Nombre </th>
+                                        <td mat-cell *matCellDef="let row" class="text-center">
+                                            <span>{{row.representative_name}}</span>
+                                        </td>
+                                    </ng-container>
+                                    <ng-container matColumnDef="lastname">
+                                        <th mat-header-cell *matHeaderCellDef class="text-center title-table">
+                                            Apellido </th>
+                                        <td mat-cell *matCellDef="let row" class="text-center">
+                                            <span>{{row.representative_surname | slice:0:20}}</span>
+                                        </td>
+                                    </ng-container>
+
+
+                                    <ng-container matColumnDef="email">
+                                        <th mat-header-cell *matHeaderCellDef class="text-center title-table">
+                                            Email </th>
+                                        <td mat-cell *matCellDef="let row" class="text-center">
+                                            <span>{{row.representative_email }}</span>
+
+                                        </td>
+                                    </ng-container>
+                                    <ng-container matColumnDef="phone">
+                                        <th mat-header-cell *matHeaderCellDef class="text-center title-table">
+                                            Teléfono </th>
+                                        <td mat-cell *matCellDef="let row" class="text-center">
+                                            <span>{{row.representative_mobile }}</span>
+
+                                        </td>
+                                    </ng-container>
+                                    <ng-container matColumnDef="send">
+                                        <th mat-header-cell *matHeaderCellDef class="text-center title-table">
+                                            Enviar </th>
+                                        <td mat-cell *matCellDef="let row" class="text-center">
+                                            <i class="fa fa-paper-plane text-success cursor-pointer"
+                                                (click)="sendEmail(row)" aria-hidden="true"></i>
+
+                                        </td>
+                                    </ng-container>
+
+                                    <ng-container matColumnDef="edit">
+                                        <th mat-header-cell *matHeaderCellDef class="text-center title-table">
+                                            Editar
+                                        </th>
+                                        <td mat-cell *matCellDef="let row" class="text-center">
+                                            <i class="fa fa-pencil-square cursor-pointer text-warning btn-functions  cursor-pointer"
+                                                aria-hidden="true" (click)="editRepresentative(row)"></i>
+                                        </td>
+                                    </ng-container>
+                                    <ng-container matColumnDef="link">
+                                        <th mat-header-cell *matHeaderCellDef class="text-center title-table">
+                                            Link
+                                        </th>
+                                        <td mat-cell *matCellDef="let row" class="text-center">
+                                            <a target="blanck"
+                                                href="http://localhost:4200/register/{{row.representative_schools[0]}}/{{row.representative_id}}">
+                                                <i class="fa fa-link cursor-pointer text-warning btn-functions  cursor-pointer"
+                                                    aria-hidden="true"></i>
+                                            </a>
+
+
+                                        </td>
+                                    </ng-container>
+
+                                    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+                                    <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+
+                                </table>
+                                <!-- [pageSizeOptions]="[10, 50]"-->
+                                <mat-paginator #tableRepresentatives [pageSizeOptions]="[10, 25, 50]"
+                                    showFirstLastButtons></mat-paginator>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>

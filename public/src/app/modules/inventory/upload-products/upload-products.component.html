@@ -1,0 +1,156 @@
+<div class="main-content" >
+    <div class="container-fluid" >
+        <div class="row align-items-center justify-content-center">
+
+            <div class="col-sm-12">
+                <div class="card card-timeline card-plain">
+                    <div class="card-body">
+                        <ul class="timeline timeline-simple">
+                            <li class="timeline-inverted">
+                                <div class="timeline-badge danger">
+                                    <i class="nc-icon nc-cloud-download-93"></i>
+                                </div>
+                                <div class="timeline-panel">
+                                    <div class="timeline-heading">
+                                        <span class="badge badge-pill badge-danger">Descargar plantilla</span>
+
+                                    </div>
+                                    <div class="timeline-body">
+                                        <a href="https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/csv-products%2FPlantilla%20-%20Hoja%201.csv?alt=media&token=d9f006ec-9f6d-47de-993e-9ed8f754470a"
+                                            target="_black">
+                                            <button  class="btn btn-primary"><i class="fa fa-cloud-download"
+                                                    aria-hidden="true"></i> Descargar</button>
+
+                                        </a>
+                                    </div>
+                                    <h6>
+                                        <div class="category"> <span class="star">*</span>Todos los campos agregardos en
+                                            el archivo son requeridos</div>
+                                    </h6>
+                                </div>
+                            </li>
+                            <li class="timeline-inverted">
+                                <div class="timeline-badge success">
+                                    <i class="nc-icon nc-cloud-upload-94"></i>
+                                </div>
+                                <div class="timeline-panel">
+                                    <div class="timeline-heading">
+                                        <span class="badge badge-pill badge-success">Cargar archivo</span>
+                                    </div>
+                                    <div class="timeline-body">
+                                        <button (click)="clickUploadFile()" class="btn btn-primary"><i
+                                                class="fa fa-cloud-download" aria-hidden="true"></i> Seleccionar
+                                            archivo</button> &nbsp; &nbsp; <span *ngIf="name_file">{{name_file |
+                                            slice:0:10}}</span>
+                                        <input hidden accept=".csv" class="form-control form-control-lg"
+                                            id="upload_file" type="file" (change)="handleFileSelect($event)" />
+                                    </div>
+                                </div>
+                            </li>
+                            <li class="timeline-inverted">
+                                <div class="timeline-badge info">
+                                    <i class="nc-icon nc-bullet-list-67"></i>
+                                </div>
+                                <div class="timeline-panel">
+                                    <div class="timeline-heading">
+                                        <span class="badge badge-pill badge-info">Visualizar datos. </span>
+                                    </div>
+                                    <div class="timeline-body">
+                                        <!-- LISTA - Lineas -->
+                                        <div class="row m-0" *ngIf="arrayProducts && arrayProducts.length > 0">
+                                            <div class="col-sm-12 p-0">
+                                                <div class="card">
+                                                    <div class="card-body">
+                                                        <div class="col-12 p-0 ">
+                                                            <div class="row m-0">
+
+                                                                <div class="col-sm-6 p-0 d-flex justify-content-end">
+                                                                    <!-- <div class="container"> -->
+                                                                    <mat-form-field>
+                                                                        <!-- <mat-label>Filter</mat-label> -->
+                                                                        <label class="control-label" for="">Buscar:
+                                                                        </label>
+                                                                        <input matInput (keyup)="applyFilter($event)"
+                                                                            class="form-control input-search-table"
+                                                                            #input>
+                                                                    </mat-form-field>
+                                                                    <!-- </div> -->
+                                                                </div>
+                                                            </div>
+
+                                                            <div class="col-12 p-0 w-100">
+
+                                                                <table #table mat-table matSort
+                                                                    [dataSource]="dataSource"
+                                                                    class="mat-elevation-z8 table-reponsive table-bordered"
+                                                                    style="min-width: 100%;">
+
+
+                                                                    <ng-container matColumnDef="name">
+                                                                        <th mat-header-cell *matHeaderCellDef
+                                                                            class="text-center title-table">
+                                                                            Nombre </th>
+                                                                        <td mat-cell *matCellDef="let row"
+                                                                            class="text-center">
+                                                                            <span>{{row.product_name}}</span>
+                                                                        </td>
+                                                                    </ng-container>
+                                                                    <ng-container matColumnDef="description">
+                                                                        <th mat-header-cell *matHeaderCellDef
+                                                                            class="text-center title-table">
+                                                                            Descripción </th>
+                                                                        <td mat-cell *matCellDef="let row"
+                                                                            class="text-center">
+                                                                            <span>{{row.product_description |
+                                                                                slice:0:20}}</span>
+                                                                        </td>
+                                                                    </ng-container>
+                                                                    <ng-container matColumnDef="price">
+                                                                        <th mat-header-cell *matHeaderCellDef
+                                                                            class="text-center title-table">
+                                                                            Precio </th>
+                                                                        <td mat-cell *matCellDef="let row"
+                                                                            class="text-center">
+                                                                            <span>{{row.product_price |
+                                                                                currency}}</span>
+                                                                        </td>
+                                                                    </ng-container>
+                                                                    <tr mat-header-row
+                                                                        *matHeaderRowDef="displayedColumns"></tr>
+                                                                    <tr mat-row
+                                                                        *matRowDef="let row; columns: displayedColumns;">
+                                                                    </tr>
+
+                                                                </table>
+                                                                <!-- [pageSizeOptions]="[10, 50]"-->
+                                                                <mat-paginator #tableProducts
+                                                                    [pageSizeOptions]="[500, 1000]"
+                                                                    showFirstLastButtons></mat-paginator>
+                                                            </div>
+
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="timeline-footer">
+                                        <button [disabled]="isLoadingCsv"  (click)="upLoad()" type="button" class="btn btn-primary">
+                                            <i class="nc-icon nc-settings-gear-65"></i> Registrar.
+                                        </button>
+                                        <i   *ngIf="isLoadingCsv"class="fa fa-refresh fa-spin fa-3x fa-fw" ></i>
+                                        <span *ngIf="isLoadingCsv" class="sr-only">Loading...</span>
+                                        <span  *ngIf="isLoadingCsv" class="text-warning" style="font-size: 14px;"><i class="fa fa-exclamation-triangle" aria-hidden="true" ></i>
+                                            &nbsp;  Espere por favor.</span>
+                                    </div>
+                                </div>
+                            </li>
+
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

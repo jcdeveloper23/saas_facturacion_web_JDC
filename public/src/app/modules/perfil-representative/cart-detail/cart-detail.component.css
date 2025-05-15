@@ -1,0 +1,101 @@
+.span-text-description {
+    font-size: 14px;
+    color: gray;
+}
+
+.font-bold {
+    font-weight: bold;
+}
+
+.content-top-nav {
+    min-height: 60px;
+}
+
+.min-heigth {
+    min-height: 60px;
+
+}
+
+.display-col-center {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+.title-product {
+    font-weight: 900;
+}
+
+.background-image-product {
+    background-color: white;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: contain;
+    height: 120px;
+    width: 120px;
+    border-radius: 10px;
+}
+
+.c-gray {
+    color: gray;
+}
+
+.card-content-count {
+    height: 30px;
+}
+
+.border-right {
+    border-right: 1px solid white !important;
+}
+
+.border-left { 
+    border-left: 1px solid white !important;
+}
+
+.cursor-pointer {
+    cursor: pointer;
+}
+
+.card-content-product {
+    min-height: 100px;
+}
+
+.h-max {
+    height: 100% !important;
+}
+
+.border-select-payment-method {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 6.4;
+    border: 1px solid rgba(0, 0, 0, 0.3);
+}
+.icon-peyment {
+    font-size: 20px !important;
+}
+
+.choice .icon {
+    height: 40px;
+    width: 70px;
+}
+.border-color-select {
+    border: 1px solid rgb(29,207,145) !important;
+}
+.text-confirm-payment-method {
+    color: gray;
+    font-size: 12px;
+}
+i {
+    font-size: 30px;
+}
+
+.icon-small {
+    font-size: 12px;
+}
+@media (max-width: 576px) { 
+    .h-max {
+        height: max-content !important;
+    }
+ }

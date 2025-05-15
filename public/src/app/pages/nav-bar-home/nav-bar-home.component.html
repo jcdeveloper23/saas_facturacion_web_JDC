@@ -1,0 +1,82 @@
+<div class="col-12  p-0" *ngIf="!isMobile" style="z-index: 1;">
+    <div class="row m-0  w-100 align-items-center   content-menu " >
+        <!-- <div class=" col-3 col-sm-2 col-md-2 col-lg-2  d-flex justify-content-start align-items-cente pt-2r "
+            data-aos="zoom-in">
+            <img class="img-logo " (click)="modalLogin = true" src="../../../assets/img/logo.png" alt="logo">
+            
+        </div> -->
+        <div class=" col-6 col-sm-6 col-md-6 col-lg-6 ">
+            <div class="row m-0">
+                <div class="col-sm-10 ">
+                    <ul class="navbar-nav mr-auto mt-2">
+                        <div class="row m-0 align-items-center justify-content-around pt-2">
+                            <a >
+                                <li class="nav-item nav-style cursor-pointer lis">
+                                    <i class="nc-icon nc-bullet-list-67"></i> &nbsp; QUÉ ES LUNCHER?
+                                </li>
+                            </a>
+                            <a href="https://docs.google.com/forms/d/1tR5qRN4Fg6EqzsnLHa0fextBaS8S1p7vOXt2v3-LzNc" target="_blank">
+                                <li class="nav-item nav-style cursor-pointer lis button-contacts">
+                                &nbsp;  CONTÁCTANOS
+                                </li>
+                            </a>
+		                        <!-- <a href="/register-provider" >
+			                        <li class="nav-item nav-style cursor-pointer lis">
+				                        &nbsp;  CONTÁCTANOS
+			                        </li>
+		                        </a>-->
+                            <a></a>
+                            <a></a>
+                            <a></a>
+                          
+                            
+                        </div>
+                    </ul>
+                </div>
+                
+            </div>
+        </div>
+        <!-- <div class="col-sm-4  d-flex justify-content-end">
+            <button (click)="isLogin = true" class="btn btn-login">Ingresar</button>
+         </div> -->
+    </div>
+</div>
+<div class="col-12 p-0 content-menu" *ngIf="isMobile">
+    <div class="row m-0 content-menu w-100">
+        <div class=" col-6 col-sm-6 col-md-6 col-lg-6 d-flex justify-content-start align-items-center ">
+            <!-- <img class="img-logo cursor-pointer" (click)="modalLogin = true"
+                src="../../../assets/img/logo.png" alt="logo"> -->
+        </div>
+        <div class=" col-6 col-sm-6 col-md-6 col-lg-6 d-flex justify-content-end p-0">
+            <button class="navbar-toggler btn-nav-menu text-white-color" type="button" data-toggle="collapse"
+                data-target="#navbarToggleExternalContent" aria-controls="navbarToggleExternalContent"
+                aria-expanded="false" aria-label="Toggle navigation">
+                <i class="fa fa-bars" aria-hidden="true"></i>
+
+            </button>
+        </div>
+    </div>
+</div>
+<div class="col-12 p-0 z-index-first">
+    <div class="collapse bg-color-menu" id="navbarToggleExternalContent">
+        <div class="col-content-menu  pt-0 pl-4 pr-4 pb-4">
+            <hr>
+            <ul class="navbar-nav mr-auto mt-2">
+                <div class=" m-0 align-items-center justify-content-around pt-2">
+                    <a >
+                        <li class="nav-item nav-style cursor-pointer mt-2">
+                            <i class="nc-icon nc-bullet-list-67"></i> &nbsp; QUÉ ES LUNCHER?
+                        </li>
+                    </a>
+                    <a  href="/register-provider" >
+                        <li class="nav-item nav-style cursor-pointer mt-2 ">
+                            <i class="fa fa-phone" aria-hidden="true"></i> &nbsp;  CONTÁCTANOS
+                        </li>
+                    </a>
+                </div>
+            </ul>
+        </div>
+        
+    </div>
+</div>
+<login-cmp *ngIf="isLogin" (changeModality)="closeModal($event)"></login-cmp>

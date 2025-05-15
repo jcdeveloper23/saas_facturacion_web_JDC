@@ -1,0 +1,87 @@
+
+.modal { overflow: auto !important; }
+
+.modal.fade .modal-dialog{
+    -webkit-transform: inherit;
+ }
+
+.mat-datepicker-content > .mat-calendar {
+    z-index: 9999 !important;
+}
+
+.z-index-date {
+    z-index: 9999 !important;
+
+}
+
+.background-image-product {
+    background-color: white;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: contain;
+    height: 120px;
+    width: 100%;
+    border-radius: 10px;
+}
+
+.display-col-center {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.span-text-description {
+    font-size: 14px;
+    color: gray;
+}
+
+.form-check-radio .form-check-sign::before {
+    font-family: "FontAwesome";
+    content: "";
+    font-size: 22px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    display: inline-block;
+    position: absolute;
+    opacity: 0.5;
+    left: 5px;
+    top: -5px;
+    color: gray;
+}
+
+.overflow {
+    overflow: scroll !important;
+}
+.form-check-radio input[type=radio]:checked + .form-check-sign::after {
+    font-family: "FontAwesome";
+    content: "";
+    top: -5px;
+    position: absolute;
+    left: 5px;
+    opacity: 1;
+    font-size: 22px;
+    color: #1dcf91;
+}
+
+.cursor-pointer {
+    cursor: pointer;
+}
+
+.c-gray {
+    color: gray;
+}
+
+.title-product {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.font-bold {
+    font-weight: bold;
+}
+
+.pt-modal {
+    padding-top: 10%;
+}
+

@@ -1,0 +1,12 @@
+.thumbnail {
+    max-width: 130px;
+}
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button { 
+  -webkit-appearance: none; 
+  margin: 0; 
+}
+
+.td-parallel {
+  max-width: 80px;
+}

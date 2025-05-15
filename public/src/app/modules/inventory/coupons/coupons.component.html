@@ -1,0 +1,185 @@
+<div class="main-content">
+    <div class="container-fluid p-0">
+        <div class="row" class="collapse multi-collapse " id="multiCollapseCoupon">
+            <div class="col-sm-12 p-0">
+                <div class="card">
+                    <form #formCoupon="ngForm" novalidate
+                        (ngSubmit)="saveCoupon(formCoupon.value, formCoupon.valid , formCoupon)">
+
+                        <div class="card-header ">
+                            <h4 class="card-title">{{isEditCoupon ? 'Editar' : 'Nuevo'}} Cupón.</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group has-label">
+                                <div class="row m-0 w-100">
+                                    <div class="col-sm-2">
+                                        <label class="control-label" for="">Valor ($):
+                                            <span class="star">*</span>
+                                        </label>
+                                        <input readonly type="hidden" class="form-control" name="coupon_code"
+                                            [(ngModel)]="coupon.coupon_code" required #coupon_code="ngModel">
+                                        <input type="text" class="form-control" name="coupon_value"
+                                            [(ngModel)]="coupon.coupon_value" #coupon_value="ngModel"
+                                            onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))">
+                                        <small
+                                            [hidden]="coupon_value.valid || (coupon_value.pristine && !formCoupon.submitted)"
+                                            class="text-danger">
+                                            Valor es requerido.
+                                        </small>
+                                    </div>
+                                    <div class="col-sm-3">
+                                        <label class="control-label" for="">Nombre:
+                                            <span class="star">*</span>
+                                        </label>
+                                        <input type="text" class="form-control" name="coupon_name"
+                                            [(ngModel)]="coupon.coupon_name" required #coupon_name="ngModel">
+                                        <small
+                                            [hidden]="coupon_name.valid || (coupon_name.pristine && !formCoupon.submitted)"
+                                            class="text-danger">
+                                            Nombre es requerido.
+                                        </small>
+                                    </div>
+                                    <div class="col-sm-2">
+                                        <label class="control-label" for="">Estado:
+                                            <span class="star">*</span>
+                                        </label>
+                                        <br>
+                                        <bSwitch name="coupon_state" [(ngModel)]="coupon.coupon_state"
+                                            [switch-on-color]="'primary'" [switch-off-color]="'primary'"
+                                            [switch-off-text]="'&#x2715;'" [switch-on-text]="'&#x2714;'">
+                                        </bSwitch>
+                                    </div>
+                                    <div class="col-sm-5 pt-3">
+                                        <div class="row w-100">
+                                            <div class="col-6">
+                                                <button type="submit"
+                                                    class="btn btn-primary text-btn-form">Registrar</button>
+                                            </div>
+                                            <div class="col-6">
+                                                <button type="button" (click)="cancelViewForm()"
+                                                    class="btn btn-danger text-btn-form">Cancelar</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+
+
+                            <div class="category"> <span class="star">*</span> Campos requeridos</div>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
+
+
+        </div>
+        <!-- LISTA - Lineas -->
+        <div class="row m-0">
+            <div class="col-sm-12 p-0">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="col-12 p-0 ">
+                            <div class="row m-0">
+                                <div class="col-sm-6 d-flex justify-content-start">
+                                    <div>
+                                        <button class="btn btn-primary" (click)="newCoupon()">Nuevo Cupón</button>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6 p-0 d-flex justify-content-end">
+                                    <!-- <div class="container"> -->
+                                    <mat-form-field>
+                                        <!-- <mat-label>Filter</mat-label> -->
+                                        <mat-label>Buscar</mat-label>
+                                        <input matInput (keyup)="applyFilter($event)" class=" input-search-table"
+                                            #input>
+                                    </mat-form-field>
+                                    <!-- </div> -->
+                                </div>
+                            </div>
+
+                            <div class="col-12 p-0 w-100">
+
+                                <table #table mat-table matSort [dataSource]="dataSource"
+                                    class="mat-elevation-z8 table-reponsive table-bordered" style="min-width: 100%;">
+                                    <ng-container matColumnDef="code">
+                                        <th mat-header-cell *matHeaderCellDef class="text-center title-table">
+                                            Código </th>
+                                        <td mat-cell *matCellDef="let row" class="text-center">
+                                            <span>{{row.coupon_code
+                                                |
+                                                slice:6}}</span>
+                                        </td>
+                                    </ng-container>
+                                    <ng-container matColumnDef="value">
+                                        <th mat-header-cell *matHeaderCellDef class="text-center title-table">
+                                            Valor </th>
+                                        <td mat-cell *matCellDef="let row" class="text-center">
+                                            <span>{{row.coupon_value | currency}}</span>
+                                        </td>
+                                    </ng-container>
+                                    <ng-container matColumnDef="name">
+                                        <th mat-header-cell *matHeaderCellDef class="text-center title-table">
+                                            Nombre </th>
+                                        <td mat-cell *matCellDef="let row" class="text-center">
+                                            <span>{{row.coupon_name}}</span>
+                                        </td>
+                                    </ng-container>
+
+                                    <ng-container matColumnDef="status">
+                                        <th mat-header-cell *matHeaderCellDef class="text-center title-table">
+                                            Estado </th>
+                                        <td mat-cell *matCellDef="let row" class="text-center">
+                                            <i *ngIf="row.coupon_state" class="fa fa-check text-primary"
+                                                aria-hidden="true"></i>
+                                            <i *ngIf="!row.coupon_state" class="fa fa-times text-danger"
+                                                aria-hidden="true"></i>
+
+                                        </td>
+                                    </ng-container>
+                                    <ng-container matColumnDef="line">
+                                        <th mat-header-cell *matHeaderCellDef class="text-center title-table">
+                                            Categoría </th>
+                                        <td mat-cell *matCellDef="let row" class="text-center">
+                                            <span>{{row.coupon_line_name}}</span>
+
+                                        </td>
+                                    </ng-container>
+
+                                    <ng-container matColumnDef="edit">
+                                        <th mat-header-cell *matHeaderCellDef class="text-center title-table">
+                                            Editar
+                                        </th>
+                                        <td mat-cell *matCellDef="let row" class="text-center">
+                                            <i class="fa fa-pencil-square cursor-pointer text-warning btn-functions  cursor-pointer"
+                                                aria-hidden="true" (click)="editCoupon(row)"></i>
+                                        </td>
+                                    </ng-container>
+
+                                    <ng-container matColumnDef="delete">
+                                        <th mat-header-cell *matHeaderCellDef class="text-center title-table">
+                                            Eliminar
+                                        </th>
+                                        <td mat-cell *matCellDef="let row" class="text-center">
+                                            <i class="fa fa-trash text-danger cursor-pointer btn-functions cursor-pointer "
+                                                aria-hidden="true" type="button" (click)="deleteCoupon(row)"></i>
+                                        </td>
+                                    </ng-container>
+
+                                    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+                                    <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+
+                                </table>
+                                <mat-paginator [pageSizeOptions]="[10, 25, 50]" #tableCoupons showFirstLastButtons>
+                                </mat-paginator>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
