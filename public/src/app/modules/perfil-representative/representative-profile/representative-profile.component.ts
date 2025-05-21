@@ -14,6 +14,7 @@ import { sha256 } from 'js-sha256';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Provider } from 'app/interfaces/provider';
 import { ProviderService } from 'app/services/provider/provider.service';
+import { environment } from 'environments/environment';
 
 
 declare var $: any;
@@ -105,7 +106,7 @@ export class RepresentativeProfileComponent implements OnInit {
       }
     };
 
-    var url = `https://ccapi.paymentez.com/v2/card/delete`;
+    var url = `${environment.urlPaymentez}/card/delete`;
     var response = this.http.post<any>(url, body, httpOptions).subscribe((response) => {
       this.searchPaymentMethod();
     });
@@ -122,7 +123,7 @@ export class RepresentativeProfileComponent implements OnInit {
         }),
       };
       var headers = {};
-      var url = `https://ccapi.paymentez.com/v2/card/list?uid=${this.infoUser.user_uid}`;
+      var url = `${environment.urlPaymentez}/card/list?uid=${this.infoUser.user_uid}`;
       // var url = `https://ccapi-stg.paymentez.com/v2/card/list?uid=${this.infoUser.user_uid}`;
       var response = this.http.get<any>(url, httpOptions).subscribe((response) => {
         console.log(response);

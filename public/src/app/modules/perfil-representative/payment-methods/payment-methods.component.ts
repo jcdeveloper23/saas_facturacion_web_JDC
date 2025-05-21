@@ -195,6 +195,27 @@ x
     }
   }
 
+  deletePaymentMethod(card) {
+    var httpOptions = {
+      headers: new HttpHeaders({
+        'auth-token': this.getAuthToken(this.providerSelected.provider_NAME_EC_SERVER, this.providerSelected.provider_KEY_EC_SERVER)
+      }),
+    };
+    var body = {
+      "card": {
+        "token": card.token
+      },
+      "user": {
+        "id": this.infoUser.user_uid
+      }
+    };
+
+    var url = `${environment.urlPaymentez}/card/delete`;
+    var response = this.http.post<any>(url, body, httpOptions).subscribe((response) => {
+      this.searchPaymentMethod();
+    });
+  }
+
   /**
    * *** Genera el auth-token requerido por paymentez ***
    * @param paymentezClientAppCode 
@@ -229,5 +250,23 @@ x
    */
   sanitizerUrl(urlByAddPayment: string): SafeUrl {
     return this.sanitizer.bypassSecurityTrustResourceUrl(urlByAddPayment);
+  }
+
+  getCardTypeName(type: string): string {
+    const cardTypes: { [key: string]: string } = {
+      vi: 'Visa',
+      mc: 'MasterCard',
+      am: 'American Express',
+      di: 'Discover',
+      jcb: 'JCB',
+      ax: 'American Express',
+      el: 'Elo',
+      dc: 'Diners Club',
+      un: 'UnionPay',
+      ma: 'Maestro',
+      other: 'Otro'
+    };
+  
+    return cardTypes[type] || 'Desconocido';
   }
 }

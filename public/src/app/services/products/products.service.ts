@@ -106,9 +106,11 @@ export class ProductsService {
 
 
   public getProductsAllActives(provider_id: string) {
+    console.log(provider_id);
+    
     let first = this.db.collection<Product>('products', (ref) => ref.where('product_state', '==', true).where('product_provider_id', '==', provider_id)
       .orderBy("product_id", "desc")
-      .limit(6)
+      // .limit(6)
     );
     first.get().subscribe(documentSnapshots => {
       // Get the last visible document

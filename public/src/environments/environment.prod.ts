@@ -1,5 +1,7 @@
 export const environment = {
-  urlPaymentez: 'https://ccapi.paymentez.com/v2',
+  // urlPaymentez: 'https://ccapi.paymentez.com/v2',
+  urlPaymentez: 'https://ccapi-stg.paymentez.com/v2',
+
   production: true,
   firebaseConfig: {
     apiKey: "AIzaSyBPd5CTizVTX0E4Dv2gerFOJkNGRi8_yDc",

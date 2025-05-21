@@ -25,7 +25,8 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { JwBootstrapSwitchNg2Module } from 'jw-bootstrap-switch-ng2';
 import { HttpClientModule } from '@angular/common/http';
 import interactionPlugin from '@fullcalendar/interaction';
-import { PaymentMethodsComponent } from './payment-methods/payment-methods.component'; // a plugin!
+import { PaymentMethodsComponent } from './payment-methods/payment-methods.component';
+import { CreateOrderComponent } from './create-order/create-order.component'; // a plugin!
 
 FullCalendarModule.registerPlugins([ // register FullCalendar plugins
   dayGridPlugin,
@@ -43,7 +44,8 @@ FullCalendarModule.registerPlugins([ // register FullCalendar plugins
     CartDetailComponent,
     OrdersCalendarComponent,
     OrdersByStudentComponent,
-    PaymentMethodsComponent
+    PaymentMethodsComponent,
+    CreateOrderComponent
   ],
   imports: [
     CommonModule,

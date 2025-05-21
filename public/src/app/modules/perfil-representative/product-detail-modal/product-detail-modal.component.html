@@ -40,8 +40,8 @@
             </div>
             <div class="col display-col-center p-0">
               <div class="form-group">
-                <input [disabled]="isCategoryMenu" id='date' min="{{minDate}}" [(ngModel)]="dayselected"class="form-control cursor-pointer"
-                  placeholder="Seleccione" name="dp" ngbDatepicker #d="ngbDatepicker" (click)="d.toggle()"
+                <input [disabled]="isCategoryMenu" id='date' min="{{minDate}}" [(ngModel)]="daySelected"class="form-control cursor-pointer"
+                  placeholder="Fecha de entrega" name="date" ngbDatepicker #d="ngbDatepicker" (click)="d.toggle()"
                   (ngModelChange)="onDateSelected()">
               </div>
             </div>

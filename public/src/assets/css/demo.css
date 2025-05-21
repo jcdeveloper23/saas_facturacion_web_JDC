@@ -329,13 +329,31 @@ input:-webkit-autofill::first-line {
   font-weight: bold;
 }
 
+.btn-primary-outline {
+  border: 1px solid var(--primary);
+  background-color: transparent;
+  /* color: var(--primary); */
+  align-items: center;
+  align-items: center;
+  padding: 5px;
+  gap: 0.5rem;
+  text-decoration: none !important;
+  text-transform: none;
+}
+
+.btn-primary-outline:hover {
+  background-color: var(--primary) !important;
+  color: #fff;
+  border: 1px solid var(--primary);
+}
+
 .btn-danger-outline {
   border: 1px solid var(--red);
-  background-color: white;
+  background-color: transparent;
   color: var(--red);
   align-items: center;
   align-items: center;
-  padding: 10px;
+  /* padding: 10px; */
   gap: 0.5rem;
   text-decoration: none !important;
   text-transform: none;

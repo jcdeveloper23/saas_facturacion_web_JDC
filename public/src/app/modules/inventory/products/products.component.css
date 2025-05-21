@@ -70,7 +70,7 @@ input[type=number]::-webkit-outer-spin-button {
     background-size: cover;
     background-repeat: no-repeat;
     width: 100%;
-    height: 60px;
+    height: 30px;
 }
 .mat-option-pseudo-checkbox {
     background: gray !important;

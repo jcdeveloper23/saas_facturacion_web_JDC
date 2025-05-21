@@ -27,7 +27,7 @@ export class ProductDetailModalComponent implements OnInit {
   public dayselected: DatePicker = {}
   @Output() changeModality = new EventEmitter();
   @Input() product: Product;
-  @Input() menuSelect : Menu;
+  @Input() menuSelect: Menu;
   @Input() student_id: string;
   public productscartCache: Array<Product>;
   public isCategoryMenu = false;
@@ -36,7 +36,7 @@ export class ProductDetailModalComponent implements OnInit {
 
   constructor(private notificationService: UtilsService,
     private categoryService: LinesService,
-    private utilService : UtilsService) { }
+    private utilService: UtilsService) { }
 
   ngOnInit(): void {
     if (this.product) {
@@ -45,8 +45,8 @@ export class ProductDetailModalComponent implements OnInit {
       $('#myModal').modal({ backdrop: 'static', keyboard: false });
       $('body').removeClass('modal-open');
       $('body').css('padding', '0px');
-      this.product.product_delivery_method = "i withdraw",
-        this.getLocalStorageCart()
+      this.product.product_delivery_method = "i withdraw";
+      this.getLocalStorageCart();
       var fecha = new Date();
       this.year = fecha.getFullYear();
       this.day = fecha.getDate();
@@ -65,9 +65,9 @@ export class ProductDetailModalComponent implements OnInit {
           this.dayselected.day = new Date(this.menuSelect.menu_date).getDate() + 1;
           this.dayselected.month = (new Date(this.menuSelect.menu_date).getMonth() + 1);
           this.dayselected.year = new Date(this.menuSelect.menu_date).getFullYear();
-          this.product.product_order_delivery_date = (this.dayselected.year+'-'+this.dayselected.month+'-'+this.dayselected.day);
+          this.product.product_order_delivery_date = (this.dayselected.year + '-' + this.dayselected.month + '-' + this.dayselected.day);
 
-          $("#date").val(this.dayselected.year+'-'+this.dayselected.month+'-'+this.dayselected.day);
+          $("#date").val(this.dayselected.year + '-' + this.dayselected.month + '-' + this.dayselected.day);
         }
       }
     })
@@ -97,15 +97,15 @@ export class ProductDetailModalComponent implements OnInit {
         } else {
           if (this.isCategoryMenu) {
             var date = $("#date").val();
-             let day = (new Date(date).getDay());
-             if (day === 6) {
-               day = 0
-             } else{
-               day = day + 1
-             }
-            
+            let day = (new Date(date).getDay());
+            if (day === 6) {
+              day = 0
+            } else {
+              day = day + 1
+            }
+
             if (this.product.product_days_of_availability.includes(day)) {
-              if (this.dayselected.day - new Date().getDate() >=2) {
+              if (this.dayselected.day - new Date().getDate() >= 2) {
                 this.product.product_order_delivery_date = this.dayselected.year + "-" + this.dayselected.month + "-" + this.dayselected.day
 
               } else {
@@ -126,9 +126,9 @@ export class ProductDetailModalComponent implements OnInit {
 
   public addToCart() {
 
-    if (this.product.product_order_delivery_date ) {
+    if (this.product.product_order_delivery_date) {
       this.product.product_id_student = this.student_id,
-      this.infoUser = JSON.parse(localStorage.getItem("infoUser"));
+        this.infoUser = JSON.parse(localStorage.getItem("infoUser"));
       if (JSON.parse(localStorage.getItem("productscartCache"))) {
         this.productscartCache = JSON.parse(localStorage.getItem("productscartCache"))
       } else {

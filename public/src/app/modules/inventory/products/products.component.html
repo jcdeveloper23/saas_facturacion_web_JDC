@@ -23,7 +23,7 @@
         <!--ADMIN PRODUCT-->
         <div class="row" class="collapse multi-collapse " id="multiCollapseProduct">
             <div class="col-sm-12 p-0">
-                <div class="card">
+                <div class="card container-fluid-body">
                     <form #formProduct="ngForm" novalidate
                         (ngSubmit)="saveProduct(formProduct.value, formProduct.valid , formProduct)">
 
@@ -34,7 +34,7 @@
                             <div class="form-group has-label">
                                 <div class="row m-0 w-100 align-items-center justify-content-center  ">
                                     <div class="col-sm-4">
-                                        <label class="control-label" for="">Código:
+                                        <label class="control-label" for="">Código (Autogenerado):
                                             <span class="star">*</span>
                                         </label>
                                         <input readonly type="text" class="form-control" name="product_id"
@@ -46,11 +46,12 @@
                                         </small>
                                     </div>
                                     <div class="col-sm-4">
-                                        <label class="control-label" for="">Nombre:
+                                        <label class="control-label" for="">Nombre del producto:
                                             <span class="star">*</span>
                                         </label>
                                         <input type="text" class="form-control" name="product_name"
-                                            [(ngModel)]="product.product_name" required #product_name="ngModel">
+                                            [(ngModel)]="product.product_name" required #product_name="ngModel"
+                                            placeholder="Nombre del producto">
                                         <small
                                             [hidden]="product_name.valid || (product_name.pristine && !formProduct.submitted)"
                                             class="text-danger">
@@ -59,11 +60,12 @@
                                     </div>
 
                                     <div class="col-sm-4">
-                                        <label class="control-label" for="">Precio (incluye IVA):
+                                        <label class="control-label" for="">Precio + IVA (incluya el IVA):
                                             <span class="star">*</span>
                                         </label>
                                         <input type="number" class="form-control" name="product_price"
-                                            [(ngModel)]="product.product_price" required #product_price="ngModel">
+                                            [(ngModel)]="product.product_price" required #product_price="ngModel"
+                                            placeholder="Precio + IVA: 0.00">
                                         <small
                                             [hidden]="product_price.valid || (product_price.pristine && !formProduct.submitted)"
                                             class="text-danger">
@@ -75,12 +77,12 @@
                             <div class="form-group has-label">
                                 <div class="row m-0">
                                     <div class="col-sm-6">
-                                        <label class="control-label" for="">Descripción:
+                                        <label class="control-label" for="">Descripción del producto:
                                             <span class="star">*</span>
                                         </label>
                                         <input type="text" class="form-control" name="product_description"
                                             [(ngModel)]="product.product_description" required
-                                            #product_description="ngModel">
+                                            #product_description="ngModel" placeholder="Descripción del producto">
                                         <small
                                             [hidden]="product_description.valid || (product_description.pristine && !formProduct.submitted)"
                                             class="text-danger">
@@ -241,23 +243,22 @@
             <div class="col-sm-12 p-0">
                 <div class="card">
                     <div class="card-body">
-                        <div class="col-12 p-0 ">
+                        <div class="col-12 p-0">
                             <div class="row m-0">
                                 <div class="col-sm-8 d-flex justify-content-start">
-                                    <div class="row m-0 w-100">
-                                        <div class="col-4  p-0">
+                                    <div class="row m-0 w-100 m-0 p-0">
+                                        <div class="col-4 p-0">
                                             <button [disabled]="isAdminMenu" class="btn btn-primary "
                                                 (click)="newProduct()">Nuevo Producto</button>
                                         </div>
-                                        <div class="col-8 p-0 ">
+                                        <div class="col-8 p-0">
                                             <div class="row m-0 justify-content-start">
-                                                <button class="btn btn-primary " (click)="adminMenu()">Administrar
-                                                    menú</button>
+                                                <button class="btn btn-primary " (click)="adminMenu()">
+                                                    Administrar menú
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
-
-
                                 </div>
                                 <div class="col-sm-4 p-0 d-flex justify-content-end">
                                     <!-- <div class="container"> -->
@@ -270,16 +271,16 @@
                             </div>
 
                             <div class="col-12 p-0 w-100">
-
                                 <table #table mat-table matSort [dataSource]="dataSource"
                                     class="mat-elevation-z8 table-reponsives table-bordered" style="min-width: 100%;">
                                     <ng-container matColumnDef="image">
                                         <th mat-header-cell *matHeaderCellDef class="text-center title-table">
-                                            Imagen </th>
+                                            Imagen
+                                        </th>
                                         <td mat-cell *matCellDef="let row" class="text-center">
                                             <div class="pt-1 pb-1"
                                                 *ngIf="row.product_images && row.product_images.length > 0">
-                                                <div class="img-ontent-product-table "
+                                                <div class="img-ontent-product-table"
                                                     style="background-image: url({{row.product_images[0]}}); background-size: contain;">
                                                 </div>
                                             </div>
@@ -287,21 +288,21 @@
                                                 *ngIf="!row.product_images || row.product_images.length === 0">
                                                 <i class="fa fa-file-image-o" aria-hidden="true"></i>
                                             </div>
-
                                         </td>
                                     </ng-container>
                                     <ng-container matColumnDef="code">
                                         <th mat-header-cell *matHeaderCellDef class="text-center title-table">
                                             Código </th>
                                         <td mat-cell *matCellDef="let row" class="text-center">
-                                            <span>{{row.product_id
-                                                |
-                                                slice:6}}</span>
+                                            <span>
+                                                {{row.product_id | slice:8}}
+                                            </span>
                                         </td>
                                     </ng-container>
                                     <ng-container matColumnDef="name">
                                         <th mat-header-cell *matHeaderCellDef class="text-center title-table">
-                                            Nombre </th>
+                                            Nombre
+                                        </th>
                                         <td mat-cell *matCellDef="let row" class="text-center">
                                             <span>{{row.product_name}}</span>
                                         </td>
@@ -309,8 +310,8 @@
                                     <ng-container matColumnDef="description">
                                         <th mat-header-cell *matHeaderCellDef class="text-center title-table">
                                             Descripción </th>
-                                        <td mat-cell *matCellDef="let row" class="text-center">
-                                            <span>{{row.product_description | slice:0:20}}</span>
+                                        <td mat-cell *matCellDef="let row" style="width: 30%;" class="text-center">
+                                            <span>{{row.product_description | slice : 0 : 150}}</span>
                                         </td>
                                     </ng-container>
                                     <ng-container matColumnDef="price">
@@ -463,15 +464,13 @@
                     <div class="col-12 p-0">
                         <div class="row m-0">
                             <div *ngIf="!isEditEvent" class="col-12 p-0">
-                                <div
-                                    class="row m-0 justify-content-center">
-                                    <button  (click)="addMenu()" class="btn btn-primary "> Guardar</button>
+                                <div class="row m-0 justify-content-center">
+                                    <button (click)="addMenu()" class="btn btn-primary "> Guardar</button>
                                 </div>
                             </div>
                             <div *ngIf="isEditEvent" class="col-12">
                                 <div class="row m-0 justify-content-center">
-                                    <button  class="btn btn-danger "
-                                    (click)="deleteProductMenu()">Eliminar</button>
+                                    <button class="btn btn-danger " (click)="deleteProductMenu()">Eliminar</button>
                                 </div>
                             </div>
                         </div>

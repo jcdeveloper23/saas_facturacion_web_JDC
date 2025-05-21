@@ -16,6 +16,7 @@ import { Calendar } from 'app/interfaces/calendar';
 import { ManageMenuService } from 'app/services/manage-menu/manage-menu.service';
 import { Menu } from 'app/interfaces/menu';
 import { UtilsService } from 'app/services/utils/utils.service';
+import imageCompression from 'browser-image-compression';
 
 declare var $: any;
 
@@ -87,7 +88,8 @@ export class ProductsComponent implements OnInit {
     private productService : ProductsService,
     private categoriesService : LinesService,
     private menuService: ManageMenuService,
-    private utilSevrice : UtilsService) { }
+    private utilSevrice : UtilsService
+  ) { }
 
   ngOnInit(): void {
     this.infoUser = JSON.parse(localStorage.getItem("infoUser"));
@@ -147,7 +149,79 @@ export class ProductsComponent implements OnInit {
    * @param isValid 
    * @param form 
    */
-  public async  saveProduct(product: Product, isValid: boolean , form: NgForm) {
+
+  public async saveProduct(product: Product, isValid: boolean, form: NgForm) {
+    if (!isValid || !this.product.product_id_category) {
+      return this.showNotification('top', 'right', 'nc-alert-circle-i', 'Complete todo los campos requeridos (*)', 'warning');
+    }
+  
+    if (!this.fileDataGallery || this.fileDataGallery.length === 0) {
+      return this.showNotification('top', 'right', 'nc-alert-circle-i', 'Debe agregar al menos una imagen de producto.', 'warning');
+    }
+  
+    const imageUploads = [];
+  
+    for (let index = 0; index < this.fileDataGallery.length; index++) {
+      const file = this.fileDataGallery[index];
+      if (file) {
+        const compressed = await this.compressFile(file);
+
+        const uploadPath = `products/product${this.product.product_id}/image_${index}.jpg`;
+        const uploadPromise = this.storageService.uploadFile(uploadPath, compressed).then((result) => {
+          this.product.product_images[index] = result;
+        });
+        imageUploads.push(uploadPromise);
+      }
+    }
+  
+    await Promise.all(imageUploads);
+  
+    const saveOrUpdate = this.isEditProduct
+      ? this.productService.updateProduct(this.provider_id, this.product)
+      : this.productService.saveProduct(this.provider_id, this.product);
+  
+    saveOrUpdate.then(() => {
+      setTimeout(() => {
+        $('#multiCollapseProduct').collapse('hide');
+        this.getProducts();
+        this.fileDataGallery = undefined;
+        this.showNotification('top', 'right', 'nc-check-2', 'Se realizó la actualización correctamente.', 'success');
+        form.resetForm();
+      }, 500);
+    });
+  }
+
+  async compressFile(file: File): Promise<File> {
+    // const options = {
+    //   maxSizeMB: 1,          // Tamaño máximo 1MB
+    //   maxWidthOrHeight: 1024, // Máximo ancho o alto 1024px
+    //   useWebWorker: true,
+    // };
+    // const options = {
+    //   maxSizeMB: 0.1,           // Máximo 100 KB
+    //   maxWidthOrHeight: 800,    // Máximo ancho/alto 800px
+    //   useWebWorker: true,
+    //   initialQuality: 0.5,      // Calidad 50%
+    //   fileType: 'image/jpeg'    // Forzar JPEG para mejor compresión
+    // };
+    const options = {
+      maxSizeMB: 0.05,          // 50 KB (baja más) 
+      maxWidthOrHeight: 600,    // dimensiones más pequeñas
+      useWebWorker: true,
+      initialQuality: 0.3, 
+      // no forzar JPEG para mantener PNG 6635
+    };
+    try {
+      const compressedFile = await imageCompression(file, options);
+      return compressedFile;
+    } catch (error) {
+      console.error('Error compressing image:', error);
+      return file; // si falla, devuelve el archivo original
+    }
+  }
+  
+  
+  public async  saveProductOLD(product: Product, isValid: boolean , form: NgForm) {
     if (isValid && this.product.product_id_category) {
       if (this.isEditProduct) {
         if (this.fileDataGallery !== undefined) {

@@ -9,6 +9,7 @@ import { ProviderCategoryListComponent } from './provider-category-list/provider
 import { RepresentativeProfileComponent } from './representative-profile/representative-profile.component';
 import { RepresentativeStudentComponent } from './representative-student/representative-student.component';
 import { PaymentMethodsComponent } from './payment-methods/payment-methods.component';
+import { CreateOrderComponent } from './create-order/create-order.component';
 
 const routes: Routes = [
   {
@@ -31,6 +32,10 @@ const routes: Routes = [
   {
     path: "listProvider/:student_id",
     component: ChildrenComponent
+  },
+  {
+    path: "createOrder/:student_id",
+    component: CreateOrderComponent
   },
   {
     path: "student/:student_id/providers/:provider_id",

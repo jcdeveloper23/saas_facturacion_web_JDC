@@ -1,4 +1,6 @@
 import { Injectable } from '@angular/core';
+import { utf8Encode } from '@angular/compiler/src/util';
+import { sha256 } from 'js-sha256';
 declare var $: any;
 @Injectable({
   providedIn: 'root'
@@ -86,5 +88,18 @@ export class UtilsService {
       i = "0" + i;
     }
     return i;
+  }
+
+
+  getAuthToken(paymentezClientAppCode, appClientKey) {
+    var authTimeStamp = new Date().getTime().toString();
+    var stringAuthToken = paymentezClientAppCode + ";" + authTimeStamp.substring(0, 10) + ";" + this.getUniqToken(authTimeStamp.substring(0, 10), appClientKey);
+    var authToken = btoa(utf8Encode(stringAuthToken));
+    return authToken;
+  }
+
+  getUniqToken(authTimeStamp, paymentezClientAppKey) {
+    var uniqTokenString = paymentezClientAppKey + authTimeStamp;
+    return sha256(utf8Encode(uniqTokenString)).toString();
   }
 }

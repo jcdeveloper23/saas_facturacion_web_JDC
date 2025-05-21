@@ -35,14 +35,14 @@ export const ROUTES_REPRESENTATIVE: RouteInfo[] = [
         icontype: 'nc-icon nc-single-02'
     },
     {
-        path: '/perfil-representative/perfil',
-        title: 'Mi perfil',
+        path: '/perfil-representative/paymentMethods',
+        title: 'Mis métodos de pago',
         type: 'link',
         icontype: 'nc-icon nc-circle-10'
     },
     {
-        path: '/perfil-representative/paymentMethods',
-        title: 'Mis métodos de pago',
+        path: '/perfil-representative/perfil',
+        title: 'Mi perfil',
         type: 'link',
         icontype: 'nc-icon nc-circle-10'
     },

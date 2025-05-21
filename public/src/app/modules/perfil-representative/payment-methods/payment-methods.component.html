@@ -29,13 +29,78 @@
                 </div>
             </div>
         </div>
-
     </div>
     <div class="row m-0 p-0 w-100 container-fluid-body m-0 p-0">
         <div class="col-12 col-sm-12 col-md-12 p-1">
             <!-- *** Pago con Tarjeta *** -->
-            <div *ngIf="paymentMethodSelected=='Tarjeta'" class="row m-1">
+            <div *ngIf="paymentMethodSelected=='Tarjeta'" class="row w-100 m-0 p-0">
+                <div class="col-sm-12 text-payment-method">
+                    <h3 class="text-white h-1">
+                        <span class="p-mini">Actualmente usas </span><span class="span-primary">
+                            Pago con tarjeta
+                        </span>
+                        <span class="p-mini">
+                            como tu forma de pago principal.
+                            Puedes cambiarla cuando lo necesites desde
+                            tus métodos de pago.
+                        </span>
+                    </h3>
+                </div>
+
+                <div *ngFor="let item of arrayPaymentMethod; let i = index"
+                    class="col-12 col-sm-6 col-md-4 col-lg-3 m-0 p-2">
+                    <div class=" card-stats p-1 position-relative container-fluid-body">
+                        <div class="card-body credit-card text-white">
+
+                            <div class="row">
+                                <div class="col-12 col-md-9">
+                                    <div class="numbers">
+                                        <div class="card-category">{{ getCardTypeName(item.type) }}</div>
+                                        <div class="card-number">*******{{item.number}}</div>
+                                        <div class="card-category">{{item.expiry_month}}/{{item.expiry_year}}</div>
+                                        <div class="card-category mt-3">{{item.holder_name}}</div>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-3 text-end card-logo"> 
+                                    <img src="../../../../assets/img/icons/creditCard.png" alt="credit card">
+                                </div>
+                            </div>
+                        </div>
+                        <button class="btn btn-danger btn-sm btn-option p-2 btn-block" (click)="deletePaymentMethod(item)"
+                            title="Eliminar tarjeta">
+                            <img src="../../../../assets/img/icons/delete.png" class="icon-mini mr-2" />
+                            Eliminar tarjeta
+                        </button>
+                    </div>
+                </div>
+
+
+                <div class="col-12 col-sm-6 col-md-4 col-lg-3 m-0 p-2">
+                    <div class="card card-stats p-1 position-relative container-fluid-body">
+                        <div class="card-body credit-card text-white">
+                            <div class="row">
+                                <div class="col-12 col-md-9">
+                                    <div class="text-left">
+                                        <div class="card-category">Agregar tarjeta</div>
+                                        <div class="p-mini mt-3 text-left">Paga tus compras en el bar de forma</div>
+                                        <div class="card-category mt-4">Rápida y segura</div>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-3 text-end card-logo">
+                                    <img src="../../../../assets/img/icons/creditCard.png" alt="credit card">
+                                </div>
+                            </div>
+                        </div>
+                        <button class="btn btn-success btn-sm btn-option p-2" data-toggle="modal"
+                            data-target="#myModaldetailPaymentMethod" title="Agregar tarjeta">
+                            <img src="../../../../assets/img/icons/creditCard.png" class="icon-mini" />
+                            Agregar tarjeta
+                        </button>
+                    </div>
+                </div>
+
                 <div class="col-sm-12">
+                    <!-- *** Lista de proveedores *** -->
                     <ul class="nav nav-pill nav-pills-primary nav-pills-icons" role="tablist">
                         <li class="nav-item" *ngFor="let provider of providersList; let i = index">
                             <a (click)="selectProviderTab(provider)" class="nav-link {{i==0?'active':''}}"
@@ -45,55 +110,7 @@
                             </a>
                         </li>
                     </ul>
-                    <div class="row m-3 align-items-center justify-content-center">
-                        <div class="col-sm-12 p-2 col-content-products ">
-                            <div
-                                class="col-lg-6 col-md-6 col-6 p-0 col-content-category  d-flex justify-content-center pl-0  d-flex justify-content-center align-items-center">
-                                <h3 class="mb-0 font-category ">Mis métodos de pago registrados en:
-                                    {{providerSelected.provider_business_name}}</h3>
-                            </div>
-                            <div *ngIf="providerSelected.provider_NAME_EC_SERVER==undefined"
-                                class="alert alert-danger p-4">
-                                <h3>
-                                    El bar <b>{{providerSelected.provider_business_name | uppercase}}</b> no
-                                    tiene configurada la opción de pago con tarjeta
-                                </h3>
-                            </div>
-                            <div *ngIf="providerSelected.provider_NAME_EC_SERVER!=undefined" class="row">
-                                <div class="update ml-auto mr-auto">
-                                    <button type="submit" class="btn btn-primary btn-round" data-toggle="modal"
-                                        data-target="#myModaldetailPaymentMethod">
-                                        {{ 'Agregar Tarjeta' }}
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-sm-12">
-                                    <div *ngIf="arrayPaymentMethod.length==0 && providerSelected.provider_NAME_EC_SERVER!=undefined"
-                                        class="alert alert-danger p-4">
-                                        No tienes métodos de pago agregados en el bar:
-                                        <b>{{providerSelected.provider_business_name | uppercase}}</b>
-                                    </div>
-                                    <div *ngFor="let item of arrayPaymentMethod" class="card bg-grey">
-                                        <div class="row p-3">
-                                            <div class="col-sm-2">
-                                                <i class="fa fa-credit-card"></i>
-                                            </div>
-                                            <div class="col-sm-7 text-left">
-                                                xxxx-xxxx-xxxx-{{item.number}} <br>
-                                                {{item.holder_name}}
-                                            </div>
-                                            <div class="col-sm-3">
-                                                <button (click)="deletePaymentMethod(item)" class="btn btn-danger">
-                                                    Eliminar
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    
                     <div #myModaldetailPaymentMethod data-keyboard="false" data-backdrop="static" class="modal fade"
                         id="myModaldetailPaymentMethod" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
                         aria-hidden="true">
@@ -113,14 +130,12 @@
                                     <iframe *ngIf="providerSelected.provider_name!=null" id="videoContainer"
                                         width="100%" height="430" [src]="urlByAddPayment" frameborder="0"></iframe>
                                 </div>
-
-
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-            
+
             <!-- *** Transferencia *** -->
             <div *ngIf="paymentMethodSelected=='Efectivo'" class="row w-100 m-0 p-0">
                 <div class="col-sm-12 text-payment-method">
@@ -154,7 +169,8 @@
                                                 Recuerda adjuntar
                                                 el comprobante
                                             </p>
-                                            <img src="../../../../assets/img/icons/fileUp.png" class="icon-white mx-0" alt="">
+                                            <img src="../../../../assets/img/icons/fileUp.png" class="icon-white mx-0"
+                                                alt="">
                                         </div>
                                     </div>
                                 </div>

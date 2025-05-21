@@ -23,20 +23,22 @@ export class ChildrenComponent implements OnInit {
   public infoUser: Users;
   public representative: Representative;
   public providersList: Array<Provider>;
-  constructor(private router: Router,
+  constructor(
+    private router: Router,
     private representativeService: RepresentativeService,
     private providersService: ProviderService,
     private activatedRoute: ActivatedRoute,
-    private studentService: StudentService) { }
+    private studentService: StudentService
+  ) { }
 
   ngOnInit(): void {
     this.infoUser = JSON.parse(localStorage.getItem('infoUser'));
-    if (this.infoUser === null) {
-      this.router.navigate([''])
-    } else {
+    // if (this.infoUser === null) {
+    //   this.router.navigate([''])
+    // } else {
       this.getInfoRepresentative();
       this.validateUrl()
-    }
+    // }
   }
 
   /**

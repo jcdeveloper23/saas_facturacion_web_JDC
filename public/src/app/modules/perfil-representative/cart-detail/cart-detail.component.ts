@@ -20,6 +20,7 @@ import Swal from 'sweetalert2';
 import { utf8Encode } from '@angular/compiler/src/util';
 import { sha256 } from 'js-sha256';
 import { Provider } from 'app/interfaces/provider';
+import { environment } from 'environments/environment';
 declare var $: any;
 
 export interface DatePicker {
@@ -60,9 +61,9 @@ export class CartDetailComponent implements OnInit {
     private router: Router,
     private notificationService: UtilsService,
     private categoryService: LinesService,
-    private orderService: OrdersService,
     private representativeService: RepresentativeService,
     private storageService: StorageService,
+    private orderService: OrdersService,
     private providersService: ProviderService,
     private http: HttpClient,
 
@@ -98,7 +99,7 @@ export class CartDetailComponent implements OnInit {
         }),
       };
       var headers = {};
-      var url = `https://ccapi.paymentez.com/v2/card/list?uid=${this.infoUser.user_uid}`;
+      var url = `${environment.urlPaymentez}/card/list?uid=${this.infoUser.user_uid}`;
       var response = this.http.get<any>(url, httpOptions).subscribe((response) => {
         response['cards'].forEach(card => {
           this.arrayPaymentMethod.push(card);
@@ -184,7 +185,7 @@ export class CartDetailComponent implements OnInit {
       }
     }
 
-    var url = `https://ccapi.paymentez.com/v2/transaction/debit/`;
+    var url = `${environment.urlPaymentez}/transaction/debit/`;
     var response = this.http.post<any>(url, body, httpOptions).subscribe((response) => {
       if (response.transaction.status == "success") {
         this.orderService.saveDetailsPaymentInProvider(this.order.order_transaccion_id, this.provider.provider_id, response, this.infoUser).then(async () => {

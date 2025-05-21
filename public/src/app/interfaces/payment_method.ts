@@ -26,6 +26,7 @@ export interface PaymentMethod {
     status?: string;
     token?: string;
     transaction_reference?: string;
+    type?: string;
 }
 
 export interface PaymentMethodTypes {

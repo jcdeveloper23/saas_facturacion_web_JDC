@@ -250,6 +250,10 @@ export class RepresentativeStudentComponent implements OnInit {
 
 
   public viewProviders(student: Student) {
+    this.router.navigate(['perfil-representative/createOrder/' + student.student_id])
+  }
+
+  public viewProviderss(student: Student) {
     this.router.navigate(['perfil-representative/listProvider/' + student.student_id])
   }
 

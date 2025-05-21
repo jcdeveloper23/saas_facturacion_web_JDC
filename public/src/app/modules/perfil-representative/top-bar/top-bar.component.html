@@ -1,32 +1,27 @@
 <div class="row m-0">
     <div class="col-sm-12">
         <div class="card ">
-            <div class="row m-0">
+            <div class="row m-0 container-fluid-body">
                 <div class="col-4 col-content-element-bar d-flex justify-content-start align-items-center" *ngIf="typeComponent !==  'calendar' && typeComponent !==  'cart'">
                     <i (click)="viewCalendar()" class="nc-icon nc-calendar-60 text-primary icon-element-bar cursor-pointer"></i>
                 </div>
                 <div class="col-4 col-content-element-bar d-flex justify-content-start align-items-center" *ngIf="typeComponent ===  'calendar'">
                     <i (click)="goStudentsList()" class="fa fa-arrow-left text-primary fa-lg cursor-pointer" aria-hidden="true"></i>
-
                 </div>
                 <div class="col-4 col-content-element-bar d-flex justify-content-start align-items-center" *ngIf="typeComponent ===  'cart'">
                     <i (click)="goStudentsListOfCart()" class="fa fa-arrow-left text-primary fa-lg cursor-pointer" aria-hidden="true"></i>
-
                 </div>
                 <div class="col-4 col-content-element-bar text-center d-flex justify-content-center align-items-center">
                     <h3 *ngIf="student" class="card-title mb-0">{{student.student_name}} {{student.student_lastname}}</h3>
                     <h3 *ngIf="info_provider" class="card-title mb-0">{{info_provider.provider_business_name}}</h3>
                     <h3 *ngIf="typeComponent ===  'calendar'" class="card-title mb-0">Pedido mensual</h3>
                     <h3 *ngIf="typeComponent ===  'cart'" class="card-title mb-0">Carrito de compras</h3>
-
-
                 </div>
                 <div (click)="viewCart()" *ngIf="typeComponent !==  'cart'" class="col-4 col-content-element-bar d-flex align-items-center justify-content-end  cursor-pointer ">
                     <i class="nc-icon nc-cart-simple  text-primary cursor-pointer  icon-element-bar"></i>
                     <span  class="badge badge-warning"*ngIf="productDetailComponent.getLocalStorageCart() > 0">{{productDetailComponent.getLocalStorageCart()}}</span>
                     <!-- <span  class="badge badge-warning" *ngIf="productDetailComponent.getLocalStorageCart() === 0">0</span> -->
                 </div>
-
             </div>
         </div>
     </div>
