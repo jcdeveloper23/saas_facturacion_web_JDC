@@ -13,6 +13,7 @@ import { FormControl, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { UtilsService } from 'app/services/utils/utils.service';
 import { Users } from 'app/interfaces/users';
+import { LoadingService } from 'app/services/loading/loading.service';
 declare var $: any;
 
 @Component({
@@ -40,10 +41,12 @@ export class RepresentativeStudentComponent implements OnInit {
     private studentService: StudentService,
     private storageService: StorageService,
     private router: Router,
-    private utilService: UtilsService
+    private utilService: UtilsService,
+    public loadingService: LoadingService,
   ) { }
 
   ngOnInit(): void {
+    this.loadingService.show('Cargando...');
     this.representative = {};
     this.infoUser = JSON.parse(localStorage.getItem("infoUser"));
     if (this.infoUser) {
@@ -157,6 +160,7 @@ export class RepresentativeStudentComponent implements OnInit {
   public getStudents() {
     this.studentService.getStudentsByRepresentative(this.representative.representative_id).subscribe(students => {
       this.arrayStudents = students;
+      this.loadingService.hide();
     })
   }
 
@@ -225,7 +229,7 @@ export class RepresentativeStudentComponent implements OnInit {
    */
   selectedStudent(student: Student) {
     console.log(student);
-    
+
     this.student = student;
     this.selectLevelByStudent();
     this.isEdit = true;

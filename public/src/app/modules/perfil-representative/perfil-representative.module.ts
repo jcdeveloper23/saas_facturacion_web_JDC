@@ -29,6 +29,7 @@ import { PaymentMethodsComponent } from './payment-methods/payment-methods.compo
 import { CreateOrderComponent } from './create-order/create-order.component'; // a plugin!
 import { MatPaginatorModule } from '@angular/material/paginator';
 import { MatTableModule } from '@angular/material/table';
+import { LoadingComponent } from 'app/modules/loading/loading.component';
 
 FullCalendarModule.registerPlugins([ // register FullCalendar plugins
   dayGridPlugin,
@@ -47,7 +48,8 @@ FullCalendarModule.registerPlugins([ // register FullCalendar plugins
     OrdersCalendarComponent,
     OrdersByStudentComponent,
     PaymentMethodsComponent,
-    CreateOrderComponent
+    CreateOrderComponent,
+    LoadingComponent
   ],
   imports: [
     CommonModule,
@@ -66,6 +68,7 @@ FullCalendarModule.registerPlugins([ // register FullCalendar plugins
     HttpClientModule,
     MatPaginatorModule,
     MatTableModule,
+    
   ]
 })
 export class PerfilRepresentativeModule { }

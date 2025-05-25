@@ -1,5 +1,5 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
-import { DateRange } from '@angular/material/datepicker';
+import { DateRange, MatDatepickerInputEvent } from '@angular/material/datepicker';
 import { MatPaginator } from '@angular/material/paginator';
 import { MatSort } from '@angular/material/sort';
 import { MatTableDataSource } from '@angular/material/table';
@@ -9,6 +9,7 @@ import { Orders } from 'app/interfaces/orders';
 import { Product } from 'app/interfaces/product';
 import { Provider } from 'app/interfaces/provider';
 import { Student } from 'app/interfaces/student';
+import { LoadingService } from 'app/services/loading/loading.service';
 import { OrdersService } from 'app/services/orders/orders.service';
 import { StudentService } from 'app/services/student/student.service';
 import { take } from 'rxjs/operators';
@@ -82,10 +83,13 @@ export class OrdersByStudentComponent implements OnInit {
     private activatedRoute: ActivatedRoute,
     private studentService: StudentService,
     private orderService: OrdersService,
-    private router: Router
+    private router: Router,
+    public loadingService: LoadingService,
   ) { }
 
   ngOnInit(): void {
+    this.loadingService.show('Cargando...');
+
     this.setDates();
 
     this.student = {};
@@ -107,8 +111,8 @@ export class OrdersByStudentComponent implements OnInit {
      */
     const today = new Date();
     const twoWeeksAgo = new Date();
-    twoWeeksAgo.setDate(today.getDate() - 14);
-
+    twoWeeksAgo.setDate(today.getDate() - 1);
+    
     this.filters.startDate = twoWeeksAgo;
     this.filters.endDate = today;
   }
@@ -143,8 +147,16 @@ export class OrdersByStudentComponent implements OnInit {
   /**
    * *** Cargamos los pedidos filtrados por el estudiante ***
    */
-  loadFilteredOrders(reset = true) {
+  public loadFilteredOrders(reset = true) {
     console.log('*** loadFilteredOrders ***');
+
+    /**
+     * *** Arreglamos las fechas para el filtro ***
+     */
+    this.filters.startDate.setHours(0, 0, 0, 0);
+    this.filters.endDate.setHours(23, 59, 59, 999);
+
+    this.loadingService.show('Cargando...');
     if (reset) {
       this.lastVisibleDoc = null;
     }
@@ -157,10 +169,14 @@ export class OrdersByStudentComponent implements OnInit {
           this.arrayOrders = [...this.arrayOrders, ...result.data];
         }
 
+        console.log('*** arrayOrders ***');
+        console.log(JSON.stringify(this.arrayOrders, null, 2));
+
         this.lastVisibleDoc = result.lastDoc;
         this.dataSource = new MatTableDataSource(this.arrayOrders);
         this.dataSource.sort = this.sort;
         this.dataSource.paginator = this.paginator;
+        this.loadingService.hide();
       });
   }
 
@@ -234,15 +250,26 @@ export class OrdersByStudentComponent implements OnInit {
     } else {
       // this.dateEnd = year + '-' + month + '-' + day;
     }
-   
+
+    if (type === 'start') {
+      this.filters.startDate = date.value;
+    } else {
+      this.filters.endDate = date.value;
+    }
+
+
+  }
+
+  applyFilters() {
+    console.log('*** applyFilters ***');
     if (this.filters.startDate && this.filters.endDate) {
+      this.filters.startDate.setHours(0, 0, 0, 0);
+      this.filters.endDate.setHours(23, 59, 59, 999);
       /**
        * *** Carga inicial con el filtro de fechas ***
        */
       this.loadFilteredOrders(true);
-
       // this.loading_orders = true
-      // this.getOrdersRange()
     }
   }
 

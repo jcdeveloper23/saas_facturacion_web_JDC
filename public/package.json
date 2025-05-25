@@ -1,9 +1,9 @@
 {
-  "name": "paper-dashboard-pro-angular",
+  "name": "Bares escolares",
   "version": "1.4.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/creativetimofficial/ct-paper-dashboard-pro-angular.git"
+    "url": ""
   },
   "scripts": {
     "ng": "ng",

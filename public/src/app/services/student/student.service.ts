@@ -147,21 +147,23 @@ export class StudentService {
         query = query
           .where('order_date_full', '>=', filters.startDate)
           .where('order_date_full', '<=', filters.endDate);
+          // .orderBy('order_date_full', 'desc');
       }
 
-      // if (filters.status && filters.status !== 'Todos') {
-      //   query = query.where('order_delivery_state_string', '==', filters.status);
-      // }
+      if (filters.status && filters.status !== 'Todos') {
+        query = query.where('order_state', '==', false);
+      }
 
       // if (filters.paymentStatus && filters.paymentStatus !== 'Todos') {
-      //   query = query.where('order_state_payment_method_string', '==', filters.paymentStatus);
+      //   // query = query.where('order_state', '==', true);
       // }
 
       // if (filters.startDate && filters.endDate) {
       //   query = query.where('order_date', '>=', filters.startDate).where('order_date', '<=', filters.endDate);
       // }
 
-      // query = query.orderBy('order_date', 'desc').limit(pageSize);
+      query = query.orderBy('order_date_full', 'desc'); 
+      // .limit(pageSize);
 
       // if (lastDoc) {
       //   query = query.startAfter(lastDoc);
