@@ -22,13 +22,9 @@ import { HttpClient, HttpHeaders, HttpResponse } from '@angular/common/http';
 
 import Swal from 'sweetalert2';
 import { environment } from 'environments/environment';
+import { DatePicker } from 'app/interfaces/datepicker';
 declare var $: any;
 
-export interface DatePicker {
-  day?: number,
-  year?: number,
-  month?: number,
-}
 
 @Component({
   selector: 'app-create-order',
@@ -122,7 +118,7 @@ export class CreateOrderComponent implements OnInit {
     private storageService: StorageService,
     private orderService: OrdersService,
     private http: HttpClient,
-    private renderer: Renderer2, 
+    private renderer: Renderer2,
     private el: ElementRef
   ) { }
 
@@ -225,6 +221,7 @@ export class CreateOrderComponent implements OnInit {
     this.order.order_student_id = this.student_id;
     this.order.order_time = this.utilService.getTimeCurrent();
     this.order.order_date = this.utilService.getDateCurrent();
+    this.order.order_date_full = this.utilService.getDateCurrentFull();
     this.order.order_state = false;
     this.order.order_payment_method = this.representative.representative_payment_method;
 
@@ -258,7 +255,8 @@ export class CreateOrderComponent implements OnInit {
 
   public initCart() {
     if (JSON.parse(localStorage.getItem('productsCartInCache'))) {
-      this.productsCartInCache = [];
+      /** *** OJO *** */
+      this.productsCartInCache = JSON.parse(localStorage.getItem('productsCartInCache'));// [];
       localStorage.setItem('productsCartInCache', JSON.stringify(this.productsCartInCache));
     } else {
       this.productsCartInCache = [];
@@ -318,7 +316,7 @@ export class CreateOrderComponent implements OnInit {
     // })
   }
 
-  public addToCart(product: Product) {
+  public addToCartOld(product: Product) {
     this.productSelected = product;
     /// *** Hacer una copia del producto para que no se vincule al que está en la vista ***
     const productClone: Product = JSON.parse(JSON.stringify(product));
@@ -350,6 +348,53 @@ export class CreateOrderComponent implements OnInit {
       this.isViewDetailProduct = false;
     }
   }
+
+  public addToCart(product: Product) {
+    this.productSelected = product;
+
+    const productClone: Product = JSON.parse(JSON.stringify(product));
+    const deliveryDate = `${this.daySelected.year}-${this.pad(this.daySelected.month)}-${this.pad(this.daySelected.day)}`;
+    productClone.product_order_delivery_date = deliveryDate;
+
+    if (!deliveryDate) {
+      this.utilService.showNotification('top', 'right', 'nc-alert-circle-i', 'Por favor complete el campo fecha de entrega.', 'warning');
+      this.isViewDetailProduct = false;
+      return;
+    }
+
+    productClone.product_id_student = this.student_id;
+    productClone.product_quantity_in_cart = 1;
+
+    // Obtener info del usuario
+    this.infoUser = JSON.parse(localStorage.getItem("infoUser") || '{}');
+
+    // Obtener carrito de localStorage
+    const cache = localStorage.getItem("productsCartInCache");
+    this.productsCartInCache = cache ? JSON.parse(cache) : [];
+
+    // Verificar si el producto con la misma fecha ya existe
+    const existingProduct = this.productsCartInCache.find(p =>
+      p.product_id === productClone.product_id &&
+      p.product_order_delivery_date === productClone.product_order_delivery_date &&
+      p.product_id_student === productClone.product_id_student
+    );
+
+    if (existingProduct) {
+      // Aumentar cantidad si ya existe
+      existingProduct.product_quantity_in_cart += 1;
+    } else {
+      // Agregar nuevo producto
+      this.productsCartInCache.push(productClone);
+    }
+
+    // Guardar carrito actualizado
+    localStorage.setItem("productsCartInCache", JSON.stringify(this.productsCartInCache));
+
+    this.recalculateTotal();
+    $('#myModalAddProductToCart').modal('hide');
+    // this.utilService.showNotification('top', 'right', 'nc-check-2', 'Se ha añadido correctamente el producto al carrito.', 'success');
+  }
+
 
   public getLocalStorageCart() {
     this.productsCartInCache = []
@@ -538,8 +583,8 @@ export class CreateOrderComponent implements OnInit {
       this.recalculateTotal()
     } else {
       Swal.fire({
-        title: '¿Confirma que desea eliminar el producto?',
-        icon: 'warning',
+        title: '¿Está seguro de que desea eliminar este producto del carrito?',
+        icon: 'question',
         showCancelButton: true,
         customClass: {
           confirmButton: 'btn btn-success',
@@ -551,6 +596,8 @@ export class CreateOrderComponent implements OnInit {
       }).then((result) => {
         if (result.value) {
           this.productsCartInCache.splice(i, 1)
+          localStorage.setItem('productsCartInCache', JSON.stringify(this.productsCartInCache));
+
           if (this.productsCartInCache.length === 0) {
             this.router.navigate(['perfil-representative/' + 'childrens/']);
           }
@@ -562,8 +609,8 @@ export class CreateOrderComponent implements OnInit {
 
   public deleteProduct(product: Product, i: number) {
     Swal.fire({
-      title: '¿Confirma que desea eliminar el producto?',
-      icon: 'warning',
+      title: '¿Está seguro de que desea eliminar este producto del carrito?',
+      icon: 'question',
       showCancelButton: true,
       customClass: {
         confirmButton: 'btn btn-success',
@@ -575,9 +622,10 @@ export class CreateOrderComponent implements OnInit {
     }).then((result) => {
       if (result.value) {
         this.productsCartInCache.splice(i, 1);
+        localStorage.setItem('productsCartInCache', JSON.stringify(this.productsCartInCache));
+
         if (this.productsCartInCache.length === 0) {
           this.router.navigate(['perfil-representative/' + 'childrens/']);
-
         }
         this.recalculateTotal()
       }
@@ -809,6 +857,8 @@ export class CreateOrderComponent implements OnInit {
   }
 
   selectCategory(category: any): void {
+    this.productSearchTerm = '';
+
     if (this.selectedCategoryId === category.category_id) {
       this.selectedCategoryId = null;
       this.product_list = this.allProducts; // mostrar todos
@@ -825,20 +875,20 @@ export class CreateOrderComponent implements OnInit {
     const search = this.productSearchTerm.toLowerCase().trim();
 
     this.product_list = this.allProducts.filter(product =>
-      (!this.selectedCategoryId || product.product_id_category === this.selectedCategoryId) &&
+      // (!this.selectedCategoryId || product.product_id_category === this.selectedCategoryId) &&
       product.product_name.toLowerCase().includes(search)
     );
   }
 
-  flyToCart() { 
+  flyToCart() {
     const sourceImg = this.productImage?.nativeElement as HTMLImageElement;
     const cartEl = this.cartIcon?.nativeElement;
-  
+
     if (!sourceImg || !cartEl) return;
-  
+
     const cartRect = cartEl.getBoundingClientRect();
     const imgRect = sourceImg.getBoundingClientRect();
-  
+
     const clone = sourceImg.cloneNode(true) as HTMLImageElement;
     clone.style.position = 'fixed';
     clone.style.zIndex = '9999';
@@ -847,12 +897,12 @@ export class CreateOrderComponent implements OnInit {
     clone.style.left = imgRect.left + 'px';
     clone.style.top = imgRect.top + 'px';
     clone.classList.add('flying-img');
-  
+
     document.body.appendChild(clone);
-  
+
     const deltaX = cartRect.left + imgRect.left + 300;
     const deltaY = cartRect.top + imgRect.top + 200;
-  
+
     clone.animate([
       { transform: 'translate(0, 0) scale(1)', opacity: 1 },
       { transform: `translate(${deltaX * 0.5}px, ${deltaY * 0.3}px) scale(1.2)`, opacity: 0.9 },
@@ -861,52 +911,68 @@ export class CreateOrderComponent implements OnInit {
       duration: 1000,
       easing: 'cubic-bezier(0.55, 0.08, 0.68, 0.53)',
     });
-  
+
     setTimeout(() => {
       document.body.removeChild(clone);
       this.createSparks(cartRect.left + 10, cartRect.top + 10);
     }, 1000);
   }
-  
+
   createSparks(x: number, y: number) {
     const spark = document.createElement('div');
     spark.className = 'spark-glow';
     spark.style.left = x + 'px';
     spark.style.top = y + 'px';
     document.body.appendChild(spark);
-  
+
     setTimeout(() => spark.remove(), 800);
   }
 
   animateToCart(event: MouseEvent, productImageUrl: string) {
     const target = event.target as HTMLElement;
     const img = this.renderer.createElement('img');
-  
+
     img.src = productImageUrl;
     this.renderer.addClass(img, 'flying-image');
-  
+
     const buttonRect = target.getBoundingClientRect();
     img.style.left = `${buttonRect.left + window.scrollX}px`;
     img.style.top = `${buttonRect.top + window.scrollY}px`;
-  
+
     this.renderer.appendChild(document.body, img);
-  
+
     const cart = document.getElementById('shoppingCartIcon');
     if (!cart) return;
-  
+
     const cartRect = cart.getBoundingClientRect();
     const x = cartRect.left - buttonRect.left;
     const y = cartRect.top - buttonRect.top;
-  
+
     setTimeout(() => {
       img.style.transform = `translate(${x}px, ${y}px) scale(0.2)`;
       img.style.opacity = '0';
     }, 500);
-  
+
     setTimeout(() => {
       this.renderer.removeChild(document.body, img);
     }, 2800);
   }
-  
+  getCardTypeName(type: string): string {
+    const cardTypes: { [key: string]: string } = {
+      vi: 'Visa',
+      mc: 'MasterCard',
+      am: 'American Express',
+      di: 'Discover',
+      jcb: 'JCB',
+      ax: 'American Express',
+      el: 'Elo',
+      dc: 'Diners Club',
+      un: 'UnionPay',
+      ma: 'Maestro',
+      other: 'Otro'
+    };
+
+    return cardTypes[type] || 'Desconocido';
+  }
 
 }

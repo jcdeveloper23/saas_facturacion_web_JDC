@@ -6,7 +6,6 @@ import { Orders } from 'app/interfaces/orders';
 import { Product } from 'app/interfaces/product';
 import { Student } from 'app/interfaces/student';
 import { Users } from 'app/interfaces/users';
-import { DatePicker } from 'app/modules/perfil-representative/cart-detail/cart-detail.component';
 import { OrdersService } from 'app/services/orders/orders.service';
 import { StudentService } from 'app/services/student/student.service';
 import { UtilsService } from 'app/services/utils/utils.service';
@@ -16,6 +15,7 @@ import { QrScannerComponent } from 'angular2-qrscanner';
 import html2canvas from 'html2canvas';
 import { jsPDF } from "jspdf";
 import { LevelsService } from 'app/services/levels/levels.service';
+import { DatePicker } from 'app/interfaces/datepicker';
 
 declare var $: any
 @Component({

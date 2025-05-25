@@ -291,6 +291,7 @@ input:-webkit-autofill::first-line {
   border-radius: 10px;
   padding: 10px;
 }
+
 .avatar {
   min-width: 130px !important;
   min-height: 130px !important;
@@ -322,6 +323,10 @@ input:-webkit-autofill::first-line {
   line-height: 1;
   text-align: justify;
   text-transform: none;
+}
+
+.h-1 {
+  line-height: 1;
 }
 
 .span-primary {
@@ -372,6 +377,7 @@ input:-webkit-autofill::first-line {
   min-height: 100px;
   max-height: 100px;
 }
+
 .bg-purple-dark {
   background-color: #8280FF;
   border-radius: 10px;
@@ -395,6 +401,107 @@ input:-webkit-autofill::first-line {
   height: 60px;
   float: right;
 }
+
+.credit-card {
+  background: linear-gradient(135deg, var(--primary), var(--primary));
+  border-radius: 10px;
+  padding: 20px 25px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  color: #fff;
+  font-family: 'Segoe UI', sans-serif;
+  transition: transform 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.credit-card:hover {
+  transform: scale(1.01);
+}
+
+.credit-card .card-category {
+  font-size: 14px;
+  font-weight: 400;
+  text-transform: uppercase;
+  opacity: 0.9;
+}
+
+.credit-card h2 {
+  font-size: 20px;
+  margin: 10px 0;
+  font-weight: 500;
+}
+
+.credit-card .card-number {
+  font-size: 14px;
+  letter-spacing: 2px;
+  font-weight: 600;
+  margin-top: 15px;
+}
+
+.credit-card .card-logo img {
+  width: 60px;
+  height: auto;
+}
+
+.credit-card .row {
+  align-items: center;
+}
+
+.card-stats {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  /* background-color: #3e3e3e; */
+}
+
+.card-body.credit-card {
+  min-height: 150px;
+}
+
+
+/* *** Calendars *** */
+::ng-deep .mat-form-field-infix {
+    padding: .5em 0;
+    border-top: .0px solid transparent !important; 
+}
+
+::ng-deep .mat-datepicker-toggle-default-icon {
+    width: 2.5em !important;
+    color: gray;
+}
+
+::ng-deep .mat-datepicker-toggle-default-icon:active{
+    border: none !important;
+    background-color: transparent !important;
+}
+
+::ng-deep .mat-calendar-body-selected {
+    background-color: rgb(29,207,145)  !important;
+    color: #fff;
+}
+/* .mat-calendar-body-in-range::before {
+    background: rgba(63,81,181,.2);
+} */
+
+::ng-deep .mat-form-field-appearance-legacy.mat-form-field-disabled .mat-form-field-underline {
+    background-image: none !important; 
+}
+
+::ng-deep .mat-form-field-appearance-fill.mat-form-field-disabled .mat-form-field-flex {
+    background-color: transparent !important; 
+}
+
+::ng-deep .mat-form-field-appearance-fill .mat-form-field-flex {
+    border-radius: 4px 4px 0 0;
+    padding: 0px !important;
+    align-items: center !important;
+}
+
+::ng-deep .mat-form-field-suffix .mat-icon-button .mat-datepicker-toggle-default-icon {
+    margin: auto;
+    margin-bottom: 15px !important;
+}
+
 
 /* .mat-table {
   background-color: white !important;

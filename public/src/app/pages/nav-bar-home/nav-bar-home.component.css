@@ -1,5 +1,5 @@
 .img-logo  {
-    width: 100px;
+    width: 70px;
 }
 
 .nav-style {
@@ -11,16 +11,15 @@
 }
 
 .btn-login {
-    background-color: rgb(80, 80, 80);
     color: white;
-    border-radius: 10px;
-    width: 120px;
+    /* border-radius: 10px; */
+    /* width: 120px; */
     text-transform: none;
-    padding: 1.5rem;
-    border-bottom-left-radius: 60px;
+    /* padding: 1.5rem; */
+    /* border-bottom-left-radius: 60px;
     border-bottom-right-radius: 30px;
     border-top-left-radius: 30px;
-    border-top-right-radius: 60px;
+    border-top-right-radius: 60px; */
 }
 
 .g-color-menu {
@@ -39,4 +38,9 @@
     background: #f39200;
     border-radius: 50px;
     padding: 10px;
+}
+h1 {
+    font-size: 40px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
 }

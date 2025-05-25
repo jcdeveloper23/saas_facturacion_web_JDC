@@ -1,5 +1,6 @@
 import { ThrowStmt } from '@angular/compiler';
 import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import { DatePicker } from 'app/interfaces/datepicker';
 import { Lines } from 'app/interfaces/lines';
 import { Menu } from 'app/interfaces/menu';
 import { Product } from 'app/interfaces/product';
@@ -8,11 +9,6 @@ import { LinesService } from 'app/services/lines/lines.service';
 import { UtilsService } from 'app/services/utils/utils.service';
 declare var $: any;
 
-export interface DatePicker {
-  day?: number,
-  year?: number,
-  month?: number,
-}
 @Component({
   selector: 'app-product-detail-modal',
   templateUrl: './product-detail-modal.component.html',

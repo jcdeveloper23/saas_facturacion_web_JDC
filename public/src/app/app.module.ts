@@ -1,4 +1,4 @@
-import { NgModule   } from '@angular/core';
+import { NgModule, LOCALE_ID } from '@angular/core';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterModule } from '@angular/router';
 import { HttpModule } from '@angular/http';
@@ -26,11 +26,16 @@ import { MatTableModule } from '@angular/material/table';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { IndexLayoutComponent } from './layouts/index-layout/index-layout.component';
-// import {QRCodeModule } from 'angularx-qrcode'
+import { registerLocaleData } from '@angular/common';
+import localeEs from '@angular/common/locales/es';
 
+registerLocaleData(localeEs);
 
 
 @NgModule({
+    providers: [
+        { provide: LOCALE_ID, useValue: 'es' }
+    ],
     imports: [
         BrowserAnimationsModule,
         FormsModule,
@@ -53,8 +58,8 @@ import { IndexLayoutComponent } from './layouts/index-layout/index-layout.compon
         MatFormFieldModule,
         MatInputModule,
         // QRCodeModule, 
-        
-      
+
+
     ],
     declarations: [
         AppComponent,

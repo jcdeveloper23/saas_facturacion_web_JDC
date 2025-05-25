@@ -12,6 +12,7 @@ export interface Orders {
     order_student_uid?: string;
     order_time?: string;
     order_date?: string;
+    order_date_full?: Date;
     order_state?: boolean;
     arrayProductCart?: Product[];
     order_total_to_pay?: number;

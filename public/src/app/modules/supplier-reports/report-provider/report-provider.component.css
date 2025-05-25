@@ -1,19 +1,19 @@
->>>.mat-form-field-infix {
+::ng-deep .mat-form-field-infix {
     padding: .5em 0;
     border-top: .0px solid transparent !important; 
 }
 
->>>.mat-datepicker-toggle-default-icon {
+::ng-deep .mat-datepicker-toggle-default-icon {
     width: 2.5em !important;
     color: gray;
 }
 
->>>.mat-datepicker-toggle-default-icon:active{
+::ng-deep .mat-datepicker-toggle-default-icon:active{
     border: none !important;
     background-color: transparent !important;
 }
 
->>>.mat-calendar-body-selected {
+::ng-deep .mat-calendar-body-selected {
     background-color: rgb(29,207,145)  !important;
     color: #fff;
 }
@@ -21,21 +21,21 @@
     background: rgba(63,81,181,.2);
 } */
 
->>>.mat-form-field-appearance-legacy.mat-form-field-disabled .mat-form-field-underline {
+::ng-deep .mat-form-field-appearance-legacy.mat-form-field-disabled .mat-form-field-underline {
     background-image: none !important; 
 }
 
->>>.mat-form-field-appearance-fill.mat-form-field-disabled .mat-form-field-flex {
+::ng-deep .mat-form-field-appearance-fill.mat-form-field-disabled .mat-form-field-flex {
     background-color: transparent !important; 
 }
 
->>> .mat-form-field-appearance-fill .mat-form-field-flex {
+::ng-deep .mat-form-field-appearance-fill .mat-form-field-flex {
     border-radius: 4px 4px 0 0;
     padding: 0px !important;
     align-items: center !important;
 }
 
->>>.mat-form-field-suffix .mat-icon-button .mat-datepicker-toggle-default-icon {
+::ng-deep .mat-form-field-suffix .mat-icon-button .mat-datepicker-toggle-default-icon {
     margin: auto;
     margin-bottom: 15px !important;
 }

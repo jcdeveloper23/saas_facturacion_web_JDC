@@ -129,6 +129,12 @@
     font-weight: bold;
 }
 
+.p-name {
+    font-size: 18px;
+    text-transform: none;
+    font-weight: bold;
+}
+
 .p-mini {
     font-size: 12px;
     line-height: 1;
@@ -147,7 +153,7 @@
     border-left: none;
     border-right: none;
     width: 35px;
-    height: 35px;
+    height: 30px;
     font-weight: bold;
     font-size: 16px;
 }
@@ -159,7 +165,7 @@
     border-top-left-radius: 5px !important;
     border-bottom-left-radius: 5px !important;
     width: 35px;
-    height: 35px;
+    height: 30px;
 }
 
 .btn-increase {
@@ -169,7 +175,7 @@
     border-top-right-radius: 5px !important;
     border-bottom-right-radius: 5px !important;
     width: 35px;
-    height: 35px;
+    height: 30px;
 }
 
 .icon-danger {
@@ -184,7 +190,21 @@
     min-width: 70px !important;
     min-height: 70px !important;
     max-width: 70px !important;
-    max-height: 700px !important;
+    max-height: 70px !important;
+    margin: 0 auto !important;
+    border-radius: 50% !important;
+    border: none !important;
+}
+
+.avatar-mini-details {
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-color: var(--bgLightTwo);
+    min-width: 90px !important;
+    min-height: 90px !important;
+    max-width: 90px !important;
+    max-height: 90px !important;
     margin: 0 auto !important;
     border-radius: 50% !important;
     border: none !important;
@@ -198,7 +218,7 @@
 .cart-body-fixed {
     overflow-y: auto;
     min-height: 55vh !important;
-    max-height: 55vh !important;
+    max-height: 65vh !important;
 }
 
 .cart-footer-fixed {
@@ -271,21 +291,51 @@
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(255,215,0,0.9), rgba(255,255,255,0));
+    background: radial-gradient(circle, rgba(255, 215, 0, 0.9), rgba(255, 255, 255, 0));
     box-shadow: 0 0 20px 10px rgba(255, 215, 0, 0.7);
     pointer-events: none;
     animation: glowFade 0.8s ease-out forwards;
     z-index: 9999;
-  }
-  
-  @keyframes glowFade {
+}
+
+@keyframes glowFade {
     0% {
-      transform: scale(0.5);
-      opacity: 1;
+        transform: scale(0.5);
+        opacity: 1;
     }
+
     100% {
-      transform: scale(2.5);
-      opacity: 0;
+        transform: scale(2.5);
+        opacity: 0;
     }
-  }
-  
+}
+
+.title-up {
+    text-transform: none !important;
+}
+
+.btn-danger-outline {
+    border: 1px solid var(--red);
+    background-color: transparent;
+    color: var(--red);
+    align-items: center;
+    align-items: center;
+    padding: 9px;
+    gap: 0.5rem;
+    text-decoration: none !important;
+    text-transform: none;
+}
+
+.p-minis {
+    line-height: 1 !important;
+}
+.numbers {
+    font-size: 22px !important;
+}
+
+
+
+
+
+
+

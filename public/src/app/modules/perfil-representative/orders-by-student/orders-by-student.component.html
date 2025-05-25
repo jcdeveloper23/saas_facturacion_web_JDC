@@ -1,14 +1,174 @@
 <div class="main-content">
-  <div class="container-fluid">
-    <div class="">
-      <div class="row  ">
-        <div class="card-body col-sm-12  bg-green text-center text-white">
-          <h1> Pedidos de {{student.student_name}} {{student.student_lastname}}</h1>
+  <div class="row m-0 p-0 w-100 container-fluid-body">
+    <div class="col-12 col-sm-12 col-md-12 p-2">
+      <!-- *** Title: student name *** -->
+      <div class="row m-0 p-0 w-100">
+        <div class="col-12 update ml-auto mr-auto">
+          <div class="badge badge-secondary border-none btn-block p-4">
+            Ordenes de: {{student.student_name}} {{student.student_lastname}}
+          </div>
+        </div>
+      </div>
+      <!-- *** Filters: by state, by state pay *** -->
+      <div class="row mb-3 align-items-end">
+
+        <!-- Estado de la Orden -->
+        <div class="col-md-3">
+          <!-- <label for="estadoOrden" class="form-label text-white">Estado de la orden</label>
+          <select [(ngModel)]="filters.status" (change)="loadFilteredOrders()">
+            <option value="Todos">Todos</option>
+            <option value="Pendiente">Pendiente</option>
+            <option value="Entregada">Entregada</option>
+          </select>
+          <mat-select [(ngModel)]="filtroEstadoOrden" placeholder="Seleccionar estado" class="w-100" appearance="fill">
+            <mat-option value="">Todos</mat-option>
+            <mat-option value="true">Pendiente</mat-option>
+            <mat-option value="false">Entregada</mat-option>
+          </mat-select> -->
         </div>
 
+        <!-- Estado del Pago -->
+        <!-- <div class="col-md-3">
+          <label for="estadoPago" class="form-label text-white">Estado del pago</label>
+          <mat-select [(ngModel)]="filtroEstadoPago"Fecha de entrega: *
+ placeholder="Seleccionar pago" class="w-100" appearance="fill">
+            <mat-option value="">Todos</mat-option>
+            <mat-option value="aprobado">Aprobado</mat-option>
+            <mat-option value="proceso">En proceso</mat-option>
+            <mat-option value="rechazado">Rechazado</mat-option>
+          </mat-select>
+        </div> -->
+
+        <!-- Rango de Fechas -->
+        <div class="col-md-4">
+          <!-- <mat-label class="text-white">Seleccionar el rango de fechas</mat-label>
+          <mat-form-field appearance="fill" class="form-control" style="height: 40px;">
+            <mat-date-range-input [rangePicker]="picker">
+              <input matStartDate placeholder="Desde" [(ngModel)]="startDate" name="startDate">
+              <input matEndDate placeholder="Hasta" [(ngModel)]="endDate" name="endDate">
+            </mat-date-range-input>
+            <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+            <mat-date-range-picker #picker></mat-date-range-picker>
+          </mat-form-field> -->
+
+          <mat-label class="text-white">Seleccionar el rango de fechas</mat-label>
+          <mat-form-field appearance="fill" class="form-control" style="height: 40px;">
+            <mat-date-range-input [rangePicker]="picker">
+              <input disabled matStartDate placeholder="Desde" 
+              [(ngModel)]="filters.startDate" name="startDate"
+                (dateChange)="validateDate('start', $event)">
+              <input disabled matEndDate placeholder="Hasta" 
+              [(ngModel)]="filters.endDate" name="endDate"
+              (dateChange)="validateDate('end', $event)">
+            </mat-date-range-input>
+            <mat-datepicker-toggle disabled="false" matSuffix [for]="picker"></mat-datepicker-toggle>
+            <mat-date-range-picker disabled="false" #picker></mat-date-range-picker>
+          </mat-form-field>
+        </div>
+
+        <!-- Buscar por número de orden -->
+        <div class="col-md-2">
+          <label class="form-label text-white">Nro. orden</label>
+          <input type="text" [(ngModel)]="busquedaOrden" class="form-control" placeholder="Buscar..." />
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+
+
+  <!-- *** Data: orders list by student *** -->
+  <div class="row w-100 m-0 p-0 mt-2 container-fluid-body">
+    <div class="col-12 p-0 w-100 container-fluid-body m-0 p-0">
+      <table #table mat-table matSort [dataSource]="dataSource"
+        class="mat-elevation-z8 table-reponsive table-bordered container-fluid-body text-white"
+        style="min-width: 100%;">
+        <ng-container matColumnDef="code">
+          <th mat-header-cell *matHeaderCellDef class="text-center title-table m-0 p-0">
+            Nro de orden
+          </th>
+          <td mat-cell *matCellDef="let row" class="text-center m-0 p-0">
+            <span>
+              #{{row.order_transaccion_id | slice:8}}
+            </span>
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="dateOrder">
+          <th mat-header-cell *matHeaderCellDef class="text-center title-table m-0 p-0">
+            Fecha de compra
+          </th>
+          <td mat-cell *matCellDef="let row" class="text-center m-0 p-0">
+            <!-- <span>{{row.order_date_full | date}}</span> -->
+            <!-- <span>{{ row.order_date_full | date:'mediumDate' }}</span> -->
+            <!-- <span>{{ convertToDate(row.order_date_full) | date:'fullDate' }}</span> -->
+            <span>{{ convertToDate(row.order_date_full) | date:'medium':'':'es' }}</span>
+
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="statusPay">
+          <th mat-header-cell *matHeaderCellDef class="text-center title-table m-0 p-0">
+            Estado del pago
+          </th>
+          <td mat-cell *matCellDef="let row" class="text-center m-0 p-0">
+            <span *ngIf="!row.order_state_payment_method_string" class="state-order btn btn-warning btn-sm m-0">
+              En espera
+            </span>
+            <span *ngIf="row.order_state_payment_method_string === 'Rechazada'"
+              class="state-order btn btn-danger btn-sm m-0">
+              Rechazado
+            </span>
+            <span *ngIf="row.order_state_payment_method_string === 'Aceptada'"
+              class="state-order btn btn-success btn-sm m-0">
+              Aprobado
+            </span>
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="statusOrder">
+          <th mat-header-cell *matHeaderCellDef class="text-center title-table m-0 p-0">
+            Estado de la orden
+          </th>
+          <td mat-cell *matCellDef="let row" class="text-center m-0 p-0">
+            <small *ngIf="row.category_is_menu">
+              No aplica
+            </small>
+            <i [hidden]="row.category_is_menu"
+              class="fa fa-pencil-square cursor-pointer text-warning btn-functions  cursor-pointer" aria-hidden="true"
+              (click)="editLine(row)"></i>
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="value">
+          <th mat-header-cell *matHeaderCellDef class="text-center title-table m-0 p-0">
+            Valor
+          </th>
+          <td mat-cell *matCellDef="let row" class="text-center m-0 p-0">
+            ${{row.order_total_to_pay.toFixed(2)}}
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="options">
+          <th mat-header-cell *matHeaderCellDef class="text-center title-table m-0 p-0">
+            Opciones
+          </th>
+          <td mat-cell *matCellDef="let row" class="text-center m-0 p-0">
+            <span>{{row.category_name}}</span>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns ; let i = index;"></tr>
+      </table>
+      <mat-paginator [pageSizeOptions]="[10, 25, 50]" #tableOrders showFirstLastButtons>
+      </mat-paginator>
+    </div>
+  </div>
+
+
+  <!-- <div class="container-fluid">
+    <div class="">
+      <div class="row w-100 m-0 p-0">
         <div class="col-md-12 ml-auto mr-auto">
           <div class="card card-plain card-subcategories">
-
             <div class="card-body ">
               <div class="row">
                 <div class="col-sm-2">
@@ -24,7 +184,7 @@
                         <i class="now-ui-icons objects_umbrella-13"></i> Pendiente
                       </a>
                     </li>
-    
+
                     <li class="nav-item">
                       <a class="nav-link" data-toggle="tab" href="#delivered" role="tablist">
                         <i class="now-ui-icons ui-2_settings-90"></i> Entregados
@@ -33,7 +193,7 @@
                   </ul>
                 </div>
               </div>
-              
+
               <div class="tab-content tab-space tab-subcategories">
                 <div class="tab-pane active" id="pending">
                   <div class="col-12 p-0 w-100 alert alert-danger text-center"
@@ -114,7 +274,7 @@
         </div>
       </div>
     </div>
-  </div>
+  </div> -->
 
   <!-- small modal -->
   <div class="modal fade modal-primary" id="modalDetailsOrder" tabindex="-1" role="dialog"

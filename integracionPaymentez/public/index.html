@@ -23,7 +23,7 @@
 </head>
 
 <body>
-  <div id='payment_example_div'>
+  <div id='payment_example_divs'>
     <h1>Agregar tarjeta</h1>
     <div id='tokenize_example'></div>
     <div id="response"></div>
@@ -73,11 +73,35 @@
         submitButton.removeAttribute('disabled');
       };
 
-      let responseCallback = response => {
-        document.getElementById('response').innerHTML = JSON.stringify(response, null, 2);
-        retryButton.style.display = 'block';
-        submitButton.style.display = 'none';
-      };
+      // Executed when was called 'tokenize' and the services response successfully.
+    let responseCallback = response => {
+      // Example of success tokenization.
+      //   {
+      //    "card": {
+      //     "bin": "411111",
+      //     "status": "valid",
+      //     "token": "2508629432271853872",
+      //     "message": "",
+      //     "expiry_year": "2033",
+      //     "expiry_month": "12",
+      //     "transaction_reference": "RB-143809",
+      //     "type": "vi",
+      //     "number": "1111"
+      //   }
+      // }
+
+      // Example of failed tokenization. The error format is always the same, only the value of type, help, description changes.
+      // {
+      //    "error": {
+      //       "type": "Card already added: 2508629432271853872",
+      //       "help": "If you want to update the card, first delete it",
+      //       "description": "{}"
+      //    }
+      // }
+      document.getElementById('response').innerHTML = JSON.stringify(response);
+      retryButton.style.display = 'block';
+      submitButton.style.display = 'none';
+    }
 
       let pg_sdk = new PaymentGateway(environment, application_code, application_key);
       pg_sdk.generate_tokenize(get_tokenize_data(), '#tokenize_example', responseCallback, notCompletedFormCallback);

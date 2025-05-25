@@ -1,9 +1,9 @@
 <div class="main-content m-0 p-0">
   <div class="row w-100 m-0 p-0">
     <!-- Column: Categories -->
-    <div class="col-2 m-0 p-1 text-white">
+    <div class="col-4 col-sm-2 m-0 p-1 text-white">
       <div class="container-fluid-body column">
-        <div class="input-group mb-2">
+        <div class="input-group mb-2 mt-2">
 
           <input type="text" class="form-control form-control-sm border-left-0" placeholder="Buscar productos..."
             [(ngModel)]="productSearchTerm" (ngModelChange)="filterProducts()" />
@@ -25,9 +25,9 @@
       </div>
     </div>
     <!-- Column: Details -->
-    <div class="{{productsCartInCache.length <= 0 ? 'col-10': 'col-7'}} m-0 p-0 pt-1 text-white">
+    <div class="{{productsCartInCache.length <= 0 ? 'col-8 col-sm-10': 'col-4 col-sm-7'}} m-0 p-0 pt-1 text-white">
       <div class="row w-100 m-0 p-0 container-fluid-body">
-        <div class="col-4 m-0 text-white">
+        <div class="col-12 col-sm-4 m-0 text-white">
           <div class="">
             <label class="control-label" for="">Seleccione el bar:
               <span class="star">*</span>
@@ -44,7 +44,7 @@
             </div>
           </div>
         </div>
-        <div class="col-4 m-0 text-white">
+        <div class="col-12 col-sm-4 m-0 text-white">
           <label class="control-label" for="">Fecha de entrega:
             <span class="star">*</span>
           </label>
@@ -56,7 +56,7 @@
             </div>
           </div>
         </div>
-        <div class="col-4 m-0 text-white">
+        <div class="col-12 col-sm-4 m-0 text-white">
           <label class="control-label" for="">Cuando retira:
             <span class="star">*</span>
           </label>
@@ -106,7 +106,8 @@
 
 
     <!-- Column: Shopping Cart -->
-    <div *ngIf="productsCartInCache.length > 0" class="{{productsCartInCache.length > 0 ? 'col-3': 'col-1'}} m-0 p-1 text-white">
+    <div *ngIf="productsCartInCache.length > 0"
+      class="{{productsCartInCache.length > 0 ? 'col-4 col-sm-3': 'col-1'}} m-0 p-1 text-white">
       <div class="container-fluid-body column d-flex flex-column h-100">
         <!-- Header fijo -->
         <div id="shoppingCartIcon" class="cart-header-fixed">
@@ -126,10 +127,10 @@
           <div class="row m-0 w-100 p-0">
             <div class="col-sm-12 m-0 p-0 mb-1" *ngFor="let product of productsCartInCache; let i = index">
               <div class="container-fluid-body-light m-0 p-0 pb-1">
-                <div class="row w-100 m-0 p-2">
+                <div class="row w-100 m-0 p-0 pt-2 pl-2 pr-2">
                   <div class="col-8 p-0 text-left">
-                    <h5 class="m-0 p-0 p-mini">{{ product.product_name }}</h5>
-                    <h5 class="m-0 p-0 p-mini">{{ product.product_order_delivery_date }}</h5>
+                    <h3 class="m-0 p-0 p-minis h-1">{{ product.product_name }}</h3>
+                    <h5 class="m-0 p-0 p-mini h-1">{{ product.product_order_delivery_date }}</h5>
                   </div>
                   <div class="col-4 p-0 text-right">
                     <p class="p-0 p-price">{{ product.product_price | currency }}</p>
@@ -153,7 +154,7 @@
                   </div>
                   <div class="col-5 m-0 p-0 text-right">
                     <button type="button" class="btn btn-sm m-0 p-0 amount btn-danger"
-                      (click)="decreaseAmount(product, i)">
+                      (click)="deleteProduct(product, i)">
                       <img src="../../../../assets/img/icons/delete.png" class="icon-mini icon-danger" alt="">
                     </button>
                   </div>
@@ -183,10 +184,14 @@
           </div>
           <div class="row w-100 p-0 m-0">
             <div class="col-12 col-sm-12 col-lg-6 p-1 m-0 h-1">
-              <button (click)="cancelPurchase()" class="btn btn-danger-outline w-100">Cancelar</button>
+              <button (click)="cancelPurchase()" class="btn btn-danger-outline btn-block">
+                Cancelar
+              </button>
             </div>
             <div class="col-12 col-sm-12 col-lg-6 p-1 m-0 h-1">
-              <button (click)="completePurchase()" class="btn btn-primary w-100">Completar</button>
+              <button (click)="completePurchase()" class="btn btn-primary btn-block">
+                Completar
+              </button>
             </div>
           </div>
         </div>
@@ -222,7 +227,7 @@
                         class="nc-icon nc-check-2 text-primary icon-peyment"></i>
                     </div>
                   </div>
-                  <h6>Efectivo</h6>
+                  <h6>Transferencia bancaria</h6>
                 </div>
                 <div class="col-sm-4 text-center" (click)="order.order_payment_method = 'Tarjeta'">
                   <div class="choice  border-select-payment-method  ml-auto mr-auto {{
@@ -241,7 +246,7 @@
                     </div>
                   </div>
 
-                  <h6>Tarjeta</h6>
+                  <h6>Pagar con Tarjeta</h6>
                 </div>
               </div>
             </div>
@@ -295,14 +300,40 @@
                 No tienes métodos de pago agregados en el bar:
                 <b>{{ providerSelected.provider_business_name | uppercase }}</b>
               </div>
-              <div *ngFor="let paymentMethod of arrayPaymentMethod" class="card bg-grey">
-                <div *ngIf="order.order_total_to_pay < 1" class="row">
-                  <div class="col-12 p-3 m-3 text-center">
-                    <i class="fa fa-info-circle text-warning"></i><br />
-                    El monto mínimo para pagar con tarjeta debe ser $1 (valor
-                    actual {{ order.order_total_to_pay | currency }})
+              <div *ngIf="order.order_total_to_pay < 1" class="row">
+                <div class="col-12 p-3 m-3 text-center">
+                  <i class="fa fa-info-circle text-warning"></i><br />
+                  El monto mínimo para pagar con tarjeta debe ser $1 (valor
+                  actual {{ order.order_total_to_pay | currency }})
+                </div>
+              </div>
+
+              <!-- *** Métodos de pago tarjetas del usuario *** -->
+              <div *ngIf="order.order_total_to_pay > 1"
+                class="row w-100 m-0 p-0 align-items-center justify-content-center">
+                <div *ngFor="let item of arrayPaymentMethod; let i = index" data-toggle="modal" data-target="#modalCvc"
+                  (click)="selectedPaymentMethod(item)" class="col-12 col-sm-6 col-md-4 col-lg-3 m-0 p-2">
+                  <div class="card-stats p-1 position-relative container-fluid-bodys">
+                    <div class="card-body credit-card text-white">
+                      <div class="row">
+                        <div class="col-12 col-md-9">
+                          <div class="numbers">
+                            <div class="card-category">{{ getCardTypeName(item.type) }}</div>
+                            <div class="card-number">*******{{item.number}}</div>
+                            <div class="card-category">{{item.expiry_month}}/{{item.expiry_year}}</div>
+                            <div class="card-category mt-3">{{item.holder_name}}</div>
+                          </div>
+                        </div>
+                        <div class="col-12 col-md-3 text-end card-logo">
+                          <img src="../../../../assets/img/icons/creditCard.png" alt="credit card">
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
+              </div>
+              <!-- <div *ngFor="let paymentMethod of arrayPaymentMethod" class="card bg-grey">
+                
                 <div class="row p-3">
                   <div class="col-sm-2">
                     <i class="fa fa-credit-card"></i>
@@ -316,17 +347,10 @@
                       class="btn btn-info btn-sm" (click)="selectedPaymentMethod(paymentMethod)">
                       Pagar
                     </button>
-                    <!-- 
-                    <button
-                      [disabled]="order.order_total_to_pay < 1"
-                      (click)="finalizedWithPaymentMethod(paymentMethod)"
-                      class="btn btn-info btn-sm"
-                    >
-                      Pagar
-                    </button> -->
+                    
                   </div>
                 </div>
-              </div>
+              </div> -->
             </div>
             <button [disabled]="!preview_url_image" [hidden]="this.order.order_payment_method === 'Tarjeta'"
               (click)="registerOrder()" type="submit" class="btn btn-sm btn-success">
@@ -385,19 +409,24 @@
   </div>
 </div>
 
-<!-- *** Modal details producto to add cart *** -->
+<!-- *** Modal details product to add cart *** -->
 <div class="modal fade modal-primary" id="myModalAddProductToCart" tabindex="-1" role="dialog"
   aria-labelledby="myModalAddProductToCart" aria-hidden="true">
   <div class="modal-dialog modal-notice">
     <div class="modal-content w-100 container-fluid-body">
-      <div class="modal-header justify-content-center">
+      <div class="modal-header justify-content-center m-0 p-0 pt-3">
         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
           <i class="nc-icon nc-simple-remove text-white"></i>
         </button>
-        <h4 class="title title-up text-white m-0 p-0">Agregar producto al carrito de</h4>
-
-        <h3 *ngIf="student.student_name != undefined" class="text-white m-0 p-0">{{student.student_name}}</h3>
-
+        <div class="row justify-content-center align-items-center">
+          <div class="col-2">
+            <img src="../../../../assets/img/icons/shoppingCart.png" class="icon-mini" alt="">
+          </div>
+          <div class="col-10">
+            <h4 class="title title-up text-white m-0 p-0">Agregar producto al carrito de</h4>
+            <h3 *ngIf="student.student_name != undefined" class="text-white m-0 p-0">{{student.student_name}}</h3>
+          </div>
+        </div>
       </div>
       <div class="modal-body p-0">
         <div *ngIf="productSelected" class="row w-100 m-0 p-0">
@@ -405,87 +434,87 @@
             <div class="container-fluid-body m-0 p-0">
               <div class="row w-100 m-0 p-0">
                 <!-- *** Products: Image *** -->
-                <div *ngIf="productSelected.product_images != undefined" class="col-12 text-center m-0 p-0 pt-2">
-                  <div class="avatar-mini m-0 p-0"
+                <div *ngIf="productSelected.product_images != undefined" class="col-12 col-sm-4 col-lg-4 p-0 m-0 pt-3">
+                  <div class="avatar-mini-details m-0 p-0"
                     style="background-image: url({{productSelected.product_images[0]}});">
                   </div>
                 </div>
                 <!-- *** Products: Details *** -->
-                <div class="col-12 p-0 m-0">
-                  <div class="product-info text-center p-0">
-                    <p class="p-price m-3">{{ productSelected.product_price | currency }}</p>
-                    <h6 class="p-price text-center">{{ productSelected.product_name }}</h6>
-                    <p class="p-mini text-center">{{ productSelected.product_description }}</p>
-                    <hr>
-                    <div class="m-3 p-2 text-left">
-                      <label for="date">Fecha de entrega:</label>
-                      <div class="col display-col-center p-0">
-                        <div class="form-group">
-                          <input [disabled]="isCategoryMenu" id='date' min="{{minDate}}" [(ngModel)]="daySelected"
-                            class="form-control cursor-pointer" placeholder="Fecha de entrega" name="date" ngbDatepicker
-                            #d="ngbDatepicker" (click)="d.toggle()" (ngModelChange)="onDateSelected()">
-                          <p class="p-mini m-0 p-0">Selecciona el día en que desea que {{student.student_name}} reciba
-                            el producto.</p>
+                <div class="col-12 col-sm-8 col-lg-8 p-0 m-0">
+                  <h6 class="p-name text-center mt-3">{{ productSelected.product_name }}</h6>
+                  <p class="p-mini text-center">{{ productSelected.product_description }}</p>
+                  <p class="p-price m-3">{{ productSelected.product_price | currency }}</p>
+                </div>
+
+                <!-- *** Products: Date delivery *** -->
+                <div class="row w-100 m-0 p-0">
+                  <div class="col-12 p-0 m-0">
+                    <div class="product-info text-center p-0">
+                      <div class="ml-3 mr-3 p-2 text-left">
+                        <label for="date">Fecha de entrega:</label>
+                        <div class="col display-col-center p-0">
+                          <div class="form-group">
+                            <input [disabled]="isCategoryMenu" id='date' min="{{minDate}}" [(ngModel)]="daySelected"
+                              class="form-control cursor-pointer" placeholder="Fecha de entrega" name="date"
+                              ngbDatepicker #d="ngbDatepicker" (click)="d.toggle()" (ngModelChange)="onDateSelected()">
+                            <p class="p-mini m-0 p-0 mt-1">
+                              Selecciona el día en que desea que {{student.student_name}} reciba
+                              el producto.
+                            </p>
+                          </div>
                         </div>
                       </div>
-                    </div>
+                      <div class="m-3 p-2 container-fluid-body-light">
+                        <label class="font-weight-bold mb-2">
+                          ¿Cómo prefieres que {{ student.student_name }} reciba tu pedido?
+                        </label>
 
-
-                    <div class="delivery-method-boxs m-3 p-3 container-fluid-body-light">
-                      <label class="font-weight-bold mb-2">
-                        ¿Cómo prefieres que {{ student.student_name }} reciba tu pedido?
-                      </label>
-
-                      <div class="row w-100 m-0 p-0">
-                        <!-- Opción 1: Entrega en aula -->
-                        <div class="col-sm-6 mb-2">
-                          <div class="custom-radio-card"
-                            [class.active]="productSelected.product_delivery_method === 'delivery'">
-                            <label class="form-check-label cursor-pointer w-100 m-0">
-                              <input [(ngModel)]="productSelected.product_delivery_method" type="radio"
-                                name="radioDeliveryMethod" value="delivery" class="form-check-input d-none" />
-                              <div class="radio-content">
-                                <i [ngClass]="{
+                        <div class="row w-100 m-0 p-0">
+                          <!-- Opción 1: Entrega en aula -->
+                          <div class="col-sm-6 mb-2">
+                            <div class="" [class.active]="productSelected.product_delivery_method === 'delivery'">
+                              <label class="form-check-label cursor-pointer w-100 m-0">
+                                <input [(ngModel)]="productSelected.product_delivery_method" type="radio"
+                                  name="radioDeliveryMethod" value="delivery" class="form-check-input d-none" />
+                                <div class="radio-content">
+                                  <i [ngClass]="{
                                       'far fa-circle': productSelected.product_delivery_method !== 'delivery',
                                       'fas fa-check-circle': productSelected.product_delivery_method === 'delivery'
                                     }" class="icon-radio"></i>
-                                <span class="radio-label">Recibir el producto en el aula</span>
-                              </div>
-                            </label>
+                                  <span class="text-white text-left">Recibir el producto en el aula</span>
+                                </div>
+                              </label>
+                            </div>
                           </div>
-                        </div>
 
-                        <!-- Opción 2: Retirar en bar -->
-                        <div class="col-sm-6 mb-2">
-                          <div class="custom-radio-card"
-                            [class.active]="productSelected.product_delivery_method === 'i withdraw'">
-                            <label class="form-check-label cursor-pointer w-100 m-0">
-                              <input [(ngModel)]="productSelected.product_delivery_method" type="radio"
-                                name="radioDeliveryMethod" value="i withdraw" class="form-check-input d-none" />
-                              <div class="radio-content">
-                                <i [ngClass]="{
+                          <!-- Opción 2: Retirar en bar -->
+                          <div class="col-sm-6 mb-2">
+                            <div class="" [class.active]="productSelected.product_delivery_method === 'i withdraw'">
+                              <label class="form-check-label cursor-pointer w-100 m-0">
+                                <input [(ngModel)]="productSelected.product_delivery_method" type="radio"
+                                  name="radioDeliveryMethod" value="i withdraw" class="form-check-input d-none" />
+                                <div class="radio-content">
+                                  <i [ngClass]="{
                                       'far fa-circle': productSelected.product_delivery_method !== 'i withdraw',
                                       'fas fa-check-circle': productSelected.product_delivery_method === 'i withdraw'
                                     }" class="icon-radio"></i>
-                                <span class="radio-label">Retirar personalmente en el bar</span>
-                              </div>
-                            </label>
+                                  <span class="text-white text-left">Retirar personalmente en el bar</span>
+                                </div>
+                              </label>
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
-
-
                   </div>
                 </div>
-              </div>
-              <div class="row w-100 m-0 p-0">
-                <div class="col-12 m-0 p-0 pb-1 pl-1 pr-1">
-                  <button 
-                  (click)="addToCart(productSelected)" class="btn btn-primary btn-block m-0">
-                    <img src="../../../../assets/img/icons/shoppingCart.png" class="icon-mini mr-2" alt="">
-                    Agregar al carrito
-                  </button>
+                <div class="row w-100 m-0 p-0 mt-2">
+                  <div class="col-12 m-0 p-0 pb-2 pl-1 pr-1">
+                    <button (click)="addToCart(productSelected)" class="btn btn-primary btn-block m-0">
+                      <img src="../../../../assets/img/icons/shoppingCart.png" class="icon-mini mr-2" alt="">
+                      Agregar al carrito
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

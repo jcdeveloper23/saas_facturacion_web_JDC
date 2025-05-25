@@ -50,6 +50,15 @@ export class UtilsService {
     );
   }
 
+    /**
+   * *** devuelve la fecha actual ***
+   * *** formato 2020-10-05 ***
+   */
+  getDateCurrentFull() {
+    let date: Date = new Date();
+    return date;
+  }
+
   /**
    * *** devuelve la hora actual HH:MM:SS***
    */

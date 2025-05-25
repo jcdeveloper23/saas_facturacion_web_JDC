@@ -27,6 +27,8 @@ import { HttpClientModule } from '@angular/common/http';
 import interactionPlugin from '@fullcalendar/interaction';
 import { PaymentMethodsComponent } from './payment-methods/payment-methods.component';
 import { CreateOrderComponent } from './create-order/create-order.component'; // a plugin!
+import { MatPaginatorModule } from '@angular/material/paginator';
+import { MatTableModule } from '@angular/material/table';
 
 FullCalendarModule.registerPlugins([ // register FullCalendar plugins
   dayGridPlugin,
@@ -61,7 +63,9 @@ FullCalendarModule.registerPlugins([ // register FullCalendar plugins
     FullCalendarModule,
     MatCheckboxModule,
     JwBootstrapSwitchNg2Module,
-    HttpClientModule
+    HttpClientModule,
+    MatPaginatorModule,
+    MatTableModule,
   ]
 })
 export class PerfilRepresentativeModule { }

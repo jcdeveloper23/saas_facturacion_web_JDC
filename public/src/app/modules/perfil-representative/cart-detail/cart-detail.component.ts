@@ -21,13 +21,9 @@ import { utf8Encode } from '@angular/compiler/src/util';
 import { sha256 } from 'js-sha256';
 import { Provider } from 'app/interfaces/provider';
 import { environment } from 'environments/environment';
+import { DatePicker } from 'app/interfaces/datepicker';
 declare var $: any;
 
-export interface DatePicker {
-  day?: number,
-  year?: number,
-  month?: number,
-}
 @Component({
   selector: 'app-cart-detail',
   templateUrl: './cart-detail.component.html',

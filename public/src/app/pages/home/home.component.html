@@ -1,9 +1,9 @@
-<section class="home row-content-home bg-green border">
+<section class="home row-content-home bg-green">
     <app-nav-bar-home></app-nav-bar-home>
     <div class="row m-0">
         <div class="col-sm-12 text-center">
-            <img src="../../../assets/img/logo.png" class="img-logo" alt="">
-            <div class="row m-0">
+            <!-- <img src="../../../assets/img/logoFour.png" class="img-logo" alt=""> -->
+            <!-- <div class="row m-0">
                 <div class="col-12 col-sm-12 col-md-12 col-lg-3 pt-5">
                     <p class="p-init">
                         EL COMIENZO DE LA SALUD ES LA NUTRICIÓN
@@ -11,20 +11,15 @@
                     <a routerLink="./login">
                         <button class="btn btn-login">Ingresar</button> <br>
                     </a>
-                    <!--<a href="/register-provider">
+                    <a href="/register-provider">
                         <h3>Eres nuevo? Regístrate</h3>
-                    </a>-->
-	                <a href="javascript:void(0)" (click)="showRegisterModal()">
+                    </a>
+                    <a href="javascript:void(0)" (click)="showRegisterModal()">
                         <h3>Regístrate como representante</h3>
                     </a>
                 </div>
                 <div class="col-12 col-sm-12 col-md-12 col-lg-8 pt-5">
-                    <h1 class="pt-5 mt-5">Menú Actualizado</h1>
-                    <h1 class="pt-4">Fácil manejo</h1>
-                    <h1 class="pt-4">Métodos de pago</h1>
-                    <h1 class="pt-4">Aplicativo móvil</h1>
                 </div>
-
             </div>
             <div class="row m-0">
                 <div class="col-sm-3">
@@ -43,7 +38,7 @@
 
 
             </div>
-            <!-- <div class="row m-0 row-content-home-elements align-items-center justify-content-center">
+            <div class="row m-0 row-content-home-elements align-items-center justify-content-center">
                 <div class="col-12 col-sm-12 col-md-7 col-sm-7 p-0 h-100">
 
                     <div class="row m-0 ">
@@ -209,42 +204,47 @@
 <!-- Modal Registrar Rrpresentante-->
 <!-- Modal -->
 <div class="modal fade" id="registerModal" tabindex="-1" role="dialog">
-	<div class="modal-dialog modal-lg" role="document">
-		<div class="modal-content">
-			<div class="modal-header">
-				<h5 class="modal-title" id="registerModalLabel">Registro</h5>
-				<!--<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="registerModalLabel">Registro</h5>
+                <!--<button type="button" class="close" data-dismiss="modal" aria-label="Close">
 					<span aria-hidden="true">&times;</span>
 				</button>-->
-			</div>
-			<div class="modal-body text-center">
-				<p>Por favor seleccione la Unidad Educativa a la que pertenece su representado, y el proveedor del servicio de alimentación al que desea registrarse</p>
-				<br>
-				<form [formGroup]="newRegisterForm" (ngSubmit)="onSubmit()">
-					<div class="form-group">
-						<label for="school">Unidad Educativa</label>
-						<select class="custom-select" id="school" formControlName="school" #school
-						        (change)="getProviderBySchool(school.value); getAllLectiveYearsFromSchool(school.value);">
-							<option value="" disabled>Seleccione una UE</option>
-							<option *ngFor="let school of schools" [value]="school.school_id">{{school.school_name}}</option>
-						</select>
-					</div>
-					<br>
-					<div class="form-group">
-						<label for="provider">Proveedor de alimentación</label>
-						<select class="custom-select" id="provider" formControlName="provider" #provider [disabled]="providersBySchool.length < 1">
-							<option value="">Seleccione un proveedor</option>
-							<option *ngFor="let provider of providersBySchool" [value]="provider.provider_id">{{provider.provider_business_name}}</option>
-						</select>
-					</div>
-					<br>
-					<div class="form-group">
-						<label for="lectiveYear">Período Lectivo</label>
-						<input [(ngModel)]="selectedLectiveName" type="text" class="form-control" id="lectiveYear" formControlName="lectiveYear" disabled>
-					</div>
-					<button type="submit" [disabled]="!newRegisterForm.valid" class="btn btn-primary">Siguiente</button>
-				</form>
-			</div>
-		</div>
-	</div>
+            </div>
+            <div class="modal-body text-center">
+                <p>Por favor seleccione la Unidad Educativa a la que pertenece su representado, y el proveedor del
+                    servicio de alimentación al que desea registrarse</p>
+                <br>
+                <form [formGroup]="newRegisterForm" (ngSubmit)="onSubmit()">
+                    <div class="form-group">
+                        <label for="school">Unidad Educativa</label>
+                        <select class="custom-select" id="school" formControlName="school" #school
+                            (change)="getProviderBySchool(school.value); getAllLectiveYearsFromSchool(school.value);">
+                            <option value="" disabled>Seleccione una UE</option>
+                            <option *ngFor="let school of schools" [value]="school.school_id">{{school.school_name}}
+                            </option>
+                        </select>
+                    </div>
+                    <br>
+                    <div class="form-group">
+                        <label for="provider">Proveedor de alimentación</label>
+                        <select class="custom-select" id="provider" formControlName="provider" #provider
+                            [disabled]="providersBySchool.length < 1">
+                            <option value="">Seleccione un proveedor</option>
+                            <option *ngFor="let provider of providersBySchool" [value]="provider.provider_id">
+                                {{provider.provider_business_name}}</option>
+                        </select>
+                    </div>
+                    <br>
+                    <div class="form-group">
+                        <label for="lectiveYear">Período Lectivo</label>
+                        <input [(ngModel)]="selectedLectiveName" type="text" class="form-control" id="lectiveYear"
+                            formControlName="lectiveYear" disabled>
+                    </div>
+                    <button type="submit" [disabled]="!newRegisterForm.valid" class="btn btn-primary">Siguiente</button>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>

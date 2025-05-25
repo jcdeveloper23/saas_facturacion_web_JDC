@@ -35,7 +35,7 @@ export class LinesComponent implements OnInit {
     "edit",
     "delete",
   ];
-  public isMenu : Array<boolean> = [];
+  public isMenu: Array<boolean> = [];
 
   constructor(private lineService: LinesService,
     private groupsService: GroupsService) { }
@@ -68,7 +68,7 @@ export class LinesComponent implements OnInit {
     this.lineService.getLinesByProvider(this.provider_id).pipe(take(1)).subscribe((lines: Array<Lines>) => {
       for (let index = 0; index < lines.length; index++) {
         const element = lines[index];
-        if (element.category_name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() === 'menu' ) {
+        if (element.category_name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() === 'menu') {
           element.category_is_menu = true
         } else {
           element.category_is_menu = false
@@ -102,14 +102,14 @@ export class LinesComponent implements OnInit {
   public saveLine(line: Lines, isValid: boolean, form: NgForm) {
     if (isValid) {
       if (this.isEditLine) {
-        this.lineService.updateLine( this.line).then(() => {
+        this.lineService.updateLine(this.line).then(() => {
           this.showNotification('top', 'right', 'nc-check-2', 'Se realizó el registro correctamente', 'success');
           this.getLines();
           form.resetForm()
           $('#multiCollapseLine').collapse('hide');
         })
       } else {
-        this.lineService.saveLine( this.line).then(() => {
+        this.lineService.saveLine(this.line).then(() => {
           this.showNotification('top', 'right', 'nc-check-2', 'Se realizó el registro correctamente', 'success');
           this.getLines()
           form.resetForm()
@@ -126,7 +126,7 @@ export class LinesComponent implements OnInit {
   public editLine(line: Lines) {
     this.isEditLine = true;
     this.line = line;
-    
+
     $('#multiCollapseLine').collapse('show');
 
   }
@@ -154,12 +154,12 @@ export class LinesComponent implements OnInit {
           if (groups && groups.length > 0) {
             for (let index = 0; index < groups.length; index++) {
               const element: Group = groups[index];
-              this.groupsService.deleteGroup( element.group_code);
+              this.groupsService.deleteGroup(element.group_code);
               if (index + 1 === groups.length) {
-               this.lineService.deleteLine( line).then(() => {
-                 this.showNotification('top', 'right', 'nc-check-2', 'Se eliminó correctamente la linea.', 'success');
-                 this.getLines();
-               })
+                this.lineService.deleteLine(line).then(() => {
+                  this.showNotification('top', 'right', 'nc-check-2', 'Se eliminó correctamente la linea.', 'success');
+                  this.getLines();
+                })
               }
 
             }

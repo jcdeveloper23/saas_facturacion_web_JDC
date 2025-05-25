@@ -1,210 +1,142 @@
 <!DOCTYPE html>
 <html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Agregar tarjeta de crédito</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+    <!-- Google Font: Montserrat -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet" />
+  
+    <!-- jQuery -->
+  
+    <!-- PG JS SDK -->
+    <script src="https://cdn.paymentez.com/ccapi/sdk/payment_sdk_stable.min.js" charset="UTF-8"></script>
+  
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.2.7/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.2.7/firebase-firestore.js"></script>
+    <link href="./style.css" rel="stylesheet" />
+    
+  
+  </head>
+  
 
-<head>
-  <title>Add Card</title>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script src="https://code.jquery.com/jquery-1.11.3.min.js"></script>
+<!--1. Create an element to contain the dynamic form.-->
+<div id='payment_example_div'>
+  <div id='tokenize_example'></div>
+  <div id="response"></div>
+  <button id='tokenize_btn' class='tok_btn'>Save card</button>
+  <button id='retry_btn' class='tok_btn' display='none'>Save new card</button>
+  <p>V1</p>
+</div>
 
-  <link href="https://cdn.paymentez.com/ccapi/sdk/payment_stable.min.css" rel="stylesheet" type="text/css" />
-  <script src="https://cdn.paymentez.com/ccapi/sdk/payment_stable.min.js" charset="UTF-8"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.2.7/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.2.7/firebase-firestore.js"></script>
-
-  <style>
-    h3 {
-      color: #656565;
-      text-align: center;
-    }
-
-    .margin {
-      margin-top: 40px;
-
-    }
-
-    .panel {
-      margin: 0 auto;
-      background-color: #F5F5F7;
-      border: 1px solid #ddd;
-      padding: 20px;
-      display: block;
-      width: 80%;
-      border-radius: 6px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, .1);
-    }
-
-    .btn {
-      background: #99cc33;
-      /* Old browsers */
-      filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#44afe7', endColorstr='#3198df', GradientType=0);
-      color: #fff;
-      display: block;
-      width: 100%;
-      border: 1px solid rgba(46, 86, 153, 0.0980392);
-      border-bottom-color: rgba(46, 86, 153, 0.4);
-      border-top: 0;
-      border-radius: 4px;
-      font-size: 17px;
-      text-shadow: rgba(46, 86, 153, 0.298039) 0px -1px 0px;
-      line-height: 34px;
-      -webkit-font-smoothing: antialiased;
-      font-weight: bold;
-      display: block;
-      margin-top: 20px;
-    }
-
-    .btn:hover {
-      cursor: pointer;
-    }
-  </style>
-
-  <script>
-    var firestore;
-    $(document).ready(function () {
-      var config = {
-        apiKey: "AIzaSyDhucc6IYvGaOBDFp_sTAm92CYMIGJ308U",
-        authDomain: "tubarpay.firebaseapp.com",
-        projectId: "tubarpay",
-        storageBucket: "tubarpay.firebasestorage.app",
-        messagingSenderId: "1023644808997",
-        appId: "1:1023644808997:web:30349d87df80824a024ccc",
-        measurementId: "G-FJRD7XL844"
-      };
-
-      firebase.initializeApp(config);
-      firestore = firebase.firestore();
-    });
-  </script>
-
-</head>
-
-<body>
-  <div class="margin">
-    <div class="panel ">
-      <form id="add-card-form">
-        <h3>
-          Por favor complete la siguiente información
-          para agregar un método de pago en luncher. vR.2
-        </h3>
-        <div class="payment-form" id="my-card" data-capture-name="true"></div>
-        <button class="btn">Agregar método de pago</button>
-        <br />
-        <div id="messages"></div>
-      </form>
-    </div>
-  </div>
-</body>
-
+<!-- In this example, the form loads with the page, you can custom with the event you need. -->
 <script>
-  $(function () {
-    var queryString = window.location.search;
-    var urlParams = new URLSearchParams(queryString);
-    var uid = urlParams.get('id');
-    var email = urlParams.get('email');
-    var idp = urlParams.get('idp');
-    var opt1 = urlParams.get('opt1');
-    console.log(uid);
-    console.log(email);
-    console.log(opt1);
+  // Execute immediately
+  (function () {
+    // === Variable to use ===
+    let environment = 'stg';
+    let application_code = 'TESTECUADORSTG-EC-CLIENT';  // Provided by Payment Gateway
+    let application_key = 'd4pUmVHgVpw2mJ66rWwtfWaO2bAWV6';  // Provided by Payment Gateway
+    let submitButton = document.querySelector('#tokenize_btn');
+    let retryButton = document.querySelector('#retry_btn');
+    let submitInitialText = submitButton.textContent;
 
-    /**
-     * Init library
-     *
-     * @param env_mode `prod`, `stg`, `local` to change environment. Default is `stg`
-     * @param payment_client_app_code provided by Paymentez.
-     * @param payment_client_app_key provided by Paymentez.
-     */
-    Payment.init('stg', 'TPP3-EC-CLIENT', opt1);
-
-    let form = $("#add-card-form");
-    let submitButton = form.find("button");
-    let submitInitialText = submitButton.text();
-
-    $("#add-card-form").submit(function (e) {
-      let myCard = $('#my-card');
-      $('#messages').text("");
-      let cardToSave = myCard.PaymentForm('card');
-      if (cardToSave == null) {
-        $('#messages').text("Invalid Card Data");
-      } else {
-        submitButton.attr("disabled", "disabled").text("Card Processing...");
-
-        /// *** Recuperar los valores del formulario en variables locales ***
-        var cardNumber = myCard.PaymentForm('cardNumber');
-        var cardType = myCard.PaymentForm('cardType');
-        var name = myCard.PaymentForm('name');
-        var expiryMonth = myCard.PaymentForm('expiryMonth');
-        var expiryYear = myCard.PaymentForm('expiryYear');
-        var fiscalNumber = myCard.PaymentForm('fiscalNumber');
-        var validationOption = myCard.PaymentForm('validationOption');
-        /// *** Creamos el metodo de pago en paymentez ***
-        Payment.addCard(uid, email, cardToSave, successHandler, errorHandler);
+    // Get the required additional data to tokenize card
+    let get_tokenize_data = () => {
+      let data = {
+        locale: 'en',
+        // String(Math.floor((new Date).getTime() / 1000)),
+        user: {
+          id: 'fAuj5UwBZVVbAq1DQlcJTZJYjju2',
+          email: 'jhon@doe.com',
+        },
+        configuration: {
+          default_country: 'COL'
+        },
       }
-      e.preventDefault();
+      console.log(JSON.stringify(data, null, 3));
+      
+      return data
+    }
+
+    // === Required callbacks ===
+    // Executed when was called 'tokenize' function but the form was not completed.
+    let notCompletedFormCallback = message => {
+      console.log(message);
+      
+      document.getElementById('response').innerHTML = `Not completed form: ${message}, Please fill required data`;
+      submitButton.innerText = submitInitialText;
+      submitButton.removeAttribute('disabled');
+    }
+
+    // Executed when was called 'tokenize' and the services response successfully.
+    let responseCallback = response => {
+      console.log('*** response ***');
+      console.log(JSON.stringify(response, null, 3));
+      
+      // Example of success tokenization.
+      // response = {
+      //    "card": {
+      //     "bin": "411111",
+      //     "status": "valid",
+      //     "token": "2508629432271853872",
+      //     "message": "",
+      //     "expiry_year": "2033",
+      //     "expiry_month": "12",
+      //     "transaction_reference": "RB-143809",
+      //     "type": "vi",
+      //     "number": "1111"
+      //   }
+      // }
+
+      // Example of failed tokenization. The error format is always the same, only the value of type, help, description changes.
+      // {
+      //    "error": {
+      //       "type": "Card already added: 2508629432271853872",
+      //       "help": "If you want to update the card, first delete it",
+      //       "description": "{}"
+      //    }
+      // }
+      document.getElementById('response').innerHTML = JSON.stringify(response);
+      retryButton.style.display = 'block';
+      submitButton.style.display = 'none';
+    }
+
+    // 2. Instance the [PaymentGateway](#PaymentGateway-class) with the required parameters.
+    let pg_sdk = new PaymentGateway(environment, application_code, application_key);
+
+    // 3. Generate the tokenization form with the required data. [generate_tokenize](#generate_tokenize-function)
+    // At this point it's when the form is rendered on page.
+    pg_sdk.generate_tokenize(get_tokenize_data(), '#tokenize_example', responseCallback, notCompletedFormCallback);
+
+    // 4. Define the event to execute the [tokenize](#tokenize-function) action.
+    submitButton.addEventListener('click', event => {
+      document.getElementById('response').innerHTML = '';
+      submitButton.innerText = 'Card Processing...';
+      // submitButton.setAttribute('disabled', 'disabled');
+      pg_sdk.tokenize();
+      event.preventDefault();
+      submitButton.innerText = 'End Card Processing...';
+
+    });
+    // };
+
+    // You can define a button to create a new form and save new card
+    retryButton.addEventListener('click', event => {
+      // re call function
+      submitButton.innerText = submitInitialText;
+      submitButton.removeAttribute('disabled');
+      retryButton.style.display = 'none';
+      submitButton.style.display = 'block';
+      pg_sdk.generate_tokenize(get_tokenize_data(), '#tokenize_example', responseCallback, notCompletedFormCallback);
     });
 
+  })();
 
-    let successHandler = function (cardResponse) {
-      let card = cardResponse.card;
-      if (cardResponse.card.status === 'valid') {
-        /// *** Actualizamos el estado en el user *** ///
-        // var ref = firestore.collection("users").doc(uid.toString());
-        // ref.update({
-        //   'user_state_payment_method_provider': true
-        // }).then(function () {
-        //   console.log('*** OK 1 ***');
-        // }).catch(function (e) {
-        //   console.log(e);
-        // });
-
-        // /// *** Actualizamos el estado en el Bar *** ///
-        // var refP = firestore.collection("providers").doc(idp.toString());
-        // refP.update({
-        //   'provider_state_method': true
-        // }).then(function () {
-        //   console.log('*** OK 2 ***');
-        // }).catch(function (e) {
-        //   console.log(e);
-        // });
-
-        // /// *** Actualizamos el estado en el Bar *** ///
-        // var refPM = firestore.collection("providers").doc(idp.toString()).collection("payment_method").doc(card.transaction_reference.toString());
-        // refPM.set({
-        //   card
-        // }).then(function () {
-        //   console.log('*** OK 3 ***');
-        // }).catch(function (e) {
-        //   console.log(e);
-        // });
-
-        $('#messages').html('Tarjeta agregada con éxito<br>' +
-          'status: ' + cardResponse.card.status + '<br>' +
-          "Card Token: " + cardResponse.card.token + "<br>" +
-          "transaction_reference: " + cardResponse.card.transaction_reference
-        );
-      } else if (cardResponse.card.status === 'review') {
-        $('#messages').html('Tarjeta en revisión<br>' +
-          'status: ' + cardResponse.card.status + '<br>' +
-          "Card Token: " + cardResponse.card.token + "<br>" +
-          "transaction_reference: " + cardResponse.card.transaction_reference
-        );
-      } else {
-        $('#messages').html('Error<br>' +
-          'status: ' + cardResponse.card.status + '<br>' +
-          "message Token: " + cardResponse.card.message + "<br>"
-        );
-      }
-      submitButton.removeAttr("disabled");
-      submitButton.text(submitInitialText);
-    };
-
-    let errorHandler = function (err) {
-      $('#messages').html(err.error.type);
-      submitButton.removeAttr("disabled");
-      submitButton.text(submitInitialText);
-    };
-  });
 </script>
+
+
 
 </html>
