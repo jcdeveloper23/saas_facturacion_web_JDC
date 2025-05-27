@@ -1,20 +1,20 @@
-import {Component, OnInit, ViewChild} from '@angular/core';
-import {FormControl, NgForm} from '@angular/forms';
-import {MatPaginator} from '@angular/material/paginator';
-import {MatSort} from '@angular/material/sort';
-import {MatTableDataSource} from '@angular/material/table';
-import {Levels} from 'app/interfaces/levels';
-import {Parallels} from 'app/interfaces/parallels';
-import {Representative} from 'app/interfaces/representative';
-import {Student} from 'app/interfaces/student';
-import {LevelsService} from 'app/services/levels/levels.service';
-import {ParallelsService} from 'app/services/parallels/parallels.service';
-import {RepresentativeService} from 'app/services/representative/representative.service';
-import {StudentService} from 'app/services/student/student.service';
-import {take} from 'rxjs/operators';
-import {ChangeDetectorRef} from '@angular/core';
-import {Users} from 'app/interfaces/users';
-import {UsersService} from "../../../services/users/users.service";
+import { Component, OnInit, ViewChild } from '@angular/core';
+import { FormControl, NgForm } from '@angular/forms';
+import { MatPaginator } from '@angular/material/paginator';
+import { MatSort } from '@angular/material/sort';
+import { MatTableDataSource } from '@angular/material/table';
+import { Levels } from 'app/interfaces/levels';
+import { Parallels } from 'app/interfaces/parallels';
+import { Representative } from 'app/interfaces/representative';
+import { Student } from 'app/interfaces/student';
+import { LevelsService } from 'app/services/levels/levels.service';
+import { ParallelsService } from 'app/services/parallels/parallels.service';
+import { RepresentativeService } from 'app/services/representative/representative.service';
+import { StudentService } from 'app/services/student/student.service';
+import { take } from 'rxjs/operators';
+import { ChangeDetectorRef } from '@angular/core';
+import { Users } from 'app/interfaces/users';
+import { UsersService } from "../../../services/users/users.service";
 
 declare var $: any;
 
@@ -70,12 +70,13 @@ export class RepresentativeComponent implements OnInit {
   public infoUser: Users;
   public representativeUser: Users;
 
-  constructor(private representativeService: RepresentativeService,
-              private studentService: StudentService,
-              private levelsService: LevelsService,
-              private parallelsService: ParallelsService,
-              private userService: UsersService,
-              private cdRef: ChangeDetectorRef) {
+  constructor(
+    private representativeService: RepresentativeService,
+    private studentService: StudentService,
+    private levelsService: LevelsService,
+    private parallelsService: ParallelsService,
+    private userService: UsersService,
+    private cdRef: ChangeDetectorRef) {
   }
 
   ngOnInit(): void {

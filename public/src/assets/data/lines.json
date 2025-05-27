@@ -1,0 +1,373 @@
+[
+  {
+    "id": "1628899693743",
+    "category_is_menu": true,
+    "category_state": true,
+    "category_id": "1628899693743",
+    "category_provider_id": "1628899692199",
+    "category_name": "Menú"
+  },
+  {
+    "id": "1628900671476",
+    "category_provider_id": "1628899692199",
+    "category_id": "1628900671476",
+    "category_state": true,
+    "category_name": "Snacks"
+  },
+  {
+    "id": "1628900712589",
+    "category_state": true,
+    "category_provider_id": "1628899692199",
+    "category_name": "Bebidas",
+    "category_id": "1628900712589"
+  },
+  {
+    "id": "1628900720194",
+    "category_id": "1628900720194",
+    "category_name": "Dulces",
+    "category_provider_id": "1628899692199",
+    "category_state": true
+  },
+  {
+    "id": "1628960872871",
+    "category_name": "Menú",
+    "category_is_menu": true,
+    "category_provider_id": "1628960871755",
+    "category_id": "1628960872871",
+    "category_state": true
+  },
+  {
+    "id": "1628987853153",
+    "category_name": "Menú",
+    "category_provider_id": "1628987852050",
+    "category_state": true,
+    "category_id": "1628987853153",
+    "category_is_menu": true
+  },
+  {
+    "id": "1628988071636",
+    "category_provider_id": "1628988070481",
+    "category_id": "1628988071636",
+    "category_is_menu": true,
+    "category_state": true,
+    "category_name": "Menú"
+  },
+  {
+    "id": "1628988980056",
+    "category_provider_id": "1628988070481",
+    "category_name": "Snacks",
+    "category_id": "1628988980056",
+    "category_state": true
+  },
+  {
+    "id": "1629157008355",
+    "category_id": "1629157008355",
+    "category_provider_id": "1629157007048",
+    "category_state": true,
+    "category_name": "Menú",
+    "category_is_menu": true
+  },
+  {
+    "id": "1629158373198",
+    "category_name": "Bebidas",
+    "category_id": "1629158373198",
+    "category_state": true,
+    "category_provider_id": "1628988070481"
+  },
+  {
+    "id": "1629158577601",
+    "category_id": "1629158577601",
+    "category_state": true,
+    "category_name": "Combos",
+    "category_provider_id": "1628988070481"
+  },
+  {
+    "id": "1630360608569",
+    "category_name": "Colación Preescolar",
+    "category_state": true,
+    "category_provider_id": "1628988070481",
+    "category_id": "1630360608569"
+  },
+  {
+    "id": "1630510098420",
+    "category_id": "1630510098420",
+    "category_is_menu": true,
+    "category_state": true,
+    "category_name": "Menú",
+    "category_provider_id": "1630510096736"
+  },
+  {
+    "id": "1630513106247",
+    "category_id": "1630513106247",
+    "category_state": true,
+    "category_provider_id": "1630513104565",
+    "category_name": "Menú",
+    "category_is_menu": true
+  },
+  {
+    "id": "1630555890263",
+    "category_provider_id": "1630555889918",
+    "category_state": true,
+    "category_is_menu": true,
+    "category_id": "1630555890263",
+    "category_name": "Menú"
+  },
+  {
+    "id": "1630634292945",
+    "category_name": "Snacks",
+    "category_provider_id": "1630510096736",
+    "category_state": true,
+    "category_id": "1630634292945"
+  },
+  {
+    "id": "1630875315767",
+    "category_provider_id": "1630875314189",
+    "category_state": true,
+    "category_is_menu": true,
+    "category_id": "1630875315767",
+    "category_name": "Menú"
+  },
+  {
+    "id": "1631627185116",
+    "category_is_menu": true,
+    "category_id": "1631627185116",
+    "category_name": "Menú",
+    "category_provider_id": "1631627183596",
+    "category_state": true
+  },
+  {
+    "id": "1631762053577",
+    "category_id": "1631762053577",
+    "category_state": true,
+    "category_provider_id": "1631762051281",
+    "category_is_menu": true,
+    "category_name": "Menú"
+  },
+  {
+    "id": "1631762152882",
+    "category_name": "Menú",
+    "category_provider_id": "1631762151156",
+    "category_is_menu": true,
+    "category_state": true,
+    "category_id": "1631762152882"
+  },
+  {
+    "id": "1632771784196",
+    "category_id": "1632771784196",
+    "category_name": "Menú",
+    "category_state": true,
+    "category_provider_id": "1632771782677",
+    "category_is_menu": true
+  },
+  {
+    "id": "1633969257443",
+    "category_is_menu": true,
+    "category_provider_id": "1633969256052",
+    "category_name": "Menú",
+    "category_id": "1633969257443",
+    "category_state": true
+  },
+  {
+    "id": "1634264677016",
+    "category_name": "Snacks",
+    "category_id": "1634264677016",
+    "category_state": true,
+    "category_provider_id": "1633969256052"
+  },
+  {
+    "id": "1636463920940",
+    "category_is_menu": false,
+    "category_name": "SÁNDUCHES",
+    "category_state": true,
+    "category_provider_id": "1632771782677",
+    "category_id": "1636463920940"
+  },
+  {
+    "id": "1636465686178",
+    "category_state": true,
+    "category_name": "BEBIDAS",
+    "category_is_menu": false,
+    "category_id": "1636465686178",
+    "category_provider_id": "1632771782677"
+  },
+  {
+    "id": "1636490559467",
+    "category_is_menu": false,
+    "category_id": "1636490559467",
+    "category_name": "SNACKS",
+    "category_state": true,
+    "category_provider_id": "1632771782677"
+  },
+  {
+    "id": "1636498333846",
+    "category_name": "DESAYUNOS",
+    "category_id": "1636498333846",
+    "category_state": true,
+    "category_provider_id": "1632771782677",
+    "category_is_menu": false
+  },
+  {
+    "id": "1636600393915",
+    "category_is_menu": true,
+    "category_state": true,
+    "category_id": "1636600393915",
+    "category_name": "Menú",
+    "category_provider_id": "1636600391774"
+  },
+  {
+    "id": "1637180114623",
+    "category_provider_id": "1636600391774",
+    "category_state": true,
+    "category_name": "SÁNDUCHES",
+    "category_is_menu": false,
+    "category_id": "1637180114623"
+  },
+  {
+    "id": "1637181711733",
+    "category_provider_id": "1636600391774",
+    "category_is_menu": false,
+    "category_state": true,
+    "category_name": "SNACKS",
+    "category_id": "1637181711733"
+  },
+  {
+    "id": "1637188203512",
+    "category_name": "BEBIDAS",
+    "category_provider_id": "1636600391774",
+    "category_state": true,
+    "category_id": "1637188203512",
+    "category_is_menu": false
+  },
+  {
+    "id": "1645826443987",
+    "category_is_menu": true,
+    "category_provider_id": "1645826443974",
+    "category_id": "1645826443987",
+    "category_state": true,
+    "category_name": "Menú"
+  },
+  {
+    "id": "1651615669570",
+    "category_state": true,
+    "category_name": "LUNCH PREPAGADO",
+    "category_provider_id": "1632771782677",
+    "category_is_menu": false,
+    "category_id": "1651615669570"
+  },
+  {
+    "id": "1651756025602",
+    "category_provider_id": "1651756024462",
+    "category_is_menu": true,
+    "category_id": "1651756025602",
+    "category_name": "Menú",
+    "category_state": true
+  },
+  {
+    "id": "1652903394782",
+    "category_state": true,
+    "category_provider_id": "1632771782677",
+    "category_id": "1652903394782",
+    "category_is_menu": false,
+    "category_name": "ALMUERZO"
+  },
+  {
+    "id": "1653156464349",
+    "category_is_menu": false,
+    "category_provider_id": "1632771782677",
+    "category_name": "HEALTHY TIME",
+    "category_state": true,
+    "category_id": "1653156464349"
+  },
+  {
+    "id": "1655053961693",
+    "category_name": "Menú",
+    "category_id": "1655053961693",
+    "category_is_menu": true,
+    "category_state": true,
+    "category_provider_id": "1655053961317"
+  },
+  {
+    "id": "1656712874134",
+    "category_id": "1656712874134",
+    "category_state": true,
+    "category_name": "Menú",
+    "category_provider_id": "1656712871597",
+    "category_is_menu": true
+  },
+  {
+    "id": "1659546983504",
+    "category_is_menu": true,
+    "category_id": "1659546983504",
+    "category_name": "Menú",
+    "category_provider_id": "1659546981113",
+    "category_state": true
+  },
+  {
+    "id": "1682034053539",
+    "category_state": true,
+    "category_is_menu": false,
+    "category_name": "DESAYUNOS",
+    "category_provider_id": "1636600391774",
+    "category_id": "1682034053539"
+  },
+  {
+    "id": "1682035248014",
+    "category_provider_id": "1636600391774",
+    "category_id": "1682035248014",
+    "category_is_menu": false,
+    "category_state": true,
+    "category_name": "LUNCH PREPAGADO"
+  },
+  {
+    "id": "1682036025507",
+    "category_state": true,
+    "category_id": "1682036025507",
+    "category_name": "ALMUERZO",
+    "category_is_menu": false,
+    "category_provider_id": "1636600391774"
+  },
+  {
+    "id": "1682037651732",
+    "category_provider_id": "1636600391774",
+    "category_name": "Menú",
+    "category_state": true,
+    "category_id": "1682037651732"
+  },
+  {
+    "id": "1694991952682",
+    "category_name": "CUENTAS TRANSFERENCIAS",
+    "category_id": "1694991952682",
+    "category_provider_id": "1636600391774",
+    "category_state": true
+  },
+  {
+    "id": "1694993180011",
+    "category_provider_id": "1632771782677",
+    "category_state": true,
+    "category_name": "CUENTAS TRANSFERENCIAS",
+    "category_id": "1694993180011"
+  },
+  {
+    "id": "1743524642970",
+    "category_state": true,
+    "category_is_menu": true,
+    "category_name": "Menú",
+    "category_id": "1743524642970",
+    "category_provider_id": "1743524640477"
+  },
+  {
+    "id": "1745178727935",
+    "category_name": "HEALTHY TIME",
+    "category_id": "1745178727935",
+    "category_provider_id": "1636600391774",
+    "category_state": true
+  },
+  {
+    "id": "1745957927739",
+    "category_is_menu": true,
+    "category_name": "Menú",
+    "category_state": true,
+    "category_provider_id": "1745957925467",
+    "category_id": "1745957927739"
+  }
+]

@@ -28,13 +28,16 @@ import { MatInputModule } from '@angular/material/input';
 import { IndexLayoutComponent } from './layouts/index-layout/index-layout.component';
 import { registerLocaleData } from '@angular/common';
 import localeEs from '@angular/common/locales/es';
+import { CurrencyPipe } from '@angular/common';
+import { CustomCurrencyPipe } from './pipes_custom/custom-currency.pipe';
 
-registerLocaleData(localeEs);
+// registerLocaleData(localeEs);
 
 
 @NgModule({
     providers: [
-        { provide: LOCALE_ID, useValue: 'es' }
+        CurrencyPipe,
+        // { provide: LOCALE_ID, useValue: 'es' } 
     ],
     imports: [
         BrowserAnimationsModule,
@@ -61,13 +64,15 @@ registerLocaleData(localeEs);
 
 
     ],
-    declarations: [
+    declarations: [ 
         AppComponent,
         AdminLayoutComponent,
         AuthLayoutComponent,
         IndexLayoutComponent,
+        // CustomCurrencyPipe
     ],
-    bootstrap: [AppComponent]
+    bootstrap: [AppComponent],
+    
 })
 
 export class AppModule { }

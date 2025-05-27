@@ -1,0 +1,1931 @@
+[
+  {
+    "id": "1628900733957",
+    "product_description": "Ruffles natural",
+    "product_id": "1628900733957",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1628900733957%2Fimage_0.png?alt=media&token=4ca4cd1e-7782-4049-a856-b034a7a91a9a"
+    ],
+    "product_name": "Rufles",
+    "product_price": 0.5,
+    "product_provider_id": "1628988070481",
+    "product_state": true,
+    "product_id_category": "1628988980056",
+    "product_observations": "250gr",
+    "product_days_of_availability": null
+  },
+  {
+    "id": "1628900827556",
+    "product_state": true,
+    "product_name": "Rufles de crema y cebolla",
+    "product_id": "1628900827556",
+    "product_id_category": "1628900671476",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1628900827556%2Fimage_0.png?alt=media&token=34b299c4-fb43-4c53-ae7e-fd6f9725fc6d"
+    ],
+    "product_price": 0.5,
+    "product_observations": "200gr",
+    "product_description": "Rufles de crema y cebolla",
+    "product_provider_id": "1628899692199",
+    "product_days_of_availability": null
+  },
+  {
+    "id": "1628900884077",
+    "product_id": "1628900884077",
+    "product_name": "Colas",
+    "product_id_category": "1628900712589",
+    "product_state": true,
+    "product_price": 0.75,
+    "product_provider_id": "1628899692199",
+    "product_days_of_availability": null,
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1628900884077%2Fimage_0.png?alt=media&token=5c0154ca-87b5-4168-8c26-5cf349b36332"
+    ],
+    "product_description": "Colas de diferentes sabores",
+    "product_observations": "250ml"
+  },
+  {
+    "id": "1628900962108",
+    "product_state": true,
+    "product_description": "Seco de pollo pequeńo",
+    "product_observations": "Arroz + pollo + maduro frito",
+    "product_provider_id": "1628899692199",
+    "product_days_of_availability": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1628900962108%2Fimage_0.png?alt=media&token=e7be426e-6508-4bc8-9a7a-495c8284aa24"
+    ],
+    "product_price": 1,
+    "product_id": "1628900962108",
+    "product_id_category": "1628899693743",
+    "product_name": "Seco de pollo"
+  },
+  {
+    "id": "1628901087802",
+    "product_price": 1.5,
+    "product_observations": "Arroz + pollo + maduro frito + ensalada + cola",
+    "product_description": "Seco de pollo grande",
+    "product_days_of_availability": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "product_id_category": "1628899693743",
+    "product_state": true,
+    "product_id": "1628901087802",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1628901087802%2Fimage_0.png?alt=media&token=240afa78-f1e4-499a-a860-78e9fa0aa89f"
+    ],
+    "product_provider_id": "1628899692199",
+    "product_name": "Seco de pollo"
+  },
+  {
+    "id": "1628968496432",
+    "product_days_of_availability": [
+      1,
+      2,
+      3
+    ],
+    "product_description": "Seco de pollo pequeño",
+    "product_name": "Seco de pollo",
+    "product_price": 0.75,
+    "product_observations": "Arroz + pollo + papa frito",
+    "product_provider_id": "1628960871755",
+    "product_id_category": "1628960872871",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1628968496432%2Fimage_0.png?alt=media&token=a07b2f5b-b0c3-43af-9b58-586d7880f4b1"
+    ],
+    "product_id": "1628968496432",
+    "product_state": true
+  },
+  {
+    "id": "1629158585571",
+    "product_id": "1629158585571",
+    "product_name": "Combo 1",
+    "product_price": 1.5,
+    "product_state": true,
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1629158585571%2Fimage_0.png?alt=media&token=af775faa-bc8e-4895-83bd-61680e85dd48"
+    ],
+    "product_id_category": "1629158577601",
+    "product_days_of_availability": null,
+    "product_description": "Combo grande",
+    "product_observations": "Haburguesa + papas + cola",
+    "product_provider_id": "1628988070481"
+  },
+  {
+    "id": "1630361866091",
+    "product_id_category": "1628988071636",
+    "product_name": "Combo Pizza y bebida",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1630361866091%2Fimage_0.png?alt=media&token=7c9ded8c-e8eb-4f32-90f7-956b70ff155e"
+    ],
+    "product_description": "Mini-pizza de jamón y queso con bebida de 70 ml",
+    "product_state": false,
+    "product_days_of_availability": [
+      1
+    ],
+    "product_id": "1630361866091",
+    "product_id_category_name": "Menú",
+    "product_price": 2,
+    "product_provider_id": "1628988070481"
+  },
+  {
+    "id": "1630626837933",
+    "product_id_category_name": "Menú",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1630626837933%2Fimage_0.png?alt=media&token=c189c0b5-71cd-4af9-828b-c44a33c9b91f"
+    ],
+    "product_price": 2.6,
+    "product_days_of_availability": [
+      3
+    ],
+    "product_description": "Waffles con fruta  y bebida de Temporada",
+    "product_observations": "nota 1",
+    "product_provider_id": "1630510096736",
+    "product_id": "1630626837933",
+    "product_id_category": "1630510098420",
+    "product_name": "Waffles con fruta",
+    "product_state": true
+  },
+  {
+    "id": "1630627821247",
+    "product_name": "MIXTO DE QUESO Y JAMON",
+    "product_id_category": "1630510098420",
+    "product_state": true,
+    "product_id": "1630627821247",
+    "product_days_of_availability": [
+      1,
+      2
+    ],
+    "product_price": 2.5,
+    "product_description": "TOSTADA DE QUESO Y JAMON BATIDO DE MORA",
+    "product_provider_id": "1630510096736",
+    "product_id_category_name": "Menú",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1630627821247%2Fimage_0.png?alt=media&token=317bcc4b-512d-435e-83a1-33e967d3297a"
+    ]
+  },
+  {
+    "id": "1630628184370",
+    "product_id_category": "1630510098420",
+    "product_id_category_name": "Menú",
+    "product_price": 2.5,
+    "product_state": true,
+    "product_id": "1630628184370",
+    "product_days_of_availability": [
+      3,
+      4
+    ],
+    "product_name": "CAKE DE ZANAHORIA",
+    "product_description": "CAKE DE ZANAHORIA NESQUIK DE FRESA",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1630628184370%2Fimage_0.png?alt=media&token=c52dc38c-f3d6-439d-9818-9013006806b6"
+    ],
+    "product_provider_id": "1630510096736"
+  },
+  {
+    "id": "1630628422101",
+    "product_price": 2.6,
+    "product_days_of_availability": [
+      4,
+      5
+    ],
+    "product_state": true,
+    "product_description": "DEDITOS DE QUESO CON AVENA DE NARANJILLA Y UVAS VERDES",
+    "product_name": "DEDITOS DE QUESO ",
+    "product_id_category": "1630510098420",
+    "product_provider_id": "1630510096736",
+    "product_id_category_name": "Menú",
+    "product_id": "1630628422101",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1630628422101%2Fimage_0.png?alt=media&token=ffc30deb-b389-4b7a-8ce6-a335e4b1b3ac"
+    ]
+  },
+  {
+    "id": "1630628730163",
+    "product_name": "SANDUCHE DE ATUN JUGO DE TEMPORADA",
+    "product_description": "SANDUCHE DE ATUN JUGO DE TEMPORADA Y UNA MANZANA ROJA",
+    "product_state": true,
+    "product_id_category": "1630510098420",
+    "product_price": 2.5,
+    "product_days_of_availability": [
+      5
+    ],
+    "product_provider_id": "1630510096736",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1630628730163%2Fimage_0.png?alt=media&token=a9156838-f534-4306-8f3a-4d169946d0f6"
+    ],
+    "product_id": "1630628730163"
+  },
+  {
+    "id": "1630628916635",
+    "product_state": true,
+    "product_days_of_availability": null,
+    "product_provider_id": "1630510096736",
+    "product_id": "1630628916635",
+    "product_id_category": "1630634292945",
+    "product_price": 2.5,
+    "product_description": "SANDUCHE CUBANO CON BEBIDA DE TEMPORADA",
+    "product_id_category_name": "Snacks",
+    "product_name": "SANDUCHE CUBANO CON BEBIDA",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1630628916635%2Fimage_0.png?alt=media&token=9c24820b-d494-4cce-bdbd-5d8ba8e534c0"
+    ]
+  },
+  {
+    "id": "1630785375914",
+    "product_id": "1630785375914",
+    "product_id_category": "1628988071636",
+    "product_provider_id": "1628988070481",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1630785375914%2Fimage_0.png?alt=media&token=66f5f472-0f62-4467-b453-de01d7895c54"
+    ],
+    "product_description": "Yogur con frutas. Avena",
+    "product_name": "Test menú 2",
+    "product_state": true,
+    "product_price": 2.4
+  },
+  {
+    "id": "1630794159858",
+    "product_description": "Tostadas con queso y jugo",
+    "product_provider_id": "1628988070481",
+    "product_name": "Tostadas con queso y jugo",
+    "product_price": 3.5,
+    "product_id_category": "1628988071636",
+    "product_id": "1630794159858",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1630794159858%2Fimage_0.png?alt=media&token=6ef4c3be-00df-4caa-8e96-b53b502113de"
+    ],
+    "product_state": true
+  },
+  {
+    "id": "1630794244452",
+    "product_state": true,
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1630794244452%2Fimage_0.png?alt=media&token=361781d0-eb6e-46ec-8b0d-1251dc619c11"
+    ],
+    "product_name": "Avena con fruta",
+    "product_description": "Avena con fruta",
+    "product_id": "1630794244452",
+    "product_id_category": "1628988071636",
+    "product_price": 4,
+    "product_provider_id": "1628988070481"
+  },
+  {
+    "id": "1630899000356",
+    "product_price": 2.5,
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1630899000356%2Fimage_0.png?alt=media&token=6d2e8a3c-9d42-446d-b68f-dc911e75881e"
+    ],
+    "product_state": true,
+    "product_provider_id": "1630510096736",
+    "product_description": "CAKE DE NARANJA Y MAICENA DE LECHE Y FRUTA DE TEMPORADA",
+    "product_name": "CAKE DE NARANJA Y BEBIDA",
+    "product_id_category": "1630510098420",
+    "product_id": "1630899000356"
+  },
+  {
+    "id": "1631034320217",
+    "product_provider_id": "1630510096736",
+    "product_days_of_availability": null,
+    "product_price": 2.5,
+    "product_id": "1631034320217",
+    "product_name": "CHOCLO CON QUESO Y BEBIDA",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1631034320217%2Fimage_0.png?alt=media&token=3125c90a-48fb-4d72-8f5c-e86c49b7fe4b"
+    ],
+    "product_id_category": "1630634292945",
+    "product_state": true,
+    "product_description": "CHOCLO CON QUESO Y BEBIDA Y PAPAYA PICADA",
+    "product_id_category_name": "Menú"
+  },
+  {
+    "id": "1631034697162",
+    "product_provider_id": "1630510096736",
+    "product_days_of_availability": null,
+    "product_price": 2.5,
+    "product_id": "1631034697162",
+    "product_name": "ALMUERZO ",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1631034697162%2Fimage_0.png?alt=media&token=1a7e61fc-4424-4868-bd8b-50939359fc75"
+    ],
+    "product_id_category": "1630510098420",
+    "product_description": "SOPA DE VERDURAS, CON SECO DE POLLO Y BEBIDA DE TEMPORADA",
+    "product_state": true,
+    "product_id_category_name": "Menú"
+  },
+  {
+    "id": "1631130251736",
+    "product_id": "1631130251736",
+    "product_id_category": "1630510098420",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1631130251736%2Fimage_0.png?alt=media&token=63f4e5e5-348a-4a81-9fa7-07d201d78fe2"
+    ],
+    "product_state": true,
+    "product_price": 2.5,
+    "product_provider_id": "1630510096736",
+    "product_description": "SOPA DE AVENA CON COSTILLA DE CERDO, PECHUGA APANADA, PURÉ DE YUCA ENSALADA RUSA  JUGO DE TEMPORADA ",
+    "product_name": "ALMUERZO "
+  },
+  {
+    "id": "1631130742664",
+    "product_provider_id": "1630510096736",
+    "product_id_category": "1630510098420",
+    "product_description": "SOPA DE ARROZ DE CEBADA Y QUESO, CHORIZO, LLAPINGACHO, LECHUGA, TOMATE, AGUACATE.",
+    "product_price": 2.5,
+    "product_name": "ALMUERZO ",
+    "product_state": true,
+    "product_id": "1631130742664",
+    "product_observations": "BEBIDA DE FRUTA DE TEMPORADA  ",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1631130742664%2Fimage_0.png?alt=media&token=e45758b3-1981-4ee9-bbbf-220809428f1a"
+    ]
+  },
+  {
+    "id": "1631133019032",
+    "product_state": true,
+    "product_provider_id": "1630510096736",
+    "product_id": "1631133019032",
+    "product_id_category": "1630510098420",
+    "product_price": 2.5,
+    "product_observations": "BEBIDA FRUTA DE TEMPORADA ",
+    "product_description": "SOPA CREMA DE TOMATE LASAÑA PAN DE AJO LECHUGA  Y TOMATE  ",
+    "product_name": "ALMUERZO ",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1631133019032%2Fimage_0.png?alt=media&token=91f79479-f080-4e7f-877f-e5740a0001e4"
+    ]
+  },
+  {
+    "id": "1631133566244",
+    "product_state": true,
+    "product_description": "MEDALLON DE POLLO,PAPA FRANCESA,BROCOLI ZANAHORIA ",
+    "product_id_category": "1630510098420",
+    "product_provider_id": "1630510096736",
+    "product_price": 2.5,
+    "product_name": "ALMUERZO ",
+    "product_observations": "BEBIDA FRUTA DE TEMPORADA ",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1631133566244%2Fimage_0.png?alt=media&token=70b44365-9c1c-4648-9f4b-05ab214f3dcb"
+    ],
+    "product_id": "1631133566244"
+  },
+  {
+    "id": "1631135122735",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1631135122735%2Fimage_0.png?alt=media&token=73f6ca73-e951-4b1c-a53b-f74415236143"
+    ],
+    "product_id_category": "1630510098420",
+    "product_description": "SOPA CONSOME JULIANA PASTEL DE CARNE, MENESTRA DE LENTEJA, COL MORADA, COL BLANCA, ZANAHORIA  ",
+    "product_price": 2.5,
+    "product_observations": "BEBIDA FRUTA DE TEMPORADA ",
+    "product_state": true,
+    "product_provider_id": "1630510096736",
+    "product_name": "ALMUERZO ",
+    "product_id": "1631135122735"
+  },
+  {
+    "id": "1631543862580",
+    "product_name": "hamburguesa ",
+    "product_price": 2.5,
+    "product_observations": "bebida de temporada vaso de 5 onzas ",
+    "product_provider_id": "1630510096736",
+    "product_id": "1631543862580",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1631543862580%2Fimage_0.png?alt=media&token=547d6f79-a788-4dc8-8d61-53d8db5b0872"
+    ],
+    "product_days_of_availability": null,
+    "product_state": true,
+    "product_description": "pan, carne de hamburguesa, lechuga,tomate,queso chedar",
+    "product_id_category": "1630634292945"
+  },
+  {
+    "id": "1631544651551",
+    "product_price": 2.5,
+    "product_provider_id": "1630510096736",
+    "product_observations": "bebida de temporada vaso de 5 onzas ",
+    "product_id_category": "1630634292945",
+    "product_id": "1631544651551",
+    "product_state": true,
+    "product_name": "crepes con fruta ",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1631544651551%2Fimage_0.png?alt=media&token=b18fce1f-2f80-4ef7-9ee7-143f25542f0a"
+    ],
+    "product_days_of_availability": null,
+    "product_description": "crepes con fresa y banana "
+  },
+  {
+    "id": "1631659460528",
+    "product_id_category": "1630510098420",
+    "product_state": true,
+    "product_price": 2.5,
+    "product_name": "Almuerzo",
+    "product_provider_id": "1630510096736",
+    "product_description": "Sopa menestrone, pollo al curry,papa al vapor, ensalada fresca",
+    "product_observations": "jugo de temporada",
+    "product_id": "1631659460528",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1631659460528%2Fimage_0.png?alt=media&token=e38a0f89-ff0a-4958-9d74-d0b2c7028d43"
+    ]
+  },
+  {
+    "id": "1631660249248",
+    "product_state": true,
+    "product_id_category": "1630510098420",
+    "product_price": 2.5,
+    "product_observations": "jugo de temporada ",
+    "product_id": "1631660249248",
+    "product_name": "Almuerzo",
+    "product_description": "Sopa aguado de pollo,chuleta guisada,muchin de yuca ",
+    "product_provider_id": "1630510096736",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1631660249248%2Fimage_0.png?alt=media&token=e65bde29-b8d4-4d00-a11b-39c01d3cd711"
+    ]
+  },
+  {
+    "id": "1631660364372",
+    "product_description": "Sopa de quino a y queso,lo no a la plancha, puré de papa zanahoria y brocoli ",
+    "product_name": "Almuerzo",
+    "product_id_category": "1630510098420",
+    "product_state": true,
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1631660364372%2Fimage_0.png?alt=media&token=914fef0d-98b8-4f48-90bc-49be254505a1"
+    ],
+    "product_price": 2.5,
+    "product_observations": "jugo de temporada ",
+    "product_id": "1631660364372",
+    "product_provider_id": "1630510096736"
+  },
+  {
+    "id": "1631660693078",
+    "product_description": "Sopa de código y quesillo, pollo al horno, papa frita ensalada rusa ",
+    "product_price": 2.5,
+    "product_state": true,
+    "product_provider_id": "1630510096736",
+    "product_name": "Almuerzo",
+    "product_id": "1631660693078",
+    "product_id_category": "1630510098420",
+    "product_observations": "jugo de temporada ",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1631660693078%2Fimage_0.png?alt=media&token=d74127f2-7e0e-4155-b324-6ef20597058f"
+    ]
+  },
+  {
+    "id": "1631660772615",
+    "product_provider_id": "1630510096736",
+    "product_id": "1631660772615",
+    "product_state": true,
+    "product_name": "Almuerzo",
+    "product_id_category": "1630510098420",
+    "product_description": "Sopa de lenteja y res,filete de pescado frito, patacón, encebollado",
+    "product_observations": "Jugo de temporada ",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1631660772615%2Fimage_0.png?alt=media&token=38ea8b33-4966-4c6f-abf3-d27e19510061"
+    ],
+    "product_price": 2.5
+  },
+  {
+    "id": "1631888055924",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1631888055924%2Fimage_0.png?alt=media&token=400d4f54-c9b5-467c-b00d-c0f19b01658f"
+    ],
+    "product_provider_id": "1628988070481",
+    "product_id": "1631888055924",
+    "product_id_category": "1628988980056",
+    "product_name": "FRUTAS COMBINADAS",
+    "product_description": "VASO CON FRUTAS VARIADAS",
+    "product_days_of_availability": null,
+    "product_price": 2.5,
+    "product_observations": "SE PREPARA AL INSTANTE",
+    "product_state": true
+  },
+  {
+    "id": "1632152019629",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1632152019629%2Fimage_0.png?alt=media&token=1c24f539-ada5-4f07-8eec-2bffe00fa453"
+    ],
+    "product_id": "1632152019629",
+    "product_name": "ALMUERZO ",
+    "product_observations": "BEBIDA FRUTA DE TEMPORADA ",
+    "product_provider_id": "1630510096736",
+    "product_description": "Sopa caldo de res, seco de cerdo, muchin de yuca, amarillo, lechuga hilo   ",
+    "product_state": true,
+    "product_id_category": "1630510098420",
+    "product_price": 2.5
+  },
+  {
+    "id": "1632152461346",
+    "product_provider_id": "1630510096736",
+    "product_name": "ALMUERZO ",
+    "product_description": "sopa de haba, chuleta asada, menestra de lenteja, zanahoria brocoli",
+    "product_price": 2.5,
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1632152461346%2Fimage_0.png?alt=media&token=1ec75078-d361-4b98-8dd3-ada51760cff7"
+    ],
+    "product_state": true,
+    "product_id": "1632152461346",
+    "product_id_category": "1630510098420",
+    "product_observations": "BEBIDA FRUTA DE TEMPORADA "
+  },
+  {
+    "id": "1632152775127",
+    "product_state": true,
+    "product_description": "Sopa de mote, pollo broster, papa frita, ensalada rusa",
+    "product_id": "1632152775127",
+    "product_price": 2.5,
+    "product_name": "ALMUERZO ",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1632152775127%2Fimage_0.png?alt=media&token=0ad2631c-d80b-418b-8a89-2c58297ee711"
+    ],
+    "product_provider_id": "1630510096736",
+    "product_id_category": "1630510098420",
+    "product_observations": "BEBIDA FRUTA DE TEMPORADA "
+  },
+  {
+    "id": "1632152879054",
+    "product_description": "sopa de menestorone, carne apanada, pure de yuca, encebollado ",
+    "product_id": "1632152879054",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1632152879054%2Fimage_0.png?alt=media&token=6bc07568-ec6b-4085-ad50-e731eb0a52c4"
+    ],
+    "product_provider_id": "1630510096736",
+    "product_observations": "BEBIDA FRUTA DE TEMPORADA ",
+    "product_price": 2.5,
+    "product_state": true,
+    "product_id_category": "1630510098420",
+    "product_name": "ALMUERZO "
+  },
+  {
+    "id": "1632153036201",
+    "product_observations": "BEBIDA FRUTA DE TEMPORADA ",
+    "product_description": "sopa de res y lenteja, seco de pollo, papa al vapor, ensalada de lechuga tomate",
+    "product_id": "1632153036201",
+    "product_name": "ALMUERZO ",
+    "product_provider_id": "1630510096736",
+    "product_price": 2.5,
+    "product_id_category": "1630510098420",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1632153036201%2Fimage_0.png?alt=media&token=cd216901-03ba-48e1-ba46-4ce581897709"
+    ],
+    "product_state": true
+  },
+  {
+    "id": "1632169336375",
+    "product_state": true,
+    "product_id_category": "1630510098420",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1632169336375%2Fimage_0.png?alt=media&token=e028e40d-10ab-480e-be31-2d1193ab7fe0"
+    ],
+    "product_provider_id": "1630510096736",
+    "product_id": "1632169336375",
+    "product_observations": "Fruta y bebida del dia.",
+    "product_price": 2.5,
+    "product_description": "sandwich mantequilla y mermelada ",
+    "product_name": "sandwich"
+  },
+  {
+    "id": "1632169638382",
+    "product_price": 2.5,
+    "product_observations": "Fruta y bebida del dia.",
+    "product_id": "1632169638382",
+    "product_provider_id": "1630510096736",
+    "product_description": "mini burritos de pollo ",
+    "product_name": "mini burritos ",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1632169638382%2Fimage_0.png?alt=media&token=720e9ed4-45da-48b7-a105-a57003243a67"
+    ],
+    "product_state": true,
+    "product_id_category": "1630510098420"
+  },
+  {
+    "id": "1632169712640",
+    "product_observations": "Fruta y bebida del dia.",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1632169712640%2Fimage_0.png?alt=media&token=2789fc35-9601-4d81-94a4-626e4e56e11b"
+    ],
+    "product_state": true,
+    "product_name": "mini pizza",
+    "product_provider_id": "1630510096736",
+    "product_id_category": "1630510098420",
+    "product_description": "mini ´pizza margarita ",
+    "product_price": 2.5,
+    "product_id": "1632169712640"
+  },
+  {
+    "id": "1632170037938",
+    "product_description": "pan de yuca con yoghurt",
+    "product_name": "pan de yuca ",
+    "product_price": 2.5,
+    "product_observations": "BEBIDA FRUTA DE TEMPORADA ",
+    "product_provider_id": "1630510096736",
+    "product_id_category": "1630510098420",
+    "product_id": "1632170037938",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1632170037938%2Fimage_0.png?alt=media&token=fca9381d-93b0-40ef-b021-678ead1b1486"
+    ],
+    "product_state": true
+  },
+  {
+    "id": "1633969658998",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1633969658998%2Fimage_0.png?alt=media&token=9bc25489-bb42-404a-8ecc-8059227c7915"
+    ],
+    "product_observations": "1",
+    "product_description": "TEST",
+    "product_price": 1,
+    "product_provider_id": "1633969256052",
+    "product_id": "1633969658998",
+    "product_id_category": "1633969257443",
+    "product_state": true,
+    "product_name": "TEST001-N"
+  },
+  {
+    "id": "1634264685099",
+    "product_id_category": "1634264677016",
+    "product_provider_id": "1633969256052",
+    "product_id": "1634264685099",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1634264685099%2Fimage_0.png?alt=media&token=0ae020a2-4772-4344-a039-93706cee7786"
+    ],
+    "product_price": 1,
+    "product_name": "Test snack",
+    "product_description": "test snack",
+    "product_days_of_availability": null,
+    "product_state": true
+  },
+  {
+    "id": "1636463978278",
+    "product_state": true,
+    "product_id": "1636463978278",
+    "product_id_category_name": "SÁNDUCHES",
+    "product_id_category": "1636463920940",
+    "product_description": "Trozos de pechuga de pollo con aderezo en pan molde sin corteza",
+    "product_days_of_availability": null,
+    "product_price": 1.85,
+    "product_name": "Sánduche de Pollo",
+    "product_provider_id": "1632771782677",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1636463978278%2Fimage_0.png?alt=media&token=9532d4b4-717c-4a13-a95d-9e99ca775400"
+    ]
+  },
+  {
+    "id": "1636464933397",
+    "product_state": true,
+    "product_provider_id": "1632771782677",
+    "product_id": "1636464933397",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1636464933397%2Fimage_0.png?alt=media&token=48aeb022-3c18-4087-8128-0abb7ff076db"
+    ],
+    "product_name": "Tostada Jamón y Queso",
+    "product_description": "Rebanadas de jamón y queso cheddar en pan molde a la plancha",
+    "product_price": 1.6,
+    "product_days_of_availability": null,
+    "product_id_category": "1636463920940",
+    "product_id_category_name": "SÁNDUCHES"
+  },
+  {
+    "id": "1636465063579",
+    "product_name": "Empanada de Queso",
+    "product_provider_id": "1632771782677",
+    "product_id_category": "1636490559467",
+    "product_description": "Fina masa de harina rellena de queso",
+    "product_price": 1.35,
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1636465063579%2Fimage_0.png?alt=media&token=536230d2-6caa-45ec-bb59-cb46341b20ba"
+    ],
+    "product_id": "1636465063579",
+    "product_state": true,
+    "product_id_category_name": "Empanadas",
+    "product_days_of_availability": null
+  },
+  {
+    "id": "1636465700543",
+    "product_days_of_availability": null,
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1636465700543%2Fimage_0.png?alt=media&token=f6d89f11-939b-49a7-b0f2-c43ebe9445e6"
+    ],
+    "product_description": "Jugo Natural 8 oz",
+    "product_id_category": "1636465686178",
+    "product_id": "1636465700543",
+    "product_state": true,
+    "product_id_category_name": "BEBIDAS",
+    "product_provider_id": "1632771782677",
+    "product_name": "Jugo Natural 8 oz",
+    "product_price": 0.75
+  },
+  {
+    "id": "1636491002325",
+    "product_price": 1.85,
+    "product_id_category": "1636463920940",
+    "product_id_category_name": "SÁNDUCHES",
+    "product_description": "Lomos de atún con aderezo de queso crema en pan molde sin corteza",
+    "product_days_of_availability": null,
+    "product_provider_id": "1632771782677",
+    "product_name": "Sanduche de Atún",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1636491002325%2Fimage_0.png?alt=media&token=1f14f750-0b59-4ffd-9602-12fb566720cc"
+    ],
+    "product_state": true,
+    "product_id": "1636491002325"
+  },
+  {
+    "id": "1636494029146",
+    "product_description": "Jamón, queso, tomate, lechuga y aderezo especial en pan baguette suave a la plancha",
+    "product_days_of_availability": null,
+    "product_id_category_name": "SÁNDUCHES",
+    "product_name": "Submarino",
+    "product_price": 2,
+    "product_provider_id": "1632771782677",
+    "product_id_category": "1636463920940",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1636494029146%2Fimage_0.png?alt=media&token=0de57a2e-61fe-47a0-b535-7e99a6830fbf"
+    ],
+    "product_id": "1636494029146",
+    "product_state": true
+  },
+  {
+    "id": "1636495899491",
+    "product_state": true,
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1636495899491%2Fimage_0.png?alt=media&token=804aac85-478d-4d35-9ca3-c5d97bab776c",
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1636495899491%2Fimage_1.png?alt=media&token=c452438f-afc6-4f45-9c81-bda41177bc22"
+    ],
+    "product_name": "Empanada de Carne",
+    "product_id": "1636495899491",
+    "product_id_category": "1636465049163",
+    "product_provider_id": "1632771782677",
+    "product_price": 1.6,
+    "product_description": "Relleno jugoso de carne molida",
+    "product_days_of_availability": null,
+    "product_id_category_name": "Empanadas"
+  },
+  {
+    "id": "1636496000946",
+    "product_name": "Mix de frutos secos",
+    "product_days_of_availability": null,
+    "product_id_category_name": "Snacks ",
+    "product_id": "1636496000946",
+    "product_state": false,
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1636496000946%2Fimage_0.png?alt=media&token=3c08b57c-10a2-4aa1-87d5-f587384011fd"
+    ],
+    "product_price": 1.1,
+    "product_id_category": "1636490559467",
+    "product_description": "Mix de arándanos, almendras, nueces y pasas",
+    "product_provider_id": "1632771782677"
+  },
+  {
+    "id": "1636497914053",
+    "product_name": "Avena Bircher",
+    "product_provider_id": "1632771782677",
+    "product_id_category_name": "SNACKS",
+    "product_id": "1636497914053",
+    "product_state": true,
+    "product_price": 1.6,
+    "product_days_of_availability": null,
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1636497914053%2Fimage_0.png?alt=media&token=c7ca8d83-91aa-4ac9-8430-36f73f193929"
+    ],
+    "product_id_category": "1636490559467",
+    "product_description": "Avena con yogur y frutas"
+  },
+  {
+    "id": "1636498199722",
+    "product_name": "Bolón de Queso",
+    "product_description": "Plato típico ecuatoriano preparado con plátanos verdes machacados y trozos de queso",
+    "product_provider_id": "1632771782677",
+    "product_price": 1.6,
+    "product_id": "1636498199722",
+    "product_id_category": "1636498333846",
+    "product_state": true,
+    "product_id_category_name": "Desayunos",
+    "product_days_of_availability": null,
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1636498199722%2Fimage_0.png?alt=media&token=2405e4a4-0156-4539-afe6-96d41ddfd38e"
+    ]
+  },
+  {
+    "id": "1636498371535",
+    "product_name": "Bolón de Chicharrón",
+    "product_provider_id": "1632771782677",
+    "product_id_category": "1636498333846",
+    "product_description": "Plato típico ecuatoriano preparado con plátanos verdes machacados y trozos de Chicharrón de cerdo",
+    "product_price": 2,
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1636498371535%2Fimage_0.png?alt=media&token=4fa00fa3-673f-469a-ae30-a8ff6501151a"
+    ],
+    "product_id": "1636498371535",
+    "product_days_of_availability": null,
+    "product_id_category_name": "DESAYUNOS",
+    "product_state": true
+  },
+  {
+    "id": "1636498474445",
+    "product_id_category": "1636498333846",
+    "product_days_of_availability": null,
+    "product_name": "Tortilla de verde",
+    "product_id": "1636498474445",
+    "product_id_category_name": "DESAYUNOS",
+    "product_price": 1.6,
+    "product_description": "plato típico ecuatoriano preparado con verde y queso mozzarella",
+    "product_provider_id": "1632771782677",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1636498474445%2Fimage_0.png?alt=media&token=33560dd4-2841-4eb6-a977-428571c4ff57"
+    ],
+    "product_state": true
+  },
+  {
+    "id": "1636498787291",
+    "product_price": 0.9,
+    "product_id": "1636498787291",
+    "product_id_category": "1636465686178",
+    "product_state": true,
+    "product_id_category_name": "BEBIDAS",
+    "product_days_of_availability": null,
+    "product_name": "Café",
+    "product_description": "Café pasado ",
+    "product_provider_id": "1632771782677",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1636498787291%2Fimage_0.png?alt=media&token=0a11e2e7-d670-4cf2-8e89-0ed4a60ea18f"
+    ]
+  },
+  {
+    "id": "1637672322808",
+    "product_id_category_name": "SÁNDUCHES",
+    "product_id": "1637672322808",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1637672322808%2Fimage_0.png?alt=media&token=7cd279f1-3c08-49b0-8471-3bbb6b5c3e1f"
+    ],
+    "product_days_of_availability": null,
+    "product_state": true,
+    "product_id_category": "1636463920940",
+    "product_price": 2,
+    "product_description": "Huevo, jamón y queso holandés en pan especial suave",
+    "product_name": "English Muffin",
+    "product_provider_id": "1632771782677"
+  },
+  {
+    "id": "1651615787660",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1651615787660%2Fimage_0.png?alt=media&token=edee197d-0ded-40f2-b743-ee2995bef5e4"
+    ],
+    "product_id_category_name": "LUNCH PREPAGADO",
+    "product_state": true,
+    "product_observations": "HT: Agua + Fruta  -Segundo Recreo: Snack+Bebida",
+    "product_price": 22.9,
+    "product_days_of_availability": null,
+    "product_name": "LUNCH ABRIL PROMOCIÓN ",
+    "product_id": "1651615787660",
+    "product_provider_id": "1632771782677",
+    "product_description": "Snack+ Bebida+ Fruta+ Agua 500 ml",
+    "product_id_category": "1651615669570"
+  },
+  {
+    "id": "1651618362960",
+    "product_state": true,
+    "product_description": "FRUTA-AGUA       SNACK-BEBIDA",
+    "product_id_category": "1651615669570",
+    "product_days_of_availability": null,
+    "product_observations": "Ejemplo: Sanduche de pollo+ Jugo de naranja+ Porción de uvas verdes+AGUA",
+    "product_price": 3.25,
+    "product_provider_id": "1632771782677",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1651618362960%2Fimage_0.png?alt=media&token=2a925ddf-03ca-446e-bac7-92711bbc3d3e"
+    ],
+    "product_id_category_name": "LUNCH PREPAGADO",
+    "product_name": "Lunch diario",
+    "product_id": "1651618362960"
+  },
+  {
+    "id": "1652364477740",
+    "product_description": "Lunch mes de Mayo ",
+    "product_price": 59.9,
+    "product_id": "1652364477740",
+    "product_id_category_name": "LUNCH PREPAGADO",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1652364477740%2Fimage_0.png?alt=media&token=b34d5267-56ed-4a21-97bf-e0632ba756ed"
+    ],
+    "product_provider_id": "1632771782677",
+    "product_state": true,
+    "product_id_category": "1651615669570",
+    "product_name": "LUNCH MAYO PROMOCIÓN",
+    "product_observations": "Precio normal 65,50",
+    "product_days_of_availability": null
+  },
+  {
+    "id": "1652979916853",
+    "product_id": "1652979916853",
+    "product_id_category": "1636465686178",
+    "product_price": 1.65,
+    "product_description": "Yogurt natural granizado con salsa de frutas",
+    "product_id_category_name": "BEBIDAS",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1652979916853%2Fimage_0.png?alt=media&token=804f3141-6286-4605-9622-ff42f35efa46"
+    ],
+    "product_state": true,
+    "product_days_of_availability": null,
+    "product_name": "Granizado de yogurt",
+    "product_provider_id": "1632771782677"
+  },
+  {
+    "id": "1652982101316",
+    "product_provider_id": "1632771782677",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1652982101316%2Fimage_0.png?alt=media&token=7687ff35-c6d5-4b97-a75b-ef89144cf02d"
+    ],
+    "product_price": 3.25,
+    "product_name": "Almuerzo Completo",
+    "product_id": "1652982101316",
+    "product_id_category": "1652903394782",
+    "product_state": true,
+    "product_id_category_name": "ALMUERZO",
+    "product_days_of_availability": null,
+    "product_description": "Sopa+ Plato Fuerte+ Jugo natural"
+  },
+  {
+    "id": "1652983201541",
+    "product_description": "Plato fuerte+ Bebida",
+    "product_id_category_name": "ALMUERZO",
+    "product_provider_id": "1632771782677",
+    "product_id": "1652983201541",
+    "product_days_of_availability": null,
+    "product_id_category": "1652903394782",
+    "product_name": "Plato Fuerte",
+    "product_price": 2.75,
+    "product_state": true,
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1652983201541%2Fimage_0.png?alt=media&token=dfee8d9d-0ca7-48aa-a95b-86deb2f6ab35"
+    ]
+  },
+  {
+    "id": "1652983366665",
+    "product_id_category_name": "ALMUERZO",
+    "product_id_category": "1652903394782",
+    "product_price": 2,
+    "product_description": "Sopa+ Bebida",
+    "product_name": "Sopa",
+    "product_provider_id": "1632771782677",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1652983366665%2Fimage_0.png?alt=media&token=073ee01e-ce58-4098-b037-7c464f8b4574"
+    ],
+    "product_days_of_availability": null,
+    "product_id": "1652983366665",
+    "product_state": true
+  },
+  {
+    "id": "1652983409482",
+    "product_name": "Hot dog",
+    "product_description": "Hot dog con salchicha de pollo en pan blando",
+    "product_id": "1652983409482",
+    "product_price": 1.15,
+    "product_id_category_name": "Snacks ",
+    "product_id_category": "1636490559467",
+    "product_days_of_availability": null,
+    "product_provider_id": "1632771782677",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1652983409482%2Fimage_0.png?alt=media&token=3fdfa68a-2d53-47fe-ae94-7b14da69e7c6"
+    ],
+    "product_state": true
+  },
+  {
+    "id": "1653156486005",
+    "product_name": "Pastel de chorizo",
+    "product_provider_id": "1632771782677",
+    "product_id_category_name": "HEALTHY TIME",
+    "product_days_of_availability": null,
+    "product_description": "Salchicha de pollo envuelta en masa de hojaldre recién horneada",
+    "product_state": true,
+    "product_price": 1.15,
+    "product_id": "1653156486005",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1653156486005%2Fimage_0.png?alt=media&token=7319f448-dbee-42eb-bf63-953f32cbfc79"
+    ],
+    "product_id_category": "1636490559467"
+  },
+  {
+    "id": "1653156613996",
+    "product_state": true,
+    "product_days_of_availability": null,
+    "product_id_category": "1636490559467",
+    "product_price": 1.6,
+    "product_observations": "4 Unidades ",
+    "product_id": "1653156613996",
+    "product_id_category_name": "SNACKS",
+    "product_name": "Nuggets de Pollo",
+    "product_description": "Pechuga de pollo molida empanizada a la plancha ",
+    "product_provider_id": "1632771782677",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1653156613996%2Fimage_0.png?alt=media&token=d34603fd-a24f-4f34-9e5c-0a729a3d7380"
+    ]
+  },
+  {
+    "id": "1653443222793",
+    "product_days_of_availability": null,
+    "product_id_category_name": "HEALTHY TIME",
+    "product_state": true,
+    "product_id": "1653443222793",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1653443222793%2Fimage_0.png?alt=media&token=54a5d0cd-369c-449c-a43b-69bafdc44d18"
+    ],
+    "product_observations": "3 Unidades ",
+    "product_id_category": "1636490559467",
+    "product_name": "Panes de yuca",
+    "product_description": "Panes de almidón de yuca recién horneados",
+    "product_provider_id": "1632771782677",
+    "product_price": 1.25
+  },
+  {
+    "id": "1654258956940",
+    "product_days_of_availability": null,
+    "product_provider_id": "1632771782677",
+    "product_id": "1654258956940",
+    "product_observations": "1 porción ",
+    "product_description": "Masa artesanal al horno con jamón y queso mozzarella",
+    "product_price": 1.45,
+    "product_id_category_name": "HEALTHY TIME",
+    "product_state": true,
+    "product_name": "Pizza artesanal",
+    "product_id_category": "1636490559467",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1654258956940%2Fimage_0.png?alt=media&token=daed4fa4-baed-47ef-9fd4-38e6545afef4"
+    ]
+  },
+  {
+    "id": "1654795959087",
+    "product_days_of_availability": null,
+    "product_state": true,
+    "product_id": "1654795959087",
+    "product_observations": "1 Unidad",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1654795959087%2Fimage_0.png?alt=media&token=7598a28e-c12b-4ac5-8e2e-0eb6d051cb37"
+    ],
+    "product_name": "Agua en botella ",
+    "product_id_category_name": "BEBIDAS",
+    "product_description": "Agua 500 ml",
+    "product_provider_id": "1632771782677",
+    "product_price": 0.6,
+    "product_id_category": "1636465686178"
+  },
+  {
+    "id": "1654796178195",
+    "product_id_category": "1636465686178",
+    "product_id": "1654796178195",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1654796178195%2Fimage_0.png?alt=media&token=c0ebd550-c0eb-4809-86a6-865eea437769"
+    ],
+    "product_state": false,
+    "product_provider_id": "1632771782677",
+    "product_observations": "1 Unidad",
+    "product_name": "Agua Dasani 1200 ml",
+    "product_days_of_availability": null,
+    "product_id_category_name": "Bebidas",
+    "product_description": "Agua Dasani 1200 ML",
+    "product_price": 1.25
+  },
+  {
+    "id": "1657212306720",
+    "product_id": "1657212306720",
+    "product_id_category_name": "Menú",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1657212306720%2Fimage_0.png?alt=media&token=4e311b3f-7145-4ee8-84f2-57f94b5e489a"
+    ],
+    "product_price": 1,
+    "product_description": "ARROZ",
+    "product_observations": "arroz",
+    "product_name": "ARROZ CON POLLO",
+    "product_id_category": "1632771784196",
+    "product_state": false,
+    "product_provider_id": "1632771782677"
+  },
+  {
+    "id": "1659623617457",
+    "product_id_category": "1636490559467",
+    "product_id": "1659623617457",
+    "product_days_of_availability": null,
+    "product_name": "Salchipapa ",
+    "product_price": 2,
+    "product_state": true,
+    "product_id_category_name": "SNACKS",
+    "product_description": "Salchicha de pollo con papas artesanales ",
+    "product_provider_id": "1632771782677",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1659623617457%2Fimage_0.png?alt=media&token=3ce7ad9e-a67e-4040-8e27-fdf27b627054"
+    ]
+  },
+  {
+    "id": "1659623975371",
+    "product_price": 1.25,
+    "product_name": "Tortilla de verde con queso",
+    "product_id": "1659623975371",
+    "product_description": "Masa de verde rellena con queso mozzarella",
+    "product_id_category": "1659623216601",
+    "product_state": false,
+    "product_provider_id": "1632771782677",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1659623975371%2Fimage_0.png?alt=media&token=c9318837-3cab-4b65-bbe0-812cda40223f"
+    ],
+    "product_days_of_availability": null
+  },
+  {
+    "id": "1659624993185",
+    "product_id_category": "1636490559467",
+    "product_days_of_availability": null,
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1659624993185%2Fimage_0.png?alt=media&token=9de2e563-c59c-40ff-892e-ebf8ef5fbfce"
+    ],
+    "product_id_category_name": "SNACKS",
+    "product_description": "Canguil",
+    "product_name": "Canguil",
+    "product_price": 0.75,
+    "product_state": true,
+    "product_provider_id": "1632771782677",
+    "product_id": "1659624993185"
+  },
+  {
+    "id": "1659625513888",
+    "product_id": "1659625513888",
+    "product_id_category_name": "Snacks ",
+    "product_days_of_availability": null,
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1659625513888%2Fimage_0.png?alt=media&token=0dccc849-b749-4934-8a2f-96dfd2785650"
+    ],
+    "product_state": true,
+    "product_id_category": "1636490559467",
+    "product_price": 0.6,
+    "product_description": "Porción de gelatina",
+    "product_provider_id": "1632771782677",
+    "product_name": "Gelatina "
+  },
+  {
+    "id": "1659625998948",
+    "product_provider_id": "1632771782677",
+    "product_id": "1659625998948",
+    "product_id_category_name": "Bebidas",
+    "product_state": true,
+    "product_id_category": "1636465686178",
+    "product_days_of_availability": null,
+    "product_price": 1.15,
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1659625998948%2Fimage_0.png?alt=media&token=8819c1cd-1817-45ee-86cc-6f4ee7146b4c"
+    ],
+    "product_name": "Jugo del Valle Néctar ",
+    "product_description": "250 ml envase de cartón"
+  },
+  {
+    "id": "1659626081853",
+    "product_price": 0.65,
+    "product_name": "Jugo natural",
+    "product_id": "1659626081853",
+    "product_state": true,
+    "product_description": "Jugo natural de frutas",
+    "product_id_category": "1659623216601",
+    "product_provider_id": "1632771782677",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1659626081853%2Fimage_0.png?alt=media&token=cd30ca57-37c3-407a-b5de-a5d1c86bb321"
+    ],
+    "product_days_of_availability": null
+  },
+  {
+    "id": "1673470068310",
+    "product_description": "Galleta artesanal con chispas de chocolate",
+    "product_name": "Galleta con chispas de chocolate",
+    "product_observations": "1 Unidad",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1673470068310%2Fimage_0.png?alt=media&token=71fa1c40-0b87-46f8-bc21-c0c7f5360642"
+    ],
+    "product_state": false,
+    "product_price": 0.6,
+    "product_id_category": "1653156464349",
+    "product_days_of_availability": null,
+    "product_provider_id": "1632771782677",
+    "product_id": "1673470068310",
+    "product_id_category_name": "HEALTHY TIME"
+  },
+  {
+    "id": "1682031501524",
+    "product_id_category_name": "Sanduches",
+    "product_provider_id": "1636600391774",
+    "product_days_of_availability": null,
+    "product_name": "Sánduche de Pollo",
+    "product_id": "1682031501524",
+    "product_price": 1.85,
+    "product_id_category": "1637180114623",
+    "product_state": true,
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1682031501524%2Fimage_0.png?alt=media&token=1ed765fc-8079-4331-b0e4-57300df808da"
+    ],
+    "product_description": "Trozos de pechuga de pollo con aderezo en pan molde sin corteza"
+  },
+  {
+    "id": "1682031754454",
+    "product_days_of_availability": null,
+    "product_id_category_name": "SÁNDUCHES",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1682031754454%2Fimage_0.png?alt=media&token=c5e61b59-1b40-436d-84c7-f2596bf68dce"
+    ],
+    "product_state": true,
+    "product_price": 1.6,
+    "product_id_category": "1637180114623",
+    "product_name": "Tostada Jamón y Queso",
+    "product_description": "Rebanadas de jamón y queso cheddar en pan molde a la plancha",
+    "product_provider_id": "1636600391774",
+    "product_id": "1682031754454"
+  },
+  {
+    "id": "1682031882882",
+    "product_state": true,
+    "product_id": "1682031882882",
+    "product_price": 1.35,
+    "product_id_category": "1637181711733",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1682031882882%2Fimage_0.png?alt=media&token=c33bf11b-1065-4a98-b99c-23a68930f971"
+    ],
+    "product_name": "Empanada de Queso",
+    "product_id_category_name": "Empanadas",
+    "product_provider_id": "1636600391774",
+    "product_description": "Fina masa de harina rellena de queso",
+    "product_days_of_availability": null
+  },
+  {
+    "id": "1682032038112",
+    "product_name": "Jugo Natural 7 oz",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1682032038112%2Fimage_0.png?alt=media&token=39139dea-dc00-4c35-94eb-50117e02eff4"
+    ],
+    "product_id": "1682032038112",
+    "product_price": 0.75,
+    "product_id_category": "1637188203512",
+    "product_id_category_name": "BEBIDAS",
+    "product_provider_id": "1636600391774",
+    "product_description": "Jugo Natural 8 oz",
+    "product_state": true,
+    "product_days_of_availability": null
+  },
+  {
+    "id": "1682032195129",
+    "product_state": true,
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1682032195129%2Fimage_0.png?alt=media&token=a787d318-f53e-4c73-aca2-def129b1aaf0"
+    ],
+    "product_price": 1.85,
+    "product_description": "Lomos de atún con aderezo de queso crema en pan molde sin corteza",
+    "product_id_category": "1637180114623",
+    "product_id_category_name": "Sanduches",
+    "product_name": "Sanduche de Atún",
+    "product_id": "1682032195129",
+    "product_provider_id": "1636600391774",
+    "product_days_of_availability": null
+  },
+  {
+    "id": "1682032433733",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1682032433733%2Fimage_0.png?alt=media&token=a8118fa0-1f9a-45ee-bd31-3d6b5ab0dc8a"
+    ],
+    "product_name": "Submarino",
+    "product_price": 2,
+    "product_state": true,
+    "product_id": "1682032433733",
+    "product_id_category": "1637180114623",
+    "product_provider_id": "1636600391774",
+    "product_id_category_name": "SÁNDUCHES",
+    "product_description": "Jamón, queso, tomate, lechuga y aderezo especial en pan baguette suave a la plancha",
+    "product_days_of_availability": null
+  },
+  {
+    "id": "1682033158510",
+    "product_id_category": "1637181412063",
+    "product_name": "Empanada de Carne",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1682033158510%2Fimage_0.png?alt=media&token=56feb752-b6e5-421e-9372-6773aa9b11c9",
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1682033158510%2Fimage_1.png?alt=media&token=d0b4ccd6-5e56-4d91-9a67-f4d6d280216b"
+    ],
+    "product_state": true,
+    "product_description": "Relleno jugoso de carne molida",
+    "product_id_category_name": "Empanadas",
+    "product_provider_id": "1636600391774",
+    "product_price": 1.6,
+    "product_days_of_availability": null,
+    "product_id": "1682033158510"
+  },
+  {
+    "id": "1682033405594",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1682033405594%2Fimage_0.png?alt=media&token=c401e766-8067-4214-a7cd-df3f10a7c35e"
+    ],
+    "product_provider_id": "1636600391774",
+    "product_id_category_name": "snacks",
+    "product_description": "Mix de arándanos, almendras, nueces y pasas",
+    "product_name": "Mix de frutos secos",
+    "product_id": "1682033405594",
+    "product_state": false,
+    "product_id_category": "1637181711733",
+    "product_price": 1.1,
+    "product_days_of_availability": null
+  },
+  {
+    "id": "1682033743682",
+    "product_state": true,
+    "product_id_category": "1637181711733",
+    "product_id": "1682033743682",
+    "product_price": 1.6,
+    "product_days_of_availability": null,
+    "product_description": "Avena con yogur y frutas",
+    "product_id_category_name": "SNACKS",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1682033743682%2Fimage_0.png?alt=media&token=1719f204-0ed9-4a9e-88ed-f04026781dfe"
+    ],
+    "product_provider_id": "1636600391774",
+    "product_name": "Avena bircher"
+  },
+  {
+    "id": "1682034081828",
+    "product_description": "Plato típico ecuatoriano preparado con plátanos verdes machacados y trozos de queso",
+    "product_state": true,
+    "product_id_category": "1682034053539",
+    "product_id_category_name": "Desayunos",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1682034081828%2Fimage_0.png?alt=media&token=7a6dcf2e-1983-4ad3-8f8a-4a63a5b5deb2"
+    ],
+    "product_days_of_availability": null,
+    "product_provider_id": "1636600391774",
+    "product_id": "1682034081828",
+    "product_name": "Bolón de Queso",
+    "product_price": 1.6
+  },
+  {
+    "id": "1682034165705",
+    "product_description": "Plato típico ecuatoriano preparado con plátanos verdes machacados y trozos de Chicharrón de cerdo",
+    "product_id": "1682034165705",
+    "product_state": true,
+    "product_id_category_name": "DESAYUNOS",
+    "product_provider_id": "1636600391774",
+    "product_name": "Bolón de Chicharrón",
+    "product_price": 2,
+    "product_days_of_availability": null,
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1682034165705%2Fimage_0.png?alt=media&token=57bb2776-511b-437c-96e8-d89ed3362fd5"
+    ],
+    "product_id_category": "1682034053539"
+  },
+  {
+    "id": "1682034273556",
+    "product_name": "Tortilla de verde",
+    "product_price": 1.6,
+    "product_description": "plato típico ecuatoriano preparado con verde y queso mozzarella",
+    "product_id_category": "1682034053539",
+    "product_id": "1682034273556",
+    "product_id_category_name": "Desayunos",
+    "product_provider_id": "1636600391774",
+    "product_days_of_availability": null,
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1682034273556%2Fimage_0.png?alt=media&token=53fe4c5c-c091-4572-9d07-b8fba75eae2d"
+    ],
+    "product_state": true
+  },
+  {
+    "id": "1682034357192",
+    "product_id_category": "1637188203512",
+    "product_name": "Café",
+    "product_days_of_availability": null,
+    "product_description": "Café pasado",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1682034357192%2Fimage_0.png?alt=media&token=ce41f886-af10-48d7-923b-39f64c31f7a8"
+    ],
+    "product_provider_id": "1636600391774",
+    "product_price": 0.9,
+    "product_state": true,
+    "product_id": "1682034357192",
+    "product_id_category_name": "BEBIDAS"
+  },
+  {
+    "id": "1682035075392",
+    "product_days_of_availability": null,
+    "product_name": "English Muffin",
+    "product_id": "1682035075392",
+    "product_provider_id": "1636600391774",
+    "product_id_category_name": "SÁNDUCHES",
+    "product_price": 2,
+    "product_description": "Huevo, jamón y queso holandés en pan especial suave",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1682035075392%2Fimage_0.png?alt=media&token=91a90ea0-e189-4542-bba0-c8241cedfb33"
+    ],
+    "product_state": true,
+    "product_id_category": "1637180114623"
+  },
+  {
+    "id": "1682035260825",
+    "product_observations": "Ejemplo: Sanduche de pollo+ Jugo de naranja+ Porción de uvas verdes  ",
+    "product_id_category_name": "LUNCH PREPAGADO",
+    "product_name": "LUNCH ABRIL PROMOCIÓN",
+    "product_description": "Snack+ Bebida+ Fruta+ AGUA (Fila VIP)",
+    "product_price": 22.9,
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1682035260825%2Fimage_0.png?alt=media&token=9fb1070c-4a18-4d63-a17a-6d0132b84b17",
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1682035260825%2Fimage_1.png?alt=media&token=cdc7e396-7948-48e9-bfce-d39b07028ba7"
+    ],
+    "product_id": "1682035260825",
+    "product_state": true,
+    "product_days_of_availability": null,
+    "product_id_category": "1682035248014",
+    "product_provider_id": "1636600391774"
+  },
+  {
+    "id": "1682035622244",
+    "product_observations": "Ejemplo: Sanduche de pollo+ Jugo de naranja+ Porción de uvas verdes  ",
+    "product_state": true,
+    "product_id_category_name": "LUNCH PREPAGADO",
+    "product_id_category": "1682035248014",
+    "product_days_of_availability": null,
+    "product_name": "Lunch diario",
+    "product_price": 3.25,
+    "product_provider_id": "1636600391774",
+    "product_description": "FRUTA-AGUA       SNACK-BEBIDA",
+    "product_id": "1682035622244",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1682035622244%2Fimage_0.png?alt=media&token=20fe7e4e-f426-498a-9c85-69e8a32d1455"
+    ]
+  },
+  {
+    "id": "1682035803957",
+    "product_id_category": "1682035248014",
+    "product_observations": "Precio normal 65,50",
+    "product_description": "Lunch mes de Mayo ",
+    "product_state": true,
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1682035803957%2Fimage_0.png?alt=media&token=c47195d9-c771-4ea0-87e1-4595a3ddf273"
+    ],
+    "product_provider_id": "1636600391774",
+    "product_id": "1682035803957",
+    "product_name": "LUNCH MAYO PROMO",
+    "product_days_of_availability": null,
+    "product_price": 59.9,
+    "product_id_category_name": "LUNCH PREPAGADO"
+  },
+  {
+    "id": "1682035859792",
+    "product_price": 1.65,
+    "product_days_of_availability": null,
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1682035859792%2Fimage_0.png?alt=media&token=acd65972-0686-403b-97a9-f7d578a93144"
+    ],
+    "product_provider_id": "1636600391774",
+    "product_id": "1682035859792",
+    "product_state": true,
+    "product_id_category_name": "BEBIDAS",
+    "product_description": "Yogurt natural granizado con salsa de frutas",
+    "product_name": "Granizado de yogurt",
+    "product_id_category": "1637188203512"
+  },
+  {
+    "id": "1682035926751",
+    "product_id_category_name": "ALMUERZO",
+    "product_description": "Sopa+ Plato Fuerte+ Jugo natural",
+    "product_id_category": "1682036025507",
+    "product_name": "Almuerzo Completo",
+    "product_days_of_availability": null,
+    "product_id": "1682035926751",
+    "product_provider_id": "1636600391774",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1682035926751%2Fimage_0.png?alt=media&token=facf8de3-72ba-43b3-b35b-605a6df3528b"
+    ],
+    "product_state": true,
+    "product_price": 3.25
+  },
+  {
+    "id": "1682036218467",
+    "product_name": "Plato Fuerte",
+    "product_id_category_name": "ALMUERZO",
+    "product_price": 2.75,
+    "product_provider_id": "1636600391774",
+    "product_id": "1682036218467",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1682036218467%2Fimage_0.png?alt=media&token=6fc74d2b-2ddb-4c61-b4fe-1eb4222530fb"
+    ],
+    "product_days_of_availability": null,
+    "product_state": true,
+    "product_description": "Plato fuerte+ Bebida",
+    "product_id_category": "1682036025507"
+  },
+  {
+    "id": "1682036338130",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1682036338130%2Fimage_0.png?alt=media&token=c99b443f-7b6f-4aa2-abb2-7eecf8509053"
+    ],
+    "product_id_category_name": "ALMUERZO",
+    "product_days_of_availability": null,
+    "product_name": "Sopa",
+    "product_description": "Sopa+ Bebida",
+    "product_state": true,
+    "product_provider_id": "1636600391774",
+    "product_id": "1682036338130",
+    "product_price": 2,
+    "product_id_category": "1682036025507"
+  },
+  {
+    "id": "1682036439205",
+    "product_state": true,
+    "product_id": "1682036439205",
+    "product_description": "Hot dog con salchicha de pollo en pan blando",
+    "product_days_of_availability": null,
+    "product_provider_id": "1636600391774",
+    "product_id_category_name": "snacks",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1682036439205%2Fimage_0.png?alt=media&token=26d24c35-1d5b-4dfa-91fe-82a0db09e0d7"
+    ],
+    "product_id_category": "1637181711733",
+    "product_name": "Hot dog",
+    "product_price": 1.15
+  },
+  {
+    "id": "1682036628591",
+    "product_id_category_name": "snacks",
+    "product_description": "Salchicha de pollo envuelta en masa de hojaldre recién horneada",
+    "product_price": 1.15,
+    "product_provider_id": "1636600391774",
+    "product_name": "Pastel de chorizo",
+    "product_days_of_availability": null,
+    "product_id_category": "1682036702667",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1682036628591%2Fimage_0.png?alt=media&token=1c3f7df8-be90-495d-8591-c003aab0dc39"
+    ],
+    "product_state": true,
+    "product_id": "1682036628591"
+  },
+  {
+    "id": "1682036744684",
+    "product_id_category_name": "SNACKS",
+    "product_id_category": "1637181711733",
+    "product_provider_id": "1636600391774",
+    "product_price": 1.6,
+    "product_name": "Nuggets de Pollo",
+    "product_id": "1682036744684",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1682036744684%2Fimage_0.png?alt=media&token=8c17f12d-7914-4656-b84b-2225c902121f"
+    ],
+    "product_observations": "4 unidades",
+    "product_days_of_availability": null,
+    "product_state": true,
+    "product_description": "Pechuga de pollo molida empanizada a la plancha "
+  },
+  {
+    "id": "1682036814827",
+    "product_id": "1682036814827",
+    "product_description": "Panes de almidón de yuca recién horneados",
+    "product_state": true,
+    "product_id_category_name": "Recién Horneados",
+    "product_provider_id": "1636600391774",
+    "product_name": "Panes de yuca",
+    "product_price": 1.25,
+    "product_observations": "3 unidades",
+    "product_days_of_availability": null,
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1682036814827%2Fimage_0.png?alt=media&token=f38f8d1a-f42d-4268-9489-c1088555a6b8"
+    ],
+    "product_id_category": "1637181711733"
+  },
+  {
+    "id": "1682036990087",
+    "product_description": "Masa artesanal al horno con jamón y queso mozzarella",
+    "product_provider_id": "1636600391774",
+    "product_state": true,
+    "product_id": "1682036990087",
+    "product_name": "Pizza artesanal",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1682036990087%2Fimage_0.png?alt=media&token=7184675f-1c8c-471d-a234-11777d91f9c1"
+    ],
+    "product_price": 1.45,
+    "product_id_category_name": "Recién Horneados",
+    "product_id_category": "1637181711733",
+    "product_days_of_availability": null,
+    "product_observations": "1 porción "
+  },
+  {
+    "id": "1682037198582",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1682037198582%2Fimage_0.png?alt=media&token=5eae29e5-a53e-4e04-9f2c-191d4375cfa5"
+    ],
+    "product_days_of_availability": null,
+    "product_id_category_name": "BEBIDAS",
+    "product_name": "Agua 500 ml",
+    "product_description": "Agua 500 ml ",
+    "product_state": true,
+    "product_provider_id": "1636600391774",
+    "product_id": "1682037198582",
+    "product_price": 0.6,
+    "product_observations": "1 unidad",
+    "product_id_category": "1637188203512"
+  },
+  {
+    "id": "1682037258682",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1682037258682%2Fimage_0.png?alt=media&token=9325ba4a-1088-45e2-9828-1e6ef3a71cd0"
+    ],
+    "product_name": "Agua Dasani 1200 ml",
+    "product_id_category_name": "Bebidas",
+    "product_id": "1682037258682",
+    "product_days_of_availability": null,
+    "product_description": "Agua Dasani 1200 ML",
+    "product_id_category": "1637188203512",
+    "product_state": false,
+    "product_price": 1.25,
+    "product_provider_id": "1636600391774",
+    "product_observations": "1 unidad"
+  },
+  {
+    "id": "1682037588031",
+    "product_observations": "ARROZ ",
+    "product_name": "ARROZ CON POLLO",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1682037588031%2Fimage_0.png?alt=media&token=3397b1b4-bafd-471f-83e4-71acc8b141fa"
+    ],
+    "product_description": "ARROZ ",
+    "product_price": 1,
+    "product_days_of_availability": null,
+    "product_id_category": "1682037651732",
+    "product_provider_id": "1636600391774",
+    "product_id": "1682037588031",
+    "product_id_category_name": "Menú",
+    "product_state": false
+  },
+  {
+    "id": "1682037711325",
+    "product_days_of_availability": null,
+    "product_description": "Salchicha de pollo con papas artesanales ",
+    "product_name": "Salchipapa ",
+    "product_id": "1682037711325",
+    "product_id_category": "1637181711733",
+    "product_provider_id": "1636600391774",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1682037711325%2Fimage_0.png?alt=media&token=642a2e38-e924-4d28-99cf-86b0c8ef3997"
+    ],
+    "product_state": true,
+    "product_id_category_name": "SNACKS",
+    "product_price": 2
+  },
+  {
+    "id": "1682038157696",
+    "product_days_of_availability": null,
+    "product_description": "Canguil",
+    "product_id": "1682038157696",
+    "product_name": "Canguil ",
+    "product_id_category_name": "SNACKS",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1682038157696%2Fimage_0.png?alt=media&token=6cb3f27f-11e6-44bf-83eb-acf34d38fbd7"
+    ],
+    "product_id_category": "1637181711733",
+    "product_state": true,
+    "product_price": 0.75,
+    "product_provider_id": "1636600391774"
+  },
+  {
+    "id": "1682038396143",
+    "product_id_category": "1637181711733",
+    "product_id_category_name": "snacks",
+    "product_price": 0.6,
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1682038396143%2Fimage_0.png?alt=media&token=d5cdad57-fc4d-4065-979c-2e316fa53fa7"
+    ],
+    "product_days_of_availability": null,
+    "product_id": "1682038396143",
+    "product_description": "Porción de gelatina",
+    "product_name": "Gelatina",
+    "product_state": true,
+    "product_provider_id": "1636600391774"
+  },
+  {
+    "id": "1682038596766",
+    "product_id_category": "1637188203512",
+    "product_state": true,
+    "product_price": 1.15,
+    "product_provider_id": "1636600391774",
+    "product_description": "250 ml envase de cartón",
+    "product_id_category_name": "Bebidas",
+    "product_name": "Jugo del Valle Néctar ",
+    "product_id": "1682038596766",
+    "product_days_of_availability": null,
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1682038596766%2Fimage_0.png?alt=media&token=f2fac273-363b-4a91-9a9b-648bd8d0bb91"
+    ]
+  },
+  {
+    "id": "1682038668801",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1682038668801%2Fimage_0.png?alt=media&token=7b97eb27-fdb7-47fd-936b-76e0c7681d32"
+    ],
+    "product_state": false,
+    "product_name": "Galleta con chispas de chocolate",
+    "product_id": "1682038668801",
+    "product_price": 0.6,
+    "product_id_category_name": "Recién Horneados",
+    "product_id_category": "1682036915217",
+    "product_provider_id": "1636600391774",
+    "product_days_of_availability": null,
+    "product_description": "Galleta artesanal con chispas de chocolate"
+  },
+  {
+    "id": "1685206529298",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1685206529298%2Fimage_0.png?alt=media&token=53626c04-6a83-4ff1-b40e-a1aee721f07a"
+    ],
+    "product_name": "ENCEBOLLADO",
+    "product_id_category_name": "DESAYUNOS",
+    "product_id": "1685206529298",
+    "product_days_of_availability": null,
+    "product_description": "Incluye chifle + Jugo natural",
+    "product_id_category": "1636498333846",
+    "product_state": false,
+    "product_price": 2.5,
+    "product_observations": "",
+    "product_provider_id": "1632771782677"
+  },
+  {
+    "id": "1685206725115",
+    "product_provider_id": "1636600391774",
+    "product_description": "Incluye chifle + Jugo natural",
+    "product_price": 2.5,
+    "product_id_category": "1682034053539",
+    "product_id": "1685206725115",
+    "product_name": "ENCEBOLLADO",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1685206725115%2Fimage_0.png?alt=media&token=990726ae-5ebd-46c1-88bb-de30e54dd383"
+    ],
+    "product_state": false,
+    "product_days_of_availability": null,
+    "product_id_category_name": "DESAYUNOS",
+    "product_observations": "\t"
+  },
+  {
+    "id": "1694992033208",
+    "product_description": "Christian García Ruiz - CI 0926649369",
+    "product_id": "1694992033208",
+    "product_name": "2200183845 - Ahorros",
+    "product_price": 0,
+    "product_id_category": "1694991952682",
+    "product_days_of_availability": null,
+    "product_id_category_name": "CUENTAS TRANSFERENCIAS",
+    "product_state": true,
+    "product_observations": "cafeteria@lemas.edu.ec - 0987496787(wp)",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1694992033208%2Fimage_0.png?alt=media&token=13b27a04-03f1-4d06-9509-a14a32ff3ed4"
+    ],
+    "product_provider_id": "1636600391774"
+  },
+  {
+    "id": "1694992847810",
+    "product_provider_id": "1636600391774",
+    "product_id": "1694992847810",
+    "product_name": "3780929 - Corriente",
+    "product_id_category": "1694991952682",
+    "product_state": true,
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1694992847810%2Fimage_0.png?alt=media&token=dc13c3d7-6da0-496e-9e38-c7d0caeabb99"
+    ],
+    "product_description": "Christian García Ruiz - CI 0926649369",
+    "product_observations": "cafeteria@lemas.edu.ec - 0987496787(wp)",
+    "product_price": 0,
+    "product_id_category_name": "CUENTAS TRANSFERENCIAS",
+    "product_days_of_availability": null
+  },
+  {
+    "id": "1694993192518",
+    "product_price": 0,
+    "product_days_of_availability": null,
+    "product_provider_id": "1632771782677",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1694993192518%2Fimage_0.png?alt=media&token=4bd74fd5-a22c-44a0-adef-c7b58c1aab75"
+    ],
+    "product_id": "1694993192518",
+    "product_state": true,
+    "product_id_category_name": "CUENTAS TRANSFERENCIAS",
+    "product_description": "Christian García Ruiz - CI 0926649369",
+    "product_name": "2200183845 - Ahorros",
+    "product_observations": "cafeteria@lemas.edu.ec - 0987496787(wp)",
+    "product_id_category": "1694993180011"
+  },
+  {
+    "id": "1694993240484",
+    "product_id_category": "1694993180011",
+    "product_id_category_name": "CUENTAS TRANSFERENCIAS",
+    "product_price": 0,
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1694993240484%2Fimage_0.png?alt=media&token=8c4364af-04ac-4cc2-845e-e212eb0583dc"
+    ],
+    "product_days_of_availability": null,
+    "product_id": "1694993240484",
+    "product_name": "3780929 - Corriente",
+    "product_description": "Christian García Ruiz - CI 0926649369",
+    "product_provider_id": "1632771782677",
+    "product_state": true,
+    "product_observations": "cafeteria@lemas.edu.ec - 0987496787(wp)"
+  },
+  {
+    "id": "1694995036419",
+    "product_name": "1821140931- Ahorros",
+    "product_price": 0,
+    "product_days_of_availability": null,
+    "product_provider_id": "1636600391774",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1694995036419%2Fimage_0.png?alt=media&token=39a7d962-05eb-4835-93d0-60ea2149778a"
+    ],
+    "product_state": true,
+    "product_id_category": "1694991952682",
+    "product_id": "1694995036419",
+    "product_observations": "cafeteria@lemas.edu.ec - 0987496787(wp)",
+    "product_description": "Christian García Ruiz - CI 0926649369"
+  },
+  {
+    "id": "1694995108511",
+    "product_state": true,
+    "product_name": "1821140931- Ahorros",
+    "product_observations": "cafeteria@lemas.edu.ec - 0987496787(wp)",
+    "product_price": 0,
+    "product_id": "1694995108511",
+    "product_days_of_availability": null,
+    "product_provider_id": "1632771782677",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1694995108511%2Fimage_0.png?alt=media&token=e9e228dc-1b94-4065-9a10-61d9b6a077a9"
+    ],
+    "product_id_category": "1694993180011",
+    "product_description": "Christian García Ruiz - CI 0926649369"
+  },
+  {
+    "id": "1711546212476",
+    "product_id_category": "1637181711733",
+    "product_id": "1711546212476",
+    "product_provider_id": "1636600391774",
+    "product_name": "Fruta Picada 12 oz",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1711546212476%2Fimage_0.png?alt=media&token=67b355cc-1bb7-4d88-a905-0334c6d8d641"
+    ],
+    "product_price": 1.65,
+    "product_state": true,
+    "product_days_of_availability": null,
+    "product_description": "Frutas picadas, sandía, melón, piña, fresa"
+  },
+  {
+    "id": "1745172642267",
+    "product_price": 0.5,
+    "product_name": "Porción de frutillas",
+    "product_state": true,
+    "product_days_of_availability": null,
+    "product_provider_id": "1632771782677",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1745172642267%2Fimage_0.png?alt=media&token=b4dea6d3-f0ac-47ce-9c6e-a38c0cfa8c18"
+    ],
+    "product_description": "Frutilla cortada en cuartos en envase con tapa ",
+    "product_id_category_name": "HEALTHY TIME",
+    "product_id_category": "1653156464349",
+    "product_id": "1745172642267"
+  },
+  {
+    "id": "1745172992328",
+    "product_days_of_availability": null,
+    "product_id_category": "1653156464349",
+    "product_provider_id": "1632771782677",
+    "product_description": "Piña dulce cortada en trozos en envase con tapa ",
+    "product_id": "1745172992328",
+    "product_id_category_name": "HEALTHY TIME",
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1745172992328%2Fimage_0.png?alt=media&token=921e85bf-9f50-445f-9783-276bc138ddfe"
+    ],
+    "product_price": 0.5,
+    "product_name": "Porción de piña hawaiana ",
+    "product_state": true
+  },
+  {
+    "id": "1745178647025",
+    "product_id_category": "1745178727935",
+    "product_state": true,
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1745178647025%2Fimage_0.png?alt=media&token=7c35e822-3784-4f76-af7c-ba6e36e39f17"
+    ],
+    "product_provider_id": "1636600391774",
+    "product_id": "1745178647025",
+    "product_days_of_availability": null,
+    "product_id_category_name": "SÁNDUCHES",
+    "product_price": 0.55,
+    "product_name": "Porción de frutillas",
+    "product_description": "Frutilla cortada en cuartos en envase con tapa "
+  },
+  {
+    "id": "1745178759436",
+    "product_days_of_availability": null,
+    "product_name": "Porción de piña hawaiana ",
+    "product_provider_id": "1636600391774",
+    "product_price": 0.55,
+    "product_id_category": "1745178727935",
+    "product_description": "Piña dulce cortada en trozos en envase con tapa ",
+    "product_id": "1745178759436",
+    "product_state": true,
+    "product_images": [
+      "https://firebasestorage.googleapis.com/v0/b/luncher-f4786.appspot.com/o/products%2Fproduct1745178759436%2Fimage_0.png?alt=media&token=c442ffac-9428-4fbd-84ff-a0382414b0ac"
+    ]
+  }
+]

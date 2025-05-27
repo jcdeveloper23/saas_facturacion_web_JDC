@@ -14,6 +14,17 @@ import { Router } from '@angular/router';
 import { UtilsService } from 'app/services/utils/utils.service';
 import { Users } from 'app/interfaces/users';
 import { LoadingService } from 'app/services/loading/loading.service';
+import { FirestoreExportService } from 'app/services/firestoreExportService/firestore-export-service.service';
+// import * as jsonData from '../../../../assets/data/lines.json';
+// import * as jsonDataP from '../../../../assets/data/products.json';
+// import * as jsonDataRep from '../../../../assets/data/representatives.json';
+// import * as jsonDataStudent from '../../../../assets/data/students.json';
+import { Lines } from 'app/interfaces/lines';
+import { LinesService } from 'app/services/lines/lines.service';
+import { Product } from 'app/interfaces/product';
+import { ProductsService } from 'app/services/products/products.service';
+import { RepresentativeService } from 'app/services/representative/representative.service';
+
 declare var $: any;
 
 @Component({
@@ -34,6 +45,11 @@ export class RepresentativeStudentComponent implements OnInit {
   public previe_url_image: any = null;
   public isEdit: boolean = false;
   public infoUser: Users;
+  // jsonDataLines: any = jsonData;
+  // jsonDataProducts: any = jsonDataP;
+  // jsonDataRepresentatives: any = jsonDataRep;
+  // jsonDataStudents: any = jsonDataStudent;
+
 
   constructor(
     private levelsService: LevelsService,
@@ -43,6 +59,11 @@ export class RepresentativeStudentComponent implements OnInit {
     private router: Router,
     private utilService: UtilsService,
     public loadingService: LoadingService,
+    private exportService: FirestoreExportService,
+    private lineService: LinesService,
+    private productService: ProductsService,
+    private representativeService: RepresentativeService,
+
   ) { }
 
   ngOnInit(): void {
@@ -258,11 +279,115 @@ export class RepresentativeStudentComponent implements OnInit {
   }
 
   public viewProviderss(student: Student) {
-    this.router.navigate(['perfil-representative/listProvider/' + student.student_id])
+    // this.loadDataLines();
+    // this.loadDataProducts();
+    // this.loadDataRepresentatives();
+    // this.loadDataStudent();
+    // this.export();
+    // this.router.navigate(['perfil-representative/listProvider/' + student.student_id])
   }
+
+  public export() {
+    /// exporta los proveedores y las ordenes
+    // this.exportService.exportCollectionToJson(); // Cambia 'orders' por el nombre de tu colección
+
+  }
+
+
 
   public viewOrdersByStudent(student: Student) {
     this.router.navigate(['perfil-representative/listOrders/' + student.student_id])
   }
+
+
+
+  // /**
+  //  * *** Metodos para migrar data luncher ***
+  //  */
+
+  // public loadDataLines() {
+  //   console.log('Data', this.jsonDataLines.default);
+  //   var lines = this.jsonDataLines.default;
+  //   lines.forEach(line => {
+  //     if (line.category_provider_id == '1636600391774') {
+  //       console.log('Line', JSON.stringify(line));
+  //       this.saveLine(line);
+  //     }
+  //   });
+  // }
+
+  // /**
+  //    * Metodo para registrar o actualizar una nueva linea.
+  //    * @param line 
+  //    * @param isValid 
+  //    */
+  // public saveLine(line: Lines) {
+
+  //   this.lineService.saveLine(line).then(() => {
+  //     this.showNotification('top', 'right', 'nc-check-2', 'Se realizó el registro correctamente', 'success');
+  //   })
+  // }
+
+
+
+  // /**
+  //  * *** Metodos para migrar data luncher ***
+  //  */
+
+  // public loadDataProducts() {
+  //   console.log('Data', this.jsonDataProducts.default);
+  //   var products = this.jsonDataProducts.default;
+  //   products.forEach(product => {
+  //     if (product.product_provider_id == '1632771782677') {
+  //       console.log('Product', JSON.stringify(product.product_id, null, 2));
+  //       this.saveProduct(product);
+  //     }
+  //   });
+  // }
+
+  // /**
+  //    * Metodo para registrar o actualizar producto.
+  //    */
+  // public saveProduct(product: Product) {
+  //   this.productService.saveProduct(product.product_provider_id, product).then(() => {
+  //     this.showNotification('top', 'right', 'nc-check-2', 'Se realizó el registro correctamente', 'success');
+  //   })
+  // }
+
+  // public loadDataRepresentatives() {
+  //   console.log('Data', this.jsonDataRepresentatives.default);
+  //   var reps = this.jsonDataRepresentatives.default;
+  //   reps.forEach(rep => {
+  //     console.log('Rep', JSON.stringify(rep.representative_id, null, 2));
+  //     this.saveRepresentatives(rep);
+  //   });
+  // }
+
+  // /**
+  //    * Metodo para registrar o actualizar producto.
+  //    */
+  // public saveRepresentatives(rep: Representative) {
+  //   this.representativeService.saveRepresentative(rep).then(() => {
+  //   })
+  // }
+
+  // public loadDataStudent() {
+  //   console.log('Data', this.jsonDataStudents.default);
+  //   var std = this.jsonDataStudents.default;
+  //   std.forEach(st => {
+  //     if (st.student_id != undefined) {
+  //       console.log('Student', JSON.stringify(st.student_id, null, 2));
+  //       this.saveStudents(st);
+  //     }
+  //   });
+  // }
+
+  // /**
+  //    * Metodo para registrar o actualizar producto.
+  //    */
+  // public saveStudents(std: Student) {
+  //   this.studentService.saveStudent(std).then(() => {
+  //   })
+  // }
 
 }

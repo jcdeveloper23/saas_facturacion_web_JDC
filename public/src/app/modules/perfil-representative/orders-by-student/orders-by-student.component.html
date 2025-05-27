@@ -86,9 +86,9 @@
         <p class="mb-0">No se encontraron compras generadas</p>
         <p class="mb-0">
           Desde:
-          {{filters.startDate | date:'mediumDate':'':'es'}}
+          {{filters.startDate | date:'mediumDate':''}}
           Hasta:
-          {{filters.endDate | date:'mediumDate':'':'es'}}.
+          {{filters.endDate | date:'mediumDate':''}}.
         </p>
         <small>Por favor, elige otro rango de fechas o revisa más tarde.</small>
       </div>
@@ -110,7 +110,15 @@
             Fecha de compra
           </th>
           <td mat-cell *matCellDef="let row" class="text-center m-0 p-0">
-            <span>{{ convertToDate(row.order_date_full) | date:'medium':'':'es' }}</span>
+            <span>{{ convertToDate(row.order_date_full) | date:'medium':'' }}</span>
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="methodPay">
+          <th mat-header-cell *matHeaderCellDef class="text-center title-table m-0 p-0">
+            Método de pago
+          </th>
+          <td mat-cell *matCellDef="let row" class="text-center m-0 p-0">
+            <span>{{ row.order_payment_method }}</span>
           </td>
         </ng-container>
         <ng-container matColumnDef="statusPay">
@@ -149,7 +157,7 @@
             Valor
           </th>
           <td mat-cell *matCellDef="let row" class="text-center m-0 p-0">
-            ${{row.order_total_to_pay.toFixed(2)}}
+            {{row.order_total_to_pay | currency }}
           </td>
         </ng-container>
         <ng-container matColumnDef="options">
@@ -157,7 +165,9 @@
             Opciones
           </th>
           <td mat-cell *matCellDef="let row" class="text-center m-0 p-0">
-            <span>{{row.category_name}}</span>
+            <button (click)="viewProducts(row)" class="btn btn-primary btn-sm mt-0">
+              Detalles
+            </button>
           </td>
         </ng-container>
 
@@ -287,31 +297,33 @@
   <div class="modal fade modal-primary" id="modalDetailsOrder" tabindex="-1" role="dialog"
     aria-labelledby="modalDetailsOrderLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
-      <div class="modal-content">
-        <div class="modal-header justify-content-center bg-green">
+      <div class="modal-content container-fluid-body">
+        <div class="modal-header justify-content-center \">
           <button type="button" class="close" data-dismiss="modal" aria-label="Close">
             <i class="nc-icon nc-simple-remove"></i>
           </button>
-          <h4 class="title title-up text-white">Pedidos de {{student.student_name}} {{student.student_lastname}}</h4>
+          <h4 *ngIf="order_detail" class="title title-up text-white">Detalles de la orden
+            #{{order_detail.order_transaccion_id | slice:8}}</h4>
         </div>
         <div class="modal-body pl-1 pr-1" *ngIf="array_products">
           <div class="col-12 p-0">
-            <div class="row m-0" *ngIf="order_detail">
-              <div class="col-6 mt-1">
-                <span>Orden:</span> &nbsp; <span>{{order_detail.order_transaccion_id}}</span>
+            <div class="row w-100 m-0 p-0 text-white" *ngIf="order_detail">
+              <div class="col-12 mt-1">
+                <span>Orden: </span>#<span>{{order_detail.order_transaccion_id | slice:8}}</span>
               </div>
-              <div class="col-6 mt-1">
-                <span>Método de pago:</span> &nbsp; <span>{{order_detail.order_payment_method}}</span>
+              <div class="col-12 mt-1">
+                <span>Método de pago: </span><span>{{order_detail.order_payment_method}}</span>
               </div>
-              <div class="col-6 mt-1">
-                <span>Fecha de orden:</span> &nbsp; <span>{{order_detail.order_date | date}}</span>
+              <div class="col-12 mt-1">
+                <span>Fecha de la compra: </span><span>{{convertToDate(order_detail.order_date_full) |
+                  date:'medium':''}}</span>
               </div>
-              <div class="col-6 mt-1">
-                <span>Valor total de orden:</span> &nbsp; <span>{{order_detail.order_total_to_pay | currency}}</span>
+              <div class="col-12 mt-1">
+                <span>Valor total de la compra: </span><span>{{order_detail.order_total_to_pay | currency }}</span>
               </div>
             </div>
           </div>
-          <div class="col-12 p-0 ">
+          <div class="col-12 p-0 table-responsive">
             <table class="table table-bordered ">
               <thead>
                 <tr>
@@ -319,7 +331,7 @@
                   <th scope="col" class="text-center">Imagen</th>
                   <th scope="col" class="text-center">Producto</th>
                   <th scope="col" class="text-center">Descripción</th>
-                  <th scope="col" class="text-center">Fecha</th>
+                  <th scope="col" class="text-center">Fecha de entrega</th>
                   <th scope="col" class="text-center">Típo de entrega</th>
                   <th scope="col" class="text-center">Cant</th>
                   <th scope="col" class="text-center">P.U</th>
@@ -332,19 +344,21 @@
                   <td scope="row">{{i + 1}}</td>
                   <td>
                     <div class="pt-1 pb-1">
-                      <div class="img-ontent-product-table "
-                        style="background-image: url({{product.product_images[0]}}); background-size: contain;">
+                      <div class="img-ontent-product-table avatar-mini-details"
+                        style="background-image: url({{product.product_images[0]}}); background-size: cover;">
                       </div>
                     </div>
                   </td>
                   <td class="text-center">{{product.product_name}} </td>
-                  <td class="text-center">{{product.product_description |slice:0:30}}</td>
+                  <td class="text-center">{{product.product_description}}</td>
                   <td class="text-center">{{product.product_order_delivery_date | date }}</td>
                   <td class="text-center">
-                    <span class="text-warning font-text-bold "
-                      *ngIf="product.product_delivery_method === 'i withdraw'">Retiro</span>
-                    <span class="text-warning font-text-bold "
-                      *ngIf="product.product_delivery_method === 'delivery'">Delivery</span>
+                    <span class="text-primary font-text-bold" *ngIf="product.product_delivery_method === 'i withdraw'">
+                      Retirar personalmente en el bar
+                    </span>
+                    <span class="text-primary font-text-bold" *ngIf="product.product_delivery_method === 'delivery'">
+                      Recibir el producto en el aula
+                    </span>
 
                   </td>
 
@@ -352,8 +366,14 @@
                   <td class="text-center">{{product.product_price | currency}}</td>
                   <td class="text-center"> {{product.product_subtotal | currency}}</td>
                   <td class="text-center">
-                    <i *ngIf="product.product_state_in_order" class="fa fa-check text-success"></i>
-                    <i *ngIf="!product.product_state_in_order" class="fa fa-close text-danger"></i><br>
+                    <span *ngIf="!product.product_state_in_order" class="state-order btn btn-danger btn-sm m-0">
+                      Pendiente
+                    </span>
+                    <span *ngIf="product.product_state_in_order" class="state-order btn btn-success btn-sm m-0">
+                      Entregado
+                    </span><br>
+                    <!-- <i *ngIf="product.product_state_in_order" class="fa fa-check text-success"></i> -->
+                    <!-- <i *ngIf="!product.product_state_in_order" class="fa fa-close text-danger"></i><br> -->
                     <small>{{product.product_delivery_date}} {{product.product_dalivery_time}}</small>
                   </td>
                 </tr>
@@ -363,7 +383,7 @@
           </div>
 
         </div>
-        <div class="modal-footer">
+        <div class="modal-footer border-none">
           <div class="left-side mx-0">
             <!-- <button type="button" class="btn btn-default btn-link" data-dismiss="modal">Never mind</button> -->
           </div>

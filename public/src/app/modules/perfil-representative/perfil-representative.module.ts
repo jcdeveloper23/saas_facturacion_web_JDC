@@ -30,6 +30,7 @@ import { CreateOrderComponent } from './create-order/create-order.component'; //
 import { MatPaginatorModule } from '@angular/material/paginator';
 import { MatTableModule } from '@angular/material/table';
 import { LoadingComponent } from 'app/modules/loading/loading.component';
+import { CustomCurrencyPipe } from 'app/pipes_custom/custom-currency.pipe';
 
 FullCalendarModule.registerPlugins([ // register FullCalendar plugins
   dayGridPlugin,
@@ -49,7 +50,9 @@ FullCalendarModule.registerPlugins([ // register FullCalendar plugins
     OrdersByStudentComponent,
     PaymentMethodsComponent,
     CreateOrderComponent,
-    LoadingComponent
+    LoadingComponent,
+            CustomCurrencyPipe
+    
   ],
   imports: [
     CommonModule,

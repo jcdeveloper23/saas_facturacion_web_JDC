@@ -41,6 +41,7 @@ export class OrdersByStudentComponent implements OnInit {
   public displayedColumns: string[] = [
     "code",
     "dateOrder",
+    "methodPay",
     "statusPay",
     "statusOrder",
     "value",
@@ -220,6 +221,8 @@ export class OrdersByStudentComponent implements OnInit {
 
   public async viewProducts(order: Orders) {
     this.order_detail = order;
+    console.log(JSON.stringify(order, null, 2));
+    
     this.array_products = await this.orderService.getOrdersProductsByProvider(order.order_provider_id, order.order_transaccion_id)
       .pipe(take(1)).toPromise();
     $('#modalDetailsOrder').modal('show');

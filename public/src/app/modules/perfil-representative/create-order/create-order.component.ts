@@ -1,3 +1,4 @@
+import { LoadingService } from 'app/services/loading/loading.service';
 import { async } from '@angular/core/testing';
 import { Component, ElementRef, OnInit, Renderer2, ViewChild } from '@angular/core';
 import { ActivatedRoute, ActivationEnd, Router } from '@angular/router';
@@ -119,10 +120,13 @@ export class CreateOrderComponent implements OnInit {
     private orderService: OrdersService,
     private http: HttpClient,
     private renderer: Renderer2,
-    private el: ElementRef
+    private el: ElementRef,
+    public loadingService: LoadingService,
   ) { }
 
   ngOnInit(): void {
+    this.loadingService.show('Cargando...');
+
     this.infoUser = JSON.parse(localStorage.getItem('infoUser'));
     if (this.infoUser === null) {
       this.router.navigate([''])
@@ -256,7 +260,7 @@ export class CreateOrderComponent implements OnInit {
   public initCart() {
     if (JSON.parse(localStorage.getItem('productsCartInCache'))) {
       /** *** OJO *** */
-      this.productsCartInCache = JSON.parse(localStorage.getItem('productsCartInCache'));// [];
+      this.productsCartInCache = [];// JSON.parse(localStorage.getItem('productsCartInCache'));// ;
       localStorage.setItem('productsCartInCache', JSON.stringify(this.productsCartInCache));
     } else {
       this.productsCartInCache = [];
@@ -306,9 +310,11 @@ export class CreateOrderComponent implements OnInit {
         this.product_list = products;
         this.allProducts = products;
         console.log('Productos:', this.product_list);
+        this.loadingService.hide();
       },
       error: (err) => {
         console.error('Error al obtener productos:', err);
+        this.loadingService.hide();
       }
     });
     // this.productService.getProductsAllActives(this.providerSelected.provider_id).pipe(take(1)).subscribe(products => {
@@ -673,6 +679,8 @@ export class CreateOrderComponent implements OnInit {
             $('myModalcompleteOrder').modal('hide')
             $('body').removeClass('modal-open');
             $('.fade').remove();
+            this.loadingService.hide();
+
             Swal.fire({
               title: "Se completó su compra exitosamente, la podrá encontrar en su lista de pedidos.",
               buttonsStyling: false,
@@ -756,6 +764,7 @@ export class CreateOrderComponent implements OnInit {
    * @param paymentMethod 
    */
   public finalizedWithPaymentMethod(paymentMethod: PaymentMethod) {
+    this.loadingService.show('Procesando pago...');
     var httpOptions = {
       headers: new HttpHeaders({
         'auth-token': this.utilService.getAuthToken(this.providerSelected.provider_NAME_EC_SERVER, this.providerSelected.provider_KEY_EC_SERVER)

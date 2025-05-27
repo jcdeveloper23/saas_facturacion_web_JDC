@@ -341,7 +341,7 @@ export class SidebarComponent {
         } else if (this.infoUser.users_account_type == '1') {
             this.providerService.getProviderId(this.infoUser.user_id).pipe(take(1)).subscribe(provider => {
                 this.provider = provider;
-                if (this.provider.provider_state_method) {
+                if (!this.provider.provider_state_method) {
                     ROUTES = (ROUTES_BAR);
                 } else {
                     ROUTES = (ROUTES_BAR_SATATE_FALSE);
