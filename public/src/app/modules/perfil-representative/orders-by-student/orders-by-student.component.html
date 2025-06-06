@@ -81,7 +81,7 @@
 
   <!-- *** Data: orders list by student *** -->
   <div class="row w-100 m-0 p-0 mt-2 container-fluid-body">
-    <div class="col-12 p-0 w-100 container-fluid-body m-0 p-0">
+    <div class="col-12 p-0 w-100 container-fluid-body m-0 p-0 table-responsive">
       <div *ngIf="arrayOrders && arrayOrders.length === 0" class="col-12 p-1 text-center text-muted my-4">
         <p class="mb-0">No se encontraron compras generadas</p>
         <p class="mb-0">
@@ -92,7 +92,7 @@
         </p>
         <small>Por favor, elige otro rango de fechas o revisa más tarde.</small>
       </div>
-      <table *ngIf="arrayOrders && arrayOrders.length > 0" #table mat-table matSort [dataSource]="dataSource"
+      <table class="table-responsive" *ngIf="arrayOrders && arrayOrders.length > 0" #table mat-table matSort [dataSource]="dataSource"
         class="mat-elevation-z8 table-reponsive table-bordered container-fluid-body text-white"
         style="min-width: 100%;">
         <ng-container matColumnDef="code">
@@ -293,14 +293,14 @@
     </div>
   </div> -->
 
-  <!-- small modal -->
+  <!-- modal details order selected -->
   <div class="modal fade modal-primary" id="modalDetailsOrder" tabindex="-1" role="dialog"
     aria-labelledby="modalDetailsOrderLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
       <div class="modal-content container-fluid-body">
         <div class="modal-header justify-content-center \">
           <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <i class="nc-icon nc-simple-remove"></i>
+            <i class="nc-icon nc-simple-remove text-white"></i>
           </button>
           <h4 *ngIf="order_detail" class="title title-up text-white">Detalles de la orden
             #{{order_detail.order_transaccion_id | slice:8}}</h4>

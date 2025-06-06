@@ -219,6 +219,7 @@ export class CreateOrderComponent implements OnInit {
    * *** Setea la data iniocial de la orden ***
    */
   public async setInfoOrder() {
+    this.productsCartInCache = [];
     this.order.order_provider_id = this.providerSelected.provider_id;
     this.order.order_transaccion_id = new Date().getTime().toString();
     this.order.order_representative_id = this.infoUser.user_id;
@@ -244,7 +245,7 @@ export class CreateOrderComponent implements OnInit {
       await this.setInfoOrder();
 
       if (this.representative.representative_payment_method == 'Tarjeta') {
-        this.searchPaymentMethod();
+        // this.searchPaymentMethod();
       }
     })
   }
@@ -278,10 +279,13 @@ export class CreateOrderComponent implements OnInit {
   }
 
   public getCategoriesByProviderSelected(id: any): void {
+    this.loadingService.show('Cargando categorías...');
     const selected = this.providersList.find(p => p.provider_id === id);
 
     if (selected) {
       this.providerSelected = { ...selected }; // clona el objeto para evitar mutaciones si es necesario
+      this.setInfoOrder();
+
       console.log('Proveedor seleccionado:', this.providerSelected);
 
       // Limpia la lista anterior y consulta las nuevas categorías
@@ -655,6 +659,9 @@ export class CreateOrderComponent implements OnInit {
   }
 
   public async completePurchase() {
+    if (this.representative.representative_payment_method == 'Tarjeta') {
+      this.searchPaymentMethod();
+    }
     $('#myModalcompleteOrder').modal('show')
   }
 
