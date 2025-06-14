@@ -107,6 +107,17 @@ export class CreateOrderComponent implements OnInit {
   public productSearchTerm: string = '';
 
 
+  /**
+    * *** Iconos de métodos de pago ***
+   */
+  public paymentMethods = [
+    { key: 'Efectivo', label: 'Efectivo', icon: 'nc-money-coins' },
+    { key: 'Tarjeta', label: 'Tarjeta', icon: 'nc-credit-card' },
+    { key: 'DeUna', label: 'Pago QR DeUna!', icon: 'nc-camera-compact' }
+    // puedes seguir agregando más métodos
+  ];
+
+
   constructor(
     private router: Router,
     private representativeService: RepresentativeService,
@@ -167,6 +178,10 @@ export class CreateOrderComponent implements OnInit {
   ngAfterViewInit() {
     console.log('Cart icon:', this.cartIcon?.nativeElement); // Confirma si está definido
   }
+
+  get selectedMethodIndex(): number {
+  return this.paymentMethods.findIndex(m => m.key === this.order.order_payment_method);
+}
 
 
   /**
@@ -279,6 +294,9 @@ export class CreateOrderComponent implements OnInit {
   }
 
   public getCategoriesByProviderSelected(id: any): void {
+    /** *** AL cambiar el proveedor limpiamos el carrito de compras *** */
+    this.productsCartInCache = [];// JSON.parse(localStorage.getItem('productsCartInCache'));// ;
+    localStorage.setItem('productsCartInCache', JSON.stringify(this.productsCartInCache));
     this.loadingService.show('Cargando categorías...');
     const selected = this.providersList.find(p => p.provider_id === id);
 
@@ -579,6 +597,7 @@ export class CreateOrderComponent implements OnInit {
    */
   public increaseAmount(product: Product, i: number) {
     product.product_quantity_in_cart = product.product_quantity_in_cart + 1;
+    localStorage.setItem("productsCartInCache", JSON.stringify(this.productsCartInCache));
     this.recalculateTotal()
   }
 
@@ -590,6 +609,7 @@ export class CreateOrderComponent implements OnInit {
   public decreaseAmount(product: Product, i: number) {
     if (product.product_quantity_in_cart > 1) {
       product.product_quantity_in_cart = product.product_quantity_in_cart - 1;
+      localStorage.setItem("productsCartInCache", JSON.stringify(this.productsCartInCache));
       this.recalculateTotal()
     } else {
       Swal.fire({
