@@ -29,8 +29,10 @@ import { PaymentMethodsComponent } from './payment-methods/payment-methods.compo
 import { CreateOrderComponent } from './create-order/create-order.component'; // a plugin!
 import { MatPaginatorModule } from '@angular/material/paginator';
 import { MatTableModule } from '@angular/material/table';
-import { LoadingComponent } from 'app/modules/loading/loading.component';
+// import { LoadingComponent } from 'app/modules/loading/loading.component';
 import { CustomCurrencyPipe } from 'app/pipes_custom/custom-currency.pipe';
+import { SharedModule } from '../shared/shared.module';
+import { AllergiesComponent } from './allergies/allergies.component';
 
 FullCalendarModule.registerPlugins([ // register FullCalendar plugins
   dayGridPlugin,
@@ -50,8 +52,8 @@ FullCalendarModule.registerPlugins([ // register FullCalendar plugins
     OrdersByStudentComponent,
     PaymentMethodsComponent,
     CreateOrderComponent,
-    LoadingComponent,
-            CustomCurrencyPipe
+    AllergiesComponent,
+            // CustomCurrencyPipe
     
   ],
   imports: [
@@ -71,7 +73,7 @@ FullCalendarModule.registerPlugins([ // register FullCalendar plugins
     HttpClientModule,
     MatPaginatorModule,
     MatTableModule,
-    
+    SharedModule,
   ]
 })
 export class PerfilRepresentativeModule { }

@@ -21,6 +21,14 @@ export class SchoolService {
   }
 
   /**
+   * *** Retorna una unidade educativa por id ***
+   * @returns
+   */
+  public getSchoolsById(schoolId) {
+    return this.db.collection('school', ref => ref.where('school_id', '==', schoolId)).valueChanges()
+  }
+
+  /**
    * *** Retorna las unidades educativas activas ***
    * @returns
    */

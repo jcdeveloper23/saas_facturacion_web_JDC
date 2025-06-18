@@ -1,0 +1,69 @@
+<div class="main-content">
+    <app-loading></app-loading>
+
+    <div class="row m-0 p-0 p-2 w-100 container-fluid-body">
+        <div class="col-12 col-sm-12 col-md-12 p-0 m-0 mb-2">
+            <!-- *** Title: student name *** -->
+            <div class="row m-0 p-0 w-100">
+                <div class="col-12 update ml-auto mr-auto m-0 p-0 ">
+                    <div class="row m-0 p-0 w-100 text-white container-fluid-body-dark">
+                        <div class="col-8 pt-3">
+                            <h3>
+                                Administrar alergias de: {{student.student_name}} {{student.student_lastname}}
+                                <div class="badge badge-success">
+                                    {{student.student_allergies.length}}
+                                </div>
+                            </h3>
+                        </div>
+                        <div class="col-4 text-right">
+                            <button type="button" (click)="saveAllergiesByStuden()" class="btn btn-primary btn-block">
+                                Guardar
+                            </button>
+                        </div>
+                    </div>
+                    <h4 class="p-minis text-white m-2 text-center">
+                        Este módulo le permite gestionar
+                        <span class="span-primary">las alergias alimentarias</span>
+                        de su representado.
+                        Marque aquellas a las que su hijo o hija es alérgico y luego haz clic en <span
+                            class="span-primary">GUARDAR</span>
+                        para aplicar los cambios.
+                    </h4>
+
+                    <p class="text-white p-mini badge-primary m-0 p-3 w-100">
+                        <i class="fa fa-info-circle"></i>
+                        Las alergias registradas en Tu Bar Amigo son visibles para el bar;
+                        sin embargo, corresponde a cada establecimiento revisar y respetar
+                        estas restricciones al vender productos a su hijo.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div *ngFor="let item of arrayAllergies" class="col-12 col-sm-6 col-md-6 col-lg-4 m-0 p-1">
+            <div class="row w-100 m-0 p-0 p-2 align-items-center justify-content-center container-fluid-body-dark">
+                <div class="col-2 col-md-2 p-0">
+                    <div class="
+                    {{student.student_allergies.includes(item.allergiesName) ? 'icon-big-primary'  : 'icon-big-secondary' }}
+                     text-center bg-purple-dark p-1">
+                        <img src="../../../../assets/img/icons/shield-check.png" class="icon-mini-custom" alt="">
+                    </div>
+                </div>
+                <div class="col-7 col-md-7 p-0 pt-2">
+                    <p class="card-category ml-3">{{ item.allergiesName }}</p>
+                </div>
+                <div class="col-3 col-md-3 text-right p-0">
+                    <label class="ios-switch">
+                        <input type="checkbox" [checked]="student.student_allergies.includes(item.allergiesName)"
+                            (change)="toggleAllergy(item.allergiesName, $event.target.checked)" />
+                        <span class="slider"></span>
+                    </label>
+                    <!-- <bSwitch [name]="item.allergiesName" [switch-on-color]="'primary'" [switch-off-color]="'primary'"
+                        [switch-off-text]="'&#x2715;'" [switch-on-text]="'&#x2714;'"
+                        [ngModel]="student.student_allergies.includes(item.allergiesName)"
+                        (ngModelChange)="toggleAllergy(item.allergiesName, $event)" class="custom-switch">
+                    </bSwitch> -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

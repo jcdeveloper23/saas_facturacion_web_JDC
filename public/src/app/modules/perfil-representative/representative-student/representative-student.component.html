@@ -1,10 +1,11 @@
-<div class="main-content">
-  <app-loading></app-loading>
+<div class="main-content m-0 p-1">
+    <app-loading></app-loading>
 
-    <div class="container-fluid p-0">
+    <div class="container-fluid m-0 p-0">
         <!-- *** tarjetas para mostrar datos de estudiantes *** -->
         <div *ngIf='!showFormAddStudents' class="row w-100 m-0 p-0">
-            <div class="col-12 col-sm-6 col-md-3 col-lg-4 m-0 p-1" *ngFor="let student of arrayStudents, let i = index">
+            <div class="col-12 col-sm-12 col-md-6 col-lg-6 m-0 p-1"
+                *ngFor="let student of arrayStudents, let i = index">
                 <div class="card card-stats container-fluid-body m-0 p-0">
                     <div class="card-body m-0 p-0 w-100 mx-0 text-center">
                         <!-- *** imagen de perfil *** -->
@@ -20,33 +21,40 @@
                             class="btn btn-secundary btn-icon-mini p-0 cursor-pointer">
                             <i class="fa fa-pencil-square icon-edit" aria-hidden="true"></i>
                         </button>
-                        <h3 class="name p-0 m-0 mt-5 pt-4">
-                            {{student.student_name}} {{student.student_lastname}}
+                        <h3 class="name p-0 m-0 mt-2 pt-3">
+                            {{student.student_name}} {{student.student_lastname}} 
                         </h3>
-                        <h4 class="email p-0 m-0 mb-4">
+                        <h4 class="email p-0 m-0 mb-2">
                             {{student.student_email}}
                         </h4>
                     </div>
                     <div class="card-footer">
                         <!-- *** Opciones *** -->
                         <div class="row w-100 m-0 p-0">
-                            <div class="col-12 col-sm-12 col-md-12 col-lg-6 text-center p-1 m-0 mb-2">
-                                <button class="btn btn-outline text-center" (click)="viewProviders(student)">
+                            <div class="col-12 col-sm-12 col-md-12 col-lg-4 text-center p-1 m-0 mb-1">
+                                <button [disabled]="!student.student_state" class="btn btn-outline text-center btn-block" (click)="viewProviders(student)">
                                     <img src="../../../../assets/img/icons/shoppingCart.png"
                                         class="icon-mini mr-1 mx-0 " alt="icono editar" />
                                     Comprar
                                 </button>
-                                <!-- <button class="btn btn-outline text-center" (click)="viewProviderss(student)">
-                                    <img src="../../../../assets/img/icons/shoppingCart.png"
-                                        class="icon-mini mr-1 mx-0 " alt="icono editar" />
-                                    Comprars
-                                </button> -->
                             </div>
-                            <div class="col-12 col-sm-12 col-md-12 col-lg-6 text-center p-1 m-0 mb-2">
-                                <button class="btn btn-outline text-center" (click)="viewOrdersByStudent(student)">
+                            <div class="col-12 col-sm-12 col-md-12 col-lg-4 text-center p-1 m-0 mb-1">
+                                <button class="btn btn-outline text-center btn-block"
+                                    (click)="viewOrdersByStudent(student)">
                                     <img src="../../../../assets/img/icons/shoppingBag.png"
                                         class="icon-mini mr-1 mx-0  " alt="icono editar" />
                                     Ordenes
+                                </button>
+                            </div>
+                            <div class="col-12 col-sm-12 col-md-12 col-lg-4 text-center p-1 m-0 mb-1">
+                                <button [disabled]="!student.student_state" class="btn btn-primary text-center btn-block"
+                                    (click)="viewAllergiesByStudent(student)">
+                                    <img src="../../../../assets/img/icons/shoppingCart.png"
+                                        class="icon-mini mr-1 mx-0 " alt="icono editar" />
+                                    Alergias
+                                    <div class="badge badge-secondary badge-secondary-float p-1">
+                                        {{student.student_allergies.length}}
+                                    </div>
                                 </button>
                             </div>
                         </div>
@@ -92,7 +100,7 @@
                         <div class="row m-0 p-0 w-100">
                             <div class="col-12 update ml-auto mr-auto">
                                 <div class="badge badge-secondary border-none btn-block p-4">
-                                    {{!isEdit ? 'Nuevo estudiante' : 'Editar perfil / ' + student.student_name}} 
+                                    {{!isEdit ? 'Nuevo estudiante' : 'Editar perfil / ' + student.student_name}}
                                     <button type="button" (click)="addStudent()"
                                         class="btn btn-danger btn-close cursor-pointer">
                                         cancelar
@@ -112,8 +120,7 @@
                                                 data-provides="fileinput">
                                                 <div *ngIf="!student.student_img && !previe_url_image  "
                                                     class="thumbnail-xs avatar">
-                                                    <img src="./assets/img/icons/gallery.png"
-                                                        alt="student_image">
+                                                    <img src="./assets/img/icons/gallery.png" alt="student_image">
                                                 </div>
                                                 <div *ngIf="previe_url_image &&  student.student_img"
                                                     class="thumbnail-xs avatar">
@@ -133,13 +140,11 @@
                                                             *ngIf="!student.student_img && !previe_url_image">
                                                             Seleccionar imagen
                                                         </span>
-                                                        <span
-                                                            *ngIf="student.student_img || previe_url_image">
+                                                        <span *ngIf="student.student_img || previe_url_image">
                                                             Cambiar la imagen
                                                         </span>
                                                         <input accept="image/*" type="file" id="student_image "
-                                                            name="student_image "
-                                                            (change)="fileProgress($event)" />
+                                                            name="student_image " (change)="fileProgress($event)" />
                                                     </span>
                                                 </div>
                                             </div>
@@ -336,7 +341,7 @@
             </div>
         </div>
     </div>
-    <div *ngIf='!showFormAddStudents' class="row w-100 m-0 p-0">
+    <div hidden *ngIf='!showFormAddStudents' class="row w-100 m-0 p-0">
         <!-- *** numero de estudiantes *** -->
         <div class="col-12 col-sm-6 col-md-6 col-lg-4 m-0 p-1">
             <div class="card card-stats container-fluid-body">

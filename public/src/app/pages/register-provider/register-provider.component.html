@@ -1,403 +1,231 @@
+
+
+<!-- Contenedor principal con fondo personalizado -->
 <div class="wrapper wrapper-full-page bg-green">
-  <div>
+    <div class="overlay"></div>
+
+  <div class="container-fluid-body-lightas">
     <div class="pt-5">
       <div class="">
         <div class="row m-0 p-0">
           <div class="col-lg-8 col-md-6 mr-auto mx-auto">
-            <div class="card card-signup text-center">
+            <!-- Tarjeta principal del formulario -->
+            <div class="card card-signup text-center container-fluid-body">
+
+              <!-- Cabecera del formulario -->
               <div class="card-header">
-                <h2 class="card-title">Registro del Proveedor</h2>
-                <i>Estimado proveedor si quiere registrarse y disponer de la plataforma para ofrecer sus productos llene los siguientes campos</i>
+                <h2 class="card-title">Registro de Proveedores</h2>
+                <i class="text-white">
+                  Estimado proveedor, si desea registrarse y disponer de la plataforma para ofrecer sus productos, por favor complete los siguientes campos.
+                </i>
               </div>
 
               <div class="card-body">
-                <form #formProvider="ngForm" novalidate
+                <!-- Formulario principal con validación y envío -->
+                <form autocomplete="off" #formProvider="ngForm" novalidate
                   (ngSubmit)="addProvider(formProvider.value, formProvider.valid)">
-                  <div class="card-body">
+
+                  <div class="card-body text-white">
                     <div class="row m-0 ">
-                      <div class="col-sm-12 border text-left">
-                        <div class="div-credencial text-center">
-                          <h4>Credenciales de Acceso</h4>
-                        </div>
-                        <div class="form-group has-label">
-                          <div class="row m-0 align-items-center  justify-content-center ">
-                            <div class="col-sm-6 ">
-                              <label class="control-label" for="">Ruc / Nro de documento CI
-                                <span class="star">*</span>
-                              </label>
-                              <div class="input-group">
-                                <div class="input-group-prepend">
-                                  <span class="input-group-text bg-white">
-                                    <i class="nc-icon nc-badge"></i>
-                                  </span>
-                                </div>
-                                <input type="text" maxlength="13" placeholder="Ruc" class="form-control"
-                                  name="provider_ruc" [(ngModel)]="provider.provider_ruc" required
-                                  #provider_ruc="ngModel" (blur)="searchRuc()"
-                                  onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))">
-                              </div>
-                              <small [hidden]="provider_ruc.valid || (provider_ruc.pristine && !formProvider.submitted)"
-                                class="text-danger">
-                                Ruc es requerido.
-                              </small>
-                            </div>
-                            <div class="col-sm-6">
-                              <label class="control-label" for="">Email
-                                <span class="star">*</span>
-                              </label>
-                              <div class="input-group">
-                                <div class="input-group-prepend">
-                                  <span class="input-group-text  bg-white">
-                                    <i class="nc-icon nc-email-85"></i>
-                                  </span>
-                                </div>
-                                <input type="email" placeholder="Email" class="form-control" name="provider_email"
+
+                      <!-- Sección: Credenciales de acceso -->
+                      <div class="col-sm-12 text-left">
+                        <fieldset class="mb-4 p-3 border border-primary rounded">
+                          <legend class="w-auto px-2">Credenciales de Acceso</legend>
+
+                          <div class="form-group has-label">
+                            <div class="row m-0 align-items-center justify-content-center">
+
+                              <!-- Campo: Email -->
+                              <div class="col-sm-4">
+                                <label class="control-label" for="provider_email">
+                                  Email <span class="star">*</span>
+                                </label>
+                                <input type="email" class="form-control" name="provider_email" placeholder="ej: nombre@correo.com"
                                   [(ngModel)]="provider.provider_email" required #provider_email="ngModel"
-                                  pattern="^[a-zA-Z0-9_.+\-]+@[a-zA-Z0-9\-]+\.[a-zA-Z0-9\-\.]+$">
+                                  pattern="^[a-zA-Z0-9_.+\-]+@[a-zA-Z0-9\-]+\.[a-zA-Z0-9\-\.]+$"
+                                  autocomplete="new-email">
+                                <small class="form-text text-muted">Ingrese un correo electrónico válido.</small>
+                                <small
+                                  [hidden]="provider_email.valid || (provider_email.pristine && !formProvider.submitted)"
+                                  class="text-danger">El email es obligatorio.</small>
                               </div>
-                              <small
-                                [hidden]="provider_email.valid || (provider_email.pristine && !formProvider.submitted)"
-                                class="text-danger">
-                                Ingrese el Email
-                              </small>
+
+                              <!-- Campo: Contraseña -->
+                              <div class="col-sm-4">
+                                <label class="control-label" for="provider_password">
+                                  Contraseña <span class="star">*</span>
+                                </label>
+                                <input type="password" class="form-control" name="provider_password" placeholder="Mínimo 6 caracteres"
+                                  [(ngModel)]="provider.provider_password" required minlength="6" #provider_password="ngModel"
+                                  autocomplete="new-password">
+                                <small class="form-text text-muted">Debe tener al menos 6 caracteres.</small>
+                                <small
+                                  [hidden]="provider_password.valid || (provider_password.pristine && !formProvider.submitted)"
+                                  class="text-danger">La contraseña es requerida.</small>
+                              </div>
+
+                              <!-- Campo: Confirmar Contraseña -->
+                              <div class="col-sm-4">
+                                <label class="control-label" for="provider_confirm_password">
+                                  Confirmar Contraseña <span class="star">*</span>
+                                </label>
+                                <input type="password" class="form-control" name="provider_confirm_password" placeholder="Repita la contraseña"
+                                  [(ngModel)]="provider.provider_confirm_password" required minlength="6"
+                                  #provider_confirm_password="ngModel" autocomplete="new-password">
+                                <small class="form-text text-muted">Confirme la contraseña.</small>
+                                <small
+                                  [hidden]="provider_confirm_password.valid || (provider_confirm_password.pristine && !formProvider.submitted)"
+                                  class="text-danger">Debe confirmar la contraseña.</small>
+                              </div>
+
                             </div>
                           </div>
-                        </div>
-                        <div class="form-group has-label">
-                          <div class="row m-0 align-items-center  justify-content-center ">
-                            <div class="col-sm-6">
-                              <label class="control-label" for="">Contraseña
-                                <span class="star">*</span>
-                              </label>
-                              <div class="input-group">
-                                <div class="input-group-prepend">
-                                  <span class="input-group-text">
-                                    <i class="nc-icon nc-lock-circle-open"></i>
-                                  </span>
-                                </div>
-                                <input type="password" placeholder="Contraseña" class="form-control"
-                                  name="provider_password" [(ngModel)]="provider.provider_password" required
-                                  minlength="6" #provider_password="ngModel">
-                              </div>
-                              <small
-                                [hidden]="provider_password.valid || (provider_password.pristine && !formProvider.submitted)"
-                                class="text-danger">
-                                Ingrese Contraseña
-                              </small>
-                            </div>
-                            <div class="col-sm-6">
-                              <label class="control-label" for="">Confirmar Contraseña
-                                <span class="star">*</span>
-                              </label>
-                              <div class="input-group">
-                                <div class="input-group-prepend">
-                                  <span class="input-group-text">
-                                    <i class="nc-icon nc-lock-circle-open"></i>
-                                  </span>
-                                </div>
-                                <input type="password" placeholder="Confirmar Contraseña" class="form-control"
-                                  name="provider_confirm_password" [(ngModel)]="provider.provider_confirm_password"
-                                  required minlength="6" #provider_confirm_password="ngModel">
-                              </div>
-                              <small
-                                [hidden]="provider_confirm_password.valid || (provider_confirm_password.pristine && !formProvider.submitted)"
-                                class="text-danger">
-                                Ingrese Contraseña
-                              </small>
-                            </div>
-                          </div>
-                        </div>
+                        </fieldset>
                       </div>
 
-                      <div class="col-sm-12 pt-2 text-left ">
-                        <div class="form-group has-label ">
-                          <div class="row m-0 align-items-center ">
-                            <div class="col-sm-6">
-                              <label class="control-label" for="">Nombre
-                                <span class="star">*</span>
-                              </label>
-                              <div class="input-group">
-                                <div class="input-group-prepend">
-                                  <span class="input-group-text">
-                                    <i class="nc-icon nc-single-02"></i>
-                                  </span>
-                                </div>
-                                <input type="text" placeholder="Nombre" class="form-control" name="provider_name"
+                      <!-- Sección: Datos personales -->
+                      <div class="col-sm-12 pt-2 text-left">
+                        <fieldset class="mb-4 p-3 border border-primary rounded">
+                          <legend class="w-auto px-2">Datos Personales</legend>
+
+                          <!-- Campo: Nombre y Apellido -->
+                          <div class="form-group has-label">
+                            <div class="row m-0 align-items-center">
+                              <div class="col-sm-6">
+                                <label class="control-label" for="provider_name">Nombre <span class="star">*</span></label>
+                                <input type="text" class="form-control" name="provider_name" placeholder="Nombre"
                                   [(ngModel)]="provider.provider_name" required #provider_name="ngModel">
+                                <small class="form-text text-muted">Ingrese su(s) nombre(s).</small>
+                                <small
+                                  [hidden]="provider_name.valid || (provider_name.pristine && !formProvider.submitted)"
+                                  class="text-danger">El nombre es requerido.</small>
                               </div>
-                              <small
-                                [hidden]="provider_name.valid || (provider_name.pristine && !formProvider.submitted)"
-                                class="text-danger">
-                                Ingrese el Nombre
-                              </small>
-                            </div>
-                            <div class="col-sm-6">
-                              <label class="control-label" for="">Apellido
-                                <span class="star">*</span>
-                              </label>
-                              <div class="input-group">
-                                <div class="input-group-prepend">
-                                  <span class="input-group-text">
-                                    <i class="nc-icon nc-circle-10"></i>
-                                  </span>
-                                </div>
-                                <input type="text" placeholder="Apellido" class="form-control" name="provider_surname"
+                              <div class="col-sm-6">
+                                <label class="control-label" for="provider_surname">Apellido <span class="star">*</span></label>
+                                <input type="text" class="form-control" name="provider_surname" placeholder="Apellido"
                                   [(ngModel)]="provider.provider_surname" required #provider_surname="ngModel">
+                                <small class="form-text text-muted">Ingrese su(s) apellido(s).</small>
+                                <small
+                                  [hidden]="provider_surname.valid || (provider_surname.pristine && !formProvider.submitted)"
+                                  class="text-danger">El apellido es requerido.</small>
                               </div>
-                              <small
-                                [hidden]="provider_surname.valid || (provider_surname.pristine && !formProvider.submitted)"
-                                class="text-danger">
-                                Ingrese el Apellido
-                              </small>
                             </div>
                           </div>
-                        </div>
-                        <div class="form-group has-label">
-                          <div class="row m-0 align-items-center  justify-content-center ">
-                            <div class="col-sm-6">
-                              <label class="control-label" for="">Dirección
-                                <span class="star">*</span>
-                              </label>
-                              <div class="input-group">
-                                <div class="input-group-prepend">
-                                  <span class="input-group-text">
-                                    <i class="nc-icon nc-pin-3"></i>
-                                  </span>
-                                </div>
-                                <input type="text" placeholder="Dirección" class="form-control" name="provider_address"
+
+                          <!-- Campo: Dirección y Teléfono -->
+                          <div class="form-group has-label">
+                            <div class="row m-0 align-items-center">
+                              <div class="col-sm-6">
+                                <label class="control-label" for="provider_address">Dirección <span class="star">*</span></label>
+                                <input type="text" class="form-control" name="provider_address" placeholder="Dirección completa"
                                   [(ngModel)]="provider.provider_address" required #provider_address="ngModel">
+                                <small class="form-text text-muted">Incluya calle, número, ciudad.</small>
+                                <small
+                                  [hidden]="provider_address.valid || (provider_address.pristine && !formProvider.submitted)"
+                                  class="text-danger">La dirección es requerida.</small>
                               </div>
-                              <small
-                                [hidden]="provider_address.valid || (provider_address.pristine && !formProvider.submitted)"
-                                class="text-danger">
-                                Dirección es requerida.
-                              </small>
-                            </div>
-                            <div class="col-sm-6">
-                              <label class="control-label" for="">Teléfono:
-                                <span class="star">*</span>
-                              </label>
-                              <div class="input-group">
-                                <div class="input-group-prepend">
-                                  <span class="input-group-text">
-                                    <i class="nc-icon nc-mobile"></i>
-                                  </span>
-                                </div>
-                                <input type="text"
-                                  onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))"
-                                  placeholder="Telefóno" class="form-control" name="provider_phone"
-                                  [(ngModel)]="provider.provider_phone" required #provider_phone="ngModel">
+                              <div class="col-sm-6">
+                                <label class="control-label" for="provider_phone">Teléfono <span class="star">*</span></label>
+                                <input type="text" class="form-control" name="provider_phone" placeholder="Ej: 0987654321"
+                                  [(ngModel)]="provider.provider_phone" required #provider_phone="ngModel"
+                                  onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))">
+                                <small class="form-text text-muted">Solo números. Ejemplo: 0987654321</small>
+                                <small
+                                  [hidden]="provider_phone.valid || (provider_phone.pristine && !formProvider.submitted)"
+                                  class="text-danger">El teléfono es requerida.</small>
                               </div>
-                              <small
-                                [hidden]="provider_phone.valid || (provider_phone.pristine && !formProvider.submitted)"
-                                class="text-danger">
-                                Ingrese número de Telefóno
-                              </small>
                             </div>
                           </div>
-                        </div>
-                        <div class="form-group has-label">
-                          <div class="row m-0 align-items-start  justify-content-start ">
-                            <div class="col-sm-6">
-                              <label class="control-label" for="">Id de Escuela
-                                <!-- <span class="star">*</span> -->
-                              </label>
-                              <input type="text" class="form-control" name="provider_id_school"
-                                [(ngModel)]="provider.provider_id_school" #provider_id_school="ngModel">
-                              <small
-                                [hidden]="provider_id_school.valid || (provider_id_school.pristine && !formProvider.submitted)"
-                                class="text-danger">
-                                Ingrese el Id de la Escuela
-                              </small>
-                            </div>
-                            <div class="col-sm-6">
-                              <label class="control-label" for="">Razón Social
-                                <span class="star">*</span>
-                              </label>
-                              <div class="input-group">
-                                <div class="input-group-prepend">
-                                  <span class="input-group-text">
-                                    <i class="nc-icon nc-globe"></i>
-                                  </span>
-                                </div>
-                                <input type="text" placeholder="Razón Social" class="form-control"
-                                  name="provider_business_name" [(ngModel)]="provider.provider_business_name" required
-                                  #provider_business_name="ngModel">
+                        </fieldset>
+                      </div>
+
+                      <!-- Sección: Datos comerciales -->
+                      <div class="col-sm-12 pt-2 text-left">
+                        <fieldset class="mb-4 p-3 border border-primary rounded">
+                          <legend class="w-auto px-2">Datos Comerciales</legend>
+
+                          <div class="form-group has-label">
+                            <div class="row m-0 align-items-start">
+                              <!-- Campo: RUC -->
+                              <div class="col-sm-4">
+                                <label class="control-label" for="provider_ruc">RUC / CI <span class="star">*</span></label>
+                                <input type="text" maxlength="13" class="form-control" name="provider_ruc" placeholder="Ej: 1234567890001"
+                                  [(ngModel)]="provider.provider_ruc" required #provider_ruc="ngModel" (blur)="searchRuc()"
+                                  onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))">
+                                <small class="form-text text-muted">Ingrese su número de RUC o cédula.</small>
+                                <small
+                                  [hidden]="provider_ruc.valid || (provider_ruc.pristine && !formProvider.submitted)"
+                                  class="text-danger">El RUC/CI es obligatorio.</small>
                               </div>
-                              <small
-                                [hidden]="provider_business_name.valid || (provider_business_name.pristine && !formProvider.submitted)"
-                                class="text-danger">
-                                Ingrese la razón social
-                              </small>
+
+                              <!-- Campo: ID Escuela -->
+                              <div class="col-sm-4">
+                                <label class="control-label" for="provider_id_school">ID Escuela (Opcional)</label>
+                                <input type="text" class="form-control" name="provider_id_school"
+                                  [(ngModel)]="provider.provider_id_school" #provider_id_school="ngModel"
+                                  placeholder="Opcional">
+                                <small class="form-text text-muted">Solo si posee el código.</small>
+                              </div>
+
+                              <!-- Campo: Razón Social -->
+                              <div class="col-sm-4">
+                                <label class="control-label" for="provider_business_name">Razón Social <span class="star">*</span></label>
+                                <input type="text" class="form-control" name="provider_business_name"
+                                  [(ngModel)]="provider.provider_business_name" required #provider_business_name="ngModel"
+                                  placeholder="Nombre de la empresa o marca">
+                                <small class="form-text text-muted">Ingrese el nombre comercial.</small>
+                                <small
+                                  [hidden]="provider_business_name.valid || (provider_business_name.pristine && !formProvider.submitted)"
+                                  class="text-danger">La razón social requerida.</small>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                        <div class="form-group has-label">
-                          <div class="row m-0 align-items-start  justify-content-start ">
-                            <div class="col-sm-12">
-                              <label class="control-label" for="">Productos a ofertar
-                                <span class="star">*</span>
-                              </label>
-                              <input type="text" class="form-control" name="provider_products_offert"
-                                [(ngModel)]="provider.provider_products_offert" required
-                                #provider_products_offert="ngModel">
-                              <small
-                                [hidden]="provider_products_offert.valid || (provider_products_offert.pristine && !formProvider.submitted)"
-                                class="text-white">
-                                Ingrese los productos a ofertar
-                              </small>
+
+                          <!-- Campo: Productos que ofrece -->
+                          <div class="form-group has-label">
+                            <div class="row m-0">
+                              <div class="col-sm-12">
+                                <label class="control-label" for="provider_products_offert">Productos a ofertar <span class="star">*</span></label>
+                                <input type="text" class="form-control" name="provider_products_offert"
+                                  [(ngModel)]="provider.provider_products_offert" required #provider_products_offert="ngModel">
+                                <small class="form-text text-muted">Ejemplo: alimentos, papelería, servicios logísticos.</small>
+                                <small
+                                  [hidden]="provider_products_offert.valid || (provider_products_offert.pristine && !formProvider.submitted)"
+                                  class="text-danger">Los productos a ofertar son requeridos.</small>
+                              </div>
                             </div>
                           </div>
-                          <div class="row">
-                            <div class="col-sm-12 text-center p-3">
-                              <mat-checkbox [checked]="acceptTerms" (change)="changeAccepts($event)"
-                                class="example-margin">
-                              </mat-checkbox> &nbsp;
-                              <a target="_blank" href="/terms">Acepto los términos y condiciones de uso</a>
-                            </div>
+                        </fieldset>
+
+                        <!-- Aceptar términos -->
+                        <div class="row">
+                          <div class="col-sm-12 text-center p-3">
+                            <mat-checkbox [checked]="acceptTerms" (change)="changeAccepts($event)"
+                              class="example-margin"></mat-checkbox> &nbsp;
+                            <a target="_blank" href="/terms">Acepto los términos y condiciones de uso</a>
                           </div>
                         </div>
                       </div>
                     </div>
-                    <div class="category"> <span class="star">*</span> Campos obligatorios.</div>
+
+                    <!-- Nota de campos obligatorios -->
+                    <div class="category"><span class="star">*</span> Campos obligatorios.</div>
                   </div>
+
+                  <!-- Botón de envío -->
                   <div class="card-footer text-right">
-                    <button [disabled]="!acceptTerms" [hidden]='existsRuc' type="submit" class="btn btn-info btn-round">Continuar</button>
+                    <button [disabled]="!acceptTerms" [hidden]='existsRuc' type="submit"
+                    class="btn btn-primary btn-block">Continuar</button>
                   </div>
+
                 </form>
-
-
-                <!-- <form class="form " method="" action="">
-                  <div class="row">
-                    <div class="col">
-                      <div class="input-group" [ngClass]="{'input-group-focus':focus===true}">
-                        <div class="input-group-prepend">
-                          <span class="input-group-text">
-                            <i class="nc-icon nc-badge"></i>
-                          </span>
-                        </div>
-                        <input type="text" class="form-control" placeholder="No. de documento CI" (focus)="focus=true"
-                          (blur)="focus=false">
-                      </div>
-                      <div class="input-group" [ngClass]="{'input-group-focus':focus2===true}">
-                        <div class="input-group-prepend">
-                          <span class="input-group-text">
-                            <i class="nc-icon nc-email-85"></i>
-                          </span>
-                        </div>
-                        <input required type="email" class="form-control" placeholder="Ingresar Contraseña" (focus)="focus2=true"
-                          (blur)="focus2=false">
-                      </div>
-                      <div class="input-group" [ngClass]="{'input-group-focus':focus2===true}">
-                        <div class="input-group-prepend">
-                          <span class="input-group-text">
-                            <i class="nc-icon nc-email-85"></i>
-                          </span>
-                        </div>
-                        <input type="email" class="form-control" placeholder="Nombre" (focus)="focus2=true" (blur)="focus2=false">
-                      </div>
-                      <div class="input-group" [ngClass]="{'input-group-focus':focus2===true}">
-                        <div class="input-group-prepend">
-                          <span class="input-group-text">
-                            <i class="nc-icon nc-email-85"></i>
-                          </span>
-                        </div>
-                        <input type="email" class="form-control" placeholder="Dirección" (focus)="focus2=true" (blur)="focus2=false">
-                      </div>
-                      <div class="input-group" [ngClass]="{'input-group-focus':focus2===true}">
-                        <div class="input-group-prepend">
-                          <span class="input-group-text">
-                            <i class="nc-icon nc-email-85"></i>
-                          </span>
-                        </div>
-                        <input type="email" class="form-control" placeholder="Telefóno 1" (focus)="focus2=true" (blur)="focus2=false">
-                      </div>
-                      <div class="input-group" [ngClass]="{'input-group-focus':focus2===true}">
-                        <div class="input-group-prepend">
-                          <span class="input-group-text">
-                            <i class="nc-icon nc-email-85"></i>
-                          </span>
-                        </div>
-                        <input type="email" class="form-control" placeholder="Unidad Educativa" (focus)="focus2=true" (blur)="focus2=false">
-                      </div>
-                      
-                    </div>
-                    <div class="col">
-                      <div class="input-group" [ngClass]="{'input-group-focus':focus2===true}">
-                        <div class="input-group-prepend">
-                          <span class="input-group-text">
-                            <i class="nc-icon nc-email-85"></i>
-                          </span>
-                        </div>
-                          <input type="email" class="form-control" name="email" [ngModel]="typeValidation.email"
-                          required  #email="ngModel" pattern="^[a-zA-Z0-9_.+\-]+@[a-zA-Z0-9\-]+\.[a-zA-Z0-9\-\.]+$">
-                        <small [hidden]="email.valid || (email.pristine && !f2.submitted)" class="text-danger">
-                          Email is required and format should be.
-                        </small>
-                      </div>
-                      <div class="input-group" [ngClass]="{'input-group-focus':focus1===true}">
-                        <div class="input-group-prepend">
-                          <span class="input-group-text">
-                            <i class="nc-icon nc-circle-10"></i>
-                          </span>
-                        </div>
-                        <input type="text" placeholder="Confirmar Contraseña" class="form-control" (focus)="focus1=true"
-                          (blur)="focus1=false">
-                      </div>
-                      <div class="input-group" [ngClass]="{'input-group-focus':focus2===true}">
-                        <div class="input-group-prepend">
-                          <span class="input-group-text">
-                            <i class="nc-icon nc-email-85"></i>
-                          </span>
-                        </div>
-                        <input type="email" class="form-control" placeholder="Apellido" (focus)="focus2=true" (blur)="focus2=false">
-                      </div>
-                      <div class="input-group" [ngClass]="{'input-group-focus':focus2===true}">
-                        <div class="input-group-prepend">
-                          <span class="input-group-text">
-                            <i class="nc-icon nc-email-85"></i>
-                          </span>
-                        </div>
-                        <input type="email" class="form-control" placeholder="Ruc/CI" (focus)="focus2=true" (blur)="focus2=false">
-                      </div>
-                      <div class="input-group" [ngClass]="{'input-group-focus':focus2===true}">
-                        <div class="input-group-prepend">
-                          <span class="input-group-text">
-                            <i class="nc-icon nc-email-85"></i>
-                          </span>
-                        </div>
-                        <input type="email" class="form-control" placeholder="Razón Social" (focus)="focus2=true" (blur)="focus2=false">
-                      </div>
-                      <div class="input-group" [ngClass]="{'input-group-focus':focus2===true}">
-                        <div class="input-group-prepend">
-                          <span class="input-group-text">
-                            <i class="nc-icon nc-email-85"></i>
-                          </span>
-                        </div>
-                        <input type="email" class="form-control" placeholder="Productos a ofertar" (focus)="focus2=true" (blur)="focus2=false">
-                      </div>
-                    </div>
-                  </div>
-
-                 
-                  
-                  
-                  <div class="form-check text-left">
-                    <label class="form-check-label">
-                      <input class="form-check-input" type="checkbox" checked>
-                      <span class="form-check-sign"></span>
-                      I agree to the
-                      <a href="#something">terms and conditions</a>.
-                    </label>
-                  </div>
-                </form> -->
-              </div>
-
-            </div>
+              </div> <!-- fin card-body -->
+            </div> <!-- fin card-signup -->
           </div>
         </div>
       </div>
     </div>
-
   </div>
 </div>
+ 

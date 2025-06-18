@@ -20,4 +20,7 @@ export interface Student {
     student_date_register ?: string;
     student_state_register ?: boolean;
     student_email_is_valid ?: boolean;
+    student_allergies ?: Array<string>;
 }
+
+

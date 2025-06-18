@@ -1,0 +1,443 @@
+<div class="main-content">
+    <app-loading></app-loading>
+    <div class="container-fluid-body p-0">
+        <!-- ADMIN MENU-->
+
+        <div class="row justify-content-center">
+            <div class="col-12  ">
+                <div class="row m-0 justify-content-center card card-calendar">
+                    <div class="col-10 card-content p-4" class="collapse multi-collapse " id="multiCollapseMenu">
+                        <full-calendar style="min-height: 75vh; max-width: 95%; margin: 0 auto;" id="fullCalendar"
+                            deepChangeDetection="true" [options]="calendarOptions">
+                        </full-calendar>
+                        <div class="col-12 p-0">
+                            <div class="row m-0 justify-content-center">
+                                <button class="btn btn-danger" (click)="cancelAdminMenu()">Cancelar</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- LISTA - products -->
+        <div class="row m-0 w-100 p-0">
+            <div class="col-sm-12 p-0">
+                <div class="row m-0">
+                    <div class="col-sm-8 d-flex justify-content-start">
+                        <div class="row m-0 w-100 m-0 p-0">
+                            <div class="col-4 p-0">
+                                <button [disabled]="isAdminMenu" class="btn btn-primary " (click)="newProduct()">
+                                    Nuevo Producto
+                                </button>
+                            </div>
+                            <div class="col-8 p-0">
+                                <div class="row m-0 justify-content-start">
+                                    <button class="btn btn-primary " (click)="adminMenu()">
+                                        Administrar menú
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-4 p-3 text-right">
+                        <mat-form-field class="text-white">
+                            <mat-label>
+                                <i class="fa fa-search"></i>
+                                Buscar producto
+                            </mat-label>
+                            <input matInput (keyup)="applyFilter($event)" class="input-search-table" #input>
+                        </mat-form-field>
+                    </div>
+                </div>
+
+                <div class="col-12 p-0 w-100 p-2">
+                    <table #table mat-table matSort [dataSource]="dataSource"
+                        class="mat-elevation-z8 table-reponsive table-bordered container-fluid-body text-white"
+                        style="min-width: 100%;">
+                        <ng-container matColumnDef="image">
+                            <th mat-header-cell *matHeaderCellDef class="text-center title-table">
+                                Imagen
+                            </th>
+                            <td mat-cell *matCellDef="let row" class="text-center">
+                                <div class="pt-1 pb-1" *ngIf="row.product_images && row.product_images.length > 0">
+                                    <i class="nc-icon nc-image "></i>
+                                </div>
+                                <div class="pt-1 pb-1" *ngIf="!row.product_images || row.product_images.length === 0">
+                                    <i class="nc-icon nc-camera-compact" aria-hidden="true"></i>
+                                </div>
+                            </td>
+                        </ng-container>
+                        <ng-container matColumnDef="code">
+                            <th mat-header-cell *matHeaderCellDef class="text-center title-table">
+                                Código
+                            </th>
+                            <td mat-cell *matCellDef="let row" class="text-left">
+                                <span class="ml-3 mr-3">
+                                    #{{row.product_id | slice : 6}}
+                                </span>
+                            </td>
+                        </ng-container>
+                        <!-- *** name *** -->
+                        <ng-container matColumnDef="name">
+                            <th mat-header-cell *matHeaderCellDef class="text-left title-table">
+                                Nombre
+                            </th>
+                            <td mat-cell *matCellDef="let row" class="text-left">
+                                <span class=" mr-3">{{row.product_name}}</span>
+                            </td>
+                        </ng-container>
+                        <!-- *** Description *** -->
+                        <ng-container matColumnDef="description">
+                            <th mat-header-cell *matHeaderCellDef class="text-left title-table">
+                                Descripción </th>
+                            <td mat-cell *matCellDef="let row" style="width: 30%;" class="text-left">
+                                <span>{{row.product_description | slice : 0 : 150}}</span>
+                            </td>
+                        </ng-container>
+                        <!-- *** Category *** -->
+                        <ng-container matColumnDef="line">
+                            <th mat-header-cell *matHeaderCellDef class="text-left title-table">
+                                Categoría
+                            </th>
+                            <td mat-cell *matCellDef="let row" class="text-left">
+                                <span>{{row.product_id_category_name}}</span>
+                            </td>
+                        </ng-container>
+                        <!-- *** Price *** -->
+                        <ng-container matColumnDef="price">
+                            <th mat-header-cell *matHeaderCellDef class="text-center title-table">
+                                Precio </th>
+                            <td mat-cell *matCellDef="let row" class="text-center">
+                                <span class="p-price ml-3 mr-3">{{row.product_price | currency}}</span>
+                            </td>
+                        </ng-container>
+                        <!-- *** State *** -->
+                        <ng-container matColumnDef="status">
+                            <th mat-header-cell *matHeaderCellDef class="text-center title-table">
+                                Estado
+                            </th>
+                            <td mat-cell *matCellDef="let row" class="text-center">
+                                <!-- <i *ngIf="row.product_state" class="fa fa-check text-primary" aria-hidden="true"></i>
+                                <i *ngIf="!row.product_state" class="fa fa-times text-danger" aria-hidden="true"></i> -->
+                                <span *ngIf="row.product_state" class="state-order btn btn-success btn-sm m-0 ml-2">
+                                    Activo
+                                </span>
+                                <span *ngIf="!row.product_state" class="state-order btn btn-danger btn-sm m-0 ml-2">
+                                    Inactivo
+                                </span>
+                            </td>
+                        </ng-container>
+
+                        <!-- *** Edit *** -->
+                        <ng-container matColumnDef="edit">
+                            <th mat-header-cell *matHeaderCellDef class="text-center title-table">
+                                Editar
+                            </th>
+                            <td mat-cell *matCellDef="let row" class="text-center">
+                                <span (click)="editProduct(row)" class="state-order btn btn-primary btn-sm m-0 ml-2">
+                                    Editar
+                                    <!-- <i class="fa fa-pencil cursor-pointer" aria-hidden="true"></i> -->
+                                </span>
+                            </td>
+                        </ng-container>
+                        <!-- *** Delete *** -->
+                        <ng-container matColumnDef="delete">
+                            <th mat-header-cell *matHeaderCellDef class="text-center title-table">
+                                Eliminar
+                            </th>
+                            <td mat-cell *matCellDef="let row" class="text-center">
+                                <span (click)="deleteProduct(row)" class="state-order btn btn-danger btn-sm m-0 ml-2">
+                                    Eliminar
+                                    <!-- <i class="fa fa-trash cursor-pointer" aria-hidden="true"></i> -->
+                                </span>
+                            </td>
+                        </ng-container>
+                        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+                        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+                    </table>
+                    <mat-paginator #tableProducts [pageSizeOptions]="[10, 25, 50]" showFirstLastButtons>
+                    </mat-paginator>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- *** Modal admin *** -->
+<div class="modal fade" id="modalAdminProduct" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content container-fluid-body">
+            <div class="modal-header justify-content-center text-white">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <i class="nc-icon nc-simple-remove text-white"></i>
+                </button>
+                <h4 class="card-title">{{isEditProduct ? 'Editar' : 'Nuevo'}} Producto</h4>
+            </div>
+            <div class="modal-body m-0 p-0 pb-5">
+                <form #formProduct="ngForm" novalidate
+                    (ngSubmit)="saveProduct(formProduct.value, formProduct.valid , formProduct)">
+                    <div class="row m-0 w-100 align-items-center justify-content-center">
+                        <div class="col-sm-4  m-0 p-0">
+                            <div class="row m-0 p-0 w-100">
+                                <div class="col-sm-4 p-0 p-2 col-content-elements-img border-dashed">
+                                    <div class="cursor-pointer m-0 p-0 pt-3 text-center">
+                                        <div (click)="addImageGallery()" class="img-new-image display-row-center">
+                                            <img src="../../../../assets/img/icons/gallery.png" alt="">
+                                            <button type="button" rel="tooltip" title=""
+                                                class="btn btn-primary btn-sm btn-block">
+                                                Agregar
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <input hidden id="product_gallery" type="file" name="product_gallery"
+                                        accept="image/*" (change)="fileProgressGallery($event)" required />
+                                </div>
+                                <div class="col-sm-4 p-0 p-2 border-dashed"
+                                    *ngFor="let image of previewUrlGallery; let i = index">
+                                    <div class="p-0"
+                                        *ngIf="previewUrlGallery && previewUrlGallery.length > 0 || product && product.product_images.length > 0">
+                                        <!-- VISUALIZACIÓN DE IMAGEN EN TAMAÑO GRANDE-->
+                                        <div class="img-content"
+                                            *ngIf="!image && product.product_images  && product.product_images[i] "
+                                            style="background-image: url({{product.product_images[i]}});"></div>
+                                        <div class="img-content"
+                                            *ngIf="image  && product.product_images && product.product_images[i] "
+                                            style="background-image: url({{image}});"></div>
+                                        <div class="img-content"
+                                            *ngIf="image && product.product_images  &&  !product.product_images[i]"
+                                            style="background-image: url({{image}});"></div>
+                                    </div>
+
+                                    <!-- EDITAR IMAGEN-->
+                                    <div class="col-12 text-right m-0 p-0"
+                                        *ngIf="previewUrlGallery && previewUrlGallery.length > 0 || category && product.product_images.length > 0">
+                                        <button type="button" (click)="changeImageGallery(i)" rel="tooltip" title=""
+                                            class="btn btn-primary btn-sm btn-block">
+                                            Editar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-8">
+                            <div class="row m-0 w-100 align-items-center justify-content-center">
+                                <!-- *** Code *** -->
+                                <div class="col-sm-4">
+                                    <label class="control-label" for="">Código (Autogenerado):
+                                        <span class="star">*</span>
+                                    </label>
+                                    <input readonly type="text" class="form-control" name="product_id"
+                                        [(ngModel)]="product.product_id" required #product_id="ngModel">
+                                    <small
+                                        [hidden]="product_id.valid || (product_id.pristine && !formProduct.submitted)"
+                                        class="text-danger">
+                                        Código es requerido.
+                                    </small>
+                                </div>
+                                <!-- *** Name *** -->
+                                <div class="col-sm-4">
+                                    <label class="control-label" for="">Nombre del producto:
+                                        <span class="star">*</span>
+                                    </label>
+                                    <input type="text" class="form-control" name="product_name"
+                                        [(ngModel)]="product.product_name" required #product_name="ngModel"
+                                        placeholder="Nombre del producto">
+                                    <small
+                                        [hidden]="product_name.valid || (product_name.pristine && !formProduct.submitted)"
+                                        class="text-danger">
+                                        Nombre es requerido.
+                                    </small>
+                                </div>
+                                <!-- *** Price *** -->
+                                <div class="col-sm-4">
+                                    <label class="control-label" for="">Precio + IVA (incluya el IVA):
+                                        <span class="star">*</span>
+                                    </label>
+                                    <input type="number" class="form-control" name="product_price"
+                                        [(ngModel)]="product.product_price" required #product_price="ngModel"
+                                        placeholder="Precio + IVA: 0.00">
+                                    <small
+                                        [hidden]="product_price.valid || (product_price.pristine && !formProduct.submitted)"
+                                        class="text-danger">
+                                        Precio es requerido.
+                                    </small>
+                                </div>
+                                <!-- *** Description *** -->
+                                <div class="col-sm-6">
+                                    <label class="control-label" for="">Descripción del producto:
+                                        <span class="star">*</span>
+                                    </label>
+                                    <textarea type="text" class="form-control p-1" name="product_description"
+                                        [(ngModel)]="product.product_description" required
+                                        #product_description="ngModel"
+                                        placeholder="Descripción del producto"></textarea>
+                                    <small
+                                        [hidden]="product_description.valid || (product_description.pristine && !formProduct.submitted)"
+                                        class="text-danger">
+                                        Descripción es requerida.
+                                    </small>
+                                </div>
+                                <!-- *** Observations *** -->
+                                <div class="col-sm-6">
+                                    <label class="control-label" for="">Observaciones:
+                                    </label>
+                                    <textarea type="text" class="form-control p-1" name="product_observations"
+                                        [(ngModel)]="product.product_observations" #product_observations="ngModel"
+                                        placeholder="Observaciones"></textarea>
+                                </div>
+                                <!-- *** Category *** -->
+                                <div class="col-sm-6">
+                                    <div *ngIf="array_lines">
+                                        <label class="control-label" for="">Seleccionar Categoría:
+                                            <span class="star">*</span>
+                                        </label>
+                                        <div class="btn-group  w-100">
+                                            <select (selectionChange)="selectCategory($event)"
+                                                name="product_id_category" placeholder="Seleccione"
+                                                panelClass="Seleccione" class=" form-control" [formControl]="lineForm"
+                                                [(ngModel)]="product.product_id_category">
+                                                <option *ngFor="let line of array_lines" [value]="line.category_id">
+                                                    {{line.category_name}}
+                                                </option>
+                                            </select>
+
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- *** State *** -->
+                                <div class="col-sm-6">
+                                    <label class="control-label" for="">Estado:
+                                        <span class="star">*</span>
+                                    </label>
+                                    <br>
+                                    <bSwitch name="group_state" [(ngModel)]="product.product_state"
+                                        [switch-on-color]="'primary'" [switch-off-color]="'primary'"
+                                        [switch-off-text]="'&#x2715;'" [switch-on-text]="'&#x2714;'">
+                                    </bSwitch>
+                                </div>
+                                <div class="col-sm-6">
+                                    <hr>
+                                    <button type="button" (click)="cancelViewForm()" class="btn btn-danger  btn-block">
+                                        Cancelar
+                                    </button>
+                                </div>
+                                <div class="col-sm-6">
+                                    <hr>
+                                    <button type="submit" class="btn btn-primary btn-block">
+                                        Guardar
+                                    </button>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- *** #Modal New User *** -->
+
+
+<div class="modal fade modal-primary" id="myModallistProducts" tabindex="-1" role="dialog"
+    aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header justify-content-center">
+                <div class="modal-profile ml-auto mr-auto">
+                    <i class="nc-icon nc-calendar-60"></i>
+                </div>
+            </div>
+            <div class="modal-body pl-1 pr-1">
+                <div class="row m-0">
+                    <div class="col-12 p-0 w-100">
+                        <table #table mat-table matSort [dataSource]="dataSourceModal"
+                            class="table-reponsives table-bordered" style="min-width: 100%;">
+                            <ng-container matColumnDef="image">
+                                <th mat-header-cell *matHeaderCellDef class="text-center title-table">
+                                    Imagen </th>
+                                <td mat-cell *matCellDef="let row" class="text-center">
+                                    <div class="pt-1 pb-1" *ngIf="row.product_images && row.product_images.length > 0">
+                                        <div class="img-ontent-product-table "
+                                            style="background-image: url({{row.product_images[0]}}); background-size: contain;">
+                                        </div>
+                                    </div>
+                                    <div class="pt-1 pb-1"
+                                        *ngIf="!row.product_images || row.product_images.length === 0">
+                                        <i class="fa fa-file-image-o" aria-hidden="true"></i>
+                                    </div>
+
+                                </td>
+                            </ng-container>
+                            <ng-container matColumnDef="code">
+                                <th mat-header-cell *matHeaderCellDef class="text-center title-table">
+                                    Código </th>
+                                <td mat-cell *matCellDef="let row" class="text-center">
+                                    <span>{{row.product_id
+                                        |
+                                        slice:6}}</span>
+                                </td>
+                            </ng-container>
+                            <ng-container matColumnDef="name">
+                                <th mat-header-cell *matHeaderCellDef class="text-center title-table">
+                                    Nombre </th>
+                                <td mat-cell *matCellDef="let row" class="text-center">
+                                    <span>{{row.product_name}}</span>
+                                </td>
+                            </ng-container>
+                            <ng-container matColumnDef="description">
+                                <th mat-header-cell *matHeaderCellDef class="text-center title-table">
+                                    Descripción </th>
+                                <td mat-cell *matCellDef="let row" class="text-center">
+                                    <span>{{row.product_description | slice:0:20}}</span>
+                                </td>
+                            </ng-container>
+                            <ng-container matColumnDef="price">
+                                <th mat-header-cell *matHeaderCellDef class="text-center title-table">
+                                    Precio </th>
+                                <td mat-cell *matCellDef="let row" class="text-center">
+                                    <span>{{row.product_price | currency}}</span>
+                                </td>
+                            </ng-container>
+
+                            <ng-container matColumnDef="select">
+                                <th mat-header-cell *matHeaderCellDef class="text-center title-table">
+                                    Agregar
+                                </th>
+                                <td mat-cell *matCellDef="let row" class="text-center">
+                                    <mat-checkbox [disabled]="isEditEvent" [checked]="row.product_state_in_menu"
+                                        (change)="selectProduct($event, row)" class="example-margin">
+                                    </mat-checkbox>
+                                </td>
+                            </ng-container>
+
+                            <tr mat-header-row *matHeaderRowDef="displayedColumnsModal"></tr>
+                            <tr mat-row *matRowDef="let row; columns: displayedColumnsModal;"></tr>
+
+                        </table>
+                        <!-- [pageSizeOptions]="[10, 50]"-->
+                        <mat-paginator #tableProductsModal [pageSizeOptions]="[10, 25, 50]" showFirstLastButtons>
+                        </mat-paginator>
+                    </div>
+                    <div class="col-12 p-0">
+                        <div class="row m-0">
+                            <div *ngIf="!isEditEvent" class="col-12 p-0">
+                                <div class="row m-0 justify-content-center">
+                                    <button (click)="addMenu()" class="btn btn-primary "> Guardar</button>
+                                </div>
+                            </div>
+                            <div *ngIf="isEditEvent" class="col-12">
+                                <div class="row m-0 justify-content-center">
+                                    <button class="btn btn-danger " (click)="deleteProductMenu()">Eliminar</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

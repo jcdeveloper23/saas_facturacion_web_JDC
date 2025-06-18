@@ -1,4 +1,6 @@
 <div class="row w-100 login-page m-0 p-0 align-items-center">
+      <div class="overlay"></div>
+
   <div class="col-lg-4 col-md-6 ml-auto mr-auto">
     <div class="card card-lock text-center w-100 container-fluid-body">
       <div class="card-body">
@@ -45,7 +47,7 @@
             </div>
 
             <div class="col-sm-12 cursor-pointer m-0 p-0 mt-4">
-              <button type="button" class="btn btn-block btn-danger">
+              <button type="button" class="btn btn-block btn-danger" (click)="cancel()">
                 Cancelar
               </button>
             </div>

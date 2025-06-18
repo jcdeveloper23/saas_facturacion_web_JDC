@@ -19,6 +19,7 @@ export interface ChildrenItems {
     path: string;
     title: string;
     ab: string;
+    icontype?: string;
     type?: string;
 }
 
@@ -65,24 +66,68 @@ export const ROUTES_BAR: RouteInfo[] = [
     //     icontype: 'nc-icon nc-single-02'
     // },
     {
+        path: '/dashboard',
+        title: 'Dashboard',
+        type: 'link',
+        icontype: 'nc-icon nc-app'
+    },
+    {
         path: '/perfil',
         title: 'Empresa',
         type: 'link',
-        icontype: 'nc-icon nc-single-02'
-    }, {
-        path: '/inventory',
-        title: 'Inventario',
-        type: 'sub',
-        collapse: 'inventory',
-        icontype: 'nc-icon nc-box-2',
-        children: [
-            { path: 'lines', title: 'Categorías', ab: 'C' },
-            // { path: 'groups', title: 'Grupos', ab: 'G' },
-            { path: 'products', title: 'Productos', ab: 'P' },
-            { path: 'coupons', title: 'Cupones', ab: 'C' },
-            // { path: 'upload', title: 'Inventario inicial', ab: 'I' },
-        ]
+        icontype: 'nc-icon nc-app'
     },
+    {
+        path: '/inventory/lines',
+        title: 'Categorías',
+        type: 'link',
+        icontype: 'nc-icon nc-single-02'
+    },
+    {
+        path: '/inventory/admin-products',
+        title: 'Productos',
+        type: 'link',
+        icontype: 'nc-icon nc-box'
+    },
+    {
+        path: '/inventory/coupons',
+        title: 'Cupones',
+        type: 'link',
+        icontype: 'nc-icon nc-cart-simple'
+    },
+    {
+        path: '/inventory/upload',
+        title: 'Subir',
+        type: 'link',
+        icontype: 'nc-icon nc-camera-compact'
+    },
+    // {
+    //     path: '/inventory/products',
+    //     title: 'Inventario',
+    //     type: 'sub',
+    //     collapse: 'inventory',
+    //     icontype: 'nc-icon nc-box-2',
+    //     children: [
+    //         // {
+    //         //     path: 'lines',
+    //         //     title: 'Categorías',
+    //         //     ab: 'C',
+    //         //     icontype: 'nc-icon nc-box-2'
+    //         // },
+    //         // {
+    //         //     path: 'products',
+    //         //     title: 'Productos',
+    //         //     ab: 'P',
+    //         //     icontype: 'nc-icon nc-box-2'
+    //         // },
+    //         {
+    //             path: 'coupons',
+    //             title: 'Cupones',
+    //             ab: 'C',
+    //             icontype: 'nc-icon nc-box-2'
+    //         },
+    //     ]
+    // },
     {
         path: '/supplie-reports',
         title: 'Reportes',
@@ -133,6 +178,18 @@ export const ROUTES_SUPER_ADMIN: RouteInfo[] = [
             { path: 'students', title: 'Estudiantes', ab: 'A' },
         ]
     },
+    {
+        path: '/countries',
+        title: 'Países',
+        type: 'link',
+        icontype: 'nc-icon nc-globe'
+    }, {
+        path: '/allergies',
+        title: 'Alergias',
+        type: 'link',
+        icontype: 'nc-icon nc-globe'
+    },
+
 ];
 
 /// *** Menu Items ALL ***
@@ -152,7 +209,7 @@ export const ROUTES_ALL: RouteInfo[] = [
             { path: 'lines', title: 'Categorías', ab: 'L' },
             // {path: 'groups', title: 'Grupos', ab:'G'},
             { path: 'products', title: 'Productos', ab: 'P' },
-            {path: 'upload', title: 'Inventario inicial', ab:'II'},
+            { path: 'upload', title: 'Inventario inicial', ab: 'II' },
         ]
     },
     {
@@ -341,7 +398,8 @@ export class SidebarComponent {
         } else if (this.infoUser.users_account_type == '1') {
             this.providerService.getProviderId(this.infoUser.user_id).pipe(take(1)).subscribe(provider => {
                 this.provider = provider;
-                if (!this.provider.provider_state_method) {
+                /// *** OJO negar ***
+                if (this.provider.provider_state_method) {
                     ROUTES = (ROUTES_BAR);
                 } else {
                     ROUTES = (ROUTES_BAR_SATATE_FALSE);

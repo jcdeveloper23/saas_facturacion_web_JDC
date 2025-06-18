@@ -10,6 +10,7 @@ import { RepresentativeProfileComponent } from './representative-profile/represe
 import { RepresentativeStudentComponent } from './representative-student/representative-student.component';
 import { PaymentMethodsComponent } from './payment-methods/payment-methods.component';
 import { CreateOrderComponent } from './create-order/create-order.component';
+import { AllergiesComponent } from './allergies/allergies.component';
 
 const routes: Routes = [
   {
@@ -32,6 +33,10 @@ const routes: Routes = [
   {
     path: "listProvider/:student_id",
     component: ChildrenComponent
+  },
+  {
+    path: "allergies/:student_id",
+    component: AllergiesComponent
   },
   {
     path: "createOrder/:student_id",

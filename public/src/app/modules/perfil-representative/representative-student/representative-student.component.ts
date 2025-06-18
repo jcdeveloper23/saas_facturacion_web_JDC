@@ -299,6 +299,10 @@ export class RepresentativeStudentComponent implements OnInit {
     this.router.navigate(['perfil-representative/listOrders/' + student.student_id])
   }
 
+  public viewAllergiesByStudent(student: Student) {
+    this.router.navigate(['perfil-representative/allergies/' + student.student_id])
+  }
+
 
 
   // /**

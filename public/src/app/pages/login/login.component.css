@@ -1,7 +1,22 @@
 .login-page {
-    min-height: 100vh;
-    background-image: url('../../../assets/img/bgs/bgLogin.png');
-    background-size: cover;
+  background-image: url('../../../assets/img/bgFour.png');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+  background-attachment: fixed;
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+}
+
+.overlay {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  background-color: rgba(0, 0, 0, 0.4); /* Opacidad del fondo */
 }
 
 .card-title {

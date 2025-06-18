@@ -5,6 +5,7 @@ import { GroupsComponent } from './groups/groups.component';
 import { LinesComponent } from './lines/lines.component';
 import { ProductsComponent } from './products/products.component';
 import { UploadProductsComponent } from './upload-products/upload-products.component';
+import { AdminProductsComponent } from './admin-products/admin-products.component';
 
 const routes: Routes = [{
   path:'lines',
@@ -13,8 +14,8 @@ const routes: Routes = [{
   path:'groups',
   component : GroupsComponent,
 } , {
-  path:'products',
-  component : ProductsComponent,
+  path:'admin-products',
+  component : AdminProductsComponent,
 } , {
   path:'upload',
   component : UploadProductsComponent,

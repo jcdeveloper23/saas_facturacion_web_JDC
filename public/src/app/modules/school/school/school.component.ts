@@ -61,7 +61,8 @@ export class SchoolComponent implements OnInit {
   public levelSelected: Levels;
   public lectiveYears: LectiveYear[] = [];
   public lectiveYear: LectiveYear;
-  constructor(private schoolService: SchoolService,
+  constructor(
+    private schoolService: SchoolService,
     private storageService: StorageService,
     public utilsService: UtilsService,
     public lectiveService: LectiveYearService) { }

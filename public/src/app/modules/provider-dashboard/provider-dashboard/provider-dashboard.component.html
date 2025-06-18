@@ -1,0 +1,294 @@
+<div class="main-content">
+    <app-loading></app-loading>
+    <div class=" p-0">
+        <!-- Opciones de filtros estilo iOS -->
+        <div class="ios-segment-container mx-auto my-4" [style.--items]="tabsOptions.length">
+            <div class="ios-segment-bg" [ngStyle]="{transform: 'translateX(' + selectedMethodIndex * 100 + '%)'}"></div>
+            <div *ngFor="let item of tabsOptions" class="ios-segment-option"
+                [ngClass]="{ active: filterSelected === item.key }" (click)="getStats(item)">
+                {{ item.label }}
+            </div>
+        </div>
+
+        <!-- Filtros dinámicos por tipo de estadística -->
+        <div class="row w-100 m-0 p-0 justify-content-center container-fluid-body text-white">
+            <ng-container [ngSwitch]="filterSelected">
+                <!-- Filtros para DAILY -->
+                <ng-container *ngSwitchCase="'daily'">
+                    <div class="col-12 col-sm-12 col-md-3 mb-3 text-center">
+                        <!-- Calendario -->
+                        <div class="mt-3">
+                            <label for="dateSelected">Fecha</label>
+                            <input class="form-control" type="date" id="dateSelected" [(ngModel)]="filters.date"
+                                (change)="selectDay(filters.date)" />
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-12 col-md-9 m-0">
+                        <!-- Grilla de 7 días -->
+                        <div class="d-flex justify-content-center gap-2 flex-wrap m-0 p-0 mt-2">
+                            <div *ngFor="let day of last7Days"
+                                class="day-tile p-1 m-1 rounded text-center cursor-pointer container-fluid-body-light"
+                                [ngClass]="{
+                                        'bg-primary text-white': filtersDate.date === day.date,
+                                        'border border-primary': day.date === today 
+                                    }" (click)="selectDay(day.date)">
+                                <div class="fw-bold m-0 p-0">{{ day.label }}</div>
+                                <small class="m-0 p-0">{{ day.date }}</small>
+                            </div>
+                        </div>
+                        <!-- Navegación entre semanas -->
+                        <div class="d-flex justify-content-center align-items-center gap-2 m-0">
+                            <button class="btn btn-sm btn-outline-primary mr-3" (click)="changeWeek(-1)">
+                                ← Semana anterior
+                            </button>
+                            <span class="fw-bold text-center">{{ getWeekRangeLabel() }}</span>
+                            <button class="btn btn-sm btn-outline-primary ml-3" (click)="changeWeek(1)">
+                                Semana siguiente →
+                            </button>
+                        </div>
+                    </div>
+                </ng-container>
+
+                <!-- Filtros para MONTHLY -->
+                <ng-container *ngSwitchCase="'monthly'">
+                    <!-- Día del mes -->
+                    <div class="col-md-4 mb-2">
+                        <label for="day">Día del mes</label>
+                        <select class="form-control" [(ngModel)]="filters.day">
+                            <option value="">Todos</option>
+                            <option *ngFor="let d of daysInMonth" [value]="d">{{ d }}</option>
+                        </select>
+                    </div>
+                </ng-container>
+
+                <!-- Filtros para YEARLY -->
+                <ng-container *ngSwitchCase="'yearly'">
+                    <!-- Mes -->
+                    <div class="col-md-4 mb-2">
+                        <label for="month">Mes</label>
+                        <select class="form-control" [(ngModel)]="filters.month" (change)="selectYear($event)">
+                            <option value="">Todos</option>
+                            <option *ngFor="let m of years" [value]="m.value">{{ m.name }}</option>
+                        </select>
+                    </div>
+                </ng-container>
+            </ng-container>
+        </div>
+
+        <!-- Mostrar contenido cuando hay estadísticas -->
+        <ng-container *ngIf="hasStats(); else noStats">
+            <div class="row w-100 m-0 p-0">
+                <!-- *** numero de estudiantes *** -->
+                <div class="col-12 col-sm-6 col-md-6 col-lg-4 m-0 p-1">
+                    <div class="card card-stats container-fluid-body m-0">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-7 col-md-8">
+                                    <div class="numbers">
+                                        <p class="card-category">Total de pedidos</p>
+                                        <p class="card-title mt-4 mb-3">
+                                            {{ stats.totalOrders }}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="col-5 col-md-4">
+                                    <div class="icon-big text-center bg-purple-dark p-3 mx-0">
+                                        <img src="../../../../assets/img/icons/users.png" alt="" srcset="">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <p class="text-white mb-3">Nro de pedidos {{key}}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- *** numero de ordenes *** -->
+                <div class="col-12 col-sm-6 col-md-6 col-lg-4 m-0 p-1">
+                    <div class="card card-stats container-fluid-body m-0">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-7 col-md-8">
+                                    <div class="numbers">
+                                        <p class="card-category">Monto total</p>
+                                        <p class="card-title mt-4 mb-3">
+                                            {{ stats.totalAmount | currency }}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="col-5 col-md-4">
+                                    <div class="icon-big text-center bg-yellow-dark p-3 mx-0">
+                                        <img src="../../../../assets/img/icons/product.png" alt="" srcset="">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <p class="text-white">
+                                <img src="../../../../assets/img/icons/up.png" class="icon-mini" alt="">
+                                <span class="text-green">1.3%</span> Más que la semana pasada
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- *** numero de ordenes pendientes por entregar *** -->
+                <div class="col-12 col-sm-6 col-md-6 col-lg-4 m-0 p-1">
+                    <div class="card card-stats container-fluid-body m-0">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-7 col-md-8">
+                                    <div class="numbers">
+                                        <p class="card-category">Ordenes pagadas</p>
+                                        <p *ngIf="stats.paymentStatus !== undefined" class="card-title mt-4 mb-3">
+                                            {{ stats.paymentStatus.aceptada }}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="col-5 col-md-4">
+                                    <div class="icon-big text-center bg-green-dark p-3 mx-0">
+                                        <img src="../../../../assets/img/icons/grafic.png" alt="" srcset="">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <p class="text-white">
+                                <img src="../../../../assets/img/icons/down.png" class="icon-mini" alt="">
+                                <span class="text-red">1.3%</span> Procesadas correctamente
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gráfico: Órdenes por forma de pago -->
+            <div class="row w-100 m-0 p-0">
+                <!-- *** Grafica ultimos años *** -->
+                <div *ngIf="filterSelected == 'yearly'" class="col-12 col-sm-12 col-md-12 col-lg-12 m-0 p-1">
+                    <div class="card card-stats container-fluid-body">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-12">
+                                    <div style="height: 200px; position: relative;" class="numbers">
+                                        <p class="card-category">Ingresos anuales</p>
+                                        <canvas id="salesChart"></canvas>
+                                        
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div *ngIf="stats.perPaymentMethod !== undefined" class="card-footer text-white">
+                            <hr>
+                            Efectivo ({{stats.perPaymentMethod.efectivo != undefined ? stats.perPaymentMethod.efectivo :
+                            0}})
+                            Tarjeta ({{stats.perPaymentMethod.tarjeta != undefined ? stats.perPaymentMethod.tarjeta :
+                            0}})
+                        </div>
+                    </div>
+                </div>
+                <!-- *** Grafica ultimos 30 dias *** -->
+                <div *ngIf="filterSelected == 'monthly'" class="col-12 col-sm-12 col-md-12 col-lg-12 m-0 p-1">
+                    <div class="card card-stats container-fluid-body">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-12">
+                                    <div style="height: 200px; position: relative;" class="numbers">
+                                        <p class="card-category">Ingresos anuales</p>
+                                        <canvas id="sales30Chart"></canvas>
+                                        
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div *ngIf="stats.perPaymentMethod !== undefined" class="card-footer text-white">
+                            <hr>
+                            Efectivo ({{stats.perPaymentMethod.efectivo != undefined ? stats.perPaymentMethod.efectivo :
+                            0}})
+                            Tarjeta ({{stats.perPaymentMethod.tarjeta != undefined ? stats.perPaymentMethod.tarjeta :
+                            0}})
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- *** Por metodo de pago *** -->
+                <div class="col-12 col-sm-6 col-md-6 col-lg-4 m-0 p-1">
+                    <div class="card card-stats container-fluid-body">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-12">
+                                    <div class="numbers">
+                                        <p class="card-category">Total por método de pago</p>
+                                        <canvas id="amountChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div *ngIf="stats.perPaymentMethod !== undefined" class="card-footer text-white">
+                            <hr>
+                            Efectivo ({{stats.perPaymentMethod.efectivo != undefined ? stats.perPaymentMethod.efectivo :
+                            0}})
+                            Tarjeta ({{stats.perPaymentMethod.tarjeta != undefined ? stats.perPaymentMethod.tarjeta :
+                            0}})
+                        </div>
+                    </div>
+                </div>
+
+                <!-- *** numero de ordenes *** -->
+                <div class="col-12 col-sm-6 col-md-6 col-lg-4 m-0 p-1">
+                    <div class="card card-stats container-fluid-body">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-12">
+                                    <div class="numbers">
+                                        <p class="card-category">Estado de pago</p>
+                                        <canvas id="paymentStatusChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div *ngIf="stats.paymentStatus != undefined" class="card-footer text-white">
+                            <hr>
+                            Aceptadas ({{stats.paymentStatus.aceptada != undefined ? stats.paymentStatus.aceptada : 0}})
+                            Pendientes ({{stats.paymentStatus.desconocido != undefined ? stats.paymentStatus.desconocido
+                            :
+                            0}})
+                        </div>
+                    </div>
+                </div>
+
+                <!-- *** numero de ordenes pendientes por entregar *** -->
+                <div class="col-12 col-sm-6 col-md-6 col-lg-4 m-0 p-1">
+                    <div class="card card-stats container-fluid-body">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-12">
+                                    <div class="numbers">
+                                        <p class="card-category">Monto por método de pago</p>
+                                        <canvas id="orderStatusChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <p class="text-white">
+                                <img src="../../../../assets/img/icons/down.png" class="icon-mini" alt="">
+                                <span class="text-red">1.3%</span> Procesadas correctamente
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </ng-container>
+
+        <!-- Template alternativo cuando no hay estadísticas -->
+        <ng-template #noStats>
+            <div class="text-center w-100 py-4 text-muted">
+                <p class="mb-0">No hay estadísticas disponibles para el período seleccionado.</p>
+                <small>Por favor, seleccione otro período.</small>
+            </div>
+        </ng-template>
+    </div>
+</div>

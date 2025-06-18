@@ -89,8 +89,8 @@ export class CreateOrderComponent implements OnInit {
   /**
    * *** Para pago con tarjeta ***
    */
-  public cvc: number = null;
-  public paymentMethodSelected: PaymentMethod;
+  public cvc: string = '';
+  public paymentMethodSelected: PaymentMethod = {};
   /**
    * *** Lista de tarjetas del cliente ***
    */
@@ -117,6 +117,25 @@ export class CreateOrderComponent implements OnInit {
     // puedes seguir agregando más métodos
   ];
 
+  public flippedCardIndex: number | null = null;
+
+  public maskedCvc: string = '';
+
+onCvcInput(event: any, inputEl: HTMLInputElement): void {
+  const raw = event.target.value;
+  console.log(raw);
+  
+  // const numeric = raw.replace(/[^0-9]/g, '');
+  this.cvc = raw;
+  console.log(this.cvc);
+  
+  this.maskedCvc = '*'.repeat(this.cvc.length);
+
+  // Forzar cursor al final (necesario en algunos navegadores)
+  setTimeout(() => {
+    inputEl.selectionStart = inputEl.selectionEnd = this.maskedCvc.length;
+  }, 0);
+}
 
   constructor(
     private router: Router,
@@ -180,8 +199,8 @@ export class CreateOrderComponent implements OnInit {
   }
 
   get selectedMethodIndex(): number {
-  return this.paymentMethods.findIndex(m => m.key === this.order.order_payment_method);
-}
+    return this.paymentMethods.findIndex(m => m.key === this.order.order_payment_method);
+  }
 
 
   /**

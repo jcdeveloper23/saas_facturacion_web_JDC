@@ -7,8 +7,10 @@ import { MatTableDataSource } from '@angular/material/table';
 import { Coupon } from 'app/interfaces/coupon';
 import { Users } from 'app/interfaces/users';
 import { CouponsService } from 'app/services/coupons/coupons.service';
+import { LoadingService } from 'app/services/loading/loading.service';
 import { take } from 'rxjs/operators';
 import Swal from 'sweetalert2';
+
 declare var $: any;
 
 @Component({
@@ -37,9 +39,12 @@ export class CouponsComponent implements OnInit {
 
   constructor(
     private couponsService: CouponsService,
+    public loadingService: LoadingService,
+
   ) { }
 
   ngOnInit(): void {
+    this.loadingService.show('Cargando...');
     this.array_coupons = [];
     this.infoUser = JSON.parse(localStorage.getItem("infoUser"));
     if (this.infoUser) {
@@ -73,6 +78,7 @@ export class CouponsComponent implements OnInit {
       this.dataSource = new MatTableDataSource<Coupon>(coupons);
       this.dataSource.paginator = this.paginator;
       this.dataSource.sort = this.sort;
+      this.loadingService.hide();
     })
   }
 

@@ -277,7 +277,6 @@ export class ReportProviderComponent implements OnInit {
         }]
       },
       options: {
-
         legend: {
 
           display: false

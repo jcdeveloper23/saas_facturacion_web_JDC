@@ -5,6 +5,8 @@ import { take } from 'rxjs/operators';
 import { StorageService } from 'app/services/storage/storage.service';
 import { Users } from 'app/interfaces/users';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
+import { SchoolService } from 'app/services/school/school.service';
+import { School } from 'app/interfaces/school';
 declare var $: any;
 @Component({
   selector: 'app-provider',
@@ -20,7 +22,13 @@ export class ProviderComponent implements OnInit {
   public fileDataImage: File = null;
   public previe_url_image: any = null;
   public urlByAddPayment: SafeUrl;
-  constructor(private providerService: ProviderService,
+  public school: School = {};
+
+
+
+  constructor(
+    private schoolService: SchoolService,
+    private providerService: ProviderService,
     private storageService: StorageService,
     public sanitizer: DomSanitizer,
   ) { }
@@ -32,13 +40,13 @@ export class ProviderComponent implements OnInit {
       this.urlByAddPayment = this.sanitizerUrl(`https://tubarpay.web.app/?id=${this.infoUser.user_uid}&email=${this.infoUser.email}&idp=${this.infoUser.user_id}`);
     }
     this.provider = {};
-    this.getProvider() 
+    this.getProvider()
   }
 
   ngAfterViewInit() {
-      $(this.myModaldetailPaymentMethod.nativeElement).on('hidden.bs.modal', () => {
-        location.reload();
-      });
+    $(this.myModaldetailPaymentMethod.nativeElement).on('hidden.bs.modal', () => {
+      location.reload();
+    });
   }
 
   /**
@@ -56,6 +64,7 @@ export class ProviderComponent implements OnInit {
   public getProvider() {
     this.providerService.getProviderId(this.provider_id).pipe(take(1)).subscribe(provider => {
       this.provider = provider;
+      this.getSchoolById();
     })
   }
   /**
@@ -158,11 +167,20 @@ export class ProviderComponent implements OnInit {
     }
   }
 
-  public saveConfigPaymentez (value: any, valid: boolean) {
+  public saveConfigPaymentez(value: any, valid: boolean) {
     if (valid) {
       this.providerService.saveConfigPaymentez(this.provider).then(() => {
         this.showNotification('top', 'right', 'nc-check-2', 'Configuración guardada correctaente', 'success');
       })
     }
+  }
+
+  /**
+   * *** Obtenemos las UEs de la DB ***
+   */
+  public getSchoolById() {
+    this.schoolService.getSchoolsById(this.provider.provider_id_school).pipe(take(1)).subscribe((school) => {
+      this.school = school[0];
+    })
   }
 }

@@ -136,7 +136,7 @@ export class StudentService {
   }
 
   getOrdersPendingByStudentPaginatedFilter(studentId: string, filters: any, lastDoc: any = null, pageSize: number = 10) {
-    console.log(JSON.stringify({studentId, filters, lastDoc, pageSize}, null , 3));
+    console.log(JSON.stringify({ studentId, filters, lastDoc, pageSize }, null, 3));
 
     return this.db.collection(`students/${studentId}/orders`, ref => {
       let query: firebase.default.firestore.CollectionReference | firebase.default.firestore.Query = ref;
@@ -147,7 +147,7 @@ export class StudentService {
         query = query
           .where('order_date_full', '>=', filters.startDate)
           .where('order_date_full', '<=', filters.endDate);
-          // .orderBy('order_date_full', 'desc');
+        // .orderBy('order_date_full', 'desc');
       }
 
       if (filters.status && filters.status !== 'Todos') {
@@ -162,7 +162,7 @@ export class StudentService {
       //   query = query.where('order_date', '>=', filters.startDate).where('order_date', '<=', filters.endDate);
       // }
 
-      query = query.orderBy('order_date_full', 'desc'); 
+      query = query.orderBy('order_date_full', 'desc');
       // .limit(pageSize);
 
       // if (lastDoc) {
@@ -179,6 +179,14 @@ export class StudentService {
     );
   }
 
+  sanitizeStudent(data: Partial<Student>): Student {
+    return {
+      ...data,
+      student_allergies: Array.isArray(data.student_allergies)
+        ? data.student_allergies
+        : []
+    };
+  }
 
 
 }

@@ -13,8 +13,22 @@
 }
 
 .bg-green {
-    background-color: #99CC33;
-    color: white !important;
+  background-image: url('../../../assets/img/bgFour.png');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+  background-attachment: fixed;
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
 }
 
-;
+.overlay {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  background-color: rgba(0, 0, 0, 0.6); /* Opacidad del fondo */
+}

@@ -9,6 +9,8 @@ import { Users } from 'app/interfaces/users';
 import { GroupsService } from 'app/services/groups/groups.service';
 import { LinesService } from 'app/services/lines/lines.service';
 import { take } from 'rxjs/operators';
+import { LoadingService } from 'app/services/loading/loading.service';
+
 import Swal from 'sweetalert2';
 
 declare var $: any;
@@ -37,16 +39,20 @@ export class LinesComponent implements OnInit {
   ];
   public isMenu: Array<boolean> = [];
 
-  constructor(private lineService: LinesService,
-    private groupsService: GroupsService) { }
+  constructor(
+    private lineService: LinesService,
+    private groupsService: GroupsService,
+    public loadingService: LoadingService,
+
+  ) { }
   ngOnInit(): void {
+    this.loadingService.show('Cargando...');
     this.infoUser = JSON.parse(localStorage.getItem("infoUser"));
     if (this.infoUser) {
       this.provider_id = this.infoUser.user_id;
     }
     this.line = {}
     this.getLines()
-
   }
 
   /**
@@ -55,7 +61,7 @@ export class LinesComponent implements OnInit {
   public newLine() {
     this.line = {}
     this.isEditLine = false;
-    $('#multiCollapseLine').collapse('show');
+    $('#modalAdmin').modal('show');
     this.line.category_id = new Date().getTime().toString();
     this.line.category_state = true;
     this.line.category_provider_id = this.provider_id;
@@ -78,6 +84,7 @@ export class LinesComponent implements OnInit {
       this.dataSource = new MatTableDataSource<Lines>(lines);
       this.dataSource.paginator = this.paginator;
       this.dataSource.sort = this.sort;
+      this.loadingService.hide();
     })
   }
 
@@ -101,19 +108,22 @@ export class LinesComponent implements OnInit {
    */
   public saveLine(line: Lines, isValid: boolean, form: NgForm) {
     if (isValid) {
+      this.loadingService.show('Cargando...');
       if (this.isEditLine) {
         this.lineService.updateLine(this.line).then(() => {
           this.showNotification('top', 'right', 'nc-check-2', 'Se realizó el registro correctamente', 'success');
           this.getLines();
           form.resetForm()
-          $('#multiCollapseLine').collapse('hide');
+          $('#modalAdmin').modal('hide');
+          this.loadingService.hide();
         })
       } else {
         this.lineService.saveLine(this.line).then(() => {
           this.showNotification('top', 'right', 'nc-check-2', 'Se realizó el registro correctamente', 'success');
           this.getLines()
           form.resetForm()
-          $('#multiCollapseLine').collapse('hide');
+          $('#modalAdmin').modal('hide');
+          this.loadingService.hide();
         })
       }
     }
@@ -126,9 +136,7 @@ export class LinesComponent implements OnInit {
   public editLine(line: Lines) {
     this.isEditLine = true;
     this.line = line;
-
-    $('#multiCollapseLine').collapse('show');
-
+    $('#modalAdmin').modal('show');
   }
 
   /**
@@ -150,6 +158,7 @@ export class LinesComponent implements OnInit {
       buttonsStyling: false
     }).then(async (result) => {
       if (result.value) {
+        this.loadingService.show('Cargando...');
         this.groupsService.getGroups(line.category_id).pipe(take(1)).subscribe((groups) => {
           if (groups && groups.length > 0) {
             for (let index = 0; index < groups.length; index++) {
@@ -179,7 +188,7 @@ export class LinesComponent implements OnInit {
    * Dejar de visualizar formulario
    */
   public cancelViewForm() {
-    $('#multiCollapseLine').collapse('hide');
+    $('#modalAdmin').modal('hide');
 
   }
   /**

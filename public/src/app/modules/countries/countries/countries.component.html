@@ -1,0 +1,299 @@
+<div class="main-content">
+    <app-loading></app-loading> 
+
+    <div class="row m-0 p-0 w-100">
+        <div class="col-sm-8">
+        </div>
+
+        <!-- *** numero de paises activos *** -->
+        <div class="col-12 col-sm-6 col-md-6 col-lg-4 m-0 p-0">
+            <div class="card card-stats container-fluid-body">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-7 col-md-8">
+                            <div class="numbers">
+                                <p class="card-category">Total de países</p>
+                                <p class="card-title mt-4 mb-5">
+                                    {{ arrayCountries.length }}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="col-5 col-md-4">
+                            <div class="icon-big text-center bg-purple-dark p-3 mx-0">
+                                <img src="../../../../assets/img/icons/users.png" alt="" srcset="">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button class="btn btn-primary btn-block" (click)="newCountry()">Nuevo</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row m-0 p-0 w-100">
+        <div class="row w-100 m-0 p-0 mt-2 container-fluid-body">
+            <div class="col-12 p-0 w-100 container-fluid-body m-0 p-0 table-responsive">
+                <table mat-table matSort [dataSource]="dataSource"
+                    class="mat-elevation-z8 table-reponsive table-bordered container-fluid-body text-white"
+                    style="min-width: 100%;">
+                    <ng-container matColumnDef="code">
+                        <th mat-header-cell *matHeaderCellDef class="text-center title-table m-0 p-0">
+                            Código
+                        </th>
+                        <td mat-cell *matCellDef="let row" class="text-center">
+                            <span>
+                                #{{row.countryId | slice:6}}
+                            </span>
+                        </td>
+                    </ng-container>
+                    <ng-container matColumnDef="name">
+                        <th mat-header-cell *matHeaderCellDef class="text-center title-table m-0 p-0">
+                            Nombre
+                        </th>
+                        <td mat-cell *matCellDef="let row" class="text-center">
+                            <span>{{row.countryName}}</span>
+                        </td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="phone">
+                        <th mat-header-cell *matHeaderCellDef class="text-center title-table m-0 p-0">
+                            Teléfono soporte
+                        </th>
+                        <td mat-cell *matCellDef="let row" class="text-center">
+                            <span>{{row.countryPhone}}</span>
+                        </td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="status">
+                        <th mat-header-cell *matHeaderCellDef class="text-center title-table m-0 p-0">
+                            Estado
+                        </th>
+                        <td mat-cell *matCellDef="let row" class="text-center">
+                            <i *ngIf="row.countryState" class="fa fa-check text-primary" aria-hidden="true"></i>
+                            <i *ngIf="!row.countryState" class="fa fa-times text-danger" aria-hidden="true"></i>
+                        </td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="edit">
+                        <th mat-header-cell *matHeaderCellDef class="text-center title-table m-0 p-0">
+                            Editar
+                        </th>
+                        <td mat-cell *matCellDef="let row" class="text-center">
+                            <i class="fa fa-pencil-square cursor-pointer text-warning btn-functions  cursor-pointer"
+                                aria-hidden="true" (click)="editCountry(row)"></i>
+                        </td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="delete">
+                        <th mat-header-cell *matHeaderCellDef class="text-center title-table m-0 p-0">
+                            Eliminar
+                        </th>
+                        <td mat-cell *matCellDef="let row" class="text-center">
+                            <i class="fa fa-trash text-danger cursor-pointer btn-functions cursor-pointer "
+                                aria-hidden="true" type="button" (click)="deleteProvider(row)"></i>
+                        </td>
+                    </ng-container>
+
+                    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+                    <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+
+                </table>
+                <mat-paginator [pageSizeOptions]="[10, 25, 50]" #tableProviders showFirstLastButtons>
+                </mat-paginator>
+
+
+
+                <!-- <table id="datatableUsers" class="table">
+                                    
+                                    <tbody id="tBodyCountry">
+                                        <tr *ngFor="let country of arrayCountries; let i = index">
+                                            <td class="text-center">{{country.countryCode}}</td>
+                                            <td class="text-left">{{country.countryName}}</td>
+                                            <td class="text-center">
+                                                <div class="row m-0 p-0 w-100">
+                                                    <div class="col-6">
+                                                        <i (click)="editCountry(country)"
+                                                            class="fa fa-edit icon-info"></i>
+                                                    </div>
+                                                    <div class="col-6">
+                                                        <i (click)="deleteCountry(country)"
+                                                            class="fa fa-trash icon-danger"></i>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table> -->
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+<!-- *** Modal New User *** -->
+<div class="modal fade" id="modalNewCountry" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content container-fluid-body">
+            <div class="modal-header justify-content-center text-white">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <i class="nc-icon nc-simple-remove text-white"></i>
+                </button>
+                <h4 class="card-title">{{isEdit ? 'Actualizar' : 'Nuevo'}}
+                    País
+                </h4>
+            </div>
+            <div class="modal-body"> 
+                <form #formCountry="ngForm" novalidate (ngSubmit)="saveCountry(formCountry.valid, formCountry)">
+                    <div class="row w-100 m-0 p-0">
+                        <div class="col-12">
+                            <div class="form-group has-label">
+                                <div class="row w-100 m-0 p-0 mb-3">
+                                    <input readonly type="hidden" class="form-control" name="countryId" placeholder="Id"
+                                        [(ngModel)]="country.countryId" required #countryId="ngModel">
+
+                                    <div class="col-12 col-sm-6 col-md-6 col-lg-4 mb-3 ">
+                                        <label class="control-label" for="">Código
+                                            <span class="star">*</span>
+                                        </label>
+                                        <input type="text" class="form-control" name="countryCode" placeholder="Código"
+                                            [(ngModel)]="country.countryCode" required #countryCode="ngModel">
+                                        <small
+                                            [hidden]="countryCode.valid || (countryCode.pristine && !formCountry.submitted)"
+                                            class="text-danger">
+                                            Nombres requeridos.
+                                        </small>
+                                    </div>
+
+
+                                    <div class="col-12 col-sm-6 col-md-6 col-lg-4 mb-3 ">
+                                        <label class="control-label" for="">Nombre
+                                            <span class="star">*</span>
+                                        </label>
+                                        <input type="text" class="form-control" name="countryName" placeholder="Nombre"
+                                            [(ngModel)]="country.countryName" required #countryName="ngModel">
+                                        <small
+                                            [hidden]="countryName.valid || (countryName.pristine && !formCountry.submitted)"
+                                            class="text-danger">
+                                            Nombres requeridos.
+                                        </small>
+                                    </div>
+
+                                    <div class="col-12 col-sm-6 col-md-6 col-lg-4 mb-3 ">
+                                        <label class="control-label" for="">Teléfono de soporte (Wapp)
+                                            <span class="star">*</span>
+                                        </label>
+                                        <input type="text" class="form-control" name="countryPhone"
+                                            placeholder="Teléfono de soporte (Wapp)" [(ngModel)]="country.countryPhone"
+                                            required #countryPhone="ngModel">
+                                        <small
+                                            [hidden]="countryPhone.valid || (countryPhone.pristine && !formCountry.submitted)"
+                                            class="text-danger">
+                                            Teléfono de soporte (Wapp) requerido.
+                                        </small>
+                                    </div>
+
+                                    <!-- *** Condiciones *** -->
+                                    <div class="col-12 col-sm-12 col-md-12 col-lg-12 mb-3">
+                                        <label class="control-label" for="">
+                                            <span class="star">*</span> Términos y condiciones:
+                                        </label>
+                                        <ckeditor [(ngModel)]="country.countryTermsAndConditions" [editor]="Editor"
+                                            name="countryTermsAndConditions" placeholder="Condiciones" required
+                                            #countryTermsAndConditions="ngModel">
+                                        </ckeditor>
+
+                                        <small
+                                            [hidden]="countryTermsAndConditions.valid || (countryTermsAndConditions.pristine && !formCountry.submitted)"
+                                            class="text-danger">
+                                            Las condiciones son requerido.
+                                        </small>
+                                    </div>
+
+
+                                    <div class="col-12 col-sm-6 col-md-6 col-lg-6 pt-3">
+                                        <button type="submit" class="btn btn-primary text-btn-form btn-block">
+                                            {{isEdit ? 'Actualizar' : 'Guardar'}}
+                                        </button>
+                                        <div class="category"> <span class="star">*</span> Campos requeridos
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-6 col-md-6 col-lg-6 pt-3">
+                                        <button type="button" (click)="cancelViewForm(formCountry)"
+                                            class="btn btn-danger text-btn-form btn-block">
+                                            Cancelar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- *** #Modal New User *** -->
+
+<!-- Modal from import Users -->
+
+<div class="modal" id="modalImport" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog" style="width:95%;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title">
+                    <i class="glyphicon glyphicon-import"></i>&nbsp;
+                    Importar
+                </h4>
+            </div>
+            <div class="modal-body">
+                <form class="form" enctype="multipart/form-data">
+                    <p class="help-block">
+                        Por favor seleccione un archivo .csv (<a target="blank"
+                            href="../../../../assets/doc/PlantillaUsers.csv">descargar plantilla</a>)
+                    </p>
+
+                    <div>
+                        <span class="btn btn-rose btn-file">
+                            <span class="fileinput-new ">
+                                Seleccionar csv
+                            </span>
+                            <input accept="file/csv" type="file" id="importUsersByCompany" name="importUsersByCompany"
+                                (change)="importUsers($event)" />
+                        </span>
+                    </div>
+                </form>
+                <input type="button" id="fileExport" hidden="true" />
+
+                <table class="table table-hover table-bordered" id="">
+                    <thead>
+                        <tr class="text-center info">
+                            <th class="text-center">Código</th>
+                            <th class="text-center">Nombre de la entidad</th>
+                        </tr>
+                    </thead>
+                    <tbody id="t02">
+                        <tr *ngFor="let row of data; let i = index">
+                            <ng-container *ngIf="i>0">
+                                <td *ngFor="let val of row">{{val}}</td>
+                            </ng-container>
+                        </tr>
+                    </tbody>
+                </table>
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" (click)="saveUsersImports()">
+                    <span class="glyphicon glyphicon-import" aria-hidden="true"></span>&nbsp; Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- #Modal from import Users -->

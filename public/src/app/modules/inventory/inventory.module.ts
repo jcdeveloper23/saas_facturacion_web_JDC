@@ -20,14 +20,16 @@ import { FullCalendarModule } from '@fullcalendar/angular';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { HttpClientModule } from '@angular/common/http';
 import dayGridPlugin from '@fullcalendar/daygrid';
-import interactionPlugin from '@fullcalendar/interaction'; // a plugin!
+import interactionPlugin from '@fullcalendar/interaction';
+import { AdminProductsComponent } from './admin-products/admin-products.component'; // a plugin!
+import { SharedModule } from '../shared/shared.module';
 
 FullCalendarModule.registerPlugins([ // register FullCalendar plugins
   dayGridPlugin,
   interactionPlugin
 ]);
 @NgModule({
-  declarations: [LinesComponent, GroupsComponent, ProductsComponent, UploadProductsComponent, CouponsComponent],
+  declarations: [LinesComponent, GroupsComponent, ProductsComponent, UploadProductsComponent, CouponsComponent, AdminProductsComponent],
   imports: [
     CommonModule,
     InventoryRoutingModule,
@@ -44,7 +46,8 @@ FullCalendarModule.registerPlugins([ // register FullCalendar plugins
     MatSelectModule,
     FullCalendarModule,
     MatCheckboxModule,
-    HttpClientModule
+    HttpClientModule,
+    SharedModule
   ],
 
 

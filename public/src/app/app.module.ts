@@ -31,9 +31,6 @@ import localeEs from '@angular/common/locales/es';
 import { CurrencyPipe } from '@angular/common';
 import { CustomCurrencyPipe } from './pipes_custom/custom-currency.pipe';
 
-// registerLocaleData(localeEs);
-
-
 @NgModule({
     providers: [
         CurrencyPipe,
@@ -60,19 +57,15 @@ import { CustomCurrencyPipe } from './pipes_custom/custom-currency.pipe';
         MatTableModule,
         MatFormFieldModule,
         MatInputModule,
-        // QRCodeModule, 
-
-
     ],
-    declarations: [ 
+    declarations: [
         AppComponent,
         AdminLayoutComponent,
         AuthLayoutComponent,
         IndexLayoutComponent,
-        // CustomCurrencyPipe
     ],
     bootstrap: [AppComponent],
-    
+
 })
 
 export class AppModule { }

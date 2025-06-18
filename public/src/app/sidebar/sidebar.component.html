@@ -1,4 +1,3 @@
-
 <div class="logo">
   <a href=" " class="simple-text logo-mini">
     <div class="logo-image-small">
@@ -92,7 +91,7 @@
         </ul>
     </div> -->
   <ul class="nav">
-    <li routerLinkActive="active active-blue" *ngFor="let menuitem of menuItems">
+    <li routerLinkActive="active active-blue m-2 p-0" *ngFor="let menuitem of menuItems">
       <!--If is a single link-->
       <a [routerLink]="[menuitem.path]" *ngIf="menuitem.type === 'link'">
         <i class="{{menuitem.icontype}}"></i>
@@ -109,7 +108,7 @@
         <ul class="nav">
           <li routerLinkActive="active active-blue" *ngFor="let childitem of menuitem.children">
             <a [routerLink]="[menuitem.path, childitem.path]">
-              <span class="sidebar-mini-icon">{{childitem.ab}}</span>
+              <i class="{{childitem.icontype}}"></i>
               <span class="sidebar-normal">{{childitem.title}}</span>
             </a>
           </li>

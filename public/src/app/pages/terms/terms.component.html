@@ -1,12 +1,20 @@
-<div class="wrapper wrapper-full-page bg-green">
+<div class="wrapper wrapper-full-page bg-green text-white">
+	<div class="overlay"></div>
 	<div class="pt-5">
-		<section id="features" class="features_area pt-35 pb-80">
-			<div class="container p-5">
+		<section id="features" class="features_area">
+			<div class="container p-2">
 				<div class="row card justify-content-center p-4 mb-4">
+					<div class="col-12 col-sm-12 col-md-12 col-lg-12 text-justify">
+						<h3>Términos y Condiciones de Uso de
+							<h1><span class="span-primary">Tu</span> Bar Amigo</h1>
+						</h3>
+					</div>
 					<div class="col-sm-12 mb-4">
-						<div class="single_features mt-30 features_4 text-center wow fadeInUp" data-wow-duration="1.3s"
-						     data-wow-delay="0.2s">
-							<div class="features_content">
+						<div class="single_features mt-30 features_4 text-justify wow fadeInUp" data-wow-duration="1.3s"
+							data-wow-delay="0.2s">
+							<div [innerHTML]="countrySelected.countryTermsAndConditions"></div>
+
+							<!-- <div class="features_content">
 								<h4 class="features_title">TÉRMINOS Y CONDICIONES DE USO GENERALES - LEGALES DE <br> Luncher</h4>
 								<p class="text-justify">
 									<span class="sub-title"> ANTECEDENTES </span>
@@ -727,7 +735,7 @@
 									categorías de datos por diferentes periodos, según el tipo de información, nivel del
 									usuario con los que se relacionan y fines para los que se recopilan.<br>
 									Los usuarios pueden solicitar la eliminación de su cuenta en cualquier momento a
-									través del email soporte@luncher.com.ec<br>
+									través del email soporte&#64;luncher.com.ec<br>
 									Después de recibir la solicitud, Luncher elimina la cuenta y los datos del usuario, a
 									menos que se conserven debido a requisitos legales o reglamentarios, con fines de
 									seguridad o de prevención de fraude, o por un problema relacionado con la cuenta del
@@ -777,7 +785,7 @@
 									Los usuarios pueden desactivar la recepción de ciertas comunicaciones de marketing
 									(incluidos los anuncios) y el uso de sus datos para fines de marketing de la siguiente
 									manera:<br>
-									Enviar un email a soporte@luncher.com.ec <br>
+									Enviar un email a soporte&#64;luncher.com.ec <br>
 									4. Solicitudes de datos personales de los usuarios <br>
 									Luncher ofrece a los usuarios diversas maneras de conocer, controlar y enviar
 									preguntas y comentarios sobre el manejo de sus datos personales por parte de Luncher.
@@ -798,7 +806,7 @@
 									proveedor.
 									<br>
 									Eliminación de datos: Los usuarios pueden solicitar la eliminación de su cuenta en
-									cualquier momento a través del correo electrónico soporte@luncher.com.ec
+									cualquier momento a través del correo electrónico soporte&#64;luncher.com.ec
 									<br>
 									Objeciones, restricciones y reclamos: Los usuarios pueden solicitar que dejemos de
 									usar todos o algunos de sus datos personales, o que limitemos su uso. Esto incluye
@@ -826,7 +834,7 @@
 								
 								
 								</p>
-							</div>
+							</div> -->
 						</div>
 					</div>
 				</div>

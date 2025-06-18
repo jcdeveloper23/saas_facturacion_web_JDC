@@ -4,7 +4,7 @@ import { AngularFirestore } from '@angular/fire/firestore';
 import { Router } from '@angular/router';
 import { Representative } from 'app/interfaces/representative';
 import { Users } from 'app/interfaces/users';
-import { take } from 'rxjs/operators';
+import { first, take } from 'rxjs/operators';
 import Swal from 'sweetalert2';
 import { UsersService } from '../users/users.service';
 
@@ -106,17 +106,17 @@ export class AuthService {
       users_rol: 'superadmin',
       user_id_school: 'NA',
       user_id: 'JCVSO5Yyh1NY6sfvFS40kDkfgD53',
-    } 
-    this.userService.saveUser(user).then(() => {
-      // this.studentService.getStudentById(student).pipe(take(1)).subscribe((s) => {
-      //   if (s) {
-      //     this.studentService.updateStudent(student);
-      //   } else {
-      //     this.studentService.saveStudent(student)
-      //   }
-      // })
+    }
+    // this.userService.saveUser(user).then(() => {
+    //   // this.studentService.getStudentById(student).pipe(take(1)).subscribe((s) => {
+    //   //   if (s) {
+    //   //     this.studentService.updateStudent(student);
+    //   //   } else {
+    //   //     this.studentService.saveStudent(student)
+    //   //   }
+    //   // })
 
-    });
+    // });
 
     try {
       const result = await this.afAuth.signInWithEmailAndPassword(
@@ -175,19 +175,25 @@ export class AuthService {
       }
 
     } catch (error) {
-      if (error.code === 'auth/wrong-password') {
-        this.showNotification('top', 'right', 'nc-alert-circle-i', 'La contraseña no es válida o el usuario no tiene una contraseña', 'warning')
+      console.log(JSON.stringify(error, null, 3));
 
+      if (error.code === 'auth/internal-error') {
+        this.showNotification('top', 'right', 'nc-alert-circle-i', 'Las credenciales ingresadas son incorrectas', 'warning')
+      } 
+      else if (error.code === 'auth/wrong-password') {
+        this.showNotification('top', 'right', 'nc-alert-circle-i', 'La contraseña no es válida o el usuario no tiene una contraseña', 'warning')
       }
-      if (error.code === 'auth/user-not-found') {
+      else if (error.code === 'auth/user-not-found') {
         this.showNotification('top', 'right', 'nc-alert-circle-i', 'No hay registro de usuario correspondiente a este email. El usuario pudo haber sido eliminado', 'warning')
 
       }
-      if (error.code === 'auth/invalid-email') {
+      else if (error.code === 'auth/invalid-email') {
         this.showNotification('top', 'right', 'nc-alert-circle-i', 'El email no tiene un formato válido.', 'warning')
       }
-      if (error.code === 'auth/too-many-requests') {
+      else if (error.code === 'auth/too-many-requests') {
         this.showNotification('top', 'right', 'nc-alert-circle-i', 'Atención, Demasiados intentos de inicio de sesión fallidos.', 'warning')
+      } else {
+        this.showNotification('top', 'right', 'nc-alert-circle-i', 'Ha ocurrido un error al iniciar sesión intente más tarde.', 'warning')
       }
     }
   }
@@ -201,23 +207,47 @@ export class AuthService {
   public async getUserByUid(uid: string) {
     const result = await this.db.collection('users').doc(`${uid}`).valueChanges();
     console.log(result);
-    
+
     return result
   }
 
   public showNotification(from, align, icon, message, type) {
-
-    $.notify({
-      icon: icon,
-      message: message,
-    }, {
-      type: type,
-      timer: 4000,
-      placement: {
-        from: from,
-        align: align
+    Swal.fire({
+      icon: type,
+      title: message,
+      buttonsStyling: false,
+      customClass: {
+        confirmButton: 'btn btn-primary',
+        cancelButton: 'btn btn-danger',
       },
-      template: '<div data-notify="container" class="col-11 col-md-4 alert alert-{0} alert-with-icon" role="alert"><button type="button" aria-hidden="true" class="close" data-notify="dismiss"><i class="nc-icon nc-simple-remove"></i></button><span data-notify="icon" class="nc-icon {{icon}}"></span> <span data-notify="title">{1}</span> <span data-notify="message">{2}</span><div class="progress" data-notify="progressbar"><div class="progress-bar progress-bar-{0}" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%;"></div></div><a href="{3}" target="{4}" data-notify="url"></a></div>'
+      confirmButtonText: 'Aceptar'
     });
+
+    // $.notify({
+    //   icon: icon,
+    //   message: message,
+    // }, {
+    //   type: type,
+    //   timer: 4000,
+    //   placement: {
+    //     from: from,
+    //     align: align
+    //   },
+    //   template: '<div data-notify="container" class="col-11 col-md-4 alert alert-{0} alert-with-icon" role="alert"><button type="button" aria-hidden="true" class="close" data-notify="dismiss"><i class="nc-icon nc-simple-remove"></i></button><span data-notify="icon" class="nc-icon {{icon}}"></span> <span data-notify="title">{1}</span> <span data-notify="message">{2}</span><div class="progress" data-notify="progressbar"><div class="progress-bar progress-bar-{0}" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%;"></div></div><a href="{3}" target="{4}" data-notify="url"></a></div>'
+    // });
+  }
+  /**
+  * *** method retrun state user authentication true or false ***
+  */
+  async getAuthStatus() {
+    var stateAuthentication = false;
+    var currentUser = await this.afAuth.authState.pipe(first()).toPromise();
+
+    if (currentUser) {
+      stateAuthentication = true;
+    } else {
+      stateAuthentication = false;
+    }
+    return stateAuthentication;
   }
 }

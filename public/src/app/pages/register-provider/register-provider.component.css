@@ -1,18 +1,58 @@
-.bg-green{
-    background-color: #99CC33;
-    color: white !important;    
-};
+.bg-greena {
+  background-image: url('../../../assets/img/bgFour.png');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
 
-.fieldset {
-	background-color: rgba(111, 66, 193, 0.3) !important;
-	border-radius: 4px  !important;
+  /* Asegura que el fondo se mantenga fijo al hacer scroll */
+  background-attachment: fixed;
+
+  /* Que ocupe toda la altura de la ventana del navegador */
+  /* height: 100vh; */
+}
+
+.bg-green {
+  background-image: url('../../../assets/img/bgFour.png');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+  background-attachment: fixed;
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+}
+
+.overlay {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  background-color: rgba(0, 0, 0, 0.6); /* Opacidad del fondo */
+}
+
+.content-wrapper {
+  position: relative;
+  z-index: 2;
+  /* Asegura que el contenido esté por encima del overlay */
+}
+
+
+
+.card-signup {
+    background-color: #273142 !important;
+}
+
+.border-primarys {
+	border: 10px solid var(--primary) !important;
+    background-color: #99CC33 !important;
 }
 
 legend {
-	background-color: #fff;
-	border: 1px solid #ddd;
+	background-color: var(--primary);
+	border: 1px solid var(--primary);
 	border-radius: 4px;
-	color: var(--purple);
 	font-size: 17px;
 	font-weight: bold;
 	padding: 3px 5px 3px 7px;

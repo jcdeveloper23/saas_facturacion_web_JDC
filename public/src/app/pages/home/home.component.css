@@ -6,6 +6,11 @@
     background-position:center;
     background-size: cover;
 }
+
+.card-signup {
+    background-color: #50ab2a !important;
+}
+
 .img-logo {
     width: 40%;
 }
