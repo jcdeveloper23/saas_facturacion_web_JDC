@@ -2,7 +2,7 @@
     <div class="col-12 p-0 w-100"
         *ngIf="array_orders_confirmation_pending && array_orders_confirmation_pending.length > 0">
         <table #table mat-table matSort [dataSource]="dataSource"
-            class="mat-elevation-z8 table-reponsive table-bordered " style="min-width: 100%;">
+            class="mat-elevation-z8 table-reponsive table-bordered container-fluid-body" style="min-width: 100%;">
             <ng-container matColumnDef="nameRepresentative">
                 <th mat-header-cell *matHeaderCellDef class="text-center title-table">
                     Nombre del solicitante </th>

@@ -94,7 +94,7 @@ export class OrdersProviderComponent implements OnInit {
       this.loading_orders = true;
       let date = this.dayselected.year + '-' + this.dayselected.month + '-' + this.dayselected.day;
       this.array_orders_inactive = []
-      this.orderService.getOrdersByProviderInStatusFalse(this.infoUser.user_id).pipe(take(1)).subscribe((array_oreders_elements => {
+      this.orderService.getOrdersByProviderInStatusFalse(this.infoUser.user_id, null).pipe(take(1)).subscribe((array_oreders_elements => {
         for (let index = 0; index < array_oreders_elements.length; index++) {
           const element = array_oreders_elements[index];
           this.orderService.getOrdersByProviderAndProductsDateStateFalse(this.infoUser.user_id, element.order_transaccion_id, date).pipe(take(1)).subscribe((products) => {
@@ -169,7 +169,7 @@ export class OrdersProviderComponent implements OnInit {
   public async getOrdersProvider() {
     this.loading_orders = true;
     this.dayselected = null;
-    this.orderService.getOrdersByProviderInStatusFalse(this.infoUser.user_id).subscribe((array_orders) => {
+    this.orderService.getOrdersByProviderInStatusFalse(this.infoUser.user_id, null).subscribe((array_orders) => {
       this.array_orders_inactive = array_orders;
       if (this.array_orders_inactive) {
         this.setInfoAditionalOrder(this.array_orders_inactive)
@@ -499,7 +499,7 @@ export class OrdersProviderComponent implements OnInit {
     } else {
       dateActually = this.dayselected.year + '-' + this.dayselected.month + '-' + this.dayselected.day;
     }
-    this.orderService.getOrdersByProviderInStatusFalse(this.infoUser.user_id).subscribe((array_oreders_elements => {
+    this.orderService.getOrdersByProviderInStatusFalse(this.infoUser.user_id, null).subscribe((array_oreders_elements => {
       this.array_products_dates = [];
       this.array_orders_inactive = [];
       for (let index = 0; index < array_oreders_elements.length; index++) {

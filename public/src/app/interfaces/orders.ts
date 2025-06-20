@@ -17,14 +17,15 @@ export interface Orders {
     arrayProductCart?: Product[];
     order_total_to_pay?: number;
     order_payment_method?: string;
-    order_length_products ?: number;
-    order_student_name ?: string;
-    order_update_state_date ?: string;
-    order_update_state_time ?: string;
-    order_state_payment_method ?: boolean;
-    order_image_payment_cash ?: string;
-    order_state_payment_method_string ?: string;
-    order_state_payment_to_super_admin ?: boolean;
+    order_length_products?: number;
+    order_student_name?: string;
+    order_update_state_date?: string;
+    order_update_state_time?: string;
+    order_state_payment_method?: boolean;
+    order_image_payment_cash?: string;
+    order_state_payment_method_string?: string;
+    order_state_payment_to_super_admin?: boolean;
     order_qr_value?: any;
-    order_student_level ?: string;
+    order_student_level?: string;
+    order_student_identification?: string;
 }

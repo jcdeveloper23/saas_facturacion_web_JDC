@@ -389,11 +389,12 @@ export class CartDetailComponent implements OnInit {
   public async registerOrder() {
     if (this.fileDataImage && this.order.order_payment_method === 'Efectivo') {
       this.order.order_state_payment_method = false;
+      this.order.order_state_payment_method_string = '';
       this.order.order_state_payment_to_super_admin = false;
       this.previe_url_image = null
       await this.storageService.uploadFile(`order/order${this.order.order_transaccion_id}/image_.png`, this.fileDataImage).then((result) => {
         this.order.order_image_payment_cash = result;
-      })
+      }) 
       this.orderService.saveOrderInStudent(this.student_id, this.order);
       this.orderService.saveOrderInProvider(this.order).then(async () => {
         for (let index = 0; index < this.productsCart.length; index++) {

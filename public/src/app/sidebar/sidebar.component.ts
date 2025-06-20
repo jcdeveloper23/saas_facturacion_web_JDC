@@ -1,6 +1,8 @@
 import { Component, OnInit, AfterViewInit, AfterViewChecked, AfterContentInit } from '@angular/core';
+import { Orders } from 'app/interfaces/orders';
 import { Provider } from 'app/interfaces/provider';
 import { Users } from 'app/interfaces/users';
+import { OrdersService } from 'app/services/orders/orders.service';
 import { ProviderService } from 'app/services/provider/provider.service';
 import { take } from 'rxjs/operators';
 
@@ -65,6 +67,19 @@ export const ROUTES_BAR: RouteInfo[] = [
     //     type: 'link',
     //     icontype: 'nc-icon nc-single-02'
     // },
+
+    {
+        path: '/deliverOrders',
+        title: 'Entregas',
+        type: 'link',
+        icontype: 'nc-icon nc-send'
+    },
+    {
+        path: '/paymentConfirmation',
+        title: 'Pagos por confirmar',
+        type: 'link',
+        icontype: 'nc-icon nc-send'
+    },
     {
         path: '/dashboard',
         title: 'Dashboard',
@@ -75,13 +90,13 @@ export const ROUTES_BAR: RouteInfo[] = [
         path: '/perfil',
         title: 'Empresa',
         type: 'link',
-        icontype: 'nc-icon nc-app'
+        icontype: 'nc-icon nc-bank'
     },
     {
         path: '/inventory/lines',
         title: 'Categorías',
         type: 'link',
-        icontype: 'nc-icon nc-single-02'
+        icontype: 'nc-icon nc-tag-content'
     },
     {
         path: '/inventory/admin-products',
@@ -99,7 +114,7 @@ export const ROUTES_BAR: RouteInfo[] = [
         path: '/inventory/upload',
         title: 'Subir',
         type: 'link',
-        icontype: 'nc-icon nc-camera-compact'
+        icontype: 'nc-icon nc-single-copy-04'
     },
     // {
     //     path: '/inventory/products',
@@ -378,6 +393,10 @@ export class SidebarComponent {
     public infoUser: Users;
     public provider_id: string = '';
     public provider: Provider;
+    public arrayOrders: Array<Orders> = [];
+
+    audioNewOrder = new Audio('../../../../assets/sound/notify2.mp3'); 
+    previousOrderIds: Set<string> = new Set();
 
     isNotMobileMenu() {
         if (window.outerWidth > 991) {
@@ -385,9 +404,10 @@ export class SidebarComponent {
         }
         return true;
     }
-    constructor(private providerService: ProviderService,) {
-
-    }
+    constructor(
+        private providerService: ProviderService,
+        private ordersService: OrdersService,
+    ) { }
 
     async ngOnInit() {
         this.provider = {};
@@ -410,11 +430,39 @@ export class SidebarComponent {
             ROUTES = (ROUTES_SUPER_ADMIN);
             this.menuItems = ROUTES.filter(menuItem => menuItem);
         }
+        this.getOrdersConfirmationPending('')
+    }
+
+    public getOrdersConfirmationPending(value: string) {
+        this.ordersService.getAllOrdersConfirmationPending(this.infoUser.user_id, value).subscribe((orders: Array<Orders>) => {
+            const currentIds = new Set(orders.map(order => order.order_transaccion_id));
+
+            // Verifica si hay un nuevo ID que antes no existía
+            let newOrderDetected = false;
+            currentIds.forEach(id => {
+                if (!this.previousOrderIds.has(id)) {
+                    newOrderDetected = true;
+                }
+            });
+
+            if (newOrderDetected) {
+                this.playNewOrderSound();
+            }
+
+            this.previousOrderIds = currentIds;
+            this.arrayOrders = orders;
+        });
+    }
+
+    playNewOrderSound() {
+        this.audioNewOrder.play().catch(err => {
+            console.warn('Audio playback failed:', err);
+        });
     }
 
     /**
-   * Metodo para consultar información del bar
-   */
+     * Metodo para consultar información del bar
+     */
     getProvider() {
         this.providerService.getProviderId(this.provider_id).pipe(take(1)).subscribe(provider => {
             this.provider = provider;

@@ -10,10 +10,10 @@
 .active-blue {
   background-color: #007bff;
   color: #ffffff;
-  border-radius: 8px;
-  /* padding: 10px 15px;*/
-  /* margin-left: 15px; 
-  margin-right: 15px;  */
+  border-radius: 0px;
+  padding: 10px 15px;
+  margin-left: 15px; 
+  margin-right: 15px; 
   transition: all 0.3s ease;
   box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
 }
@@ -24,4 +24,10 @@
 .active-blue p,
 .active-blue span {
   color: #ffffff !important;
+}
+
+.badge-num-order {
+  position: absolute;
+  left: 0px;
+  top: -10px;
 }

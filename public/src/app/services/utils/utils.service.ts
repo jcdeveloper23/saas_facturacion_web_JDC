@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { utf8Encode } from '@angular/compiler/src/util';
 import { sha256 } from 'js-sha256';
+import Swal from 'sweetalert2';
 declare var $: any;
 @Injectable({
   providedIn: 'root'
@@ -19,19 +20,17 @@ export class UtilsService {
   * @param type 
   */
   public showNotification(from, align, icon, message, type) {
-
-    $.notify({
-      icon: icon,
-      message: message,
-    }, {
-      type: type,
-      timer: 4000,
-      placement: {
-        from: from,
-        align: align
+    Swal.fire({
+      icon: type,
+      title: message,
+      buttonsStyling: false,
+      customClass: {
+        confirmButton: 'btn btn-primary',
+        cancelButton: 'btn btn-danger',
       },
-      template: '<div data-notify="container" class="col-11 col-md-4 alert alert-{0} alert-with-icon" role="alert"><button type="button" aria-hidden="true" class="close" data-notify="dismiss"><i class="nc-icon nc-simple-remove"></i></button><span data-notify="icon" class="nc-icon {{icon}}"></span> <span data-notify="title">{1}</span> <span data-notify="message">{2}</span><div class="progress" data-notify="progressbar"><div class="progress-bar progress-bar-{0}" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%;"></div></div><a href="{3}" target="{4}" data-notify="url"></a></div>'
+      confirmButtonText: 'Aceptar'
     });
+
   }
 
 
@@ -50,10 +49,10 @@ export class UtilsService {
     );
   }
 
-    /**
-   * *** devuelve la fecha actual ***
-   * *** formato 2020-10-05 ***
-   */
+  /**
+ * *** devuelve la fecha actual ***
+ * *** formato 2020-10-05 ***
+ */
   getDateCurrentFull() {
     let date: Date = new Date();
     return date;

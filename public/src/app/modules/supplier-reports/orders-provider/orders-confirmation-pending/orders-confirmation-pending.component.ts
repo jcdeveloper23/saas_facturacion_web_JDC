@@ -47,7 +47,7 @@ export class OrdersConfirmationPendingComponent implements OnInit {
 
   public getOrdersConfirmationPending() {
     this.loading_orders = true;
-    this.ordersService.getAllOrdersConfirmationPending(this.infoUser.user_id).subscribe((orders : Array<Orders>) => {
+    this.ordersService.getAllOrdersConfirmationPending(this.infoUser.user_id, '').subscribe((orders : Array<Orders>) => {
       this.setInfoAditionalOrder(orders)
      
     })

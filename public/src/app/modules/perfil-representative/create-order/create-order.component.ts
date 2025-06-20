@@ -121,21 +121,21 @@ export class CreateOrderComponent implements OnInit {
 
   public maskedCvc: string = '';
 
-onCvcInput(event: any, inputEl: HTMLInputElement): void {
-  const raw = event.target.value;
-  console.log(raw);
-  
-  // const numeric = raw.replace(/[^0-9]/g, '');
-  this.cvc = raw;
-  console.log(this.cvc);
-  
-  this.maskedCvc = '*'.repeat(this.cvc.length);
+  onCvcInput(event: any, inputEl: HTMLInputElement): void {
+    const raw = event.target.value;
+    console.log(raw);
 
-  // Forzar cursor al final (necesario en algunos navegadores)
-  setTimeout(() => {
-    inputEl.selectionStart = inputEl.selectionEnd = this.maskedCvc.length;
-  }, 0);
-}
+    // const numeric = raw.replace(/[^0-9]/g, '');
+    this.cvc = raw;
+    console.log(this.cvc);
+
+    this.maskedCvc = '*'.repeat(this.cvc.length);
+
+    // Forzar cursor al final (necesario en algunos navegadores)
+    setTimeout(() => {
+      inputEl.selectionStart = inputEl.selectionEnd = this.maskedCvc.length;
+    }, 0);
+  }
 
   constructor(
     private router: Router,
@@ -234,7 +234,8 @@ onCvcInput(event: any, inputEl: HTMLInputElement): void {
   public getInfoStudent(student_id: string) {
     this.studentService.getStudentId(student_id).pipe(take(1)).subscribe((student) => {
       this.student = student;
-
+      console.log('*** this.student ***');
+      console.log(JSON.stringify(this.student, null, 3));
     })
   }
 
@@ -242,9 +243,7 @@ onCvcInput(event: any, inputEl: HTMLInputElement): void {
     this.representativeService.getRepresentativeId(this.infoUser.user_id).pipe(take(1)).subscribe(async (representative) => {
       this.representative = representative;
       if (representative) {
-
         await this.getProvidersList();
-
       }
     })
   }
@@ -258,16 +257,18 @@ onCvcInput(event: any, inputEl: HTMLInputElement): void {
     this.order.order_transaccion_id = new Date().getTime().toString();
     this.order.order_representative_id = this.infoUser.user_id;
     this.order.order_student_id = this.student_id;
+    this.order.order_student_name = `${this.student.student_name} ${this.student.student_lastname}`;
+    this.order.order_student_level = `${this.student.student_level}`;
+    this.order.order_student_identification = `${this.student.student_identification}`;
     this.order.order_time = this.utilService.getTimeCurrent();
     this.order.order_date = this.utilService.getDateCurrent();
     this.order.order_date_full = this.utilService.getDateCurrentFull();
     this.order.order_state = false;
     this.order.order_payment_method = this.representative.representative_payment_method;
+    this.order.order_length_products = 0;
 
     console.log('*** ORDEN data inicial ***');
-
     console.log(JSON.stringify(this.order, null, 3));
-
   }
 
   public async getProvidersList() {
@@ -707,10 +708,12 @@ onCvcInput(event: any, inputEl: HTMLInputElement): void {
   public async cancelPurchase() { }
 
   public async registerOrder() {
+    this.order.order_length_products = this.productsCartInCache.length;
     if (this.fileDataImage && this.order.order_payment_method === 'Efectivo') {
       this.order.order_state_payment_method = false;
+      this.order.order_state_payment_method_string = '';
       this.order.order_state_payment_to_super_admin = false;
-      this.preview_url_image = null
+      this.preview_url_image = null;
       await this.storageService.uploadFile(`order/order${this.order.order_transaccion_id}/image_.png`, this.fileDataImage).then((result) => {
         this.order.order_image_payment_cash = result;
       })

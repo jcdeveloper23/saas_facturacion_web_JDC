@@ -414,7 +414,7 @@ export class ProviderDashboardComponent implements OnInit {
     gradient.addColorStop(1, 'rgba(0, 123, 255, 0)');
 
     new Chart(ctx, {
-      type: 'bar',
+      type: 'line',
       data: {
         labels: labels,
         datasets: [{

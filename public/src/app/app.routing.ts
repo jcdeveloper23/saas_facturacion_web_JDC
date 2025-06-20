@@ -73,6 +73,16 @@ export const AppRoutes: Routes = [
                 canActivate: [AuthGuard],
             },
             {
+                path: 'deliverOrders',
+                loadChildren: './modules/provider-deliver-orders/provider-deliver-orders.module#ProviderDeliverOrdersModule',
+                canActivate: [AuthGuard],
+            },
+            {
+                path: 'paymentConfirmation',
+                loadChildren: './modules/provider-payment-confirmation/provider-payment-confirmation.module#ProviderPaymentConfirmationModule',
+                canActivate: [AuthGuard],
+            },
+            {
                 path: 'perfil',
                 loadChildren: './modules/provider/provider.module#ProviderModule',
                 canActivate: [AuthGuard],
