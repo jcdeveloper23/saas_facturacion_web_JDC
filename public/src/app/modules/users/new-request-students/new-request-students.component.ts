@@ -58,7 +58,7 @@ export class NewRequestStudentsComponent implements OnInit, OnDestroy {
    * Obtengo informacion del proveedor
    * */
   public getInfoProvider() {
-    this.providerService.getProviderId(this.infoUser.user_id).pipe(take(1)).subscribe((provider) => {
+    this.providerService.getProviderId(this.infoUser.userId).pipe(take(1)).subscribe((provider) => {
       this.provider = provider;
       if (provider) {
         this.getStudentsStateFalse();

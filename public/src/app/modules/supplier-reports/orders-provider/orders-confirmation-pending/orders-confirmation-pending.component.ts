@@ -47,7 +47,7 @@ export class OrdersConfirmationPendingComponent implements OnInit {
 
   public getOrdersConfirmationPending() {
     this.loading_orders = true;
-    this.ordersService.getAllOrdersConfirmationPending(this.infoUser.user_id, '').subscribe((orders : Array<Orders>) => {
+    this.ordersService.getAllOrdersConfirmationPending(this.infoUser.userId, '').subscribe((orders : Array<Orders>) => {
       this.setInfoAditionalOrder(orders)
      
     })
@@ -96,8 +96,8 @@ export class OrdersConfirmationPendingComponent implements OnInit {
       order_state_payment_method_string : 'Aceptada',
     }
     
-    this.ordersService.updateStatePaymentMethodInProvider(this.infoUser.user_id, order.order_transaccion_id, object).then(() =>
-      this.ordersService.updateStatePaymentMethodInStudent(this.infoUser.user_id,order.order_student_id ,order.order_transaccion_id, object).then(() => {
+    this.ordersService.updateStatePaymentMethodInProvider(this.infoUser.userId, order.order_transaccion_id, object).then(() =>
+      this.ordersService.updateStatePaymentMethodInStudent(this.infoUser.userId,order.order_student_id ,order.order_transaccion_id, object).then(() => {
         this.utilService.showNotification('top', 'right', 'nc-check-2', 'Se actualizo el estado de pago correctamente.', 'success');
         $('#myModaldetailOrder').modal('hide');
         document.getElementById('modal-products').click();
@@ -112,8 +112,8 @@ export class OrdersConfirmationPendingComponent implements OnInit {
       order_state_payment_method_string : 'Rechazada',
     }
     
-    this.ordersService.updateStatePaymentMethodInProvider(this.infoUser.user_id, order.order_transaccion_id, object).then(() =>
-      this.ordersService.updateStatePaymentMethodInStudent(this.infoUser.user_id,order.order_student_id ,order.order_transaccion_id, object).then(() => {
+    this.ordersService.updateStatePaymentMethodInProvider(this.infoUser.userId, order.order_transaccion_id, object).then(() =>
+      this.ordersService.updateStatePaymentMethodInStudent(this.infoUser.userId,order.order_student_id ,order.order_transaccion_id, object).then(() => {
         this.utilService.showNotification('top', 'right', 'nc-check-2', 'Se actualizo el estado de pago correctamente.', 'success');
         $('#myModaldetailOrder').modal('hide');
         document.getElementById('modal-products').click();

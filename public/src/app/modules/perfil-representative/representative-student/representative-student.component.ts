@@ -71,8 +71,7 @@ export class RepresentativeStudentComponent implements OnInit {
     this.representative = {};
     this.infoUser = JSON.parse(localStorage.getItem("infoUser"));
     if (this.infoUser) {
-      this.representative.representative_id = this.infoUser.user_id;
-      this.provider_school_id = this.infoUser.user_id_school;
+      this.representative.representative_id = this.infoUser.userId;
       this.student = {
         student_gender: ''
       };

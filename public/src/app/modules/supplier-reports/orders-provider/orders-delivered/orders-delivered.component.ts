@@ -52,7 +52,7 @@ export class OrdersDeliveredComponent implements OnInit {
 
   public getAllOrdersStateTru() {
     this.loading_orders = true
-    this.ordersService.getAllOrdersByProviderStateTrue(this.infoUser.user_id).pipe(take(1)).subscribe( (orders: Array<Orders>) => {
+    this.ordersService.getAllOrdersByProviderStateTrue(this.infoUser.userId).pipe(take(1)).subscribe( (orders: Array<Orders>) => {
       if (orders && orders.length > 0) {
         this.setInfoOrders(orders)
 
@@ -109,7 +109,7 @@ export class OrdersDeliveredComponent implements OnInit {
     this.orders = null;
     this.loading_orders = true
 
-    this.ordersService.getOrdersByProviderStateTrueWithRangeDate(this.infoUser.user_id, this.dateStart, this.dateEnd).pipe(take(1)).subscribe( (orders: Array<Orders>) => {
+    this.ordersService.getOrdersByProviderStateTrueWithRangeDate(this.infoUser.userId, this.dateStart, this.dateEnd).pipe(take(1)).subscribe( (orders: Array<Orders>) => {
       if (orders && orders.length > 0) {
         this.setInfoOrders(orders)
       } else {
@@ -142,7 +142,7 @@ export class OrdersDeliveredComponent implements OnInit {
         if (student) {
           element.order_student_name = student.student_name + ' ' + student.student_lastname
         }
-        this.ordersService.getOrdersProductsByProvider(this.infoUser.user_id, element.order_transaccion_id).pipe(take(1)).subscribe((products: Array<Product>) => {
+        this.ordersService.getOrdersProductsByProvider(this.infoUser.userId, element.order_transaccion_id).pipe(take(1)).subscribe((products: Array<Product>) => {
           if (products) {
             element.order_length_products = products.length
           }

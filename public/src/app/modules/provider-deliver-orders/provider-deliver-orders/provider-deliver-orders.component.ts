@@ -134,7 +134,7 @@ export class ProviderDeliverOrdersComponent implements OnInit {
    */
   public getAllOrdersStateFalse() {
     this.loadingService.show('Cargando ordenes');
-    this.ordersService.getOrdersByProviderInStatusFalse(this.infoUser.user_id, this.dateSelected).pipe(take(1)).subscribe((orders: Array<Orders>) => {
+    this.ordersService.getOrdersByProviderInStatusFalse(this.infoUser.userId, this.dateSelected).pipe(take(1)).subscribe((orders: Array<Orders>) => {
       console.log(orders);
       console.log(JSON.stringify(orders[0], null, 3));
 
@@ -238,7 +238,7 @@ export class ProviderDeliverOrdersComponent implements OnInit {
       }).then((result) => {
         if (result.value) {
           this.loadingService.show('Actualizando la orden');
-          this.ordersService.updateStatusProductInOrderProvider(this.infoUser.user_id, this.orderSelected.order_transaccion_id, product.product_id_transaction, updateStatus).then(() => {
+          this.ordersService.updateStatusProductInOrderProvider(this.infoUser.userId, this.orderSelected.order_transaccion_id, product.product_id_transaction, updateStatus).then(() => {
             this.ordersService.updateProductsOfOrderInStudent(this.orderSelected.order_student_id, this.orderSelected.order_transaccion_id, product.product_id_transaction, updateStatus).then(() => {
               this.utilsService.showNotification(
                 'top',
@@ -257,7 +257,7 @@ export class ProviderDeliverOrdersComponent implements OnInit {
       })
     } else {
       this.loadingService.show('Actualizando la orden');
-      this.ordersService.updateStatusProductInOrderProvider(this.infoUser.user_id, this.orderSelected.order_transaccion_id, product.product_id_transaction, updateStatus).then(() => {
+      this.ordersService.updateStatusProductInOrderProvider(this.infoUser.userId, this.orderSelected.order_transaccion_id, product.product_id_transaction, updateStatus).then(() => {
         this.ordersService.updateProductsOfOrderInStudent(this.orderSelected.order_student_id, this.orderSelected.order_transaccion_id, product.product_id_transaction, updateStatus).then(() => {
           this.utilsService.showNotification(
             'top',
@@ -418,7 +418,7 @@ export class ProviderDeliverOrdersComponent implements OnInit {
            */
           var idStudent = array_info[1];
 
-          if (idProvider !== this.infoUser.user_id) {
+          if (idProvider !== this.infoUser.userId) {
             this.utilsService.showNotification('top', 'right', 'nc-alert-circle-i', 'La información del QR es incorrecta, por favor verifique el QR.', 'warning');
           } else {
             this.ordersService.getOrderByIdProviderAndOrder(idProvider, idStudent).pipe(take(1)).subscribe((order: Orders) => {
@@ -479,7 +479,7 @@ export class ProviderDeliverOrdersComponent implements OnInit {
         /**
          * *** Actualizamos la orden en el comercio ***
          */
-        this.ordersService.updateStateOrderStatusInProvider(this.infoUser.user_id, this.orderSelected.order_transaccion_id, updateStatus).then(() => {
+        this.ordersService.updateStateOrderStatusInProvider(this.infoUser.userId, this.orderSelected.order_transaccion_id, updateStatus).then(() => {
           /**
            * *** Actualizamos la orden en el cliente ***
            */

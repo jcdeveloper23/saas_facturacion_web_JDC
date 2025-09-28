@@ -13,10 +13,11 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { NewRequestStudentsComponent } from './new-request-students/new-request-students.component';
+import { UsersComponent } from './users/users.component';
 
 
 @NgModule({
-  declarations: [RepresentativeComponent, StudentsComponent, NewRequestStudentsComponent],
+  declarations: [RepresentativeComponent, StudentsComponent, NewRequestStudentsComponent, UsersComponent],
   imports: [
     CommonModule,
     UsersRoutingModule,

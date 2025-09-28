@@ -1,0 +1,481 @@
+<div class="main-content m-0 mt-4">
+    <div class="row w-100 m-0 p-0">
+        <div class="col-12">
+            <div class="card">
+                <div class="row m-0 p-0 w-100">
+                    <div class="col-sm-6 d-flex justify-content-start">
+                        <div>
+                            <button class="btn btn-primary" (click)="newPaymentMethod()">Nuevo método de pago</button>
+                            <!-- <button class="btn btn-primary" (click)="setDataTestPaymentMethod()">SetData</button> -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row m-0 p-0 w-100">
+        <div class="row w-100 m-0 p-0 mt-2 container-fluid-body">
+            <div class="col-12 p-0 w-100 container-fluid-body m-0 p-0 table-responsive">
+                <table mat-table matSort [dataSource]="dataSource"
+                    class="mat-elevation-z8 table-reponsive table-bordered container-fluid-body text-white"
+                    style="min-width: 100%;">
+                    <ng-container matColumnDef="code">
+                        <th mat-header-cell *matHeaderCellDef class="text-center title-table m-0 p-0">
+                            Código
+                        </th>
+                        <td mat-cell *matCellDef="let row" class="text-center">
+                            <span>
+                                #{{row.paymentMethodId | slice:6}}
+                            </span>
+                        </td>
+                    </ng-container>
+                    <ng-container matColumnDef="name">
+                        <th mat-header-cell *matHeaderCellDef class="text-center title-table m-0 p-0">
+                            Nombre
+                        </th>
+                        <td mat-cell *matCellDef="let row" class="text-center">
+                            <span>{{row.paymentMethodName}}</span>
+                        </td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="phone">
+                        <th mat-header-cell *matHeaderCellDef class="text-center title-table m-0 p-0">
+                            Banco
+                        </th>
+                        <td mat-cell *matCellDef="let row" class="text-center">
+                            <span>{{row.paymentMethodBank}}</span>
+                        </td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="status">
+                        <th mat-header-cell *matHeaderCellDef class="text-center title-table m-0 p-0">
+                            Estado
+                        </th>
+                        <td mat-cell *matCellDef="let row" class="text-center">
+                            <i *ngIf="row.paymentMethodState" class="fa fa-check text-primary" aria-hidden="true"></i>
+                            <i *ngIf="!row.paymentMethodState" class="fa fa-times text-danger" aria-hidden="true"></i>
+                        </td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="edit">
+                        <th mat-header-cell *matHeaderCellDef class="text-center title-table m-0 p-0">
+                            Editar
+                        </th>
+                        <td mat-cell *matCellDef="let row" class="text-center">
+                            <i class="fa fa-pencil-square cursor-pointer text-warning btn-functions  cursor-pointer"
+                                aria-hidden="true" (click)="editPaymentMethod(row)"></i>
+                        </td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="delete">
+                        <th mat-header-cell *matHeaderCellDef class="text-center title-table m-0 p-0">
+                            Eliminar
+                        </th>
+                        <td mat-cell *matCellDef="let row" class="text-center">
+                            <i class="fa fa-trash text-danger cursor-pointer btn-functions cursor-pointer "
+                                aria-hidden="true" type="button" (click)="deleteProvider(row)"></i>
+                        </td>
+                    </ng-container>
+
+                    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+                    <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+
+                </table>
+                <mat-paginator [pageSizeOptions]="[10, 25, 50]" #tableProviders showFirstLastButtons>
+                </mat-paginator>
+            </div>
+        </div>
+    </div>
+            </div> 
+        </div>
+    </div>
+</div>
+
+
+
+<!-- *** Modal New PaymentMethod *** -->
+<div class="modal fade" id="modalNewPaymentMethod" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header justify-content-center">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <i class="nc-icon nc-simple-remove"></i>
+                </button>
+                <h4 class="card-title">{{isEdit ? 'Actualizar' : 'Nuevo'}} método de pago</h4>
+            </div>
+            <div class="modal-body">
+                <form #formPaymentMethod="ngForm" novalidate
+                    (ngSubmit)="savePaymentMethod(formPaymentMethod.valid, formPaymentMethod)">
+                    <div class="row w-100 m-0 p-0">
+                        <div class="col-12 col-sm-12 col-md-3">
+                            <div class="col-sm-12 text-center">
+                                <div class="fileinput fileinput-new text-center border" data-provides="fileinput">
+                                    <h5>Logo</h5>
+                                    <div *ngIf="!paymentMethod.paymentMethodImage && !previewImage  " class="thumbnail">
+                                        <img src="../../../../assets/img/early/logoPlaceholder.jpeg"
+                                            alt="paymentMethodImage">
+                                    </div>
+                                    <div *ngIf="previewImage && paymentMethod.paymentMethodImage" class="thumbnail">
+                                        <img src="{{previewImage}}" alt="paymentMethodImage">
+                                    </div>
+                                    <div *ngIf="previewImage &&  !paymentMethod.paymentMethodImage" class="thumbnail">
+                                        <img src="{{previewImage}}" alt="paymentMethodImage">
+                                    </div>
+                                    <div class=" thumbnail" *ngIf="paymentMethod.paymentMethodImage && !previewImage ">
+                                        <img src="{{paymentMethod.paymentMethodImage}}" alt="paymentMethodImage">
+                                    </div>
+                                    <div>
+                                        <span class="btn btn-rose btn-file">
+                                            <span class="fileinput-new "
+                                                *ngIf="!paymentMethod.paymentMethodImage && !previewImage">Seleccionar
+                                                imagen</span>
+                                            <span
+                                                *ngIf="paymentMethod.paymentMethodImage || previewImage">Cambiar</span>
+                                            <input accept="image/jpg, image/jpeg, image/png" type="file"
+                                                id="paymentMethodImage" name="paymentMethodImage"
+                                                (change)="fileProgress($event)" />
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="fileinput fileinput-new text-center border" data-provides="fileinput">
+                                    <h5>QR</h5>
+                                    <div *ngIf="!paymentMethod.paymentMethodImageQr && !previewImageQr  "
+                                        class="thumbnail">
+                                        <img src="../../../../assets/img/early/logoPlaceholder.jpeg"
+                                            alt="paymentMethodImageQr">
+                                    </div>
+                                    <div *ngIf="previewImageQr && paymentMethod.paymentMethodImageQr" class="thumbnail">
+                                        <img src="{{previewImageQr}}" alt="paymentMethodImageQr">
+                                    </div>
+                                    <div *ngIf="previewImageQr &&  !paymentMethod.paymentMethodImageQr"
+                                        class="thumbnail">
+                                        <img src="{{previewImageQr}}" alt="paymentMethodImageQr">
+                                    </div>
+                                    <div class=" thumbnail"
+                                        *ngIf="paymentMethod.paymentMethodImageQr && !previewImageQr ">
+                                        <img src="{{paymentMethod.paymentMethodImageQr}}" alt="paymentMethodImageQr">
+                                    </div>
+                                    <div>
+                                        <span class="btn btn-rose btn-file">
+                                            <span class="fileinput-new "
+                                                *ngIf="!paymentMethod.paymentMethodImageQr && !previewImageQr">Seleccionar
+                                                imagen</span>
+                                            <span
+                                                *ngIf="paymentMethod.paymentMethodImageQr || previewImageQr">Cambiar</span>
+                                            <input accept="image/jpg, image/jpeg, image/png" type="file"
+                                                id="paymentMethodImageQr" name="paymentMethodImageQr"
+                                                (change)="fileProgressQr($event)" />
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-sm-12 col-md-9">
+                            <div class="form-group has-label">
+                                <div class="row w-100 m-0 p-0 mb-3 p-3 border">
+                                    <div class="col-12 col-sm-6 col-md-6 col-lg-4 mb-3 ">
+                                        <label class="control-label" for="">Código:
+                                            <span class="star">*</span>
+                                        </label>
+                                        <input readonly type="text" class="form-control" name="paymentMethodId"
+                                            placeholder="Id" [(ngModel)]="paymentMethod.paymentMethodId" required
+                                            #paymentMethodId="ngModel">
+                                        <small
+                                            [hidden]="paymentMethodId.valid || (paymentMethodId.pristine && !formPaymentMethod.submitted)"
+                                            class="text-danger">
+                                            Código es requerido.
+                                        </small>
+                                    </div>
+
+                                    <div class="col-12 col-sm-6 col-md-6 col-lg-4 mb-3 ">
+                                        <label class="control-label" for="">Tiene QR?:
+                                            <span class="star">*</span>
+                                        </label><br>
+                                        <bSwitch name="instructionsState" [(ngModel)]="paymentMethod.paymentMethodQr"
+                                            [switch-on-color]="'primary'" [switch-off-color]="'primary'"
+                                            [switch-off-text]="'&#x2715;'" [switch-on-text]="'&#x2714;'">
+                                        </bSwitch>
+                                        <!-- <input type="text" class="form-control" name="paymentMethodQr"
+                                            placeholder="Nombre de Método" [(ngModel)]="paymentMethod.paymentMethodQr"
+                                             #paymentMethodQr="ngModel">
+                                        <small
+                                            [hidden]="paymentMethodQr.valid || (paymentMethodQr.pristine && !formPaymentMethod.submitted)"
+                                            class="text-danger">
+                                            Nombre es requerido.
+                                        </small> -->
+                                    </div>
+
+                                    <div class="col-12 col-sm-6 col-md-6 col-lg-4 mb-3 ">
+                                        <label class="control-label" for="">Nombre de Método:
+                                            <span class="star">*</span>
+                                        </label>
+                                        <input type="text" class="form-control" name="paymentMethodName"
+                                            placeholder="Nombre de Método" [(ngModel)]="paymentMethod.paymentMethodName"
+                                            required #paymentMethodName="ngModel">
+                                        <small
+                                            [hidden]="paymentMethodName.valid || (paymentMethodName.pristine && !formPaymentMethod.submitted)"
+                                            class="text-danger">
+                                            Nombre es requerido.
+                                        </small>
+                                    </div>
+
+                                    <div class="col-12 col-sm-6 col-md-6 col-lg-4 mb-3 ">
+                                        <label class="control-label" for="">A nombre de:
+                                            <span class="star">*</span>
+                                        </label>
+                                        <input type="text" class="form-control" name="paymentMethodAdministrator"
+                                            placeholder="A nombre de"
+                                            [(ngModel)]="paymentMethod.paymentMethodAdministrator"
+                                            #paymentMethodAdministrator="ngModel">
+                                        <small
+                                            [hidden]="paymentMethodAdministrator.valid || (paymentMethodAdministrator.pristine && !formPaymentMethod.submitted)"
+                                            class="text-danger">
+                                            Nombre es requerido.
+                                        </small>
+                                    </div>
+
+
+                                    <div class="col-12 col-sm-6 col-md-6 col-lg-4 mb-3 ">
+                                        <label class="control-label" for="">RUT / DNI / RUC / CI:
+                                            <span class="star">*</span>
+                                        </label>
+                                        <!-- onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))" -->
+
+                                        <input type="text" class="form-control" name="paymentMethodDni"
+                                            placeholder="RUT / DNI / RUC / CI"
+                                            [(ngModel)]="paymentMethod.paymentMethodDni" #paymentMethodDni="ngModel">
+                                        <small
+                                            [hidden]="paymentMethodDni.valid || (paymentMethodDni.pristine && !formPaymentMethod.submitted)"
+                                            class="text-danger">
+                                            Ingrese un ruc válido.
+                                        </small>
+                                    </div>
+
+
+                                    <div class="col-12 col-sm-6 col-md-6 col-lg-4 mb-3 ">
+                                        <label class="control-label" for="">Nombre del banco:
+                                            <span class="star">*</span>
+                                        </label>
+                                        <input type="text" class="form-control" name="paymentMethodBank"
+                                            placeholder="Nombre del banco" [(ngModel)]="paymentMethod.paymentMethodBank"
+                                            #paymentMethodBank="ngModel">
+                                        <small
+                                            [hidden]="paymentMethodBank.valid || (paymentMethodBank.pristine && !formPaymentMethod.submitted)"
+                                            class="text-danger">
+                                            Teléfono es requerido.
+                                        </small>
+                                    </div>
+
+
+                                    <div class="col-12 col-sm-6 col-md-6 col-lg-4 mb-3 ">
+                                        <label class="control-label" for="">Email:
+                                            <span class="star">*</span>
+                                        </label>
+                                        <input type="email" class="form-control" name="paymentMethodEmail"
+                                            [(ngModel)]="paymentMethod.paymentMethodEmail" #paymentMethodEmail="ngModel"
+                                            pattern="^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+.[a-zA-Z0-9-.]+$"
+                                            placeholder="Email">
+                                        <small
+                                            [hidden]="paymentMethodEmail.valid || (paymentMethodEmail.pristine && !formPaymentMethod.submitted)"
+                                            class="text-danger">
+                                            Email inválido.
+                                        </small>
+                                    </div>
+
+                                    <div class="col-12 col-sm-6 col-md-6 col-lg-4 mb-3 ">
+                                        <label class="control-label" for="">Tipo de cuenta:
+                                            <span class="star">*</span>
+                                        </label>
+                                        <input type="text" class="form-control" name="paymentMethodAccountType"
+                                            [(ngModel)]="paymentMethod.paymentMethodAccountType"
+                                            placeholder="Tipo de cuenta" #paymentMethodAccountType="ngModel">
+                                        <small
+                                            [hidden]="paymentMethodAccountType.valid || (paymentMethodAccountType.pristine && !formPaymentMethod.submitted)"
+                                            class="text-danger">
+                                            Requerido.
+                                        </small>
+                                    </div>
+                                    <div class="col-12 col-sm-6 col-md-6 col-lg-4 mb-3 ">
+                                        <label class="control-label" for="">Nro de cuenta:
+                                            <span class="star">*</span>
+                                        </label>
+                                        <input type="text" class="form-control" name="paymentMethodAccountNumber"
+                                            [(ngModel)]="paymentMethod.paymentMethodAccountNumber"
+                                            placeholder="Nro de cuenta" #paymentMethodAccountNumber="ngModel">
+                                        <small
+                                            [hidden]="paymentMethodAccountNumber.valid || (paymentMethodAccountNumber.pristine && !formPaymentMethod.submitted)"
+                                            class="text-danger">
+                                            Ciudad es requerido.
+                                        </small>
+                                    </div>
+                                    <div class="col-12 col-sm-6 col-md-6 col-lg-12 mb-3 ">
+                                        <table class="table table-responsive">
+                                            <tr>
+                                                <td>Valor</td>
+                                                <td>Traducción</td>
+                                                <td>Visible</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Datos visibles:</td>
+                                                <td>
+                                                    <input type="text" class="form-control" name="paymentMethodDataTr"
+                                                        [(ngModel)]="paymentMethod.paymentMethodDataTr" placeholder="TR"
+                                                        #paymentMethodDataTr="ngModel">
+                                                </td>
+                                                <td>
+                                                    <bSwitch name="paymentMethodShowData"
+                                                        [(ngModel)]="paymentMethod.paymentMethodShowData"
+                                                        [switch-on-color]="'primary'" [switch-off-color]="'primary'"
+                                                        [switch-off-text]="'&#x2715;'" [switch-on-text]="'&#x2714;'">
+                                                    </bSwitch>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>Nombre:</td>
+                                                <td>
+                                                    <input type="text" class="form-control" name="paymentMethodNameTr"
+                                                        [(ngModel)]="paymentMethod.paymentMethodNameTr" placeholder="TR"
+                                                        #paymentMethodNameTr="ngModel">
+                                                </td>
+                                                <td>
+                                                    <bSwitch name="paymentMethodShowName"
+                                                        [(ngModel)]="paymentMethod.paymentMethodShowName"
+                                                        [switch-on-color]="'primary'" [switch-off-color]="'primary'"
+                                                        [switch-off-text]="'&#x2715;'" [switch-on-text]="'&#x2714;'">
+                                                    </bSwitch>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>Administrador:</td>
+                                                <td>
+                                                    <input type="text" class="form-control" name="paymentMethodAdminTr"
+                                                        [(ngModel)]="paymentMethod.paymentMethodAdminTr"
+                                                        placeholder="TR" #paymentMethodAdminTr="ngModel">
+                                                </td>
+                                                <td>
+                                                    <bSwitch name="paymentMethodShowAdmin"
+                                                        [(ngModel)]="paymentMethod.paymentMethodShowAdmin"
+                                                        [switch-on-color]="'primary'" [switch-off-color]="'primary'"
+                                                        [switch-off-text]="'&#x2715;'" [switch-on-text]="'&#x2714;'">
+                                                    </bSwitch>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>DNI:</td>
+                                                <td>
+                                                    <input type="text" class="form-control" name="paymentMethodDniTr"
+                                                        [(ngModel)]="paymentMethod.paymentMethodDniTr" placeholder="TR"
+                                                        #paymentMethodDniTr="ngModel">
+                                                </td>
+                                                <td>
+                                                    <bSwitch name="paymentMethodShowDni"
+                                                        [(ngModel)]="paymentMethod.paymentMethodShowDni"
+                                                        [switch-on-color]="'primary'" [switch-off-color]="'primary'"
+                                                        [switch-off-text]="'&#x2715;'" [switch-on-text]="'&#x2714;'">
+                                                    </bSwitch>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>Banco:</td>
+                                                <td>
+                                                    <input type="text" class="form-control" name="paymentMethodBankTr"
+                                                        [(ngModel)]="paymentMethod.paymentMethodBankTr" placeholder="TR"
+                                                        #paymentMethodBankTr="ngModel">
+                                                </td>
+                                                <td>
+                                                    <bSwitch name="paymentMethodShowBank"
+                                                        [(ngModel)]="paymentMethod.paymentMethodShowBank"
+                                                        [switch-on-color]="'primary'" [switch-off-color]="'primary'"
+                                                        [switch-off-text]="'&#x2715;'" [switch-on-text]="'&#x2714;'">
+                                                    </bSwitch>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>Email:</td>
+                                                <td>
+                                                    <input type="text" class="form-control" name="paymentMethodEmailTr"
+                                                        [(ngModel)]="paymentMethod.paymentMethodEmailTr"
+                                                        placeholder="TR" #paymentMethodEmailTr="ngModel">
+                                                </td>
+                                                <td>
+                                                    <bSwitch name="paymentMethodShowEmail"
+                                                        [(ngModel)]="paymentMethod.paymentMethodShowEmail"
+                                                        [switch-on-color]="'primary'" [switch-off-color]="'primary'"
+                                                        [switch-off-text]="'&#x2715;'" [switch-on-text]="'&#x2714;'">
+                                                    </bSwitch>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>Tipo de cuenta:</td>
+                                                <td>
+                                                    <input type="text" class="form-control"
+                                                        name="paymentMethodAccountTypeTr"
+                                                        [(ngModel)]="paymentMethod.paymentMethodAccountTypeTr"
+                                                        placeholder="TR" #paymentMethodAccountTypeTr="ngModel">
+                                                </td>
+                                                <td>
+                                                    <bSwitch name="paymentMethodShowAccountType"
+                                                        [(ngModel)]="paymentMethod.paymentMethodShowAccountType"
+                                                        [switch-on-color]="'primary'" [switch-off-color]="'primary'"
+                                                        [switch-off-text]="'&#x2715;'" [switch-on-text]="'&#x2714;'">
+                                                    </bSwitch>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>Nro de cuenta:</td>
+                                                <td>
+                                                    <input type="text" class="form-control"
+                                                        name="paymentMethodAccountNumberTr"
+                                                        [(ngModel)]="paymentMethod.paymentMethodAccountNumberTr"
+                                                        placeholder="TR" #paymentMethodAccountNumberTr="ngModel">
+                                                </td>
+                                                <td>
+                                                    <bSwitch name="paymentMethodShowAccountNumber"
+                                                        [(ngModel)]="paymentMethod.paymentMethodShowAccountNumber"
+                                                        [switch-on-color]="'primary'" [switch-off-color]="'primary'"
+                                                        [switch-off-text]="'&#x2715;'" [switch-on-text]="'&#x2714;'">
+                                                    </bSwitch>
+                                                </td>
+                                            </tr>
+                                        </table>
+
+                                    </div>
+
+                                    <div class="col-12 col-sm-6 col-md-6 col-lg-12 mb-3">
+                                        <label class="control-label" for="">Países donde esta disponible:
+                                            <span class="star">*</span>
+                                        </label>
+                                        <!-- <ng-multiselect-dropdown [placeholder]="'Seleccionar los paises'"
+                                            name="paymentMethodCountries" id="paymentMethodCountries"
+                                            [settings]="dropdownSettings" [data]="dropdownList"
+                                            [(ngModel)]="paymentMethod.paymentMethodCountries"
+                                            #paymentMethodCountries="ngModel" (ngModelChange)="onItemSelect($event)"
+                                            (onSelectAll)="onSelectAll($event)">
+                                        </ng-multiselect-dropdown> -->
+                                    </div>
+                                </div>
+                                <div class="row w-100 m-0 p-0 mb-3 p-3 border">
+
+                                    <div class="col-12 col-sm-6 col-md-6 col-lg-4 pt-3">
+                                        <button type="submit" class="btn btn-primary text-btn-form btn-block">
+                                            {{isEdit ? 'Actualizar' : 'Guardar'}}
+                                        </button>
+                                        <div class="category"> <span class="star">*</span> Campos requeridos
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-6 col-md-6 col-lg-4 pt-3">
+                                        <button type="button" (click)="cancelViewForm(formPaymentMethod)"
+                                            class="btn btn-danger text-btn-form btn-block">
+                                            Cancelar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- *** #Modal New PaymentMethod *** -->

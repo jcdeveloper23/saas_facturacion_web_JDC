@@ -240,7 +240,7 @@ export class CreateOrderComponent implements OnInit {
   }
 
   public getInfoRepresentative() {
-    this.representativeService.getRepresentativeId(this.infoUser.user_id).pipe(take(1)).subscribe(async (representative) => {
+    this.representativeService.getRepresentativeId(this.infoUser.userId).pipe(take(1)).subscribe(async (representative) => {
       this.representative = representative;
       if (representative) {
         await this.getProvidersList();
@@ -255,7 +255,7 @@ export class CreateOrderComponent implements OnInit {
     this.productsCartInCache = [];
     this.order.order_provider_id = this.providerSelected.provider_id;
     this.order.order_transaccion_id = new Date().getTime().toString();
-    this.order.order_representative_id = this.infoUser.user_id;
+    this.order.order_representative_id = this.infoUser.userId;
     this.order.order_student_id = this.student_id;
     this.order.order_student_name = `${this.student.student_name} ${this.student.student_lastname}`;
     this.order.order_student_level = `${this.student.student_level}`;
@@ -822,8 +822,8 @@ export class CreateOrderComponent implements OnInit {
     // this.infoUser.email = 'osalas@paymentez.com';
     var body = {
       "user": {
-        "id": this.infoUser.user_uid,
-        "email": this.infoUser.email,
+        "id": this.infoUser.userUid,
+        "email": this.infoUser.userEmail,
       },
       "order": {
         "amount": this.order.order_total_to_pay,
@@ -893,7 +893,7 @@ export class CreateOrderComponent implements OnInit {
         }),
       };
       var headers = {};
-      var url = `${environment.urlPaymentez}/card/list?uid=${this.infoUser.user_uid}`;
+      var url = `${environment.urlPaymentez}/card/list?uid=${this.infoUser.userUid}`;
       console.log(url);
 
       var resp = this.http.get<any>(url, httpOptions).subscribe((response) => {

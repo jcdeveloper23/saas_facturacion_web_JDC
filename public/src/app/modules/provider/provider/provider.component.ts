@@ -36,8 +36,8 @@ export class ProviderComponent implements OnInit {
   ngOnInit(): void {
     this.infoUser = JSON.parse(localStorage.getItem("infoUser"));
     if (this.infoUser) {
-      this.provider_id = this.infoUser.user_id;
-      this.urlByAddPayment = this.sanitizerUrl(`https://tubarpay.web.app/?id=${this.infoUser.user_uid}&email=${this.infoUser.email}&idp=${this.infoUser.user_id}`);
+      this.provider_id = this.infoUser.userId;
+      this.urlByAddPayment = this.sanitizerUrl(`https://tubarpay.web.app/?id=${this.infoUser.userUid}&email=${this.infoUser.userEmail}&idp=${this.infoUser.userId}`);
     }
     this.provider = {};
     this.getProvider()

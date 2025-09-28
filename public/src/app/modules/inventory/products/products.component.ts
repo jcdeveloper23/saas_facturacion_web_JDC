@@ -94,7 +94,7 @@ export class ProductsComponent implements OnInit {
   ngOnInit(): void {
     this.infoUser = JSON.parse(localStorage.getItem("infoUser"));
     if (this.infoUser) {
-      this.provider_id =  this.infoUser.user_id;
+      this.provider_id =  this.infoUser.userId;
     }
     this.getLines();
     this.getProducts();
@@ -642,13 +642,13 @@ export class ProductsComponent implements OnInit {
   }
 
   public getCategoryIdMenu() {
-    this.categoriesService.getCategoryMenuByProviderId(this.infoUser.user_id).pipe(take(1)).subscribe((category) => {
+    this.categoriesService.getCategoryMenuByProviderId(this.infoUser.userId).pipe(take(1)).subscribe((category) => {
       this.category = category[0];
       this.getProductsMenu()
     })
   }
   public getProductsMenu() {
-    this.productService.getProductsByCategoryMenu(this.infoUser.user_id, this.category.category_id).pipe(take(1)).subscribe((products) => {
+    this.productService.getProductsByCategoryMenu(this.infoUser.userId, this.category.category_id).pipe(take(1)).subscribe((products) => {
       this.dataSourceModal = new MatTableDataSource<Product>(products);
       this.dataSourceModal.paginator = this.paginatorModal;
       this.dataSourceModal.sort = this.sortModal;
@@ -675,15 +675,15 @@ export class ProductsComponent implements OnInit {
   
   public addMenu() {
     if (this.arrayProductSelected && this.arrayProductSelected.length > 0) {
-      this.menuService.getMenuProviderId(this.infoUser.user_id).pipe(take(1)).subscribe((provider) => {
+      this.menuService.getMenuProviderId(this.infoUser.userId).pipe(take(1)).subscribe((provider) => {
         if (provider === undefined) {
-          this.menuService.setProviderIdInMenu(this.infoUser.user_id);
+          this.menuService.setProviderIdInMenu(this.infoUser.userId);
           for (let index = 0; index < this.arrayProductSelected.length; index++) {
             const product = this.arrayProductSelected[index];
             let menu: Menu = {
               menu_date : this.dateStr.dateStr,
               menu_product: product,
-              menu_provider_id: this.infoUser.user_id,
+              menu_provider_id: this.infoUser.userId,
               menu_id: (new Date().getTime().toString() + index),
             }
             this.menuService.saveMenu(menu).then(() => {
@@ -699,7 +699,7 @@ export class ProductsComponent implements OnInit {
             let menu: Menu = {
               menu_date : this.dateStr.dateStr,
               menu_product: product,
-              menu_provider_id: this.infoUser.user_id,
+              menu_provider_id: this.infoUser.userId,
               menu_id: (new Date().getTime().toString() + index),
             }
             this.menuService.saveMenu(menu).then(() => {
@@ -717,7 +717,7 @@ export class ProductsComponent implements OnInit {
   }
 
   public getEventsCalendar(dateStart: any , dateEnd: any) {
-    this.menuService.getEventsMenu(this.infoUser.user_id, dateStart, dateEnd).subscribe((events: Array<Menu>) => {
+    this.menuService.getEventsMenu(this.infoUser.userId, dateStart, dateEnd).subscribe((events: Array<Menu>) => {
       this.array_menu = events;
       this.array_events = []
       if(events.length > 0) {

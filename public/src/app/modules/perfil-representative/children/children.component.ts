@@ -73,7 +73,7 @@ export class ChildrenComponent implements OnInit {
   }
 
   public getInfoRepresentative() {
-    this.representativeService.getRepresentativeId(this.infoUser.user_id).pipe(take(1)).subscribe((representative) => {
+    this.representativeService.getRepresentativeId(this.infoUser.userId).pipe(take(1)).subscribe((representative) => {
       this.representative = representative;
       if (representative) {
         this.getProvidersList();

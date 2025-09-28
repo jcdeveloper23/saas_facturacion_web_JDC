@@ -29,6 +29,21 @@ export const AppRoutes: Routes = [
         path: '',
         component: AdminLayoutComponent,
         children: [
+            {
+                path: 'registerProcess',
+                loadChildren: './modules/register-process/register-process.module#RegisterProcessModule',
+                canActivate: [AuthGuard],
+            },
+            {
+                path: 'categories',
+                loadChildren: './modules/categories/categories.module#CategoriesModule',
+                canActivate: [AuthGuard],
+            },
+            {
+                path: 'cities',
+                loadChildren: './modules/cities/cities.module#CitiesModule',
+                canActivate: [AuthGuard],
+            },
             //     {
             //     path: '',
             //     loadChildren: './dashboard/dashboard.module#DashboardModule'
@@ -141,6 +156,21 @@ export const AppRoutes: Routes = [
             {
                 path: 'allergies',
                 loadChildren: './modules/admin-allergies/admin-allergies.module#AdminAllergiesModule',
+                canActivate: [AuthGuard],
+            },
+            {
+                path: 'bcvRate',
+                loadChildren: './modules/bcv-exchange-rate/bcv-exchange-rate.module#BcvExchangeRateModule',
+                canActivate: [AuthGuard],
+            },
+            {
+                path: 'paymentMethod',
+                loadChildren: './modules/payment-method/payment-method.module#PaymentMethodModule',
+                canActivate: [AuthGuard],
+            },
+            {
+                path: 'recharges',
+                loadChildren: './modules/recharges/recharges.module#RechargesModule',
                 canActivate: [AuthGuard],
             },
             /*{

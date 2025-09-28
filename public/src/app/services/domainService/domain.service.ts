@@ -17,9 +17,9 @@ export class DomainService {
       'cl': 'Chile',
       'ec': 'Ecuador',
       've': 'Venezuela',
-      'localhost': 'Ecuador',
+      'driverappve': 'Venezuela',
       '192': 'Ecuador',
-      // 'localhost': 'Venezuela',
+      'localhost': 'Venezuela',
       // Agrega más subdominios a medida que lo necesites
     };
 

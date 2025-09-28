@@ -36,7 +36,7 @@ export class UploadProductsComponent implements OnInit {
   ngOnInit(): void {
     this.infoUser = JSON.parse(localStorage.getItem("infoUser"));
     if (this.infoUser) {
-      this.provider_id =  this.infoUser.user_id;
+      this.provider_id =  this.infoUser.userId;
     }
   }
 

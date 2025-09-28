@@ -21,6 +21,8 @@ export class TermsComponent implements OnInit {
     
 
     this.country = this.domainService.getCountry();
+    console.log(this.country);
+    
     if (this.country) {
       this.getCountry(this.country);
     }
@@ -28,6 +30,8 @@ export class TermsComponent implements OnInit {
 
   public async getCountry(country: string) {
     this.countriesService.getCountry(country).subscribe(async country => {
+      console.log(JSON.stringify(country));
+      
       if (country.length > 0) {
         this.countrySelected = country[0];
       }

@@ -61,7 +61,7 @@ export class CartDetailComponent implements OnInit {
     private storageService: StorageService,
     private orderService: OrdersService,
     private providersService: ProviderService,
-    private http: HttpClient,
+    private http: HttpClient, 
 
   ) { }
 
@@ -71,7 +71,7 @@ export class CartDetailComponent implements OnInit {
   }
 
   public getInfoRepresentative() {
-    this.representativeService.getRepresentativeId(this.infoUser.user_id).pipe(take(1)).subscribe((representative) => {
+    this.representativeService.getRepresentativeId(this.infoUser.userId).pipe(take(1)).subscribe((representative) => {
       this.representative = representative;
       if (this.representative) {
         this.setInfoOrder();
@@ -95,7 +95,7 @@ export class CartDetailComponent implements OnInit {
         }),
       };
       var headers = {};
-      var url = `${environment.urlPaymentez}/card/list?uid=${this.infoUser.user_uid}`;
+      var url = `${environment.urlPaymentez}/card/list?uid=${this.infoUser.userUid}`;
       var response = this.http.get<any>(url, httpOptions).subscribe((response) => {
         response['cards'].forEach(card => {
           this.arrayPaymentMethod.push(card);
@@ -162,8 +162,8 @@ export class CartDetailComponent implements OnInit {
     // this.infoUser.email = 'osalas@paymentez.com';
     var body = {
       "user": {
-        "id": this.infoUser.user_uid,
-        "email": this.infoUser.email,
+        "id": this.infoUser.userUid,
+        "email": this.infoUser.userEmail,
       },
       "order": {
         "amount": this.order.order_total_to_pay,
@@ -458,7 +458,7 @@ export class CartDetailComponent implements OnInit {
   public setInfoOrder() {
     this.order.order_provider_id = this.productsCart[0].product_provider_id;
     this.order.order_transaccion_id = new Date().getTime().toString();
-    this.order.order_representative_id = this.infoUser.user_id;
+    this.order.order_representative_id = this.infoUser.userId;
     this.order.order_student_id = this.student_id;
     this.order.order_time = this.notificationService.getTimeCurrent();
     this.order.order_date = this.notificationService.getDateCurrent();

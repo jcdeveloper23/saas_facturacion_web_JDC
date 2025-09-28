@@ -87,7 +87,7 @@
                                                     <label class="control-label" for="">Email:
                                                         <span class="star">*</span>
                                                     </label>
-                                                    <input [disabled]="infoUser.users_account_type === '0'" type="email" class="form-control" name="student_email"
+                                                    <input [disabled]="infoUser.userRol.toString() === '0'" type="email" class="form-control" name="student_email"
                                                         [(ngModel)]="student.student_email" required
                                                         #student_email="ngModel"
                                                         pattern="^[a-zA-Z0-9_.+\-]+@[a-zA-Z0-9\-]+\.[a-zA-Z0-9\-\.]+$">
@@ -150,7 +150,7 @@
                                                                 [value]="level.level_id">
                                                                 {{level.level_name}}</option>
                                                         </select> -->
-                                                        <mat-select [disabled]="infoUser.users_account_type === '0'"  name="student_level" placeholder="Seleccione"
+                                                        <mat-select [disabled]="infoUser.userRol.toString() === '0'"  name="student_level" placeholder="Seleccione"
                                                             panelClass="Seleccione" class=" form-control"
                                                             (selectionChange)="selectLevel($event)"
                                                             [(ngModel)]="student.student_level">
@@ -175,7 +175,7 @@
                                                                 [value]="parallel.parallel_id">
                                                                 {{parallel.parallel_name}}</option>
                                                         </select> -->
-                                                        <mat-select [disabled]="infoUser.users_account_type === '0'"  name="student_parallel" placeholder="Seleccione"
+                                                        <mat-select [disabled]="infoUser.userRol.toString() === '0'"  name="student_parallel" placeholder="Seleccione"
                                                             panelClass="Seleccione" class=" form-control"
                                                             [(ngModel)]="student.student_parallel">
                                                             <mat-option *ngFor="let parallel of parallels"

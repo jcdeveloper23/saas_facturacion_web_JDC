@@ -67,55 +67,55 @@ export const ROUTES_BAR: RouteInfo[] = [
     //     type: 'link',
     //     icontype: 'nc-icon nc-single-02'
     // },
-
+    {
+        path: '/dashboard',
+        title: 'Resumen general',
+        type: 'link',
+        icontype: 'nc-icon nc-chart-bar-32' // Icono de estadísticas
+    },
     {
         path: '/deliverOrders',
-        title: 'Entregas',
+        title: 'Órdenes a entregar',
         type: 'link',
-        icontype: 'nc-icon nc-send'
+        icontype: 'nc-icon nc-delivery-fast' // Representa envíos
     },
     {
         path: '/paymentConfirmation',
-        title: 'Pagos por confirmar',
+        title: 'Confirmar pagos',
         type: 'link',
-        icontype: 'nc-icon nc-send'
-    },
-    {
-        path: '/dashboard',
-        title: 'Dashboard',
-        type: 'link',
-        icontype: 'nc-icon nc-app'
-    },
-    {
-        path: '/perfil',
-        title: 'Empresa',
-        type: 'link',
-        icontype: 'nc-icon nc-bank'
-    },
-    {
-        path: '/inventory/lines',
-        title: 'Categorías',
-        type: 'link',
-        icontype: 'nc-icon nc-tag-content'
+        icontype: 'nc-icon nc-credit-card' // Icono de pagos
     },
     {
         path: '/inventory/admin-products',
-        title: 'Productos',
+        title: 'Gestión de productos',
         type: 'link',
-        icontype: 'nc-icon nc-box'
+        icontype: 'nc-icon nc-box' // Mismo icono pero ahora más claro en el título
+    },
+    {
+        path: '/inventory/lines',
+        title: 'Categorías de productos',
+        type: 'link',
+        icontype: 'nc-icon nc-bullet-list-67' // Mejora visual sobre tags
     },
     {
         path: '/inventory/coupons',
-        title: 'Cupones',
+        title: 'Paquetes de recarga',
         type: 'link',
-        icontype: 'nc-icon nc-cart-simple'
+        icontype: 'nc-icon nc-tag-content' // Más representativo de promociones
     },
     {
-        path: '/inventory/upload',
-        title: 'Subir',
+        path: '/perfil',
+        title: 'Perfil del bar',
         type: 'link',
-        icontype: 'nc-icon nc-single-copy-04'
-    },
+        icontype: 'nc-icon nc-single-02' // Más enfocado en perfil
+    }
+
+    // {
+    //     path: '/inventory/upload',
+    //     title: 'Subir',
+    //     type: 'link',
+    //     icontype: 'nc-icon nc-single-copy-04'
+    // },
     // {
     //     path: '/inventory/products',
     //     title: 'Inventario',
@@ -143,67 +143,116 @@ export const ROUTES_BAR: RouteInfo[] = [
     //         },
     //     ]
     // },
-    {
-        path: '/supplie-reports',
-        title: 'Reportes',
-        type: 'sub',
-        collapse: 'reports',
-        icontype: 'nc-icon nc-paper',
-        children: [
-            { path: 'orders', title: 'Pedidos', ab: 'P' },
-            { path: 'report', title: 'Reporte de ventas', ab: 'R' },
-        ]
-    },
-    {
-        path: '/users',
-        title: 'Usuarios',
-        type: 'sub',
-        collapse: 'users',
-        icontype: 'nc-icon nc-circle-10',
-        children: [
-            { path: 'representative', title: 'Representantes', ab: 'R' },
-            { path: 'students', title: 'Estudiantes', ab: 'A' },
-            { path: 'requestStudents', title: 'Nuevas solicitudes', ab: 'NS' },
-        ]
-    },
+    // {
+    //     path: '/supplie-reports',
+    //     title: 'Reportes',
+    //     type: 'sub',
+    //     collapse: 'reports',
+    //     icontype: 'nc-icon nc-paper',
+    //     children: [
+    //         { path: 'orders', title: 'Pedidos', ab: 'P' },
+    //         { path: 'report', title: 'Reporte de ventas', ab: 'R' },
+    //     ]
+    // },
+    // {
+    //     path: '/users',
+    //     title: 'Usuarios',
+    //     type: 'sub',
+    //     collapse: 'users',
+    //     icontype: 'nc-icon nc-circle-10',
+    //     children: [
+    //         { path: 'representative', title: 'Representantes', ab: 'R' },
+    //         { path: 'students', title: 'Estudiantes', ab: 'A' },
+    //         { path: 'requestStudents', title: 'Nuevas solicitudes', ab: 'NS' },
+    //     ]
+    // },
 ];
 
 /// *** Menu Items SUPER ADMIN ***
 export const ROUTES_SUPER_ADMIN: RouteInfo[] = [
     {
-        path: '/provider-administration',
-        title: 'Proveedores',
-        type: 'link',
-        icontype: 'nc-icon nc-cart-simple'
-    },
-    {
-        path: '/school',
-        title: 'Unidades Educativas',
-        type: 'link',
-        icontype: 'nc-icon nc-zoom-split'
-    },
-    {
-        path: '/users',
-        title: 'Usuarios',
-        type: 'sub',
-        collapse: 'users',
-        icontype: 'nc-icon nc-circle-10',
-        children: [
-            { path: 'representative', title: 'Representantes', ab: 'R' },
-            { path: 'students', title: 'Estudiantes', ab: 'A' },
-        ]
-    },
-    {
         path: '/countries',
         title: 'Países',
         type: 'link',
         icontype: 'nc-icon nc-globe'
-    }, {
-        path: '/allergies',
-        title: 'Alergias',
-        type: 'link',
-        icontype: 'nc-icon nc-globe'
     },
+    {
+        path: '/cities',
+        title: 'Ciudades',
+        type: 'link',
+        icontype: 'nc-icon nc-settings'
+    },
+    {
+        path: '/registerProcess',
+        title: 'Pasos de registro',
+        type: 'link',
+        icontype: 'nc-icon nc-settings'
+    },
+    {
+        path: '/categories',
+        title: 'Categorías',
+        type: 'link',
+        icontype: 'nc-icon nc-settings'
+    },
+    {
+        path: '/bcvRate',
+        title: 'Tasa BCV',
+        type: 'link',
+        icontype: 'nc-icon nc-settings'
+    },
+    {
+        path: '/paymentMethod',
+        title: 'Métodos de pago',
+        type: 'link',
+        icontype: 'nc-icon nc-settings'
+    },
+    {
+        path: '/recharges',
+        title: 'Recargas',
+        type: 'link',
+        icontype: 'nc-icon nc-settings'
+    },
+    // {
+    //     path: '/provider-administration',
+    //     title: 'Proveedores',
+    //     type: 'link',
+    //     icontype: 'nc-icon nc-cart-simple'
+    // },
+    // {
+    //     path: '/school',
+    //     title: 'Unidades Educativas',
+    //     type: 'link',
+    //     icontype: 'nc-icon nc-zoom-split'
+    // },
+    // {
+    //     path: '/users',
+    //     title: 'Usuarios',
+    //     type: 'sub',
+    //     collapse: 'users',
+    //     icontype: 'nc-icon nc-circle-10',
+    //     children: [
+    //         { path: 'representative', title: 'Representantes', ab: 'R' },
+    //         { path: 'students', title: 'Estudiantes', ab: 'A' },
+    //     ]
+    // },
+    {
+        path: '/users',
+        title: 'Usuarios',
+        type: 'link',
+        collapse: 'users',
+        icontype: 'nc-icon nc-circle-10',
+    },
+    // {
+    //     path: '/countries',
+    //     title: 'Países',
+    //     type: 'link',
+    //     icontype: 'nc-icon nc-globe'
+    // }, {
+    //     path: '/allergies',
+    //     title: 'Alergias',
+    //     type: 'link',
+    //     icontype: 'nc-icon nc-globe'
+    // },
 
 ];
 
@@ -395,7 +444,7 @@ export class SidebarComponent {
     public provider: Provider;
     public arrayOrders: Array<Orders> = [];
 
-    audioNewOrder = new Audio('../../../../assets/sound/notify2.mp3'); 
+    audioNewOrder = new Audio('../../../../assets/sound/notify2.mp3');
     previousOrderIds: Set<string> = new Set();
 
     isNotMobileMenu() {
@@ -412,11 +461,11 @@ export class SidebarComponent {
     async ngOnInit() {
         this.provider = {};
         this.infoUser = JSON.parse(localStorage.getItem("infoUser"));
-        if (this.infoUser.users_account_type == '2') {
+        if (this.infoUser.userRol.toString() == '2') {
             ROUTES = (ROUTES_REPRESENTATIVE);
             this.menuItems = ROUTES.filter(menuItem => menuItem);
-        } else if (this.infoUser.users_account_type == '1') {
-            this.providerService.getProviderId(this.infoUser.user_id).pipe(take(1)).subscribe(provider => {
+        } else if (this.infoUser.userRol.toString() == '1') {
+            this.providerService.getProviderId(this.infoUser.userId).pipe(take(1)).subscribe(provider => {
                 this.provider = provider;
                 /// *** OJO negar ***
                 if (this.provider.provider_state_method) {
@@ -426,15 +475,15 @@ export class SidebarComponent {
                 }
                 this.menuItems = ROUTES.filter(menuItem => menuItem);
             })
-        } else if (this.infoUser.users_account_type == '0') {
+        } else if (this.infoUser.userRol.toString() == '0') {
             ROUTES = (ROUTES_SUPER_ADMIN);
             this.menuItems = ROUTES.filter(menuItem => menuItem);
         }
-        this.getOrdersConfirmationPending('')
+        // this.getOrdersConfirmationPending('')
     }
 
     public getOrdersConfirmationPending(value: string) {
-        this.ordersService.getAllOrdersConfirmationPending(this.infoUser.user_id, value).subscribe((orders: Array<Orders>) => {
+        this.ordersService.getAllOrdersConfirmationPending(this.infoUser.userId, value).subscribe((orders: Array<Orders>) => {
             const currentIds = new Set(orders.map(order => order.order_transaccion_id));
 
             // Verifica si hay un nuevo ID que antes no existía

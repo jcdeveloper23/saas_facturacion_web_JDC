@@ -104,15 +104,12 @@ export class RegisterProviderComponent implements OnInit {
               this.provider.provider_id_school = '';
             }
             let user: Users = {
-              user_name: this.provider.provider_name,
-              user_email: this.provider.provider_email,
-              user_uid: result.uid,
-              user_state: false,
-              users_account_type: '1',
-              users_rol: 'bar',
-              user_id_school : this.provider.provider_id_school,
-              user_id : this.provider.provider_id,
-              user_state_payment_method_provider : false,
+              userName: this.provider.provider_name,
+              userEmail: this.provider.provider_email,
+              userUid: result.uid,
+              userState: false,
+              userRol: 1,
+              userId : this.provider.provider_id,
             }
             
             this.userService.saveUser(user).then(() => {

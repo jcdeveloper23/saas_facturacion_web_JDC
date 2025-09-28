@@ -1,11 +1,10 @@
 <div class="main-content">
-    <app-loading></app-loading> 
+    <app-loading></app-loading>
 
     <div class="row m-0 p-0 w-100">
         <div class="col-sm-8">
         </div>
 
-        <!-- *** numero de paises activos *** -->
         <div class="col-12 col-sm-6 col-md-6 col-lg-4 m-0 p-0">
             <div class="card card-stats container-fluid-body">
                 <div class="card-body">
@@ -101,30 +100,6 @@
                 </table>
                 <mat-paginator [pageSizeOptions]="[10, 25, 50]" #tableProviders showFirstLastButtons>
                 </mat-paginator>
-
-
-
-                <!-- <table id="datatableUsers" class="table">
-                                    
-                                    <tbody id="tBodyCountry">
-                                        <tr *ngFor="let country of arrayCountries; let i = index">
-                                            <td class="text-center">{{country.countryCode}}</td>
-                                            <td class="text-left">{{country.countryName}}</td>
-                                            <td class="text-center">
-                                                <div class="row m-0 p-0 w-100">
-                                                    <div class="col-6">
-                                                        <i (click)="editCountry(country)"
-                                                            class="fa fa-edit icon-info"></i>
-                                                    </div>
-                                                    <div class="col-6">
-                                                        <i (click)="deleteCountry(country)"
-                                                            class="fa fa-trash icon-danger"></i>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table> -->
             </div>
         </div>
     </div>
@@ -146,7 +121,7 @@
                     País
                 </h4>
             </div>
-            <div class="modal-body"> 
+            <div class="modal-body">
                 <form #formCountry="ngForm" novalidate (ngSubmit)="saveCountry(formCountry.valid, formCountry)">
                     <div class="row w-100 m-0 p-0">
                         <div class="col-12">
@@ -208,6 +183,22 @@
 
                                         <small
                                             [hidden]="countryTermsAndConditions.valid || (countryTermsAndConditions.pristine && !formCountry.submitted)"
+                                            class="text-danger">
+                                            Las condiciones son requerido.
+                                        </small>
+                                    </div>
+
+                                    <!-- *** Politicas *** -->
+                                    <div class="col-12 col-sm-12 col-md-12 col-lg-12 mb-3">
+                                        <label class="control-label" for="">
+                                            <span class="star">*</span> Políticas de privacidad:
+                                        </label>
+                                        <ckeditor [(ngModel)]="country.countryPrivacity" [editor]="Editor"
+                                            name="countryPrivacity" placeholder="Condiciones" required
+                                            #countryPrivacity="ngModel">
+                                        </ckeditor>
+                                        <small
+                                            [hidden]="countryPrivacity.valid || (countryPrivacity.pristine && !formCountry.submitted)"
                                             class="text-danger">
                                             Las condiciones son requerido.
                                         </small>

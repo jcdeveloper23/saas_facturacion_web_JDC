@@ -52,7 +52,6 @@ export class CountriesComponent implements OnInit {
     public utilsService: UtilsService,
     public countriesService: CountriesService,
     public loadingService: LoadingService,
-
   ) { }
 
   ngOnInit(): void {
@@ -62,8 +61,6 @@ export class CountriesComponent implements OnInit {
 
 
   public getCountries() {
-    console.log('*** getCountries ***');
-
     this.countriesService.getCountries().subscribe(countries => {
       this.arrayCountries = countries;
       console.log(this.arrayCountries);
@@ -81,7 +78,6 @@ export class CountriesComponent implements OnInit {
     this.country.countryState = true;
     $('#modalNewCountry').modal('show');
   }
-
 
   public async saveCountry(isValid: boolean, form: NgForm) {
     if (isValid) {

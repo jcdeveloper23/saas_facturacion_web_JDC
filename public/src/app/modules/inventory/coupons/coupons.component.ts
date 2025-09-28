@@ -44,11 +44,10 @@ export class CouponsComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
-    this.loadingService.show('Cargando...');
     this.array_coupons = [];
     this.infoUser = JSON.parse(localStorage.getItem("infoUser"));
     if (this.infoUser) {
-      this.provider_id = this.infoUser.user_id;
+      this.provider_id = this.infoUser.userId;
     }
     this.coupon = {}
     this.getCoupons();
@@ -72,6 +71,7 @@ export class CouponsComponent implements OnInit {
    * 3.Se agregar al array de grupos cada grupo individualmente para posteriormente mostrar en la tabla.
    */
   public getCoupons() {
+    this.loadingService.show('Cargando...');
     this.array_coupons = [];
     this.couponsService.getCoupons(this.provider_id).pipe(take(1)).subscribe((coupons: Coupon[]) => {
       this.array_coupons = coupons;
@@ -89,7 +89,7 @@ export class CouponsComponent implements OnInit {
    */
   public newCoupon() {
     this.isEditCoupon = false;
-    $('#multiCollapseCoupon').collapse('show');
+    $('#modalAdmin').modal('show');
     this.coupon = {}
     this.coupon.coupon_code = new Date().getTime().toString();
     this.coupon.coupon_state = true;
@@ -115,20 +115,21 @@ export class CouponsComponent implements OnInit {
     */
   public saveCoupon(coupon: Coupon, isValid: boolean, form: NgForm) {
     if (isValid) {
+      this.loadingService.show('Cargando...');
       this.coupon.coupon_value = this.coupon.coupon_value;
       if (this.isEditCoupon) {
         this.couponsService.updateCoupon(this.coupon).then(() => {
           this.showNotification('top', 'right', 'nc-check-2', 'Se realizó el registro correctamente', 'success');
           this.getCoupons();
           form.resetForm()
-          $('#multiCollapseCoupon').collapse('hide');
+          $('#modalAdmin').modal('hide');
         })
       } else {
         this.couponsService.saveCoupon(this.coupon).then(() => {
           this.showNotification('top', 'right', 'nc-check-2', 'Se realizó el registro correctamente', 'success');
           this.getCoupons();
           form.resetForm()
-          $('#multiCollapseCoupon').collapse('hide');
+          $('#modalAdmin').modal('hide');
         })
       }
     }
@@ -141,7 +142,7 @@ export class CouponsComponent implements OnInit {
   public editCoupon(coupon: Coupon) {
     this.isEditCoupon = true;
     this.coupon = coupon;
-    $('#multiCollapseCoupon').collapse('show');
+    $('#modalAdmin').modal('show');
 
   }
 

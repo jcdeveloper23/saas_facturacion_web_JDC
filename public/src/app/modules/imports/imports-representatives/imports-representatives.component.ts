@@ -54,9 +54,7 @@ export class ImportsRepresentativesComponent implements OnInit {
               representative.representative_email = representative.representative_email.trim();
               representative.representative_state_confirm = false;
               representative.representative_state_confirm_by_bar = true;
-              representative.representative_schools = [
-                this.infoUser.user_id_school,
-              ];
+              
               if (representative.representative_identification.length <= 9) {
                 representative.representative_identification = '0'+representative.representative_identification;
               }

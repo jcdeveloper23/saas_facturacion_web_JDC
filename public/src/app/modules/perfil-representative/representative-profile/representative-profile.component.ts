@@ -63,9 +63,9 @@ export class RepresentativeProfileComponent implements OnInit {
     this.representative = {};
     this.infoUser = JSON.parse(localStorage.getItem("infoUser"));
     if (this.infoUser) {
-      this.representative_id = this.infoUser.user_id;
-      this.urlByAddPayment = this.sanitizerUrl(`https://tubarpay.web.app/indexFather.html?id=${this.infoUser.user_uid}&email=${this.infoUser.email}&idp=${this.infoUser.user_id}`);
-      // console.log(`https://tubarpay.web.app/indexFather.html?id=${this.infoUser.user_uid}&email=${this.infoUser.email}&idp=${this.infoUser.user_id}`);
+      this.representative_id = this.infoUser.userId;
+      this.urlByAddPayment = this.sanitizerUrl(`https://tubarpay.web.app/indexFather.html?id=${this.infoUser.userUid}&email=${this.infoUser.userEmail}&idp=${this.infoUser.userId}`);
+      // console.log(`https://tubarpay.web.app/indexFather.html?id=${this.infoUser.userUid}&email=${this.infoUser.userEmail}&idp=${this.infoUser.userId}`);
     }
     this.getRepresentative();
 
@@ -102,7 +102,7 @@ export class RepresentativeProfileComponent implements OnInit {
         "token": card.token
       },
       "user": {
-        "id": this.infoUser.user_uid
+        "id": this.infoUser.userUid
       }
     };
 
@@ -123,8 +123,8 @@ export class RepresentativeProfileComponent implements OnInit {
         }),
       };
       var headers = {};
-      var url = `${environment.urlPaymentez}/card/list?uid=${this.infoUser.user_uid}`;
-      // var url = `https://ccapi-stg.paymentez.com/v2/card/list?uid=${this.infoUser.user_uid}`;
+      var url = `${environment.urlPaymentez}/card/list?uid=${this.infoUser.userUid}`;
+      // var url = `https://ccapi-stg.paymentez.com/v2/card/list?uid=${this.infoUser.userUid}`;
       var response = this.http.get<any>(url, httpOptions).subscribe((response) => {
         console.log(response);
         response['cards'].forEach(card => {
@@ -288,12 +288,12 @@ export class RepresentativeProfileComponent implements OnInit {
   }
 
   public selectProviderTab(p: Provider) {
-    this.providerSelected = p;
+    this.providerSelected = p; 
     this.searchPaymentMethod();
     // this.infoUser.email = 'osalas@paymentez.com';
-    this.urlByAddPayment = this.sanitizerUrl(`https://tubarpay.web.app/indexFather.html?id=${this.infoUser.user_uid}&email=${this.infoUser.email}&idp=${this.infoUser.user_id}&opt=${this.providerSelected.provider_NAME_EC_CLIENT}&opt1=${this.providerSelected.provider_KEY_EC_CLIENT}`);
+    this.urlByAddPayment = this.sanitizerUrl(`https://tubarpay.web.app/indexFather.html?id=${this.infoUser.userUid}&email=${this.infoUser.userEmail}&idp=${this.infoUser.userId}&opt=${this.providerSelected.provider_NAME_EC_CLIENT}&opt1=${this.providerSelected.provider_KEY_EC_CLIENT}`);
     console.log(this.urlByAddPayment);
-    console.log(`https://tubarpay.web.app/indexFather.html?id=${this.infoUser.user_uid}&email=${this.infoUser.email}&idp=${this.infoUser.user_id}&opt=${this.providerSelected.provider_NAME_EC_CLIENT}&opt1=${this.providerSelected.provider_KEY_EC_CLIENT}`);
+    console.log(`https://tubarpay.web.app/indexFather.html?id=${this.infoUser.userUid}&email=${this.infoUser.userEmail}&idp=${this.infoUser.userId}&opt=${this.providerSelected.provider_NAME_EC_CLIENT}&opt1=${this.providerSelected.provider_KEY_EC_CLIENT}`);
 
   }
 
@@ -302,11 +302,11 @@ export class RepresentativeProfileComponent implements OnInit {
     // this.infoUser.email = 'osalas@paymentez.com';
     if ($('#providerSelected').val() != '') {
       this.providerSelected = this.providersList[$('#providerSelected').val()];
-      this.urlByAddPayment = this.sanitizerUrl(`https://tubarpay.web.app/indexFather.html?id=${this.infoUser.user_uid}&email=${this.infoUser.email}&idp=${this.infoUser.user_id}&opt=${this.providerSelected.provider_NAME_EC_CLIENT}&opt1=${this.providerSelected.provider_KEY_EC_CLIENT}`);
+      this.urlByAddPayment = this.sanitizerUrl(`https://tubarpay.web.app/indexFather.html?id=${this.infoUser.userUid}&email=${this.infoUser.userEmail}&idp=${this.infoUser.userId}&opt=${this.providerSelected.provider_NAME_EC_CLIENT}&opt1=${this.providerSelected.provider_KEY_EC_CLIENT}`);
     } else {
       this.providerSelected = {};
     }
-    console.log(`https://tubarpay.web.app/indexFather.html?id=${this.infoUser.user_uid}&email=${this.infoUser.email}&idp=${this.infoUser.user_id}&opt=${this.providerSelected.provider_NAME_EC_CLIENT}&opt1=${this.providerSelected.provider_KEY_EC_CLIENT}`);
+    console.log(`https://tubarpay.web.app/indexFather.html?id=${this.infoUser.userUid}&email=${this.infoUser.userEmail}&idp=${this.infoUser.userId}&opt=${this.providerSelected.provider_NAME_EC_CLIENT}&opt1=${this.providerSelected.provider_KEY_EC_CLIENT}`);
 
   }
 }

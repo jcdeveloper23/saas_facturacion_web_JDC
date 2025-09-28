@@ -49,7 +49,7 @@ export class LinesComponent implements OnInit {
     this.loadingService.show('Cargando...');
     this.infoUser = JSON.parse(localStorage.getItem("infoUser"));
     if (this.infoUser) {
-      this.provider_id = this.infoUser.user_id;
+      this.provider_id = this.infoUser.userId;
     }
     this.line = {}
     this.getLines()

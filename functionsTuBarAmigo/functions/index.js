@@ -10,6 +10,7 @@ var request = require('request');
 admin.initializeApp();
 const db = admin.firestore();
 
+
 exports.onNewOrderCreated = functions.firestore
     .document('providers/{providerId}/orders/{orderId}')
     .onCreate(async (snap, context) => {
@@ -149,6 +150,8 @@ exports.onNewOrderCreated = functions.firestore
          * @param {*} ref 
          * @returns 
          */
+        console.log(JSON.stringify(updates, null, 3));
+        
         const updateStats = (ref) =>
             ref.set(updates, { merge: true });
 
@@ -165,5 +168,5 @@ exports.onNewOrderCreated = functions.firestore
 
         console.log(`Stats actualizadas para bar ${order_provider_id} en ${dailyKey} y ${monthlyKey}`);
         return true;
-    });
+    }); 
 

@@ -106,7 +106,7 @@ export class ReportProviderComponent implements OnInit {
     this.orders = null;
     this.loading_orders = true
 
-    this.ordersService.getTotalOrdersReportRange(this.infoUser.user_id, this.dateStart, this.dateEnd).pipe(take(1)).subscribe( (orders: Array<Orders>) => {
+    this.ordersService.getTotalOrdersReportRange(this.infoUser.userId, this.dateStart, this.dateEnd).pipe(take(1)).subscribe( (orders: Array<Orders>) => {
       if (orders && orders.length > 0) {
         this.setInfoOrders(orders)
 
@@ -128,7 +128,7 @@ export class ReportProviderComponent implements OnInit {
         if (student) {
           element.order_student_name = student.student_name + ' ' + student.student_lastname
         }
-        this.ordersService.getOrdersProductsByProvider(this.infoUser.user_id, element.order_transaccion_id).pipe(take(1)).subscribe((products: Array<Product>) => {
+        this.ordersService.getOrdersProductsByProvider(this.infoUser.userId, element.order_transaccion_id).pipe(take(1)).subscribe((products: Array<Product>) => {
           if (products) {
             element.order_length_products = products.length
           }
@@ -146,7 +146,7 @@ export class ReportProviderComponent implements OnInit {
   }
 
   public getTotalOrdersProvider() {
-    this.ordersService.getTotalOrdersReport(this.infoUser.user_id).subscribe((totalOrders) => {
+    this.ordersService.getTotalOrdersReport(this.infoUser.userId).subscribe((totalOrders) => {
       this.totalOrders = totalOrders;
       if (totalOrders && totalOrders.length > 0) {
         this.getPaymentMethods();
@@ -173,7 +173,7 @@ export class ReportProviderComponent implements OnInit {
 
   public getTotalOrdersPendientesByPayToSAProvider() {
 
-    this.ordersService.getTotalOrdersPendientesByPayToSAProvider(this.infoUser.user_id).subscribe((totalOrders) => {
+    this.ordersService.getTotalOrdersPendientesByPayToSAProvider(this.infoUser.userId).subscribe((totalOrders) => {
       if (totalOrders && totalOrders.length > 0) {
         var totalAmount = 0;
         var nOrders = 0;
@@ -198,8 +198,8 @@ export class ReportProviderComponent implements OnInit {
 
   //   var body = {
   //     "user": {
-  //       "id": this.infoUser.user_uid,
-  //       "email": this.infoUser.email,
+  //       "id": this.infoUser.userUid,
+  //       "email": this.infoUser.userEmail,
   //     },
   //     "order": {
   //       "amount": parseFloat(this.order.order_total_to_pay.toFixed(2)),

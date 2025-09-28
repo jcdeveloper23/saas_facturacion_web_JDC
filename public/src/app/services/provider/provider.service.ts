@@ -66,7 +66,7 @@ export class ProviderService {
 
   public activateProvider (provider: Provider, state: boolean) {
     provider.provider_state = state;
-    this.db.collection('users').doc(provider.provider_uid).update({user_state: state, user_id_school: provider.provider_id_school});
+    this.db.collection('users').doc(provider.provider_uid).update({userState: state, userIdSchool: provider.provider_id_school});
     return this.db.collection('providers').doc(provider.provider_id).update(provider);
   }
 

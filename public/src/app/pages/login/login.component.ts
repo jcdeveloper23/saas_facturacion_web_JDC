@@ -75,7 +75,7 @@ export class LoginComponent implements OnInit {
   public onLogin(userLogin: Users, valid: boolean) {
     if (valid) {
       if (userLogin) {
-        this.authService.login(userLogin.user_email.toLowerCase(), userLogin.user_password).then(() => {
+        this.authService.login(userLogin.userEmail.toLowerCase(), userLogin.userPassword).then(() => {
           $('body').removeClass('modal-open');
           $('body').css('padding', '0px');
           $('.fade').remove();

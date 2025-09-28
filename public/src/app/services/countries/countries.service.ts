@@ -6,31 +6,31 @@ import { AngularFirestore } from '@angular/fire/firestore';
 })
 export class CountriesService {
 
- constructor(
-     private db: AngularFirestore
-   ) { }
- 
-   public getCountries() {
-     return this.db.collection<Country>('countrys').valueChanges();
-   }
+  constructor(
+    private db: AngularFirestore
+  ) { }
 
-   public getCountry(country: string) {
-    return this.db.collection<Country>('countrys', ref => ref.where('countryName', '==', country)).valueChanges();
+  public getCountries() {
+    return this.db.collection<Country>('countries').valueChanges();
   }
- 
-   saveCountry(country: Country) {
-     return this.db.collection('countrys').doc(country.countryId).set(country);
-   }
-   editCountry(country: Country) {
-     return this.db.collection('countrys').doc(country.countryId).update(country);
-   }
- 
-    /**
-    * *** Delete company ***
-    * @param userId
-    * @returns 
-    */
-     public deleteCountry(countryId: string) {
-      return this.db.collection('countrys').doc(countryId).delete();
-    }
+
+  public getCountry(country: string) {
+    return this.db.collection<Country>('countries', ref => ref.where('countryName', '==', country)).valueChanges();
+  }
+
+  saveCountry(country: Country) {
+    return this.db.collection('countries').doc(country.countryId).set(country);
+  }
+  editCountry(country: Country) {
+    return this.db.collection('countries').doc(country.countryId).update(country);
+  }
+
+  /**
+  * *** Delete company ***
+  * @param userId
+  * @returns 
+  */
+  public deleteCountry(countryId: string) {
+    return this.db.collection('countries').doc(countryId).delete();
+  }
 }

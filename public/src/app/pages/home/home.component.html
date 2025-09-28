@@ -1,269 +1,70 @@
-<section class="home row-content-home bg-green">
-    <app-nav-bar-home></app-nav-bar-home>
-    <div class="row m-0">
-        <div class="col-sm-12 text-center">
-            <div class="row m-0">
-                <div class="col-sm-3">
+<header class="navbar">
+  <app-nav-bar-home></app-nav-bar-home>
+  <div class="container">
+    <a href="#" class="logo">
+      <img src="assets/images/logoIMove.png" alt="iMove Logo">
+    </a>
+    <nav>
+      <ul>
+        <li><a href="#home">Inicio</a></li>
+        <li><a href="#features">Características</a></li>
+        <li><a href="#about">Nosotros</a></li>
+        <li><a href="#contact">Contacto</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
 
-                    <div class="pt-5">
-                        <hr class="color-white">
-                        <a routerLink="/register-provider">
-                            <h2><i>Regístrate como proveedor</i></h2>
-                        </a>
-                        <a routerLink="/terms">
-                            <h3><i>Términos y condiciones</i></h3>
-                        </a>
-
-                    </div>
-                </div>
- <a href="javascript:void(0)" (click)="showRegisterModal()">
-                        <h3>Regístrate como representante</h3>
-                    </a>
-
-            </div>
-            <!-- <img src="../../../assets/img/logoFour.png" class="img-logo" alt=""> -->
-            <!-- <div class="row m-0">
-                <div class="col-12 col-sm-12 col-md-12 col-lg-3 pt-5">
-                    <p class="p-init">
-                        EL COMIENZO DE LA SALUD ES LA NUTRICIÓN
-                    </p>
-                    <a routerLink="./login">
-                        <button class="btn btn-login">Ingresar</button> <br>
-                    </a>
-                    <a href="/register-provider">
-                        <h3>Eres nuevo? Regístrate</h3>
-                    </a>
-                    <a href="javascript:void(0)" (click)="showRegisterModal()">
-                        <h3>Regístrate como representante</h3>
-                    </a>
-                </div>
-                <div class="col-12 col-sm-12 col-md-12 col-lg-8 pt-5">
-                </div>
-            </div>
-            <div class="row m-0">
-                <div class="col-sm-3">
-
-                    <div class="pt-5">
-                        <hr class="color-white">
-                        <a routerLink="/register-provider">
-                            <h2><i>Regístrate como proveedor</i></h2>
-                        </a>
-                        <a routerLink="/terms">
-                            <h3><i>Términos y condiciones</i></h3>
-                        </a>
-
-                    </div>
-                </div>
-
-
-            </div>
-            <div class="row m-0 row-content-home-elements align-items-center justify-content-center">
-                <div class="col-12 col-sm-12 col-md-7 col-sm-7 p-0 h-100">
-
-                    <div class="row m-0 ">
-                        <div class="col-12 p-0 h-100 align-items-center justify-content-center">
-                            <div class="row m-0 ">
-                                <div class="col-6 col-sm-4 col-md-3 col-lg-2 mt-2">
-                                    <div class="col-content-category display-col-center">
-                                        <img class="img-category" src="../../../assets/img/Group 124.png">
-                                        <br>
-                                        <h3 class="text-categories m-0">Pizzas</h3>
-
-                                    </div>
-                                </div>
-                                <div class="col-6 col-sm-4 col-md-3 col-lg-2 mt-2">
-                                    <div class="col-content-category display-col-center">
-                                        <img class="img-category" src="../../../assets/img/Group 138.png">
-                                        <br>
-                                        <h3 class="text-categories m-0">Hamburguesas</h3>
-
-                                    </div>
-                                </div>
-                                <div class="col-6 col-sm-4 col-md-3 col-lg-2 mt-2">
-                                    <div class="col-content-category display-col-center">
-                                        <img class="img-category" src="../../../assets/img/Group 131.png">
-                                        <br>
-                                        <h3 class="text-categories m-0">Sanduches</h3>
-                                    </div>
-                                </div>
-                                <div class="col-6 col-sm-4 col-md-3 col-lg-2 mt-2">
-                                    <div class="col-content-category display-col-center">
-                                        <img class="img-category" src="../../../assets/img/Group 132.png">
-                                        <br>
-                                        <h3 class="text-categories m-0">Pollo</h3>
-                                    </div>
-                                </div>
-                                <div class="col-6 col-sm-4 col-md-3 col-lg-2 mt-2">
-                                    <div class="col-content-category display-col-center">
-                                        <img class="img-category" src="../../../assets/img/Group.png">
-                                        <br>
-                                        <h3 class="text-categories m-0"> Pasta</h3>
-                                    </div>
-
-                                </div>
-                                <div class="col-6 col-sm-4 col-md-3 col-lg-2 mt-2">
-                                    <div class="col-content-category display-col-center">
-                                        <img class="img-category-potatoe" src="../../../assets/img/Vector.png">
-                                        <br>
-                                        <h3 class="text-categories m-0">Picaditas</h3>
-
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                    </div>
-                    <div class="row m-0 w-100 align-tems-center justify-content-center pt-5 content-characterist">
-                        <div class="col-7 p-0"> Características</div>
-                        <div class="col-7 p-0 mt-4">
-
-                            <i class="fa fa-check-circle" aria-hidden="true"></i> &nbsp; Menús actualizados.
-
-                        </div>
-                        <div class="col-7 p-0">
-                            <i class="fa fa-check-circle" aria-hidden="true"></i> &nbsp; Menús actualizados.
-
-                        </div>
-                        <div class="col-7 p-0">
-                            <i class="fa fa-check-circle" aria-hidden="true"></i> &nbsp; Facíl manejo.
-
-                        </div>
-                        <div class="col-7 p-0">
-                            <i class="fa fa-check-circle" aria-hidden="true"></i> &nbsp; Métodos de pago.
-                        </div>
-                        <div class="col-7 p-0">
-                            <i class="fa fa-check-circle" aria-hidden="true"></i> &nbsp; Aplicativos moviles.
-
-                        </div>
-                    </div>
-                    <div
-                        class="row m-0 justify-content-center align-items-end d-lg-none d-md-block d-sm-block d-block  ">
-                        <div class="img-content-circle p-0">
-
-                        </div>
-
-                    </div>
-                </div>
-                <div
-                    class="col-0 col-sm-0 col-md-5 col-lg-5 p-0 bg-element-green d-lg-block d-md-none d-sm-none d-none pb-5">
-                    <div class="row m-0 h-100 justify-content-center align-items-end ">
-                        <div class="img-content-circle p-0">
-
-                        </div>
-                        <div class="row m-0 w-100 justify-content-end align-items-start">
-                            <img class="img-arm" src="../../../assets/img/White-in-Jumper3.png">
-                        </div>
-                    </div>
-                    <div class="row m-0 justify-content-end align-items-end mt-4" style="min-height: 200px;">
-                        <div class="col-4 p-0">
-                            <a href="/register-provider"><span class="text-terms-condition">Registrate como
-                                    proveedor</span></a>
-                        </div>
-                        <div class="col-6 p-0 text-center">
-                            <a href="/terms" > <span class="text-terms-condition">Términos, condiciones y Privacidad</span></a>
-                        </div>
-                    </div>
-                </div>
-            </div> -->
-        </div>
+<section id="home" class="hero">
+  <div class="hero-content">
+    <h1>iMove: Tu movilidad más fácil</h1>
+    <p>Viajes rápidos, seguros y accesibles desde tu móvil.</p>
+    <div class="buttons">
+      <a href="#" class="btn primary">Descargar App</a>
+      <a href="#about" class="btn secondary">Conocer más</a>
     </div>
+  </div>
+  <div class="hero-image">
+    <img src="assets/images/app-preview.png" alt="App Preview">
+  </div>
 </section>
-<!-- <section>
-    <div class="row m-0  w-100 pb-3">
-        <div class="col-md-5 col-lg-5 p-0  text-center  display-col-center h-100  bg-element-green-2 pr-5 ">
-            <div class="row m-0 justify-content-start pl-3 ">
-                <div class="col-10">
-                    <h3 class="title-section-2">Apps moviles</h3>
-                    <span class="text-section-2 pt-3 ml-3 mr-3">Puedes acceder a la app desde las plataformas como
-                        Playstore y
-                        Appstore</span>
-                </div>
-            </div>
 
-
-        </div>
-
-        <div class="col-12 col-sm-12 col-md-7 col-sm-7 p-0 ">
-            <div class="w-100 img-phone" style="background-image: url('../../../assets/img/iPhone X.png');">
-                <div class="row m-0 h-100 align-items-end justify-content-center ">
-                    <div class="col-6 d-flex justify-content-lg-center ">
-                        <img class="img-download" src="../../../assets/img/googleplay.png">
-                    </div>
-                    <div
-                        class="col-6 d-flex justify-content-sm-center justify-content-center justify-content-md-start justify-content-lg-start">
-                        <img class="img-download" src="../../../assets/img/appstore.png">
-
-                    </div>
-                </div>
-            </div>
-
-
-        </div>
-
+<section id="features" class="features">
+  <h2>Características</h2>
+  <div class="grid">
+    <div class="card">
+      <i class="icon">📍</i>
+      <h3>Geolocalización</h3>
+      <p>Encuentra tu viaje en segundos gracias al GPS integrado.</p>
     </div>
+    <div class="card">
+      <i class="icon">💳</i>
+      <h3>Pagos Seguros</h3>
+      <p>Elige entre tarjetas, efectivo o billeteras digitales.</p>
+    </div>
+    <div class="card">
+      <i class="icon">🚀</i>
+      <h3>Rápido & Eficiente</h3>
+      <p>Viajes inmediatos para ti o tus entregas.</p>
+    </div>
+  </div>
 </section>
-<section>
-    <div class="row m-0 pl-3  row-content-socials align-items-center mb-3">
-        <i class="fa fa-facebook-official icon-redes" aria-hidden="true"></i>
-        &nbsp;&nbsp;&nbsp;&nbsp;
-        <i class="fa fa-youtube-play icon-redes" aria-hidden="true"></i>
-        &nbsp;&nbsp;&nbsp;&nbsp;
-        <i class="fa fa-twitter-square icon-redes" aria-hidden="true"></i>
-        &nbsp;&nbsp;&nbsp;&nbsp;
-        <i class="fa fa-instagram icon-redes" aria-hidden="true"></i>
-        &nbsp;&nbsp;&nbsp;&nbsp;
-        <i class="fa fa-linkedin-square icon-redes" aria-hidden="true"></i>
 
+<section id="about" class="about">
+  <h2>Sobre iMove</h2>
+  <p>iMove conecta usuarios, conductores y repartidores en un solo lugar. Una app diseñada para mejorar tu movilidad, ahorrar tiempo y generar ingresos.</p>
+</section>
 
-    </div>
-</section> -->
+<section id="contact" class="contact">
+  <h2>Contáctanos</h2>
+  <form>
+    <input type="text" placeholder="Nombre completo" required>
+    <input type="email" placeholder="Correo electrónico" required>
+    <textarea placeholder="Mensaje"></textarea>
+    <button type="submit">Enviar</button>
+  </form>
+</section>
 
-<!-- <login-cmp *ngIf="isLogin" (changeModality)="closeModal($event)"></login-cmp> -->
-
-<!-- Modal Registrar Rrpresentante-->
-<!-- Modal -->
-<div class="modal fade" id="registerModal" tabindex="-1" role="dialog">
-    <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="registerModalLabel">Registro</h5>
-                <!--<button type="button" class="close" data-dismiss="modal" aria-label="Close">
-					<span aria-hidden="true">&times;</span>
-				</button>-->
-            </div>
-            <div class="modal-body text-center">
-                <p>Por favor seleccione la Unidad Educativa a la que pertenece su representado, y el proveedor del
-                    servicio de alimentación al que desea registrarse</p>
-                <br>
-                <form [formGroup]="newRegisterForm" (ngSubmit)="onSubmit()">
-                    <div class="form-group">
-                        <label for="school">Unidad Educativa</label>
-                        <select class="custom-select" id="school" formControlName="school" #school
-                            (change)="getProviderBySchool(school.value); getAllLectiveYearsFromSchool(school.value);">
-                            <option value="" disabled>Seleccione una UE</option>
-                            <option *ngFor="let school of schools" [value]="school.school_id">{{school.school_name}}
-                            </option>
-                        </select>
-                    </div>
-                    <br>
-                    <div class="form-group">
-                        <label for="provider">Proveedor de alimentación</label>
-                        <select class="custom-select" id="provider" formControlName="provider" #provider
-                            [disabled]="providersBySchool.length < 1">
-                            <option value="">Seleccione un proveedor</option>
-                            <option *ngFor="let provider of providersBySchool" [value]="provider.provider_id">
-                                {{provider.provider_business_name}}</option>
-                        </select>
-                    </div>
-                    <br>
-                    <div class="form-group">
-                        <label for="lectiveYear">Período Lectivo</label>
-                        <input [(ngModel)]="selectedLectiveName" type="text" class="form-control" id="lectiveYear"
-                            formControlName="lectiveYear" disabled>
-                    </div>
-                    <button type="submit" [disabled]="!newRegisterForm.valid" class="btn btn-primary">Siguiente</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
+<footer class="footer">
+  <p>© 2025 iMove - Todos los derechos reservados.</p>
+</footer>

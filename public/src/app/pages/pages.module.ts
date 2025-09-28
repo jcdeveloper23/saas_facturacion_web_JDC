@@ -16,19 +16,20 @@ import { NavBarHomeComponent } from './nav-bar-home/nav-bar-home.component';
 import { TermsComponent } from './terms/terms.component';
 import { MatSelectModule } from '@angular/material/select';
 import {MatCheckboxModule} from '@angular/material/checkbox';
+import { SharedModule } from "app/modules/shared/shared.module";
 
 @NgModule({
     imports: [
-        CommonModule,
-        RouterModule.forChild(PagesRoutes),
-        FormsModule,
-        MatSelectModule,
-        NgbModule,
-        ReactiveFormsModule,
-        MatSelectModule,
-        MatCheckboxModule
-
-    ],
+    CommonModule,
+    RouterModule.forChild(PagesRoutes),
+    FormsModule,
+    MatSelectModule,
+    NgbModule,
+    ReactiveFormsModule,
+    MatSelectModule,
+    MatCheckboxModule,
+    SharedModule
+],
     declarations: [
         LoginComponent,
         RegisterComponent,

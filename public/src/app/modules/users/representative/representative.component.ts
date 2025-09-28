@@ -84,14 +84,14 @@ export class RepresentativeComponent implements OnInit {
     this.infoUser = JSON.parse(localStorage.getItem('infoUser'));
 
     if (this.infoUser) {
-      this.provider_id_school = this.infoUser.user_id_school;
+      // this.provider_id_school = this.infoUser.userIdSchool;
       this.getRepresentativesList();
       this.getLevels();
     }
   }
 
   public getLevels() {
-    if (this.infoUser.users_account_type !== '0') {
+    if (this.infoUser.userRol.toString() !== '0') {
       this.levelsService.getLevelsBySchool(this.provider_id_school).pipe(take(1)).subscribe(levels => {
         this.levels = levels;
       })
@@ -113,7 +113,7 @@ export class RepresentativeComponent implements OnInit {
   }
 
   public getRepresentativesList() {
-    if (this.infoUser.users_account_type !== '0') {
+    if (this.infoUser.userRol.toString() !== '0') {
       this.representativeService.getRepresentativeBySchoolAll(this.provider_id_school).pipe(take(1)).subscribe((representatives) => {
         this.array_representative = representatives;
         this.dataSource = new MatTableDataSource<Representative>(representatives);
@@ -212,7 +212,7 @@ export class RepresentativeComponent implements OnInit {
             }
             if (index + 1 === this.arrayStudents.length) {
               this.representativeService.updateRepresentative(this.representative).then(() => {
-                this.userService.updateUserState(this.representativeUser.user_uid, this.representative.representative_state);
+                this.userService.updateUserState(this.representativeUser.userUid, this.representative.representative_state);
                 this.showNotification('top', 'right', 'nc-check-2', 'Se completó el registro exitosamente. ', 'success');
                 form.resetForm();
                 this.arrayStudents = null;
@@ -223,7 +223,7 @@ export class RepresentativeComponent implements OnInit {
           }
         } else {
           this.representativeService.updateRepresentative(this.representative).then(() => {
-            this.userService.updateUserState(this.representativeUser.user_uid, this.representative.representative_state);
+            this.userService.updateUserState(this.representativeUser.userUid, this.representative.representative_state);
             this.showNotification('top', 'right', 'nc-check-2', 'Se completó el registro exitosamente. ', 'success');
             this.arrayStudents = null;
             form.resetForm();

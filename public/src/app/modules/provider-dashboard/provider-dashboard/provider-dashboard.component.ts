@@ -132,7 +132,7 @@ export class ProviderDashboardComponent implements OnInit {
    */
   async loadStats(): Promise<void> {
     this.loadingService.show('Cargando estadístita');
-    const barId = this.infoUser.user_id; // reemplazar con ID dinámico si aplica
+    const barId = this.infoUser.userId; // reemplazar con ID dinámico si aplica
 
     var timeCollection = this.filterSelected;
     this.key = this.getKey();
@@ -547,7 +547,7 @@ export class ProviderDashboardComponent implements OnInit {
     console.log('*** loadLastFiveYearsStats ***');
 
     const currentYear = new Date().getFullYear();
-    const barId = this.infoUser.user_id;
+    const barId = this.infoUser.userId;
     const salesPerYear: { [year: string]: number } = {};
 
     const requests: Promise<void>[] = [];
@@ -596,7 +596,7 @@ export class ProviderDashboardComponent implements OnInit {
   }
 
   async loadLast30DaysStats(): Promise<void> {
-    const barId = this.infoUser.user_id;
+    const barId = this.infoUser.userId;
     const salesPerDay: { [year: string]: number } = {};
 
     const requests: Promise<void>[] = [];

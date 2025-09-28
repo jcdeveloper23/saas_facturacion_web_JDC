@@ -98,15 +98,13 @@ export class AuthService {
   public async login(email: string, password: string) {
 
     const user: Users = {
-      user_name: 'Super Administrador',
-      user_email: 'superadmin@gmail.com',
-      user_uid: 'JCVSO5Yyh1NY6sfvFS40kDkfgD53',
-      user_state: true,
-      users_account_type: '0',
-      users_rol: 'superadmin',
-      user_id_school: 'NA',
-      user_id: 'JCVSO5Yyh1NY6sfvFS40kDkfgD53',
-    }
+      userName: 'Super Administrador',
+      userEmail: 'superadmin@gmail.com',
+      userUid: 'JCVSO5Yyh1NY6sfvFS40kDkfgD53',
+      userState: true,
+      userRol: 0,
+      userId: 'JCVSO5Yyh1NY6sfvFS40kDkfgD53',
+    } 
     // this.userService.saveUser(user).then(() => {
     //   // this.studentService.getStudentById(student).pipe(take(1)).subscribe((s) => {
     //   //   if (s) {
@@ -124,46 +122,47 @@ export class AuthService {
         password
       );
 
-      console.log(result.user.uid);
-
-
       let user_info: any;
       let infoUser: Users = {};
       user_info = (await this.getUserByUid(result.user.uid)).pipe(take(1))
         .toPromise();
-      console.log(await user_info);
 
       if (await user_info) {
+        console.log(JSON.stringify(user_info, null, 3));
+        console.log((await user_info)['userRol']);
+        
         infoUser = {
-          email: (await user_info)['user_email'],
-          users_account_type: (await user_info)['users_account_type'],
-          users_rol: (await user_info)['users_rol'],
-          user_id_school: (await user_info)['user_id_school'],
-          user_id: (await user_info)['user_id'],
-          user_uid: (await user_info)['user_uid'],
-          user_state: (await user_info)['user_state'],
-          user_state_payment_method_provider: (await user_info)['user_state_payment_method_provider']
+          userEmail: (await user_info)['userEmail'],
+          userRol: (await user_info)['userRol'],
+          userId: (await user_info)['userId'],
+          userUid: (await user_info)['userUid'],
+          userState: (await user_info)['userState'],
         };
-      }
-      if (infoUser.user_state) {
+      } 
+      console.log(infoUser.userState);
+      
+      if (infoUser.userState) {
         localStorage.setItem('infoUser', JSON.stringify(infoUser));
         this.infoUser = JSON.parse(localStorage.getItem('infoUser'));
-        switch (this.infoUser.users_account_type) {
-          case '0':
+        console.log(JSON.stringify(this.infoUser, null, 3));
+        
+        switch (this.infoUser.userRol) {
+          
+          case 0:
             this.router.navigate(['/provider-administration'])
             break;
-          case '1':
-            if (this.infoUser.user_state) {
+          case 1:
+            if (this.infoUser.userState) {
               this.router.navigate(['/perfil'])
             } else {
               this.showNotification('top', 'right', 'nc-alert-circle-i', 'Estamos validando tu cuenta, aun no tienes acceso a la plataforma', 'info')
               this.router.navigate(['/'])
             }
             break;
-          case '2':
+          case 2:
             this.router.navigate(['//perfil-representative/childrens'])
             break;
-          case '3':
+          case 3:
             this.showNotification('top', 'right', 'nc-alert-circle-i', 'El acceso a la plataforma para los estudiantes es mediante la aplicación móvil', 'warning')
             break;
           default:
@@ -179,7 +178,7 @@ export class AuthService {
 
       if (error.code === 'auth/internal-error') {
         this.showNotification('top', 'right', 'nc-alert-circle-i', 'Las credenciales ingresadas son incorrectas', 'warning')
-      } 
+      }
       else if (error.code === 'auth/wrong-password') {
         this.showNotification('top', 'right', 'nc-alert-circle-i', 'La contraseña no es válida o el usuario no tiene una contraseña', 'warning')
       }

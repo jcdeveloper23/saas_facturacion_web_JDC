@@ -120,20 +120,46 @@
             </div>
             <div class="modal-body pl-1 pr-1" *ngIf="arrayProducts">
                 <div class="col-12 p-0">
-                    <div class="row w-100 m-0 p-0 text-white" *ngIf="orderSelected">
-                        <div class="col-12 mt-1">
-                            <span>Orden: </span>#<span>{{orderSelected.order_transaccion_id | slice:8}}</span>
+
+                    <div class="row row w-100 m-0 p-0">
+                        <div class="col-12 col-sm-8 ">
+                            <div class="row w-100 m-0 p-0 text-white" *ngIf="orderSelected">
+                                <div class="col-12 mt-1">
+                                    <span>Orden: </span>#<span>{{orderSelected.order_transaccion_id | slice:8}}</span>
+                                </div>
+                                <div class="col-12 mt-1">
+                                    <span>Método de pago: </span><span>{{orderSelected.order_payment_method}}</span>
+                                </div>
+                                <div class="col-12 mt-1">
+                                    <span>Fecha de la compra:
+                                    </span><span>{{convertToDate(orderSelected.order_date_full) |
+                                        date:'medium':''}}</span>
+                                </div>
+                                <div class="col-12 mt-1">
+                                    <span>Valor total de la compra: </span>
+                                    <span>
+                                        {{orderSelected.order_total_to_pay | currency}}
+                                    </span>
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-12 mt-1">
-                            <span>Método de pago: </span><span>{{orderSelected.order_payment_method}}</span>
-                        </div>
-                        <div class="col-12 mt-1">
-                            <span>Fecha de la compra: </span><span>{{convertToDate(orderSelected.order_date_full) |
-                                date:'medium':''}}</span>
-                        </div>
-                        <div class="col-12 mt-1">
-                            <span>Valor total de la compra: </span><span>{{orderSelected.order_total_to_pay | currency
-                                }}</span>
+                        <div class="col-12 col-sm-4 m-0 p-0">
+                            <div class="m-0 p-0 text-right">
+                                <div *ngIf="student.student_img" class="avatar-wrapper border-dashed-container">
+                                    <div class="avatar" [ngStyle]="{
+                                        'background-image': 'url(' + student.student_img + ')',
+                                        'background-size': 'cover',
+                                        'background-position': 'center'
+                                        }">
+                                    </div>
+                                </div>
+
+                                <div *ngIf="!student.student_img" class="avatar-wrapper border-dashed-container">
+                                    <img class="avatar opacity img-student mb-5"
+                                        src="../../../../assets/img/icons/gallery.png" alt="imagen del estudiante">
+                                </div>
+                            </div>
+
                         </div>
                     </div>
                 </div>

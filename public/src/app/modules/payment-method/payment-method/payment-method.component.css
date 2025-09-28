@@ -1,0 +1,63 @@
+.icon-success {
+    color: rgb(125, 183, 10);
+    cursor: pointer;
+}
+
+.icon-info {
+    color: rgb(25, 131, 253);
+    cursor: pointer;
+}
+
+.icon-danger {
+    color: rgb(255, 66, 66);
+    cursor: pointer;
+}
+
+.logoCompany {
+    min-width: 70px;
+    max-width: 70px;
+    border-radius: 20px; 
+}
+
+.no-logo {
+    background-image: url('../../../../assets/img/placeholder.jpg');
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 60%;
+    min-width: 90px;
+    max-width: 90px;
+    min-height: 90px !important; 
+    max-width: 90px !important;
+    border-radius: 100%;
+}
+
+.container-img {
+    border: #e7e7e7 solid 2px;
+    border-radius: 200px;
+    min-width: 90px;
+    max-width: 90px;
+    min-height: 90px !important;
+    max-width: 90px !important;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 80%;
+}
+
+.container-img-two {
+    border: #e7e7e7 solid 2px;
+    min-width: 90px;
+    max-width: 90px;
+    min-height: 90px !important;
+    max-width: 90px !important;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 100%;
+}
+
+.modal-dialog {
+    min-width: 80%;
+}
+
+.thumbnail {
+    width: 150px;
+}

@@ -1,0 +1,303 @@
+<div class="main-content">
+    <app-loading></app-loading>
+
+    <div class="row m-0 p-0 w-100">
+        <div class="col-12 col-sm-6 col-md-6 col-lg-8 m-0 p-0 text-white">
+
+        </div>
+
+        <div class="col-12 col-sm-6 col-md-6 col-lg-4 m-0 p-0">
+            <div class="card card-stats container-fluid-body">
+                <div class="card-body">
+                    <div class="row">
+
+                        <div class="col-7 col-md-8">
+                            <div class="numbers">
+                                <p class="card-category">Total de recargas</p>
+                                <p class="card-title mt-4 mb-5">
+                                    {{ arrayCategory.length }}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="col-5 col-md-4">
+                            <div class="icon-big text-center bg-purple-dark p-3 mx-0">
+                                <img src="../../../../assets/img/icons/users.png" alt="" srcset="">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button class="btn btn-primary btn-block" (click)="newRecharges()">Nueva</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row m-0 p-0 w-100">
+        <div class="row w-100 m-0 p-0 mt-2 container-fluid-body">
+            <div class="col-12 p-0 w-100 container-fluid-body m-0 p-0 table-responsive">
+                <table mat-table matSort [dataSource]="dataSource"
+                    class="mat-elevation-z8 table-reponsive table-bordered container-fluid-body text-white"
+                    style="min-width: 100%;">
+                    <ng-container matColumnDef="code">
+                        <th mat-header-cell *matHeaderCellDef class="text-center title-table m-0 p-0">
+                            Código
+                        </th>
+                        <td mat-cell *matCellDef="let row; let i = index" class="text-center">
+                            <span>
+                                <!-- {{i+1}} -->
+                                #{{row.rechargeId | slice:6}}
+                            </span>
+                        </td>
+                    </ng-container>
+                    <ng-container matColumnDef="paymentMethod">
+                        <th mat-header-cell *matHeaderCellDef class="text-center title-table m-0 p-0">
+                            M. de pago
+                        </th>
+                        <td mat-cell *matCellDef="let row" class="text-center">
+                            <span>{{row.rechargePaymentMethodBank}}</span>
+                        </td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="date">
+                        <th mat-header-cell *matHeaderCellDef class="text-center title-table m-0 p-0">
+                            Fecha
+                        </th>
+                        <td mat-cell *matCellDef="let row" class="text-center">
+                            <span>{{row.rechargeCreatedAt}}</span>
+                        </td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="cop">
+                        <th mat-header-cell *matHeaderCellDef class="text-center title-table m-0 p-0">
+                            COP
+                        </th>
+                        <td mat-cell *matCellDef="let row" class="text-center">
+                            <h3><span>COP. ${{row.rechargeAmountCop | number:'1.2-2'}}</span></h3>
+                        </td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="usd">
+                        <th mat-header-cell *matHeaderCellDef class="text-center title-table m-0 p-0">
+                            USD
+                        </th>
+                        <td mat-cell *matCellDef="let row" class="text-center">
+                            <h3><span>USD {{row.rechargeAmountUsd| number:'1.2-2'}}</span></h3>
+                        </td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="vef">
+                        <th mat-header-cell *matHeaderCellDef class="text-center title-table m-0 p-0">
+                            VEF
+                        </th>
+                        <td mat-cell *matCellDef="let row" class="text-center">
+                            <h3><span>VEF Bs.{{row.rechargeAmountVef | number:'1.2-2'}}</span></h3>
+
+                        </td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="status">
+                        <th mat-header-cell *matHeaderCellDef class="text-center title-table m-0 p-0">
+                            Estado
+                        </th>
+                        <td mat-cell *matCellDef="let row" class="text-center">
+                            <span
+                                class="state-order btn {{row.rechargeStatus == 'pending' ? 'btn-warning' : row.rechargeStatus == 'accept' ? 'btn-success' : 'btn-danger'}}  btn-sm m-0 ml-2">
+                                {{row.rechargeStatus}}
+                            </span>
+                        </td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="edit">
+                        <th mat-header-cell *matHeaderCellDef class="text-center title-table m-0 p-0">
+                            Editar
+                        </th>
+                        <td mat-cell *matCellDef="let row" class="text-center">
+                            <span (click)="editRecharges(row)" class="state-order btn btn-primary btn-sm m-0 ml-2">
+                                Ver detalles
+                            </span>
+                        </td>
+                    </ng-container>
+
+                    <!-- <ng-container matColumnDef="delete">
+                        <th mat-header-cell *matHeaderCellDef class="text-center title-table m-0 p-0">
+                            Eliminar
+                        </th>
+                        <td mat-cell *matCellDef="let row" class="text-center">
+                            <span (click)="deleteRecharges(row)" class="state-order btn btn-danger btn-sm m-0 ml-2">
+                                Eliminar
+                            </span>
+                        </td> 
+                    </ng-container>-->
+
+                    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+                    <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+
+                </table>
+                <mat-paginator [pageSizeOptions]="[10, 25, 50]" #tableProviders showFirstLastButtons>
+                </mat-paginator>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- *** Modal New User *** -->
+<div class="modal fade" id="modalNewRecharges" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content container-fluid-body">
+            <div class="modal-header justify-content-center">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <i class="nc-icon nc-simple-remove"></i>
+                </button>
+                <h4 class="card-title">
+                    {{ isEdit ? "Actualizar" : "Nueva" }}
+                    Categoría
+                </h4>
+            </div>
+            <div class="modal-body">
+                <form #formRecharges="ngForm" novalidate (ngSubmit)="saveRecharges(formRecharges.valid, formRecharges)">
+                    <div class="row w-100 m-0 p-0">
+                        <div class="col-6 col-sm-6 col-md-4 border">
+                            <div class="" *ngIf="recharges.rechargeVoucherUrl">
+                                <img class="voucher-img" src="{{ recharges.rechargeVoucherUrl }}"
+                                    alt="rechargeVoucherUrl"
+                                    (click)="openDocumentLightbox(recharges.rechargeVoucherUrl)" />
+                            </div>
+                        </div>
+                        <div class="col-6 col-sm-6 col-md-8 border">
+                            <table class="table table-bordered table-reponsive container-fluid-body text-white">
+                                <tbody>
+                                    <tr>
+                                        <th scope="row">Estado</th>
+                                        <td>
+                                            <span class="btn btn-sm btn-block btn-warning text-dark"
+                                                *ngIf="recharges.rechargeStatus === 'pending'">Pendiente</span>
+                                            <span class="btn btn-sm btn-block btn-success"
+                                                *ngIf="recharges.rechargeStatus === 'approved'">Aprobada</span>
+                                            <span class="btn btn-sm btn-block btn-danger"
+                                                *ngIf="recharges.rechargeStatus === 'rejected'">Rechazada</span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">ID Recarga</th>
+                                        <td>{{ recharges.rechargeId }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">
+                                            Usuario UID <br>
+                                            <small class="text-mini">{{ recharges.rechargeUserUid }}</small>
+                                        </th>
+                                        <td>{{ recharges.rechargeUserName }} - ({{recharges.rechargeUserPhone}})</td>
+                                    </tr>
+
+                                    <tr>
+                                        <th scope="row">Monto (USD)</th>
+                                        <td>${{ recharges.rechargeAmountUsd }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Monto (COP)</th>
+                                        <td class="text-success">COP. ${{ recharges.rechargeAmountCop | number:'1.2-2' }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Monto (VEF)</th>
+                                        <td>Bs. {{ recharges.rechargeAmountVef | number:'1.2-2' }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Método de Pago</th>
+                                        <td>{{ recharges.rechargePaymentMethodName }} ({{
+                                            recharges.rechargePaymentMethodBank }})</td>
+                                    </tr>
+
+                                    <tr>
+                                        <th scope="row">Creado</th>
+                                        <td>{{ recharges.rechargeCreatedAt }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Última actualización</th>
+                                        <td>{{ recharges.rechargeUpdateAt }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Verificado por</th>
+                                        <td>{{ recharges.rechargeVerifiedBy }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Referencia Transacción</th>
+                                        <td>
+                                            <input type="text" class="form-control" name="rechargeTransactionReference"
+                                                [(ngModel)]="recharges.rechargeTransactionReference" required
+                                                #rechargeTransactionReference="ngModel" pattern=""
+                                                placeholder="Referencia Transacción" />
+                                            <small
+                                                [hidden]="rechargeTransactionReference.valid || (rechargeTransactionReference.pristine && !formRecharges.submitted) "
+                                                class="text-danger">
+                                                Campo obligatorio
+                                            </small>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Observaciones</th>
+                                        <td>
+                                            <input type="text" class="form-control" name="rechargeObservations"
+                                                [(ngModel)]="recharges.rechargeObservations" required
+                                                #rechargeObservations="ngModel" pattern=""
+                                                placeholder="Observaciones" />
+                                            <small
+                                                [hidden]="rechargeObservations.valid || (rechargeObservations.pristine && !formRecharges.submitted) "
+                                                class="text-danger">
+                                                Campo obligatorio
+                                            </small>
+
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <div class="row">
+                                <div class="col-12 col-sm-6 col-md-4 col-lg-4 pt-3">
+                                    <button type="submit" class="btn btn-primary text-btn-form btn-block">
+                                        {{ "Aceptar recarga" }}
+                                    </button>
+                                    <div class="category">
+                                        <span class="star">*</span> Campos requeridos
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-6 col-md-4 col-lg-4 pt-3">
+                                    <button type="button" (click)="declineRecharges()" class="btn btn-danger text-btn-form btn-block">
+                                        {{ "Rechazar recarga" }}
+                                    </button>
+                                    <div class="category">
+                                        <span class="star">*</span> Campos requeridos
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-6 col-md-4 col-lg-4 pt-3">
+                                    <button type="button" (click)="cancelViewForm(formRecharges)"
+                                        class="btn btn-default text-btn-form btn-block">
+                                        Cancelar
+                                    </button>
+                                </div>
+                            </div>
+
+
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Lightbox modal para documentos -->
+<div class="modal fade" id="documentLightbox" tabindex="-1" aria-labelledby="documentLightboxLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content bg-transparent border-0">
+            <div class="modal-body p-0 position-relative">
+                <button type="button" class="close text-white position-absolute top-0 end-0 m-3" data-dismiss="modal"
+                    aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <img [src]="lightboxImage" class="img-fluid w-100 rounded shadow-lg" alt="Documento ampliado" />
+            </div>
+        </div>
+    </div>
+</div>

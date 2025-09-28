@@ -281,7 +281,7 @@
                     </div>
                     <div class="col-12 col-sm-4 m-0 p-0 text-center">
                         <div *ngIf="orderSelected.order_image_payment_cash">
-                            <div class="border-dashed">
+                            <div class="border-dashed-container p-3">
                                 <img [src]="orderSelected.order_image_payment_cash" alt="Comprobante de pago"
                                     class="img-thumbnail img-voucher cursor-pointer " (click)="openVoucherModal()" />
                                 <small class="text-white d-block mt-2">Haz clic en la imagen para ampliarla</small>
@@ -300,7 +300,6 @@
                     <button (click)="accepOrder(orderSelected)" type="button" class="btn btn-primary btn-link">
                         Confirmar el pago
                     </button>
-                    
                 </div>
             </div>
         </div>

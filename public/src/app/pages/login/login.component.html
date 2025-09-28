@@ -4,7 +4,7 @@
   <div class="col-lg-4 col-md-6 ml-auto mr-auto">
     <div class="card card-lock text-center w-100 container-fluid-body">
       <div class="card-body">
-        <h4 class="card-title mt-4 m-0 p-0">Bienvenido a <span class="span-primary">Tu</span>BarAmigo
+        <h4 class="card-title mt-4 m-0 p-0">Bienvenido a <span class="span-primary">i</span>Move
         </h4>
         <h5 class="text-white m-0 p-0">Gestiona tus compras y las de tus hijos de forma rápida y sencilla</h5>
         <!-- <h4 class="card-title mt-4 m-0 p-0">INICIAR SESIÓN</h4> -->
@@ -13,22 +13,22 @@
           (ngSubmit)="onLogin(loginForm.value, loginForm.valid)">
           <div class="text-left text-white">
             <div class="">
-              <label for="user_email text-white">Correo electrónoico</label>
+              <label for="userEmail text-white">Correo electrónoico</label>
               <input autocomplete="new-email" placeholder="Email" type="email" placeholder="Email"
-                class="form-control m-0" name="user_email" [(ngModel)]="user.user_email" required #user_email="ngModel"
+                class="form-control m-0" name="userEmail" [(ngModel)]="user.userEmail" required #userEmail="ngModel"
                 pattern="^[a-zA-Z0-9_.+\-]+@[a-zA-Z0-9\-]+\.[a-zA-Z0-9\-\.]+$">
-              <small [hidden]="user_email.valid || (user_email.pristine && !loginForm.submitted)" class="text-danger">
+              <small [hidden]="userEmail.valid || (userEmail.pristine && !loginForm.submitted)" class="text-danger">
                 Email inválido.
               </small>
             </div>
 
             <div class="mt-3">
-              <label for="user_password">Contraseña</label>
+              <label for="userPassword">Contraseña</label>
               <input autocomplete="new-password" type="password" placeholder="Contraseña" class="form-control m-0"
-                name="user_password" [(ngModel)]="user.user_password" required minlength="6" #user_password="ngModel">
-              <small [hidden]="user_password.valid || (user_password.pristine && !loginForm.submitted)"
+                name="userPassword" [(ngModel)]="user.userPassword" required minlength="6" #userPassword="ngModel">
+              <small [hidden]="userPassword.valid || (userPassword.pristine && !loginForm.submitted)"
                 class="text-danger">
-                Ingrese contraseña.
+                Ingrese contraseña. 
               </small>
             </div>
           </div>

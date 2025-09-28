@@ -626,14 +626,12 @@ export class RegisterRepresentativeComponent implements OnInit {
               .then(async (result) => {
                 if (result != undefined) {
                   const user: Users = {
-                    user_name: student.student_name,
-                    user_email: student.student_email,
-                    user_uid: result.uid,
-                    user_state: true,
-                    users_account_type: '3',
-                    users_rol: 'student',
-                    user_id_school: this.school_id,
-                    user_id: student.student_id,
+                    userName: student.student_name,
+                    userEmail: student.student_email,
+                    userUid: result.uid,
+                    userState: true,
+                    userRol: 3,
+                    userId: student.student_id,
                   }
                   this.userService.saveUser(user).then(() => {
                     this.studentService.getStudentById(student).pipe(take(1)).subscribe((s) => {
@@ -663,14 +661,12 @@ export class RegisterRepresentativeComponent implements OnInit {
               .then(async (result) => {
                 if (result != undefined) {
                   const representative: Users = {
-                    user_name: this.representative.representative_name,
-                    user_email: this.representative.representative_email,
-                    user_uid: result.uid,
-                    user_state: true,
-                    users_account_type: '2',
-                    users_rol: 'representative',
-                    user_id_school: this.school_id,
-                    user_id: this.representative.representative_id,
+                    userName: this.representative.representative_name,
+                    userEmail: this.representative.representative_email,
+                    userUid: result.uid,
+                    userState: true,
+                    userRol: 2,
+                    userId: this.representative.representative_id,
                   }
                   await this.userService.saveUser(representative);
                   this.representative.representative_state = true;
@@ -707,14 +703,12 @@ export class RegisterRepresentativeComponent implements OnInit {
           ).then(async (result) => {
             if (result != undefined) {
               const user: Users = {
-                user_name: student.student_name,
-                user_email: student.student_email,
-                user_uid: result.uid,
-                user_state: true,
-                users_account_type: '3',
-                users_rol: 'student',
-                user_id_school: this.school_id,
-                user_id: student.student_id,
+                userName: student.student_name,
+                userEmail: student.student_email,
+                userUid: result.uid,
+                userState: true,
+                userRol: 3,
+                userId: student.student_id,
               }
 
               this.userService.saveUser(user).then(() => {
@@ -750,14 +744,12 @@ export class RegisterRepresentativeComponent implements OnInit {
                 ).then(async (result) => {
                   if (result != undefined) {
                     const representative: Users = {
-                      user_name: this.representative.representative_name,
-                      user_email: this.representative.representative_email,
-                      user_uid: result.uid,
-                      user_state: true,
-                      users_account_type: '2',
-                      users_rol: 'representative',
-                      user_id_school: this.school_id,
-                      user_id: this.representative.representative_id,
+                      userName: this.representative.representative_name,
+                      userEmail: this.representative.representative_email,
+                      userUid: result.uid,
+                      userState: true,
+                      userRol: 2,
+                      userId: this.representative.representative_id,
                     }
                     await this.userService.saveUser(representative);
                     this.representative.representative_state = true;

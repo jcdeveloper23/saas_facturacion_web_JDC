@@ -94,10 +94,10 @@ export class OrdersProviderComponent implements OnInit {
       this.loading_orders = true;
       let date = this.dayselected.year + '-' + this.dayselected.month + '-' + this.dayselected.day;
       this.array_orders_inactive = []
-      this.orderService.getOrdersByProviderInStatusFalse(this.infoUser.user_id, null).pipe(take(1)).subscribe((array_oreders_elements => {
+      this.orderService.getOrdersByProviderInStatusFalse(this.infoUser.userId, null).pipe(take(1)).subscribe((array_oreders_elements => {
         for (let index = 0; index < array_oreders_elements.length; index++) {
           const element = array_oreders_elements[index];
-          this.orderService.getOrdersByProviderAndProductsDateStateFalse(this.infoUser.user_id, element.order_transaccion_id, date).pipe(take(1)).subscribe((products) => {
+          this.orderService.getOrdersByProviderAndProductsDateStateFalse(this.infoUser.userId, element.order_transaccion_id, date).pipe(take(1)).subscribe((products) => {
             if (products.length > 0) {
               this.array_orders_inactive.push(element)
             }
@@ -127,7 +127,7 @@ export class OrdersProviderComponent implements OnInit {
               element.order_student_level = level[0].level_name;
             });
 
-            this.orderService.getOrdersProductsByProvider(this.infoUser.user_id, element.order_transaccion_id).pipe(take(1)).subscribe((products: Array<Product>) => {
+            this.orderService.getOrdersProductsByProvider(this.infoUser.userId, element.order_transaccion_id).pipe(take(1)).subscribe((products: Array<Product>) => {
               if (products) {
                 element.order_length_products = products.length
               }
@@ -169,7 +169,7 @@ export class OrdersProviderComponent implements OnInit {
   public async getOrdersProvider() {
     this.loading_orders = true;
     this.dayselected = null;
-    this.orderService.getOrdersByProviderInStatusFalse(this.infoUser.user_id, null).subscribe((array_orders) => {
+    this.orderService.getOrdersByProviderInStatusFalse(this.infoUser.userId, null).subscribe((array_orders) => {
       this.array_orders_inactive = array_orders;
       if (this.array_orders_inactive) {
         this.setInfoAditionalOrder(this.array_orders_inactive)
@@ -236,7 +236,7 @@ export class OrdersProviderComponent implements OnInit {
         buttonsStyling: false
       }).then((result) => {
         if (result.value) {
-          this.orderService.updateStatusProductInOrderProvider(this.infoUser.user_id, this.order_detail.order_transaccion_id, product.product_id_transaction, updateStatus).then(() => {
+          this.orderService.updateStatusProductInOrderProvider(this.infoUser.userId, this.order_detail.order_transaccion_id, product.product_id_transaction, updateStatus).then(() => {
             this.orderService.updateProductsOfOrderInStudent(this.order_detail.order_student_id, this.order_detail.order_transaccion_id, product.product_id_transaction, updateStatus).then(() => {
               this.utilsService.showNotification('top', 'right', 'nc-check-2', 'Se actualizo el estado de entrega correctamente.', 'success');
               // this.viewProducts(this.order_detail);
@@ -249,7 +249,7 @@ export class OrdersProviderComponent implements OnInit {
         }
       })
     } else {
-      this.orderService.updateStatusProductInOrderProvider(this.infoUser.user_id, this.order_detail.order_transaccion_id, product.product_id_transaction, updateStatus).then(() => {
+      this.orderService.updateStatusProductInOrderProvider(this.infoUser.userId, this.order_detail.order_transaccion_id, product.product_id_transaction, updateStatus).then(() => {
         this.orderService.updateProductsOfOrderInStudent(this.order_detail.order_student_id, this.order_detail.order_transaccion_id, product.product_id_transaction, updateStatus).then(() => {
           this.utilsService.showNotification('top', 'right', 'nc-check-2', 'Se actualizo el estado de entrega correctamente.', 'success');
           // this.viewProducts(this.order_detail);
@@ -274,7 +274,7 @@ export class OrdersProviderComponent implements OnInit {
           order_update_state_date: this.utilsService.getDateCurrent(),
           order_update_state_time: this.utilsService.getTimeCurrent(),
         }
-        this.orderService.updateStateOrderStatusInProvider(this.infoUser.user_id, this.order_detail.order_transaccion_id, updateStatus).then(() => {
+        this.orderService.updateStateOrderStatusInProvider(this.infoUser.userId, this.order_detail.order_transaccion_id, updateStatus).then(() => {
           this.orderService.updateStateOrderStatusInStudent(this.order_detail.order_student_id, this.order_detail.order_transaccion_id, updateStatus);
           if (index + 1 === this.array_products.length) {
             $('#myModaldetailOrder').modal('hide');
@@ -318,7 +318,7 @@ export class OrdersProviderComponent implements OnInit {
         this.stopScanning()
         let array_info = result.split('/');
         if (array_info && array_info.length === 2) {
-          if (array_info[0] !== this.infoUser.user_id) {
+          if (array_info[0] !== this.infoUser.userId) {
             this.utilsService.showNotification('top', 'right', 'nc-alert-circle-i', 'La información obtenida no corresponde con el bar logueado, por favor verifique la información.', 'warning');
           } else {
             this.orderService.getOrderByIdProviderAndOrder(array_info[0], array_info[1]).pipe(take(1)).subscribe((order: Orders) => {
@@ -380,7 +380,7 @@ export class OrdersProviderComponent implements OnInit {
                 product_delivery_date: this.utilsService.getDateCurrent(),
                 product_dalivery_time: this.utilsService.getTimeCurrent(),
               }
-              this.orderService.updateStatusProductInOrderProvider(this.infoUser.user_id, this.order_detail.order_transaccion_id, product.product_id_transaction, updateStatus).then(() => {
+              this.orderService.updateStatusProductInOrderProvider(this.infoUser.userId, this.order_detail.order_transaccion_id, product.product_id_transaction, updateStatus).then(() => {
                 this.orderService.updateProductsOfOrderInStudent(this.order_detail.order_student_id, this.order_detail.order_transaccion_id, product.product_id_transaction, updateStatus).then(() => {
                   this.utilsService.showNotification('top', 'right', 'nc-check-2', 'Se actualizo el estado de entrega correctamente.', 'success');
                   this.validateStateProductsInOrder()
@@ -408,7 +408,7 @@ export class OrdersProviderComponent implements OnInit {
                 product_delivery_date: this.utilsService.getDateCurrent(),
                 product_dalivery_time: this.utilsService.getTimeCurrent(),
               }
-              this.orderService.updateStatusProductInOrderProvider(this.infoUser.user_id, this.order_detail.order_transaccion_id, product.product_id_transaction, updateStatus).then(() => {
+              this.orderService.updateStatusProductInOrderProvider(this.infoUser.userId, this.order_detail.order_transaccion_id, product.product_id_transaction, updateStatus).then(() => {
                 this.orderService.updateProductsOfOrderInStudent(this.order_detail.order_student_id, this.order_detail.order_transaccion_id, product.product_id_transaction, updateStatus).then(() => {
                   this.utilsService.showNotification('top', 'right', 'nc-check-2', 'Se actualizo el estado de entrega correctamente.', 'success');
                   this.validateStateProductsInOrder()
@@ -499,12 +499,12 @@ export class OrdersProviderComponent implements OnInit {
     } else {
       dateActually = this.dayselected.year + '-' + this.dayselected.month + '-' + this.dayselected.day;
     }
-    this.orderService.getOrdersByProviderInStatusFalse(this.infoUser.user_id, null).subscribe((array_oreders_elements => {
+    this.orderService.getOrdersByProviderInStatusFalse(this.infoUser.userId, null).subscribe((array_oreders_elements => {
       this.array_products_dates = [];
       this.array_orders_inactive = [];
       for (let index = 0; index < array_oreders_elements.length; index++) {
         const element = array_oreders_elements[index];
-        this.orderService.getOrdersByProviderAndProductsDateStateFalse(this.infoUser.user_id, element.order_transaccion_id, dateActually).subscribe((products) => {
+        this.orderService.getOrdersByProviderAndProductsDateStateFalse(this.infoUser.userId, element.order_transaccion_id, dateActually).subscribe((products) => {
           if (products.length > 0) {
             this.array_orders_inactive.push(element)
             this.array_products_dates.push(products)
@@ -549,7 +549,7 @@ export class OrdersProviderComponent implements OnInit {
         buttonsStyling: false
       }).then((result) => {
         if (result.value) {
-          this.orderService.updateStatusProductInOrderProvider(this.infoUser.user_id, this.order_detail.order_transaccion_id, product.product_id_transaction, updateStatus).then(() => {
+          this.orderService.updateStatusProductInOrderProvider(this.infoUser.userId, this.order_detail.order_transaccion_id, product.product_id_transaction, updateStatus).then(() => {
             this.orderService.updateProductsOfOrderInStudent(this.order_detail.order_student_id, this.order_detail.order_transaccion_id, product.product_id_transaction, updateStatus).then(() => {
               this.utilsService.showNotification('top', 'right', 'nc-check-2', 'Se actualizo el estado de entrega correctamente.', 'success');
               // this.viewProducts(this.order_detail);
@@ -562,7 +562,7 @@ export class OrdersProviderComponent implements OnInit {
         }
       })
     } else {
-      this.orderService.updateStatusProductInOrderProvider(this.infoUser.user_id, this.order_detail.order_transaccion_id, product.product_id_transaction, updateStatus).then(() => {
+      this.orderService.updateStatusProductInOrderProvider(this.infoUser.userId, this.order_detail.order_transaccion_id, product.product_id_transaction, updateStatus).then(() => {
         this.orderService.updateProductsOfOrderInStudent(this.order_detail.order_student_id, this.order_detail.order_transaccion_id, product.product_id_transaction, updateStatus).then(() => {
           this.utilsService.showNotification('top', 'right', 'nc-check-2', 'Se actualizo el estado de entrega correctamente.', 'success');
 

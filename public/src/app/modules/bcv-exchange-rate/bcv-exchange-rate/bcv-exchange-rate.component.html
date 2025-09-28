@@ -1,0 +1,84 @@
+<div class="main-content">
+    <app-loading></app-loading>
+
+    <div class="row m-0 p-0 w-100">
+
+        <div class="col-12 col-sm-6 col-md-6 col-lg-4">
+            <div class="card card-stats container-fluid-body">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-7 col-md-8">
+                            <div class="numbers">
+                                <p class="card-category">Tasa actual USD</p>
+                                <p class="card-title mt-4 mb-5">
+                                    {{bcvRateSelected.current.usd.toFixed(2)}}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="col-5 col-md-4">
+                            <div class="icon-big text-center bg-purple-dark pt-4 mx-0 text-white">
+                                ＄
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button class="btn btn-primary btn-block">
+                        {{bcvRateSelected.current.date}}
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-md-6 col-lg-4">
+            <div class="card card-stats container-fluid-body">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-7 col-md-8">
+                            <div class="numbers">
+                                <p class="card-category">Tasa actual EUR</p>
+                                <p class="card-title mt-4 mb-5">
+                                    {{bcvRateSelected.current.eur.toFixed(2)}}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="col-5 col-md-4">
+                            <div class="icon-big text-center bg-purple-dark pt-4 mx-0 text-white">
+                                €
+                                <!-- <img src="../../../../assets/img/icons/users.png" alt="" srcset=""> -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button class="btn btn-primary btn-block">
+                        {{bcvRateSelected.current.date}}
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-md-6 col-lg-4">
+            <div class="card card-stats container-fluid-body">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-7 col-md-8">
+                            <div class="numbers">
+                                <p class="card-category">Actualizaciones</p>
+                                <p class="card-title mt-4 mb-5">
+                                    {{bcvRateSelected.updates}}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="col-5 col-md-4">
+                            <div class="icon-big text-center bg-purple-dark pt-1  mx-0">
+                                <i class="fa fa-download text-white"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button class="btn btn-primary btn-block" (click)="updateBcvRate()">Actualizar tasa</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

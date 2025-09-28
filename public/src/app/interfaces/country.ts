@@ -3,6 +3,7 @@ declare interface Country {
     countryCode?: string,
     countryName?: string,
     countryTermsAndConditions?: string,
+    countryPrivacity?: string,
     countryPhone?: string,
     countryState?: boolean,
-}
+} 

@@ -102,7 +102,7 @@
                                                             <label class="control-label" for="">Email:
                                                                 <span class="star">*</span>
                                                             </label>
-                                                            <input  [disabled]="infoUser.users_account_type === '0'" type="email" class="form-control"
+                                                            <input  [disabled]="infoUser.userRol.toString() === '0'" type="email" class="form-control"
                                                                 name="representative_email"
                                                                 [(ngModel)]="representative.representative_email"
                                                                 required #representative_email="ngModel"
@@ -217,7 +217,7 @@
                                                         <i class="fa fa-minus-circle text-danger p-0 cursor-pointer pt-2 {{student.student_id_school ? 'd-none' : 'd-block'}}"
                                                             aria-hidden="true" (click)="deleteStudent(i)"></i>
                                                     </ng-container>
-                                                    <li class="nav-item" *ngIf="infoUser.users_account_type !== '0' && !representative.representative_state_confirm">
+                                                    <li class="nav-item" *ngIf="infoUser.userRol.toString() !== '0' && !representative.representative_state_confirm">
                                                         <a (click)="addStudent()"
                                                             class="nav-link text-nav-link cursor-pointer text-primary">
                                                             <i class="fa fa-plus" aria-hidden="true"></i> &nbsp;Añadir
@@ -299,7 +299,7 @@
                                                                             <label class="control-label" for="">Email:
                                                                                 <span class="star">*</span>
                                                                             </label>
-                                                                            <input [disabled]="infoUser.users_account_type === '0'" type="email" class="form-control"
+                                                                            <input [disabled]="infoUser.userRol.toString() === '0'" type="email" class="form-control"
                                                                                 name="student_email"
                                                                                 [(ngModel)]="student.student_email"
                                                                                 required #student_email="ngModel"
@@ -369,7 +369,7 @@
                                                                                 [value]="level.level_id">
                                                                                 {{level.level_name}}</option>
                                                                         </select> -->
-                                                                                <mat-select [disabled]="infoUser.users_account_type === '0'" name="student_level"
+                                                                                <mat-select [disabled]="infoUser.userRol.toString() === '0'" name="student_level"
                                                                                     placeholder="Seleccione"
                                                                                     panelClass="Seleccione"
                                                                                     class=" form-control"
@@ -401,7 +401,7 @@
                                                                                 [value]="parallel.parallel_id">
                                                                                 {{parallel.parallel_name}}</option>
                                                                         </select> -->
-                                                                                <mat-select [disabled]="infoUser.users_account_type === '0'" name="student_parallel"
+                                                                                <mat-select [disabled]="infoUser.userRol.toString() === '0'" name="student_parallel"
                                                                                     placeholder="Seleccione"
                                                                                     panelClass="Seleccione"
                                                                                     class=" form-control"
@@ -981,7 +981,7 @@
                         <div class="col-12 p-0 ">
                             <div class="row m-0">
                                 <div class="col-sm-6 d-flex justify-content-start" >
-                                    <div *ngIf="infoUser.users_account_type !== '0'">
+                                    <div *ngIf="infoUser.userRol.toString() !== '0'">
                                         <button class="btn btn-primary " (click)="newRepresentative()">Nuevo
                                             Representante</button>
                                     </div>
@@ -997,7 +997,7 @@
                                 </div>
                             </div>
 
-                            <div class="col-12 p-0 w-100 responsive-table" *ngIf="infoUser.users_account_type !== '0'">
+                            <div class="col-12 p-0 w-100 responsive-table" *ngIf="infoUser.userRol.toString() !== '0'">
 
                                 <table #table mat-table matSort [dataSource]="dataSource"
                                     class="mat-elevation-z8 table-reponsives table-bordered" style="min-width: 100%;">
@@ -1098,7 +1098,7 @@
                                     showFirstLastButtons></mat-paginator>
                             </div>
 
-                            <div class="col-12 p-0 w-100 responsive-table" *ngIf="infoUser.users_account_type === '0'">
+                            <div class="col-12 p-0 w-100 responsive-table" *ngIf="infoUser.userRol.toString() === '0'">
 
                                 <table #table mat-table matSort [dataSource]="dataSourceListSuperAdmin"
                                     class="mat-elevation-z8 table-reponsives table-bordered" style="min-width: 100%;">

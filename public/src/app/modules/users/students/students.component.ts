@@ -53,7 +53,7 @@ export class StudentsComponent implements OnInit {
     this.student = {};
     this.infoUser = JSON.parse(localStorage.getItem("infoUser"));
     if (this.infoUser) {
-      this.provider_school_id = this.infoUser.user_id_school;
+      this.provider_school_id = this.infoUser.userIdSchool;
       this.getStudentsBySchool();
       this.getLevels();
     }
@@ -62,7 +62,7 @@ export class StudentsComponent implements OnInit {
   }
 
   public getLevels() {
-    if (this.infoUser.users_account_type !== "0") {
+    if (this.infoUser.userRol.toString() !== "0") {
       this.levelsService.getLevelsBySchool(this.provider_school_id).pipe(take(1)).subscribe(levels => {
         this.levels = levels;
       })
@@ -83,7 +83,7 @@ export class StudentsComponent implements OnInit {
   }
 
   public getStudentsBySchool() {
-    if (this.infoUser.users_account_type !== "0") {
+    if (this.infoUser.userRol.toString() !== "0") {
       this.studentService.getStudentsBySchool(this.provider_school_id).pipe(take(1)).subscribe(students => {
         this.array_students = students;
         this.dataSource = new MatTableDataSource<Student>(students);
