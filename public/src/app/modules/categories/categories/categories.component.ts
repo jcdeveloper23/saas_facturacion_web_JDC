@@ -54,7 +54,8 @@ export class CategoriesComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
-    this.getCategories();
+    this.selectedOnlyMain(true);
+    // this.getCategories();
   }
 
   public getCategories() {

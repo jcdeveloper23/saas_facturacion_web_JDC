@@ -66,6 +66,7 @@ export interface Users {
     userLicenseUploaded?: boolean;
     userDniVerified?: boolean;
     userLicenceVerified?: boolean;
+    userIsAdminImove?: boolean;
 
     userWalletBalance?: string;
     userWalletLastUpdate?: string;

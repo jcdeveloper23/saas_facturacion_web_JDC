@@ -212,6 +212,12 @@ export const ROUTES_SUPER_ADMIN: RouteInfo[] = [
         type: 'link',
         icontype: 'nc-icon nc-settings'
     },
+    {
+        path: '/appVersions',
+        title: 'Versiones App',
+        type: 'link',
+        icontype: 'nc-icon nc-settings'
+    },
     // {
     //     path: '/provider-administration',
     //     title: 'Proveedores',

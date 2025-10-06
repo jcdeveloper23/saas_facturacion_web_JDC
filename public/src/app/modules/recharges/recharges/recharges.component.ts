@@ -164,8 +164,8 @@ export class RechargesComponent implements OnInit {
           'userWalletCurrency': user.userWalletCurrency,
         }
 
-        this.rechargesService.updateUser(dataToUpdate, user.userUid).then(() => {
-          this.utilsService.showNotification('top', 'right', 'nc-check-2', 'Recarga procesada correctamente', 'success');
+        this.rechargesService.updateUser(dataToUpdate, user.userUid).then(async () => {
+          await this.createMovementOfWallet(user);
           $('#modalNewRecharges').modal('hide');
         });
 
@@ -174,6 +174,79 @@ export class RechargesComponent implements OnInit {
     } catch (error) {
 
     }
+
+
+  }
+
+  public async createMovementOfWallet(user: Users)  {
+    var movementIdCredit = new Date().getTime().toString();
+    var newBalance = 0;
+    if (user.userWalletBalance == undefined) {
+      user.userWalletBalance = '0.00';
+    }
+    newBalance = parseFloat(user.userWalletBalance) + parseFloat(this.recharges.rechargeAmountCop);
+
+    var previousBalance = parseFloat(user.userWalletBalance.toString());
+    var appCommission = 0.00;
+
+    ///
+    var movementDataCredit = {
+      // Datos del saldo
+      'movementId': movementIdCredit,
+      'movementPreviousBalance': previousBalance.toString(),
+      'movementNewBalance': newBalance.toString(),
+
+      // Id de la wallet del usuario que recibe
+      'movementUserWalletId': user.userUid ?? '',
+
+      // Información del origen
+      'movementOriginUserUid': 'iMove',
+      'movementOriginUserName': 'iMove',
+      'movementOriginUserPhone': 'iMove',
+
+      // Información del beneficiario
+      'movementDestinationUserUid': user.userUid ?? '',
+      'movementDestinationUserName': user.userName ?? '',
+      'movementDestinationUserPhone': user.userPhone ?? '',
+
+      // Información del conductor
+      'movementDriverUid': '',
+      'movementDriverName': '',
+      'movementDriverPhone': '',
+
+      // Información del cliente
+      'movementClientUid': '',
+      'movementClientName': '',
+      'movementClientPhone': '',
+
+      // Información de la solicitud o servicio
+      'movementRequestId': '',
+      'movementRequestType': '',
+      'movementRequestDate': '',
+      'movementRequestTime': '',
+
+      // Datos de la aplicación y comisión
+      'movementAppCommission': appCommission.toString(),
+      'movementAmount': this.recharges.rechargeAmountCop.toString(),
+      'movementConcept': 'Recarga de saldo cuenta iMove',
+
+      // Datos de auditoría y control
+      'movementType': 'Recarga de saldo', // o 'Pago QR', 'Pago de comision por servicio prestado', 'bonificación', etc.
+      'movementTypeId': 'recharge', // o 'qrPayment', 'commissionPayment', 'recharge', etc.
+      'movementTypeOfMovement': 'credit', // 'debit', 'credit',
+      'movementStatus': 'completed', // o 'pending', 'failed', 'reverted', 'completed'
+      'movementTimestamp': new Date().toISOString(),
+
+      'movementNotes': '', // campo libre para observaciones manuales o automáticas
+    };
+
+    console.log('*** movementDataDebit ***');
+    console.log(movementDataCredit);
+    
+    this.rechargesService.saveMovement(movementDataCredit, movementIdCredit).then(async () => {
+          this.utilsService.showNotification('top', 'right', 'nc-check-2', 'Recarga procesada correctamente', 'success');
+          $('#modalNewRecharges').modal('hide');
+        });
 
   }
 

@@ -9,12 +9,11 @@ export const environment = {
   dolarvzla: 'https://api.dolarvzla.com/public/exchange-rate',
   production: false,
   firebaseConfig: {
-    apiKey: "AIzaSyBLTB4Zkc7DlD9y4OfNlawQYdlZnjtnXEo",
-    authDomain: "driverappve.firebaseapp.com",
-    projectId: "driverappve",
-    storageBucket: "driverappve.firebasestorage.app",
-    messagingSenderId: "441354356093",
-    appId: "1:441354356093:web:3dd0557d00e69b276b7814",
-    measurementId: "G-NGWRBL5YBR"
+    apiKey: "AIzaSyBPd5CTizVTX0E4Dv2gerFOJkNGRi8_yDc",
+  authDomain: "tubaramigo360.firebaseapp.com",
+  projectId: "tubaramigo360",
+  storageBucket: "tubaramigo360.firebasestorage.app",
+  messagingSenderId: "283747481081",
+  appId: "1:283747481081:web:1c175ed15d73f8bc1cb928"
   },
 };

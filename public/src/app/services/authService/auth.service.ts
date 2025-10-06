@@ -100,11 +100,11 @@ export class AuthService {
     const user: Users = {
       userName: 'Super Administrador',
       userEmail: 'superadmin@gmail.com',
-      userUid: 'JCVSO5Yyh1NY6sfvFS40kDkfgD53',
+      userUid: 'guQwLW6J6KaRet4tWyRoPf1yw9r2',
       userState: true,
       userRol: 0,
-      userId: 'JCVSO5Yyh1NY6sfvFS40kDkfgD53',
-    } 
+      userId: 'guQwLW6J6KaRet4tWyRoPf1yw9r2',
+    }
     // this.userService.saveUser(user).then(() => {
     //   // this.studentService.getStudentById(student).pipe(take(1)).subscribe((s) => {
     //   //   if (s) {
@@ -130,7 +130,7 @@ export class AuthService {
       if (await user_info) {
         console.log(JSON.stringify(user_info, null, 3));
         console.log((await user_info)['userRol']);
-        
+
         infoUser = {
           userEmail: (await user_info)['userEmail'],
           userRol: (await user_info)['userRol'],
@@ -138,16 +138,18 @@ export class AuthService {
           userUid: (await user_info)['userUid'],
           userState: (await user_info)['userState'],
         };
-      } 
+      }
       console.log(infoUser.userState);
-      
+
       if (infoUser.userState) {
         localStorage.setItem('infoUser', JSON.stringify(infoUser));
         this.infoUser = JSON.parse(localStorage.getItem('infoUser'));
         console.log(JSON.stringify(this.infoUser, null, 3));
+
         
+
         switch (this.infoUser.userRol) {
-          
+
           case 0:
             this.router.navigate(['/provider-administration'])
             break;

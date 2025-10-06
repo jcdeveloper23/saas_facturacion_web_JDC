@@ -48,9 +48,9 @@ export class RechargesService {
     return this.db.collection('users').doc(recharges.rechargeUserUid).collection('recharges').doc(recharges.rechargeId).update(recharges);
   }
 
-      /**
-   * Actualiza el estado del usuario para bloquear el acceso
-   * */
+  /**
+* Actualiza el estado del usuario para bloquear el acceso
+* */
   public updateUser(users, userUid) {
     return this.db.collection('users').doc(userUid).update(users);
   }
@@ -71,4 +71,9 @@ export class RechargesService {
   public getProvinces() {
     return this.db.collection('statesOfVenezuela').valueChanges();
   }
+
+  saveMovement(movementDataCredit, movementId) {
+    return this.db.collection('walletMovements').doc(movementId).set(movementDataCredit);
+  }
 }
+ 

@@ -30,6 +30,11 @@ export const AppRoutes: Routes = [
         component: AdminLayoutComponent,
         children: [
             {
+                path: 'appVersions',
+                loadChildren: './modules/app-versions/app-versions.module#AppVersionsModule',
+                canActivate: [AuthGuard],
+            },
+            {
                 path: 'registerProcess',
                 loadChildren: './modules/register-process/register-process.module#RegisterProcessModule',
                 canActivate: [AuthGuard],
