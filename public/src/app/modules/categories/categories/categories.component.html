@@ -2,7 +2,7 @@
     <app-loading></app-loading>
 
     <div class="row m-0 p-0 w-100">
-        <div class="col-sm-4">
+        <!-- <div class="col-sm-4">
             <div class="card card-stats border">
                 <div class="card-body">
                     <div class="row">
@@ -45,9 +45,9 @@
                     </label> <br>
                 </div>
             </div>
-        </div>
+        </div> -->
 
-        <div class="col-12 col-sm-6 col-md-6 col-lg-4 m-0 p-0">
+        <!-- <div class="col-12 col-sm-6 col-md-6 col-lg-4 m-0 p-0">
             <div class="card card-stats container-fluid-body">
                 <div class="card-body">
                     <div class="row">
@@ -71,351 +71,564 @@
                     <button class="btn btn-primary btn-block" (click)="newCategories()">Nuevo</button>
                 </div>
             </div>
-        </div>
+        </div> -->
     </div>
-    <div class="row m-0 p-0 w-100">
-        <div class="row w-100 m-0 p-0 mt-2 container-fluid-body">
-            <div class="col-12 p-0 w-100 container-fluid-body m-0 p-0 table-responsive">
-                <table mat-table matSort [dataSource]="dataSource"
-                    class="mat-elevation-z8 table-reponsive table-bordered container-fluid-body text-white"
-                    style="min-width: 100%;">
-                    <ng-container matColumnDef="code">
-                        <th mat-header-cell *matHeaderCellDef class="text-center title-table m-0 p-0">
-                            Código
-                        </th>
-                        <td mat-cell *matCellDef="let row; let i = index" class="text-center">
-                            <span>
-                                {{i+1}}
-                                <!-- #{{row.categoriesCode | slice:6}} -->
-                            </span>
-                        </td>
-                    </ng-container>
-                    <ng-container matColumnDef="name">
-                        <th mat-header-cell *matHeaderCellDef class="text-center title-table m-0 p-0">
-                            Nombre
-                        </th>
-                        <td mat-cell *matCellDef="let row" class="text-center">
-                            <span>{{row.categoriesName}}</span>
-                        </td>
-                    </ng-container>
+    <div class="row w-100 m-0 p-0">
+        <!-- Column: Categories -->
+        <div class="col-4 col-sm-2 m-0 p-1 text-white">
+            <div class="container-fluid-body column">
+                <div class="input-group mb-2 mt-2">
 
-                    <ng-container matColumnDef="description">
-                        <th mat-header-cell *matHeaderCellDef class="text-center title-table m-0 p-0">
-                            Descripción
-                        </th>
-                        <td mat-cell *matCellDef="let row" class="text-center">
-                            <span>{{row.categoriesDescription}}</span>
-                        </td>
-                    </ng-container>
+                    <input type="text" class="form-control form-control-sm border-left-0"
+                        placeholder="Buscar productos..." [(ngModel)]="categorySearchTerm"
+                        (ngModelChange)="filterProducts()" />
+                    <span class="input-group-text border-0">
+                        <i class="fas fa-search text-muted"></i>
+                    </span>
+                </div>
+                <h4>Categorías</h4>
+                <div class="col display-col-center p-0 m-0">
+                    <button class="btn btn-primary btn-block" (click)="newCategories()">Nueva</button>
+                </div>
 
-                    <ng-container matColumnDef="status">
-                        <th mat-header-cell *matHeaderCellDef class="text-center title-table m-0 p-0">
-                            Estado
-                        </th>
-                        <td mat-cell *matCellDef="let row" class="text-center">
-                            <span *ngIf="row.categoriesState" class="state-order btn btn-success btn-sm m-0 ml-2">
-                                Activa
-                            </span>
-                            <span *ngIf="!row.categoriesState" class="state-order btn btn-danger btn-sm m-0 ml-2">
-                                Inactiva
-                            </span>
-                        </td>
-                    </ng-container>
-
-                    <ng-container matColumnDef="statusCange">
-                        <th mat-header-cell *matHeaderCellDef class="text-center title-table m-0 p-0">
-                            Cambiar estado
-                        </th>
-                        <td mat-cell *matCellDef="let row" class="text-center">
-                            <bSwitch name="categoriesIsPremium" [(ngModel)]="row.categoriesState"
-                                (ngModelChange)="onPremiumChange($event, row)" [switch-on-color]="'primary'"
-                                [switch-off-color]="'primary'" [switch-off-text]="'&#x2715;'" 
-                                [switch-on-text]="'&#x2714;'">
-                            </bSwitch>
-                        </td>
-                    </ng-container>
-
-                    <ng-container matColumnDef="edit">
-                        <th mat-header-cell *matHeaderCellDef class="text-center title-table m-0 p-0">
-                            Editar
-                        </th>
-                        <td mat-cell *matCellDef="let row" class="text-center">
-                            <span (click)="editCategories(row)" class="state-order btn btn-primary btn-sm m-0 ml-2">
-                                Editar
-                            </span>
-                        </td>
-                    </ng-container>
-
-                    <ng-container matColumnDef="delete">
-                        <th mat-header-cell *matHeaderCellDef class="text-center title-table m-0 p-0">
-                            Eliminar
-                        </th>
-                        <td mat-cell *matCellDef="let row" class="text-center">
-                            <span (click)="deleteUser(row)" class="state-order btn btn-danger btn-sm m-0 ml-2">
-                                Eliminar
-                            </span>
-                        </td>
-                    </ng-container>
-
-                    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-                    <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
-
-                </table>
-                <mat-paginator [pageSizeOptions]="[10, 25, 50]" #tableProviders showFirstLastButtons>
-                </mat-paginator>
+                <ul class="category-list">
+                    <li *ngFor="let category of arrayCategory"
+                        [class.active]="category.categoriesId === selectedCategoryId"
+                        (click)="selectCategoryByParent(category)">
+                        {{ category.categoriesName }}
+                    </li>
+                </ul>
             </div>
         </div>
-    </div>
-</div>
+        <!-- Column: Details -->
+        <div class="col-4 col-sm-10 m-0 p-1 text-white">
+            <div class=" m-0 p-0 pt-1 text-white">
+                <div class="row w-100 m-0 p-0 container-fluid-body">
+                    <div class="col-12 col-sm-4 m-0 text-white">
+                        <!-- <div class="icon-big text-center bg-purple-dark p-3 mx-0">
+                            {{ arraySubCategory.length }}
+                        </div> -->
+                    </div>
+                    <div class="col-12 col-sm-4 m-0 text-white">
 
-
-<!-- *** Modal New User *** -->
-<div class="modal fade" id="modalNewCategories" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
-    aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content container-fluid-body">
-            <div class="modal-header justify-content-center">
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <i class="nc-icon nc-simple-remove"></i>
-                </button>
-                <h4 class="card-title">
-                    {{ isEdit ? "Actualizar" : "Nueva" }}
-                    Categoría
-                </h4>
-            </div>
-            <div class="modal-body">
-                <form #formCategories="ngForm" novalidate
-                    (ngSubmit)="saveCategories(formCategories.valid, formCategories)">
-                    <div class="row w-100 m-0 p-0">
-                        <div class="col-6 col-sm-6 col-md-3">
-                            <div class="col-sm-12 text-center">
-                                <div class="fileinput fileinput-new text-center" data-provides="fileinput">
-                                    <div *ngIf="!categories.categoriesIcon && !previewImage" class="thumbnail">
-                                        <img src="../../../../assets/img/early/logoPlaceholder.jpeg"
-                                            alt="categoriesIcon" />
-                                    </div>
-                                    <div *ngIf="previewImage && categories.categoriesIcon" class="thumbnail">
-                                        <img src="{{ previewImage }}" alt="categoriesIcon" />
-                                    </div>
-                                    <div *ngIf="previewImage && !categories.categoriesIcon" class="thumbnail">
-                                        <img src="{{ previewImage }}" alt="categoriesIcon" />
-                                    </div>
-                                    <div class="thumbnail" *ngIf="categories.categoriesIcon && !previewImage">
-                                        <img src="{{ categories.categoriesIcon }}" alt="categoriesIcon" />
-                                    </div>
-                                    <div>
-                                        <span class="btn btn-rose btn-file">
-                                            <span class="fileinput-new"
-                                                *ngIf="!categories.categoriesIcon && !previewImage">Seleccionar
-                                                imagen</span>
-                                            <span *ngIf="categories.categoriesIcon || previewImage">Cambiar</span>
-                                            <input accept="image/jpg, image/jpeg, image/png" type="file"
-                                                id="categoriesIcon" name="categoriesIcon"
-                                                (change)="fileProgress($event)" />
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
+                    </div>
+                    <div class="col-12 col-sm-4 m-0 text-white">
+                        <div class="col display-col-center p-0">
+                            <button class="btn btn-primary btn-block" (click)="newCategories()">Nuevo</button>
                         </div>
-                        <div class="col-6 col-sm-6 col-md-9">
-                            <div class="form-group has-label">
-                                <div class="row w-100 m-0 p-0 mb-3 p-3 border">
-                                    <input readonly type="hidden" class="form-control" name="categoriesId"
-                                        placeholder="Id" [(ngModel)]="categories.categoriesId" required
-                                        #categoriesId="ngModel" />
+                    </div>
+                </div>
 
-                                    <div class="col-12 col-sm-6 col-md-6 col-lg-6 mb-3">
-                                        <label class="control-label" for="">
-                                            <span class="star">*</span> Código
-                                        </label>
-                                        <input type="text" class="form-control" name="categoriesCode"
-                                            placeholder="Código" [(ngModel)]="categories.categoriesCode" required
-                                            #categoriesCode="ngModel" />
-                                        <small
-                                            [hidden]="categoriesCode.valid || (categoriesCode.pristine && !formCategories.submitted) "
-                                            class="text-danger">
-                                            Campo obligatorio
-                                        </small>
-                                    </div>
-
-                                    <div class="col-12 col-sm-6 col-md-6 col-lg-6 mb-3">
-                                        <label class="control-label" for="">
-                                            <span class="star">*</span> Categoría
-                                        </label>
-                                        <input type="text" class="form-control" name="categoriesName"
-                                            placeholder="Categoría" [(ngModel)]="categories.categoriesName" required
-                                            #categoriesName="ngModel" />
-                                        <small
-                                            [hidden]="categoriesName.valid || (categoriesName.pristine && !formCategories.submitted)"
-                                            class="text-danger">
-                                            Campo obligatorio
-                                        </small>
-                                    </div>
-
-                                    <div class="col-12 col-sm-6 col-md-6 col-lg-6 mb-3">
-                                        <label class="control-label" for="">
-                                            <span class="star">*</span> Descripción
-                                        </label>
-                                        <input type="text" class="form-control" name="categoriesTickets"
-                                            [(ngModel)]="categories.categoriesDescription" required
-                                            #categoriesTickets="ngModel" pattern="" placeholder="Descripción" />
-                                        <small
-                                            [hidden]="categoriesTickets.valid || (categoriesTickets.pristine && !formCategories.submitted) "
-                                            class="text-danger">
-                                            Campo obligatorio
-                                        </small>
-                                    </div>
-
-                                    <div class="col-12 col-sm-6 col-md-6 col-lg-6 mb-3">
-                                        <label class="control-label" for="">
-                                            <span class="star">*</span> Type
-                                        </label>
-                                        <input type="text" class="form-control" name="categoriesType"
-                                            [(ngModel)]="categories.categoriesType"
-                                            #categoriesType="ngModel" pattern="" placeholder="Descripción" />
-                                        <small
-                                            [hidden]="categoriesType.valid || (categoriesType.pristine && !formCategories.submitted) "
-                                            class="text-danger">
-                                            Campo obligatorio
-                                        </small>
-                                    </div>
-
-                                    <div class="col-12 col-sm-6 col-md-6 col-lg-6 mb-3">
-                                        <label class="control-label" for="">
-                                            <span class="star">*</span> Precio (Si aplica y es servicio)
-                                        </label>
-                                        <input type="text" class="form-control" name="categoriesPrice"
-                                            [(ngModel)]="categories.categoriesPrice"
-                                            #categoriesPrice="ngModel" pattern="" placeholder="Precio (Si aplica y es servicio)" />
-                                        <small
-                                            [hidden]="categoriesPrice.valid || (categoriesPrice.pristine && !formCategories.submitted) "
-                                            class="text-danger">
-                                            Campo obligatorio
-                                        </small>
-                                    </div>
-
-                                    <div class="col-12 col-sm-6 col-md-6 col-lg-6 mb-3">
-                                        <label class="control-label" for="">
-                                            <span class="star">*</span> Nro de pasajeros
-                                        </label>
-                                        <input type="text" class="form-control" name="categoriesNumberOfPassengers"
-                                            [(ngModel)]="categories.categoriesNumberOfPassengers"
-                                            #categoriesNumberOfPassengers="ngModel" pattern="" placeholder="Nro de pasajeros" />
-                                        <small
-                                            [hidden]="categoriesNumberOfPassengers.valid || (categoriesNumberOfPassengers.pristine && !formCategories.submitted) "
-                                            class="text-danger">
-                                            Campo obligatorio
-                                        </small>
-                                    </div>
-
-                                    <div class="col-12 col-sm-6 col-md-6 col-lg-6 mb-3">
-                                        <label class="control-label" for="">
-                                            <span class="star">*</span> Nro de maletas
-                                        </label>
-                                        <input type="text" class="form-control" name="categoriesNumberOfLuggage"
-                                            [(ngModel)]="categories.categoriesNumberOfLuggage"
-                                            #categoriesNumberOfLuggage="ngModel" pattern="" placeholder="Nro de equipajes" />
-                                        <small
-                                            [hidden]="categoriesNumberOfLuggage.valid || (categoriesNumberOfLuggage.pristine && !formCategories.submitted) "
-                                            class="text-danger">
-                                            Campo obligatorio
-                                        </small>
-                                    </div>
-
-
-
-                                    <div class="col-12 col-sm-6 col-md-3 col-lg-3 mb-3 text-center">
-                                        <label class="control-label" for="">Estado:
-                                            <span class="star">*</span>
-                                        </label>
-                                        <br />
-                                        <bSwitch name="categoriesState" [(ngModel)]="categories.categoriesState"
+                <!-- Column: Products -->
+                <div class="container-fluid-body column-products m-0 p-0 mt-1">
+                    <!-- *** Lista de productos = todos / no munu *** -->
+                    <div class="row w-100 m-0 p-0">
+                        <div *ngIf="arraySubCategory.length === 0" class="col-12 p-1 text-center text-muted my-4">
+                            <p class="mb-0">No se encontraron productos para la categoría seleccionada.</p>
+                            <small>Por favor, elige otra categoría o revisa más tarde.</small>
+                        </div>
+                        <div class="col-12 col-sm-6 col-lg-4 text-white text-center p-1"
+                            *ngFor="let subcategory of arraySubCategory">
+                            <div class="container-fluid-body-light m-0 p-0">
+                                <div class="row w-100 m-0 p-0">
+                                    <div class="col-2 text-center m-0 p-0 pt-2">
+                                        <bSwitch name="categoriesIsPremium" [(ngModel)]="subcategory.categoriesState"
+                                            (ngModelChange)="onPremiumChange($event, subcategory)"
                                             [switch-on-color]="'primary'" [switch-off-color]="'primary'"
                                             [switch-off-text]="'&#x2715;'" [switch-on-text]="'&#x2714;'">
                                         </bSwitch>
                                     </div>
-                                    <div class="col-12 col-sm-6 col-md-3 col-lg-3 mb-3 text-center">
-                                        <label class="control-label" for="">Principal:
-                                            <span class="star">*</span>
-                                        </label>
-                                        <br />
-                                        <bSwitch name="categoriesIsMain" [(ngModel)]="categories.categoriesIsMain"
-                                            [switch-on-color]="'primary'" [switch-off-color]="'primary'"
-                                            [switch-off-text]="'&#x2715;'" [switch-on-text]="'&#x2714;'">
-                                        </bSwitch>
-                                    </div>
-                                    <div class="col-12 col-sm-6 col-md-12 col-lg-12 mb-3">
-                                        <label class="control-label" for="">
-                                            <span class="star">*</span> Categoría madre
-                                        </label>
-                                        <select *ngIf="!categories.categoriesIsMain" class="form-control"
-                                            name="categoriesParent" id="categoriesParent"
-                                            [(ngModel)]="categories.categoriesParent" #categoriesParent="ngModel"
-                                            required>
-                                            <option [selected]="true" value="">
-                                                Seleccione
-                                            </option>
-                                            <option *ngFor="let category of arrayCategory"
-                                                [value]="category.categoriesId">
-                                                {{ category.categoriesName }}
-                                            </option>
-
-                                        </select>
-                                        <small
-                                            [hidden]="categoriesTickets.valid || (categoriesTickets.pristine && !formCategories.submitted) "
-                                            class="text-danger">
-                                            Campo obligatorio
-                                        </small>
-                                    </div> 
-                                    <div class="col-12 col-sm-12 col-md-12 col-lg-6 mb-3 text-center">
-                                        <label class="control-label" for="">Permite seleccion multiple:
-                                            <span class="star">*</span>
-                                        </label>
-                                        <br />
-                                        <bSwitch name="categoriesAllowsMultipleSelection" [(ngModel)]="categories.categoriesAllowsMultipleSelection"
-                                            [switch-on-color]="'primary'" [switch-off-color]="'primary'"
-                                            [switch-off-text]="'&#x2715;'" [switch-on-text]="'&#x2714;'">
-                                        </bSwitch>
-                                    </div>
-
-                                    <div class="col-12 col-sm-12 col-md-12 col-lg-6 mb-3 text-center">
-                                        <label class="control-label" for="">Es Premium:
-                                            <span class="star">*</span>
-                                        </label>
-                                        <br />
-                                        <bSwitch name="categoriesIsPremium" [(ngModel)]="categories.categoriesIsPremium"
-                                            [switch-on-color]="'primary'" [switch-off-color]="'primary'"
-                                            [switch-off-text]="'&#x2715;'" [switch-on-text]="'&#x2714;'">
-                                        </bSwitch>
-                                    </div>
-
-                                    <div class="col-12 col-sm-6 col-md-6 col-lg-6 pt-3">
-                                        <button type="submit" class="btn btn-primary text-btn-form btn-block">
-                                            {{ isEdit ? "Actualizar" : "Guardar" }}
-                                        </button>
-                                        <div class="category">
-                                            <span class="star">*</span> Campos requeridos
+                                    <div class="col-8 text-center m-0 p-0 pt-2">
+                                        <div class="avatar-mini m-0 p-0"
+                                            style="background-image: url({{subcategory.categoriesIcon}});">
                                         </div>
                                     </div>
-                                    <div class="col-12 col-sm-6 col-md-6 col-lg-6 pt-3">
-                                        <button type="button" (click)="cancelViewForm(formCategories)"
-                                            class="btn btn-danger text-btn-form btn-block">
-                                            Cancelar
+                                    <div class="col-2 text-center m-0 p-0 pt-2">
+                                        <button (click)="deleteUser(subcategory)" class="btn btn-sm btn-danger m-0">
+                                            <i class="fa fa-trash"></i>
+                                        </button>
+                                    </div>
+                                    <div class="col-12 p-0 m-0">
+                                        <div class="product-info text-center p-0">
+                                            <p class="p-0 mt-1 mb-0 p-price">{{ subcategory.categoriesPrice | currency
+                                                }}
+                                            </p>
+                                            <p class="p-0 mb-1 mt-0 p-mini text-center">{{ subcategory.categoriesName }}
+                                            </p>
+                                            <p class="p-0 mb-1 mt-0 p-mini text-center">
+                                                {{subcategory.categoriesDescription}}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row w-100 m-0 p-0">
+                                    <div class="col-6 p-1">
+                                        <span *ngIf="subcategory.categoriesState"
+                                            class="state-order btn btn-success btn-block btn-sm m-0">
+                                            Activa
+                                        </span>
+                                        <span *ngIf="!subcategory.categoriesState"
+                                            class="state-order btn btn-danger btn-block btn-sm m-0">
+                                            Inactiva
+                                        </span>
+                                    </div>
+                                    <div class="col-6 p-1">
+                                        <button (click)="editCategories(subcategory)"
+                                            class="btn btn-sm btn-primary btn-block m-0">
+                                            Editar
                                         </button>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </form>
+                    <div hidden class="row m-0 p-0 w-100">
+                        <div class="row w-100 m-0 p-0 mt-2 container-fluid-body">
+                            <div class="col-12 p-0 w-100 container-fluid-body m-0 p-0 table-responsive">
+                                <table mat-table matSort [dataSource]="dataSource"
+                                    class="mat-elevation-z8 table-reponsive table-bordered container-fluid-body text-white"
+                                    style="min-width: 100%;">
+                                    <ng-container matColumnDef="code">
+                                        <th mat-header-cell *matHeaderCellDef class="text-center title-table m-0 p-0">
+                                            Código
+                                        </th>
+                                        <td mat-cell *matCellDef="let row; let i = index" class="text-center">
+                                            <span>
+                                                {{i+1}}
+                                            </span>
+                                        </td>
+                                    </ng-container>
+                                    <ng-container matColumnDef="name">
+                                        <th mat-header-cell *matHeaderCellDef class="text-center title-table m-0 p-0">
+                                            Nombre
+                                        </th>
+                                        <td mat-cell *matCellDef="let row" class="text-center">
+                                            <span>{{row.categoriesName}}</span>
+                                        </td>
+                                    </ng-container>
+
+                                    <ng-container matColumnDef="description">
+                                        <th mat-header-cell *matHeaderCellDef class="text-center title-table m-0 p-0">
+                                            Descripción
+                                        </th>
+                                        <td mat-cell *matCellDef="let row" class="text-center">
+                                            <span>{{row.categoriesDescription}}</span>
+                                        </td>
+                                    </ng-container>
+
+                                    <ng-container matColumnDef="status">
+                                        <th mat-header-cell *matHeaderCellDef class="text-center title-table m-0 p-0">
+                                            Estado
+                                        </th>
+                                        <td mat-cell *matCellDef="let row" class="text-center">
+                                            <span *ngIf="row.categoriesState"
+                                                class="state-order btn btn-success btn-sm m-0 ml-2">
+                                                Activa
+                                            </span>
+                                            <span *ngIf="!row.categoriesState"
+                                                class="state-order btn btn-danger btn-sm m-0 ml-2">
+                                                Inactiva
+                                            </span>
+                                        </td>
+                                    </ng-container>
+
+                                    <ng-container matColumnDef="statusCange">
+                                        <th mat-header-cell *matHeaderCellDef class="text-center title-table m-0 p-0">
+                                            Cambiar estado
+                                        </th>
+                                        <td mat-cell *matCellDef="let row" class="text-center">
+                                            <bSwitch name="categoriesIsPremium" [(ngModel)]="row.categoriesState"
+                                                (ngModelChange)="onPremiumChange($event, row)"
+                                                [switch-on-color]="'primary'" [switch-off-color]="'primary'"
+                                                [switch-off-text]="'&#x2715;'" [switch-on-text]="'&#x2714;'">
+                                            </bSwitch>
+                                        </td>
+                                    </ng-container>
+
+                                    <ng-container matColumnDef="edit">
+                                        <th mat-header-cell *matHeaderCellDef class="text-center title-table m-0 p-0">
+                                            Editar
+                                        </th>
+                                        <td mat-cell *matCellDef="let row" class="text-center">
+                                            <span (click)="editCategories(row)"
+                                                class="state-order btn btn-primary btn-sm m-0 ml-2">
+                                                Editar
+                                            </span>
+                                        </td>
+                                    </ng-container>
+
+                                    <ng-container matColumnDef="delete">
+                                        <th mat-header-cell *matHeaderCellDef class="text-center title-table m-0 p-0">
+                                            Eliminar
+                                        </th>
+                                        <td mat-cell *matCellDef="let row" class="text-center">
+                                            <span (click)="deleteUser(row)"
+                                                class="state-order btn btn-danger btn-sm m-0 ml-2">
+                                                Eliminar
+                                            </span>
+                                        </td>
+                                    </ng-container>
+
+                                    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+                                    <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+
+                                </table>
+                                <mat-paginator [pageSizeOptions]="[10, 25, 50]" #tableProviders showFirstLastButtons>
+                                </mat-paginator>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+
+        <!-- Column: Shopping Cart -->
+        <!-- <div *ngIf="productsCartInCache.length > 0"
+      class="{{productsCartInCache.length > 0 ? 'col-4 col-sm-3': 'col-1'}} m-0 p-1 text-white">
+      <div class="container-fluid-body column d-flex flex-column h-100">
+        <div id="shoppingCartIcon" class="cart-header-fixed">
+          <h4 class="m-0 p-0">Carrito de compras</h4>
+          <div class="row m-0 p-0 w-100">
+            <div class="col-sm-12 text-center m-0 p-0">
+              <div class="div-total-amount p-3">
+                {{ order.order_total_to_pay | currency }}
+              </div>
+              <span class="c-gray font-bold">Resumen de la compra</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="cart-body-fixed flex-grow-1 overflow-auto mt-2" *ngIf="productsCartInCache">
+          <div class="row m-0 w-100 p-0">
+            <div class="col-sm-12 m-0 p-0 mb-1" *ngFor="let product of productsCartInCache; let i = index">
+              <div class="container-fluid-body-light m-0 p-0 pb-1">
+                <div class="row w-100 m-0 p-0 pt-2 pl-2 pr-2">
+                  <div class="col-8 p-0 text-left">
+                    <h3 class="m-0 p-0 p-minis h-1">{{ product.product_name }}</h3>
+                    <h5 class="m-0 p-0 p-mini h-1">{{ product.product_order_delivery_date }}</h5>
+                  </div>
+                  <div class="col-4 p-0 text-right">
+                    <p class="p-0 p-price">{{ product.product_price | currency }}</p>
+                  </div>
+                </div>
+                <div class="row w-100 m-0 p-0 mb-1 px-2">
+                  <div class="col-7 m-0 p-0">
+                    <div class="quantity-group d-flex align-items-center m-0 p-0">
+                      <button type="button" class="btn btn-sm m-0 p-0 amount btn-decrease"
+                        (click)="decreaseAmount(product, i)">
+                        <img src="../../../../assets/img/icons/minus.png" class="icon-mini" alt="">
+                      </button>
+                      <div class="amount p-1 text-center">
+                        {{product.product_quantity_in_cart}}
+                      </div>
+                      <button type="button" class="btn btn-sm m-0 p-0 amount btn-increase"
+                        (click)="increaseAmount(product, i)">
+                        <img src="../../../../assets/img/icons/plus.png" class="icon-mini" alt="">
+                      </button>
+                    </div>
+                  </div>
+                  <div class="col-5 m-0 p-0 text-right">
+                    <button type="button" class="btn btn-sm m-0 p-0 amount btn-danger"
+                      (click)="deleteProduct(product, i)">
+                      <img src="../../../../assets/img/icons/delete.png" class="icon-mini icon-danger" alt="">
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="cart-footer-fixed border-top p-0">
+          <div class="row w-100 p-0 m-0">
+            <div class="col-10 d-flex justify-content-end align-items-center">
+              <span class="c-gray font-bold p-0 m-0 h-1">Subtotal</span>
+            </div>
+            <div class="col-2 d-flex justify-content-center">
+              <p class="text-white font-bold p-0 m-0 h-1">{{ order.order_subtotal_price | currency }}</p>
+            </div>
+          </div>
+          <div class="row w-100 p-0 m-0">
+            <div class="col-10 d-flex justify-content-end align-items-center">
+              <span class="c-gray font-bold p-0 m-0 h-1">Total</span>
+            </div>
+            <div class="col-2 d-flex justify-content-center">
+              <p class="text-white font-bold p-0 m-0 h-1">{{ order.order_total_to_pay | currency }}</p>
+            </div>
+          </div>
+          <div class="row w-100 p-0 m-0">
+            <div class="col-12 col-sm-12 col-lg-6 p-1 m-0 h-1">
+              <button (click)="cancelPurchase()" class="btn btn-danger-outline btn-block">
+                Cancelar
+              </button>
+            </div>
+            <div class="col-12 col-sm-12 col-lg-6 p-1 m-0 h-1">
+              <button (click)="completePurchase()" class="btn btn-primary btn-block">
+                Completar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div> -->
+    </div>
+
+
+
+    <!-- *** Modal New User *** -->
+    <div class="modal fade" id="modalNewCategories" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content container-fluid-body">
+                <div class="modal-header justify-content-center">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <i class="nc-icon nc-simple-remove"></i>
+                    </button>
+                    <h4 class="card-title">
+                        {{ isEdit ? "Actualizar" : "Nueva" }}
+                        Categoría
+                    </h4>
+                </div>
+                <div class="modal-body">
+                    <form #formCategories="ngForm" novalidate
+                        (ngSubmit)="saveCategories(formCategories.valid, formCategories)">
+                        <div class="row w-100 m-0 p-0">
+                            <div class="col-6 col-sm-6 col-md-3">
+                                <div class="col-sm-12 text-center">
+                                    <div class="fileinput fileinput-new text-center" data-provides="fileinput">
+                                        <div *ngIf="!categories.categoriesIcon && !previewImage" class="thumbnail">
+                                            <img src="../../../../assets/img/early/logoPlaceholder.jpeg"
+                                                alt="categoriesIcon" />
+                                        </div>
+                                        <div *ngIf="previewImage && categories.categoriesIcon" class="thumbnail">
+                                            <img src="{{ previewImage }}" alt="categoriesIcon" />
+                                        </div>
+                                        <div *ngIf="previewImage && !categories.categoriesIcon" class="thumbnail">
+                                            <img src="{{ previewImage }}" alt="categoriesIcon" />
+                                        </div>
+                                        <div class="thumbnail" *ngIf="categories.categoriesIcon && !previewImage">
+                                            <img src="{{ categories.categoriesIcon }}" alt="categoriesIcon" />
+                                        </div>
+                                        <div>
+                                            <span class="btn btn-rose btn-file">
+                                                <span class="fileinput-new"
+                                                    *ngIf="!categories.categoriesIcon && !previewImage">Seleccionar
+                                                    imagen</span>
+                                                <span *ngIf="categories.categoriesIcon || previewImage">Cambiar</span>
+                                                <input accept="image/jpg, image/jpeg, image/png" type="file"
+                                                    id="categoriesIcon" name="categoriesIcon"
+                                                    (change)="fileProgress($event)" />
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6 col-sm-6 col-md-9">
+                                <div class="form-group has-label">
+                                    <div class="row w-100 m-0 p-0 mb-3 p-3 border">
+                                        <input readonly type="hidden" class="form-control" name="categoriesId"
+                                            placeholder="Id" [(ngModel)]="categories.categoriesId" required
+                                            #categoriesId="ngModel" />
+
+                                        <div class="col-12 col-sm-6 col-md-6 col-lg-6 mb-3">
+                                            <label class="control-label" for="">
+                                                <span class="star">*</span> Código
+                                            </label>
+                                            <input type="text" class="form-control" name="categoriesCode"
+                                                placeholder="Código" [(ngModel)]="categories.categoriesCode" required
+                                                #categoriesCode="ngModel" />
+                                            <small
+                                                [hidden]="categoriesCode.valid || (categoriesCode.pristine && !formCategories.submitted) "
+                                                class="text-danger">
+                                                Campo obligatorio
+                                            </small>
+                                        </div>
+
+                                        <div class="col-12 col-sm-6 col-md-6 col-lg-6 mb-3">
+                                            <label class="control-label" for="">
+                                                <span class="star">*</span> Categoría
+                                            </label>
+                                            <input type="text" class="form-control" name="categoriesName"
+                                                placeholder="Categoría" [(ngModel)]="categories.categoriesName" required
+                                                #categoriesName="ngModel" />
+                                            <small
+                                                [hidden]="categoriesName.valid || (categoriesName.pristine && !formCategories.submitted)"
+                                                class="text-danger">
+                                                Campo obligatorio
+                                            </small>
+                                        </div>
+
+                                        <div class="col-12 col-sm-6 col-md-6 col-lg-6 mb-3">
+                                            <label class="control-label" for="">
+                                                <span class="star">*</span> Descripción
+                                            </label>
+                                            <input type="text" class="form-control" name="categoriesTickets"
+                                                [(ngModel)]="categories.categoriesDescription" required
+                                                #categoriesTickets="ngModel" pattern="" placeholder="Descripción" />
+                                            <small
+                                                [hidden]="categoriesTickets.valid || (categoriesTickets.pristine && !formCategories.submitted) "
+                                                class="text-danger">
+                                                Campo obligatorio
+                                            </small>
+                                        </div>
+
+                                        <div class="col-12 col-sm-6 col-md-6 col-lg-6 mb-3">
+                                            <label class="control-label" for="">
+                                                <span class="star">*</span> Type
+                                            </label>
+                                            <input type="text" class="form-control" name="categoriesType"
+                                                [(ngModel)]="categories.categoriesType" #categoriesType="ngModel"
+                                                pattern="" placeholder="Descripción" />
+                                            <small
+                                                [hidden]="categoriesType.valid || (categoriesType.pristine && !formCategories.submitted) "
+                                                class="text-danger">
+                                                Campo obligatorio
+                                            </small>
+                                        </div>
+
+                                        <div class="col-12 col-sm-6 col-md-6 col-lg-6 mb-3">
+                                            <label class="control-label" for="">
+                                                <span class="star">*</span> Precio (Si aplica y es servicio)
+                                            </label>
+                                            <input type="text" class="form-control" name="categoriesPrice"
+                                                [(ngModel)]="categories.categoriesPrice" #categoriesPrice="ngModel"
+                                                pattern="" placeholder="Precio (Si aplica y es servicio)" />
+                                            <small
+                                                [hidden]="categoriesPrice.valid || (categoriesPrice.pristine && !formCategories.submitted) "
+                                                class="text-danger">
+                                                Campo obligatorio
+                                            </small>
+                                        </div>
+
+                                        <div class="col-12 col-sm-6 col-md-6 col-lg-6 mb-3">
+                                            <label class="control-label" for="">
+                                                <span class="star">*</span> Nro de pasajeros
+                                            </label>
+                                            <input type="text" class="form-control" name="categoriesNumberOfPassengers"
+                                                [(ngModel)]="categories.categoriesNumberOfPassengers"
+                                                #categoriesNumberOfPassengers="ngModel" pattern=""
+                                                placeholder="Nro de pasajeros" />
+                                            <small
+                                                [hidden]="categoriesNumberOfPassengers.valid || (categoriesNumberOfPassengers.pristine && !formCategories.submitted) "
+                                                class="text-danger">
+                                                Campo obligatorio
+                                            </small>
+                                        </div>
+
+                                        <div class="col-12 col-sm-6 col-md-6 col-lg-6 mb-3">
+                                            <label class="control-label" for="">
+                                                <span class="star">*</span> Nro de maletas
+                                            </label>
+                                            <input type="text" class="form-control" name="categoriesNumberOfLuggage"
+                                                [(ngModel)]="categories.categoriesNumberOfLuggage"
+                                                #categoriesNumberOfLuggage="ngModel" pattern=""
+                                                placeholder="Nro de equipajes" />
+                                            <small
+                                                [hidden]="categoriesNumberOfLuggage.valid || (categoriesNumberOfLuggage.pristine && !formCategories.submitted) "
+                                                class="text-danger">
+                                                Campo obligatorio
+                                            </small>
+                                        </div>
+
+
+
+                                        <div class="col-12 col-sm-6 col-md-3 col-lg-3 mb-3 text-center">
+                                            <label class="control-label" for="">Estado:
+                                                <span class="star">*</span>
+                                            </label>
+                                            <br />
+                                            <bSwitch name="categoriesState" [(ngModel)]="categories.categoriesState"
+                                                [switch-on-color]="'primary'" [switch-off-color]="'primary'"
+                                                [switch-off-text]="'&#x2715;'" [switch-on-text]="'&#x2714;'">
+                                            </bSwitch>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-3 col-lg-3 mb-3 text-center">
+                                            <label class="control-label" for="">Principal:
+                                                <span class="star">*</span>
+                                            </label>
+                                            <br />
+                                            <bSwitch name="categoriesIsMain" [(ngModel)]="categories.categoriesIsMain"
+                                                [switch-on-color]="'primary'" [switch-off-color]="'primary'"
+                                                [switch-off-text]="'&#x2715;'" [switch-on-text]="'&#x2714;'">
+                                            </bSwitch>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-12 col-lg-12 mb-3">
+                                            <label class="control-label" for="">
+                                                <span class="star">*</span> Categoría madre
+                                            </label>
+                                            <select *ngIf="!categories.categoriesIsMain" class="form-control"
+                                                name="categoriesParent" id="categoriesParent"
+                                                [(ngModel)]="categories.categoriesParent" #categoriesParent="ngModel"
+                                                required>
+                                                <option [selected]="true" value="">
+                                                    Seleccione
+                                                </option>
+                                                <option *ngFor="let category of arrayCategory"
+                                                    [value]="category.categoriesId">
+                                                    {{ category.categoriesName }}
+                                                </option>
+
+                                            </select>
+                                            <small
+                                                [hidden]="categoriesTickets.valid || (categoriesTickets.pristine && !formCategories.submitted) "
+                                                class="text-danger">
+                                                Campo obligatorio
+                                            </small>
+                                        </div>
+                                        <div class="col-12 col-sm-12 col-md-12 col-lg-6 mb-3 text-center">
+                                            <label class="control-label" for="">Permite seleccion multiple:
+                                                <span class="star">*</span>
+                                            </label>
+                                            <br />
+                                            <bSwitch name="categoriesAllowsMultipleSelection"
+                                                [(ngModel)]="categories.categoriesAllowsMultipleSelection"
+                                                [switch-on-color]="'primary'" [switch-off-color]="'primary'"
+                                                [switch-off-text]="'&#x2715;'" [switch-on-text]="'&#x2714;'">
+                                            </bSwitch>
+                                        </div>
+
+                                        <div class="col-12 col-sm-12 col-md-12 col-lg-6 mb-3 text-center">
+                                            <label class="control-label" for="">Es Premium:
+                                                <span class="star">*</span>
+                                            </label>
+                                            <br />
+                                            <bSwitch name="categoriesIsPremium"
+                                                [(ngModel)]="categories.categoriesIsPremium"
+                                                [switch-on-color]="'primary'" [switch-off-color]="'primary'"
+                                                [switch-off-text]="'&#x2715;'" [switch-on-text]="'&#x2714;'">
+                                            </bSwitch>
+                                        </div>
+
+                                        <div class="col-12 col-sm-6 col-md-6 col-lg-6 pt-3">
+                                            <button type="submit" class="btn btn-primary text-btn-form btn-block">
+                                                {{ isEdit ? "Actualizar" : "Guardar" }}
+                                            </button>
+                                            <div class="category">
+                                                <span class="star">*</span> Campos requeridos
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-6 col-lg-6 pt-3">
+                                            <button type="button" (click)="cancelViewForm(formCategories)"
+                                                class="btn btn-danger text-btn-form btn-block">
+                                                Cancelar
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
-</div>
-<!-- *** #Modal New User *** -->
+    <!-- *** #Modal New User *** -->
 
-<!-- Modal from import Users -->
-<!-- <div class="modal" id="modalImportCategory" tabindex="-1" role="dialog" aria-hidden="true">
+    <!-- Modal from import Users -->
+    <!-- <div class="modal" id="modalImportCategory" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog" style="width:95%;">
         <div class="modal-content">
             <div class="modal-header">
@@ -485,4 +698,4 @@
         </div>
     </div>
 </div> -->
-<!-- #Modal from import data -->
+    <!-- #Modal from import data -->

@@ -21,6 +21,10 @@ export class CategoriesService {
     return this.db.collection<Categories>('categories', ref => ref.where('categoriesId', '==', id)).valueChanges()
   }
 
+   public selectCategoryByParent(id: string) {
+    return this.db.collection<Categories>('categories', ref => ref.where('categoriesParent', '==', id)).valueChanges()
+  }
+
   saveCategories(categories: Categories) {
     return this.db.collection('categories').doc(categories.categoriesId).set(categories);
   }

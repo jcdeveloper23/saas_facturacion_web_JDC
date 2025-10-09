@@ -18,6 +18,10 @@ declare var $: any;
   styleUrls: ['./categories.component.css']
 })
 export class CategoriesComponent implements OnInit {
+  /**
+   * *** Valor par buscar ***
+   */
+  public categorySearchTerm: string = '';
 
   /// *** Usado para datatables ***
   public dataSource: MatTableDataSource<Categories>;
@@ -34,6 +38,8 @@ export class CategoriesComponent implements OnInit {
   ];
   /// *** #Usado para datatables ***
   public arrayCategory: Array<Categories> = [];
+  public arraySubCategory: Array<Categories> = [];
+  public allSubCategory: Array<Categories> = [];
 
 
   public isEdit: boolean = false;
@@ -56,6 +62,19 @@ export class CategoriesComponent implements OnInit {
   ngOnInit(): void {
     this.selectedOnlyMain(true);
     // this.getCategories();
+  }
+
+  selectCategoryByParent(category: Categories) { 
+    this.categoriesService.selectCategoryByParent(category.categoriesId).subscribe(categories => {
+      this.arraySubCategory = categories;
+      console.log(JSON.stringify(this.arraySubCategory, null, 3));
+      this.arraySubCategory = categories;
+      this.allSubCategory = categories;
+    this.dataSource = new MatTableDataSource<Categories>(categories);
+      this.dataSource.paginator = this.paginator;
+      this.dataSource.sort = this.sort;
+      this.loadingService.hide();
+    }); 
   }
 
   public getCategories() {
@@ -262,6 +281,16 @@ export class CategoriesComponent implements OnInit {
     this.categoriesService.editCategories(categories).then(() => {
       this.utilsService.showNotification('top', 'right', 'nc-check-2', 'Categoría editada correctamente', 'success');
     })
+  }
+
+    // Filtra productos por nombre o por categoría seleccionada
+  filterProducts() {
+    const search = this.categorySearchTerm.toLowerCase().trim();
+
+    this.arraySubCategory = this.allSubCategory.filter(category =>
+      // (!this.selectedCategoryId || product.product_id_category === this.selectedCategoryId) &&
+      category.categoriesName.toLowerCase().includes(search)
+    );
   }
 
 }
