@@ -49,6 +49,17 @@ export const AppRoutes: Routes = [
                 loadChildren: './modules/cities/cities.module#CitiesModule',
                 canActivate: [AuthGuard],
             },
+            {
+                path: 'help',
+                loadChildren: './modules/help-categories/help-categories.module#HelpCategoriesModule',
+                canActivate: [AuthGuard],
+            },
+            {
+                path: 'help-questions',
+                loadChildren: './modules/help-questions/help-questions.module#HelpQuestionsModule',
+                canActivate: [AuthGuard],
+            },
+
             //     {
             //     path: '',
             //     loadChildren: './dashboard/dashboard.module#DashboardModule'

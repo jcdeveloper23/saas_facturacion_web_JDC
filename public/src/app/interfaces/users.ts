@@ -1,22 +1,9 @@
 export interface Users {
-    // userUid?: string;
-    // userPassword?: string;
-    // userName?: string;
-    // userState?: boolean;
-    // userEmail?: string;
-    // userRol.toString()?: string;
-    // users_rol?: string;
-    // userIdSchool?: string;
-    // userId?: string;
-    // email?: string;
-    // userState_payment_method_provider?: boolean;
-    // userPhotoURL?: string;
-    // userIdentification?: string;
+
     userId?: string;
     userUid?: string;
     userName?: string;
     userIdSchool?: string;
-    // userRol?: string;
     userIdentification?: string;
     userAddress?: string;
     userCity?: string;
@@ -68,8 +55,16 @@ export interface Users {
     userLicenceVerified?: boolean;
     userIsAdminImove?: boolean;
 
+    // Verificación individual de documentos
+    userDocumentCarVerified?: boolean;
+    userIdentificationFrontVerified?: boolean;
+    userIdentificationBackVerified?: boolean;
+
     userWalletBalance?: string;
     userWalletLastUpdate?: string;
     userWalletCurrency?: string;
+
+    userClientAccountIsVerify?: boolean;
+    userDriverAccountIsVerify?: boolean;
 
 }

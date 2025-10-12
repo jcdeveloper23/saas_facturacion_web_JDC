@@ -1,7 +1,499 @@
+/* ========== Stats Cards ========== */
+.stats-card {
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.stats-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+}
+
+.stats-card .card-body {
+    padding: 20px;
+}
+
+.stats-card .icon-big {
+    width: 70px;
+    height: 70px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    color: white;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.text-mini {
+    font-size: 10px;
+    font-weight: normal;
+}
+
+.stats-card .numbers h4 {
+    font-size: 28px;
+    font-weight: 700;
+    margin: 10px 0 5px 0;
+}
+
+.stats-card .numbers p {
+    font-size: 13px;
+    color: #9A9A9A;
+    margin: 0;
+}
+
+/* Solid color backgrounds for stats cards */
+.gradient-purple {
+    background: #667eea;
+}
+
+.gradient-blue {
+    background: #3b82f6;
+}
+
+.gradient-green {
+    background: #10b981;
+}
+
+.gradient-orange {
+    background: #f59e0b;
+}
+
+.gradient-red {
+    background: #ef4444;
+}
+
+.gradient-teal {
+    background: #14b8a6;
+}
+
+/* ========== User Avatars ========== */
+.user-avatar {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border: 3px solid var(--bgLightTwo);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.user-avatar img,
+.avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.user-avatar-large {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border: 4px solid var(--primary);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    margin: 0 auto 20px;
+}
+
+.avatar-img-large {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* ========== User Type Badges ========== */
+.user-type-badge {
+    display: inline-block;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.user-type-badge-large {
+    display: inline-block;
+    padding: 8px 20px;
+    border-radius: 25px;
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 15px;
+}
+
+.badge-client {
+    background: #667eea;
+    color: white;
+}
+
+.badge-driver {
+    background: #f59e0b;
+    color: white;
+}
+
+/* ========== Document Cards ========== */
+.doc-card {
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    background-color: var(--bgLightTwo);
+    margin-bottom: 15px;
+}
+
+.doc-preview {
+    position: relative;
+    padding-top: 66.67%; /* 3:2 Aspect Ratio */
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.doc-img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.doc-placeholder {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(102, 126, 234, 0.2);
+}
+
+.doc-placeholder i {
+    font-size: 48px;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.doc-card .card-body {
+    padding: 15px;
+}
+
+.doc-card h6 {
+    font-size: 14px;
+    font-weight: 700;
+    margin: 0 0 10px 0;
+    color: #ffffff;
+}
+
+/* ========== User Info Card ========== */
+.user-info-card {
+    background-color: var(--bgLightTwo);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.info-item {
+    display: flex;
+    align-items: start;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.info-item:last-child {
+    border-bottom: none;
+}
+
+.info-item i {
+    font-size: 20px;
+    color: var(--primary);
+    margin-right: 15px;
+    min-width: 25px;
+    margin-top: 2px;
+}
+
+.info-item .info-content {
+    flex: 1;
+}
+
+.info-item .info-label {
+    font-size: 12px;
+    color: #9A9A9A;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 3px;
+    display: block;
+}
+
+.info-item .info-value {
+    font-size: 14px;
+    color: #ffffff;
+    font-weight: 500;
+}
+
+/* ========== Verification Buttons ========== */
+.verification-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.verification-buttons .btn {
+    flex: 1;
+}
+
+.btn-verify {
+    background: #10b981;
+    border: none;
+    color: white;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-verify:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+    background: #059669;
+}
+
+.btn-reject {
+    background: #ef4444;
+    border: none;
+    color: white;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-reject:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+    background: #dc2626;
+}
+
+/* ========== Filters Section ========== */
+.filter-section .form-control,
+.filter-section .form-select {
+    background-color: var(--bgLightTwo);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    border-radius: 8px;
+    padding: 10px 15px;
+    transition: all 0.3s ease;
+}
+
+.filter-section .form-control:focus,
+.filter-section .form-select:focus {
+    background-color: var(--bgLightTwo);
+    border-color: var(--primary);
+    box-shadow: 0 0 0 0.2rem rgba(81, 203, 206, 0.25);
+    color: #ffffff;
+}
+
+.filter-section .form-select option {
+    background-color: var(--bgLightTwo);
+    color: #ffffff;
+}
+
+.filter-section .input-group-text {
+    background-color: var(--bgLightTwo);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-right: none;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.filter-section .form-control {
+    border-left: none;
+}
+
+/* ========== Table Enhancements ========== */
+.table-row-hover {
+    cursor: pointer;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+/* ========== Status Badges ========== */
+.badge {
+    padding: 6px 12px;
+    font-weight: 600;
+    border-radius: 6px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.badge-success {
+    background: #10b981;
+    color: white;
+}
+
+.badge-warning {
+    background: #f59e0b;
+    color: white;
+}
+
+.badge-danger {
+    background: #ef4444;
+    color: white;
+}
+
+.badge-info {
+    background: #3b82f6;
+    color: white;
+}
+
+.badge-secondary {
+    background: #6b7280;
+    color: white;
+}
+
+/* ========== Button Icon Styles ========== */
+.btn-icon {
+    width: 35px;
+    height: 35px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn-icon:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.btn-sm {
+    font-size: 13px;
+    padding: 8px 16px;
+    border-radius: 6px;
+}
+
+/* ========== Modal Enhancements ========== */
 .modal-dialog {
     min-width: 80%;
 }
 
+.modal-content {
+    border-radius: 15px;
+    overflow: hidden;
+}
+
+.modal-header {
+    background: #667eea;
+    color: white;
+    border: none;
+    padding: 20px 25px;
+}
+
+.modal-header .modal-title {
+    font-weight: 700;
+    font-size: 20px;
+}
+
+.modal-header .close {
+    color: white;
+    opacity: 1;
+    text-shadow: none;
+}
+
+.modal-body {
+    padding: 25px;
+}
+
+/* Nav Tabs in Modal */
+.nav-tabs {
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 20px;
+}
+
+.nav-tabs .nav-link {
+    color: rgba(255, 255, 255, 0.6);
+    border: none;
+    padding: 12px 20px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.nav-tabs .nav-link:hover {
+    color: rgba(255, 255, 255, 0.9);
+    background-color: transparent;
+}
+
+.nav-tabs .nav-link.active {
+    color: var(--primary);
+    background-color: transparent;
+    border-bottom: 3px solid var(--primary);
+}
+
+/* ========== Form Controls ========== */
+.form-control,
+textarea.form-control,
+select.form-control {
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: var(--bgLightTwo);
+    color: #ffffff;
+    padding: 10px 15px;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus,
+textarea.form-control:focus,
+select.form-control:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 0.2rem rgba(81, 203, 206, 0.15);
+    background-color: var(--bgLightTwo);
+    color: #ffffff;
+}
+
+.form-control::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.form-group label {
+    font-weight: 600;
+    color: #ffffff;
+    margin-bottom: 8px;
+    font-size: 13px;
+}
+
+/* ========== Lightbox Modal ========== */
+.lightbox-img {
+    max-width: 100%;
+    max-height: 70vh;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+/* ========== Animation ========== */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.card {
+    animation: fadeIn 0.5s ease;
+}
+
+/* ========== Icon Styles ========== */
 .logo {
     width: 40px;
 }
@@ -21,123 +513,134 @@
     cursor: pointer;
 }
 
-
-
+/* ========== Table Styles ========== */
 .table-bordered {
-  border: none !important;
+    border: none !important;
 }
 
 .table-bordered td,
 .table-bordered th {
-  border: none !important;
-  color: #ffffff;
+    border: none !important;
+    color: #ffffff;
 }
 
 .table-bordered tr {
-  /* border-top: 0.5px solid var(--bgLightTwo) !important; */
-  border-bottom: 0.5px solid var(--bgLightTwo) !important;
-  color: #ffffff;
+    border-bottom: 0.5px solid var(--bgLightTwo) !important;
+    color: #ffffff;
 }
 
 ::ng-deep .mat-header-row {
-  background-color: var(--bgLightTwo);
-  border-radius: 20px !important;
+    background-color: var(--bgLightTwo);
+    border-radius: 20px !important;
 }
 
 ::ng-deep .mat-header-cell {
-  color: #ffffff !important;
-  /* Texto blanco */
-  border-left: none !important;
-  border-right: none !important;
+    color: #ffffff !important;
+    border-left: none !important;
+    border-right: none !important;
 }
 
 .mat-header-cell:first-child {
-  border-top-left-radius: 12px;
-  overflow: hidden;
+    border-top-left-radius: 12px;
+    overflow: hidden;
 }
 
 .mat-header-cell:last-child {
-  border-top-right-radius: 12px;
-  overflow: hidden;
+    border-top-right-radius: 12px;
+    overflow: hidden;
 }
 
 ::ng-deep .mat-paginator {
-  background-color: var(--bgLightTwo);
-  ;
-  color: #ffffff;
-  border-bottom-left-radius: 20px;
-  border-bottom-right-radius: 20px;
-  overflow: hidden;
-  margin-top: 0;
+    background-color: var(--bgLightTwo);
+    color: #ffffff;
+    border-bottom-left-radius: 20px;
+    border-bottom-right-radius: 20px;
+    overflow: hidden;
+    margin-top: 0;
 }
 
-/* Aplica color blanco a los textos, inputs e íconos del datepicker */
-
+/* ========== Material Form Fields ========== */
 ::ng-deep .mat-form-field-infix {
-  padding: 0.5em 0;
-  color: #fff !important;
-  border-top: 0 !important;
+    padding: 0.5em 0;
+    color: #fff !important;
+    border-top: 0 !important;
 }
 
-/* Ícono del datepicker */
 ::ng-deep .mat-datepicker-toggle-default-icon {
-  width: 2.5em !important;
-  color: #fff !important;
+    width: 2.5em !important;
+    color: #fff !important;
 }
 
-/* Estado activo del ícono */
 ::ng-deep .mat-datepicker-toggle-default-icon:active {
-  border: none !important;
-  background-color: transparent !important;
+    border: none !important;
+    background-color: transparent !important;
 }
 
-/* Texto de los inputs del rango */
 ::ng-deep .mat-date-range-input input {
-  color: #fff !important;
+    color: #fff !important;
 }
 
-/* Fecha seleccionada en el calendario */
 ::ng-deep .mat-calendar-body-selected {
-  background-color: var(--primary) !important;
-  color: #fff !important;
+    background-color: var(--primary) !important;
+    color: #fff !important;
 }
 
-/* Fecha activa (hover o focus) */
 ::ng-deep .mat-calendar-body-active {
-  background-color: rgba(255, 255, 255, 0.2) !important;
+    background-color: rgba(255, 255, 255, 0.2) !important;
 }
 
-/* Fondo del campo de formulario deshabilitado */
 ::ng-deep .mat-form-field-appearance-fill.mat-form-field-disabled .mat-form-field-flex {
-  background-color: transparent !important;
+    background-color: transparent !important;
 }
 
-/* Estilo general del input con fondo transparente y texto blanco */
 ::ng-deep .mat-form-field-appearance-fill .mat-form-field-flex {
-  border-radius: 4px 4px 0 0;
-  padding: 0 !important;
-  align-items: center !important;
-  color: #fff !important;
+    border-radius: 4px 4px 0 0;
+    padding: 0 !important;
+    align-items: center !important;
+    color: #fff !important;
 }
 
-/* Ícono en el sufijo del campo */
 ::ng-deep .mat-form-field-suffix .mat-icon-button .mat-datepicker-toggle-default-icon {
-  margin: auto;
-  margin-bottom: 15px !important;
-  color: #fff !important;
+    margin: auto;
+    margin-bottom: 15px !important;
+    color: #fff !important;
 }
 
-/* Color del texto de los inputs de inicio y fin */
 ::ng-deep .mat-date-range-input-start-wrapper .mat-date-range-input-inner,
 ::ng-deep .mat-date-range-input-end-wrapper .mat-date-range-input-inner {
-  color: #fff !important;
+    color: #fff !important;
 }
 
-/* Placeholder blanco */
 ::ng-deep .mat-input-element::placeholder {
-  color: rgba(255, 255, 255, 0.6) !important;
+    color: rgba(255, 255, 255, 0.6) !important;
 }
 
 ::ng-deep .mat-form-field-disabled .mat-date-range-input-separator {
-  color: rgba(255, 255, 255, 0.6) !important;
+    color: rgba(255, 255, 255, 0.6) !important;
+}
+
+/* ========== Responsive Design ========== */
+@media (max-width: 768px) {
+    .stats-card .icon-big {
+        width: 60px;
+        height: 60px;
+        font-size: 24px;
+    }
+
+    .stats-card .numbers h4 {
+        font-size: 22px;
+    }
+
+    .user-avatar-large {
+        width: 100px;
+        height: 100px;
+    }
+
+    .modal-dialog {
+        min-width: 95%;
+    }
+
+    .verification-buttons {
+        flex-direction: column;
+    }
 }

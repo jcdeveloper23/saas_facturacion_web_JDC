@@ -1,0 +1,372 @@
+<div class="main-content">
+    <!-- <app-loading></app-loading> -->
+
+    <!-- Header Section -->
+    <div class="row m-0 p-0 w-100 mb-3">
+        <div class="col-12">
+            <div class="card border-0 container-fluid-body">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <h3 class="card-title mb-0">
+                                <i class="nc-icon nc-chat-33 text-primary"></i>
+                                Categorías de Ayuda
+                            </h3>
+                            <p class="text-muted small mb-0">Gestiona las categorías para organizar las preguntas frecuentes</p>
+                        </div>
+                        <div class="col-md-6 text-right">
+                            <button class="btn btn-primary btn-lg" (click)="newCategory()">
+                                <i class="nc-icon nc-simple-add"></i>
+                                Nueva Categoría
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Search Bar -->
+    <div class="row m-0 p-0 w-100 mb-3 ">
+        <div class="col-12">
+            <div class="card border-0 container-fluid-body">
+                <div class="card-body">
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text bg-white border-right-0">
+                                <i class="nc-icon nc-zoom-split"></i>
+                            </span>
+                        </div>
+                        <input
+                            type="text"
+                            class="form-control border-left-0"
+                            placeholder="Buscar por nombre o descripción..."
+                            [(ngModel)]="searchTerm"
+                            (ngModelChange)="filterCategories()" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Categories Table -->
+    <div class="row m-0 p-0 w-100">
+        <div class="col-12">
+                <div class="card-body p-0">
+                    <div class="container-fluid-body m-0 p-0 table-responsive">
+                        <table mat-table matSort [dataSource]="dataSource" class="table w-100 table-reponsive container-fluid-body text-white">
+
+                            <!-- Order Column -->
+                            <ng-container matColumnDef="order">
+                                <th mat-header-cell *matHeaderCellDef mat-sort-header class="text-center">
+                                    <strong>Orden</strong>
+                                </th>
+                                <td mat-cell *matCellDef="let row" class="text-center">
+                                    <span class="badge badge-secondary">{{ row.helpCategoryOrder }}</span>
+                                </td>
+                            </ng-container>
+
+                            <!-- Icon Column -->
+                            <ng-container matColumnDef="icon">
+                                <th mat-header-cell *matHeaderCellDef class="text-center">
+                                    <strong>Icono</strong>
+                                </th>
+                                <td mat-cell *matCellDef="let row" class="text-center">
+                                    <div class="category-icon-preview"
+                                         [style.background-color]="row.helpCategoryColor || '#6366f1'"
+                                         [style.background-image]="row.helpCategoryIcon ? 'url(' + row.helpCategoryIcon + ')' : 'none'">
+                                        <i *ngIf="!row.helpCategoryIcon" class="nc-icon nc-chat-33 text-white"></i>
+                                    </div>
+                                </td>
+                            </ng-container>
+
+                            <!-- Name Column -->
+                            <ng-container matColumnDef="name">
+                                <th mat-header-cell *matHeaderCellDef mat-sort-header>
+                                    <strong>Nombre</strong>
+                                </th>
+                                <td mat-cell *matCellDef="let row">
+                                    <div class="text-white">
+                                        <strong>{{ row.helpCategoryName }}</strong>
+                                        <div class="text-muted small">Código: {{ row.helpCategoryCode }}</div>
+                                    </div>
+                                </td>
+                            </ng-container>
+
+                            <!-- Description Column -->
+                            <ng-container matColumnDef="description">
+                                <th mat-header-cell *matHeaderCellDef>
+                                    <strong>Descripción</strong>
+                                </th>
+                                <td mat-cell *matCellDef="let row">
+                                    <span class="text-white">{{ row.helpCategoryDescription }}</span>
+                                </td>
+                            </ng-container>
+
+                            <!-- Total Questions Column -->
+                            <ng-container matColumnDef="totalQuestions">
+                                <th mat-header-cell *matHeaderCellDef mat-sort-header class="text-center">
+                                    <strong>Preguntas</strong>
+                                </th>
+                                <td mat-cell *matCellDef="let row" class="text-center">
+                                    <button class="btn btn-sm btn-info btn-round"
+                                            (click)="viewQuestions(row)"
+                                            matTooltip="Ver preguntas">
+                                        <i class="nc-icon nc-bulb-63"></i>
+                                        {{ row.helpCategoryTotalQuestions || 0 }}
+                                    </button>
+                                </td>
+                            </ng-container>
+
+                            <!-- Status Column -->
+                            <ng-container matColumnDef="status">
+                                <th mat-header-cell *matHeaderCellDef class="text-center">
+                                    <strong>Estado</strong>
+                                </th>
+                                <td mat-cell *matCellDef="let row" class="text-center">
+                                    <span *ngIf="row.helpCategoryState" class="badge badge-success">
+                                        <i class="nc-icon nc-check-2"></i> Activa
+                                    </span>
+                                    <span *ngIf="!row.helpCategoryState" class="badge badge-danger">
+                                        <i class="nc-icon nc-simple-remove"></i> Inactiva
+                                    </span>
+                                </td>
+                            </ng-container>
+
+                            <!-- Status Change Column -->
+                            <ng-container matColumnDef="statusChange">
+                                <th mat-header-cell *matHeaderCellDef class="text-center">
+                                    <strong>Activar/Desactivar</strong>
+                                </th>
+                                <td mat-cell *matCellDef="let row" class="text-center">
+                                    <bSwitch
+                                        name="categoryState"
+                                        [(ngModel)]="row.helpCategoryState"
+                                        (ngModelChange)="onStatusChange($event, row)"
+                                        [switch-on-color]="'success'"
+                                        [switch-off-text]="'&#x2715;'"
+                                        [switch-on-text]="'&#x2714;'">
+                                    </bSwitch>
+                                </td>
+                            </ng-container>
+
+                            <!-- Edit Column -->
+                            <ng-container matColumnDef="edit">
+                                <th mat-header-cell *matHeaderCellDef class="text-center">
+                                    <strong>Editar</strong>
+                                </th>
+                                <td mat-cell *matCellDef="let row" class="text-center">
+                                    <button class="btn btn-sm btn-warning btn-icon"
+                                            (click)="editCategory(row)"
+                                            matTooltip="Editar categoría">
+                                        <i class="nc-icon nc-ruler-pencil"></i>
+                                    </button>
+                                </td>
+                            </ng-container>
+
+                            <!-- Delete Column -->
+                            <ng-container matColumnDef="delete">
+                                <th mat-header-cell *matHeaderCellDef class="text-center">
+                                    <strong>Eliminar</strong>
+                                </th>
+                                <td mat-cell *matCellDef="let row" class="text-center">
+                                    <button class="btn btn-sm btn-danger btn-icon"
+                                            (click)="deleteCategory(row)"
+                                            matTooltip="Eliminar categoría">
+                                        <i class="nc-icon nc-simple-remove"></i>
+                                    </button>
+                                </td>
+                            </ng-container>
+
+                            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+                            <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="table-row-hover"></tr>
+                        </table>
+                    </div>
+                    <mat-paginator
+                        [pageSizeOptions]="[5, 10, 25, 50]"
+                        #tablePaginator
+                        showFirstLastButtons>
+                    </mat-paginator>
+                </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for New/Edit Category -->
+<div class="modal fade" id="modalHelpCategory" tabindex="-1" role="dialog" aria-labelledby="modalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content container-fluid-body">
+            <div class="modal-header">
+                <h4 class="modal-title">
+                    <i class="nc-icon nc-chat-33"></i>
+                    {{ isEdit ? "Editar" : "Nueva" }} Categoría de Ayuda
+                </h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form #formCategory="ngForm" novalidate (ngSubmit)="saveCategory(formCategory.valid, formCategory)">
+                    <div class="row">
+                        <!-- Icon Preview -->
+                        <div class="col-md-4 text-center mb-3">
+                            <label class="control-label">Icono de la Categoría</label>
+                            <div class="category-icon-large mx-auto mb-3"
+                                 [style.background-color]="helpCategory.helpCategoryColor || '#6366f1'">
+                                <div *ngIf="!helpCategory.helpCategoryIcon && !previewImage" class="icon-placeholder">
+                                    <i class="nc-icon nc-chat-33 text-white"></i>
+                                </div> 
+                                
+                                <div *ngIf="previewImage"
+                                     class="icon-image"
+                                     [style.background-image]="'url(' + previewImage + ')'">
+                                </div>
+                                <div *ngIf="helpCategory.helpCategoryIcon && !previewImage"
+                                     class="icon-image"
+                                     [style.background-image]="'url(' + helpCategory.helpCategoryIcon + ')'">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <span class="btn btn-primary btn-file btn-sm">
+                                    <i class="nc-icon nc-image"></i>
+                                    {{ helpCategory.helpCategoryIcon || previewImage ? 'Cambiar' : 'Seleccionar' }} Imagen
+                                    <input
+                                        accept="image/jpg, image/jpeg, image/png"
+                                        type="file"
+                                        (change)="fileProgress($event)" />
+                                </span>
+                            </div>
+                            <div>
+                                <label class="control-label d-block">Color de Fondo</label>
+                                <div class="color-picker-grid">
+                                    <div *ngFor="let color of colorPalette"
+                                         class="color-option"
+                                         [class.selected]="helpCategory.helpCategoryColor === color"
+                                         [style.background-color]="color"
+                                         (click)="helpCategory.helpCategoryColor = color">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Form Fields -->
+                        <div class="col-md-8">
+                            <input type="hidden" [(ngModel)]="helpCategory.helpCategoryId" name="helpCategoryId" />
+
+                            <div class="form-group">
+                                <label class="control-label">
+                                    <span class="text-danger">*</span> Código
+                                </label>
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    name="helpCategoryCode"
+                                    placeholder="Código de la categoría"
+                                    [(ngModel)]="helpCategory.helpCategoryCode"
+                                    required
+                                    #helpCategoryCode="ngModel" />
+                                <small *ngIf="helpCategoryCode.invalid && (helpCategoryCode.dirty || helpCategoryCode.touched)"
+                                       class="text-danger">
+                                    El código es obligatorio
+                                </small>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="control-label">
+                                    <span class="text-danger">*</span> Nombre
+                                </label>
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    name="helpCategoryName"
+                                    placeholder="Nombre de la categoría"
+                                    [(ngModel)]="helpCategory.helpCategoryName"
+                                    required
+                                    #helpCategoryName="ngModel" />
+                                <small *ngIf="helpCategoryName.invalid && (helpCategoryName.dirty || helpCategoryName.touched)"
+                                       class="text-danger">
+                                    El nombre es obligatorio
+                                </small>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="control-label">
+                                    <span class="text-danger">*</span> Descripción
+                                </label>
+                                <textarea
+                                    class="form-control"
+                                    name="helpCategoryDescription"
+                                    placeholder="Descripción de la categoría"
+                                    rows="3"
+                                    [(ngModel)]="helpCategory.helpCategoryDescription"
+                                    required
+                                    #helpCategoryDescription="ngModel"></textarea>
+                                <small *ngIf="helpCategoryDescription.invalid && (helpCategoryDescription.dirty || helpCategoryDescription.touched)"
+                                       class="text-danger">
+                                    La descripción es obligatoria
+                                </small>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="control-label">
+                                            <span class="text-danger">*</span> Orden
+                                        </label>
+                                        <input
+                                            type="number"
+                                            class="form-control"
+                                            name="helpCategoryOrder"
+                                            placeholder="Orden de visualización"
+                                            [(ngModel)]="helpCategory.helpCategoryOrder"
+                                            required
+                                            #helpCategoryOrder="ngModel" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="control-label d-block">Estado</label>
+                                        <bSwitch
+                                            name="helpCategoryState"
+                                            [(ngModel)]="helpCategory.helpCategoryState"
+                                            [switch-on-color]="'success'"
+                                            [switch-off-color]="'danger'"
+                                            [switch-off-text]="'Inactiva'"
+                                            [switch-on-text]="'Activa'">
+                                        </bSwitch>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="row">
+                        <div class="col-12">
+                            <p class="text-muted small">
+                                <span class="text-danger">*</span> Campos obligatorios
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <button type="submit" class="btn btn-primary btn-block">
+                                <i class="nc-icon nc-check-2"></i>
+                                {{ isEdit ? "Actualizar" : "Guardar" }}
+                            </button>
+                        </div>
+                        <div class="col-md-6">
+                            <button type="button" (click)="cancelForm(formCategory)" class="btn btn-secondary btn-block">
+                                <i class="nc-icon nc-simple-remove"></i>
+                                Cancelar
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

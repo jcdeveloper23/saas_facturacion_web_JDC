@@ -176,6 +176,19 @@ export const ROUTES_SUPER_ADMIN: RouteInfo[] = [
         type: 'link',
         icontype: 'nc-icon nc-globe'
     },
+
+    {
+        path: '/help',
+        title: 'Ayuda',
+        type: 'link',
+        icontype: 'nc-icon nc-globe'
+    },
+    {
+        path: '/help-questions',
+        title: 'Preguntas',
+        type: 'link',
+        icontype: 'nc-icon nc-globe'
+    },
     {
         path: '/cities',
         title: 'Ciudades',
