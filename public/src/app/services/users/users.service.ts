@@ -59,5 +59,15 @@ export class UsersService {
   public updateVehicleState(userUid: string, vehicle: Vehicle) {
     return this.db.collection('vehicles').doc(vehicle.vehicleId).update(vehicle);
   }
- 
+
+  /**
+   * Obtiene conductores activos con ubicación compartida
+   * */
+  public getActiveDrivers() {
+    return this.db.collection<Users>('users', ref =>
+      ref.where('userStateShareLocation', '==', true)
+         .where('userRol', '==', 9) // 2 = conductor
+    ).valueChanges();
+  }
+
 }

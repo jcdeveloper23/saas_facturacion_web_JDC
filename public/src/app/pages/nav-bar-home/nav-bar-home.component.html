@@ -1,72 +1,83 @@
-<div class="col-12  p-0" *ngIf="!isMobile" style="z-index: 1;">
-    <div class="row m-0  w-100 align-items-center content-menu ">
-        <div class="col-3 col-sm-1 col-md-1 col-lg-1  d-flex justify-content-start align-items-cente p-4"
-            data-aos="zoom-in">
-            <img class="img-logo" src="../../../assets/img/logoIMoveTiendas.png" alt="logo">
-        </div>
-        <div class="col-6 col-sm-6 col-md-6 col-lg-6">
-            <div class="row m-0">
-                <div class="col-sm-12">
-                    <ul class="navbar-nav mr-auto mt-2">
-                        <div class="row m-0 align-items-center justify-content-start pt-2">
-                            <li class="nav-item nav-style cursor-pointer">
-                                <!-- <h1><span class="span-primary">i</span>Move</h1> -->
-                            </li>
-                        </div>
-                    </ul>
-                </div>
-            </div>
-        </div>
-        <div class="col-sm-4  d-flex justify-content-end">
-            <a routerLink="./login">
+<nav class="navbar-landing" [class.scrolled]="isScrolled">
+  <div class="nav-container">
+    <!-- Logo -->
+    <a href="#home" class="logo">
+      <img src="../../../assets/img/icons/logoImove.png" alt="iMove Logo" class="logo-img">
+    </a>
 
-                <button class="btn btn-login btn-primary">Ingresar</button>
-
-            </a>
-        </div>
+    <!-- Desktop Menu -->
+    <div class="nav-menu" [class.active]="isMenuOpen" *ngIf="!isMobile">
+      <ul class="nav-links">
+        <li><a href="#home" class="nav-link" (click)="scrollToSection('home')">Inicio</a></li>
+        <li><a href="#features" class="nav-link" (click)="scrollToSection('features')">Características</a></li>
+        <li><a href="#how-it-works" class="nav-link" (click)="scrollToSection('how-it-works')">Cómo Funciona</a></li>
+        <li><a href="#drivers" class="nav-link" (click)="scrollToSection('drivers')">Para Conductores</a></li>
+        <li><a href="#contact" class="nav-link" (click)="scrollToSection('contact')">Contacto</a></li>
+      </ul>
+      <div class="nav-actions">
+        <a routerLink="/login" class="btn-login">Ingresar</a>
+        <a href="#download" class="btn-download" (click)="scrollToSection('download')">Descargar App</a>
+      </div>
     </div>
-</div>
-<div class="col-12 p-0 content-menu" *ngIf="isMobile">
-    <div class="row m-0 content-menu w-100">
-        <div class=" col-6 col-sm-6 col-md-6 col-lg-6 d-flex justify-content-start align-items-center ">
-            <!-- <img class="img-logo cursor-pointer" (click)="modalLogin = true"
-                src="../../../assets/img/logo.png" alt="logo"> -->
-            <a routerLink="./login">
 
-                <button class="btn btn-login btn-primary">Ingresar</button>
-
-            </a>
-        </div>
-        <div class=" col-6 col-sm-6 col-md-6 col-lg-6 d-flex justify-content-end p-0">
-            <button class="navbar-toggler btn-nav-menu text-white-color" type="button" data-toggle="collapse"
-                data-target="#navbarToggleExternalContent" aria-controls="navbarToggleExternalContent"
-                aria-expanded="false" aria-label="Toggle navigation">
-                <i class="fa fa-bars" aria-hidden="true"></i>
-
-            </button>
-        </div>
+    <!-- Mobile Menu -->
+    <div class="mobile-nav" *ngIf="isMobile">
+      <a routerLink="/login" class="btn-login-mobile">Ingresar</a>
+      <button class="menu-toggle" (click)="toggleMenu()" [class.active]="isMenuOpen">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
     </div>
-</div>
-<div class="col-12 p-0 z-index-first">
-    <div class="collapse bg-color-menu" id="navbarToggleExternalContent">
-        <div class="col-content-menu  pt-0 pl-4 pr-4 pb-4">
-            <hr>
-            <ul class="navbar-nav mr-auto mt-2">
-                <div class=" m-0 align-items-center justify-content-around pt-2">
-                    <a>
-                        <li class="nav-item nav-style cursor-pointer mt-2">
-                            <i class="nc-icon nc-bullet-list-67"></i> &nbsp; QUÉ ES LUNCHER?
-                        </li>
-                    </a>
-                    <a href="/register-provider">
-                        <li class="nav-item nav-style cursor-pointer mt-2 ">
-                            <i class="fa fa-phone" aria-hidden="true"></i> &nbsp; CONTÁCTANOS
-                        </li>
-                    </a>
-                </div>
-            </ul>
-        </div>
+  </div>
 
+  <!-- Mobile Menu Overlay -->
+  <div class="mobile-menu-overlay" [class.active]="isMenuOpen && isMobile" (click)="closeMenu()">
+    <div class="mobile-menu-content" (click)="$event.stopPropagation()">
+      <div class="mobile-menu-header">
+        <span class="mobile-menu-title">Menú</span>
+        <button class="close-menu" (click)="closeMenu()">
+          <i class="fa fa-times"></i>
+        </button>
+      </div>
+      <ul class="mobile-nav-links">
+        <li>
+          <a href="#home" class="mobile-nav-link" (click)="scrollToSectionMobile('home')">
+            <i class="fa fa-home"></i>
+            <span>Inicio</span>
+          </a>
+        </li>
+        <li>
+          <a href="#features" class="mobile-nav-link" (click)="scrollToSectionMobile('features')">
+            <i class="fa fa-star"></i>
+            <span>Características</span>
+          </a>
+        </li>
+        <li>
+          <a href="#how-it-works" class="mobile-nav-link" (click)="scrollToSectionMobile('how-it-works')">
+            <i class="fa fa-info-circle"></i>
+            <span>Cómo Funciona</span>
+          </a>
+        </li>
+        <li>
+          <a href="#drivers" class="mobile-nav-link" (click)="scrollToSectionMobile('drivers')">
+            <i class="fa fa-car"></i>
+            <span>Para Conductores</span>
+          </a>
+        </li>
+        <li>
+          <a href="#contact" class="mobile-nav-link" (click)="scrollToSectionMobile('contact')">
+            <i class="fa fa-envelope"></i>
+            <span>Contacto</span>
+          </a>
+        </li>
+      </ul>
+      <div class="mobile-menu-footer">
+        <a href="#download" class="btn-download-mobile" (click)="scrollToSectionMobile('download')">
+          <i class="fa fa-download"></i>
+          Descargar App
+        </a>
+      </div>
     </div>
-</div>
-<!-- <login-cmp *ngIf="isLogin" (changeModality)="closeModal($event)"></login-cmp> -->
+  </div>
+</nav>

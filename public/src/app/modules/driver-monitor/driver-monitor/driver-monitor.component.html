@@ -1,0 +1,153 @@
+<div class="main-content m-0 p-0">
+    <div class="row m-0 p-0 w-100" style="height: calc(100vh - 123px);">
+        <!-- Left Column: Drivers List -->
+        <div class="p-1 h-100" [ngClass]="isDriverListCollapsed ? 'col-lg-1' : 'col-lg-5'" style="transition: all 0.3s ease;">
+            <div class="card container-fluid-body h-100 d-flex flex-column">
+                <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                    <h4 class="card-title mb-0" [hidden]="isDriverListCollapsed">
+                        <i class="fa fa-list"></i> Conductores Activos ({{ activeDrivers.length }})
+                    </h4>
+                    <button class="btn btn-sm btn-outline-primary py-1 px-2" (click)="toggleDriverList()" 
+                            [title]="isDriverListCollapsed ? 'Expandir lista' : 'Colapsar lista'">
+                        <i class="fa" [class.fa-chevron-left]="!isDriverListCollapsed" [class.fa-chevron-right]="isDriverListCollapsed"></i>
+                    </button>
+                </div>
+                <div class="card-body p-0" style="flex-grow: 1; overflow-y: auto;">
+                    <!-- Vista Expandida: Tabla Completa -->
+                    <div *ngIf="!isDriverListCollapsed" class="table-responsive text-white">
+                        <table class="table table-sm text-white mb-0">
+                            <thead class="text-white">
+                                <tr class="text-white">
+                                    <th class="text-white">Conductor</th>
+                                    <th class="text-white">Ubicación</th>
+                                    <th class="text-white">Estado</th>
+                                    <th class="text-white">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-white">
+                                <tr *ngFor="let driver of activeDrivers">
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <img *ngIf="driver.userPhotoURL" [src]="driver.userPhotoURL" alt="{{ driver.userName }}" class="driver-avatar mr-2">
+                                            <div *ngIf="!driver.userPhotoURL" class="driver-avatar-placeholder mr-2">
+                                                {{ driver.markerLabel }}
+                                            </div>
+                                            <div>
+                                                <div class="font-weight-bold">{{ driver.userName }}</div>
+                                                <small class="text-muted">{{ driver.userPhone }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <small>
+                                            {{ driver.userLastLocationLatitude | number:'1.6-6' }},
+                                            {{ driver.userLastLocationLongitude | number:'1.6-6' }}
+                                        </small>
+                                        <br>
+                                        <small class="text-muted">{{ driver.formattedLastLocationDate }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-success">
+                                            <i class="fa fa-circle"></i> En línea
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm py-1 px-2" 
+                                                [class.btn-primary]="followedDriverId === driver.userUid" 
+                                                [class.btn-outline-primary]="followedDriverId !== driver.userUid"
+                                                (click)="toggleFollowDriver(driver)"
+                                                [title]="followedDriverId === driver.userUid ? 'Dejar de seguir' : 'Seguir en el mapa'">
+                                            <i class="fa" [class.fa-map-pin]="followedDriverId !== driver.userUid" [class.fa-times]="followedDriverId === driver.userUid"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr *ngIf="!hasActiveDrivers">
+                                    <td colspan="4" class="text-center text-muted py-3">
+                                        <i class="fa fa-info-circle"></i>
+                                        No hay conductores activos
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Vista Colapsada: Solo Avatares -->
+                    <div *ngIf="isDriverListCollapsed" class="d-flex flex-column align-items-center py-2">
+                        <div *ngFor="let driver of activeDrivers" class="mb-2 collapsed-avatar-container" (click)="toggleFollowDriver(driver)" [title]="driver.userName">
+                            <img *ngIf="driver.userPhotoURL" [src]="driver.userPhotoURL" alt="{{ driver.userName }}" class="driver-avatar" [class.followed]="followedDriverId === driver.userUid" >
+                            <div *ngIf="!driver.userPhotoURL" class="driver-avatar-placeholder" [class.followed]="followedDriverId === driver.userUid" >
+                                {{ driver.markerLabel }}
+                            </div>
+                        </div>
+                        <div *ngIf="!hasActiveDrivers" class="text-center text-muted mt-3">
+                            <i class="fa fa-ban fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Map Container -->
+        <div class="p-1 h-100" [ngClass]="isDriverListCollapsed ? 'col-lg-11' : 'col-lg-7'" style="transition: all 0.3s ease;">
+            <div class="card container-fluid-body h-100">
+                <div class="card-header py-2">
+                    <h4 class="card-title">
+                        <i class="fa fa-map-marker"></i> Monitoreo de Conductores en Tiempo Real
+                    </h4>
+                </div>
+                <div class="card-body p-0" style="flex-grow: 1;">
+                    <div class="map-container h-100">
+                        <agm-map 
+                            class="h-100 w-100"
+                            [latitude]="mapCenter.lat"
+                            [longitude]="mapCenter.lng"
+                            [zoom]="zoom"
+                            [disableDefaultUI]="false"
+                            [zoomControl]="true"
+                            [streetViewControl]="false">
+
+                            <!-- Marcador para cada conductor activo -->
+                            <agm-marker
+                                *ngFor="let driver of activeDrivers"
+                                [latitude]="driver.userLastLocationLatitude"
+                                [longitude]="driver.userLastLocationLongitude"
+                                [iconUrl]="driver.markerIcon"> <!-- Usa la propiedad pre-calculada -->
+
+                                <!-- Info Window con información del conductor -->
+                                <agm-info-window>
+                                    <div class="driver-info">
+                                        <div class="driver-info-header">
+                                            <img
+                                                *ngIf="driver.userPhotoURL"
+                                                [src]="driver.userPhotoURL"
+                                                alt="{{ driver.userName }}"
+                                                class="driver-photo">
+                                            <div
+                                                *ngIf="!driver.userPhotoURL"
+                                                class="driver-photo-placeholder">
+                                                {{ driver.markerLabel }} <!-- Usa la propiedad pre-calculada -->
+                                            </div>
+                                        </div>
+                                        <div class="driver-info-body">
+                                            <h6 class="mb-1">{{ driver.userName }}</h6>
+                                            <p class="mb-1">
+                                                <i class="fa fa-phone"></i> {{ driver.userPhone }}
+                                            </p>
+                                            <p class="mb-1">
+                                                <i class="fa fa-star text-warning"></i>
+                                                {{ driver.userRating || 'Sin calificación' }}
+                                            </p>
+                                            <p class="mb-0 text-muted">
+                                                <small>Última actualización: {{ driver.formattedLastLocationDate }}</small> <!-- Usa la propiedad pre-calculada -->
+                                            </p>
+                                        </div>
+                                    </div>
+                                </agm-info-window>
+                            </agm-marker>
+                        </agm-map>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

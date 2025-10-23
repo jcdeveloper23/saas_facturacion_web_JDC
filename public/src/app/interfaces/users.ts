@@ -45,6 +45,7 @@ export interface Users {
     userLongitude?: number;
     userLastLocationLatitude?: number;
     userLastLocationLongitude?: number;
+    userLastLocationDate?: string;
     userRol?: number;
 
     userDniURL?: string;

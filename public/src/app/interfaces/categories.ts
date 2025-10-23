@@ -1,4 +1,6 @@
 declare interface Categories {
+    subCategories?: Array<Categories>;
+    categories?:Categories;
     categoriesId?: string,
     categoriesCode?: string,
     categoriesName?: string,
@@ -6,6 +8,7 @@ declare interface Categories {
     categoriesState?: boolean,
     categoriesIsMain?: boolean,
     categoriesIsPremium?: boolean,
+    categoriesIsCar?: boolean,
     categoriesAllowsMultipleSelection?: boolean,
     categoriesParent?: string,
     categoriesParentName?: string,

@@ -171,6 +171,12 @@ export const ROUTES_BAR: RouteInfo[] = [
 /// *** Menu Items SUPER ADMIN ***
 export const ROUTES_SUPER_ADMIN: RouteInfo[] = [
     {
+        path: '/monitor',
+        title: 'Monitor',
+        type: 'link',
+        icontype: 'nc-icon nc-globe'
+    },
+    {
         path: '/countries',
         title: 'Países',
         type: 'link',

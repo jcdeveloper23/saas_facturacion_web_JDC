@@ -17,12 +17,16 @@ export class CategoriesService {
     return this.db.collection<Categories>('categories', ref => ref.where('categoriesIsMain', '==', categoriesIsMain)).valueChanges();
   }
 
-  public getCategoriesByID(id: string) {
-    return this.db.collection<Categories>('categories', ref => ref.where('categoriesId', '==', id)).valueChanges()
+  public getCategoriesByType(categoriesType: string) {
+    return this.db.collection<Categories>('categories', ref => ref.where('categoriesType', '==', categoriesType)).valueChanges();
   }
 
-   public selectCategoryByParent(id: string) {
-    return this.db.collection<Categories>('categories', ref => ref.where('categoriesParent', '==', id)).valueChanges()
+  public getCategoriesByID(id: string) {
+    return this.db.collection<Categories>('categories', ref => ref.where('categoriesId', '==', id)).valueChanges()
+  } 
+
+   public selectCategoryByParent(id: string): Promise<Categories[]> {
+    return this.db.collection<Categories>('categories', ref => ref.where('categoriesParent', '==', id)).get().toPromise().then(snapshot => snapshot.docs.map(doc => doc.data() as Categories));
   }
 
   saveCategories(categories: Categories) {

@@ -40,6 +40,7 @@ export class CategoriesComponent implements OnInit {
   public arrayCategory: Array<Categories> = [];
   public arraySubCategory: Array<Categories> = [];
   public allSubCategory: Array<Categories> = [];
+  public allCategoriesFlat: Array<Categories> = [];
 
 
   public isEdit: boolean = false;
@@ -61,20 +62,46 @@ export class CategoriesComponent implements OnInit {
 
   ngOnInit(): void {
     this.selectedOnlyMain(true);
+    this.loadAllCategoriesForSelect();
     // this.getCategories();
   }
 
-  selectCategoryByParent(category: Categories) { 
-    this.categoriesService.selectCategoryByParent(category.categoriesId).subscribe(categories => {
-      this.arraySubCategory = categories;
-      console.log(JSON.stringify(this.arraySubCategory, null, 3));
-      this.arraySubCategory = categories;
-      this.allSubCategory = categories;
-    this.dataSource = new MatTableDataSource<Categories>(categories);
+  /**
+   * Carga una lista plana de todas las categorías para usar en el selector de "Categoría Madre".
+   */
+  loadAllCategoriesForSelect() {
+    this.categoriesService.getCategories().subscribe(allCats => {
+      this.allCategoriesFlat = allCats;
+    });
+  }
+
+  async selectCategoryByParent(category: Categories) {
+    this.loadingService.show('Cargando subcategorías...');
+    try {
+      // 1. Obtener las subcategorías (Nivel 2)
+      const subCategories = await this.categoriesService.selectCategoryByParent(category.categoriesId);
+
+      // 2. Para cada subcategoría, obtener sus hijos (Nivel 3) en paralelo
+      const subCategoryPromises = subCategories.map(async (subCat) => {
+        const subSubCategories = await this.categoriesService.selectCategoryByParent(subCat.categoriesId);
+        // Añadimos las sub-subcategorías a una nueva propiedad 'subCategories'
+        return { ...subCat, subCategories: subSubCategories };
+      });
+
+      // 3. Esperar a que todas las consultas de los hijos finalicen
+      const populatedSubCategories = await Promise.all(subCategoryPromises);
+
+      this.arraySubCategory = populatedSubCategories;
+      this.allSubCategory = populatedSubCategories;
+      this.dataSource = new MatTableDataSource<Categories>(this.arraySubCategory);
       this.dataSource.paginator = this.paginator;
       this.dataSource.sort = this.sort;
+    } catch (error) {
+      console.error("Error al cargar la jerarquía de categorías:", error);
+      this.utilsService.showNotification('top', 'right', 'nc-simple-remove', 'Error al cargar datos', 'danger');
+    } finally {
       this.loadingService.hide();
-    }); 
+    }
   }
 
   public getCategories() {
@@ -100,6 +127,18 @@ export class CategoriesComponent implements OnInit {
     $('#modalNewCategories').modal('show');
   }
 
+  public newSubCategory(parentCategory: Categories) {
+    this.categories = {};
+    this.isEdit = false;
+    this.categories.categoriesId = new Date().getTime().toString();
+    // Generar un código basado en el padre para mayor consistencia
+    const childrenCount = parentCategory.subCategories ? parentCategory.subCategories.length : 0;
+    this.categories.categoriesCode = `${parentCategory.categoriesCode}-${childrenCount + 1}`;
+    this.categories.categoriesState = true;
+    this.categories.categoriesIsMain = false; // No es una categoría principal
+    this.categories.categoriesParent = parentCategory.categoriesId; // Asignar el padre
+    $('#modalNewCategories').modal('show');
+  }
 
   public async saveCategories(isValid: boolean, form: NgForm) {
     if (isValid) {

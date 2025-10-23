@@ -29,6 +29,12 @@ export const AppRoutes: Routes = [
         path: '',
         component: AdminLayoutComponent,
         children: [
+            
+            {
+                path: 'monitor',
+                loadChildren: './modules/driver-monitor/driver-monitor.module#DriverMonitorModule',
+                canActivate: [AuthGuard],
+            },
             {
                 path: 'appVersions',
                 loadChildren: './modules/app-versions/app-versions.module#AppVersionsModule',

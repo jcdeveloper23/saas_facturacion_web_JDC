@@ -1,0 +1,374 @@
+/* Monitor Container */
+.monitor-container {
+    width: 100%;
+    height: calc(100vh - 100px);
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    margin: 0;
+}
+
+/* Header Stats */
+.monitor-header {
+    padding: 8px;
+    margin-bottom: 8px;
+}
+
+.stats-card {
+    background: linear-gradient(135deg, #51cbce 0%, #6bd098 100%);
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    padding: 12px 16px;
+}
+
+.stats-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.stats-info {
+    flex: 1;
+}
+
+.stats-label {
+    color: white;
+    font-size: 14px;
+    margin: 0;
+    opacity: 0.9;
+}
+
+.stats-value {
+    color: white;
+    font-size: 32px;
+    font-weight: bold;
+    margin: 4px 0 0 0;
+}
+
+.stats-icon {
+    width: 50px;
+    height: 50px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: white;
+}
+
+/* Main Body - Map + Drivers List */
+.monitor-body {
+    display: flex;
+    gap: 8px;
+    padding: 0 8px 8px 8px;
+    flex: 1;
+    overflow: hidden;
+}
+
+/* Map Section - Izquierda */
+.map-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.map-wrapper {
+    flex: 1;
+    position: relative;
+}
+
+agm-map {
+    height: 100%;
+    width: 100%;
+}
+
+/* Drivers Section - Derecha */
+.drivers-section {
+    width: 350px;
+    display: flex;
+    flex-direction: column;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.drivers-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+}
+
+/* Section Headers */
+.section-header {
+    padding: 12px 16px;
+    background: linear-gradient(135deg, rgba(81, 203, 206, 0.1) 0%, rgba(107, 208, 152, 0.1) 100%);
+    border-bottom: 2px solid #51cbce;
+}
+
+.section-header h5 {
+    margin: 0;
+    color: #333;
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.section-header i {
+    color: #51cbce;
+    margin-right: 6px;
+}
+
+/* Driver Cards */
+.driver-card {
+    display: flex;
+    gap: 12px;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    transition: all 0.3s ease;
+    border: 1px solid #e9ecef;
+}
+
+.driver-card:hover {
+    background: rgba(81, 203, 206, 0.1);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.driver-card-photo {
+    flex-shrink: 0;
+}
+
+.driver-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #51cbce;
+}
+
+.driver-avatar-placeholder {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 24px;
+    font-weight: bold;
+    border: 3px solid #51cbce;
+}
+
+.driver-card-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.driver-card-info h6 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: bold;
+    color: #333;
+}
+
+.driver-card-info p {
+    margin: 0;
+    font-size: 13px;
+    color: #666;
+}
+
+.driver-card-info i {
+    margin-right: 4px;
+}
+
+/* Badge */
+.badge-online {
+    display: inline-block;
+    background-color: #51cbce;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    margin-top: 4px;
+    align-self: flex-start;
+}
+
+.badge-online i {
+    animation: pulse 2s infinite;
+    margin-right: 4px;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* No Drivers Message */
+.no-drivers {
+    text-align: center;
+    padding: 40px 20px;
+    color: #999;
+}
+
+.no-drivers i {
+    font-size: 48px;
+    margin-bottom: 12px;
+    display: block;
+}
+
+.no-drivers p {
+    margin: 0;
+    font-size: 14px;
+}
+
+/* Driver Info Window */
+.driver-info {
+    min-width: 200px;
+    padding: 10px;
+}
+
+.driver-info-header {
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.driver-photo {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #51cbce;
+}
+
+.driver-photo-placeholder {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 24px;
+    font-weight: bold;
+    border: 3px solid #51cbce;
+}
+
+.driver-info-body {
+    margin-top: 10px;
+}
+
+.driver-info-body h6 {
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 8px;
+}
+
+.driver-info-body p {
+    font-size: 13px;
+    color: #666;
+    margin: 4px 0;
+}
+
+.driver-info-body i {
+    margin-right: 5px;
+}
+
+/* Scrollbar Styling */
+.drivers-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.drivers-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.drivers-list::-webkit-scrollbar-thumb {
+    background: #51cbce;
+    border-radius: 10px;
+}
+
+.drivers-list::-webkit-scrollbar-thumb:hover {
+    background: #45b7ba;
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+    .monitor-body {
+        flex-direction: column;
+    }
+
+    .map-section {
+        height: 400px;
+    }
+
+    .drivers-section {
+        width: 100%;
+        height: 300px;
+    }
+}
+
+@media (max-width: 768px) {
+    .monitor-container {
+        height: auto;
+    }
+
+    .map-section {
+        height: 350px;
+    }
+
+    .stats-value {
+        font-size: 24px;
+    }
+
+    .stats-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 18px;
+    }
+
+    .driver-avatar,
+    .driver-avatar-placeholder {
+        width: 50px;
+        height: 50px;
+        font-size: 20px;
+    }
+
+    .driver-card-info h6 {
+        font-size: 14px;
+    }
+
+    .driver-card-info p {
+        font-size: 12px;
+    }
+}
+
+.collapsed-avatar-container {
+    cursor: pointer;
+}
+
+.collapsed-avatar-container .driver-avatar,
+.collapsed-avatar-container .driver-avatar-placeholder {
+    border: 3px solid #51cbce; /* Borde verde por defecto para todos */
+    transition: all 0.3s ease;
+} 
+
+.collapsed-avatar-container .followed {
+    /* Mantiene el borde verde y solo añade el resplandor naranja */
+    box-shadow: 0 0 12px rgba(255, 107, 53, 0.9);
+}

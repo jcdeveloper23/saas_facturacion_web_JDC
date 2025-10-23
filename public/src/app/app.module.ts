@@ -5,6 +5,7 @@ import { HttpModule } from '@angular/http';
 import { APP_BASE_HREF } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NgbModule } from '@ng-bootstrap/ng-bootstrap';
+import { AgmCoreModule } from '@agm/core';
 
 import { AppComponent } from './app.component';
 
@@ -52,6 +53,9 @@ import { CustomCurrencyPipe } from './pipes_custom/custom-currency.pipe';
         AngularFireAuthModule,
         AngularFirestoreModule,
         AngularFireStorageModule,
+        AgmCoreModule.forRoot({
+            apiKey: 'AIzaSyABbbtwiiybWFt7e1ADeTGN6iGEQ0cRIe4'
+        }),
         MatSortModule,
         MatPaginatorModule,
         MatTableModule,

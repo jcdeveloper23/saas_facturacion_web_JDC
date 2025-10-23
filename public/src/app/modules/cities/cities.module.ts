@@ -24,7 +24,7 @@ import { LoadingComponent } from '../loading/loading.component';
     FormsModule,
     ReactiveFormsModule,
     JwBootstrapSwitchNg2Module,
-    AgmCoreModule.forRoot({ apiKey: 'AIzaSyABbbtwiiybWFt7e1ADeTGN6iGEQ0cRIe4' }),
+    AgmCoreModule,
     /// *** Usado para datatables ***
     MatPaginatorModule,
     MatTableModule,

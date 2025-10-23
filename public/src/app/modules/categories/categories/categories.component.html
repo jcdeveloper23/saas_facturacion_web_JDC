@@ -158,6 +158,36 @@
                                             <p class="p-0 mb-1 mt-0 p-mini text-center">
                                                 {{subcategory.categoriesDescription}}
                                             </p>
+
+                                            <!-- INICIO: Lista de Sub-Subcategorías (Nivel 3) -->
+                                            <div *ngIf="subcategory.subCategories && subcategory.subCategories.length > 0" class="sub-subcategory-list text-left px-2 mt-2">
+                                                <hr style="border-color: rgba(255, 255, 255, 0.2);">
+                                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                                    <h6 class="p-mini mb-0">Modelos:</h6>
+                                                    <button (click)="newSubCategory(subcategory)" class="btn btn-success btn-sm py-0 px-2" title="Agregar nuevo modelo">
+                                                        <i class="fa fa-plus"></i> Agregar
+                                                    </button> 
+                                                </div>
+                                                <table class="table table-sm table-borderless text-white" style="background: transparent; margin-top: -5px;">
+                                                    <tbody>
+                                                        <tr *ngFor="let subSubCat of subcategory.subCategories">
+                                                            <td class="align-middle">
+                                                                <small>{{ subSubCat.categoriesName }}</small>
+                                                            </td>
+                                                            <td class="text-right align-middle">
+                                                                <button (click)="editCategories(subSubCat)" class="btn btn-link btn-sm p-0 mx-1 text-warning" title="Editar modelo">
+                                                                    <i class="fa fa-pencil"></i>
+                                                                </button>
+                                                                <button (click)="deleteCategories(subSubCat)" class="btn btn-link btn-sm p-0 mx-1 text-danger" title="Eliminar modelo">
+                                                                    <i class="fa fa-trash"></i>
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            <!-- FIN: Lista de Sub-Subcategorías -->
+
                                         </div>
                                     </div>
                                 </div>
@@ -566,7 +596,7 @@
                                                 <option [selected]="true" value="">
                                                     Seleccione
                                                 </option>
-                                                <option *ngFor="let category of arrayCategory"
+                                                <option *ngFor="let category of allCategoriesFlat"
                                                     [value]="category.categoriesId">
                                                     {{ category.categoriesName }}
                                                 </option>
@@ -575,7 +605,7 @@
                                             <small
                                                 [hidden]="categoriesTickets.valid || (categoriesTickets.pristine && !formCategories.submitted) "
                                                 class="text-danger">
-                                                Campo obligatorio
+                                                Campo obligatorio  
                                             </small>
                                         </div>
                                         <div class="col-12 col-sm-12 col-md-12 col-lg-6 mb-3 text-center">
@@ -597,6 +627,18 @@
                                             <br />
                                             <bSwitch name="categoriesIsPremium"
                                                 [(ngModel)]="categories.categoriesIsPremium"
+                                                [switch-on-color]="'primary'" [switch-off-color]="'primary'"
+                                                [switch-off-text]="'&#x2715;'" [switch-on-text]="'&#x2714;'">
+                                            </bSwitch>
+                                        </div>
+
+                                        <div class="col-12 col-sm-12 col-md-12 col-lg-6 mb-3 text-center">
+                                            <label class="control-label" for="">¿Es para Carro?:
+                                                <span class="star">*</span>
+                                            </label>
+                                            <br />
+                                            <bSwitch name="categoriesIsCar"
+                                                [(ngModel)]="categories.categoriesIsCar"
                                                 [switch-on-color]="'primary'" [switch-off-color]="'primary'"
                                                 [switch-off-text]="'&#x2715;'" [switch-on-text]="'&#x2714;'">
                                             </bSwitch>
