@@ -299,7 +299,7 @@ export class RechargesComponent implements OnInit {
     this.recharges = recharges;
     $('#modalNewRecharges').modal('show');
   }
-
+ 
   importRecharges() {
     $('#modalImport').modal('show');
   }

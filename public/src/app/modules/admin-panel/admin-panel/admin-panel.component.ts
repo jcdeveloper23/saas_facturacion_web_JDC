@@ -1,27 +1,277 @@
-import { Component, OnInit, AfterViewInit } from '@angular/core';
+import { Component, OnInit, AfterViewInit, OnDestroy } from '@angular/core';
 import { Chart } from 'chart.js';
+import { CityService } from '../../../services/city/city.service';
+import { RechargesService } from '../../../services/recharges/recharges.service';
+import { UsersService } from '../../../services/users/users.service';
+import { RequestVehicleService } from '../../../services/request-vehicle/request-vehicle.service';
+import { Subscription } from 'rxjs';
+
+declare var $: any;
 
 @Component({
   selector: 'app-admin-panel',
   templateUrl: './admin-panel.component.html',
   styleUrls: ['./admin-panel.component.css']
 })
-export class AdminPanelComponent implements OnInit, AfterViewInit {
+export class AdminPanelComponent implements OnInit, AfterViewInit, OnDestroy {
 
-  // Propiedades para las tarjetas de estadísticas (con datos de ejemplo)
-  public totalUsers: number = 1250;
-  public activeDrivers: number = 85;
-  public tripsToday: number = 214;
-  public pendingRecharges: number = 12;
+  // Propiedades para las tarjetas de estadísticas
+  public totalUsers: number = 0;
+  public activeDrivers: number = 0;
+  public tripsToday: number = 0;
+  public pendingRecharges: number = 0;
 
-  constructor() { }
+  // Arrays para datos
+  public cities: any[] = [];
+  public recharges: any[] = [];
+  public users: any[] = [];
+  public requestVehicles: any[] = [];
+
+  // Subscripciones
+  private subscriptions: Subscription[] = [];
+
+  // Recarga seleccionada para el modal
+  public selectedRecharge: any = null;
+
+  // Viaje seleccionado para el modal
+  public selectedTrip: any = null;
+
+  // Filtro de viajes
+  public tripFilter: string = 'active'; // 'all', 'active', 'in_process'
+
+  // Imagen para el lightbox
+  public lightboxImage: string = '';
+
+  constructor(
+    private cityService: CityService,
+    private rechargesService: RechargesService,
+    private usersService: UsersService,
+    private requestVehicleService: RequestVehicleService
+  ) { }
 
   ngOnInit(): void {
-    // Aquí se cargarían los datos reales de los servicios
+    this.loadCities();
+    this.loadRecharges();
+    this.loadUsers();
+    this.loadRequestVehicles();
+  }
+
+  ngOnDestroy(): void {
+    // Limpiar subscripciones para evitar memory leaks
+    this.subscriptions.forEach(sub => sub.unsubscribe());
+  }
+
+  loadCities(): void {
+    const citiesSub = this.cityService.getCities().subscribe(
+      (cities: any[]) => {
+        this.cities = cities;
+        console.log('Cities loaded:', this.cities);
+      },
+      error => {
+        console.error('Error loading cities:', error);
+      }
+    );
+    this.subscriptions.push(citiesSub);
+  }
+
+  loadRecharges(): void {
+    const rechargesSub = this.rechargesService.getRecharges().subscribe(
+      (recharges: any[]) => {
+        this.recharges = recharges;
+        // Filtrar recargas pendientes
+        const pending = recharges.filter(r => r.rechargeStatus === 'pending' || r.rechargeStatus === 'pendiente');
+        this.pendingRecharges = pending.length;
+        console.log('Recharges loaded:', this.recharges);
+        console.log('Pending recharges:', this.pendingRecharges);
+      },
+      error => {
+        console.error('Error loading recharges:', error);
+      }
+    );
+    this.subscriptions.push(rechargesSub);
+  }
+
+  loadUsers(): void {
+    const usersSub = this.usersService.getAllUsers().subscribe(
+      (users: any[]) => {
+        this.users = users;
+        this.totalUsers = users.length;
+        // Contar conductores activos (userRol === 9)
+        this.activeDrivers = users.filter(u => u.userRol === 9 && u.userState === true).length;
+        console.log('Users loaded:', this.users);
+        console.log('Total users:', this.totalUsers);
+        console.log('Active drivers:', this.activeDrivers);
+      },
+      error => {
+        console.error('Error loading users:', error);
+      }
+    );
+    this.subscriptions.push(usersSub);
   }
 
   ngAfterViewInit(): void {
     this.createWeeklyTripsChart();
+  }
+
+  getPendingRecharges(): any[] {
+    return this.recharges.filter(r =>
+      r.rechargeStatus === 'pending' ||
+      r.rechargeStatus === 'pendiente' ||
+      r.rechargeStatus === 'Pending'
+    );
+  }
+
+  viewRechargeDetail(recharge: any): void {
+    this.selectedRecharge = { ...recharge }; // Crear una copia para evitar modificar el original
+    console.log('Selected recharge:', recharge);
+  }
+
+  openDocumentLightbox(imageUrl: string): void {
+    this.lightboxImage = imageUrl;
+    // Abrir el modal usando jQuery (asumiendo que Bootstrap está disponible)
+    $('#documentLightbox').modal('show');
+  }
+
+  approveRecharge(recharge: any): void {
+    if (!recharge.rechargeTransactionReference) {
+      alert('Por favor ingrese la referencia de transacción antes de aprobar');
+      return;
+    }
+
+    const updatedRecharge = {
+      ...recharge,
+      rechargeStatus: 'approved',
+      rechargeUpdateAt: new Date().toISOString(),
+      rechargeVerifiedBy: 'Admin' // Puedes cambiar esto por el usuario actual
+    };
+
+    this.rechargesService.editRecharges(updatedRecharge).then(() => {
+      console.log('Recarga aprobada exitosamente');
+      alert('Recarga aprobada exitosamente');
+      // Cerrar el modal
+      $('#rechargeDetailModal').modal('hide');
+    }).catch(error => {
+      console.error('Error al aprobar recarga:', error);
+      alert('Error al aprobar la recarga');
+    });
+  }
+
+  rejectRecharge(recharge: any): void {
+    if (!confirm('¿Está seguro que desea rechazar esta recarga?')) {
+      return;
+    }
+
+    const updatedRecharge = {
+      ...recharge,
+      rechargeStatus: 'rejected',
+      rechargeUpdateAt: new Date().toISOString(),
+      rechargeVerifiedBy: 'Admin' // Puedes cambiar esto por el usuario actual
+    };
+
+    this.rechargesService.editRecharges(updatedRecharge).then(() => {
+      console.log('Recarga rechazada');
+      alert('Recarga rechazada');
+      // Cerrar el modal
+      $('#rechargeDetailModal').modal('hide');
+    }).catch(error => {
+      console.error('Error al rechazar recarga:', error);
+      alert('Error al rechazar la recarga');
+    });
+  }
+
+  loadRequestVehicles(): void {
+    const requestsSub = this.requestVehicleService.getAllRequests().subscribe(
+      (requests: any[]) => {
+        this.requestVehicles = requests;
+        // Contar viajes de hoy
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        this.tripsToday = requests.filter(r => {
+          if (r.requestFullDate && r.requestFullDate.toDate) {
+            const requestDate = r.requestFullDate.toDate();
+            requestDate.setHours(0, 0, 0, 0);
+            return requestDate.getTime() === today.getTime();
+          }
+          return false;
+        }).length;
+        console.log('Request vehicles loaded:', this.requestVehicles.length);
+        console.log('Trips today:', this.tripsToday);
+      },
+      error => {
+        console.error('Error loading request vehicles:', error);
+      }
+    );
+    this.subscriptions.push(requestsSub);
+  }
+
+  setTripFilter(filter: string): void {
+    this.tripFilter = filter;
+  }
+
+  getFilteredTrips(status: string): any[] {
+    if (status === 'active') {
+      // Estados activos: pending, searching, accepted
+      return this.requestVehicles.filter(r =>
+        r.requestStatusTrip === 'pending' ||
+        r.requestStatusTrip === 'searching' ||
+        r.requestStatusTrip === 'accepted' ||
+        r.requestStatus === 'Activa' ||
+        r.requestStatus === 'Pendiente'
+      );
+    } else if (status === 'in_process') {
+      // Estados en proceso: on_way, in_progress, accepted
+      return this.requestVehicles.filter(r =>
+        r.requestStatusTrip === 'on_way' ||
+        r.requestStatusTrip === 'in_progress' ||
+        r.requestStatusTrip === 'accepted' ||
+        r.requestStatus === 'En Proceso' ||
+        (r.requestDriverIsInTrip === true || r.requestClientIsInTrip === true)
+      );
+    }
+    return this.requestVehicles;
+  }
+
+  getDisplayedTrips(): any[] {
+    if (this.tripFilter === 'all') {
+      return this.requestVehicles;
+    } else if (this.tripFilter === 'active') {
+      return this.getFilteredTrips('active');
+    } else if (this.tripFilter === 'in_process') {
+      return this.getFilteredTrips('in_process');
+    }
+    return this.requestVehicles;
+  }
+
+  getTripFilterLabel(): string {
+    if (this.tripFilter === 'active') {
+      return 'activos';
+    } else if (this.tripFilter === 'in_process') {
+      return 'en proceso';
+    }
+    return '';
+  }
+
+  getStatusLabel(status: string): string {
+    const statusMap: any = {
+      'pending': 'Pendiente',
+      'searching': 'Buscando',
+      'accepted': 'Aceptado',
+      'on_way': 'En Camino',
+      'in_progress': 'En Progreso',
+      'finished': 'Finalizado',
+      'cancelled': 'Cancelado',
+      'Activa': 'Activa',
+      'En Proceso': 'En Proceso',
+      'Finalizada': 'Finalizada',
+      'Cancelada': 'Cancelada',
+      'Pendiente': 'Pendiente'
+    };
+    return statusMap[status] || status;
+  }
+
+  viewTripDetail(trip: any): void {
+    this.selectedTrip = { ...trip };
+    console.log('Selected trip:', JSON.stringify(trip, null, 2));
   }
 
   createWeeklyTripsChart() {

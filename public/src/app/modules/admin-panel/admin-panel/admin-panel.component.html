@@ -66,7 +66,7 @@
                             <div class="col-5 col-md-4">
                                 <div class="icon-big text-center icon-primary">
                                     <i class="nc-icon nc-wallet-40 text-primary"></i>
-                                </div>
+                                </div> 
                             </div>
                             <div class="col-7 col-md-8">
                                 <div class="numbers">
@@ -91,35 +91,37 @@
                     <div class="card-body table-responsive" style="height: 220px; overflow-y: auto;">
                         <table class="table dashboard-table">
                             <thead class="text-warning">
-                                <th>Ciudad</th> 
-                                <th>País</th>
-                                <th class="text-center">Servicios Activos</th>
-                                <th class="text-center">Estado</th>
+                                <th style="width: 30%;">Ciudad</th>
+                                <th style="width: 30%;">País</th>
+                                <th class="text-center" style="width: 20%;">Servicios</th>
+                                <th class="text-center" style="width: 20%;">Estado</th>
                             </thead>
                             <tbody>
-                                <tr>
-                                    <td>San Cristóbal</td>
-                                    <td>Venezuela</td>
-                                    <td class="text-center">5</td>
-                                    <td class="text-center"><span class="badge badge-success">Activa</span></td>
+                                <tr *ngIf="cities.length === 0">
+                                    <td colspan="4" class="text-center py-4">
+                                        <i class="nc-icon nc-globe text-muted" style="font-size: 2rem;"></i>
+                                        <p class="mb-0 mt-2">No hay ciudades registradas</p>
+                                    </td>
                                 </tr>
-                                <tr>
-                                    <td>Cúcuta</td>
-                                    <td>Colombia</td>
-                                    <td class="text-center">3</td>
-                                    <td class="text-center"><span class="badge badge-success">Activa</span></td>
-                                </tr>
-                                <tr>
-                                    <td>Mérida</td>
-                                    <td>Venezuela</td>
-                                    <td class="text-center">2</td>
-                                    <td class="text-center"><span class="badge badge-warning">Pruebas</span></td>
-                                </tr>
-                                <tr>
-                                    <td>Caracas</td>
-                                    <td>Venezuela</td>
-                                    <td class="text-center">0</td>
-                                    <td class="text-center"><span class="badge badge-danger">Inactiva</span></td>
+                                <tr *ngFor="let city of cities">
+                                    <td>
+                                        <span class="font-weight-bold">{{ city.cityName || 'N/A' }}</span>
+                                    </td>
+                                    <td>
+                                        <span>{{ city.countryName || 'N/A' }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge badge-info">{{ city.servicesCount || 0 }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge" [ngClass]="{
+                                            'badge-success': city.cityState === true || city.cityState === 'activa',
+                                            'badge-warning': city.cityState === 'pruebas',
+                                            'badge-danger': city.cityState === false || city.cityState === 'inactiva'
+                                        }">
+                                            {{ city.cityState === true ? 'Activa' : city.cityState === false ? 'Inactiva' : city.cityState }}
+                                        </span>
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>
@@ -135,30 +137,148 @@
                     <div class="card-body table-responsive py-2" style="height: 220px; overflow-y: auto;">
                         <table class="table table-sm dashboard-table">
                             <thead class="text-warning">
-                                <th>Usuario</th>
-                                <th class="text-right">Monto</th>
-                                <th class="text-center">Acciones</th>
+                                <th style="width: 50%;">Usuario</th>
+                                <th class="text-right" style="width: 30%;">Monto</th>
+                                <th class="text-center" style="width: 20%;"></th>
                             </thead>
                             <tbody>
-                                <tr>
-                                    <td>Juan Pérez</td>
-                                    <td class="text-right">$10.00</td>
-                                    <td class="text-center">
-                                        <button class="btn btn-sm btn-outline-primary py-1 px-2" data-toggle="modal" data-target="#rechargeDetailModal">Ver</button>
+                                <tr *ngIf="getPendingRecharges().length === 0">
+                                    <td colspan="3" class="text-center py-4">
+                                        <i class="nc-icon nc-check-2 text-success" style="font-size: 2rem;"></i>
+                                        <p class="mb-0 mt-2">No hay recargas pendientes</p>
                                     </td>
                                 </tr>
-                                <tr>
-                                    <td>Maria Rodriguez</td>
-                                    <td class="text-right">$5.00</td>
+                                <tr *ngFor="let recharge of getPendingRecharges() | slice:0:5">
+                                    <td>
+                                        <div class="d-flex flex-column">
+                                            <span class="font-weight-bold">{{ recharge.rechargeUserName || 'Usuario' }}</span>
+                                            <small class="text-muted">{{ recharge.rechargeCreatedAt || 'Sin fecha' }}</small>
+                                        </div>
+                                    </td>
+                                    <td class="text-right">
+                                        <span class="font-weight-bold text-success">
+                                            ${{ (recharge.rechargeAmountUsd || recharge.rechargeAmount || 0) | number:'1.2-2' }}
+                                        </span>
+                                    </td>
                                     <td class="text-center">
-                                        <button class="btn btn-sm btn-outline-primary py-1 px-2" data-toggle="modal" data-target="#rechargeDetailModal">Ver</button>
+                                        <button class="btn btn-compact btn-outline-primary"
+                                                (click)="viewRechargeDetail(recharge)"
+                                                data-toggle="modal"
+                                                data-target="#rechargeDetailModal">
+                                            <i class="nc-icon nc-zoom-split"></i>
+                                        </button>
                                     </td>
                                 </tr>
-                                <tr>
-                                    <td>Carlos García</td>
-                                    <td class="text-right">$20.00</td>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fila para Solicitudes de Viajes -->
+        <div class="row mt-1">
+            <div class="col-md-12 p-2">
+                <div class="card container-fluid-body">
+                    <div class="card-header py-3">
+                        <div class="row align-items-center">
+                            <div class="col-md-6">
+                                <h4 class="card-title mb-0">Solicitudes de Viajes en Tiempo Real</h4>
+                                <p class="card-category mb-0">Viajes activos y en proceso</p>
+                            </div>
+                            <div class="col-md-6 text-right">
+                                <div class="btn-group" role="group">
+                                    <button type="button"
+                                            class="btn btn-sm"
+                                            [ngClass]="tripFilter === 'all' ? 'btn-primary' : 'btn-outline-primary'"
+                                            (click)="setTripFilter('all')">
+                                        Todos ({{ requestVehicles.length }})
+                                    </button>
+                                    <button type="button"
+                                            class="btn btn-sm"
+                                            [ngClass]="tripFilter === 'active' ? 'btn-warning' : 'btn-outline-warning'"
+                                            (click)="setTripFilter('active')">
+                                        Activos ({{ getFilteredTrips('active').length }})
+                                    </button>
+                                    <button type="button"
+                                            class="btn btn-sm"
+                                            [ngClass]="tripFilter === 'in_process' ? 'btn-info' : 'btn-outline-info'"
+                                            (click)="setTripFilter('in_process')">
+                                        En Proceso ({{ getFilteredTrips('in_process').length }})
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body table-responsive" style="max-height: 400px; overflow-y: auto;">
+                        <table class="table dashboard-table">
+                            <thead class="text-warning">
+                                <th style="width: 10%;">ID</th>
+                                <th style="width: 20%;">Pasajero</th>
+                                <th style="width: 20%;">Conductor</th>
+                                <th style="width: 25%;">Origen - Destino</th>
+                                <th class="text-center" style="width: 10%;">Tarifa</th>
+                                <th class="text-center" style="width: 10%;">Estado</th>
+                                <th class="text-center" style="width: 5%;"></th>
+                            </thead>
+                            <tbody>
+                                <tr *ngIf="getDisplayedTrips().length === 0">
+                                    <td colspan="7" class="text-center py-4">
+                                        <i class="nc-icon nc-delivery-fast text-muted" style="font-size: 2rem;"></i>
+                                        <p class="mb-0 mt-2">No hay solicitudes de viajes {{ tripFilter !== 'all' ? getTripFilterLabel() : '' }}</p>
+                                    </td>
+                                </tr>
+                                <tr *ngFor="let request of getDisplayedTrips()">
+                                    <td>
+                                        <small class="text-muted">#{{ request.requestId | slice:0:8 }}</small>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex flex-column">
+                                            <span class="font-weight-bold">{{ request.requestClientName || 'N/A' }}</span>
+                                            <small class="text-muted">{{ request.requestClientPhone || '' }}</small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex flex-column" *ngIf="request.requestDriverName">
+                                            <span class="font-weight-bold">{{ request.requestDriverName }}</span>
+                                            <small class="text-muted">{{ request.requestDriverPhone || '' }}</small>
+                                        </div>
+                                        <span class="text-muted" *ngIf="!request.requestDriverName">Sin asignar</span>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex flex-column">
+                                            <small>
+                                                <i class="nc-icon nc-pin-3 text-success"></i>
+                                                {{ request.requestClientAddressOrigin || 'Origen' | slice:0:35 }}{{ (request.requestClientAddressOrigin?.length > 35) ? '...' : '' }}
+                                            </small>
+                                            <small>
+                                                <i class="nc-icon nc-pin-3 text-danger"></i>
+                                                {{ request.requestClientAddressDestiny || 'Destino' | slice:0:35 }}{{ (request.requestClientAddressDestiny?.length > 35) ? '...' : '' }}
+                                            </small>
+                                        </div>
+                                    </td>
                                     <td class="text-center">
-                                        <button class="btn btn-sm btn-outline-primary py-1 px-2" data-toggle="modal" data-target="#rechargeDetailModal">Ver</button>
+                                        <span class="font-weight-bold text-success">
+                                            ${{ request.requestTripCost || request.requestCustomerOffer || 0 | number:'1.2-2' }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge" [ngClass]="{
+                                            'badge-warning': request.requestStatusTrip === 'pending' || request.requestStatusTrip === 'searching',
+                                            'badge-info': request.requestStatusTrip === 'accepted' || request.requestStatusTrip === 'on_way' || request.requestStatusTrip === 'in_progress',
+                                            'badge-success': request.requestStatusTrip === 'finished' || request.requestStatus === 'Finalizada',
+                                            'badge-danger': request.requestStatusTrip === 'cancelled' || request.requestStatus === 'Cancelada'
+                                        }">
+                                            {{ request.requestStatus || request.requestStateOnClient || getStatusLabel(request.requestStatusTrip) }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        <button class="btn btn-compact btn-outline-primary"
+                                                (click)="viewTripDetail(request)"
+                                                data-toggle="modal"
+                                                data-target="#tripDetailModal">
+                                            <i class="nc-icon nc-zoom-split"></i>
+                                        </button>
                                     </td>
                                 </tr>
                             </tbody>
@@ -189,26 +309,395 @@
 <div class="modal fade" id="rechargeDetailModal" tabindex="-1" role="dialog" aria-labelledby="rechargeDetailModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content container-fluid-body">
-            <div class="modal-header">
-                <h5 class="modal-title" id="rechargeDetailModalLabel">Detalle de la Recarga</h5>
+            <div class="modal-header justify-content-center">
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true" class="text-white">&times;</span>
+                    <i class="nc-icon nc-simple-remove"></i>
                 </button>
+                <h4 class="card-title">Detalle de la Recarga</h4>
             </div>
             <div class="modal-body">
-                <!-- Aquí iría el contenido detallado de la recarga -->
-                <p><strong>Usuario:</strong> Juan Pérez</p>
-                <p><strong>Monto:</strong> $10.00</p>
-                <p><strong>Fecha:</strong> 24 de Mayo, 2024</p>
-                <p><strong>Método:</strong> Transferencia Bancaria</p>
-                <p><strong>Referencia:</strong> 0123456789</p>
-                <hr>
-                <p class="text-center">Comprobante de pago:</p>
-                <img src="https://via.placeholder.com/400x500.png?text=Comprobante" class="img-fluid rounded" alt="Comprobante">
+                <div *ngIf="selectedRecharge" class="row w-100 m-0 p-0">
+                    <!-- Columna de Imagen -->
+                    <div class="col-12 col-sm-5 col-md-4 mb-3 mb-sm-0">
+                        <div *ngIf="selectedRecharge.rechargeVoucherUrl" class="border rounded p-2">
+                            <img class="voucher-img"
+                                 [src]="selectedRecharge.rechargeVoucherUrl"
+                                 alt="Comprobante de pago"
+                                 (click)="openDocumentLightbox(selectedRecharge.rechargeVoucherUrl)" />
+                        </div>
+                        <div *ngIf="!selectedRecharge.rechargeVoucherUrl"
+                             class="border rounded p-4 text-center text-muted">
+                            <i class="nc-icon nc-image" style="font-size: 3rem;"></i>
+                            <p class="mt-2 mb-0">Sin comprobante</p>
+                        </div>
+                    </div>
+
+                    <!-- Columna de Detalles -->
+                    <div class="col-12 col-sm-7 col-md-8">
+                        <table class="table table-detail container-fluid-body text-white">
+                            <tbody>
+                                <tr>
+                                    <th scope="row">Estado</th>
+                                    <td>
+                                        <span class="badge badge-warning"
+                                              *ngIf="selectedRecharge.rechargeStatus === 'pending' || selectedRecharge.rechargeStatus === 'pendiente'">
+                                            Pendiente
+                                        </span>
+                                        <span class="badge badge-success"
+                                              *ngIf="selectedRecharge.rechargeStatus === 'approved' || selectedRecharge.rechargeStatus === 'accept'">
+                                            Aprobada
+                                        </span>
+                                        <span class="badge badge-danger"
+                                              *ngIf="selectedRecharge.rechargeStatus === 'rejected' || selectedRecharge.rechargeStatus === 'decline'">
+                                            Rechazada
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">ID Recarga</th>
+                                    <td>#{{ selectedRecharge.rechargeId | slice:0:12 }}</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Usuario</th>
+                                    <td>
+                                        {{ selectedRecharge.rechargeUserName || 'N/A' }}
+                                        <br><small class="text-muted">{{ selectedRecharge.rechargeUserPhone || '' }}</small>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Monto (USD)</th>
+                                    <td class="text-success font-weight-bold">${{ selectedRecharge.rechargeAmountUsd || selectedRecharge.rechargeAmount || 0 | number:'1.2-2' }}</td>
+                                </tr>
+                                <tr *ngIf="selectedRecharge.rechargeAmountCop">
+                                    <th scope="row">Monto (COP)</th>
+                                    <td class="text-info">COP. ${{ selectedRecharge.rechargeAmountCop | number:'1.2-2' }}</td>
+                                </tr>
+                                <tr *ngIf="selectedRecharge.rechargeAmountVef">
+                                    <th scope="row">Monto (VEF)</th>
+                                    <td>Bs. {{ selectedRecharge.rechargeAmountVef | number:'1.2-2' }}</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Método de Pago</th>
+                                    <td>
+                                        {{ selectedRecharge.rechargePaymentMethodName || selectedRecharge.rechargeMethod || 'N/A' }}
+                                        <span *ngIf="selectedRecharge.rechargePaymentMethodBank">
+                                            ({{ selectedRecharge.rechargePaymentMethodBank }})
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Creado</th>
+                                    <td>{{ selectedRecharge.rechargeCreatedAt || (selectedRecharge.rechargeDate?.toDate() | date:'dd/MM/yyyy HH:mm') || 'N/A' }}</td>
+                                </tr>
+                                <tr *ngIf="selectedRecharge.rechargeUpdateAt">
+                                    <th scope="row">Última actualización</th>
+                                    <td>{{ selectedRecharge.rechargeUpdateAt }}</td>
+                                </tr>
+                                <tr *ngIf="selectedRecharge.rechargeVerifiedBy">
+                                    <th scope="row">Verificado por</th>
+                                    <td>{{ selectedRecharge.rechargeVerifiedBy }}</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Referencia</th>
+                                    <td>
+                                        <input type="text"
+                                               class="form-control form-control-sm"
+                                               [(ngModel)]="selectedRecharge.rechargeTransactionReference"
+                                               placeholder="Ingrese referencia de transacción" />
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Observaciones</th>
+                                    <td>
+                                        <textarea class="form-control form-control-sm"
+                                                  rows="2"
+                                                  [(ngModel)]="selectedRecharge.rechargeObservations"
+                                                  placeholder="Observaciones (opcional)"></textarea>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <!-- Botones de acción -->
+                        <div class="row mt-3">
+                            <div class="col-12 col-md-4 mb-2">
+                                <button type="button"
+                                        class="btn btn-success btn-block btn-sm"
+                                        (click)="approveRecharge(selectedRecharge)">
+                                    <i class="nc-icon nc-check-2"></i> Aprobar
+                                </button>
+                            </div>
+                            <div class="col-12 col-md-4 mb-2">
+                                <button type="button"
+                                        class="btn btn-danger btn-block btn-sm"
+                                        (click)="rejectRecharge(selectedRecharge)">
+                                    <i class="nc-icon nc-simple-remove"></i> Rechazar
+                                </button>
+                            </div>
+                            <div class="col-12 col-md-4 mb-2">
+                                <button type="button"
+                                        class="btn btn-default btn-block btn-sm"
+                                        data-dismiss="modal">
+                                    Cancelar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div *ngIf="!selectedRecharge" class="text-center py-4">
+                    <p class="text-muted">Seleccione una recarga para ver los detalles</p>
+                </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-danger" data-dismiss="modal">Rechazar</button>
-                <button type="button" class="btn btn-success">Aprobar Recarga</button>
+        </div>
+    </div>
+</div>
+
+<!-- Lightbox modal para documentos -->
+<div class="modal fade" id="documentLightbox" tabindex="-1" aria-labelledby="documentLightboxLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content bg-transparent border-0">
+            <div class="modal-body p-0 position-relative">
+                <button type="button" class="close text-white position-absolute"
+                        style="top: 10px; right: 10px; z-index: 10;"
+                        data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true" style="font-size: 2rem;">&times;</span>
+                </button>
+                <img [src]="lightboxImage" class="img-fluid w-100 rounded shadow-lg" alt="Documento ampliado" />
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Detalle de Viaje -->
+<div class="modal fade" id="tripDetailModal" tabindex="-1" role="dialog" aria-labelledby="tripDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content container-fluid-body">
+            <div class="modal-header justify-content-center">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <i class="nc-icon nc-simple-remove"></i>
+                </button>
+                <h4 class="card-title">Detalle del Viaje</h4>
+            </div>
+            <div class="modal-body">
+                <div *ngIf="selectedTrip" class="row w-100 m-0 p-0">
+                    <!-- Columna izquierda - Información del viaje -->
+                    <div class="col-md-6">
+                        <h5 class="text-white mb-3"><i class="nc-icon nc-delivery-fast"></i> Información del Viaje</h5>
+                        <table class="table table-detail container-fluid-body text-white">
+                            <tbody>
+                                <tr>
+                                    <th scope="row" style="width: 40%;">Estado</th>
+                                    <td>
+                                        <span class="badge" [ngClass]="{
+                                            'badge-warning': selectedTrip.requestStatusTrip === 'pending' || selectedTrip.requestStatusTrip === 'searching',
+                                            'badge-info': selectedTrip.requestStatusTrip === 'accepted' || selectedTrip.requestStatusTrip === 'on_way' || selectedTrip.requestStatusTrip === 'in_progress',
+                                            'badge-success': selectedTrip.requestStatusTrip === 'finished' || selectedTrip.requestStatus === 'Finalizada',
+                                            'badge-danger': selectedTrip.requestStatusTrip === 'cancelled' || selectedTrip.requestStatus === 'Cancelada'
+                                        }">
+                                            {{ selectedTrip.requestStatus || selectedTrip.requestStateOnClient || getStatusLabel(selectedTrip.requestStatusTrip) }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">ID Solicitud</th>
+                                    <td><small>#{{ selectedTrip.requestId }}</small></td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Tipo de Servicio</th>
+                                    <td>
+                                        <span class="badge badge-info">{{ selectedTrip.requestTypeService || 'N/A' }}</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Origen</th>
+                                    <td>
+                                        <i class="nc-icon nc-pin-3 text-success"></i>
+                                        {{ selectedTrip.requestClientAddressOrigin || 'N/A' }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Destino</th>
+                                    <td>
+                                        <i class="nc-icon nc-pin-3 text-danger"></i>
+                                        {{ selectedTrip.requestClientAddressDestiny || 'N/A' }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Distancia</th>
+                                    <td>{{ selectedTrip.requestTotalDistanceOriginDestiny || 'N/A' }} km</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Duración</th>
+                                    <td>{{ selectedTrip.requestTotalTimeOriginDestiny || 'N/A' }} min</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Fecha y Hora</th>
+                                    <td>
+                                        {{ selectedTrip.requestRegisterTime || 'N/A' }}
+                                        <span *ngIf="selectedTrip.requestRegisterDate">- {{ selectedTrip.requestRegisterDate }}</span>
+                                    </td>
+                                </tr>
+                                <tr *ngIf="selectedTrip.requestDriverAcceptedAt">
+                                    <th scope="row">Aceptado por conductor</th>
+                                    <td>{{ selectedTrip.requestDriverAcceptedAt?.toDate() | date:'dd/MM/yyyy HH:mm:ss' || 'N/A' }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <h5 class="text-white mb-3 mt-4"><i class="nc-icon nc-money-coins"></i> Información Financiera</h5>
+                        <table class="table table-detail container-fluid-body text-white">
+                            <tbody>
+                                <tr>
+                                    <th scope="row" style="width: 40%;">Costo del Viaje</th>
+                                    <td class="text-success font-weight-bold">
+                                        ${{ selectedTrip.requestTripCost || selectedTrip.requestCustomerOffer || 0 | number:'1.2-2' }}
+                                    </td>
+                                </tr>
+                                <tr *ngIf="selectedTrip.requestDriverEarnings">
+                                    <th scope="row">Ganancia Conductor</th>
+                                    <td class="text-info font-weight-bold">
+                                        ${{ selectedTrip.requestDriverEarnings | number:'1.2-2' }}
+                                    </td>
+                                </tr>
+                                <tr *ngIf="selectedTrip.requestCommission">
+                                    <th scope="row">Comisión Plataforma</th>
+                                    <td class="text-warning">
+                                        ${{ selectedTrip.requestCommission | number:'1.2-2' }}
+                                        <span *ngIf="selectedTrip.requestCommissionRate" class="text-muted">
+                                            ({{ selectedTrip.requestCommissionRate * 100 }}%)
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Método de Pago</th>
+                                    <td>{{ selectedTrip.requestPaymentType || 'N/A' }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Columna derecha - Información de personas y vehículo -->
+                    <div class="col-md-6">
+                        <h5 class="text-white mb-3"><i class="nc-icon nc-single-02"></i> Información del Pasajero</h5>
+                        <table class="table table-detail container-fluid-body text-white">
+                            <tbody>
+                                <tr>
+                                    <th scope="row" style="width: 40%;">Nombre</th>
+                                    <td>
+                                        <strong>{{ selectedTrip.requestClientName || 'N/A' }}</strong>
+                                        <span *ngIf="selectedTrip.requestClientRating" class="ml-2">
+                                            <i class="nc-icon nc-star-bold text-warning"></i>
+                                            {{ selectedTrip.requestClientRating }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Teléfono</th>
+                                    <td>{{ selectedTrip.requestClientPhone || 'N/A' }}</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Email</th>
+                                    <td><small>{{ selectedTrip.requestClientEmail || 'N/A' }}</small></td>
+                                </tr>
+                                <tr *ngIf="selectedTrip.requestClientPhotoUrl">
+                                    <th scope="row">Foto</th>
+                                    <td>
+                                        <img [src]="selectedTrip.requestClientPhotoUrl"
+                                             alt="Foto del cliente"
+                                             class="rounded-circle"
+                                             style="width: 50px; height: 50px; object-fit: cover; cursor: pointer;"
+                                             (click)="openDocumentLightbox(selectedTrip.requestClientPhotoUrl)">
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <h5 class="text-white mb-3 mt-4"><i class="nc-icon nc-badge"></i> Información del Conductor</h5>
+                        <div *ngIf="selectedTrip.requestDriverName">
+                            <table class="table table-detail container-fluid-body text-white">
+                                <tbody>
+                                    <tr>
+                                        <th scope="row" style="width: 40%;">Nombre</th>
+                                        <td>
+                                            <strong>{{ selectedTrip.requestDriverName }}</strong>
+                                            <span *ngIf="selectedTrip.requestDriverRating" class="ml-2">
+                                                <i class="nc-icon nc-star-bold text-warning"></i>
+                                                {{ selectedTrip.requestDriverRating }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Teléfono</th>
+                                        <td>{{ selectedTrip.requestDriverPhone || 'N/A' }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Estado</th>
+                                        <td>
+                                            <span class="badge" [ngClass]="selectedTrip.requestDriverState ? 'badge-success' : 'badge-danger'">
+                                                {{ selectedTrip.requestDriverState ? 'Activo' : 'Inactivo' }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    <tr *ngIf="selectedTrip.requestDriverPhotoUrl">
+                                        <th scope="row">Foto</th>
+                                        <td>
+                                            <img [src]="selectedTrip.requestDriverPhotoUrl"
+                                                 alt="Foto del conductor"
+                                                 class="rounded-circle"
+                                                 style="width: 50px; height: 50px; object-fit: cover; cursor: pointer;"
+                                                 (click)="openDocumentLightbox(selectedTrip.requestDriverPhotoUrl)">
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div *ngIf="!selectedTrip.requestDriverName" class="text-center text-muted py-3">
+                            <i class="nc-icon nc-alert-circle-i" style="font-size: 2rem;"></i>
+                            <p class="mb-0 mt-2">Sin conductor asignado</p>
+                        </div>
+
+                        <h5 class="text-white mb-3 mt-4"><i class="nc-icon nc-bus-front-12"></i> Información del Vehículo</h5>
+                        <div *ngIf="selectedTrip.requestDriverCarBrand">
+                            <table class="table table-detail container-fluid-body text-white">
+                                <tbody>
+                                    <tr>
+                                        <th scope="row" style="width: 40%;">Vehículo</th>
+                                        <td>
+                                            <strong>{{ selectedTrip.requestDriverCarBrand }} {{ selectedTrip.requestDriverCarModel }}</strong>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Placa</th>
+                                        <td class="font-weight-bold">{{ selectedTrip.requestDriverCarPlate || 'N/A' }}</td>
+                                    </tr>
+                                    <tr *ngIf="selectedTrip.requestDriverCarDescription">
+                                        <th scope="row">Año</th>
+                                        <td>{{ selectedTrip.requestDriverCarDescription }}</td>
+                                    </tr>
+                                    <tr *ngIf="selectedTrip.requestDriverCarCompanyName">
+                                        <th scope="row">Compañía</th>
+                                        <td>{{ selectedTrip.requestDriverCarCompanyName }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div *ngIf="!selectedTrip.requestDriverCarBrand" class="text-center text-muted py-3">
+                            <p class="mb-0">Sin información de vehículo</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botón de cerrar -->
+                <div class="row mt-3">
+                    <div class="col-12 text-center">
+                        <button type="button" class="btn btn-default btn-sm px-4" data-dismiss="modal">
+                            Cerrar
+                        </button>
+                    </div>
+                </div>
+                <div *ngIf="!selectedTrip" class="text-center py-4">
+                    <p class="text-muted">Seleccione un viaje para ver los detalles</p>
+                </div>
             </div>
         </div>
     </div>
