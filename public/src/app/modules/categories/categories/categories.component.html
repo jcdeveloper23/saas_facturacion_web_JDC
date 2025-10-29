@@ -158,33 +158,54 @@
                                             <p class="p-0 mb-1 mt-0 p-mini text-center">
                                                 {{subcategory.categoriesDescription}}
                                             </p>
+                                            <button (click)="newSubCategory(subcategory)"
+                                                class="btn btn-success btn-sm py-0 px-2" title="Agregar nuevo modelo">
+                                                <i class="fa fa-plus"></i> Agregar modelo
+                                            </button>
 
                                             <!-- INICIO: Lista de Sub-Subcategorías (Nivel 3) -->
-                                            <div *ngIf="subcategory.subCategories && subcategory.subCategories.length > 0" class="sub-subcategory-list text-left px-2 mt-2">
-                                                <hr style="border-color: rgba(255, 255, 255, 0.2);">
-                                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                                    <h6 class="p-mini mb-0">Modelos:</h6>
-                                                    <button (click)="newSubCategory(subcategory)" class="btn btn-success btn-sm py-0 px-2" title="Agregar nuevo modelo">
-                                                        <i class="fa fa-plus"></i> Agregar
-                                                    </button> 
+                                            <div class="sub-subcategory-container">
+                                                <div *ngIf="subcategory.subCategories && subcategory.subCategories.length > 0; else noModels"
+                                                    class="sub-subcategory-list text-left px-2 mt-2">
+                                                    <hr style="border-color: rgba(255, 255, 255, 0.2);">
+                                                    <div class="d-flex justify-content-between align-items-center">
+                                                        <h6 class="p-mini mb-0">Modelos:
+                                                            <span class="badge badge-light badge-success badge-pill ml-1">{{
+                                                                subcategory.subCategories.length }}</span>
+                                                        </h6>
+                                                    </div>
+                                                    <div style="max-height: 130px; overflow-y: auto;">
+                                                        <table
+                                                            class="table table-sm table-borderless text-white m-0 p-0 table-hover"
+                                                            style="background: transparent; margin-top: -5px;">
+                                                            <tbody>
+                                                                <tr *ngFor="let subSubCat of subcategory.subCategories">
+                                                                    <td class="align-middle m-0 p-0">
+                                                                        <small>{{ subSubCat.categoriesName }}</small>
+                                                                    </td>
+                                                                    <td class="text-right align-middle m-0 p-0">
+                                                                        <button (click)="editCategories(subSubCat)"
+                                                                            class="btn btn-link btn-sm p-0 mx-1 text-warning"
+                                                                            title="Editar modelo">
+                                                                            <i class="fa fa-pencil"></i>
+                                                                        </button>
+                                                                        <button (click)="deleteCategories(subSubCat)"
+                                                                            class="btn btn-link btn-sm p-0 mx-1 text-danger"
+                                                                            title="Eliminar modelo">
+                                                                            <i class="fa fa-trash"></i>
+                                                                        </button>
+                                                                    </td>
+                                                                </tr>
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                    <hr style="border-color: rgba(255, 255, 255, 0.2);">
                                                 </div>
-                                                <table class="table table-sm table-borderless text-white" style="background: transparent; margin-top: -5px;">
-                                                    <tbody>
-                                                        <tr *ngFor="let subSubCat of subcategory.subCategories">
-                                                            <td class="align-middle">
-                                                                <small>{{ subSubCat.categoriesName }}</small>
-                                                            </td>
-                                                            <td class="text-right align-middle">
-                                                                <button (click)="editCategories(subSubCat)" class="btn btn-link btn-sm p-0 mx-1 text-warning" title="Editar modelo">
-                                                                    <i class="fa fa-pencil"></i>
-                                                                </button>
-                                                                <button (click)="deleteCategories(subSubCat)" class="btn btn-link btn-sm p-0 mx-1 text-danger" title="Eliminar modelo">
-                                                                    <i class="fa fa-trash"></i>
-                                                                </button>
-                                                            </td>
-                                                        </tr>
-                                                    </tbody>
-                                                </table>
+                                                <ng-template #noModels>
+                                                    <div class="sub-subcategory-list text-center px-2 mt-2 d-flex align-items-center justify-content-center" style="min-height: 210px;">
+                                                        <small class="text-muted">No hay modelos agregados.</small>
+                                                    </div>
+                                                </ng-template>
                                             </div>
                                             <!-- FIN: Lista de Sub-Subcategorías -->
 
@@ -605,7 +626,7 @@
                                             <small
                                                 [hidden]="categoriesTickets.valid || (categoriesTickets.pristine && !formCategories.submitted) "
                                                 class="text-danger">
-                                                Campo obligatorio  
+                                                Campo obligatorio
                                             </small>
                                         </div>
                                         <div class="col-12 col-sm-12 col-md-12 col-lg-6 mb-3 text-center">
@@ -637,8 +658,7 @@
                                                 <span class="star">*</span>
                                             </label>
                                             <br />
-                                            <bSwitch name="categoriesIsCar"
-                                                [(ngModel)]="categories.categoriesIsCar"
+                                            <bSwitch name="categoriesIsCar" [(ngModel)]="categories.categoriesIsCar"
                                                 [switch-on-color]="'primary'" [switch-off-color]="'primary'"
                                                 [switch-off-text]="'&#x2715;'" [switch-on-text]="'&#x2714;'">
                                             </bSwitch>

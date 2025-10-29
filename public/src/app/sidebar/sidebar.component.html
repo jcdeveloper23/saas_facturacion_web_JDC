@@ -91,30 +91,33 @@
         </ul>
     </div> -->
   <ul class="nav">
-    <li routerLinkActive="active active-blue m-0 p-0" *ngFor="let menuitem of menuItems">
+    <!-- Se ajusta el padding y margen para un look más compacto -->
+    <li routerLinkActive="active active-blue" *ngFor="let menuitem of menuItems" class="py-1 px-3">
       <!--If is a single link-->
-      <a [routerLink]="[menuitem.path]" *ngIf="menuitem.type === 'link'">
+      <a [routerLink]="[menuitem.path]" *ngIf="menuitem.type === 'link'" class="nav-link d-flex align-items-center p-0">
         <i class="{{menuitem.icontype}}"></i>
         <p>{{menuitem.title}}</p>
         <!-- Badge solo si es el menú de órdenes y hay pendientes -->
         <span *ngIf="menuitem.path === '/paymentConfirmation' && this.arrayOrders.length > 0"
-          class="badge badge-success badge-num-order"> 
+          class="badge badge-success badge-num-order ml-auto"> 
           {{ this.arrayOrders.length }}
         </span>
       </a>
       <!--If it have a submenu-->
-      <a data-toggle="collapse" href="#{{menuitem.collapse}}" *ngIf="menuitem.type === 'sub'">
+      <a data-toggle="collapse" href="#{{menuitem.collapse}}" *ngIf="menuitem.type === 'sub'" class="nav-link p-0">
         <i class="{{menuitem.icontype}}"></i>
         <p>{{menuitem.title}}<b class="caret"></b></p>
       </a>
 
       <!--Display the submenu items-->
       <div id="{{menuitem.collapse}}" class="collapse" *ngIf="menuitem.type === 'sub'">
-        <ul class="nav">
-          <li routerLinkActive="active active-blue" *ngFor="let childitem of menuitem.children">
-            <a [routerLink]="[menuitem.path, childitem.path]">
-              <i class="{{childitem.icontype}}"></i>
-              <span class="sidebar-normal">{{childitem.title}}</span>
+        <!-- Se añade 'nav-compact' para un submenú más ajustado -->
+        <ul class="nav nav-compact pl-3">
+          <li routerLinkActive="active active-blue" *ngFor="let childitem of menuitem.children" class="nav-item py-1">
+            <a [routerLink]="[menuitem.path, childitem.path]" class="nav-link">
+              <!-- Se usa un ícono de punto para un look más limpio en submenús -->
+              <i class="nc-icon nc-bullet-list-67"></i>
+              <span>{{childitem.title}}</span>
             </a>
           </li>
         </ul>

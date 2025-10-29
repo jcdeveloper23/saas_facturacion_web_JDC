@@ -195,6 +195,11 @@ export const AppRoutes: Routes = [
                 loadChildren: './modules/recharges/recharges.module#RechargesModule',
                 canActivate: [AuthGuard],
             },
+            {
+                path: 'admin-panel',
+                loadChildren: './modules/admin-panel/admin-panel.module#AdminPanelModule',
+                canActivate: [AuthGuard],
+            },
             /*{
                 path: 'lective-year',
                 loadChildren: './modules/lective-year-administration/lective-year.module#LectiveYearModule'

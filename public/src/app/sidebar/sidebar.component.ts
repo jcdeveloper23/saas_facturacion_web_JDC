@@ -35,19 +35,19 @@ export const ROUTES_REPRESENTATIVE: RouteInfo[] = [
         path: '/perfil-representative/childrens',
         title: 'Mis estidiantes',
         type: 'link',
-        icontype: 'nc-icon nc-single-02'
+        icontype: 'nc-icon nc-hat-3' // Icono de birrete, más apropiado para estudiantes
     },
     {
         path: '/perfil-representative/paymentMethods',
         title: 'Mis métodos de pago',
         type: 'link',
-        icontype: 'nc-icon nc-circle-10'
+        icontype: 'nc-icon nc-credit-card' // Icono de tarjeta de crédito
     },
     {
         path: '/perfil-representative/perfil',
         title: 'Mi perfil',
         type: 'link',
-        icontype: 'nc-icon nc-circle-10'
+        icontype: 'nc-icon nc-single-02' // Icono de usuario/perfil
     },
 ];
 /// *** Menu Items BAR EN ESTADO DE PAGO FALSO***
@@ -56,7 +56,7 @@ export const ROUTES_BAR_SATATE_FALSE: RouteInfo[] = [
         path: '/perfil',
         title: 'Empresa',
         type: 'link',
-        icontype: 'nc-icon nc-single-02'
+        icontype: 'nc-icon nc-bank' // Icono de edificio/empresa
     }
 ]
 /// *** Menu Items BAR ***
@@ -171,71 +171,77 @@ export const ROUTES_BAR: RouteInfo[] = [
 /// *** Menu Items SUPER ADMIN ***
 export const ROUTES_SUPER_ADMIN: RouteInfo[] = [
     {
+        path: '/admin-panel',
+        title: 'Panel',
+        type: 'link',
+        icontype: 'nc-icon nc-layout-11'
+    },
+    {
         path: '/monitor',
         title: 'Monitor',
         type: 'link',
-        icontype: 'nc-icon nc-globe'
+        icontype: 'nc-icon nc-tv-2' // Icono de monitor/pantalla
     },
     {
         path: '/countries',
         title: 'Países',
         type: 'link',
-        icontype: 'nc-icon nc-globe'
+        icontype: 'nc-icon nc-world-2' // Icono de globo terráqueo
     },
 
     {
         path: '/help',
         title: 'Ayuda',
         type: 'link',
-        icontype: 'nc-icon nc-globe'
+        icontype: 'nc-icon nc-support-17' // Icono de soporte/ayuda
     },
     {
         path: '/help-questions',
         title: 'Preguntas',
         type: 'link',
-        icontype: 'nc-icon nc-globe'
+        icontype: 'nc-icon nc-alert-circle-i' // Icono de información/pregunta
     },
     {
         path: '/cities',
         title: 'Ciudades',
         type: 'link',
-        icontype: 'nc-icon nc-settings'
+        icontype: 'nc-icon nc-pin-3' // Icono de pin de mapa
     },
     {
         path: '/registerProcess',
         title: 'Pasos de registro',
         type: 'link',
-        icontype: 'nc-icon nc-settings'
+        icontype: 'nc-icon nc-tile-56' // Icono de pasos/lista
     },
     {
         path: '/categories',
         title: 'Categorías',
         type: 'link',
-        icontype: 'nc-icon nc-settings'
+        icontype: 'nc-icon nc-bullet-list-67' // Icono de lista/categorías
     },
     {
         path: '/bcvRate',
         title: 'Tasa BCV',
         type: 'link',
-        icontype: 'nc-icon nc-settings'
+        icontype: 'nc-icon nc-money-coins' // Icono de dinero/monedas
     },
     {
         path: '/paymentMethod',
         title: 'Métodos de pago',
         type: 'link',
-        icontype: 'nc-icon nc-settings'
+        icontype: 'nc-icon nc-credit-card' // Icono de tarjeta de crédito
     },
     {
         path: '/recharges',
         title: 'Recargas',
         type: 'link',
-        icontype: 'nc-icon nc-settings'
+        icontype: 'nc-icon nc-icon nc-credit-card' // Icono de billetera/recarga
     },
     {
         path: '/appVersions',
         title: 'Versiones App',
         type: 'link',
-        icontype: 'nc-icon nc-settings'
+        icontype: 'nc-icon nc-mobile' // Icono de móvil
     },
     // {
     //     path: '/provider-administration',

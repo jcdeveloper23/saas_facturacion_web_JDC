@@ -1,0 +1,215 @@
+<div class="main-content">
+    <div class="container-fluid px-2">
+        <!-- Fila de Estadísticas Principales -->
+        <div class="row">
+            <div class="col-lg-3 col-md-6 col-sm-6 p-2">
+                <div class="card card-stats container-fluid-body">
+                    <div class="card-body p-3">
+                        <div class="row">
+                            <div class="col-5 col-md-4">
+                                <div class="icon-big text-center icon-warning">
+                                    <i class="nc-icon nc-single-02 text-warning"></i>
+                                </div>  
+                            </div>
+                            <div class="col-7 col-md-8">
+                                <div class="numbers">
+                                    <p class="card-category mb-1">Usuarios</p>
+                                    <p class="card-title">{{ totalUsers | number }}</p>
+                                </div> 
+                            </div> 
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 col-sm-6 p-2">
+                <div class="card card-stats container-fluid-body">
+                    <div class="card-body p-3">
+                        <div class="row">
+                            <div class="col-5 col-md-4">
+                                <div class="icon-big text-center icon-success">
+                                    <i class="nc-icon nc-bus-front-12 text-success"></i>
+                                </div>
+                            </div>
+                            <div class="col-7 col-md-8">
+                                <div class="numbers">
+                                    <p class="card-category mb-1">Conductores</p>
+                                    <p class="card-title">{{ activeDrivers | number }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 col-sm-6 p-2">
+                <div class="card card-stats container-fluid-body">
+                    <div class="card-body p-3">
+                        <div class="row">
+                            <div class="col-5 col-md-4">
+                                <div class="icon-big text-center icon-danger">
+                                    <i class="nc-icon nc-delivery-fast text-danger"></i>
+                                </div>
+                            </div>
+                            <div class="col-7 col-md-8">
+                                <div class="numbers">
+                                    <p class="card-category mb-1">Viajes Hoy</p>
+                                    <p class="card-title">{{ tripsToday | number }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 col-sm-6 p-2">
+                <div class="card card-stats container-fluid-body">
+                    <div class="card-body p-3">
+                        <div class="row">
+                            <div class="col-5 col-md-4">
+                                <div class="icon-big text-center icon-primary">
+                                    <i class="nc-icon nc-wallet-40 text-primary"></i>
+                                </div>
+                            </div>
+                            <div class="col-7 col-md-8">
+                                <div class="numbers">
+                                    <p class="card-category mb-1">Recargas</p>
+                                    <p class="card-title">{{ pendingRecharges | number }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fila de Tablas de Resumen -->
+        <div class="row mt-1">
+            <div class="col-md-7 p-2">
+                <div class="card container-fluid-body">
+                    <div class="card-header py-3">
+                        <h4 class="card-title">Resumen de Ciudades</h4>
+                        <p class="card-category mb-0">Operatividad y servicios por ciudad</p>
+                    </div>
+                    <div class="card-body table-responsive" style="height: 220px; overflow-y: auto;">
+                        <table class="table dashboard-table">
+                            <thead class="text-warning">
+                                <th>Ciudad</th> 
+                                <th>País</th>
+                                <th class="text-center">Servicios Activos</th>
+                                <th class="text-center">Estado</th>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>San Cristóbal</td>
+                                    <td>Venezuela</td>
+                                    <td class="text-center">5</td>
+                                    <td class="text-center"><span class="badge badge-success">Activa</span></td>
+                                </tr>
+                                <tr>
+                                    <td>Cúcuta</td>
+                                    <td>Colombia</td>
+                                    <td class="text-center">3</td>
+                                    <td class="text-center"><span class="badge badge-success">Activa</span></td>
+                                </tr>
+                                <tr>
+                                    <td>Mérida</td>
+                                    <td>Venezuela</td>
+                                    <td class="text-center">2</td>
+                                    <td class="text-center"><span class="badge badge-warning">Pruebas</span></td>
+                                </tr>
+                                <tr>
+                                    <td>Caracas</td>
+                                    <td>Venezuela</td>
+                                    <td class="text-center">0</td>
+                                    <td class="text-center"><span class="badge badge-danger">Inactiva</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-5 p-2">
+                <div class="card container-fluid-body">
+                    <div class="card-header py-3">
+                        <h4 class="card-title">Recargas Pendientes</h4>
+                        <p class="card-category mb-0">Recargas esperando confirmación</p>
+                    </div>
+                    <div class="card-body table-responsive py-2" style="height: 220px; overflow-y: auto;">
+                        <table class="table table-sm dashboard-table">
+                            <thead class="text-warning">
+                                <th>Usuario</th>
+                                <th class="text-right">Monto</th>
+                                <th class="text-center">Acciones</th>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Juan Pérez</td>
+                                    <td class="text-right">$10.00</td>
+                                    <td class="text-center">
+                                        <button class="btn btn-sm btn-outline-primary py-1 px-2" data-toggle="modal" data-target="#rechargeDetailModal">Ver</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Maria Rodriguez</td>
+                                    <td class="text-right">$5.00</td>
+                                    <td class="text-center">
+                                        <button class="btn btn-sm btn-outline-primary py-1 px-2" data-toggle="modal" data-target="#rechargeDetailModal">Ver</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Carlos García</td>
+                                    <td class="text-right">$20.00</td>
+                                    <td class="text-center">
+                                        <button class="btn btn-sm btn-outline-primary py-1 px-2" data-toggle="modal" data-target="#rechargeDetailModal">Ver</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fila para la Gráfica -->
+        <div class="row mt-1">
+            <div class="col-md-12 p-2">
+                <div class="card container-fluid-body">
+                    <div class="card-header py-3">
+                        <h4 class="card-title">Viajes de la Semana</h4>
+                        <p class="card-category mb-0">Rendimiento de los últimos 7 días</p>
+                    </div>
+                    <div class="card-body p-2" style="height: 280px;">
+                        <canvas id="weeklyTripsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Detalles de Recarga -->
+<div class="modal fade" id="rechargeDetailModal" tabindex="-1" role="dialog" aria-labelledby="rechargeDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content container-fluid-body">
+            <div class="modal-header">
+                <h5 class="modal-title" id="rechargeDetailModalLabel">Detalle de la Recarga</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true" class="text-white">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Aquí iría el contenido detallado de la recarga -->
+                <p><strong>Usuario:</strong> Juan Pérez</p>
+                <p><strong>Monto:</strong> $10.00</p>
+                <p><strong>Fecha:</strong> 24 de Mayo, 2024</p>
+                <p><strong>Método:</strong> Transferencia Bancaria</p>
+                <p><strong>Referencia:</strong> 0123456789</p>
+                <hr>
+                <p class="text-center">Comprobante de pago:</p>
+                <img src="https://via.placeholder.com/400x500.png?text=Comprobante" class="img-fluid rounded" alt="Comprobante">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" data-dismiss="modal">Rechazar</button>
+                <button type="button" class="btn btn-success">Aprobar Recarga</button>
+            </div>
+        </div>
+    </div>
+</div>

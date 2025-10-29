@@ -1,0 +1,20 @@
+/* Ajusta el tamaño de la fuente específicamente para los títulos de las tarjetas de estadísticas en este panel */
+.card-stats .card-title {
+    font-size: 1.6em; /* Un tamaño más pequeño para evitar desbordamiento */
+    margin-top: 0;
+    margin-bottom: 0;
+    line-height: 1.1;
+}
+
+/* Estilos para las tablas del dashboard */
+.dashboard-table {
+    color: #ffffff; /* Texto blanco para toda la tabla */
+}
+
+.dashboard-table thead th {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+.dashboard-table tbody tr {
+    border-top: 1px solid rgba(255, 255, 255, 0.1); /* Líneas de borde gris claro */
+}
