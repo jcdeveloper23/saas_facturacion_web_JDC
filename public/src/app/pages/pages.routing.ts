@@ -7,6 +7,7 @@ import { RegisterProviderComponent } from './register-provider/register-provider
 import { RegisterRepresentativeComponent } from './register-representative/register-representative.component';
 import { HomeComponent } from './home/home.component';
 import { TermsComponent } from './terms/terms.component';
+import { DownloadComponent } from './download/download.component';
 
 export const PagesRoutes: Routes = [{
     path: '',
@@ -32,6 +33,10 @@ export const PagesRoutes: Routes = [{
     {
         path: 'terms',
         component: TermsComponent
+    },
+    {
+        path: 'download',
+        component: DownloadComponent
     },
     {
         path: 'register/:school_id',

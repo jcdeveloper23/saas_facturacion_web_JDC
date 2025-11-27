@@ -17,6 +17,7 @@ import { TermsComponent } from './terms/terms.component';
 import { MatSelectModule } from '@angular/material/select';
 import {MatCheckboxModule} from '@angular/material/checkbox';
 import { SharedModule } from "app/modules/shared/shared.module";
+import { DownloadComponent } from './download/download.component';
 
 @NgModule({
     imports: [
@@ -39,6 +40,7 @@ import { SharedModule } from "app/modules/shared/shared.module";
         HomeComponent,
         NavBarHomeComponent,
         TermsComponent,
+        DownloadComponent,
     ]
 })
 

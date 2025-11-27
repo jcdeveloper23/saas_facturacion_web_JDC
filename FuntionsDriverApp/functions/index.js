@@ -6,6 +6,7 @@ const express = require("express");
 const cors = require("cors");
 const admin = require("firebase-admin");
 const functionss = require("firebase-functions");
+const {onSchedule} = require("firebase-functions/v2/scheduler");
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -401,158 +402,185 @@ exports.onNewRequestCreated = onDocumentCreated(
     }
 );
 
-// /// *** Generar estadisticas ***
-// exports.onNewRequestCreated = onDocumentCreated("users/{userUid}/requestVehicle/{requestId}", async (event) => {
+/**
+ * ═══════════════════════════════════════════════════════════════════════
+ * 🚗 iMove Driver - Cloud Functions
+ * ═══════════════════════════════════════════════════════════════════════
+ *
+ * Funciones serverless para gestionar la desconexión automática de
+ * conductores que dejan de compartir su ubicación en tiempo real.
+ *
+ * @author iMove Team
+ * @version 1.0.0
+ */
 
-//     // exports.onNewRequestCreated = functions.firestore
-//     //     .document('users/{userUid}/requestVehicle/{requestId}')
-//     //     .onCreate(async (snap, context) => {
-//     const snap = event.data;
+/**
+ * ═══════════════════════════════════════════════════════════════════════
+ * 🕐 checkInactiveDrivers
+ * ═══════════════════════════════════════════════════════════════════════
+ *
+ * Cloud Function programada que se ejecuta cada 5 minutos para detectar
+ * y desconectar automáticamente a conductores inactivos.
+ *
+ * ¿Qué hace?
+ * ----------
+ * 1. Busca conductores con userStateShareLocation = true
+ * 2. Verifica si userLastLocationDate tiene más de 10 minutos de antigüedad
+ * 3. Si está inactivo, lo desconecta automáticamente (userStateShareLocation = false)
+ *
+ * Configuración:
+ * --------------
+ * - Frecuencia: Cada 5 minutos
+ * - Timeout de inactividad: 10 minutos sin actualización de ubicación
+ * - Zona horaria: America/Caracas (UTC-4)
+ *
+ * Casos de uso:
+ * -------------
+ * ✅ Conductor cierra la app sin desconectarse → Se desconecta automáticamente
+ * ✅ App crashea y no puede desconectar → Se desconecta automáticamente
+ * ✅ Problemas de red prolongados → Se desconecta automáticamente
+ * ✅ Problemas de GPS prolongados → Se desconecta automáticamente
+ *
+ */
+exports.checkInactiveDrivers = onSchedule({ 
+  schedule: "every 30 minutes", // Ejecutar cada 5 minutos
+  timeZone: "America/Caracas", // Zona horaria de Venezuela
+  retryCount: 3, // Reintentar 3 veces en caso de fallo
+  timeoutSeconds: 540, // Timeout de 9 minutos (debe ser menor que el intervalo)
+}, async (event) => {
+  try {
+    logger.info("🔍 Iniciando verificación de conductores inactivos...");
 
+    const now = admin.firestore.Timestamp.now(); 
+    const inactivityThresholdMinutes = 10; // 10 minutos de inactividad
+    const thresholdTime = new Date(now.toDate().getTime() - (inactivityThresholdMinutes * 60 * 1000));
 
-//     const request = snap.data();
+    logger.info(`⏰ Tiempo límite de inactividad: ${thresholdTime.toISOString()}`);
 
-//     console.log("*** Request ***", request);
+    // Buscar conductores que están marcados como "conectados"
+    const usersRef = admin.firestore().collection("users");
+    const connectedDriversQuery = usersRef.where("userStateShareLocation", "==", true);
 
-//     if (!request) return;
+    const snapshot = await connectedDriversQuery.get();
 
-//     /**
-//      * *** Obtiene los datos del trip ***
-//      */
-//     const {
-//         requestFullDate,
-//         requestPaymentType,
-//         requestDriverUid,
-//         requestStatusTrip,
-//         requestStatePaymentMethodString = "pagado",
-//         requestClientUid,
-//         requestTripCost = 0,
-//     } = request;
+    if (snapshot.empty) {
+      logger.info("✅ No hay conductores conectados actualmente");
+      return null;
+    }
 
-//     /**
-//      * * *** Validar campos requeridos ***
-//      * Asegurarse de que los campos necesarios estén presentes antes de continuar.
-//      * Si faltan campos, se puede registrar un error o tomar una acción alternativa.
-//      * Esto es importante para evitar errores en la base de datos y asegurar que los datos sean consistentes.
-//      */
-//     if (!requestDriverUid || !requestClientUid || !requestFullDate) {
-//         console.warn("Order missing required fields");
-//         return;
-//     }
+    logger.info(`📊 Total de conductores conectados: ${snapshot.size}`);
 
-//     /**
-//      * Obtenemos la fecha de la orden y la convertimos a un formato adecuado para las estadísticas.
-//      * Utilizamos la fecha completa para obtener las estadísticas diarias y mensuales.
-//      */
-//     const date = requestFullDate.toDate ? requestFullDate.toDate() : new Date(requestFullDate);
-//     /**
-//      * * Generamos las claves para las estadísticas diarias y mensuales.
-//      * Estas claves se utilizan para almacenar y actualizar las estadísticas en Firestore.
-//      * - dailyKey: Formato "YYYY-MM-DD" para las estadísticas diarias.
-//      * - monthlyKey: Formato "YYYY-MM" para las estadísticas mensuales.
-//      * Estas claves se utilizan para agrupar las estadísticas por día y mes respectivamente.
-//      * yearKey: Formato "YYYY" para las estadísticas anuales.
-//      * Esta clave se utiliza para agrupar las estadísticas por año.
-//      */
-//     const dailyKey = date.toISOString().split("T")[0]; // "2025-05-24"
-//     const monthlyKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`; // "2025-05"
-//     const yearKey = `${date.getFullYear()}`; // "2025"
+    let inactiveCount = 0;
+    let disconnectedCount = 0;
+    const batch = admin.firestore().batch();
 
-//     /**
-//      * * * Referencias a los documentos de estadísticas diarias y mensuales.
-//      * Estas referencias se utilizan para actualizar las estadísticas de la orden en Firestore.
-//      * - dailyRef: Referencia al documento de estadísticas diarias.
-//     * - monthlyRef: Referencia al documento de estadísticas mensuales.
-//      * Estas referencias se construyen utilizando el ID del driver de la orden y las claves generadas anteriormente.
-//      */
-//     const dailyRef = db.doc(`stats/driver_${requestDriverUid}/daily/${dailyKey}`);
-//     const monthlyRef = db.doc(`stats/driver_${requestDriverUid}/monthly/${monthlyKey}`);
-//     const yearRef = db.doc(`stats/driver_${requestDriverUid}/yearly/${yearKey}`);
+    // Revisar cada conductor conectado
+    for (const doc of snapshot.docs) {
+      const driverData = doc.data();
+      const driverId = doc.id;
+      const driverName = driverData.userName || "Sin nombre";
 
-//     /**
-//      * * *** Actualizamos las estadísticas del trip en Firestore. ***
-//      * Utilizamos un objeto `updates` para definir los campos que se actualizarán en el documento de estadísticas.
-//      * - totalOrders: Incrementa el número total de órdenes.
-//      * - totalAmount: Incrementa el monto total de las órdenes.
-//      * - perPaymentMethod: Incrementa el conteo por método de pago.
-//      * Estos campos se actualizan utilizando `admin.firestore.FieldValue.increment()`, lo que permite incrementar los valores sin necesidad de leer primero el documento.
-//      */
-//     const updates = {
-//         totalTrip: admin.firestore.FieldValue.increment(1),
-//         totalAmount: admin.firestore.FieldValue.increment(requestTripCost),
-//     };
+      // Verificar si tiene timestamp de última ubicación
+      if (!driverData.userLastLocationDate) {
+        logger.warn(`⚠️ Conductor ${driverName} (${driverId}) sin userLastLocationDate - omitiendo`);
+        continue;
+      }
 
-//     /**
-//      * * * *** Actualizamos las estadísticas por método de pago y estado de pago. ***
-//      * - perPaymentMethod: Incrementa el conteo por método de pago.
-//      * - paymentStatus: Incrementa el conteo por estado de pago.
-//      * - client: Incrementa el conteo por client.
-//      * Estos campos se actualizan utilizando `admin.firestore.FieldValue.increment()`, lo que permite incrementar los valores sin necesidad de leer primero el documento.
-//      */
-//     if (requestPaymentType) {
-//         const methodKey = requestPaymentType.toLowerCase();
+      // Convertir a Date para comparación
+      let lastLocationDate;
+      if (driverData.userLastLocationDate instanceof admin.firestore.Timestamp) {
+        lastLocationDate = driverData.userLastLocationDate.toDate();
+      } else if (typeof driverData.userLastLocationDate === "string") {
+        lastLocationDate = new Date(driverData.userLastLocationDate);
+      } else {
+        logger.warn(`⚠️ Formato de fecha inválido para conductor ${driverId}`);
+        continue;
+      }
 
-//         // Conteo por método de pago
-//         updates.perPaymentMethod = {
-//             [`${methodKey}`]: admin.firestore.FieldValue.increment(1)
-//         };
+      // Verificar si está inactivo (más de 10 minutos sin actualizar ubicación)
+      if (lastLocationDate < thresholdTime) {
+        inactiveCount++;
+        const inactiveMinutes = Math.floor((now.toDate() - lastLocationDate) / 60000);
 
-//         // Monto total por método de pago
-//         updates.totalAmountPerPaymentMethod = {
-//             [`${methodKey}`]: admin.firestore.FieldValue.increment(requestTripCost)
-//         };
-//     }
+        logger.warn(
+            `🔴 Conductor INACTIVO detectado: ${driverName} (${driverId})`,
+            {
+              lastUpdate: lastLocationDate.toISOString(),
+              inactiveMinutes: inactiveMinutes,
+              threshold: inactivityThresholdMinutes,
+            },
+        );
 
-//     // Por estado de pago
-//     if (requestStatePaymentMethodString) {
-//         const statusKey = requestStatePaymentMethodString.toLowerCase().replace(/\s+/g, "_");
-//         updates.paymentStatus = {
-//             [`${statusKey}`]: admin.firestore.FieldValue.increment(1)
-//         };
-//     }
+        // Marcar para desconexión en el batch
+        batch.update(doc.ref, {
+          userStateShareLocation: false,
+          lastAutoDisconnect: admin.firestore.FieldValue.serverTimestamp(),
+          autoDisconnectReason: `Inactivo por ${inactiveMinutes} minutos sin compartir ubicación`,
+        });
 
-//     /**
-//      * * * *** Actualizamos las estadísticas por estado del trip y por cliente. ***
-//      * - requestStatus: Incrementa el conteo por estado del trip.
-//      * - client: Incrementa el conteo por cliente.
-//      * Estos campos se actualizan utilizando `admin.firestore.FieldValue.increment()`, lo que permite incrementar los valores sin necesidad de leer primero el documento.
-//      * - requestStatus: Se convierte a minúsculas para asegurar consistencia en el almacenamiento.
-//      * - requestClientUid: Se utiliza para identificar al cliente asociado al trip.
-//      */
-//     const tripState = requestStatusTrip.toString().toLowerCase();
-//     updates.orderStatus = {
-//         [`${tripState}`]: admin.firestore.FieldValue.increment(1)
-//     };
+        disconnectedCount++;
+      }
+    }
 
-//     // Por client
-//     updates.client = {
-//         [`${requestClientUid}`]: admin.firestore.FieldValue.increment(1)
-//     };
+    // Ejecutar desconexiones en batch (atómico)
+    if (disconnectedCount > 0) {
+      await batch.commit();
+      logger.info(
+          `✅ Desconexión completada: ${disconnectedCount} de ${inactiveCount} conductores inactivos`,
+      );
+    } else {
+      logger.info("✅ Todos los conductores conectados están activos");
+    }
 
-//     /**
-//      * * *** Actualizamos las estadísticas de la orden en Firestore. ***
-//      * @param {*} ref 
-//      * @returns 
-//      */
-//     console.log(JSON.stringify(updates, null, 3));
+    // Log de resumen
+    logger.info("📋 Resumen de verificación:", {
+      totalConnected: snapshot.size,
+      inactiveDetected: inactiveCount,
+      disconnected: disconnectedCount,
+      timestamp: now.toDate().toISOString(),
+    });
 
-//     const updateStats = (ref) =>
-//         ref.set(updates, { merge: true });
+    return {
+      success: true,
+      totalConnected: snapshot.size,
+      inactiveDetected: inactiveCount,
+      disconnected: disconnectedCount,
+    };
+  } catch (error) {
+    logger.error("❌ Error en checkInactiveDrivers:", error);
+    throw error; // Esto activará los reintentos automáticos
+  }
+});
 
-//     /**
-//      * * *** Actualizamos las estadísticas diarias y mensuales en Firestore. ***
-//      * Utilizamos `Promise.all()` para ejecutar las actualizaciones de manera concurrente.
-//      * Esto mejora el rendimiento al evitar esperar a que cada actualización se complete antes de iniciar la siguiente.
-//      */
-//     await Promise.all([
-//         updateStats(dailyRef),
-//         updateStats(monthlyRef),
-//         updateStats(yearRef),
-//     ]);
+/**
+ * ═══════════════════════════════════════════════════════════════════════
+ * 📝 NOTAS DE IMPLEMENTACIÓN
+ * ═══════════════════════════════════════════════════════════════════════
+ *
+ * 1. PERFORMANCE:
+ *    - Se usa batch writes para actualizar múltiples documentos atómicamente
+ *    - Máximo 500 operaciones por batch (si hay más conductores, se debe dividir)
+ *
+ * 2. SEGURIDAD:
+ *    - Solo se desconectan conductores con más de 10 minutos de inactividad
+ *    - Se registra el motivo de desconexión en autoDisconnectReason
+ *    - Se guarda timestamp de desconexión en lastAutoDisconnect
+ *
+ * 3. MONITOREO:
+ *    - Logs detallados en cada ejecución
+ *    - Se puede ver en Firebase Console > Functions > Logs
+ *    - Comando: firebase functions:log
+ *
+ * 4. ESCALABILIDAD:
+ *    - Si hay más de 500 conductores conectados, se debe implementar paginación
+ *    - Considerar aumentar el intervalo de ejecución si hay muchos conductores
+ *
+ * 5. COSTOS:
+ *    - Ejecución cada 5 minutos = 288 ejecuciones/día
+ *    - Plan Spark (gratis): 125K invocaciones/mes (suficiente)
+ *    - Plan Blaze: $0.40 por millón de invocaciones
+ */
 
-//     console.log(`Stats actualizadas para el driver ${requestDriverUid} en ${dailyKey} y ${monthlyKey}`);
-//     return true;
-// });
 
 
 
