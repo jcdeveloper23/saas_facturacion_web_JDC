@@ -8,13 +8,14 @@ import { RegisterRepresentativeComponent } from './register-representative/regis
 import { HomeComponent } from './home/home.component';
 import { TermsComponent } from './terms/terms.component';
 import { DownloadComponent } from './download/download.component';
+import { AdvertisingComponent } from './advertising/advertising.component';
 
 export const PagesRoutes: Routes = [{
     path: '',
-    children: [ {
+    children: [{
         path: '',
         component: HomeComponent
-    },{
+    }, {
         path: 'login',
         component: LoginComponent
     },
@@ -42,5 +43,9 @@ export const PagesRoutes: Routes = [{
         path: 'register/:school_id',
         component: RegisterRepresentativeComponent
     },
-]
+    {
+        path: 'advertising',
+        component: AdvertisingComponent
+    }
+    ]
 }];

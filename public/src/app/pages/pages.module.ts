@@ -15,22 +15,23 @@ import { HomeComponent } from './home/home.component';
 import { NavBarHomeComponent } from './nav-bar-home/nav-bar-home.component';
 import { TermsComponent } from './terms/terms.component';
 import { MatSelectModule } from '@angular/material/select';
-import {MatCheckboxModule} from '@angular/material/checkbox';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { SharedModule } from "app/modules/shared/shared.module";
 import { DownloadComponent } from './download/download.component';
+import { AdvertisingComponent } from './advertising/advertising.component';
 
 @NgModule({
     imports: [
-    CommonModule,
-    RouterModule.forChild(PagesRoutes),
-    FormsModule,
-    MatSelectModule,
-    NgbModule,
-    ReactiveFormsModule,
-    MatSelectModule,
-    MatCheckboxModule,
-    SharedModule
-],
+        CommonModule,
+        RouterModule.forChild(PagesRoutes),
+        FormsModule,
+        MatSelectModule,
+        NgbModule,
+        ReactiveFormsModule,
+        MatSelectModule,
+        MatCheckboxModule,
+        SharedModule
+    ],
     declarations: [
         LoginComponent,
         RegisterComponent,
@@ -40,8 +41,10 @@ import { DownloadComponent } from './download/download.component';
         HomeComponent,
         NavBarHomeComponent,
         TermsComponent,
+        TermsComponent,
         DownloadComponent,
+        AdvertisingComponent
     ]
 })
 
-export class PagesModule {}
+export class PagesModule { }
