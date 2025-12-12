@@ -208,6 +208,12 @@ export const ROUTES_SUPER_ADMIN: RouteInfo[] = [
         icontype: 'nc-icon nc-pin-3' // Icono de pin de mapa
     },
     {
+        path: '/admin-tutorial',
+        title: 'Tutorial Conductor',
+        type: 'link',
+        icontype: 'nc-icon nc-book-bookmark' // Icono de libro/tutorial
+    },
+    {
         path: '/registerProcess',
         title: 'Pasos de registro',
         type: 'link',

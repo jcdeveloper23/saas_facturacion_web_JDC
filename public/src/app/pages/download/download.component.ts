@@ -62,7 +62,10 @@ export class DownloadComponent implements OnInit {
   }
 
   /**
-   * Genera y descarga un código QR en alta definición con logo - Estilo Minimalista con puntos redondeados
+   * Genera y descarga un código QR en alta definición con logo - Estilo Minimalista optimizado para legibilidad
+   * - Logo muy pequeño (6% del tamaño total) para mínima interferencia
+   * - Cuadrados sólidos en negro puro para máximo contraste
+   * - Diseño limpio y fácil de escanear
    */
   public async generateAndDownloadQR(): Promise<void> {
     try {
@@ -95,20 +98,17 @@ export class DownloadComponent implements OnInit {
       ctx.fillStyle = '#FFFFFF';
       ctx.fillRect(0, 0, canvasSize, canvasSize);
 
-      // Dibujar el QR con círculos/puntos redondeados
-      ctx.fillStyle = '#1A1A1A'; // Color gris oscuro
+      // Dibujar el QR con cuadrados
+      ctx.fillStyle = '#000000'; // Negro puro para máxima legibilidad
 
       for (let row = 0; row < matrixSize; row++) {
         for (let col = 0; col < matrixSize; col++) {
           if (qrMatrix.get(row, col)) {
-            const x = margin + col * moduleSize + moduleSize / 2;
-            const y = margin + row * moduleSize + moduleSize / 2;
-            const radius = moduleSize * 0.45; // Círculos con 45% del tamaño del módulo
+            const x = margin + col * moduleSize;
+            const y = margin + row * moduleSize;
 
-            // Dibujar círculo
-            ctx.beginPath();
-            ctx.arc(x, y, radius, 0, 2 * Math.PI);
-            ctx.fill();
+            // Dibujar cuadrado
+            ctx.fillRect(x, y, moduleSize, moduleSize);
           }
         }
       }
@@ -122,48 +122,39 @@ export class DownloadComponent implements OnInit {
         logo.onerror = reject;
       });
 
-      // Calcular dimensiones para el cuadrado con borde redondeado
-      const logoSize = canvasSize * 0.20; // 20% del tamaño total
-      const padding = 50; // Más padding para look minimalista
+      // Calcular dimensiones para el cuadrado con borde redondeado (logo pequeño y minimalista)
+      const logoSize = canvasSize * 0.06; // Logo muy pequeño (6% del tamaño total)
+      const padding = 20; // Padding reducido para minimalismo
       const squareSize = logoSize + padding * 2;
       const centerX = canvasSize / 2;
       const centerY = canvasSize / 2;
       const squareX = centerX - squareSize / 2;
       const squareY = centerY - squareSize / 2;
-      const borderRadius = 16;
+      const borderRadius = 12;
 
-      // Dibujar sombra suave del cuadrado (múltiples capas)
-      for (let i = 0; i < 4; i++) {
-        const offset = 8 + i * 4;
-        const alpha = 0.06 - i * 0.01;
+      // Dibujar sombra minimalista del cuadrado (solo 2 capas)
+      for (let i = 0; i < 2; i++) {
+        const offset = 4 + i * 2;
+        const alpha = 0.04 - i * 0.01;
 
         ctx.fillStyle = `rgba(0, 0, 0, ${alpha})`;
-        this.roundRect(ctx, squareX, squareY + offset, squareSize + i * 6, squareSize + i * 6, borderRadius + i * 2, true, false);
+        this.roundRect(ctx, squareX, squareY + offset, squareSize + i * 3, squareSize + i * 3, borderRadius + i, true, false);
       }
 
-      // Crear gradiente lineal suave para el fondo del logo
-      const gradient = ctx.createLinearGradient(
-        squareX, squareY,
-        squareX + squareSize, squareY + squareSize
-      );
-      gradient.addColorStop(0, '#FFFFFF');
-      gradient.addColorStop(0.5, '#FEFEFE');
-      gradient.addColorStop(1, '#F9F9F9');
-
-      // Dibujar cuadrado redondeado con gradiente
-      ctx.fillStyle = gradient;
+      // Fondo blanco sólido para el logo (sin gradiente para más limpieza)
+      ctx.fillStyle = '#FFFFFF';
       this.roundRect(ctx, squareX, squareY, squareSize, squareSize, borderRadius, true, false);
 
-      // Agregar borde sutil al cuadrado
-      ctx.strokeStyle = 'rgba(255, 107, 53, 0.2)';
-      ctx.lineWidth = 4;
-      this.roundRect(ctx, squareX + 2, squareY + 2, squareSize - 4, squareSize - 4, borderRadius - 1, false, true);
+      // Agregar borde minimalista muy sutil
+      ctx.strokeStyle = 'rgba(26, 26, 26, 0.1)';
+      ctx.lineWidth = 2;
+      this.roundRect(ctx, squareX + 1, squareY + 1, squareSize - 2, squareSize - 2, borderRadius - 1, false, true);
 
-      // Dibujar sombra suave del logo
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.12)';
-      ctx.shadowBlur = 15;
+      // Sin sombra en el logo para máxima claridad
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
       ctx.shadowOffsetX = 0;
-      ctx.shadowOffsetY = 4;
+      ctx.shadowOffsetY = 0;
 
       // Dibujar el logo en el centro
       const logoX = centerX - logoSize / 2;
@@ -185,7 +176,7 @@ export class DownloadComponent implements OnInit {
         const url = URL.createObjectURL(blob);
         const downloadLink = document.createElement('a');
         downloadLink.href = url;
-        downloadLink.download = `iMove-QR-Rounded-HD-${Date.now()}.png`;
+        downloadLink.download = `iMove-QR-Square-HD-${Date.now()}.png`;
 
         // Simular click para descargar
         document.body.appendChild(downloadLink);
@@ -195,7 +186,7 @@ export class DownloadComponent implements OnInit {
         // Limpiar URL temporal
         URL.revokeObjectURL(url);
 
-        console.log('QR Code con puntos redondeados y logo descargado exitosamente');
+        console.log('QR Code con cuadrados y logo descargado exitosamente');
       }, 'image/png', 1.0);
 
     } catch (error) {

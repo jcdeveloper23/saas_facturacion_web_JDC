@@ -1,0 +1,82 @@
+<div class="main-content">
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card container-fluid-body">
+                <div class="card-header card-header-danger">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h4 class="card-title">Administrar Tutorial del Conductor</h4>
+                            <p class="card-category">Gestiona las secciones, contenido y quizzes del tutorial.</p>
+                        </div>
+                        <button class="btn btn-white btn-round" (click)="createNew()">
+                            <i class="material-icons">add</i> Nueva Sección
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive container-fluid-body">
+                        <table class="table container-fluid-body text-white">
+                            <thead class="text-primary">
+                                <th>Orden</th>
+                                <th>Icono</th>
+                                <th>Título</th>
+                                <th>Estado</th>
+                                <th>Bloqueado por defecto</th>
+                                <th>Acciones</th>
+                            </thead>
+                            <tbody>
+                                <tr *ngFor="let section of sections; let i = index">
+                                    <td>
+                                        <button class="btn btn-sm btn-link" (click)="moveUp(i)" [disabled]="i === 0">
+                                            <i class="material-icons">arrow_upward</i>
+                                        </button>
+                                        <button class="btn btn-sm btn-link" (click)="moveDown(i)"
+                                            [disabled]="i === sections.length - 1">
+                                            <i class="material-icons">arrow_downward</i>
+                                        </button>
+                                        {{ section.order }}
+                                    </td>
+                                    <td><i class="fa fa-{{ section.icon }}"></i> ({{ section.icon }})</td>
+                                    <td>{{ section.title }}</td>
+                                    <td>
+                                        <div class="togglebutton">
+                                            <label>
+                                                <input type="checkbox" [checked]="section.active"
+                                                    (change)="toggleActive(section)">
+                                                <span class="toggle"></span>
+                                                {{ section.active ? 'Activo' : 'Inactivo' }}
+                                            </label>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge"
+                                            [ngClass]="section.locked ? 'badge-danger' : 'badge-success'">
+                                            {{ section.locked ? 'Sí' : 'No' }}
+                                        </span>
+                                    </td>
+                                    <td class="td-actions text-right">
+                                        <button type="button" rel="tooltip" class="btn btn-primary btn-link btn-sm"
+                                            (click)="editSection(section.id!)">
+                                            <i class="material-icons">edit</i>
+                                        </button>
+                                        <button type="button" rel="tooltip" class="btn btn-danger btn-link btn-sm"
+                                            (click)="deleteSection(section.id!)">
+                                            <i class="material-icons">close</i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div *ngIf="loading" class="text-center p-4 text-white">
+                            <i class="fa fa-spinner fa-spin fa-2x"></i> Cargando...
+                        </div>
+                        <div *ngIf="!loading && sections.length === 0" class="text-center p-4 text-white">
+                            <p>No hay secciones creadas. ¡Crea la primera!</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

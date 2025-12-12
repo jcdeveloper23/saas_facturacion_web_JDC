@@ -9,6 +9,7 @@ import { HomeComponent } from './home/home.component';
 import { TermsComponent } from './terms/terms.component';
 import { DownloadComponent } from './download/download.component';
 import { AdvertisingComponent } from './advertising/advertising.component';
+import { DriverTutorialComponent } from './driver-tutorial/driver-tutorial.component';
 
 export const PagesRoutes: Routes = [{
     path: '',
@@ -46,6 +47,10 @@ export const PagesRoutes: Routes = [{
     {
         path: 'advertising',
         component: AdvertisingComponent
+    },
+    {
+        path: 'driver-tutorial',
+        component: DriverTutorialComponent
     }
     ]
 }];

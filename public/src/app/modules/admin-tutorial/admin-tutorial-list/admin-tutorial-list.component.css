@@ -1,0 +1,7 @@
+.table tr td {
+    vertical-align: middle;
+}
+
+.togglebutton label {
+    margin-bottom: 0;
+}

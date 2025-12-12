@@ -1,0 +1,191 @@
+<div class="main-content">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card container-fluid-body">
+                <div class="card-header card-header-danger">
+                    <h4 class="card-title">{{ isNew ? 'Nueva Sección' : 'Editar Sección' }}</h4>
+                    <p class="card-category text-white">Completa la información, configura el quiz y el contenido.</p>
+                </div>
+                <div class="card-body">
+                    <form #f="ngForm" (ngSubmit)="saveSection()">
+                        <!-- General Info -->
+                        <h3 class="text-white">1. Información General</h3>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="bmd-label-floating text-white">Título de la Sección</label>
+                                    <input type="text" class="form-control text-white" name="title"
+                                        [(ngModel)]="section.title" required>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label class="bmd-label-floating text-white">Icono</label>
+                                    <select class="form-control text-white bg-dark" name="icon"
+                                        [(ngModel)]="section.icon" required>
+                                        <option *ngFor="let option of iconOptions" [value]="option.value"
+                                            class="bg-dark text-white">
+                                            {{ option.label }} ({{ option.value }})
+                                        </option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label class="bmd-label-floating text-white">Orden</label>
+                                    <input type="number" class="form-control text-white" name="order"
+                                        [(ngModel)]="section.order" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt-3 text-white">
+                            <div class="col-md-3 text-center preview-icon-container">
+                                <p>Previsualización Icono:</p>
+                                <i class="fa fa-{{section.icon}} fa-2x"></i>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="togglebutton">
+                                    <label>
+                                        <input type="checkbox" name="active" [(ngModel)]="section.active">
+                                        <span class="toggle"></span>
+                                        <span class="text-white">Activo (Visible en app)</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="togglebutton">
+                                    <label>
+                                        <input type="checkbox" name="locked" [(ngModel)]="section.locked">
+                                        <span class="toggle"></span>
+                                        <span class="text-white">Bloqueado por defecto</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="bg-white">
+
+                        <!-- Quiz Info -->
+                        <h3 class="text-white">2. Quiz de Validación</h3>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="form-group">
+                                    <label class="bmd-label-floating text-white">Pregunta del Quiz</label>
+                                    <input type="text" class="form-control text-white" name="quizQuestion"
+                                        [(ngModel)]="section.quiz!.question" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6"
+                                *ngFor="let option of section.quiz!.options; let i = index; trackBy: trackByIndex">
+                                <div class="form-group">
+                                    <label class="bmd-label-floating text-white">Opción {{ i + 1 }}</label>
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <div class="input-group-text">
+                                                <input type="radio" name="correctAnswer" [value]="i"
+                                                    [(ngModel)]="section.quiz!.correctAnswerIndex">
+                                            </div>
+                                        </div>
+                                        <input type="text" class="form-control text-white" name="option{{i}}"
+                                            [(ngModel)]="section.quiz!.options[i]" required>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="text-muted"><small class="text-white">* Selecciona el radio button de la respuesta
+                                correcta.</small></p>
+
+                        <hr class="bg-white">
+
+                        <!-- Subsections / Content -->
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h3 class="text-white">3. Contenido (Subsecciones)</h3>
+                            <button type="button" class="btn btn-sm btn-info" (click)="addSubsection()">
+                                <i class="fa fa-plus"></i> Agregar Subsección
+                            </button>
+                        </div>
+
+                        <div class="subsection-editor" *ngFor="let sub of section.subsections; let i = index">
+                            <div class="card bg-dark container-fluid-body">
+                                <div class="card-body">
+                                    <div class="row">
+                                        <!-- Left Column: Editor -->
+                                        <div class="col-md-6" style="border-right: 1px solid rgba(255,255,255,0.1);">
+                                            <div class="row">
+                                                <div class="col-md-10">
+                                                    <div class="form-group">
+                                                        <label class="bmd-label-floating text-white">Subtítulo</label>
+                                                        <input type="text" class="form-control text-white"
+                                                            name="subTitle{{i}}" [(ngModel)]="sub.title">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-2 text-right">
+                                                    <button type="button" class="btn btn-sm btn-danger btn-just-icon"
+                                                        (click)="removeSubsection(i)">
+                                                        <i class="fa fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                <label class="text-white">Contenido HTML (Edición Estilo Código)</label>
+                                            </div>
+
+
+                                            <!-- Raw HTML Editor -->
+                                            <textarea class="form-control code-editor-textarea"
+                                                [(ngModel)]="sub.content" [name]="'content-html-' + i" rows="20"
+                                                placeholder="<!-- Escribe tu código HTML aquí -->
+<div class='step-item'>
+  <div class='step-number'>1</div>
+  <div class='step-content'>
+    <p>Describe el paso aquí...</p>
+  </div>
+</div>">
+                                            </textarea>
+                                            <div class="image-upload-area mt-3">
+                                                <label class="btn btn-sm btn-outline-primary btn-file mb-0">
+                                                    <i class="fa fa-image"></i> Insertar Imagen <input type="file"
+                                                        style="display: none;"
+                                                        (change)="uploadImageForSubsection($event, i)">
+                                                </label>
+                                                <small class="text-muted ml-2">La imagen se subirá al guardar.</small>
+                                            </div>
+                                        </div>
+
+                                        <!-- Right Column: Preview -->
+                                        <div class="col-md-6">
+                                            <h4 class="text-white mb-3" style="font-weight: 300; opacity: 0.8;">
+                                                <i class="fa fa-eye"></i> Vista Previa (Simulación Real)
+                                            </h4>
+                                            <div class="tutorial-preview-scope">
+                                                <div class="subsection">
+                                                    <h3 class="subsection-title" *ngIf="sub.title">{{ sub.title }}</h3>
+                                                    <!-- Render HTML Content safely -->
+                                                    <div class="content-card dynamic-content" [innerHTML]="sub.content">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mt-4">
+                            <div class="col-md-12 text-right">
+                                <button type="button" class="btn btn-default"
+                                    [routerLink]="['/admin-tutorial']">Cancelar</button>
+                                <button type="submit" class="btn btn-danger" [disabled]="!f.valid || loading">
+                                    <i class="fa fa-save"></i> {{ loading ? 'Guardando...' : 'Guardar Sección' }}
+                                </button>
+                            </div>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

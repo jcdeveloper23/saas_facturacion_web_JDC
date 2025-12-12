@@ -19,6 +19,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { SharedModule } from "app/modules/shared/shared.module";
 import { DownloadComponent } from './download/download.component';
 import { AdvertisingComponent } from './advertising/advertising.component';
+import { DriverTutorialComponent } from './driver-tutorial/driver-tutorial.component';
 
 @NgModule({
     imports: [
@@ -43,7 +44,8 @@ import { AdvertisingComponent } from './advertising/advertising.component';
         TermsComponent,
         TermsComponent,
         DownloadComponent,
-        AdvertisingComponent
+        AdvertisingComponent,
+        DriverTutorialComponent
     ]
 })
 

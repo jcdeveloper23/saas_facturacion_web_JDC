@@ -29,7 +29,7 @@ export const AppRoutes: Routes = [
         path: '',
         component: AdminLayoutComponent,
         children: [
-            
+
             {
                 path: 'monitor',
                 loadChildren: './modules/driver-monitor/driver-monitor.module#DriverMonitorModule',
@@ -198,6 +198,11 @@ export const AppRoutes: Routes = [
             {
                 path: 'admin-panel',
                 loadChildren: './modules/admin-panel/admin-panel.module#AdminPanelModule',
+                canActivate: [AuthGuard],
+            },
+            {
+                path: 'admin-tutorial',
+                loadChildren: './modules/admin-tutorial/admin-tutorial.module#AdminTutorialModule',
                 canActivate: [AuthGuard],
             },
             /*{
