@@ -17,9 +17,9 @@
                                         <span class="star">*</span>
                                     </label>
                                     <input readonly type="hidden" class="form-control" name="coupon_code"
-                                        [(ngModel)]="coupon.coupon_code" required #coupon_code="ngModel">
+                                        [(ngModel)]="coupon.couponCode" required #coupon_code="ngModel">
                                     <input type="text" class="form-control" name="coupon_value"
-                                        placeholder="Valor de recarga ($)" [(ngModel)]="coupon.coupon_value"
+                                        placeholder="Valor de recarga ($)" [(ngModel)]="coupon.couponDiscountValue"
                                         #coupon_value="ngModel"
                                         onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))">
                                     <small
@@ -33,7 +33,7 @@
                                         <span class="star">*</span>
                                     </label>
                                     <input type="text" class="form-control" name="coupon_name"
-                                        [(ngModel)]="coupon.coupon_name" required #coupon_name="ngModel"
+                                        [(ngModel)]="coupon.couponName" required #coupon_name="ngModel"
                                         placeholder="Nombre del paquete">
                                     <small
                                         [hidden]="coupon_name.valid || (coupon_name.pristine && !formCoupon.submitted)"
@@ -46,7 +46,7 @@
                                         <span class="star">*</span>
                                     </label>
                                     <br>
-                                    <bSwitch name="coupon_state" [(ngModel)]="coupon.coupon_state"
+                                    <bSwitch name="coupon_state" [(ngModel)]="coupon.couponIsActive"
                                         [switch-on-color]="'primary'" [switch-off-color]="'primary'"
                                         [switch-off-text]="'&#x2715;'" [switch-on-text]="'&#x2714;'">
                                     </bSwitch>
@@ -103,7 +103,7 @@
                             </th>
                             <td mat-cell *matCellDef="let row" class="text-center">
                                 <span>
-                                    #{{row.coupon_code | slice:6}}
+                                    #{{row.couponCode | slice:6}}
                                 </span>
                             </td>
                         </ng-container>
@@ -112,7 +112,7 @@
                                 Valor de recarga
                             </th>
                             <td mat-cell *matCellDef="let row" class="text-center">
-                                <span>{{row.coupon_value | currency}}</span>
+                                <span>{{row.couponDiscountValue | currency}}</span>
                             </td>
                         </ng-container>
                         <ng-container matColumnDef="name">
@@ -120,7 +120,7 @@
                                 Nombre del paquete
                             </th>
                             <td mat-cell *matCellDef="let row" class="text-center">
-                                <span>{{row.coupon_name}}</span>
+                                <span>{{row.couponName}}</span>
                             </td>
                         </ng-container>
 
@@ -129,12 +129,12 @@
                                 Estado
                             </th>
                             <td mat-cell *matCellDef="let row" class="text-center">
-                                <!-- <i *ngIf="row.coupon_state" class="fa fa-check text-primary" aria-hidden="true"></i>
-                                <i *ngIf="!row.coupon_state" class="fa fa-times text-danger" aria-hidden="true"></i> -->
-                                <span *ngIf="row.coupon_state" class="state-order btn btn-success btn-sm m-0 ml-2">
+                                <!-- <i *ngIf="row.couponIsActive" class="fa fa-check text-primary" aria-hidden="true"></i>
+                                <i *ngIf="!row.couponIsActive" class="fa fa-times text-danger" aria-hidden="true"></i> -->
+                                <span *ngIf="row.couponIsActive" class="state-order btn btn-success btn-sm m-0 ml-2">
                                     Activo
                                 </span>
-                                <span *ngIf="!row.coupon_state" class="state-order btn btn-danger btn-sm m-0 ml-2">
+                                <span *ngIf="!row.couponIsActive" class="state-order btn btn-danger btn-sm m-0 ml-2">
                                     Inactivo
                                 </span>
                             </td>
@@ -202,9 +202,9 @@
                                 <span class="star">*</span>
                             </label>
                             <input readonly type="hidden" class="form-control" name="coupon_code"
-                                [(ngModel)]="coupon.coupon_code" required #coupon_code="ngModel">
+                                [(ngModel)]="coupon.couponCode" required #coupon_code="ngModel">
                             <input type="text" class="form-control" name="coupon_value"
-                                placeholder="Valor de recarga ($)" [(ngModel)]="coupon.coupon_value"
+                                placeholder="Valor de recarga ($)" [(ngModel)]="coupon.couponDiscountValue"
                                 #coupon_value="ngModel"
                                 onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))">
                             <small [hidden]="coupon_value.valid || (coupon_value.pristine && !formCoupon.submitted)"
@@ -216,7 +216,7 @@
                             <label class="control-label" for="">Nombre del paquete:
                                 <span class="star">*</span>
                             </label>
-                            <input type="text" class="form-control" name="coupon_name" [(ngModel)]="coupon.coupon_name"
+                            <input type="text" class="form-control" name="coupon_name" [(ngModel)]="coupon.couponName"
                                 required #coupon_name="ngModel" placeholder="Nombre del paquete">
                             <small [hidden]="coupon_name.valid || (coupon_name.pristine && !formCoupon.submitted)"
                                 class="text-danger">
@@ -228,7 +228,7 @@
                                 <span class="star">*</span>
                             </label>
                             <br>
-                            <bSwitch name="coupon_state" [(ngModel)]="coupon.coupon_state" [switch-on-color]="'primary'"
+                            <bSwitch name="coupon_state" [(ngModel)]="coupon.couponIsActive" [switch-on-color]="'primary'"
                                 [switch-off-color]="'primary'" [switch-off-text]="'&#x2715;'"
                                 [switch-on-text]="'&#x2714;'">
                             </bSwitch>

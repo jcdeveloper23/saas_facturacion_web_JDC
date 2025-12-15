@@ -1,22 +1,25 @@
+/* ========== Iconos de Estado ========== */
 .icon-success {
-    color: rgb(125, 183, 10);
+    color: var(--green);
     cursor: pointer;
 }
 
 .icon-info {
-    color: rgb(25, 131, 253);
+    color: var(--primary);
     cursor: pointer;
 }
 
 .icon-danger {
-    color: rgb(255, 66, 66);
+    color: var(--red);
     cursor: pointer;
 }
 
+/* ========== Logo de Empresa ========== */
 .logoCompany {
     min-width: 70px;
     max-width: 70px;
-    border-radius: 20px; 
+    border-radius: 8px;
+    object-fit: cover;
 }
 
 .no-logo {
@@ -26,38 +29,450 @@
     background-size: 60%;
     min-width: 90px;
     max-width: 90px;
-    min-height: 90px !important; 
-    max-width: 90px !important;
-    border-radius: 100%;
+    min-height: 90px;
+    border-radius: 50%;
 }
 
 .container-img {
-    border: #e7e7e7 solid 2px;
-    border-radius: 200px;
+    border: rgba(255, 255, 255, 0.1) solid 2px;
+    border-radius: 50%;
     min-width: 90px;
     max-width: 90px;
-    min-height: 90px !important;
-    max-width: 90px !important;
+    min-height: 90px;
     background-position: center;
     background-repeat: no-repeat;
     background-size: 80%;
 }
 
 .container-img-two {
-    border: #e7e7e7 solid 2px;
+    border: rgba(255, 255, 255, 0.1) solid 2px;
     min-width: 90px;
     max-width: 90px;
-    min-height: 90px !important;
-    max-width: 90px !important;
+    min-height: 90px;
     background-position: center;
     background-repeat: no-repeat;
     background-size: 100%;
 }
 
+/* ========== Modal Styles ========== */
 .modal-dialog {
-    min-width: 80%;
+    max-width: 95% !important;
 }
 
-.thumbnail {
-    width: 150px;
+@media (min-width: 992px) {
+    .modal-dialog {
+        max-width: 85% !important;
+    }
+}
+
+.modal-content {
+    background-color: var(--bgLightTwo) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.modal-header {
+    background: rgba(72, 128, 255, 0.15) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.modal-body {
+    background-color: var(--bgLightTwo) !important;
+}
+
+/* ========== Section Headers ========== */
+.section-header {
+    display: flex;
+    align-items: center;
+    padding: 12px 0;
+    margin-bottom: 20px;
+    border-bottom: 2px solid rgba(72, 128, 255, 0.3);
+}
+
+.section-header i {
+    font-size: 20px;
+    color: var(--primary);
+    margin-right: 10px;
+}
+
+.section-header span {
+    font-size: 16px;
+    font-weight: 600;
+    color: #ffffff;
+    letter-spacing: 0.3px;
+}
+
+/* ========== Form Section ========== */
+.form-section {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.form-label {
+    font-weight: 600;
+    color: #ffffff;
+    margin-bottom: 8px;
+    font-size: 13px;
+}
+
+/* ========== Form Controls ========== */
+::ng-deep .form-control,
+::ng-deep .form-control:focus {
+    background-color: rgba(0, 0, 0, 0.2) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    color: #ffffff !important;
+}
+
+::ng-deep .form-control:focus {
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 0 0.2rem rgba(72, 128, 255, 0.15) !important;
+}
+
+::ng-deep .form-control::placeholder {
+    color: rgba(255, 255, 255, 0.4) !important;
+}
+
+/* ========== Image Upload Cards ========== */
+.image-upload-card {
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.image-upload-card:hover {
+    border-color: rgba(72, 128, 255, 0.4);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.image-header {
+    background: rgba(72, 128, 255, 0.1);
+    padding: 12px 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+}
+
+.image-header i {
+    color: var(--primary);
+}
+
+.image-preview-container {
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+}
+
+.preview-img {
+    max-width: 100%;
+    max-height: 180px;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+}
+
+.image-upload-action {
+    padding: 15px;
+    background: rgba(0, 0, 0, 0.25);
+    text-align: center;
+}
+
+.btn-file {
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+/* ========== Translations Grid ========== */
+.translations-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 15px;
+}
+
+.translation-item {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 12px;
+    transition: all 0.3s ease;
+}
+
+.translation-item:hover {
+    border-color: rgba(72, 128, 255, 0.3);
+    background: rgba(0, 0, 0, 0.4);
+}
+
+.field-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+}
+
+.field-label i {
+    color: var(--primary);
+    font-size: 14px;
+}
+
+.translation-item .form-control-sm {
+    margin-bottom: 10px;
+    font-size: 13px;
+    background-color: rgba(0, 0, 0, 0.25) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    color: #ffffff !important;
+}
+
+.translation-item .form-control-sm:focus {
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 0 0.2rem rgba(72, 128, 255, 0.15) !important;
+}
+
+.switch-container {
+    display: flex;
+    justify-content: center;
+}
+
+/* ========== Form Actions ========== */
+.form-actions {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.form-actions .btn {
+    padding: 10px 24px;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.form-actions .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.form-actions .btn-primary {
+    background: var(--primary);
+    border-color: var(--primary);
+}
+
+.form-actions .btn-primary:hover {
+    background: #3a6edb;
+    border-color: #3a6edb;
+}
+
+.form-actions .btn-secondary {
+    background: #6b7280;
+    border-color: #6b7280;
+    color: #ffffff;
+}
+
+.form-actions .btn-secondary:hover {
+    background: #4b5563;
+    border-color: #4b5563;
+}
+
+/* ========== Card Styles ========== */
+.card {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.card-header {
+    padding: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: transparent !important;
+}
+
+.card-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.card-category {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.btn-with-icon {
+    display: inline-flex;
+    align-items: center;
+    padding: 10px 20px;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn-with-icon:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* ========== Table Enhancements ========== */
+::ng-deep .mat-table {
+    background: transparent !important;
+}
+
+::ng-deep .mat-row,
+::ng-deep .mat-header-row {
+    background: transparent !important;
+}
+
+::ng-deep .mat-cell,
+::ng-deep .mat-header-cell {
+    color: #ffffff !important;
+    border-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.code-badge {
+    background: rgba(72, 128, 255, 0.2);
+    color: var(--primary);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: monospace;
+}
+
+.method-name-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.table-row {
+    transition: all 0.3s ease;
+}
+
+.table-row:hover {
+    background: rgba(72, 128, 255, 0.05) !important;
+}
+
+/* ========== Action Buttons in Table ========== */
+.action-buttons {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    align-items: center;
+}
+
+.btn-action-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    padding: 0;
+}
+
+.btn-action-icon:hover {
+    transform: scale(1.15);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.btn-action-icon i {
+    font-size: 13px;
+}
+
+.btn-edit {
+    background: #f59e0b;
+    color: white;
+}
+
+.btn-edit:hover {
+    background: #d97706;
+}
+
+.btn-delete {
+    background: var(--red);
+    color: white;
+}
+
+.btn-delete:hover {
+    background: #e91751;
+}
+
+/* ========== Badge Styles ========== */
+.badge {
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: inline-flex;
+    align-items: center;
+}
+
+.badge-success {
+    background: var(--green);
+    color: white;
+}
+
+.badge-danger {
+    background: var(--red);
+    color: white;
+}
+
+/* ========== Text Colors ========== */
+.text-muted,
+small.text-muted {
+    color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.text-danger {
+    color: var(--red) !important;
+}
+
+.text-primary {
+    color: var(--primary) !important;
+}
+
+/* ========== Responsive Design ========== */
+@media (max-width: 768px) {
+    .translations-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .form-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .form-actions .btn {
+        width: 100%;
+    }
+
+    .card-header {
+        padding: 15px;
+    }
+
+    .card-title {
+        font-size: 18px;
+    }
+
+    .btn-with-icon {
+        width: 100%;
+        justify-content: center;
+    }
 }

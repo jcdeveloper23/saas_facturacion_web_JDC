@@ -1,139 +1,96 @@
-<div class="main-content">
+<div class="main-content m-0 p-0">
     <!-- Header Section -->
-    <div class="row m-0 p-0 w-100 mb-3">
+    <div class="row m-0 p-0 w-100 mt-2">
         <div class="col-12">
             <div class="card border-0 container-fluid-body">
-                <div class="card-body">
-                    <div class="row align-items-center">
-                        <div class="col-md-6">
-                            <h3 class="card-title mb-0 text-white">
-                                <i class="nc-icon nc-circle-10 text-primary"></i>
-                                Gestión de Usuarios
-                            </h3>
-                            <p class="text-muted small mb-0">Administra clientes y conductores</p>
-                        </div>
-                    </div>
+                <div class="card-body p-2">
+                    <h3 class="card-title mb-0 text-white">
+                        <i class="nc-icon nc-circle-10 text-primary"></i>
+                        Gestión de Usuarios
+                        <small class="text-muted ml-2" style="font-size: 0.65em;">Administra clientes y
+                            conductores</small>
+                    </h3>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Stats Cards -->
-    <div class="row m-0 p-0 w-100 mb-3">
-        <div class="col-md-4">
-            <div class="card card-stats border-0 container-fluid-body">
-                <div class="card-body p-3">
-                    <div class="row">
-                        <div class="col-4">
-                            <div class="icon-big text-center"
-                                style="background: #667eea; border-radius: 12px; padding: 10px;">
-                                <i class="nc-icon nc-circle-10 text-white"></i>
+    <div class="row m-0 p-0 w-100">
+        <div class="col-12">
+            <div class="border-0">
+                <div class="p-2">
+                    <div class="row text-center">
+                        <!-- Total -->
+                        <div class="col-md-2 col-sm-4 mb-2 mb-md-0 p-1 ">
+                            <div class="stat-item container-fluid-body">
+                                <div class="stat-icon mx-auto mb-1"
+                                    style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="nc-icon nc-circle-10 text-white" style="font-size: 16px;"></i>
+                                </div>
+                                <h4 class="stat-number mb-0 text-white" style="font-size: 1.25rem; font-weight: 600;">{{
+                                    stats.totalUsers }}</h4>
+                                <p class="stat-label mb-0 text-muted" style="font-size: 0.7rem;">Total</p>
                             </div>
                         </div>
-                        <div class="col-8">
-                            <div class="numbers">
-                                <p class="card-category">Total</p>
-                                <p class="card-title">{{ stats.totalUsers }}</p>
+                        <!-- Clientes -->
+                        <div class="col-md-2 col-sm-4 mb-2 mb-md-0 p-1 ">
+                            <div class="stat-item container-fluid-body">
+                                <div class="stat-icon mx-auto mb-1"
+                                    style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="nc-icon nc-single-02 text-white" style="font-size: 16px;"></i>
+                                </div>
+                                <h4 class="stat-number mb-0 text-white" style="font-size: 1.25rem; font-weight: 600;">{{
+                                    stats.totalClients }}</h4>
+                                <p class="stat-label mb-0 text-muted" style="font-size: 0.7rem;">Clientes</p>
                             </div>
                         </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card card-stats border-0 container-fluid-body">
-                <div class="card-body p-3">
-                    <div class="row">
-                        <div class="col-4">
-                            <div class="icon-big text-center"
-                                style="background: #3b82f6; border-radius: 12px; padding: 10px;">
-                                <i class="nc-icon nc-single-02 text-white"></i>
+                        <!-- Conductores -->
+                        <div class="col-md-2 col-sm-4 mb-2 mb-md-0 p-1 ">
+                            <div class="stat-item container-fluid-body">
+                                <div class="stat-icon mx-auto mb-1"
+                                    style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="nc-icon nc-bus-front-12 text-white" style="font-size: 16px;"></i>
+                                </div>
+                                <h4 class="stat-number mb-0 text-white" style="font-size: 1.25rem; font-weight: 600;">{{
+                                    stats.totalDrivers }}</h4>
+                                <p class="stat-label mb-0 text-muted" style="font-size: 0.7rem;">Conductores</p>
                             </div>
                         </div>
-                        <div class="col-8">
-                            <div class="numbers">
-                                <p class="card-category">Clientes</p>
-                                <p class="card-title">{{ stats.totalClients }}</p>
+                        <!-- Activos -->
+                        <div class="col-md-2 col-sm-4 mb-2 mb-md-0 p-1 ">
+                            <div class="stat-item container-fluid-body">
+                                <div class="stat-icon mx-auto mb-1"
+                                    style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="nc-icon nc-settings-gear-65 text-white" style="font-size: 16px;"></i>
+                                </div>
+                                <h4 class="stat-number mb-0 text-white" style="font-size: 1.25rem; font-weight: 600;">{{
+                                    stats.activeDrivers }}</h4>
+                                <p class="stat-label mb-0 text-muted" style="font-size: 0.7rem;">Activos</p>
                             </div>
                         </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card card-stats border-0 container-fluid-body">
-                <div class="card-body p-3">
-                    <div class="row">
-                        <div class="col-4">
-                            <div class="icon-big text-center"
-                                style="background: #f59e0b; border-radius: 12px; padding: 10px;">
-                                <i class="nc-icon nc-bus-front-12 text-white"></i>
+                        <!-- Docs Pendientes -->
+                        <div class="col-md-2 col-sm-4 mb-2 mb-md-0 p-1 ">
+                            <div class="stat-item container-fluid-body">
+                                <div class="stat-icon mx-auto mb-1"
+                                    style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="nc-icon nc-alert-circle-i text-white" style="font-size: 16px;"></i>
+                                </div>
+                                <h4 class="stat-number mb-0 text-white" style="font-size: 1.25rem; font-weight: 600;">{{
+                                    stats.pendingDocs }}</h4>
+                                <p class="stat-label mb-0 text-muted" style="font-size: 0.7rem;">Docs Pend.</p>
                             </div>
                         </div>
-                        <div class="col-8">
-                            <div class="numbers">
-                                <p class="card-category">Conductores</p>
-                                <p class="card-title">{{ stats.totalDrivers }}</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card card-stats border-0 container-fluid-body">
-                <div class="card-body p-3">
-                    <div class="row">
-                        <div class="col-4">
-                            <div class="icon-big text-center"
-                                style="background: #10b981; border-radius: 12px; padding: 10px;">
-                                <i class="nc-icon nc-settings-gear-65 text-white"></i>
-                            </div>
-                        </div>
-                        <div class="col-8">
-                            <div class="numbers">
-                                <p class="card-category">Activos</p>
-                                <p class="card-title">{{ stats.activeDrivers }}</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card card-stats border-0 container-fluid-body">
-                <div class="card-body p-3">
-                    <div class="row">
-                        <div class="col-4">
-                            <div class="icon-big text-center"
-                                style="background: #ef4444; border-radius: 12px; padding: 10px;">
-                                <i class="nc-icon nc-alert-circle-i text-white"></i>
-                            </div>
-                        </div>
-                        <div class="col-8">
-                            <div class="numbers">
-                                <p class="card-category">Docs Pend.</p>
-                                <p class="card-title">{{ stats.pendingDocs }}</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card card-stats border-0 container-fluid-body">
-                <div class="card-body p-3">
-                    <div class="row">
-                        <div class="col-4">
-                            <div class="icon-big text-center"
-                                style="background: #6b7280; border-radius: 12px; padding: 10px;">
-                                <i class="nc-icon nc-lock-circle-open text-white"></i>
-                            </div>
-                        </div>
-                        <div class="col-8">
-                            <div class="numbers">
-                                <p class="card-category">Bloqueadas</p>
-                                <p class="card-title">{{ stats.blockedAccounts }}</p>
+                        <!-- Bloqueadas -->
+                        <div class="col-md-2 col-sm-4 mb-2 mb-md-0 p-1 ">
+                            <div class="stat-item container-fluid-body">
+                                <div class="stat-icon mx-auto mb-1"
+                                    style="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="nc-icon nc-lock-circle-open text-white" style="font-size: 16px;"></i>
+                                </div>
+                                <h4 class="stat-number mb-0 text-white" style="font-size: 1.25rem; font-weight: 600;">{{
+                                    stats.blockedAccounts }}</h4>
+                                <p class="stat-label mb-0 text-muted" style="font-size: 0.7rem;">Bloqueadas</p>
                             </div>
                         </div>
                     </div>
@@ -143,30 +100,25 @@
     </div>
 
     <!-- Filters Section -->
-    <div class="row m-0 p-0 w-100 mb-3">
+    <div class="row m-0 p-0 w-100">
         <div class="col-12">
             <div class="card border-0 container-fluid-body">
                 <div class="card-body">
                     <div class="row align-items-end">
                         <!-- Search -->
-                        <div class="col-md-3 mb-2">
-                            <label class="control-label small font-weight-bold text-white">Buscar</label>
-                            <div class="input-group">
-                                <div class="input-group-prepend">
-                                    <span class="input-group-text bg-transparent border-right-0">
-                                        <i class="nc-icon nc-zoom-split text-white"></i>
-                                    </span>
-                                </div>
-                                <input type="text" class="form-control border-left-0"
-                                    placeholder="Nombre, email, teléfono..." [(ngModel)]="searchTerm"
-                                    (ngModelChange)="filterUsers()" />
-                            </div>
+                        <div class="col-md-3 mb-1">
+                            <label class="control-label small font-weight-bold text-white mb-1">Buscar</label>
+
+                            <input type="text" class="form-control border-left-0"
+                                placeholder="Nombre, email, teléfono..." [(ngModel)]="searchTerm"
+                                (ngModelChange)="filterUsers()" />
                         </div>
 
                         <!-- User Type Filter -->
-                        <div class="col-md-2 mb-2">
-                            <label class="control-label small font-weight-bold text-white">Tipo de Usuario</label>
-                            <select class="form-control" [(ngModel)]="selectedUserType" (ngModelChange)="filterUsers()">
+                        <div class="col-md-2 mb-1">
+                            <label class="control-label small font-weight-bold text-white mb-1">Tipo</label>
+                            <select class="form-control form-control-sm" [(ngModel)]="selectedUserType"
+                                (ngModelChange)="filterUsers()">
                                 <option value="">Todos</option>
                                 <option *ngFor="let type of userTypes.slice(1)" [value]="type.value">
                                     {{ type.label }}
@@ -175,9 +127,9 @@
                         </div>
 
                         <!-- Document Status Filter -->
-                        <div class="col-md-2 mb-2">
-                            <label class="control-label small font-weight-bold text-white">Estado Documentos</label>
-                            <select class="form-control" [(ngModel)]="selectedDocStatus"
+                        <div class="col-md-2 mb-1">
+                            <label class="control-label small font-weight-bold text-white mb-1">Documentos</label>
+                            <select class="form-control form-control-sm" [(ngModel)]="selectedDocStatus"
                                 (ngModelChange)="filterUsers()">
                                 <option *ngFor="let status of docStatuses" [value]="status.value">
                                     {{ status.label }}
@@ -186,9 +138,9 @@
                         </div>
 
                         <!-- Account Status Filter -->
-                        <div class="col-md-2 mb-2">
-                            <label class="control-label small font-weight-bold text-white">Estado Cuenta</label>
-                            <select class="form-control" [(ngModel)]="selectedAccountStatus"
+                        <div class="col-md-2 mb-1">
+                            <label class="control-label small font-weight-bold text-white mb-1">Estado</label>
+                            <select class="form-control form-control-sm" [(ngModel)]="selectedAccountStatus"
                                 (ngModelChange)="filterUsers()">
                                 <option value="">Todos</option>
                                 <option value="active">Activos</option>
@@ -198,10 +150,10 @@
                         </div>
 
                         <!-- Clear Filters -->
-                        <div class="col-md-3 mb-2">
-                            <button class="btn btn-secondary btn-block" (click)="clearFilters()">
+                        <div class="col-md-3 mb-1">
+                            <button class="btn btn-secondary btn-sm btn-block" (click)="clearFilters()">
                                 <i class="nc-icon nc-refresh-69"></i>
-                                Limpiar Filtros
+                                Limpiar filtros
                             </button>
                         </div>
                     </div>
@@ -214,53 +166,54 @@
     <div class="row m-0 p-0 w-100">
         <div class="col-12">
             <div class="table-responsive container-fluid-body m-0 p-0">
-                <table mat-table matSort [dataSource]="dataSource" class="table container-fluid-body m-0 p-0 w-100 table-bordered">
+                <table mat-table matSort [dataSource]="dataSource"
+                    class="table container-fluid-body m-0 p-0 w-100 table-bordered">
 
                     <!-- Avatar Column -->
                     <ng-container matColumnDef="avatar">
-                        <th mat-header-cell *matHeaderCellDef class="text-center">
+                        <th mat-header-cell *matHeaderCellDef class="text-center py-2">
                             <strong>Avatar</strong>
                         </th>
-                        <td mat-cell *matCellDef="let row" class="text-center">
+                        <td mat-cell *matCellDef="let row" class="text-center py-2">
                             <div class="user-avatar">
-                                <img [src]="row.userPhotoURL || './assets/img/placeholder.jpg'" alt="{{row.userName}}"
-                                    class="avatar-img">
+                                <img [src]="row.userPhotoURL || './assets/img/icons/gallery.png'" alt="{{row.userName}}"
+                                    class="avatar-img" style="object-fit: cover;">
                             </div>
                         </td>
                     </ng-container>
 
                     <!-- Identification Column -->
                     <ng-container matColumnDef="identification">
-                        <th mat-header-cell *matHeaderCellDef mat-sort-header class="text-center">
+                        <th mat-header-cell *matHeaderCellDef mat-sort-header class="text-center py-2">
                             <strong>Identificación</strong>
                         </th>
-                        <td mat-cell *matCellDef="let row" class="text-center">
+                        <td mat-cell *matCellDef="let row" class="text-center py-2">
                             <span class="text-white">{{ row.userIdentification || 'N/A' }}</span>
                         </td>
                     </ng-container>
 
                     <!-- Name Column -->
                     <ng-container matColumnDef="name">
-                        <th mat-header-cell *matHeaderCellDef mat-sort-header>
+                        <th mat-header-cell *matHeaderCellDef mat-sort-header class="py-2">
                             <strong>Nombre</strong>
                         </th>
-                        <td mat-cell *matCellDef="let row">
+                        <td mat-cell *matCellDef="let row" class="py-2">
                             <div class="user-name text-white">
                                 <strong>{{ row.userName }}</strong><br>
-                                <strong class="text-mini">{{ row.userEmail }}</strong>
+                                <small class="text-muted">{{ row.userEmail }}</small>
                             </div>
                         </td>
                     </ng-container>
 
                     <!-- User Type Column -->
                     <ng-container matColumnDef="userType">
-                        <th mat-header-cell *matHeaderCellDef mat-sort-header class="text-center">
+                        <th mat-header-cell *matHeaderCellDef mat-sort-header class="text-center py-2">
                             <strong>Tipo</strong>
                         </th>
-                        <td mat-cell *matCellDef="let row" class="text-center">
-                            <span class="badge user-type-badge" [style.background-color]="getUserType(row).color">
-                                <i class="nc-icon {{ getUserType(row).icon }}"></i>
-                                {{ getUserType(row).label }}
+                        <td mat-cell *matCellDef="let row" class="text-center py-2">
+                            <span class="badge badge-sm user-type-badge"
+                                [style.background-color]="getUserType(row).color" [title]="getUserType(row).label">
+                                <i class="nc-icon {{ getUserType(row).icon }}" style="font-size: 14px;"></i>
                             </span>
                         </td>
                     </ng-container>
@@ -277,50 +230,57 @@
 
                     <!-- Phone Column -->
                     <ng-container matColumnDef="phone">
-                        <th mat-header-cell *matHeaderCellDef class="text-center">
+                        <th mat-header-cell *matHeaderCellDef class="text-center py-2">
                             <strong>Teléfono</strong>
                         </th>
-                        <td mat-cell *matCellDef="let row" class="text-center">
+                        <td mat-cell *matCellDef="let row" class="text-center py-2">
                             <span class="text-white">{{ row.userPhone || 'N/A' }}</span>
                         </td>
                     </ng-container>
 
                     <!-- Documents Status Column -->
                     <ng-container matColumnDef="documentsStatus">
-                        <th mat-header-cell *matHeaderCellDef class="text-center">
-                            <strong>Documentos</strong>
+                        <th mat-header-cell *matHeaderCellDef class="text-center py-2">
+                            <strong>Docs</strong>
                         </th>
-                        <td mat-cell *matCellDef="let row" class="text-center">
-                            <span *ngIf="getDocumentsStatus(row) === 'N/A'" class="badge badge-secondary">
-                                N/A
+                        <td mat-cell *matCellDef="let row" class="text-center py-2">
+                            <span *ngIf="getDocumentsStatus(row) === 'N/A'" class="badge badge-sm badge-secondary"
+                                title="No aplica">
+                                <i class="nc-icon nc-simple-remove"></i>
                             </span>
-                            <span *ngIf="getDocumentsStatus(row) === 'verified'" class="badge badge-success">
-                                <i class="nc-icon nc-check-2"></i> Verificados
+                            <span *ngIf="getDocumentsStatus(row) === 'verified'" class="badge badge-sm badge-success"
+                                title="Documentos verificados">
+                                <i class="nc-icon nc-check-2"></i>
                             </span>
-                            <span *ngIf="getDocumentsStatus(row) === 'pending'" class="badge badge-warning">
-                                <i class="nc-icon nc-time-alarm"></i> Pendientes
+                            <span *ngIf="getDocumentsStatus(row) === 'pending'" class="badge badge-sm badge-warning"
+                                title="Documentos pendientes">
+                                <i class="nc-icon nc-time-alarm"></i>
                             </span>
-                            <span *ngIf="getDocumentsStatus(row) === 'missing'" class="badge badge-danger">
-                                <i class="nc-icon nc-simple-remove"></i> Sin Documentos
+                            <span *ngIf="getDocumentsStatus(row) === 'missing'" class="badge badge-sm badge-danger"
+                                title="Sin documentos">
+                                <i class="nc-icon nc-paper"></i>
                             </span>
                         </td>
                     </ng-container>
 
                     <!-- State Column -->
                     <ng-container matColumnDef="state">
-                        <th mat-header-cell *matHeaderCellDef class="text-center">
+                        <th mat-header-cell *matHeaderCellDef class="text-center py-2">
                             <strong>Estado</strong>
                         </th>
-                        <td mat-cell *matCellDef="let row" class="text-center">
+                        <td mat-cell *matCellDef="let row" class="text-center py-2">
                             <div class="d-flex align-items-center justify-content-center">
-                                <span *ngIf="row.userState && !row.userAccountBlock" class="badge badge-success">
-                                    <i class="nc-icon nc-check-2"></i> Activo
+                                <span *ngIf="row.userState && !row.userAccountBlock"
+                                    class="badge badge-sm badge-success" title="Usuario activo">
+                                    <i class="nc-icon nc-check-2"></i>
                                 </span>
-                                <span *ngIf="!row.userState" class="badge badge-secondary">
-                                    <i class="nc-icon nc-simple-remove"></i> Inactivo
+                                <span *ngIf="!row.userState" class="badge badge-sm badge-secondary"
+                                    title="Usuario inactivo">
+                                    <i class="nc-icon nc-simple-remove"></i>
                                 </span>
-                                <span *ngIf="row.userAccountBlock" class="badge badge-danger ml-1">
-                                    <i class="nc-icon nc-lock-circle-open"></i> Bloqueado
+                                <span *ngIf="row.userAccountBlock" class="badge badge-sm badge-danger ml-1"
+                                    title="Usuario bloqueado">
+                                    <i class="nc-icon nc-lock-circle-open"></i>
                                 </span>
                             </div>
                         </td>
@@ -328,26 +288,38 @@
 
                     <!-- Actions Column -->
                     <ng-container matColumnDef="actions">
-                        <th mat-header-cell *matHeaderCellDef class="text-center">
+                        <th mat-header-cell *matHeaderCellDef class="text-center py-2">
                             <strong>Acciones</strong>
                         </th>
-                        <td mat-cell *matCellDef="let row" class="text-center">
-                            <button class="btn btn-sm btn-info btn-icon mr-1" (click)="viewUserProfile(row)">
-                                <i class="nc-icon nc-badge"></i>
-                            </button>
-                            <button class="btn btn-sm btn-icon mr-1"
-                                [ngClass]="{'btn-success': !row.userState, 'btn-secondary': row.userState}"
-                                (click)="toggleUserState(row, $event)">
-                                <i class="nc-icon nc-settings-gear-65"></i>
-                            </button>
-                            <button class="btn btn-sm btn-icon mr-1"
-                                [ngClass]="{'btn-warning': !row.userAccountBlock, 'btn-success': row.userAccountBlock}"
-                                (click)="toggleBlockUser(row)">
-                                <i class="nc-icon nc-lock-circle-open"></i>
-                            </button>
-                            <button class="btn btn-sm btn-danger btn-icon" (click)="deleteUser(row, $event)">
-                                <i class="nc-icon nc-simple-remove"></i>
-                            </button>
+                        <td mat-cell *matCellDef="let row" class="text-center py-2">
+                            <div class="d-flex align-items-center justify-content-center">
+                                <!-- Ver perfil -->
+                                <button class="btn-action btn-action-view" (click)="viewUserProfile(row)"
+                                    title="Ver perfil">
+                                    <i class="nc-icon nc-zoom-split"></i>
+                                </button>
+                                <!-- Activar/Desactivar -->
+                                <button class="btn-action ml-1"
+                                    [ngClass]="row.userState ? 'btn-action-active' : 'btn-action-inactive'"
+                                    (click)="toggleUserState(row, $event)"
+                                    [title]="row.userState ? 'Desactivar usuario' : 'Activar usuario'">
+                                    <i class="nc-icon"
+                                        [ngClass]="row.userState ? 'nc-button-power' : 'nc-button-play'"></i>
+                                </button>
+                                <!-- Bloquear/Desbloquear -->
+                                <button class="btn-action ml-1"
+                                    [ngClass]="row.userAccountBlock ? 'btn-action-unlock' : 'btn-action-lock'"
+                                    (click)="toggleBlockUser(row)"
+                                    [title]="row.userAccountBlock ? 'Desbloquear usuario' : 'Bloquear usuario'">
+                                    <i class="nc-icon"
+                                        [ngClass]="row.userAccountBlock ? 'nc-key-25' : 'nc-lock-circle-open'"></i>
+                                </button>
+                                <!-- Eliminar -->
+                                <button class="btn-action btn-action-delete ml-1" (click)="deleteUser(row, $event)"
+                                    title="Eliminar usuario">
+                                    <i class="nc-icon nc-basket"></i>
+                                </button>
+                            </div>
                         </td>
                     </ng-container>
 
@@ -367,255 +339,368 @@
     aria-hidden="true">
     <div class="modal-dialog modal-xl">
         <div class="modal-content container-fluid-body">
-            <div class="modal-header">
-                <h4 class="modal-title text-white">
+            <div class="modal-header py-2">
+                <h5 class="modal-title text-white mb-0 mt-3">
                     <i class="nc-icon nc-badge"></i>
                     Perfil de Usuario
-                </h4>
-                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="row" *ngIf="user">
-                    <!-- User Info Section -->
-                    <div class="col-md-4">
-                        <div class="text-center mb-3">
-                            <div class="user-avatar-large mx-auto mb-3">
-                                <img [src]="user.userPhotoURL || './assets/img/placeholder.jpg'" alt="{{user.userName}}"
-                                    class="avatar-img-large">
-                            </div>
-                            <h4 class="text-white mb-1">{{ user.userName }}</h4>
-                            <p class="text-muted mb-2">{{ user.userEmail }}</p>
-                            <!-- <span class="badge user-type-badge-large"
-                                [style.background-color]="getUserType(user).color">
-                                <i class="nc-icon {{ getUserType(user).icon }}"></i>
-                                {{ getUserType(user).label }}
-                            </span> -->
-                        </div>
-
-                        <div class="user-info-card">
-                            <div class="info-item">
-                                <i class="nc-icon nc-badge text-primary"></i>
-                                <div>
-                                    <small class="text-muted">Identificación</small>
-                                    <p class="mb-0 text-white">{{ user.userIdentification || 'N/A' }}</p>
-                                </div>
-                            </div>
-                            <div class="info-item">
-                                <i class="nc-icon nc-mobile text-primary"></i>
-                                <div>
-                                    <small class="text-muted">Teléfono</small>
-                                    <p class="mb-0 text-white">{{ user.userPhone || 'N/A' }}</p>
-                                </div>
-                            </div>
-                            <div class="info-item">
-                                <i class="nc-icon nc-pin-3 text-primary"></i>
-                                <div>
-                                    <small class="text-muted">Dirección</small>
-                                    <p class="mb-0 text-white">{{ user.userAddress || 'N/A' }}</p>
-                                </div>
-                            </div>
-                            <div class="info-item" *ngIf="user.userWalletBalance">
-                                <i class="nc-icon nc-money-coins text-success"></i>
-                                <div>
-                                    <small class="text-muted">Balance Billetera</small>
-                                    <p class="mb-0 text-white">
-                                        {{ user.userWalletBalance }} {{ user.userWalletCurrency || 'USD' }}
-                                    </p>
-                                    <small class="text-muted" *ngIf="user.userWalletLastUpdate">
-                                        Última actualización: {{ user.userWalletLastUpdate }}
-                                    </small>
-                                </div>
-                            </div>
-                            <div class="info-item">
-                                <i class="nc-icon nc-check-2 text-success"></i>
-                                <div>
-                                    <small class="text-muted">Verificación de Cuentas</small>
-                                    <div class="mt-1">
-                                        <span *ngIf="user.userClientAccountIsVerify" class="badge badge-success mr-1">
-                                            <i class="nc-icon nc-check-2"></i> Cliente Verificado
-                                        </span>
-                                        <span *ngIf="!user.userClientAccountIsVerify" class="badge badge-secondary mr-1">
-                                            <i class="nc-icon nc-simple-remove"></i> Cliente No Verificado
-                                        </span>
-                                        <span *ngIf="user.userDriverAccountIsVerify && hasDriverProfile(user)" class="badge badge-success">
-                                            <i class="nc-icon nc-check-2"></i> Conductor Verificado
-                                        </span>
-                                        <span *ngIf="!user.userDriverAccountIsVerify && hasDriverProfile(user)" class="badge badge-secondary">
-                                            <i class="nc-icon nc-simple-remove"></i> Conductor No Verificado
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Documents Section (Si tiene perfil de conductor) -->
-                    <div class="col-md-8" *ngIf="hasDriverProfile(user)">
-                        <h5 class="text-white mb-3">
-                            <i class="nc-icon nc-paper text-primary"></i>
-                            Documentos del Conductor
-                        </h5>
-
-                        <!-- Vehicles Tabs -->
-                        <div *ngIf="arrayVehicles.length > 0" class="mb-3">
-                            <ul class="nav nav-tabs" role="tablist">
-                                <li class="nav-item" *ngFor="let vehicle of arrayVehicles; let i = index">
-                                    <a class="nav-link text-white" [class.active]="selectedVehicleIndex === i"
-                                        (click)="selectVehicle(vehicle, i)" href="javascript:void(0)">
-                                        <i class="fa fa-car mr-2"></i>
-                                        {{ vehicle.vehicleBrandName }} {{ vehicle.vehicleModelName }}
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-
-                        <!-- Documents Grid -->
-                        <div class="row">
-                            <div class="col-md-6 mb-3" *ngFor="let doc of vehicleDocuments">
-                                <div class="doc-card" (click)="openDocumentLightbox(doc)">
-                                    <div class="doc-preview">
-                                        <img *ngIf="doc.url" [src]="doc.url" alt="{{doc.label}}" class="doc-img">
-                                        <div *ngIf="!doc.url" class="doc-placeholder">
-                                            <i class="nc-icon nc-paper fa-2x"></i>
-                                            <p>Sin documento</p>
-                                        </div>
-                                    </div>
-                                    <div class="doc-info">
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <strong class="text-white">{{ doc.label }}</strong>
-                                                <p class="text-muted small mb-0">{{ doc.description }}</p>
-                                            </div>
-                                            <div>
-                                                <span *ngIf="doc.verified" class="badge badge-success">
-                                                    <i class="nc-icon nc-check-2"></i> Verificado
-                                                </span>
-                                                <span *ngIf="!doc.verified && doc.uploaded" class="badge badge-warning">
-                                                    <i class="nc-icon nc-time-alarm"></i> Pendiente
-                                                </span>
-                                                <span *ngIf="!doc.uploaded" class="badge badge-danger">
-                                                    <i class="nc-icon nc-simple-remove"></i> No subido
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Vehicle State Toggle -->
-                        <div class="mt-4" *ngIf="vehicleSelected && vehicleSelected.vehicleId">
-                            <div class="card bg-dark">
-                                <div class="card-body">
-                                    <div class="row align-items-center">
-                                        <div class="col-md-8">
-                                            <h6 class="text-white mb-1">
-                                                <i class="fa fa-car text-primary mr-2"></i>
-                                                Estado del Vehículo
-                                            </h6>
-                                            <p class="text-muted small mb-0">
-                                                {{ vehicleSelected.vehicleBrandName }} {{ vehicleSelected.vehicleModelName }}
-                                            </p>
-                                            <p class="text-muted small mb-0">
-                                                <strong>Placa:</strong> {{ vehicleSelected.vehiclePlateNumber }}
-                                            </p>
-                                        </div>
-                                        <div class="col-md-4 text-right">
-                                            <button class="btn btn-lg"
-                                                    [ngClass]="vehicleSelected.vehicleState ? 'btn-success' : 'btn-danger'"
-                                                    (click)="updateVehicle(!vehicleSelected.vehicleState)">
-                                                <i class="nc-icon" [ngClass]="vehicleSelected.vehicleState ? 'nc-check-2' : 'nc-simple-remove'"></i>
-                                                {{ vehicleSelected.vehicleState ? 'Activo' : 'Inactivo' }}
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Client Info (Solo si NO tiene perfil de conductor) -->
-                    <div class="col-md-8" *ngIf="!hasDriverProfile(user)">
-                        <h5 class="text-white mb-3">
-                            <i class="nc-icon nc-single-02 text-primary"></i>
-                            Información del Cliente
-                        </h5>
-                        <div class="user-info-card">
-                            <div class="alert alert-info">
-                                <i class="nc-icon nc-alert-circle-i"></i>
-                                Este usuario solo tiene perfil de cliente. Los clientes no requieren verificación de documentos.
-                            </div>
-
-                            <div class="info-item" *ngIf="user.userRating">
-                                <i class="nc-icon nc-favourite-28 text-warning"></i>
-                                <div>
-                                    <small class="text-muted">Calificación</small>
-                                    <p class="mb-0 text-white">
-                                        <i class="nc-icon nc-bold"></i> {{ user.userRating }} / 5.0
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div class="info-item" *ngIf="user.userRegisterDate">
-                                <i class="nc-icon nc-calendar-60 text-info"></i>
-                                <div>
-                                    <small class="text-muted">Fecha de Registro</small>
-                                    <p class="mb-0 text-white">{{ user.userRegisterDate }} {{ user.userRegisterTime }}</p>
-                                </div>
-                            </div>
-
-                            <div class="info-item" *ngIf="user.usersLastSignIn">
-                                <i class="nc-icon nc-time-alarm text-primary"></i>
-                                <div>
-                                    <small class="text-muted">Último Inicio de Sesión</small>
-                                    <p class="mb-0 text-white">{{ user.usersLastSignIn }}</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" (click)="closeProfileModal()">
-                    <i class="nc-icon nc-simple-remove"></i>
-                    Cerrar
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Document Lightbox Modal -->
-<div class="modal fade" id="documentLightbox" tabindex="-1" aria-labelledby="documentLightboxLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content container-fluid-body">
-            <div class="modal-header">
-                <h5 class="modal-title text-white" *ngIf="currentDocument">
-                    <i class="nc-icon nc-paper"></i>
-                    {{ currentDocument.label }}
                 </h5>
                 <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="modal-body text-center">
-                <img [src]="lightboxImage" class="img-fluid rounded shadow-lg" alt="Documento" />
+            <div class="modal-body p-3">
+                <div class="row" *ngIf="user">
+                    <!-- User Info Section -->
+                    <div class="col-md-3">
+                        <!-- Avatar -->
+                        <div class="text-center mb-3">
+                            <div class="user-avatar-large mx-auto mb-2 profile-avatar-clickable"
+                                (click)="openImageLightbox(user.userPhotoURL || './assets/img/icons/gallery.png', 'Foto de Perfil')"
+                                title="Click para ampliar">
+                                <img [src]="user.userPhotoURL || './assets/img/icons/gallery.png'"
+                                    alt="{{user.userName}}" class="avatar-img-large"
+                                    style="object-fit: cover; cursor: pointer;">
+                                <div class="avatar-overlay">
+                                    <i class="nc-icon nc-zoom-split"></i>
+                                </div>
+                            </div>
+                            <h5 class="text-white mb-0">{{ user.userName }}</h5>
+                            <p class="text-muted small mb-2">{{ user.userEmail }}</p>
+                            <div class="mb-2">
+                                <span class="badge badge-sm" [style.background-color]="getUserType(user).color"
+                                    title="{{getUserType(user).label}}">
+                                    <i class="nc-icon {{ getUserType(user).icon }}"></i>
+                                    {{ getUserType(user).label }}
+                                </span>
+                            </div>
+                        </div>
 
-                <div class="mt-3" *ngIf="currentDocument && currentDocument.uploaded">
-                    <p class="text-muted">{{ currentDocument.description }}</p>
-                    <div class="verification-buttons">
-                        <button *ngIf="!currentDocument.verified" class="btn btn-success btn-lg mr-2"
+                        <!-- Quick Info -->
+                        <div class="quick-info-card mb-2">
+                            <div class="quick-info-item">
+                                <i class="nc-icon nc-badge"></i>
+                                <div>
+                                    <small>ID</small>
+                                    <p>{{ user.userIdentification || 'N/A' }}</p>
+                                </div>
+                            </div>
+                            <div class="quick-info-item">
+                                <i class="nc-icon nc-mobile"></i>
+                                <div>
+                                    <small>Teléfono</small>
+                                    <p>{{ user.userPhone || 'N/A' }}</p>
+                                </div>
+                            </div>
+                            <div class="quick-info-item" *ngIf="user.userWalletBalance">
+                                <i class="nc-icon nc-money-coins text-success"></i>
+                                <div>
+                                    <small>Balance</small>
+                                    <p>{{ user.userWalletBalance }} {{ user.userWalletCurrency || 'USD' }}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Personal Documents (DNI) -->
+                        <div class="personal-documents mb-2">
+                            <h6 class="text-white mb-2" style="font-size: 0.8rem;">
+                                <i class="nc-icon nc-badge"></i> Documentos Personales
+                            </h6>
+                            <div class="doc-thumbnail-card mb-2" *ngFor="let doc of personalDocumentsList"
+                                (click)="openDocumentLightbox(doc)" [class.doc-missing]="!doc.uploaded">
+                                <div class="doc-thumbnail" style="height: 100px;">
+                                    <img *ngIf="doc.url" [src]="doc.url" alt="{{doc.label}}" class="doc-thumbnail-img">
+                                    <div *ngIf="!doc.url" class="doc-thumbnail-placeholder">
+                                        <i class="nc-icon nc-badge"></i>
+                                    </div>
+                                    <div class="doc-thumbnail-overlay">
+                                        <i class="nc-icon nc-zoom-split"></i>
+                                    </div>
+                                </div>
+                                <div class="doc-thumbnail-info p-2">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <strong class="text-white small">{{ doc.label }}</strong>
+                                        <span *ngIf="doc.verified" class="badge badge-xs badge-success ml-1"><i
+                                                class="nc-icon nc-check-2"></i></span>
+                                        <span *ngIf="!doc.verified && doc.uploaded"
+                                            class="badge badge-xs badge-warning ml-1"><i
+                                                class="nc-icon nc-time-alarm"></i></span>
+                                        <span *ngIf="!doc.uploaded" class="badge badge-xs badge-danger ml-1"><i
+                                                class="nc-icon nc-simple-remove"></i></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="verification-status-card">
+                            <h6 class="text-white mb-2" style="font-size: 0.8rem;">
+                                <i class="nc-icon nc-check-2"></i> Verificación de Cuenta
+                            </h6>
+
+                            <!-- Client Verification Switch -->
+                            <div class="custom-control custom-switch mb-2">
+                                <input type="checkbox" class="custom-control-input" id="switchClientVerify"
+                                    [checked]="user.userClientAccountIsVerify"
+                                    (change)="toggleAccountVerification('client', $event)">
+                                <label class="custom-control-label text-white small" for="switchClientVerify">
+                                    Verificar Cliente
+                                </label>
+                            </div>
+
+                            <!-- Driver Verification Switch -->
+                            <div class="custom-control custom-switch" *ngIf="hasDriverProfile(user)">
+                                <input type="checkbox" class="custom-control-input" id="switchDriverVerify"
+                                    [checked]="user.userDriverAccountIsVerify"
+                                    (change)="toggleAccountVerification('driver', $event)">
+                                <label class="custom-control-label text-white small" for="switchDriverVerify">
+                                    Verificar Conductor
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Documents Section (Si tiene perfil de conductor) -->
+                    <div class="col-md-9" *ngIf="hasDriverProfile(user)">
+                        <div class="documents-section">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="text-white mb-0">
+                                    <i class="nc-icon nc-paper text-primary"></i>
+                                    Documentos del Conductor
+                                </h6>
+                            </div>
+
+                            <!-- Vehicles Tabs -->
+                            <!-- Vehicles Tabs (Modern) -->
+                            <div *ngIf="arrayVehicles.length > 0" class="vehicle-tabs-container">
+                                <div class="vehicle-tab" *ngFor="let vehicle of arrayVehicles; let i = index"
+                                    [class.active]="selectedVehicleIndex === i" (click)="selectVehicle(vehicle, i)">
+
+                                    <div class="vehicle-status-dot" [class.active]="vehicle.vehicleState"
+                                        title="{{vehicle.vehicleState ? 'Vehículo Activo' : 'Vehículo Inactivo'}}">
+                                    </div>
+
+                                    <div class="vehicle-tab-icon">
+                                        <i class="fa fa-car"></i>
+                                    </div>
+
+                                    <div class="vehicle-tab-content">
+                                        <span class="vehicle-brand">{{ vehicle.vehicleBrandName }} {{
+                                            vehicle.vehicleModelName }}</span>
+                                        <span class="vehicle-plate">{{ vehicle.vehiclePlateNumber }}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Documents Grid - Miniaturas -->
+                            <div class="row">
+                                <div class="col-md-4 col-sm-6 mb-2" *ngFor="let doc of documentsList">
+                                    <div class="doc-thumbnail-card" (click)="openDocumentLightbox(doc)"
+                                        [class.doc-missing]="!doc.uploaded">
+                                        <div class="doc-thumbnail">
+                                            <img *ngIf="doc.url" [src]="doc.url" alt="{{doc.label}}"
+                                                class="doc-thumbnail-img">
+                                            <div *ngIf="!doc.url" class="doc-thumbnail-placeholder">
+                                                <i class="nc-icon nc-paper"></i>
+                                            </div>
+                                            <div class="doc-thumbnail-overlay">
+                                                <i class="nc-icon nc-zoom-split"></i>
+                                            </div>
+                                        </div>
+                                        <div class="doc-thumbnail-info">
+                                            <div class="d-flex justify-content-between align-items-start">
+                                                <div class="flex-grow-1">
+                                                    <strong class="text-white" style="font-size: 0.75rem;">{{ doc.label
+                                                        }}</strong>
+                                                </div>
+                                                <span *ngIf="doc.verified" class="badge badge-xs badge-success ml-1">
+                                                    <i class="nc-icon nc-check-2"></i>
+                                                </span>
+                                                <span *ngIf="!doc.verified && doc.uploaded"
+                                                    class="badge badge-xs badge-warning ml-1">
+                                                    <i class="nc-icon nc-time-alarm"></i>
+                                                </span>
+                                                <span *ngIf="!doc.uploaded" class="badge badge-xs badge-danger ml-1">
+                                                    <i class="nc-icon nc-simple-remove"></i>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Vehicle State Toggle -->
+                            <div class="mt-2" *ngIf="vehicleSelected && vehicleSelected.vehicleId">
+                                <div class="card bg-dark">
+                                    <div class="card-body p-2">
+                                        <div class="row align-items-center">
+                                            <div class="col-md-8">
+                                                <h6 class="text-white mb-1 small">
+                                                    <i class="fa fa-car text-primary mr-2"></i>
+                                                    Estado del Vehículo
+                                                </h6>
+                                                <p class="text-muted mb-0" style="font-size: 0.75rem;">
+                                                    {{ vehicleSelected.vehicleBrandName }} {{
+                                                    vehicleSelected.vehicleModelName }} - {{
+                                                    vehicleSelected.vehiclePlateNumber }}
+                                                </p>
+                                            </div>
+                                            <div class="col-md-4 text-right">
+                                                <button class="btn btn-sm"
+                                                    [ngClass]="vehicleSelected.vehicleState ? 'btn-success' : 'btn-danger'"
+                                                    (click)="toggleVehicleState(vehicleSelected)">
+                                                    <i class="nc-icon"
+                                                        [ngClass]="vehicleSelected.vehicleState ? 'nc-check-2' : 'nc-simple-remove'"></i>
+                                                    {{ vehicleSelected.vehicleState ? 'Activo' : 'Inactivo' }}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Client Info (Solo si NO tiene perfil de conductor) -->
+                        <div class="col-md-9" *ngIf="!hasDriverProfile(user)">
+                            <h6 class="text-white mb-3">
+                                <i class="nc-icon nc-single-02 text-primary"></i>
+                                Información del Cliente
+                            </h6>
+
+                            <div class="alert alert-info py-2 mb-3"
+                                style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3);">
+                                <i class="nc-icon nc-alert-circle-i"></i>
+                                Este usuario solo tiene perfil de cliente.
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3" *ngIf="user.userAddress">
+                                    <div class="info-card-modern">
+                                        <i class="nc-icon nc-pin-3 text-primary"></i>
+                                        <div>
+                                            <small class="text-muted">Dirección</small>
+                                            <p class="mb-0 text-white">{{ user.userAddress }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6 mb-3" *ngIf="user.userRating">
+                                    <div class="info-card-modern">
+                                        <i class="nc-icon nc-favourite-28 text-warning"></i>
+                                        <div>
+                                            <small class="text-muted">Calificación</small>
+                                            <p class="mb-0 text-white">{{ user.userRating }} / 5.0</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6 mb-3" *ngIf="user.userRegisterDate">
+                                    <div class="info-card-modern">
+                                        <i class="nc-icon nc-calendar-60 text-info"></i>
+                                        <div>
+                                            <small class="text-muted">Registro</small>
+                                            <p class="mb-0 text-white">{{ user.userRegisterDate }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6 mb-3" *ngIf="user.usersLastSignIn">
+                                    <div class="info-card-modern">
+                                        <i class="nc-icon nc-time-alarm text-primary"></i>
+                                        <div>
+                                            <small class="text-muted">Último acceso</small>
+                                            <p class="mb-0 text-white">{{ user.usersLastSignIn }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer py-2">
+                    <button type="button" class="btn btn-sm btn-secondary" (click)="closeProfileModal()">
+                        <i class="nc-icon nc-simple-remove"></i>
+                        Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Lightbox Overlay (Refined Layout) -->
+    <div *ngIf="isLightboxOpen" class="custom-lightbox-overlay" (click)="closeLightbox()">
+
+        <!-- HEADER -->
+        <div class="lightbox-header" (click)="$event.stopPropagation()">
+            <h5 class="text-white mb-0" *ngIf="currentDocument">
+                <i class="nc-icon" [ngClass]="currentDocument.description ? 'nc-paper' : 'nc-image'"></i>
+                {{ currentDocument.label }}{{ currentDocument.type }}
+            </h5>
+            <button class="lightbox-close-btn" (click)="closeLightbox()" title="Cerrar">
+                <i class="nc-icon nc-simple-remove"></i>
+            </button>
+        </div>
+
+        <!-- BODY (Image Area) -->
+        <div class="lightbox-body" (click)="closeLightbox()">
+            <div class="lightbox-img-wrapper" (click)="$event.stopPropagation()">
+                <img [src]="lightboxImage" class="lightbox-img" alt="Documento"
+                    [style.transform]="'scale(' + zoomLevel + ')'" />
+            </div>
+        </div>
+
+        <!-- FOOTER -->
+        <div class="lightbox-footer" (click)="$event.stopPropagation()">
+
+            <!-- Normal Mode: Zoom + Verify -->
+            <ng-container *ngIf="!isRejecting">
+                <!-- Zoom Controls -->
+                <div class="zoom-controls">
+                    <button class="btn btn-sm btn-icon btn-dark mr-2" (click)="zoomOut($event)" title="Alejar">
+                        <i class="nc-icon nc-simple-delete"></i>
+                    </button>
+                    <span class="zoom-level">{{ (zoomLevel * 100).toFixed(0) }}%</span>
+                    <button class="btn btn-sm btn-icon btn-dark ml-2" (click)="zoomIn($event)" title="Acercar">
+                        <i class="nc-icon nc-simple-add"></i>
+                    </button>
+                </div>
+
+                <!-- Verification Actions -->
+                <div class="verification-actions"
+                    *ngIf="currentDocument && currentDocument.uploaded && currentDocument.description">
+                    <p class="doc-description d-none d-md-block">{{ currentDocument.description }}</p>
+                    <div class="action-buttons">
+                        <button *ngIf="!currentDocument.verified" class="btn btn-success btn-sm mr-2"
                             (click)="verifyDocument()">
-                            <i class="nc-icon nc-check-2"></i>
-                            Verificar Documento
+                            <i class="nc-icon nc-check-2"></i> <span class="d-none d-sm-inline">Verificar</span>
                         </button>
-                        <button class="btn btn-danger btn-lg" (click)="rejectDocument()">
-                            <i class="nc-icon nc-simple-remove"></i>
-                            Rechazar Documento
+                        <button class="btn btn-danger btn-sm" (click)="rejectDocument()">
+                            <i class="nc-icon nc-simple-remove"></i> <span class="d-none d-sm-inline">Rechazar</span>
                         </button>
                     </div>
+                </div>
+            </ng-container>
+
+            <!-- Rejection Mode Form -->
+            <div class="rejection-form-container" *ngIf="isRejecting">
+                <h6 class="text-white mb-2">Motivo del rechazo</h6>
+
+                <!-- Quick Reasons -->
+                <div class="quick-reasons mb-2">
+                    <button *ngFor="let reason of predefinedReasons" class="badge badge-default mr-1 mb-1 border-0"
+                        style="cursor: pointer; text-transform: none; font-size: 11px;"
+                        (click)="setRejectionReason(reason)">
+                        {{ reason }}
+                    </button>
+                </div>
+
+                <textarea class="form-control rejection-textarea mb-2" [(ngModel)]="rejectionReason"
+                    placeholder="Escribe el motivo del rechazo..." rows="2"></textarea>
+                <div class="rejection-actions">
+                    <button class="btn btn-secondary btn-sm mr-2" (click)="cancelRejection()">
+                        Cancelar
+                    </button>
+                    <button class="btn btn-danger btn-sm" (click)="confirmRejection()">
+                        Confirmar Rechazo
+                    </button>
                 </div>
             </div>
         </div>

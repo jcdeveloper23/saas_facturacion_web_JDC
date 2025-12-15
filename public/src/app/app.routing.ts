@@ -205,6 +205,11 @@ export const AppRoutes: Routes = [
                 loadChildren: './modules/admin-tutorial/admin-tutorial.module#AdminTutorialModule',
                 canActivate: [AuthGuard],
             },
+            {
+                path: 'discount-coupons',
+                loadChildren: './modules/discount-coupons/discount-coupons.module#DiscountCouponsModule',
+                canActivate: [AuthGuard],
+            },
             /*{
                 path: 'lective-year',
                 loadChildren: './modules/lective-year-administration/lective-year.module#LectiveYearModule'

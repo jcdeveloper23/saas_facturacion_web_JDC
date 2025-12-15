@@ -4,10 +4,12 @@ import { RouterModule } from '@angular/router';
 import { SidebarComponent } from './sidebar.component';
 import { NgbModule } from '@ng-bootstrap/ng-bootstrap';
 
+import { DragDropModule } from '@angular/cdk/drag-drop';
+
 @NgModule({
-    imports: [ RouterModule, CommonModule, NgbModule ],
-    declarations: [ SidebarComponent ],
-    exports: [ SidebarComponent ]
+    imports: [RouterModule, CommonModule, NgbModule, DragDropModule],
+    declarations: [SidebarComponent],
+    exports: [SidebarComponent]
 })
 
-export class SidebarModule {}
+export class SidebarModule { }

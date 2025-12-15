@@ -1,33 +1,228 @@
+/* CSS Variables for Spacing & Colors */
+:host {
+  /* Compact Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+
+  /* Dark Theme Colors */
+  --sidebar-bg: #1B2431;
+  --sidebar-item-hover: rgba(255, 255, 255, 0.08);
+  --sidebar-active-bg: rgba(72, 128, 255, 0.15);
+  --sidebar-active-text: #4880FF;
+
+  --text-primary: #FFFFFF;
+  --text-secondary: #90A4AE;
+
+  --transition-speed: 200ms;
+  --ease-out: cubic-bezier(0.2, 0.9, 0.2, 1);
+}
+
+.sidebar-wrapper {
+  overflow-x: hidden;
+  padding-bottom: 20px;
+  height: 100vh;
+}
+
+/* User Profile Section */
+.user {
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  margin-bottom: 10px;
+}
+
+.user .info a {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.user .photo {
+  border: none;
+  box-shadow: none;
+}
+
+/* Navigation List */
+.nav {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Sidebar Item (Flex Container to fix overlap) */
+.nav li.sidebar-item {
+  position: relative;
+  display: flex;
+  /* Flexbox for handle + link */
+  align-items: center;
+  /* Vertically center */
+  transition: background-color var(--transition-speed) var(--ease-out);
+  border-radius: 0 20px 20px 0;
+  margin-right: var(--spacing-sm);
+  padding-left: 4px;
+  /* Space for handle */
+}
+
+.nav li.sidebar-item:hover {
+  background-color: var(--sidebar-item-hover);
+}
+
+/* Flex child: Link grows to fill space */
+.nav li.sidebar-item a.nav-link {
+  flex: 1;
+  display: flex;
+  /* Inner flex for icon + text */
+  align-items: center;
+  color: var(--text-secondary);
+  font-size: 13px;
+  padding: var(--spacing-sm) var(--spacing-md);
+  margin: 0;
+  white-space: nowrap;
+  opacity: 1;
+  transition: all var(--transition-speed) var(--ease-out);
+  text-decoration: none;
+}
+
+.nav li.sidebar-item a.nav-link i {
+  font-size: 18px;
+  color: var(--text-secondary);
+  margin-right: var(--spacing-md);
+  width: 24px;
+  text-align: center;
+}
+
+.nav li.sidebar-item a.nav-link p {
+  font-weight: 400;
+  margin: 0;
+  line-height: 20px;
+  font-size: 13px;
+  text-transform: capitalize;
+  letter-spacing: 0.3px;
+}
+
+/* Active State */
+.active-blue {
+  background-color: var(--sidebar-active-bg) !important;
+}
+
+.active-blue .nav-link,
+.active-blue .nav-link i,
+.active-blue .nav-link p {
+  color: var(--sidebar-active-text) !important;
+  font-weight: 600 !important;
+}
+
+/* Drag Handle */
+.drag-handle {
+  cursor: grab;
+  opacity: 0;
+  transition: opacity var(--transition-speed);
+  padding: 6px 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  /* Fixed width */
+}
+
+.sidebar-item:hover .drag-handle {
+  opacity: 1;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+/* Custom CSS Grip (6 dots) */
+.grip-dots {
+  display: block;
+  width: 10px;
+  height: 14px;
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.4) 1.5px, transparent 2px);
+  background-size: 5px 5px;
+  /* Creates the grid pattern */
+  background-position: center;
+  background-repeat: repeat;
+}
+
+/* Drag & Drop CDK Styles */
+.cdk-drag-preview {
+  box-sizing: border-box;
+  border-radius: 4px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+  background-color: #273142;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text-primary);
+  list-style: none;
+  /* remove bullet */
+}
+
+/* Ensure preview looks like item */
+.cdk-drag-preview i {
+  margin-right: 12px;
+  font-size: 18px;
+  color: var(--text-secondary);
+}
+
+.cdk-drag-placeholder {
+  opacity: 0;
+}
+
+.cdk-drag-animating {
+  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.nav.cdk-drop-list-dragging .sidebar-item:not(.cdk-drag-placeholder) {
+  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+/* Submenu Adjustments */
+.nav-compact .nav-item .nav-link {
+  padding-left: 56px;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
+/* Logo Area */
+.logo {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  margin-bottom: var(--spacing-md);
+}
+
 .simple-text {
-  text-transform: none !important;
+  text-transform: none;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.simple-text .logo-img {
+  width: 30px;
+  height: 30px;
+  background: #323D4E;
+  border-radius: 50%;
+  overflow: hidden;
+  display: inline-block;
+  vertical-align: middle;
 }
 
 .span-primary {
-  color: #4880FF;
-  font-weight: bold;
+  color: var(--sidebar-active-text);
 }
 
-.active-blue {
-  background-color: #007bff;
-  color: #ffffff;
-  border-radius: 0px;
-  /* padding: 10px 15px; */
-  /* margin-left: 15px; 
-  margin-right: 15px;  */
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
-}
 
-/* Asegura que los textos e iconos internos se mantengan blancos */
-.active-blue a,
-.active-blue i,
-.active-blue p,
-.active-blue span {
-  color: #ffffff !important;
-}
-
+/* Badge */
 .badge-num-order {
-  position: absolute;
-  left: 0px;
-  top: -10px;
+  background-color: #ef5350;
+  color: white;
+  font-size: 10px;
+  padding: 4px 6px;
+  border-radius: 12px;
+  margin-left: auto;
+  /* Push to right */
 }

@@ -151,14 +151,14 @@ export class AuthService {
         switch (this.infoUser.userRol) {
 
           case 0:
-            this.router.navigate(['/provider-administration'])
+            this.router.navigate(['/admin-panel'])
             break;
           case 1:
             if (this.infoUser.userState) {
               this.router.navigate(['/perfil'])
             } else {
               this.showNotification('top', 'right', 'nc-alert-circle-i', 'Estamos validando tu cuenta, aun no tienes acceso a la plataforma', 'info')
-              this.router.navigate(['/'])
+              this.router.navigate(['/']) 
             }
             break;
           case 2:

@@ -28,10 +28,11 @@ export class UsersComponent implements OnInit {
   public filteredUsers: Array<Users> = [];
   public infoUser: Users;
 
-  // Vehicle data
-  public arrayVehicles: Array<Vehicle> = [];
-  public vehicleSelected: Vehicle = {};
-  public selectedVehicleIndex = 0;
+  public vehicleSelected: Vehicle;
+  public arrayVehicles: Vehicle[] = [];
+  public documentsList: any[] = [];
+  public personalDocumentsList: any[] = []; // DNI only
+  public selectedVehicleIndex: number = 0;
 
   // Tables
   @ViewChild(MatSort) sort: MatSort;
@@ -82,6 +83,21 @@ export class UsersComponent implements OnInit {
   // Lightbox
   public lightboxImage: string = '';
   public currentDocument: any = null;
+  public isLightboxOpen: boolean = false;
+
+  // Zoom Control
+  public zoomLevel: number = 1;
+
+  // Rejection Logic
+  public isRejecting: boolean = false;
+  public rejectionReason: string = '';
+  public predefinedReasons: string[] = [
+    'Documento ilegible o borroso',
+    'El documento está vencido',
+    'Los datos no coinciden',
+    'Documento incompleto',
+    'No es el documento solicitado'
+  ];
 
   constructor(
     private usersService: UsersService
@@ -103,7 +119,7 @@ export class UsersComponent implements OnInit {
       this.array_user = users.filter((u: Users) => u.userRol !== 0);
       this.filteredUsers = this.array_user;
       this.calculateStats();
-      this.updateDataSource(); 
+      this.updateDataSource();
     });
   }
 
@@ -159,7 +175,7 @@ export class UsersComponent implements OnInit {
             matchesDocStatus = user.userDniVerified && user.userLicenceVerified;
           } else if (this.selectedDocStatus === 'pending') {
             matchesDocStatus = (user.userDniUploaded || user.userLicenseUploaded) &&
-                              (!user.userDniVerified || !user.userLicenceVerified);
+              (!user.userDniVerified || !user.userLicenceVerified);
           } else if (this.selectedDocStatus === 'missing') {
             matchesDocStatus = !user.userDniUploaded || !user.userLicenseUploaded;
           }
@@ -225,9 +241,9 @@ export class UsersComponent implements OnInit {
    */
   public hasDriverProfile(user: Users): boolean {
     return user.userRol === 9 ||
-           user.userDniUploaded === true ||
-           user.userLicenseUploaded === true ||
-           user.userDocumentCarUploaded === true;
+      user.userDniUploaded === true ||
+      user.userLicenseUploaded === true ||
+      user.userDocumentCarUploaded === true;
   }
 
   /**
@@ -266,6 +282,8 @@ export class UsersComponent implements OnInit {
     // Cargar vehículos si tiene perfil de conductor (independiente del rol actual)
     if (this.hasDriverProfile(user)) {
       this.loadUserVehicles(user.userUid);
+      // Start with user documents even if no vehicle yet
+      this.updateDocumentsList();
     }
 
     $('#modalUserProfile').modal('show');
@@ -289,54 +307,54 @@ export class UsersComponent implements OnInit {
   public selectVehicle(vehicle: Vehicle, index: number) {
     this.vehicleSelected = vehicle;
     this.selectedVehicleIndex = index;
+    this.updateDocumentsList();
   }
 
   /**
-   * Get vehicle documents
-   * Incluye userDocumentCarURL del usuario
+   * Update documents list (Replaces vehicleDocuments getter)
+   * Update local documents list based on user and vehicle selection
    */
-  get vehicleDocuments() {
-    if (!this.user) return [];
+  public updateDocumentsList() {
+    if (!this.user) return;
 
-    const docs = [
-      {
-        label: 'Identificación Frontal',
-        url: this.user.userIdentificationFrontImage,
-        type: 'identificationFront',
-        verified: this.user.userIdentificationFrontVerified,
-        uploaded: !!this.user.userIdentificationFrontImage,
-        description: 'Foto frontal del documento de identidad'
-      },
-      {
-        label: 'Identificación Trasera',
-        url: this.user.userIdentificationBackImage,
-        type: 'identificationBack',
-        verified: this.user.userIdentificationBackVerified,
-        uploaded: !!this.user.userIdentificationBackImage,
-        description: 'Foto trasera del documento de identidad'
-      },
-      {
-        label: 'DNI',
-        url: this.user.userDniURL,
-        type: 'dni',
-        verified: this.user.userDniVerified,
-        uploaded: this.user.userDniUploaded,
-        description: 'Documento de identidad'
-      }, 
-      {
-        label: 'Licencia',
-        url: this.user.userLicenceURL,
-        type: 'license',
-        verified: this.user.userLicenceVerified,
-        uploaded: this.user.userLicenseUploaded,
-        description: 'Licencia de conducir'
-      }
-    ];
+    // Personal Documents (DNI) - Visible for all users
+    const personalDocs = [];
 
-    // Documento de carro del usuario
-    if (this.user.userDocumentCarURL || this.user.userDocumentCarUploaded) {
-      docs.push({
-        label: 'Documento del Carro',
+    personalDocs.push({
+      label: 'DNI (Identidad)',
+      url: this.user.userDniURL, // Prioritize DNI URL if separate, otherwise fallback to Identification if needed, but per request DNI is key
+      type: 'dni',
+      verified: this.user.userDniVerified,
+      uploaded: this.user.userDniUploaded,
+      description: 'Documento Nacional de Identidad'
+    });
+
+    this.personalDocumentsList = personalDocs;
+
+
+    // Driver Documents - Visible only if driver profile
+    const driverDocs = [];
+
+    // 1. Licencia
+    driverDocs.push({
+      label: 'Licencia de Conducir',
+      url: this.user.userLicenceURL,
+      type: 'license',
+      verified: this.user.userLicenceVerified,
+      uploaded: this.user.userLicenseUploaded, // Note: userLicenseUploaded vs userLicenceUploaded check interface
+      description: 'Licencia de conducir'
+    });
+
+    // 2. Documento del Carro (User level - sometimes legacy, but keeping if needed or moving to vehicle)
+    // If requirement says separate DNI from driver docs, license is definitely driver doc.
+    // If user has 'userDocumentCarURL' distinct from vehicle, keep it. 
+    // Assuming 'userDocumentCarURL' is the "Certificado Médico" or generic car doc? 
+    // Usually standard is License + Vehicle Docs. 
+    // Let's keep existing logic but split list.
+
+    if (this.user.userDocumentCarURL) {
+      driverDocs.push({
+        label: 'Documentos del Vehículo (Usuario)',
         url: this.user.userDocumentCarURL,
         type: 'userCarDocument',
         verified: this.user.userDocumentCarVerified,
@@ -347,7 +365,7 @@ export class UsersComponent implements OnInit {
 
     // Si hay vehículo seleccionado, agregar sus documentos
     if (this.vehicleSelected && this.vehicleSelected.vehicleId) {
-      docs.push({
+      driverDocs.push({
         label: 'Seguro del Vehículo',
         url: this.vehicleSelected.vehicleDocumentCarSureURL,
         type: 'insurance',
@@ -356,17 +374,17 @@ export class UsersComponent implements OnInit {
         description: 'Póliza de seguro del vehículo'
       });
 
-      docs.push({
+      driverDocs.push({
         label: 'Matrícula del Vehículo',
         url: this.vehicleSelected.vehicleDocumentCarURL,
         type: 'registration',
-        verified: true,
+        verified: this.vehicleSelected.vehicleDocumentVerified,
         uploaded: this.vehicleSelected.vehicleDocumentUploaded,
         description: 'Matrícula del vehículo'
       });
     }
 
-    return docs;
+    this.documentsList = driverDocs;
   }
 
   /**
@@ -377,7 +395,62 @@ export class UsersComponent implements OnInit {
 
     this.lightboxImage = doc.url;
     this.currentDocument = doc;
-    $('#documentLightbox').modal('show');
+    this.isLightboxOpen = true;
+    this.zoomLevel = 1; // Reset zoom
+    this.cancelRejection(); // Reset rejection state
+  }
+
+  /**
+   * Open image lightbox for viewing (profile picture or any image)
+   */
+  public openImageLightbox(imageUrl: string, title: string = 'Imagen') {
+    if (!imageUrl) return;
+
+    this.lightboxImage = imageUrl;
+    this.currentDocument = {
+      label: title,
+      url: imageUrl,
+      uploaded: true,
+      verified: false
+      // No incluimos 'description' para que no muestre los botones de verificación
+    };
+    this.isLightboxOpen = true;
+    this.zoomLevel = 1; // Reset zoom
+    this.cancelRejection(); // Reset rejection state
+  }
+
+  /**
+   * Close lightbox overlay
+   */
+  public closeLightbox() {
+    this.isLightboxOpen = false;
+    this.lightboxImage = '';
+    this.zoomLevel = 1;
+    this.cancelRejection(); // Clean up on close
+
+    // Solo limpiar referencia después de animación si fuera necesario, 
+    // pero por ahora lo mantenemos simple.
+    // setTimeout(() => {
+    //   this.currentDocument = null; 
+    // }, 300);
+  }
+
+  /**
+   * Zoom In
+   */
+  public zoomIn(event?: any) {
+    if (event) event.stopPropagation();
+    this.zoomLevel += 0.25;
+  }
+
+  /**
+   * Zoom Out
+   */
+  public zoomOut(event?: any) {
+    if (event) event.stopPropagation();
+    if (this.zoomLevel > 0.5) {
+      this.zoomLevel -= 0.25;
+    }
   }
 
   /**
@@ -402,29 +475,50 @@ export class UsersComponent implements OnInit {
         const updateData: any = {};
 
         // Verificación individual para cada tipo de documento
+        console.log(this.currentDocument.type);
+
         switch (this.currentDocument.type) {
           case 'identificationFront':
             updateData.userIdentificationFrontVerified = true;
+            updateData.userIdentificationFrontRejectionReason = null;
             break;
           case 'identificationBack':
             updateData.userIdentificationBackVerified = true;
+            updateData.userIdentificationBackRejectionReason = null;
             break;
           case 'dni':
             updateData.userDniVerified = true;
+            updateData.userDniRejectionReason = null;
             break;
           case 'license':
             updateData.userLicenceVerified = true;
+            updateData.userLicenceRejectionReason = null;
             break;
           case 'userCarDocument':
             updateData.userDocumentCarVerified = true;
+            updateData.userDocumentCarRejectionReason = null;
             break;
           case 'insurance':
             // Update vehicle
             this.vehicleSelected.vehicleSureVerified = true;
+            this.vehicleSelected.vehicleSureRejectionReason = null;
             await this.usersService.updateVehicleState(this.user.userUid, this.vehicleSelected);
             this.showNotification('top', 'right', 'nc-check-2', 'Documento verificado correctamente', 'success');
             this.currentDocument.verified = true;
-            $('#documentLightbox').modal('hide');
+            // Update docs list
+            this.updateDocumentsList();
+            this.closeLightbox();
+            return;
+          case 'registration':
+            // Update vehicle
+            this.vehicleSelected.vehicleDocumentVerified = true;
+            this.vehicleSelected.vehicleDocumentRejectionReason = null;
+            await this.usersService.updateVehicleState(this.user.userUid, this.vehicleSelected);
+            this.showNotification('top', 'right', 'nc-check-2', 'Documento verificado correctamente', 'success');
+            this.currentDocument.verified = true;
+            // Update docs list
+            this.updateDocumentsList();
+            this.closeLightbox();
             return;
         }
 
@@ -433,7 +527,9 @@ export class UsersComponent implements OnInit {
           Object.assign(this.user, updateData);
           this.currentDocument.verified = true;
           this.showNotification('top', 'right', 'nc-check-2', 'Documento verificado correctamente', 'success');
-          $('#documentLightbox').modal('hide');
+          // Update docs list
+          this.updateDocumentsList();
+          this.closeLightbox();
           this.getUsersList();
         }
       } catch (error) {
@@ -443,77 +539,158 @@ export class UsersComponent implements OnInit {
   }
 
   /**
-   * Reject document
+   * Set rejection reason from predefined list
    */
-  public async rejectDocument() {
+  public setRejectionReason(reason: string) {
+    this.rejectionReason = reason;
+  }
+
+  /**
+   * Start rejection process (show inline form)
+   */
+  public rejectDocument() {
+    this.isRejecting = true;
+    this.rejectionReason = '';
+  }
+
+  /**
+   * Cancel rejection process
+   */
+  public cancelRejection() {
+    this.isRejecting = false;
+    this.rejectionReason = '';
+  }
+
+  /**
+   * Confirm rejection
+   */
+  public async confirmRejection() {
     if (!this.currentDocument || !this.user) return;
 
-    const { value: reason } = await Swal.fire({
-      icon: 'warning',
-      title: 'Motivo del rechazo',
-      text: `¿Por qué rechazas el ${this.currentDocument.label}?`,
-      input: 'textarea',
-      inputPlaceholder: 'Escribe el motivo del rechazo...',
-      inputAttributes: {
-        'aria-label': 'Escribe el motivo del rechazo'
-      },
-      showCancelButton: true,
-      confirmButtonColor: '#dc3545',
-      cancelButtonColor: '#6c757d',
-      confirmButtonText: 'Rechazar',
-      cancelButtonText: 'Cancelar'
-    });
+    if (!this.rejectionReason || this.rejectionReason.trim().length === 0) {
+      this.showNotification('top', 'right', 'nc-alert-circle-i', 'Por favor ingresa un motivo', 'warning');
+      return;
+    }
 
-    if (reason) {
-      try {
-        const updateData: any = {};
+    const reason = this.rejectionReason; // Usa la variable de clase
 
-        // Rechazo individual para cada tipo de documento
-        switch (this.currentDocument.type) {
-          case 'identificationFront':
-            updateData.userIdentificationFrontVerified = false;
-            break;
-          case 'identificationBack':
-            updateData.userIdentificationBackVerified = false;
-            break;
-          case 'dni':
-            updateData.userDniVerified = false;
-            break;
-          case 'license':
-            updateData.userLicenceVerified = false;
-            break;
-          case 'userCarDocument':
-            updateData.userDocumentCarVerified = false;
-            break;
-          case 'insurance':
-            this.vehicleSelected.vehicleSureVerified = false;
-            await this.usersService.updateVehicleState(this.user.userUid, this.vehicleSelected);
-            this.showNotification('top', 'right', 'nc-check-2', 'Documento rechazado', 'info');
-            this.currentDocument.verified = false;
-            $('#documentLightbox').modal('hide');
-            return;
-        }
+    // No Swal.fire here, use inline UI
 
-        if (Object.keys(updateData).length > 0) {
-          await this.usersService.updateUser({ ...this.user, ...updateData });
-          Object.assign(this.user, updateData);
+    try {
+      const updateData: any = {};
+      // ... (rest of logic remains similar but uses 'reason' variable)
+
+      // Rechazo individual para cada tipo de documento
+      switch (this.currentDocument.type) {
+        case 'identificationFront':
+          updateData.userIdentificationFrontVerified = false;
+          updateData.userIdentificationFrontRejectionReason = reason;
+          break;
+        case 'identificationBack':
+          updateData.userIdentificationBackVerified = false;
+          updateData.userIdentificationBackRejectionReason = reason;
+          break;
+        case 'dni':
+          updateData.userDniVerified = false;
+          updateData.userDniRejectionReason = reason;
+          break;
+        case 'license':
+          updateData.userLicenceVerified = false;
+          updateData.userLicenceRejectionReason = reason;
+          break;
+        case 'userCarDocument':
+          updateData.userDocumentCarVerified = false;
+          updateData.userDocumentCarRejectionReason = reason;
+          break;
+        case 'insurance':
+          this.vehicleSelected.vehicleSureVerified = false;
+          this.vehicleSelected.vehicleSureRejectionReason = reason;
+
+          await this.usersService.updateVehicleState(this.user.userUid, this.vehicleSelected);
+          this.showNotification('top', 'right', 'nc-check-2', 'Documento rechazado', 'info');
           this.currentDocument.verified = false;
-          this.showNotification('top', 'right', 'nc-check-2', `Documento rechazado: ${reason}`, 'info');
-          $('#documentLightbox').modal('hide');
-          this.getUsersList();
-        }
-      } catch (error) {
-        this.showNotification('top', 'right', 'nc-simple-remove', 'Error al rechazar documento', 'danger');
+          // Update docs list
+          this.updateDocumentsList();
+          this.closeLightbox();
+          return;
+        case 'registration':
+          this.vehicleSelected.vehicleDocumentVerified = false;
+          this.vehicleSelected.vehicleDocumentRejectionReason = reason;
+
+          await this.usersService.updateVehicleState(this.user.userUid, this.vehicleSelected);
+          this.showNotification('top', 'right', 'nc-check-2', 'Documento rechazado', 'info');
+          this.currentDocument.verified = false;
+          // Update docs list
+          this.updateDocumentsList();
+          this.closeLightbox();
+          return;
+      }
+
+      if (Object.keys(updateData).length > 0) {
+        await this.usersService.updateUser({ ...this.user, ...updateData });
+        Object.assign(this.user, updateData);
+        this.currentDocument.verified = false;
+        this.showNotification('top', 'right', 'nc-check-2', `Documento rechazado: ${reason}`, 'info');
+        // Update docs list
+        this.updateDocumentsList();
+        this.closeLightbox();
+        this.getUsersList();
+      }
+    } catch (error) {
+      this.showNotification('top', 'right', 'nc-simple-remove', 'Error al rechazar documento', 'danger');
+    }
+  }
+
+  /* OLD METHOD REMOVED - Logic moved to confirmRejection */
+  /*
+  public async rejectDocument() {
+     ... old swal logic ...
+  }
+  */
+
+  /**
+   * Toggle account verification status
+  public async toggleAccountVerification(type: 'client' | 'driver', event: any) {
+    // Prevent default to control the state change manually if needed, 
+    // but typically for checkboxes we let it change and revert on error.
+    // Here getting the new value from the model which ngModel should have updated.
+
+    if (!this.user) return;
+
+    const isChecked = event.target.checked;
+    const updateData: any = {};
+
+    if (type === 'client') {
+      updateData.userClientAccountIsVerify = isChecked;
+      this.user.userClientAccountIsVerify = isChecked;
+    } else {
+      updateData.userDriverAccountIsVerify = isChecked;
+      this.user.userDriverAccountIsVerify = isChecked;
+    }
+
+    try {
+      await this.usersService.updateUser({ ...this.user, ...updateData });
+      const role = type === 'client' ? 'Cliente' : 'Conductor';
+      const status = isChecked ? 'verificada' : 'desverificada';
+      this.showNotification('top', 'right', 'nc-check-2', `Cuenta de ${role} ${status}`, 'success');
+    } catch (error) {
+      console.error(error);
+      this.showNotification('top', 'right', 'nc-simple-remove', 'Error al actualizar estado', 'danger');
+      // Revert change
+      if (type === 'client') {
+        this.user.userClientAccountIsVerify = !isChecked;
+      } else {
+        this.user.userDriverAccountIsVerify = !isChecked;
       }
     }
   }
 
   /**
    * Update user state
+   * Block/Unblock
    */
   public async toggleUserState(user: Users, event: any) {
     event.stopPropagation();
-
     const newState = !user.userState;
     const action = newState ? 'activar' : 'desactivar';
 
@@ -533,10 +710,75 @@ export class UsersComponent implements OnInit {
         await this.usersService.updateUserState(user.userUid, newState);
         user.userState = newState;
         this.showNotification('top', 'right', 'nc-check-2', `Usuario ${action}do correctamente`, 'success');
-        this.getUsersList();
       } catch (error) {
         this.showNotification('top', 'right', 'nc-simple-remove', 'Error al actualizar estado', 'danger');
       }
+    }
+  }
+
+  /**
+   * Toggle vehicle state (active/inactive)
+   */
+  /*
+   * Update vehicle state con confirmación y validación
+   */
+  public async toggleVehicleState(vehicle: Vehicle) {
+    if (!vehicle || !this.user) return;
+
+    const newState = !vehicle.vehicleState;
+
+    // VALIDATION: Cannot activate if documents are not verified
+    if (newState === true) {
+      const isVehicleDocsVerified = vehicle.vehicleDocumentVerified && vehicle.vehicleSureVerified;
+      const isLicenceVerified = this.user.userLicenceVerified;
+
+      if (!isVehicleDocsVerified || !isLicenceVerified) {
+        let errorMsg = 'No se puede activar: ';
+        if (!isLicenceVerified) errorMsg += 'Licencia de Conducir ';
+        if (!isVehicleDocsVerified) errorMsg += (isLicenceVerified ? '' : 'y ') + 'Documentos del vehículo (Matrícula/Seguro) ';
+        errorMsg += 'no verificado(s).';
+
+        Swal.fire({
+          title: 'No se puede activar',
+          text: errorMsg,
+          icon: 'warning',
+          confirmButtonColor: '#fbc658',
+          confirmButtonText: 'Entendido'
+        });
+        setTimeout(() => vehicle.vehicleState = false, 0);
+        return;
+      }
+    }
+
+    // CONFIRMATION Dialog
+    const action = newState ? 'activar' : 'desactivar';
+    const result = await Swal.fire({
+      title: `¿${action.charAt(0).toUpperCase() + action.slice(1)} vehículo?`,
+      text: `Se ${action}á el vehículo ${vehicle.vehicleBrandName} ${vehicle.vehicleModelName} - ${vehicle.vehiclePlateNumber}`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: newState ? '#10b981' : '#ef4444',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: `Sí, ${action}`,
+      cancelButtonText: 'Cancelar'
+    });
+
+    if (result.isConfirmed) {
+      try {
+        vehicle.vehicleState = newState;
+        if (newState) {
+          vehicle.vehicleInReview = false;
+        }
+
+        await this.usersService.updateVehicleState(this.user.userUid, vehicle);
+        this.showNotification('top', 'right', 'nc-check-2', `Vehículo ${action}do correctamente`, 'success');
+      } catch (error) {
+        console.error(error);
+        this.showNotification('top', 'right', 'nc-simple-remove', 'Error al actualizar vehículo', 'danger');
+        vehicle.vehicleState = !newState; // Revert
+      }
+    } else {
+      // Cancelled
     }
   }
 
@@ -650,13 +892,25 @@ export class UsersComponent implements OnInit {
 
   /**
    * Delete user
+   * Elimina el usuario de forma segura:
+   * - Crea respaldo en colección deleted_users
+   * - Elimina credenciales de Firebase Authentication
+   * - Elimina documento de Firestore
    */
   public async deleteUser(user: Users, event: any) {
     event.stopPropagation();
 
     const result = await Swal.fire({
       title: '¿Eliminar usuario?',
-      text: `Esta acción no se puede deshacer. Se eliminará a ${user.userName}`,
+      html: `
+        <p>Esta acción no se puede deshacer.</p>
+        <p><strong>Usuario:</strong> ${user.userName}</p>
+        <p><strong>Email:</strong> ${user.userEmail}</p>
+        <br>
+        <p style="font-size: 12px; color: #666;">
+          Se creará un respaldo en la colección deleted_users y se eliminarán las credenciales de autenticación.
+        </p>
+      `,
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#dc3545',
@@ -666,52 +920,41 @@ export class UsersComponent implements OnInit {
     });
 
     if (result.isConfirmed) {
-      try {
-        await this.usersService.deleteUser(user.userUid);
-        this.showNotification('top', 'right', 'nc-check-2', 'Usuario eliminado correctamente', 'success');
-        this.getUsersList();
-      } catch (error) {
-        this.showNotification('top', 'right', 'nc-simple-remove', 'Error al eliminar usuario', 'danger');
-      }
+      // Mostrar loader
+      Swal.fire({
+        title: 'Eliminando usuario...',
+        html: 'Por favor espera mientras se completa la operación',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
+      this.usersService.deleteUser(user.userUid).subscribe({
+        next: (response) => {
+          console.log('*** Respuesta de eliminación ***', response);
+          Swal.close();
+
+          if (response.success) {
+            this.showNotification('top', 'right', 'nc-check-2',
+              `Usuario ${response.data.userName} eliminado correctamente`, 'success');
+            this.getUsersList();
+          } else {
+            this.showNotification('top', 'right', 'nc-simple-remove',
+              response.message || 'Error al eliminar usuario', 'danger');
+          }
+        },
+        error: (error) => {
+          console.error('*** Error eliminando usuario ***', error);
+          Swal.close();
+          this.showNotification('top', 'right', 'nc-simple-remove',
+            error.error?.message || 'Error al eliminar usuario', 'danger');
+        }
+      });
     }
   }
 
   /**
-   * Update vehicle state con confirmación
-   */
-  public async updateVehicle(newState: boolean) {
-    if (!this.vehicleSelected || !this.user) return;
-
-    const action = newState ? 'activar' : 'desactivar';
-    const result = await Swal.fire({
-      title: `¿${action.charAt(0).toUpperCase() + action.slice(1)} vehículo?`,
-      text: `Se ${action}á el vehículo ${this.vehicleSelected.vehicleBrandName} ${this.vehicleSelected.vehicleModelName} - ${this.vehicleSelected.vehiclePlateNumber}`,
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonColor: newState ? '#10b981' : '#ef4444',
-      cancelButtonColor: '#6c757d',
-      confirmButtonText: `Sí, ${action}`,
-      cancelButtonText: 'Cancelar'
-    });
-
-    if (result.isConfirmed) {
-      try {
-        this.vehicleSelected.vehicleState = newState;
-        if (newState) {
-          this.vehicleSelected.vehicleInReview = false;
-        }
-
-        await this.usersService.updateVehicleState(this.user.userUid, this.vehicleSelected);
-        this.showNotification('top', 'right', 'nc-check-2', `Vehículo ${action}do correctamente`, 'success');
-      } catch (error) {
-        this.showNotification('top', 'right', 'nc-simple-remove', 'Error al actualizar vehículo', 'danger');
-        // Revertir el estado en caso de error
-        this.vehicleSelected.vehicleState = !newState;
-      }
-    } else {
-      // Revertir el estado si se cancela
-      this.vehicleSelected.vehicleState = !newState;
-    }
   }
 
   /**

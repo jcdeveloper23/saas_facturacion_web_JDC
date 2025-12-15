@@ -2,6 +2,7 @@ export const environment = {
   // urlPaymentez: 'https://ccapi.paymentez.com/v2',
   urlPaymentez: 'https://ccapi-stg.paymentez.com/v2',
   dolarvzla: 'https://api.dolarvzla.com/public/exchange-rate',
+  cloudFunctionsUrl: 'https://us-central1-driverappve.cloudfunctions.net',
 
   production: true,
   firebaseConfig: {

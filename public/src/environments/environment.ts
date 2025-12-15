@@ -7,6 +7,7 @@
 export const environment = {
   urlPaymentez: 'https://ccapi-stg.paymentez.com/v2',
   dolarvzla: 'https://api.dolarvzla.com/public/exchange-rate',
+  cloudFunctionsUrl: 'https://us-central1-driverappve.cloudfunctions.net',
   production: false,
   firebaseConfig: {
     apiKey: "AIzaSyBLTB4Zkc7DlD9y4OfNlawQYdlZnjtnXEo",

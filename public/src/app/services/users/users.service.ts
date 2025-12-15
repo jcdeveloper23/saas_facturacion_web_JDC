@@ -1,14 +1,20 @@
-import {Injectable} from '@angular/core';
-import {AngularFirestore} from '@angular/fire/firestore';
-import {Users} from 'app/interfaces/users';
+import { Injectable } from '@angular/core';
+import { AngularFirestore } from '@angular/fire/firestore';
+import { HttpClient } from '@angular/common/http';
+import { Users } from 'app/interfaces/users';
 import { Vehicle } from 'app/interfaces/vehicle';
+import { environment } from 'environments/environment';
+import { Observable } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
 })
 export class UsersService {
 
-  constructor(private db: AngularFirestore) {
+  constructor(
+    private db: AngularFirestore,
+    private http: HttpClient
+  ) {
   }
 
   public saveUser(user: Users) {
@@ -19,7 +25,7 @@ export class UsersService {
    * Actualiza el estado del usuario para bloquear el acceso
    * */
   public updateUserState(userUid: string, state: boolean) {
-    return this.db.collection('users').doc(userUid).update({'userState' : state});
+    return this.db.collection('users').doc(userUid).update({ 'userState': state });
   }
 
   public getUserByEmail(email: string) {
@@ -30,26 +36,31 @@ export class UsersService {
     return this.db.collection('vehicles', ref => ref.where('vehicleUserUid', '==', userUid)).valueChanges();
   }
 
-    public getAllUsers() {
+  public getAllUsers() {
     return this.db.collection('users').valueChanges();
   }
- 
-    /**
-   * Actualiza el estado del usuario para bloquear el acceso
-   * */
+
+  /**
+ * Actualiza el estado del usuario para bloquear el acceso
+ * */
   public updateUser(users: Users) {
     return this.db.collection('users').doc(users.userUid).update(users);
   }
 
-    /**
-  * *** Delete company ***
-  * @param userId
-  * @returns 
-  */
-  public deleteUser(userUid: string) {
-    console.log('*** user.userUid *** ', userUid);
-    
-    return this.db.collection('users').doc(userUid).delete();
+  /**
+   * Elimina un usuario de forma segura usando Cloud Function
+   * - Crea respaldo en colección deleted_users
+   * - Elimina credenciales de Firebase Authentication
+   * - Elimina documento de Firestore
+   * @param userUid - UID del usuario a eliminar
+   * @returns Observable con la respuesta de la función
+   */
+  public deleteUser(userUid: string): Observable<any> {
+    console.log('*** Eliminando usuario vía Cloud Function *** ', userUid);
+
+    const url = `${environment.cloudFunctionsUrl}/api/v1/deleteUser`;
+
+    return this.http.post(url, { userUid });
   }
 
 
@@ -57,6 +68,8 @@ export class UsersService {
    * Actualiza el estado del vehiculo
    * */
   public updateVehicleState(userUid: string, vehicle: Vehicle) {
+    console.log('*** vehicle *** ', JSON.stringify(vehicle, null, 2));
+
     return this.db.collection('vehicles').doc(vehicle.vehicleId).update(vehicle);
   }
 
@@ -66,7 +79,7 @@ export class UsersService {
   public getActiveDrivers() {
     return this.db.collection<Users>('users', ref =>
       ref.where('userStateShareLocation', '==', true)
-         .where('userRol', '==', 9) // 2 = conductor
+        .where('userRol', '==', 9) // 2 = conductor
     ).valueChanges();
   }
 

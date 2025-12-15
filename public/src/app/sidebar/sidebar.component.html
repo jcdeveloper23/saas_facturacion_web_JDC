@@ -90,16 +90,28 @@
             </li>
         </ul>
     </div> -->
-  <ul class="nav">
+  <ul class="nav" cdkDropList (cdkDropListDropped)="drop($event)">
     <!-- Se ajusta el padding y margen para un look más compacto -->
-    <li routerLinkActive="active active-blue" *ngFor="let menuitem of menuItems" class="py-1 px-3">
+    <li routerLinkActive="active active-blue" *ngFor="let menuitem of menuItems" class="py-1 px-3 sidebar-item" cdkDrag>
+
+      <!-- Drag Handle (CSS Grip) -->
+      <div class="drag-handle" cdkDragHandle title="Reordenar menú">
+        <!-- Using CSS to create 6 dots grid -->
+        <span class="grip-dots"></span>
+      </div>
+
+      <!-- Drag Preview (Custom visual for dragging) -->
+      <div *cdkDragPreview class="drag-preview">
+        <span>{{menuitem.title}}</span>
+      </div>
+
       <!--If is a single link-->
       <a [routerLink]="[menuitem.path]" *ngIf="menuitem.type === 'link'" class="nav-link d-flex align-items-center p-0">
         <i class="{{menuitem.icontype}}"></i>
         <p>{{menuitem.title}}</p>
         <!-- Badge solo si es el menú de órdenes y hay pendientes -->
         <span *ngIf="menuitem.path === '/paymentConfirmation' && this.arrayOrders.length > 0"
-          class="badge badge-success badge-num-order ml-auto"> 
+          class="badge badge-success badge-num-order ml-auto">
           {{ this.arrayOrders.length }}
         </span>
       </a>

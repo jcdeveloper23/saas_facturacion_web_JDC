@@ -12,11 +12,15 @@ export interface Vehicle {
   vehicleState?: boolean;
 
   vehicleDocumentUploaded?: boolean;
+  vehicleDocumentVerified?: boolean;
   vehicleDocumentCarURL?: string;
   vehicleDocumentCarSureUploaded?: boolean;
   vehicleDocumentCarSureURL?: string;
   vehicleSureVerified?: boolean;
   vehicleInReview?: boolean;
+
+  vehicleDocumentRejectionReason?: string;
+  vehicleSureRejectionReason?: string;
 }
 
 export interface VehicleBrand {

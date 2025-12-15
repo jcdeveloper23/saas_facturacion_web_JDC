@@ -84,16 +84,16 @@ export class CouponsComponent implements OnInit {
 
 
   /**
-   * 
+   *
    * Metodo para visualizar el formulario, generar un nuevo codigo y asignar el estado el true
    */
   public newCoupon() {
     this.isEditCoupon = false;
     $('#modalAdmin').modal('show');
     this.coupon = {}
-    this.coupon.coupon_code = new Date().getTime().toString();
-    this.coupon.coupon_state = true;
-    this.coupon.coupon_provider_id = this.provider_id;
+    this.coupon.couponCode = new Date().getTime().toString();
+    this.coupon.couponIsActive = true;
+    this.coupon['coupon_provider_id'] = this.provider_id; // Campo legacy
   }
 
   /**
@@ -110,15 +110,16 @@ export class CouponsComponent implements OnInit {
 
   /**
     * Metodo para registrar o actualizar un nuevo grupo.
-    * @param coupon 
-    * @param isValid 
+    * @param coupon
+    * @param isValid
     */
   public saveCoupon(coupon: Coupon, isValid: boolean, form: NgForm) {
     if (isValid) {
       this.loadingService.show('Cargando...');
-      this.coupon.coupon_value = this.coupon.coupon_value;
+      // Usar el nuevo nombre de propiedad
+      this.coupon.couponDiscountValue = this.coupon.couponDiscountValue;
       if (this.isEditCoupon) {
-        this.couponsService.updateCoupon(this.coupon).then(() => {
+        this.couponsService.updateCoupon(this.coupon.couponId, this.coupon).then(() => {
           this.showNotification('top', 'right', 'nc-check-2', 'Se realizó el registro correctamente', 'success');
           this.getCoupons();
           form.resetForm()
@@ -147,9 +148,9 @@ export class CouponsComponent implements OnInit {
   }
 
   /**
- * Metodo para eliminar un grupo en especifico, se solicita confirmación para proceder a 
+ * Metodo para eliminar un grupo en especifico, se solicita confirmación para proceder a
  * la eliminación.
- * @param coupon 
+ * @param coupon
  */
   public async deleteCoupon(coupon: Coupon) {
     Swal.fire({
@@ -164,7 +165,7 @@ export class CouponsComponent implements OnInit {
       buttonsStyling: false
     }).then(async (result) => {
       if (result.value) {
-        this.couponsService.deleteCoupon(coupon.coupon_code);
+        this.couponsService.deleteCoupon(coupon.couponId || coupon.couponCode);
         this.showNotification('top', 'right', 'nc-check-2', 'Se eliminó correctamente el grupo.', 'success');
         this.getCoupons()
       }

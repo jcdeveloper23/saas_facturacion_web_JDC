@@ -61,6 +61,13 @@ export interface Users {
     userIdentificationFrontVerified?: boolean;
     userIdentificationBackVerified?: boolean;
 
+    // Reason for rejection
+    userDocumentCarRejectionReason?: string;
+    userIdentificationFrontRejectionReason?: string;
+    userIdentificationBackRejectionReason?: string;
+    userDniRejectionReason?: string;
+    userLicenceRejectionReason?: string;
+
     userWalletBalance?: string;
     userWalletLastUpdate?: string;
     userWalletCurrency?: string;

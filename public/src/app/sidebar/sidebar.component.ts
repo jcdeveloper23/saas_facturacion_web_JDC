@@ -4,6 +4,7 @@ import { Provider } from 'app/interfaces/provider';
 import { Users } from 'app/interfaces/users';
 import { OrdersService } from 'app/services/orders/orders.service';
 import { ProviderService } from 'app/services/provider/provider.service';
+import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { take } from 'rxjs/operators';
 
 //Metadata
@@ -170,6 +171,12 @@ export const ROUTES_BAR: RouteInfo[] = [
 
 /// *** Menu Items SUPER ADMIN ***
 export const ROUTES_SUPER_ADMIN: RouteInfo[] = [
+    {
+        path: '/discount-coupons',
+        title: 'Cupones de Descuento',
+        type: 'link',
+        icontype: 'nc-icon nc-tag-content'
+    },
     {
         path: '/admin-panel',
         title: 'Panel',
@@ -501,6 +508,7 @@ export class SidebarComponent {
         if (this.infoUser.userRol.toString() == '2') {
             ROUTES = (ROUTES_REPRESENTATIVE);
             this.menuItems = ROUTES.filter(menuItem => menuItem);
+            this.loadSavedOrder();
         } else if (this.infoUser.userRol.toString() == '1') {
             this.providerService.getProviderId(this.infoUser.userId).pipe(take(1)).subscribe(provider => {
                 this.provider = provider;
@@ -511,10 +519,12 @@ export class SidebarComponent {
                     ROUTES = (ROUTES_BAR_SATATE_FALSE);
                 }
                 this.menuItems = ROUTES.filter(menuItem => menuItem);
+                this.loadSavedOrder();
             })
         } else if (this.infoUser.userRol.toString() == '0') {
             ROUTES = (ROUTES_SUPER_ADMIN);
             this.menuItems = ROUTES.filter(menuItem => menuItem);
+            this.loadSavedOrder();
         }
         // this.getOrdersConfirmationPending('')
     }
@@ -556,5 +566,44 @@ export class SidebarComponent {
     }
 
     ngAfterViewInit() {
+    }
+
+    drop(event: CdkDragDrop<RouteInfo[]>) {
+        moveItemInArray(this.menuItems, event.previousIndex, event.currentIndex);
+        this.saveOrder();
+    }
+
+    saveOrder() {
+        if (!this.infoUser) return;
+        const order = this.menuItems.map(item => item.path);
+        localStorage.setItem(`sidebar_order_${this.infoUser.userRol}`, JSON.stringify(order));
+    }
+
+    loadSavedOrder() {
+        if (!this.infoUser) return;
+        const savedOrder = localStorage.getItem(`sidebar_order_${this.infoUser.userRol}`);
+        if (savedOrder) {
+            const order: string[] = JSON.parse(savedOrder);
+            // Reorder menuItems based on saved order
+            // We create a map for quick lookup
+            const itemMap = new Map(this.menuItems.map(item => [item.path, item]));
+
+            const newMenuItems = [];
+
+            // Add items in the saved order
+            order.forEach(path => {
+                if (itemMap.has(path)) {
+                    newMenuItems.push(itemMap.get(path));
+                    itemMap.delete(path);
+                }
+            });
+
+            // Add any remaining items (newly added features not in saved order)
+            itemMap.forEach(item => {
+                newMenuItems.push(item);
+            });
+
+            this.menuItems = newMenuItems;
+        }
     }
 }
