@@ -47,6 +47,7 @@ export class UsersComponent implements OnInit {
     'phone',
     'documentsStatus',
     'state',
+    'commission',
     'actions',
   ];
 
@@ -98,6 +99,16 @@ export class UsersComponent implements OnInit {
     'Documento incompleto',
     'No es el documento solicitado'
   ];
+
+  // Commission Management
+  public isEditingCommission: boolean = false;
+  public newCommissionRate: number = 20; // Default 20%
+  public commissionChangeReason: string = '';
+  public readonly DEFAULT_COMMISSION_RATE = 20; // Constante para el valor por defecto
+
+  // Commission Modal
+  public showCommissionModal: boolean = false;
+  public commissionModalUser: Users | null = null;
 
   constructor(
     private usersService: UsersService
@@ -650,6 +661,7 @@ export class UsersComponent implements OnInit {
 
   /**
    * Toggle account verification status
+   * */
   public async toggleAccountVerification(type: 'client' | 'driver', event: any) {
     // Prevent default to control the state change manually if needed, 
     // but typically for checkboxes we let it change and revert on error.
@@ -983,5 +995,207 @@ export class UsersComponent implements OnInit {
     this.user = {};
     this.arrayVehicles = [];
     this.vehicleSelected = {};
+    this.isEditingCommission = false;
+    this.commissionChangeReason = '';
+  }
+
+  /**
+   * ============================================
+   * COMMISSION MANAGEMENT METHODS
+   * ============================================
+   */
+
+  /**
+   * Get user commission rate
+   * Returns custom rate if set, otherwise default 20%
+   */
+  public getUserCommissionRate(user: Users): number {
+    if (!user) return this.DEFAULT_COMMISSION_RATE;
+
+    // Si tiene comisión personalizada, usarla
+    if (user.userCommissionCustomEnabled && user.userCommissionRate !== undefined) {
+      return user.userCommissionRate;
+    }
+
+    // Si tiene comisión configurada pero no personalizada
+    if (user.userCommissionRate !== undefined) {
+      return user.userCommissionRate;
+    }
+
+    // Valor por defecto
+    return this.DEFAULT_COMMISSION_RATE;
+  }
+
+  /**
+   * Start editing commission
+   */
+  public startEditingCommission() {
+    this.isEditingCommission = true;
+    this.newCommissionRate = this.getUserCommissionRate(this.user);
+    this.commissionChangeReason = '';
+  }
+
+  /**
+   * Cancel editing commission
+   */
+  public cancelEditingCommission() {
+    this.isEditingCommission = false;
+    this.newCommissionRate = this.getUserCommissionRate(this.user);
+    this.commissionChangeReason = '';
+  }
+
+  /**
+   * Validate commission input
+   */
+  public isCommissionValid(): boolean {
+    if (this.newCommissionRate === null || this.newCommissionRate === undefined) {
+      return false;
+    }
+
+    // Validar rango (0-100)
+    if (this.newCommissionRate < 0 || this.newCommissionRate > 100) {
+      return false;
+    }
+
+    // Validar que sea diferente al valor actual
+    if (this.newCommissionRate === this.getUserCommissionRate(this.user)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Save commission change
+   */
+  public async saveCommissionChange() {
+    if (!this.isCommissionValid()) {
+      this.showNotification('top', 'right', 'nc-simple-remove',
+        'Por favor ingresa un porcentaje válido entre 0% y 100%', 'danger');
+      return;
+    }
+
+    // Confirm change
+    const result = await Swal.fire({
+      title: 'Cambiar comisión',
+      html: `
+        <p>¿Estás seguro de cambiar la comisión del conductor?</p>
+        <div style="background: rgba(72, 128, 255, 0.1); padding: 15px; border-radius: 8px; margin: 15px 0;">
+          <p style="margin: 5px 0;"><strong>Comisión actual:</strong> ${this.getUserCommissionRate(this.user)}%</p>
+          <p style="margin: 5px 0;"><strong>Nueva comisión:</strong> ${this.newCommissionRate}%</p>
+          ${this.commissionChangeReason ? `<p style="margin: 5px 0;"><strong>Motivo:</strong> ${this.commissionChangeReason}</p>` : ''}
+        </div>
+        <p style="font-size: 13px; color: #9A9A9A;">El cambio se aplicará a partir del próximo viaje</p>
+      `,
+      icon: 'question',
+      showCancelButton: true,
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Sí, cambiar',
+      cancelButtonText: 'Cancelar'
+    });
+
+    if (!result.isConfirmed) {
+      return;
+    }
+
+    try {
+      const previousRate = this.getUserCommissionRate(this.user);
+      const currentDate = new Date();
+
+      // Create history entry
+      const historyEntry = {
+        date: currentDate.toISOString().split('T')[0],
+        time: currentDate.toTimeString().split(' ')[0],
+        previousRate: previousRate,
+        newRate: this.newCommissionRate,
+        updatedBy: 'Admin', // TODO: Get from auth service
+        reason: this.commissionChangeReason || 'Sin motivo especificado'
+      };
+
+      // Update user object
+      const updatedUser: Users = {
+        ...this.user,
+        userCommissionRate: this.newCommissionRate,
+        userCommissionType: 'percentage' as const,
+        userCommissionCustomEnabled: this.newCommissionRate !== this.DEFAULT_COMMISSION_RATE,
+        userCommissionLastUpdate: currentDate.toISOString(),
+        userCommissionUpdatedBy: 'Admin', // TODO: Get from auth service
+        userCommissionHistory: [
+          historyEntry,
+          ...(this.user.userCommissionHistory || [])
+        ].slice(0, 50) // Keep last 50 changes
+      };
+
+      // Save to Firestore
+      await this.usersService.updateUser(updatedUser);
+
+      // Update local user object
+      this.user = updatedUser;
+
+      // Close edit mode
+      this.isEditingCommission = false;
+      this.commissionChangeReason = '';
+
+      // Show success message
+      this.showNotification('top', 'right', 'nc-check-2',
+        `Comisión actualizada correctamente a ${this.newCommissionRate}%`, 'success');
+
+    } catch (error) {
+      console.error('Error updating commission:', error);
+      this.showNotification('top', 'right', 'nc-simple-remove',
+        'Error al actualizar la comisión', 'danger');
+    }
+  }
+
+  /**
+   * Open commission modal for a specific user
+   */
+  public openCommissionModal(user: Users) {
+    if (!this.hasDriverProfile(user)) {
+      this.showNotification('top', 'right', 'nc-simple-remove',
+        'Solo los conductores tienen comisión', 'warning');
+      return;
+    }
+
+    this.commissionModalUser = user;
+    this.newCommissionRate = this.getUserCommissionRate(user);
+    this.commissionChangeReason = '';
+    this.isEditingCommission = false;
+    this.showCommissionModal = true;
+  }
+
+  /**
+   * Close commission modal
+   */
+  public closeCommissionModal() {
+    this.showCommissionModal = false;
+    this.commissionModalUser = null;
+    this.isEditingCommission = false;
+    this.commissionChangeReason = '';
+  }
+
+  /**
+   * Save commission change from dedicated modal
+   */
+  public async saveCommissionFromModal() {
+    if (!this.commissionModalUser) return;
+
+    // Temporary swap user to use existing saveCommissionChange logic
+    const originalUser = this.user;
+    this.user = this.commissionModalUser;
+
+    await this.saveCommissionChange();
+
+    // Restore original user and close modal
+    this.user = originalUser;
+
+    // Update the user in the table
+    const index = this.array_user.findIndex((u: Users) => u.userId === this.commissionModalUser.userId);
+    if (index !== -1) {
+      this.array_user[index] = { ...this.commissionModalUser };
+      this.dataSource.data = [...this.array_user];
+    }
+
+    this.closeCommissionModal();
   }
 }

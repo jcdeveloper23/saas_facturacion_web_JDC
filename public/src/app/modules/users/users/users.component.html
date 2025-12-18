@@ -286,6 +286,27 @@
                         </td>
                     </ng-container>
 
+                    <!-- Commission Column -->
+                    <ng-container matColumnDef="commission">
+                        <th mat-header-cell *matHeaderCellDef class="text-center py-2">
+                            <strong>Comisión</strong>
+                        </th>
+                        <td mat-cell *matCellDef="let row" class="text-center py-2">
+                            <div class="d-flex align-items-center justify-content-center">
+                                <span *ngIf="hasDriverProfile(row)"
+                                    class="commission-badge"
+                                    (click)="openCommissionModal(row); $event.stopPropagation()"
+                                    [title]="'Gestionar comisión - Click para editar'">
+                                    <i class="nc-icon nc-chart-bar-32"></i>
+                                    {{ getUserCommissionRate(row) }}%
+                                </span>
+                                <span *ngIf="!hasDriverProfile(row)" class="text-muted" style="font-size: 0.7rem;">
+                                    N/A
+                                </span>
+                            </div>
+                        </td>
+                    </ng-container>
+
                     <!-- Actions Column -->
                     <ng-container matColumnDef="actions">
                         <th mat-header-cell *matHeaderCellDef class="text-center py-2">
@@ -396,6 +417,100 @@
                                 <div>
                                     <small>Balance</small>
                                     <p>{{ user.userWalletBalance }} {{ user.userWalletCurrency || 'USD' }}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Commission Management (Only for Drivers) -->
+                        <div class="commission-card mb-2" *ngIf="hasDriverProfile(user)">
+                            <h6 class="text-white mb-2" style="font-size: 0.8rem;">
+                                <i class="nc-icon nc-chart-bar-32"></i> Comisión de Viajes
+                            </h6>
+                            <div class="commission-content">
+                                <!-- Display Mode -->
+                                <div *ngIf="!isEditingCommission" class="commission-display">
+                                    <div class="commission-rate-display">
+                                        <div class="rate-circle">
+                                            <span class="rate-number">{{ getUserCommissionRate(user) }}</span>
+                                            <span class="rate-symbol">%</span>
+                                        </div>
+                                        <div class="rate-info">
+                                            <small class="text-muted">Comisión por viaje</small>
+                                            <p class="text-white mb-0 small">
+                                                {{ user.userCommissionCustomEnabled ? 'Personalizada' : 'Por defecto' }}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <button class="btn btn-sm btn-outline-primary btn-block mt-2"
+                                        (click)="startEditingCommission()">
+                                        <i class="nc-icon nc-settings-gear-65"></i> Modificar
+                                    </button>
+                                </div>
+
+                                <!-- Edit Mode -->
+                                <div *ngIf="isEditingCommission" class="commission-edit">
+                                    <div class="form-group mb-2">
+                                        <label class="text-white small mb-1">Porcentaje de Comisión</label>
+                                        <div class="input-group input-group-sm">
+                                            <input type="number" class="form-control" [(ngModel)]="newCommissionRate"
+                                                min="0" max="100" step="0.5"
+                                                placeholder="Ej: 20">
+                                            <div class="input-group-append">
+                                                <span class="input-group-text">%</span>
+                                            </div>
+                                        </div>
+                                        <small class="text-muted">Entre 0% y 100%</small>
+                                    </div>
+
+                                    <div class="form-group mb-2">
+                                        <label class="text-white small mb-1">Motivo del cambio (opcional)</label>
+                                        <textarea class="form-control form-control-sm" [(ngModel)]="commissionChangeReason"
+                                            rows="2" placeholder="Ej: Ajuste por desempeño..."></textarea>
+                                    </div>
+
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-sm btn-success flex-fill"
+                                            (click)="saveCommissionChange()"
+                                            [disabled]="!isCommissionValid()">
+                                            <i class="nc-icon nc-check-2"></i> Guardar
+                                        </button>
+                                        <button class="btn btn-sm btn-secondary flex-fill"
+                                            (click)="cancelEditingCommission()">
+                                            <i class="nc-icon nc-simple-remove"></i> Cancelar
+                                        </button>
+                                    </div>
+
+                                    <div class="alert alert-warning alert-sm mt-2 mb-0 p-2" *ngIf="newCommissionRate && newCommissionRate !== getUserCommissionRate(user)">
+                                        <small>
+                                            <i class="nc-icon nc-alert-circle-i"></i>
+                                            El cambio se aplicará a partir del próximo viaje
+                                        </small>
+                                    </div>
+                                </div>
+
+                                <!-- Commission History -->
+                                <div class="commission-history mt-3" *ngIf="user.userCommissionHistory && user.userCommissionHistory.length > 0 && !isEditingCommission">
+                                    <small class="text-muted d-block mb-2">
+                                        <i class="nc-icon nc-time-alarm"></i> Historial de cambios
+                                    </small>
+                                    <div class="history-list">
+                                        <div class="history-item" *ngFor="let history of user.userCommissionHistory.slice(0, 3)">
+                                            <div class="d-flex justify-content-between align-items-start">
+                                                <div>
+                                                    <small class="text-white">
+                                                        {{ history.previousRate }}% → {{ history.newRate }}%
+                                                    </small>
+                                                    <br>
+                                                    <small class="text-muted" style="font-size: 0.7rem;">
+                                                        {{ history.date }} - {{ history.updatedBy }}
+                                                    </small>
+                                                    <p class="mb-0 text-muted" style="font-size: 0.65rem;" *ngIf="history.reason">
+                                                        {{ history.reason }}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -701,6 +816,156 @@
                     <button class="btn btn-danger btn-sm" (click)="confirmRejection()">
                         Confirmar Rechazo
                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Commission Management Modal -->
+<div class="modal-backdrop-custom" *ngIf="showCommissionModal" (click)="closeCommissionModal()"></div>
+<div class="modal-custom commission-modal" [class.show]="showCommissionModal">
+    <div class="modal-dialog-custom modal-dialog-centered" (click)="$event.stopPropagation()">
+        <div class="modal-content-custom">
+            <!-- Modal Header -->
+            <div class="modal-header-custom">
+                <h5 class="modal-title-custom">
+                    <i class="nc-icon nc-chart-bar-32 text-primary"></i>
+                    Gestión de Comisión
+                </h5>
+                <button type="button" class="close-button" (click)="closeCommissionModal()" title="Cerrar">
+                    <i class="nc-icon nc-simple-remove"></i>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="modal-body-custom" *ngIf="commissionModalUser">
+                <!-- User Info -->
+                <div class="commission-user-info mb-3">
+                    <div class="d-flex align-items-center">
+                        <img [src]="commissionModalUser.userPhotoURL || 'assets/img/default-avatar.png'"
+                             class="user-avatar-small mr-2"
+                             alt="Avatar">
+                        <div>
+                            <h6 class="text-white mb-0" style="font-size: 0.9rem;">
+                                {{ commissionModalUser.userName }}
+                            </h6>
+                            <p class="text-muted mb-0" style="font-size: 0.75rem;">
+                                {{ commissionModalUser.userEmail }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Commission Display/Edit -->
+                <div class="commission-section">
+                    <!-- Display Mode -->
+                    <div *ngIf="!isEditingCommission" class="commission-display">
+                        <div class="commission-rate-display-modal">
+                            <div class="rate-circle-large">
+                                <span class="rate-number-large">{{ getUserCommissionRate(commissionModalUser) }}</span>
+                                <span class="rate-symbol-large">%</span>
+                            </div>
+                            <div class="commission-info mt-3">
+                                <p class="text-muted mb-1" style="font-size: 0.75rem;">
+                                    <i class="nc-icon nc-tag-content"></i>
+                                    Tipo:
+                                    <span class="text-white">
+                                        {{ commissionModalUser.userCommissionCustomEnabled ? 'Personalizada' : 'Por defecto' }}
+                                    </span>
+                                </p>
+                                <p class="text-muted mb-0" style="font-size: 0.75rem;"
+                                   *ngIf="commissionModalUser.userCommissionLastUpdate">
+                                    <i class="nc-icon nc-time-alarm"></i>
+                                    Última actualización:
+                                    <span class="text-white">
+                                        {{ commissionModalUser.userCommissionLastUpdate | date: 'dd/MM/yyyy HH:mm' }}
+                                    </span>
+                                </p>
+                            </div>
+                        </div>
+
+                        <button class="btn btn-primary btn-block mt-3" (click)="startEditingCommission()">
+                            <i class="nc-icon nc-settings-gear-65"></i>
+                            Editar Comisión
+                        </button>
+                    </div>
+
+                    <!-- Edit Mode -->
+                    <div *ngIf="isEditingCommission" class="commission-edit">
+                        <div class="form-group">
+                            <label class="text-white mb-2" style="font-size: 0.8rem;">
+                                <i class="nc-icon nc-chart-bar-32"></i>
+                                Nueva Tasa de Comisión (%)
+                            </label>
+                            <input type="number"
+                                   class="form-control commission-input"
+                                   [(ngModel)]="newCommissionRate"
+                                   min="0"
+                                   max="100"
+                                   step="0.5"
+                                   placeholder="0-100">
+                            <small class="text-muted" style="font-size: 0.7rem;">
+                                Rango permitido: 0% - 100%
+                            </small>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="text-white mb-2" style="font-size: 0.8rem;">
+                                <i class="nc-icon nc-notes"></i>
+                                Motivo del cambio (opcional)
+                            </label>
+                            <textarea class="form-control commission-textarea"
+                                      [(ngModel)]="commissionChangeReason"
+                                      rows="3"
+                                      placeholder="Ej: Alto rendimiento, Incentivo especial, etc."></textarea>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-3">
+                            <button class="btn btn-secondary" (click)="cancelEditingCommission()">
+                                <i class="nc-icon nc-simple-remove"></i>
+                                Cancelar
+                            </button>
+                            <button class="btn btn-success"
+                                    (click)="saveCommissionFromModal()"
+                                    [disabled]="!isCommissionValid()">
+                                <i class="nc-icon nc-check-2"></i>
+                                Guardar Cambios
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Commission History -->
+                <div class="commission-history mt-4" *ngIf="commissionModalUser.userCommissionHistory && commissionModalUser.userCommissionHistory.length > 0">
+                    <h6 class="text-white mb-2" style="font-size: 0.8rem;">
+                        <i class="nc-icon nc-bullet-list-67"></i>
+                        Historial de Cambios
+                    </h6>
+                    <div class="history-list">
+                        <div class="history-item" *ngFor="let change of commissionModalUser.userCommissionHistory.slice(0, 5)">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <p class="mb-0 text-white" style="font-size: 0.75rem;">
+                                        <span class="badge badge-secondary">{{ change.previousRate }}%</span>
+                                        <i class="nc-icon nc-minimal-right mx-1"></i>
+                                        <span class="badge badge-primary">{{ change.newRate }}%</span>
+                                    </p>
+                                    <p class="mb-0 text-muted" style="font-size: 0.7rem;" *ngIf="change.reason">
+                                        {{ change.reason }}
+                                    </p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="mb-0 text-muted" style="font-size: 0.65rem;">
+                                        {{ change.date }} {{ change.time }}
+                                    </p>
+                                    <p class="mb-0 text-muted" style="font-size: 0.65rem;">
+                                        {{ change.updatedBy }}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

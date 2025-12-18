@@ -1,3 +1,13 @@
+// Historial de cambios de comisión
+export interface CommissionHistory {
+    date: string;
+    time: string;
+    previousRate: number;
+    newRate: number;
+    updatedBy: string;
+    reason?: string;
+}
+
 export interface Users {
 
     userId?: string;
@@ -74,5 +84,13 @@ export interface Users {
 
     userClientAccountIsVerify?: boolean;
     userDriverAccountIsVerify?: boolean;
+
+    // Sistema de Comisiones
+    userCommissionRate?: number; // Porcentaje de comisión (ej: 20 = 20%)
+    userCommissionType?: 'percentage' | 'fixed'; // Tipo de comisión
+    userCommissionCustomEnabled?: boolean; // Si tiene comisión personalizada
+    userCommissionHistory?: CommissionHistory[]; // Historial de cambios
+    userCommissionLastUpdate?: string; // Última actualización
+    userCommissionUpdatedBy?: string; // Quién actualizó la comisión
 
 }
