@@ -71,6 +71,11 @@ export interface Users {
     userIdentificationFrontVerified?: boolean;
     userIdentificationBackVerified?: boolean;
 
+    // Validación Administrativa (Manual)
+    userAdminDocumentVerified?: boolean;
+    userAdminDocumentVerifiedDate?: string;
+    userAdminDocumentVerifiedBy?: string;
+
     // Reason for rejection
     userDocumentCarRejectionReason?: string;
     userIdentificationFrontRejectionReason?: string;

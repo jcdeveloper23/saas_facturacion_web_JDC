@@ -54,7 +54,7 @@ export class UsersComponent implements OnInit {
   // Filters
   public searchTerm: string = '';
   public selectedUserType: string = '';
-  public selectedDocStatus: string = '';
+  public selectedDocStatus: string = 'admin_pending';
   public selectedAccountStatus: string = '';
 
   // Stats
@@ -78,7 +78,9 @@ export class UsersComponent implements OnInit {
     { value: 'all', label: 'Todos' },
     { value: 'verified', label: 'Verificados' },
     { value: 'pending', label: 'Pendientes' },
-    { value: 'missing', label: 'Sin documentos' }
+    { value: 'missing', label: 'Sin documentos' },
+    { value: 'admin_verified', label: 'Validado Admin' },
+    { value: 'admin_pending', label: 'Pendiente Admin' }
   ];
 
   // Lightbox
@@ -119,6 +121,11 @@ export class UsersComponent implements OnInit {
     if (this.infoUser) {
       this.getUsersList();
     }
+
+    // Ensure cleanup when modal is closed by any means (X button, backdrop, Esc)
+    $('#modalUserProfile').on('hidden.bs.modal', () => {
+      this.resetUserProfileData();
+    });
   }
 
   /**
@@ -130,7 +137,7 @@ export class UsersComponent implements OnInit {
       this.array_user = users.filter((u: Users) => u.userRol !== 0);
       this.filteredUsers = this.array_user;
       this.calculateStats();
-      this.updateDataSource();
+      this.filterUsers();
     });
   }
 
@@ -187,6 +194,10 @@ export class UsersComponent implements OnInit {
           } else if (this.selectedDocStatus === 'pending') {
             matchesDocStatus = (user.userDniUploaded || user.userLicenseUploaded) &&
               (!user.userDniVerified || !user.userLicenceVerified);
+          } else if (this.selectedDocStatus === 'admin_verified') {
+            matchesDocStatus = user.userAdminDocumentVerified === true;
+          } else if (this.selectedDocStatus === 'admin_pending') {
+            matchesDocStatus = !user.userAdminDocumentVerified;
           } else if (this.selectedDocStatus === 'missing') {
             matchesDocStatus = !user.userDniUploaded || !user.userLicenseUploaded;
           }
@@ -795,6 +806,56 @@ export class UsersComponent implements OnInit {
   }
 
   /**
+   * Toggle Admin Verification Status
+   */
+  public async toggleAdminVerification(user: Users, event?: any) {
+    if (!user) return;
+
+    const newState = !user.userAdminDocumentVerified;
+    const action = newState ? 'validar' : 'invalidar';
+
+    const result = await Swal.fire({
+      title: `¿${action.charAt(0).toUpperCase() + action.slice(1)} documentación?`,
+      text: `Se marcará la documentación de ${user.userName} como ${newState ? 'VALIDADA' : 'PENDIENTE'} por administración.`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: newState ? '#10b981' : '#f59e0b',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: `Sí, ${action}`,
+      cancelButtonText: 'Cancelar'
+    });
+
+    if (result.isConfirmed) {
+      try {
+        const updateData: any = {
+          userAdminDocumentVerified: newState,
+          userAdminDocumentVerifiedDate: new Date().toISOString(),
+          userAdminDocumentVerifiedBy: this.infoUser.userEmail // Tracking who did it
+        };
+
+        await this.usersService.updateUser({ ...user, ...updateData });
+
+        // Update local state
+        user.userAdminDocumentVerified = newState;
+        user.userAdminDocumentVerifiedDate = updateData.userAdminDocumentVerifiedDate;
+
+        this.showNotification('top', 'right', 'nc-check-2', `Documentación ${newState ? 'validada' : 'pendiente'} correctamente`, 'success');
+
+        // Refresh stats/view
+        this.updateDataSource();
+
+      } catch (error) {
+        console.error(error);
+        if (event) event.target.checked = !newState; // Revert on error
+        this.showNotification('top', 'right', 'nc-simple-remove', 'Error al actualizar estado', 'danger');
+      }
+    } else {
+      // Cancelled - Revert UI
+      if (event) event.target.checked = !newState;
+    }
+  }
+
+  /**
    * Block/Unblock user account con modal intuitivo
    */
   public async toggleBlockUser(user: Users) {
@@ -990,13 +1051,28 @@ export class UsersComponent implements OnInit {
   /**
    * Close profile modal
    */
+  /**
+   * Close profile modal manually
+   */
   public closeProfileModal() {
     $('#modalUserProfile').modal('hide');
+    this.resetUserProfileData();
+  }
+
+  /**
+   * Reset all user profile related data
+   * Called automatically when modal closes
+   */
+  public resetUserProfileData() {
     this.user = {};
     this.arrayVehicles = [];
     this.vehicleSelected = {};
+    this.documentsList = [];
+    this.personalDocumentsList = [];
     this.isEditingCommission = false;
+    this.newCommissionRate = this.DEFAULT_COMMISSION_RATE;
     this.commissionChangeReason = '';
+    this.commissionModalUser = null;
   }
 
   /**

@@ -277,6 +277,92 @@ app.post("/v1/sendNotificationToAdmin", async (req, res) => {
     // }
 });
 
+/**
+ * Elimina un usuario de forma segura:
+ * 1. Guarda un respaldo en la colección deleted_users
+ * 2. Elimina las credenciales de Firebase Authentication
+ * 3. Elimina el documento del usuario de Firestore
+ *
+ * POST /v1/deleteUser
+ * Body: {
+ *   userUid: string
+ * }
+ */
+app.post("/v1/deleteUser", async (req, res) => {
+    const { userUid } = req.body;
+
+    if (!userUid) {
+        return res.status(400).json({
+            success: false,
+            message: "Missing userUid parameter"
+        });
+    }
+
+    try {
+        logger.info(`🗑️ Iniciando eliminación de usuario: ${userUid}`);
+
+        // 1. Obtener datos del usuario de Firestore
+        const userDoc = await db.collection("users").doc(userUid).get();
+
+        if (!userDoc.exists) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found in Firestore"
+            });
+        }
+
+        const userData = userDoc.data();
+        logger.info(`📋 Datos del usuario obtenidos: ${userData.userName || 'Sin nombre'}`);
+
+        // 2. Crear respaldo en deleted_users con timestamp de eliminación
+        const deletedUserData = {
+            ...userData,
+            deletedAt: admin.firestore.FieldValue.serverTimestamp(),
+            deletedDate: new Date().toISOString(),
+            originalUserUid: userUid
+        };
+
+        await db.collection("deleted_users").doc(userUid).set(deletedUserData);
+        logger.info(`✅ Respaldo creado en deleted_users`);
+
+        // 3. Eliminar credenciales de Firebase Authentication
+        try {
+            await admin.auth().deleteUser(userUid);
+            logger.info(`✅ Credenciales de autenticación eliminadas`);
+        } catch (authError) {
+            // Si el usuario no existe en Auth, continuar con la eliminación de Firestore
+            if (authError.code === 'auth/user-not-found') {
+                logger.warn(`⚠️ Usuario no encontrado en Firebase Auth (posiblemente ya eliminado)`);
+            } else {
+                throw authError;
+            }
+        }
+
+        // 4. Eliminar documento de Firestore
+        await db.collection("users").doc(userUid).delete();
+        logger.info(`✅ Documento de usuario eliminado de Firestore`);
+
+        return res.status(200).json({
+            success: true,
+            message: "Usuario eliminado correctamente",
+            data: {
+                userUid: userUid,
+                userName: userData.userName || 'Sin nombre',
+                userEmail: userData.userEmail || 'Sin email',
+                deletedAt: new Date().toISOString()
+            }
+        });
+
+    } catch (error) {
+        logger.error("❌ Error eliminando usuario:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Error al eliminar usuario",
+            error: error.message
+        });
+    }
+});
+
 
 /// *** Generar estadísticas ***
 exports.onNewRequestCreated = onDocumentCreated(
@@ -442,12 +528,12 @@ exports.onNewRequestCreated = onDocumentCreated(
  * ✅ Problemas de GPS prolongados → Se desconecta automáticamente
  *
  */
-exports.checkInactiveDrivers = onSchedule({ 
+exports.checkInactiveDrivers = onSchedule({
   schedule: "every 30 minutes", // Ejecutar cada 5 minutos
   timeZone: "America/Caracas", // Zona horaria de Venezuela
   retryCount: 3, // Reintentar 3 veces en caso de fallo
   timeoutSeconds: 540, // Timeout de 9 minutos (debe ser menor que el intervalo)
-}, async (event) => {
+}, async () => {
   try {
     logger.info("🔍 Iniciando verificación de conductores inactivos...");
 
@@ -581,6 +667,233 @@ exports.checkInactiveDrivers = onSchedule({
  *    - Plan Blaze: $0.40 por millón de invocaciones
  */
 
+/**
+ * ═══════════════════════════════════════════════════════════════════════
+ * 💰 COMMISSION CALCULATION SYSTEM
+ * ═══════════════════════════════════════════════════════════════════════
+ *
+ * Sistema profesional para calcular comisiones de conductores
+ *
+ * POST /v1/calculateCommission
+ * Body: {
+ *   tripId: string,
+ *   driverId: string,
+ *   tripAmount: number,
+ *   currency?: string
+ * }
+ *
+ * Response: {
+ *   success: boolean,
+ *   tripAmount: number,
+ *   commissionRate: number,
+ *   commissionAmount: number,
+ *   driverEarnings: number,
+ *   platformEarnings: number,
+ *   currency: string,
+ *   appliedAt: string
+ * }
+ */
+app.post("/v1/calculateCommission", async (req, res) => {
+    const { tripId, driverId, tripAmount, currency = 'USD' } = req.body;
+
+    // Validaciones
+    if (!tripId || !driverId || !tripAmount) {
+        return res.status(400).json({
+            success: false,
+            message: "Missing required parameters: tripId, driverId, tripAmount"
+        });
+    }
+
+    if (tripAmount <= 0) {
+        return res.status(400).json({
+            success: false,
+            message: "Trip amount must be greater than 0"
+        });
+    }
+
+    try {
+        logger.info(`💰 Calculating commission for trip ${tripId}, driver ${driverId}`);
+
+        // 1. Obtener información del conductor
+        const driverDoc = await db.collection("users").doc(driverId).get();
+
+        if (!driverDoc.exists) {
+            return res.status(404).json({
+                success: false,
+                message: "Driver not found"
+            });
+        }
+
+        const driverData = driverDoc.data();
+
+        // 2. Obtener la comisión del conductor (por defecto 20%)
+        const DEFAULT_COMMISSION_RATE = 20;
+        let commissionRate = DEFAULT_COMMISSION_RATE;
+
+        if (driverData.userCommissionCustomEnabled && driverData.userCommissionRate !== undefined) {
+            commissionRate = driverData.userCommissionRate;
+        } else if (driverData.userCommissionRate !== undefined) {
+            commissionRate = driverData.userCommissionRate;
+        }
+
+        // 3. Calcular montos
+        const commissionAmount = (tripAmount * commissionRate) / 100;
+        const driverEarnings = tripAmount - commissionAmount;
+        const platformEarnings = commissionAmount;
+
+        logger.info(`💵 Trip: $${tripAmount} | Commission: ${commissionRate}% ($${commissionAmount.toFixed(2)}) | Driver: $${driverEarnings.toFixed(2)}`);
+
+        // 4. Guardar el cálculo en el viaje (opcional - para auditoría)
+        const commissionData = {
+            tripId: tripId,
+            driverId: driverId,
+            driverName: driverData.userName || 'Unknown',
+            tripAmount: tripAmount,
+            commissionRate: commissionRate,
+            commissionAmount: parseFloat(commissionAmount.toFixed(2)),
+            driverEarnings: parseFloat(driverEarnings.toFixed(2)),
+            platformEarnings: parseFloat(platformEarnings.toFixed(2)),
+            currency: currency,
+            calculatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            calculatedDate: new Date().toISOString(),
+            isCustomRate: driverData.userCommissionCustomEnabled || false
+        };
+
+        // Guardar en subcolección de comisiones del viaje
+        await db.collection("trips").doc(tripId).collection("commission").doc("calculation").set(commissionData);
+
+        // También guardar referencia en el conductor para reportes
+        await db.collection("users").doc(driverId).collection("commissions").doc(tripId).set(commissionData);
+
+        logger.info(`✅ Commission calculation saved for trip ${tripId}`);
+
+        // 5. Responder
+        return res.status(200).json({
+            success: true,
+            ...commissionData,
+            appliedAt: new Date().toISOString()
+        });
+
+    } catch (error) {
+        logger.error("❌ Error calculating commission:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Error calculating commission",
+            error: error.message
+        });
+    }
+});
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════
+ * 📊 GET DRIVER COMMISSION REPORT
+ * ═══════════════════════════════════════════════════════════════════════
+ *
+ * Obtiene el reporte de comisiones de un conductor
+ *
+ * GET /v1/driverCommissionReport/:driverId
+ * Query params:
+ *   - startDate: YYYY-MM-DD (opcional)
+ *   - endDate: YYYY-MM-DD (opcional)
+ *   - limit: number (default 50, max 500)
+ */
+app.get("/v1/driverCommissionReport/:driverId", async (req, res) => {
+    const { driverId } = req.params;
+    const { startDate, endDate, limit = 50 } = req.query;
+
+    if (!driverId) {
+        return res.status(400).json({
+            success: false,
+            message: "Missing driverId parameter"
+        });
+    }
+
+    try {
+        logger.info(`📊 Generating commission report for driver ${driverId}`);
+
+        // Query comisiones del conductor
+        let query = db.collection("users").doc(driverId).collection("commissions")
+            .orderBy("calculatedDate", "desc");
+
+        if (startDate) {
+            query = query.where("calculatedDate", ">=", startDate);
+        }
+
+        if (endDate) {
+            query = query.where("calculatedDate", "<=", endDate);
+        }
+
+        query = query.limit(parseInt(limit));
+
+        const snapshot = await query.get();
+
+        if (snapshot.empty) {
+            return res.status(200).json({
+                success: true,
+                driverId: driverId,
+                totalCommissions: 0,
+                totalTrips: 0,
+                totalEarnings: 0,
+                totalPlatformEarnings: 0,
+                averageCommissionRate: 0,
+                commissions: []
+            });
+        }
+
+        const commissions = [];
+        let totalCommissionAmount = 0;
+        let totalDriverEarnings = 0;
+        let totalPlatformEarnings = 0;
+        let totalCommissionRate = 0;
+
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            commissions.push({
+                tripId: data.tripId,
+                date: data.calculatedDate,
+                amount: data.tripAmount,
+                commissionRate: data.commissionRate,
+                commissionAmount: data.commissionAmount,
+                driverEarnings: data.driverEarnings,
+                platformEarnings: data.platformEarnings,
+                currency: data.currency
+            });
+
+            totalCommissionAmount += data.commissionAmount || 0;
+            totalDriverEarnings += data.driverEarnings || 0;
+            totalPlatformEarnings += data.platformEarnings || 0;
+            totalCommissionRate += data.commissionRate || 0;
+        });
+
+        const averageCommissionRate = totalCommissionRate / commissions.length;
+
+        logger.info(`✅ Report generated: ${commissions.length} trips found`);
+
+        return res.status(200).json({
+            success: true,
+            driverId: driverId,
+            totalCommissions: parseFloat(totalCommissionAmount.toFixed(2)),
+            totalTrips: commissions.length,
+            totalEarnings: parseFloat(totalDriverEarnings.toFixed(2)),
+            totalPlatformEarnings: parseFloat(totalPlatformEarnings.toFixed(2)),
+            averageCommissionRate: parseFloat(averageCommissionRate.toFixed(2)),
+            currency: commissions[0]?.currency || 'USD',
+            period: {
+                from: startDate || 'All time',
+                to: endDate || 'Now'
+            },
+            commissions: commissions
+        });
+
+    } catch (error) {
+        logger.error("❌ Error generating commission report:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Error generating commission report",
+            error: error.message
+        });
+    }
+});
 
 
 
