@@ -1,0 +1,79 @@
+<!-- Custom Lightbox Overlay -->
+<div *ngIf="isOpen" class="custom-lightbox-overlay" (click)="closeLightbox()">
+
+    <!-- HEADER -->
+    <div class="lightbox-header" (click)="$event.stopPropagation()">
+        <h5 class="text-white mb-0" *ngIf="document">
+            <i class="nc-icon" [ngClass]="document.description ? 'nc-paper' : 'nc-image'"></i>
+            {{ document.label }}{{ document.type }}
+        </h5>
+        <button class="lightbox-close-btn" (click)="closeLightbox()" title="Cerrar">
+            <i class="nc-icon nc-simple-remove"></i>
+        </button>
+    </div>
+
+    <!-- BODY (Image Area) -->
+    <div class="lightbox-body" (click)="closeLightbox()">
+        <div class="lightbox-img-wrapper" (click)="$event.stopPropagation()">
+            <img [src]="getLightboxImage()" class="lightbox-img" alt="Documento"
+                [style.transform]="'scale(' + zoomLevel + ')'" />
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="lightbox-footer" (click)="$event.stopPropagation()">
+
+        <!-- Normal Mode: Zoom + Verify -->
+        <ng-container *ngIf="!isRejecting">
+            <!-- Zoom Controls -->
+            <div class="zoom-controls">
+                <button class="btn btn-sm btn-icon btn-dark mr-2" (click)="zoomOut($event)" title="Alejar">
+                    <i class="nc-icon nc-simple-delete"></i>
+                </button>
+                <span class="zoom-level">{{ (zoomLevel * 100).toFixed(0) }}%</span>
+                <button class="btn btn-sm btn-icon btn-dark ml-2" (click)="zoomIn($event)" title="Acercar">
+                    <i class="nc-icon nc-simple-add"></i>
+                </button>
+            </div>
+
+            <!-- Verification Actions -->
+            <div class="verification-actions" *ngIf="document && document.uploaded && document.description">
+                <p class="doc-description d-none d-md-block">{{ document.description }}</p>
+                <div class="action-buttons">
+                    <button *ngIf="!document.verified" class="btn btn-success btn-sm mr-2"
+                        (click)="verifyDocument()">
+                        <i class="nc-icon nc-check-2"></i> <span class="d-none d-sm-inline">Verificar</span>
+                    </button>
+                    <button class="btn btn-danger btn-sm" (click)="rejectDocument()">
+                        <i class="nc-icon nc-simple-remove"></i> <span class="d-none d-sm-inline">Rechazar</span>
+                    </button>
+                </div>
+            </div>
+        </ng-container>
+
+        <!-- Rejection Mode Form -->
+        <div class="rejection-form-container" *ngIf="isRejecting">
+            <h6 class="text-white mb-2">Motivo del rechazo</h6>
+
+            <!-- Quick Reasons -->
+            <div class="quick-reasons mb-2">
+                <button *ngFor="let reason of predefinedReasons" class="badge badge-default mr-1 mb-1 border-0"
+                    style="cursor: pointer; text-transform: none; font-size: 11px;"
+                    (click)="setRejectionReason(reason)">
+                    {{ reason }}
+                </button>
+            </div>
+
+            <textarea class="form-control rejection-textarea mb-2" [(ngModel)]="rejectionReason"
+                placeholder="Escribe el motivo del rechazo..." rows="2"></textarea>
+            <div class="rejection-actions">
+                <button class="btn btn-secondary btn-sm mr-2" (click)="cancelRejection()">
+                    Cancelar
+                </button>
+                <button class="btn btn-danger btn-sm" (click)="confirmRejection()">
+                    Confirmar Rechazo
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

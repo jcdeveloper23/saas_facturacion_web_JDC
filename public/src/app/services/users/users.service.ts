@@ -5,6 +5,7 @@ import { Users } from 'app/interfaces/users';
 import { Vehicle } from 'app/interfaces/vehicle';
 import { environment } from 'environments/environment';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 
 @Injectable({
   providedIn: 'root'
@@ -38,6 +39,41 @@ export class UsersService {
 
   public getAllUsers() {
     return this.db.collection('users').valueChanges();
+  }
+
+  /**
+   * Obtiene un usuario por su ID (una vez)
+   * @param userId - UID del usuario
+   * @returns Observable con los datos del usuario
+   */
+  public getUserById(userId: string): Observable<Users> {
+    return this.db.collection('users').doc<Users>(userId).valueChanges()
+      .pipe(
+        map(user => {
+          if (user) {
+            return { ...user, userUid: userId };
+          }
+          return null;
+        })
+      );
+  }
+
+  /**
+   * Obtiene un usuario por su ID en tiempo real (listener)
+   * @param userId - UID del usuario
+   * @returns Observable con los datos del usuario que se actualiza en tiempo real
+   */
+  public getUserByIdRealtime(userId: string): Observable<Users> {
+    return this.db.collection('users').doc<Users>(userId).snapshotChanges()
+      .pipe(
+        map(doc => {
+          if (doc.payload.exists) {
+            const data = doc.payload.data() as Users;
+            return { ...data, userUid: doc.payload.id };
+          }
+          return null;
+        })
+      );
   }
 
   /**

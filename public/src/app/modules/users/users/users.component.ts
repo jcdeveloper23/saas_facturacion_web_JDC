@@ -3,6 +3,7 @@ import { FormControl, NgForm } from '@angular/forms';
 import { MatPaginator } from '@angular/material/paginator';
 import { MatSort } from '@angular/material/sort';
 import { MatTableDataSource } from '@angular/material/table';
+import { Router } from '@angular/router';
 import { take } from 'rxjs/operators';
 import { Users } from 'app/interfaces/users';
 import { UsersService } from "../../../services/users/users.service";
@@ -113,7 +114,8 @@ export class UsersComponent implements OnInit {
   public commissionModalUser: Users | null = null;
 
   constructor(
-    private usersService: UsersService
+    private usersService: UsersService,
+    private router: Router
   ) { }
 
   ngOnInit(): void {
@@ -121,11 +123,6 @@ export class UsersComponent implements OnInit {
     if (this.infoUser) {
       this.getUsersList();
     }
-
-    // Ensure cleanup when modal is closed by any means (X button, backdrop, Esc)
-    $('#modalUserProfile').on('hidden.bs.modal', () => {
-      this.resetUserProfileData();
-    });
   }
 
   /**
@@ -294,21 +291,11 @@ export class UsersComponent implements OnInit {
   }
 
   /**
-   * Open user profile modal
-   * Cargar vehículos si tiene perfil de conductor
+   * Navigate to user detail page
    */
   public viewUserProfile(user: Users) {
-    this.isEdit = true;
-    this.user = { ...user };
-
-    // Cargar vehículos si tiene perfil de conductor (independiente del rol actual)
-    if (this.hasDriverProfile(user)) {
-      this.loadUserVehicles(user.userUid);
-      // Start with user documents even if no vehicle yet
-      this.updateDocumentsList();
-    }
-
-    $('#modalUserProfile').modal('show');
+    // Navigate to detail component
+    this.router.navigate(['/users', user.userUid]);
   }
 
   /**

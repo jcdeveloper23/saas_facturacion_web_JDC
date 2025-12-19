@@ -1,0 +1,121 @@
+/* ========== Commission Card ========== */
+.commission-card {
+    background: var(--bgLightTwo);
+    border-radius: 8px;
+    padding: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.commission-content {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    padding: 12px;
+}
+
+.commission-rate-display {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.rate-circle {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary) 0%, #3a6edb 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(72, 128, 255, 0.3);
+    flex-shrink: 0;
+}
+
+.rate-number {
+    font-size: 20px;
+    font-weight: 700;
+    color: white;
+    line-height: 1;
+}
+
+.rate-symbol {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.9);
+    line-height: 1;
+}
+
+.rate-info {
+    flex: 1;
+}
+
+.commission-edit .form-control,
+.commission-edit .form-control:focus {
+    background-color: rgba(0, 0, 0, 0.3) !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
+    color: #ffffff !important;
+}
+
+.commission-edit .form-control:focus {
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 0 0.2rem rgba(72, 128, 255, 0.15) !important;
+}
+
+/* Edit Mode */
+.commission-input,
+.commission-textarea {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    border-radius: 6px;
+    padding: 10px 12px;
+    width: 100%;
+    transition: all 0.3s ease;
+}
+
+.commission-input:focus,
+.commission-textarea:focus {
+    background: rgba(0, 0, 0, 0.4);
+    border-color: var(--primary);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(72, 128, 255, 0.1);
+}
+
+.commission-input::placeholder,
+.commission-textarea::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.commission-textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+/* Commission History */
+.commission-history {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 10px;
+}
+
+.history-list {
+    max-height: 120px;
+    overflow-y: auto;
+}
+
+.history-item {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    padding: 8px;
+    margin-bottom: 6px;
+    border-left: 3px solid var(--primary);
+}
+
+.history-item:last-child {
+    margin-bottom: 0;
+}
+
+/* Badge Sizes */
+.badge-xs {
+    font-size: 0.65rem;
+    padding: 2px 6px;
+}

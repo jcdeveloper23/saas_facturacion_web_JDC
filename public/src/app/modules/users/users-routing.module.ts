@@ -4,6 +4,7 @@ import { NewRequestStudentsComponent } from './new-request-students/new-request-
 import { RepresentativeComponent } from './representative/representative.component';
 import { StudentsComponent } from './students/students.component';
 import { UsersComponent } from './users/users.component';
+import { UserDetailComponent } from './user-detail/user-detail.component';
 
 const routes: Routes = [
   {
@@ -21,6 +22,10 @@ const routes: Routes = [
   {
     path: '',
     component: UsersComponent,
+  },
+  {
+    path: ':userId',
+    component: UserDetailComponent,
   }
 ];
 

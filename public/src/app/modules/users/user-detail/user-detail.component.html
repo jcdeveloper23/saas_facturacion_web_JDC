@@ -1,0 +1,311 @@
+<div class="user-detail-container">
+    <!-- Loading State -->
+    <div *ngIf="isLoading" class="loading-container">
+        <div class="spinner-border text-primary" role="status">
+            <span class="sr-only">Cargando...</span>
+        </div>
+        <p class="text-white mt-3">Cargando información del usuario...</p>
+    </div>
+
+    <!-- User Not Found -->
+    <div *ngIf="userNotFound && !isLoading" class="not-found-container">
+        <i class="nc-icon nc-simple-remove text-danger" style="font-size: 48px;"></i>
+        <h4 class="text-white mt-3">Usuario no encontrado</h4>
+        <p class="text-muted">El usuario que buscas no existe o fue eliminado.</p>
+        <button class="btn btn-primary mt-3" (click)="navigateBack()">
+            <i class="nc-icon nc-minimal-left"></i> Volver a Usuarios
+        </button>
+    </div>
+
+    <!-- User Detail Content -->
+    <div *ngIf="!isLoading && !userNotFound && user" class="detail-content">
+        <!-- Header with back button -->
+        <div class="detail-header">
+            <button class="btn-back" (click)="navigateBack()" title="Volver a lista de usuarios">
+                <i class="nc-icon nc-minimal-left"></i>
+                <span>Volver</span>
+            </button>
+            <div class="breadcrumb-trail">
+                <span class="breadcrumb-item">Usuarios</span>
+                <i class="nc-icon nc-minimal-right"></i>
+                <span class="breadcrumb-item active">{{ user.userName }}</span>
+            </div>
+        </div>
+
+        <!-- User Header Section -->
+        <div class="user-header-section">
+            <div class="row align-items-center">
+                <div class="col-md-auto text-center">
+                    <!-- Avatar -->
+                    <div class="user-avatar-large mx-auto mb-0 profile-avatar-clickable"
+                        (click)="openImageLightbox(user.userPhotoURL || './assets/img/icons/gallery.png', 'Foto de Perfil')"
+                        title="Click para ampliar">
+                        <img [src]="user.userPhotoURL || './assets/img/icons/gallery.png'" alt="{{user.userName}}"
+                            class="avatar-img-large">
+                        <div class="avatar-overlay">
+                            <i class="nc-icon nc-zoom-split"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md">
+                    <h3 class="text-white mb-1">{{ user.userName }}</h3>
+                    <p class="text-muted mb-2">{{ user.userEmail }}</p>
+                    <span class="badge badge-sm user-type-badge-large" [style.background-color]="getUserType(user).color"
+                        [title]="getUserType(user).label">
+                        <i class="nc-icon {{ getUserType(user).icon }}"></i>
+                        {{ getUserType(user).label }}
+                    </span>
+                </div>
+                <div class="col-md-auto">
+                    <!-- Quick Stats -->
+                    <div class="quick-stats">
+                        <div class="stat-item">
+                            <small class="text-muted text-uppercase">ID Usuario</small>
+                            <span class="text-white font-weight-bold">{{ user.userIdentification || 'N/A' }}</span>
+                        </div>
+                        <div class="stat-item">
+                            <small class="text-muted text-uppercase">Teléfono</small>
+                            <span class="text-white font-weight-bold">{{ user.userPhone || 'N/A' }}</span>
+                        </div>
+                        <div class="stat-item" *ngIf="user.userWalletBalance">
+                            <small class="text-muted text-uppercase">Balance</small>
+                            <span class="text-success font-weight-bold">{{ user.userWalletBalance }} {{ user.userWalletCurrency || 'USD' }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="row mt-4">
+            <!-- Left Column: Controls & Config -->
+            <div class="col-md-4">
+                <!-- Verification Status Card -->
+                <div class="verification-status-card mb-3">
+                    <h6 class="text-white mb-3" style="font-size: 0.85rem;">
+                        <i class="nc-icon nc-check-2"></i> Verificación de Cuenta
+                    </h6>
+
+                    <!-- Client Verification -->
+                    <div class="custom-control custom-switch mb-2">
+                        <input type="checkbox" class="custom-control-input" id="switchClientVerify"
+                            [checked]="user.userClientAccountIsVerify"
+                            (change)="toggleAccountVerification('client', $event)">
+                        <label class="custom-control-label text-white small" for="switchClientVerify">
+                            Verificar Cliente
+                        </label>
+                    </div>
+
+                    <!-- Driver Verification -->
+                    <div class="custom-control custom-switch mb-2" *ngIf="hasDriverProfile(user)">
+                        <input type="checkbox" class="custom-control-input" id="switchDriverVerify"
+                            [checked]="user.userDriverAccountIsVerify"
+                            (change)="toggleAccountVerification('driver', $event)">
+                        <label class="custom-control-label text-white small" for="switchDriverVerify">
+                            Verificar Conductor
+                        </label>
+                    </div>
+
+                    <!-- Admin Verification -->
+                    <div class="custom-control custom-switch pt-2 border-top border-secondary"
+                        style="border-color: rgba(255,255,255,0.1) !important;">
+                        <input type="checkbox" class="custom-control-input" id="switchAdminVerify"
+                            [checked]="user.userAdminDocumentVerified" (change)="toggleAdminVerification($event)">
+                        <label class="custom-control-label text-white small" for="switchAdminVerify">
+                            Validación Administrativa
+                        </label>
+                        <small class="d-block text-muted" *ngIf="user.userAdminDocumentVerified"
+                            style="font-size: 0.65rem;">
+                            {{ user.userAdminDocumentVerifiedDate | date:'mediumDate' }}
+                        </small>
+                    </div>
+                </div>
+
+                <!-- Commission Management (Only for Drivers) -->
+                <app-commission-editor *ngIf="hasDriverProfile(user)" [user]="user"
+                    [adminEmail]="infoUser?.userEmail" (onSave)="onCommissionSave($event)">
+                </app-commission-editor>
+            </div>
+
+            <!-- Right Column: Documents & Info -->
+            <div class="col-md-8">
+                <!-- Personal Documents -->
+                <div class="personal-documents mb-4">
+                    <h6 class="text-white mb-3 pb-2 section-title">
+                        <i class="nc-icon nc-badge text-warning mr-1"></i> Documentos Personales
+                    </h6>
+                    <div class="row">
+                        <div class="col-md-6 mb-2" *ngFor="let doc of personalDocumentsList">
+                            <div class="doc-thumbnail-card" (click)="openDocumentLightbox(doc)"
+                                [class.doc-missing]="!doc.uploaded">
+                                <div class="doc-thumbnail">
+                                    <img *ngIf="doc.url" [src]="doc.url" alt="{{doc.label}}" class="doc-thumbnail-img">
+                                    <img *ngIf="!doc.url" src="./assets/img/icons/gallery.png" alt="Sin imagen"
+                                        class="doc-thumbnail-img"
+                                        style="opacity: 0.6; object-fit: scale-down; padding: 20px;">
+                                    <div class="doc-thumbnail-overlay">
+                                        <i class="nc-icon nc-zoom-split"></i>
+                                    </div>
+                                </div>
+                                <div class="doc-thumbnail-info p-2">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <strong class="text-white small">{{ doc.label }}</strong>
+                                        <span *ngIf="doc.verified" class="badge badge-xs badge-success ml-1">
+                                            <i class="nc-icon nc-check-2"></i>
+                                        </span>
+                                        <span *ngIf="!doc.verified && doc.uploaded"
+                                            class="badge badge-xs badge-warning ml-1">
+                                            <i class="nc-icon nc-time-alarm"></i>
+                                        </span>
+                                        <span *ngIf="!doc.uploaded" class="badge badge-xs badge-danger ml-1">
+                                            <i class="nc-icon nc-simple-remove"></i>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Driver Documents (Only for Drivers) -->
+                <div class="documents-section" *ngIf="hasDriverProfile(user)">
+                    <h6 class="text-white mb-3 pb-2 section-title">
+                        <i class="nc-icon nc-paper text-primary mr-1"></i> Documentos del Conductor
+                    </h6>
+
+                    <!-- Vehicle Tabs -->
+                    <div *ngIf="arrayVehicles.length > 0" class="vehicle-tabs-container mb-3">
+                        <div class="vehicle-tab" *ngFor="let vehicle of arrayVehicles; let i = index"
+                            [class.active]="selectedVehicleIndex === i" (click)="selectVehicle(vehicle, i)">
+                            <div class="vehicle-status-dot" [class.active]="vehicle.vehicleState"
+                                [title]="vehicle.vehicleState ? 'Vehículo Activo' : 'Vehículo Inactivo'">
+                            </div>
+                            <div class="vehicle-tab-icon">
+                                <i class="fa fa-car"></i>
+                            </div>
+                            <div class="vehicle-tab-content">
+                                <span class="vehicle-brand">{{ vehicle.vehicleBrandName }} {{ vehicle.vehicleModelName
+                                    }}</span>
+                                <span class="vehicle-plate">{{ vehicle.vehiclePlateNumber }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Documents Grid -->
+                    <div class="row">
+                        <div class="col-md-4 col-sm-6 mb-2" *ngFor="let doc of documentsList">
+                            <div class="doc-thumbnail-card" (click)="openDocumentLightbox(doc)"
+                                [class.doc-missing]="!doc.uploaded">
+                                <div class="doc-thumbnail">
+                                    <img *ngIf="doc.url" [src]="doc.url" alt="{{doc.label}}" class="doc-thumbnail-img">
+                                    <img *ngIf="!doc.url" src="./assets/img/icons/gallery.png" alt="Sin imagen"
+                                        class="doc-thumbnail-img"
+                                        style="opacity: 0.6; object-fit: scale-down; padding: 20px;">
+                                    <div class="doc-thumbnail-overlay">
+                                        <i class="nc-icon nc-zoom-split"></i>
+                                    </div>
+                                </div>
+                                <div class="doc-thumbnail-info">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="flex-grow-1">
+                                            <strong class="text-white" style="font-size: 0.75rem;">{{ doc.label
+                                                }}</strong>
+                                        </div>
+                                        <span *ngIf="doc.verified" class="badge badge-xs badge-success ml-1">
+                                            <i class="nc-icon nc-check-2"></i>
+                                        </span>
+                                        <span *ngIf="!doc.verified && doc.uploaded"
+                                            class="badge badge-xs badge-warning ml-1">
+                                            <i class="nc-icon nc-time-alarm"></i>
+                                        </span>
+                                        <span *ngIf="!doc.uploaded" class="badge badge-xs badge-danger ml-1">
+                                            <i class="nc-icon nc-simple-remove"></i>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Vehicle State Toggle -->
+                    <div class="mt-3" *ngIf="vehicleSelected && vehicleSelected.vehicleId">
+                        <div class="vehicle-state-card">
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <h6 class="text-white mb-1 small">
+                                        <i class="fa fa-car text-primary mr-2"></i>
+                                        Estado del Vehículo
+                                    </h6>
+                                    <p class="text-muted mb-0" style="font-size: 0.75rem;">
+                                        {{ vehicleSelected.vehicleBrandName }} {{ vehicleSelected.vehicleModelName }} -
+                                        {{ vehicleSelected.vehiclePlateNumber }}
+                                    </p>
+                                </div>
+                                <div class="col-md-4 text-right">
+                                    <button class="btn btn-sm"
+                                        [ngClass]="vehicleSelected.vehicleState ? 'btn-success' : 'btn-danger'"
+                                        (click)="toggleVehicleState(vehicleSelected)">
+                                        <i class="nc-icon"
+                                            [ngClass]="vehicleSelected.vehicleState ? 'nc-check-2' : 'nc-simple-remove'"></i>
+                                        {{ vehicleSelected.vehicleState ? 'Activo' : 'Inactivo' }}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Client Info (Only if NO driver profile) -->
+                <div *ngIf="!hasDriverProfile(user)" class="client-info-section">
+                    <h6 class="text-white mb-3">
+                        <i class="nc-icon nc-single-02 text-primary"></i>
+                        Información del Cliente
+                    </h6>
+
+                    <div class="alert alert-info py-2 mb-3"
+                        style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3);">
+                        <i class="nc-icon nc-alert-circle-i"></i>
+                        Este usuario solo tiene perfil de cliente.
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3" *ngIf="user.userAddress">
+                            <div class="info-card-modern">
+                                <i class="nc-icon nc-pin-3 text-primary"></i>
+                                <div>
+                                    <small class="text-muted">Dirección</small>
+                                    <p class="mb-0 text-white">{{ user.userAddress }}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6 mb-3" *ngIf="user.userRating">
+                            <div class="info-card-modern">
+                                <i class="nc-icon nc-favourite-28 text-warning"></i>
+                                <div>
+                                    <small class="text-muted">Calificación</small>
+                                    <p class="mb-0 text-white">{{ user.userRating }} / 5.0</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6 mb-3" *ngIf="user.userRegisterDate">
+                            <div class="info-card-modern">
+                                <i class="nc-icon nc-calendar-60 text-info"></i>
+                                <div>
+                                    <small class="text-muted">Registro</small>
+                                    <p class="mb-0 text-white">{{ user.userRegisterDate }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Document Lightbox Component -->
+<app-document-lightbox [isOpen]="isLightboxOpen" [document]="currentDocument" [imageUrl]="lightboxImage"
+    (onClose)="closeLightbox()" (onVerify)="verifyDocument()" (onReject)="rejectDocument($event)">
+</app-document-lightbox>
