@@ -1,8 +1,9 @@
 declare interface BcvRate {
-    current?:          Current;
-    previous?:         Current;
+    current?: Current;
+    previous?: Current;
     changePercentage?: ChangePercentage;
     updates?: number;
+    reference?: number;
 }
 
 declare interface ChangePercentage {
@@ -11,7 +12,7 @@ declare interface ChangePercentage {
 }
 
 declare interface Current {
-    usd?:  number;
-    eur?:  number;
+    usd?: number;
+    eur?: number;
     date?: string;
 }

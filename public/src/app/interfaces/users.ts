@@ -98,4 +98,26 @@ export interface Users {
     userCommissionLastUpdate?: string; // Última actualización
     userCommissionUpdatedBy?: string; // Quién actualizó la comisión
 
+    // Metadatos DNI
+    userDniNumber?: string;
+    userDniExpirationDate?: string;
+    userDniIssueDate?: string;
+    userDniIssuingAuthority?: string;
+
+    // Metadatos Licencia
+    userLicenceNumber?: string;
+    userLicenceExpirationDate?: string;
+    userLicenceIssueDate?: string;
+    userLicenceType?: string; // Tipo A, B, C, etc.
+    userLicenceIssuingAuthority?: string;
+
+    // Metadatos Documento de Vehículo (Usuario)
+    userDocumentCarNumber?: string;
+    userDocumentCarExpirationDate?: string;
+    userDocumentCarIssueDate?: string;
+
+    // Audit trail
+    userLastUpdated?: string;
+    userLastUpdatedBy?: string;
+
 }

@@ -1,0 +1,31 @@
+.table-hover tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.border-bottom-dark {
+    border-bottom: 1px solid var(--bgLightTwo) !important;
+}
+
+.text-purple {
+    color: #c178c1 !important;
+}
+
+.badge-outline-primary {
+    color: var(--primary);
+    border: 1px solid var(--primary);
+    background: transparent;
+    font-weight: 500;
+}
+
+.table thead th {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: var(--primary) !important;
+    opacity: 0.8;
+}
+
+.container-fluid-body {
+    background-color: var(--secondary) !important;
+}

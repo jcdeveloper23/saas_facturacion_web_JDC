@@ -34,7 +34,14 @@ export class UsersService {
   }
 
   public getVehiclesByUser(userUid: string) {
-    return this.db.collection('vehicles', ref => ref.where('vehicleUserUid', '==', userUid)).valueChanges();
+    return this.db.collection('vehicles', ref => ref.where('vehicleUserUid', '==', userUid)).snapshotChanges()
+      .pipe(
+        map(actions => actions.map(a => {
+          const data = a.payload.doc.data() as Vehicle;
+          const vehicleId = a.payload.doc.id;
+          return { ...data, vehicleId };
+        }))
+      );
   }
 
   public getAllUsers() {
@@ -104,9 +111,26 @@ export class UsersService {
    * Actualiza el estado del vehiculo
    * */
   public updateVehicleState(userUid: string, vehicle: Vehicle) {
-    console.log('*** vehicle *** ', JSON.stringify(vehicle, null, 2));
+    console.log(`[UsersService] updateVehicleState called.`);
+    console.log(`[UsersService] Target Document ID: ${vehicle.vehicleId}`);
+    console.log(`[UsersService] Payload:`, JSON.stringify(vehicle, null, 2));
 
-    return this.db.collection('vehicles').doc(vehicle.vehicleId).update(vehicle);
+    if (!vehicle.vehicleId) {
+      console.error('[UsersService] CRITICAL ERROR: vehicleId is missing!');
+      throw new Error('vehicleId is missing');
+    }
+
+    return this.db.collection('vehicles').doc(vehicle.vehicleId).update(vehicle)
+      .then(() => console.log(`[UsersService] Update SUCCESS for ${vehicle.vehicleId}`))
+      .catch(err => console.error(`[UsersService] Update FAILED for ${vehicle.vehicleId}`, err));
+  }
+
+  /**
+   * Elimina un vehículo por ID
+   */
+  public deleteVehicle(vehicleId: string): Promise<void> {
+    console.log(`[UsersService] Deleting vehicle: ${vehicleId}`);
+    return this.db.collection('vehicles').doc(vehicleId).delete();
   }
 
   /**

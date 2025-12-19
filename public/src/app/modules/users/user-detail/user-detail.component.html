@@ -21,15 +21,21 @@
     <div *ngIf="!isLoading && !userNotFound && user" class="detail-content">
         <!-- Header with back button -->
         <div class="detail-header">
-            <button class="btn-back" (click)="navigateBack()" title="Volver a lista de usuarios">
-                <i class="nc-icon nc-minimal-left"></i>
-                <span>Volver</span>
-            </button>
-            <div class="breadcrumb-trail">
-                <span class="breadcrumb-item">Usuarios</span>
-                <i class="nc-icon nc-minimal-right"></i>
-                <span class="breadcrumb-item active">{{ user.userName }}</span>
+            <div class="header-left">
+                <button class="btn-back" (click)="navigateBack()" title="Volver a lista de usuarios">
+                    <i class="nc-icon nc-minimal-left"></i>
+                    <span>Volver</span>
+                </button>
+                <div class="breadcrumb-trail">
+                    <span class="breadcrumb-item">Usuarios</span>
+                    <i class="nc-icon nc-minimal-right"></i>
+                    <span class="breadcrumb-item active">{{ user.userName }}</span>
+                </div>
             </div>
+            <button class="btn btn-primary btn-edit" (click)="navigateToEdit()" title="Editar usuario">
+                <i class="nc-icon nc-settings-gear-65"></i>
+                <span>Editar Usuario</span>
+            </button>
         </div>
 
         <!-- User Header Section -->
@@ -50,8 +56,8 @@
                 <div class="col-md">
                     <h3 class="text-white mb-1">{{ user.userName }}</h3>
                     <p class="text-muted mb-2">{{ user.userEmail }}</p>
-                    <span class="badge badge-sm user-type-badge-large" [style.background-color]="getUserType(user).color"
-                        [title]="getUserType(user).label">
+                    <span class="badge badge-sm user-type-badge-large"
+                        [style.background-color]="getUserType(user).color" [title]="getUserType(user).label">
                         <i class="nc-icon {{ getUserType(user).icon }}"></i>
                         {{ getUserType(user).label }}
                     </span>
@@ -69,7 +75,8 @@
                         </div>
                         <div class="stat-item" *ngIf="user.userWalletBalance">
                             <small class="text-muted text-uppercase">Balance</small>
-                            <span class="text-success font-weight-bold">{{ user.userWalletBalance }} {{ user.userWalletCurrency || 'USD' }}</span>
+                            <span class="text-success font-weight-bold">{{ user.userWalletBalance }} {{
+                                user.userWalletCurrency || 'USD' }}</span>
                         </div>
                     </div>
                 </div>
@@ -122,8 +129,8 @@
                 </div>
 
                 <!-- Commission Management (Only for Drivers) -->
-                <app-commission-editor *ngIf="hasDriverProfile(user)" [user]="user"
-                    [adminEmail]="infoUser?.userEmail" (onSave)="onCommissionSave($event)">
+                <app-commission-editor *ngIf="hasDriverProfile(user)" [user]="user" [adminEmail]="infoUser?.userEmail"
+                    (onSave)="onCommissionSave($event)">
                 </app-commission-editor>
             </div>
 
@@ -187,6 +194,7 @@
                                 <span class="vehicle-brand">{{ vehicle.vehicleBrandName }} {{ vehicle.vehicleModelName
                                     }}</span>
                                 <span class="vehicle-plate">{{ vehicle.vehiclePlateNumber }}</span>
+                                <span class="vehicle-plate">{{ vehicle.vehicleId }}</span>
                             </div>
                         </div>
                     </div>

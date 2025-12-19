@@ -17,6 +17,7 @@ export class BcvExchangeRateComponent implements OnInit {
       date: 'yyyy/mm/dd',
     },
     updates: 0,
+    reference: 0
   };
 
   constructor(
@@ -26,6 +27,16 @@ export class BcvExchangeRateComponent implements OnInit {
 
   ngOnInit(): void {
     this.getBcvRate();
+    this.getHistory();
+  }
+
+  public historyList: any[] = [];
+
+  public getHistory() {
+    this.bcvRateService.getBcvRateHistory().subscribe(history => {
+      this.historyList = history;
+      console.log('History loaded:', history);
+    });
   }
 
   public getBcvRate() {
@@ -40,7 +51,8 @@ export class BcvExchangeRateComponent implements OnInit {
     var url = `${environment.dolarvzla}`;
     var response = this.http.get<any>(url).subscribe((response) => {
       console.log(JSON.stringify(response, null, 3));
-      response.updates = this.bcvRateSelected.updates+1;
+      response.updates = this.bcvRateSelected.updates + 1;
+      response.reference = this.bcvRateSelected.reference || 0;
       console.log(JSON.stringify(response, null, 3));
 
       this.saveBcvRate(response);

@@ -1,0 +1,426 @@
+/* ========== Host Animation ========== */
+:host {
+    display: block;
+    animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* ========== Container ========== */
+.user-edit-container {
+    min-height: calc(100vh - 100px);
+    padding: 20px;
+}
+
+/* ========== Loading & Not Found ========== */
+.loading-container,
+.not-found-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    text-align: center;
+}
+
+/* ========== Edit Header ========== */
+.edit-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.btn-back {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bgLightTwo);
+    color: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-back:hover {
+    background: var(--bgLightThree);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateX(-3px);
+}
+
+.breadcrumb-trail {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+}
+
+.breadcrumb-item {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.breadcrumb-item.active {
+    color: var(--primary);
+    font-weight: 500;
+}
+
+/* ========== Tabs ========== */
+.edit-tabs {
+    background: var(--bgLightTwo);
+    border-radius: 12px 12px 0 0;
+    padding: 10px 10px 0 10px;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.edit-tabs .nav-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: rgba(255, 255, 255, 0.6);
+    border: none;
+    border-radius: 8px 8px 0 0;
+    padding: 12px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.edit-tabs .nav-link i {
+    font-size: 18px;
+}
+
+.edit-tabs .nav-link:hover {
+    color: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.edit-tabs .nav-link.active {
+    background: var(--bgLightThree);
+    color: var(--primary);
+    border-bottom: 2px solid var(--primary);
+}
+
+/* ========== Tab Content ========== */
+.edit-tab-content {
+    border-radius: 0 0 12px 12px;
+    padding: 0;
+    margin-bottom: 20px;
+}
+
+.tab-inner {
+    padding: 30px;
+    background: var(--bgLightOne);
+    border-radius: 0 0 12px 12px;
+}
+
+/* ========== Section Title ========== */
+.section-title {
+    color: white;
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid rgba(59, 130, 246, 0.3);
+}
+
+/* ========== Form Groups ========== */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.form-group label .text-danger {
+    color: #ef4444;
+}
+
+.form-control {
+    background: rgba(30, 41, 59, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.95);
+    border-radius: 8px;
+    padding: 10px 15px;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus {
+    background: rgba(30, 41, 59, 0.7);
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    color: white;
+    outline: none;
+}
+
+.form-control::placeholder {
+    color: rgba(255, 255, 255, 0.35);
+}
+
+.form-control:disabled {
+    background: rgba(15, 23, 42, 0.5);
+    color: rgba(255, 255, 255, 0.4);
+    cursor: not-allowed;
+    border-color: rgba(255, 255, 255, 0.05);
+}
+
+.form-control:hover:not(:disabled):not(:focus) {
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+select.form-control {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='rgba(59,130,246,1)' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 16px 12px;
+    padding-right: 40px;
+}
+
+select.form-control option {
+    background: #1e293b;
+    color: white;
+}
+
+textarea.form-control {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.invalid-feedback {
+    display: block;
+    color: #ef4444;
+    font-size: 12px;
+    margin-top: 5px;
+    font-weight: 500;
+}
+
+.form-control.ng-invalid.ng-touched {
+    border-color: #ef4444;
+    background: rgba(239, 68, 68, 0.05);
+}
+
+.form-control.ng-valid.ng-touched {
+    border-color: rgba(16, 185, 129, 0.3);
+}
+
+/* ========== Document Sections ========== */
+.document-section {
+    background: rgba(30, 41, 59, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 25px;
+    margin-bottom: 25px;
+}
+
+.document-section:last-child {
+    margin-bottom: 0;
+}
+
+.document-section .section-title {
+    margin-bottom: 20px;
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+/* ========== Vehicle Styles ========== */
+.no-vehicles-message {
+    text-align: center;
+    padding: 60px 20px;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.no-vehicles-message i {
+    font-size: 64px;
+    margin-bottom: 20px;
+    opacity: 0.3;
+}
+
+.vehicle-pills {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 25px;
+    flex-wrap: wrap;
+}
+
+.vehicle-pills .nav-link {
+    background: rgba(30, 41, 59, 0.5);
+    color: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    padding: 12px 20px;
+    text-align: center;
+    font-size: 13px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.vehicle-pills .nav-link:hover {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+.vehicle-pills .nav-link.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.vehicle-info-box {
+    background: linear-gradient(135deg, var(--primary) 0%, #2563eb 100%);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 25px;
+    color: white;
+}
+
+.vehicle-info-box h6 {
+    margin: 0 0 8px 0;
+    font-size: 16px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.vehicle-info-box .text-muted {
+    color: rgba(255, 255, 255, 0.8) !important;
+    font-size: 14px;
+}
+
+/* ========== Form Actions ========== */
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 15px;
+    padding: 20px;
+    background: var(--bgLightTwo);
+    border-radius: 12px;
+    position: sticky;
+    bottom: 20px;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.form-actions button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 30px;
+    font-size: 15px;
+    font-weight: 500;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.form-actions button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.form-actions .btn-secondary {
+    background: #6c757d;
+    border-color: #6c757d;
+}
+
+.form-actions .btn-secondary:hover:not(:disabled) {
+    background: #5a6268;
+    border-color: #545b62;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(108, 117, 125, 0.4);
+}
+
+.form-actions .btn-success {
+    background: #10b981;
+    border-color: #10b981;
+}
+
+.form-actions .btn-success:hover:not(:disabled) {
+    background: #059669;
+    border-color: #047857;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+/* ========== Responsive ========== */
+@media (max-width: 768px) {
+    .user-edit-container {
+        padding: 10px;
+    }
+
+    .edit-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+
+    .edit-tabs .nav-link span {
+        display: none;
+    }
+
+    .edit-tabs .nav-link {
+        padding: 12px 15px;
+    }
+
+    .tab-inner {
+        padding: 20px 15px;
+    }
+
+    .document-section {
+        padding: 20px 15px;
+    }
+
+    .form-actions {
+        flex-direction: column-reverse;
+        position: static;
+    }
+
+    .form-actions button {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .vehicle-pills {
+        flex-direction: column;
+    }
+
+    .vehicle-pills .nav-link {
+        width: 100%;
+    }
+}
+
+@media (max-width: 576px) {
+    .breadcrumb-trail {
+        flex-wrap: wrap;
+    }
+
+    .section-title {
+        font-size: 16px;
+    }
+}

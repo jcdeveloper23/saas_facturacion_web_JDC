@@ -17,6 +17,8 @@ import { UsersComponent } from './users/users.component';
 import { UserDetailComponent } from './user-detail/user-detail.component';
 import { DocumentLightboxComponent } from './shared/document-lightbox/document-lightbox.component';
 import { CommissionEditorComponent } from './shared/commission-editor/commission-editor.component';
+import { DocumentUploadComponent } from './shared/document-upload/document-upload.component';
+import { UserEditComponent } from './user-edit/user-edit.component';
 
 
 @NgModule({
@@ -27,7 +29,9 @@ import { CommissionEditorComponent } from './shared/commission-editor/commission
     UsersComponent,
     UserDetailComponent,
     DocumentLightboxComponent,
-    CommissionEditorComponent
+    CommissionEditorComponent,
+    DocumentUploadComponent,
+    UserEditComponent
   ],
   imports: [
     CommonModule,

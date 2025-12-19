@@ -21,6 +21,21 @@ export interface Vehicle {
 
   vehicleDocumentRejectionReason?: string;
   vehicleSureRejectionReason?: string;
+
+  // Metadatos Seguro
+  vehicleSureNumber?: string;
+  vehicleSureExpirationDate?: string;
+  vehicleSureIssueDate?: string;
+  vehicleSureCompany?: string;
+
+  // Metadatos Matrícula
+  vehicleDocumentNumber?: string;
+  vehicleDocumentExpirationDate?: string;
+  vehicleDocumentIssueDate?: string;
+  vehicleDocumentIssuingAuthority?: string;
+
+  // Información adicional del vehículo
+  vehicleUserUid?: string;
 }
 
 export interface VehicleBrand {

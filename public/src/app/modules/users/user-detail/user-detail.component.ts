@@ -140,6 +140,13 @@ export class UserDetailComponent implements OnInit, OnDestroy {
   }
 
   /**
+   * Navigate to user edit page
+   */
+  public navigateToEdit(): void {
+    this.router.navigate(['/users', this.user.userUid, 'edit']);
+  }
+
+  /**
    * Get user type info
    */
   public getUserType(user: Users): any {
