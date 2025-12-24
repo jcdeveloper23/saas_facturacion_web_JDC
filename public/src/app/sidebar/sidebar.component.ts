@@ -184,6 +184,12 @@ export const ROUTES_SUPER_ADMIN: RouteInfo[] = [
         icontype: 'nc-icon nc-layout-11'
     },
     {
+        path: '/admin-panel/admin-trips',
+        title: 'Gestión de Viajes',
+        type: 'link',
+        icontype: 'nc-icon nc-delivery-fast'
+    },
+    {
         path: '/monitor',
         title: 'Monitor',
         type: 'link',

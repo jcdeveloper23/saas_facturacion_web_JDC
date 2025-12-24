@@ -1,0 +1,383 @@
+<div class="main-content">
+    <div class="container-fluid">
+        <!-- Título y Filtros Superiores -->
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card container-fluid-body">
+                    <div class="card-header">
+                        <h4 class="card-title">Gestión de Viajes y Estadísticas</h4>
+                        <p class="card-category">Control total de solicitudes, finanzas y rendimiento en tiempo real</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fila de Estadísticas Detalladas -->
+        <div class="row">
+            <div class="col-lg-3 col-md-6 col-sm-6">
+                <div class="card card-stats container-fluid-body">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-3 col-md-4">
+                                <div class="icon-big text-center icon-warning">
+                                    <i class="nc-icon nc-delivery-fast text-warning"></i>
+                                </div>
+                            </div>
+                            <div class="col-9 col-md-8">
+                                <div class="numbers">
+                                    <p class="card-category">Total Viajes</p>
+                                    <p class="card-title">{{ stats.totalTrips | number }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 col-sm-6">
+                <div class="card card-stats container-fluid-body">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-3 col-md-4">
+                                <div class="icon-big text-center icon-success">
+                                    <i class="nc-icon nc-money-coins text-success"></i>
+                                </div>
+                            </div>
+                            <div class="col-9 col-md-8">
+                                <div class="numbers">
+                                    <p class="card-category">Plataforma</p>
+                                    <p class="card-title text-success">${{ stats.platformEarnings | number:'1.2-2' }}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 col-sm-6">
+                <div class="card card-stats container-fluid-body">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-3 col-md-4">
+                                <div class="icon-big text-center icon-info">
+                                    <i class="nc-icon nc-badge text-info"></i>
+                                </div>
+                            </div>
+                            <div class="col-9 col-md-8">
+                                <div class="numbers">
+                                    <p class="card-category">Conductores</p>
+                                    <p class="card-title text-info">${{ stats.driverEarnings | number:'1.2-2' }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 col-sm-6">
+                <div class="card card-stats container-fluid-body">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-3 col-md-4">
+                                <div class="icon-big text-center icon-danger">
+                                    <i class="nc-icon nc-simple-remove text-danger"></i>
+                                </div>
+                            </div>
+                            <div class="col-9 col-md-8">
+                                <div class="numbers">
+                                    <p class="card-category">Cancelación</p>
+                                    <p class="card-title text-danger">{{ stats.cancellationRate | number:'1.1-1' }}%</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fila de Controles de Filtrado -->
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card shadow-sm container-fluid-body">
+                    <div class="card-body py-2">
+                        <div class="row align-items-end">
+                            <div class="col-md-3">
+                                <label class="text-white-50 small">Estado del Viaje</label>
+                                <select class="form-control" [(ngModel)]="filterStatus" (change)="loadTrips()">
+                                    <option value="all">Todos los estados</option>
+                                    <option value="pending">Solicitados (requested)</option>
+                                    <option value="accepted">Aceptados / En Sitio</option>
+                                    <option value="in_progress">En Viaje (inTravel)</option>
+                                    <option value="finished">Finalizados</option>
+                                    <option value="cancelled">Cancelados (Usuario/Cdr)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="text-white-50 small">Desde</label>
+                                <input type="date" class="form-control" [(ngModel)]="filterDateStart"
+                                    (change)="loadTrips()">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="text-white-50 small">Hasta</label>
+                                <input type="date" class="form-control" [(ngModel)]="filterDateEnd"
+                                    (change)="loadTrips()">
+                            </div>
+                            <div class="col-md-3">
+                                <button class="btn btn-outline-default btn-block btn-round" (click)="clearDates()">
+                                    <i class="nc-icon nc-refresh-69"></i> Limpiar Filtros
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla de Resultados -->
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card container-fluid-body">
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                        <div>
+                            <h4 class="card-title mb-0">Listado de Viajes ({{ filteredTrips.length }})</h4>
+                            <span class="badge badge-info mt-1">{{ filterStatus === 'all' ? 'Todos' :
+                                getStatusLabel(filterStatus) }}</span>
+                        </div>
+                        <button class="btn btn-primary btn-round" (click)="goToStats()">
+                            <i class="nc-icon nc-chart-bar-32"></i> Ver Gráficas
+                        </button>
+                    </div>
+                    <div class="card-body table-responsive p-0" style="max-height: 600px; overflow-y: auto;">
+                        <table class="table dashboard-table">
+                            <thead class="sticky-top">
+                                <tr>
+                                    <th style="width: 120px;">Fecha / Hora</th>
+                                    <th>Participantes</th>
+                                    <th>Ruta (Origen -> Destino)</th>
+                                    <th style="width: 140px;">Costo / Comisión</th>
+                                    <th style="width: 140px;">Estado</th>
+                                    <th style="width: 60px;">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr *ngIf="filteredTrips.length === 0">
+                                    <td colspan="6" class="text-center py-5">
+                                        <i class="nc-icon nc-alert-circle-i text-muted" style="font-size: 3rem;"></i>
+                                        <p class="mt-2 text-muted">No se encontraron viajes con los filtros
+                                            seleccionados</p>
+                                    </td>
+                                </tr>
+                                <tr *ngFor="let trip of filteredTrips">
+                                    <td class="text-center">
+                                        <div class="d-flex flex-column align-items-center">
+                                            <span class="font-weight-bold text-white">{{ trip.requestRegisterDate ||
+                                                (trip.requestFullDate?.toDate() | date:'dd/MM/yyyy') }}</span>
+                                            <small class="text-muted-custom">{{ trip.requestRegisterTime ||
+                                                (trip.requestFullDate?.toDate() | date:'HH:mm') }}</small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="row m-0">
+                                            <!-- Pasajero -->
+                                            <div class="col-6 p-0 border-right pr-2">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="avatar-sm mr-2" *ngIf="trip.requestClientPhotoUrl">
+                                                        <img [src]="trip.requestClientPhotoUrl" class="rounded-circle"
+                                                            width="25">
+                                                    </div>
+                                                    <div class="d-flex flex-column">
+                                                        <span class="text-white font-weight-bold small">{{
+                                                            trip.requestClientName || 'Pasajero' }}</span>
+                                                        <small class="text-muted-custom">{{ trip.requestClientPhone
+                                                            }}</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <!-- Conductor -->
+                                            <div class="col-6 p-0 pl-2">
+                                                <div class="d-flex align-items-center" *ngIf="trip.requestDriverName">
+                                                    <div class="avatar-sm mr-2" *ngIf="trip.requestDriverPhotoUrl">
+                                                        <img [src]="trip.requestDriverPhotoUrl" class="rounded-circle"
+                                                            width="25">
+                                                    </div>
+                                                    <div class="d-flex flex-column">
+                                                        <span class="text-white font-weight-bold small">{{
+                                                            trip.requestDriverName }}</span>
+                                                        <small class="text-muted-custom">{{ trip.requestDriverPhone
+                                                            }}</small>
+                                                    </div>
+                                                </div>
+                                                <span class="text-muted-custom small italic"
+                                                    *ngIf="!trip.requestDriverName">Sin asignar</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="route-info">
+                                            <div class="text-truncate small text-success">
+                                                <i class="nc-icon nc-pin-3"></i> {{ trip.requestClientAddressOrigin |
+                                                slice:0:35 }}{{ trip.requestClientAddressOrigin?.length > 35 ? '...' :
+                                                '' }}
+                                            </div>
+                                            <div class="text-truncate small text-danger">
+                                                <i class="nc-icon nc-pin-3"></i> {{ trip.requestClientAddressDestiny |
+                                                slice:0:35 }}{{ trip.requestClientAddressDestiny?.length > 35 ? '...' :
+                                                '' }}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="d-flex flex-column align-items-center">
+                                            <span class="text-success font-weight-bold">${{ (trip.requestTripCost ||
+                                                trip.requestCustomerOffer || 0) | number:'1.2-2' }}</span>
+                                            <small class="text-warning-custom font-weight-bold"
+                                                *ngIf="trip.requestCommission">Com: ${{ trip.requestCommission |
+                                                number:'1.2-2' }}</small>
+                                        </div>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge" [ngClass]="{
+                                            'badge-warning': trip.requestStatusTrip === 'requested',
+                                            'badge-info': trip.requestStatusTrip === 'acceptedByDriver' || trip.requestStatusTrip === 'driverIsInSitu',
+                                            'badge-primary': trip.requestStatusTrip === 'inTravel',
+                                            'badge-success': trip.requestStatusTrip === 'finished' || trip.requestStatus === 'Finalizada',
+                                            'badge-danger': trip.requestStatusTrip === 'cancelledByUser' || trip.requestStatusTrip === 'cancelledByDriver' || trip.requestStatus === 'Cancelada'
+                                        }">
+                                            {{ getStatusLabel(trip.requestStatusTrip || trip.requestStatus) }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        <i class="fa fa-search text-warning cursor-pointer btn-icon-custom"
+                                            (click)="viewTripDetail(trip)" title="Ver Detalle"></i>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Detalle de Viaje (Reusando estructura) -->
+<div class="modal fade" id="tripDetailModal" tabindex="-1" role="dialog" aria-labelledby="tripDetailModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content container-fluid-body">
+            <div class="modal-header justify-content-center">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <i class="nc-icon nc-simple-remove"></i>
+                </button>
+                <h4 class="card-title">Detalle del Viaje</h4>
+            </div>
+            <div class="modal-body" *ngIf="selectedTrip">
+                <div class="row">
+                    <!-- Columna info financiera y estado -->
+                    <div class="col-md-6 border-right">
+                        <h5 class="text-warning mb-3 small uppercase font-weight-bold">Información del Viaje</h5>
+                        <div class="detail-row mb-2">
+                            <span class="text-muted-custom font-weight-bold">ID:</span>
+                            <span class="text-white ml-2">#{{ selectedTrip.requestId }}</span>
+                        </div>
+                        <div class="detail-row mb-2">
+                            <span class="text-muted-custom font-weight-bold">Estado:</span>
+                            <span class="badge ml-2" [ngClass]="{
+                                'badge-warning': selectedTrip.requestStatusTrip === 'requested',
+                                'badge-info': selectedTrip.requestStatusTrip === 'acceptedByDriver' || selectedTrip.requestStatusTrip === 'driverIsInSitu',
+                                'badge-primary': selectedTrip.requestStatusTrip === 'inTravel',
+                                'badge-success': selectedTrip.requestStatusTrip === 'finished' || selectedTrip.requestStatus === 'Finalizada',
+                                'badge-danger': selectedTrip.requestStatusTrip === 'cancelledByUser' || selectedTrip.requestStatusTrip === 'cancelledByDriver' || selectedTrip.requestStatus === 'Cancelada'
+                            }">{{ getStatusLabel(selectedTrip.requestStatusTrip || selectedTrip.requestStatus)
+                                }}</span>
+                        </div>
+                        <hr class="bg-white-10">
+                        <div class="detail-row mb-2">
+                            <span class="text-muted-custom font-weight-bold">Costo Total:</span>
+                            <span class="text-success font-weight-bold ml-2">${{ (selectedTrip.requestTripCost ||
+                                selectedTrip.requestCustomerOffer || 0) | number:'1.2-2' }}</span>
+                        </div>
+                        <div class="detail-row mb-2" *ngIf="selectedTrip.requestCommission">
+                            <span class="text-muted-custom font-weight-bold">Comisión iMove:</span>
+                            <span class="text-warning ml-2">${{ selectedTrip.requestCommission | number:'1.2-2'
+                                }}</span>
+                        </div>
+                        <div class="detail-row mb-2" *ngIf="selectedTrip.requestDriverEarnings">
+                            <span class="text-muted-custom font-weight-bold">Ganancia Conductor:</span>
+                            <span class="text-info ml-2">${{ selectedTrip.requestDriverEarnings | number:'1.2-2'
+                                }}</span>
+                        </div>
+                        <div class="detail-row mb-2">
+                            <span class="text-muted-custom font-weight-bold">Método de Pago:</span>
+                            <span class="text-white ml-2">{{ selectedTrip.requestPaymentType || 'N/A' }}</span>
+                        </div>
+                    </div>
+                    <!-- Columna Personas -->
+                    <div class="col-md-6">
+                        <h5 class="text-warning mb-3 small uppercase font-weight-bold">Participantes</h5>
+                        <div class="user-info-box mb-3 p-2 rounded bg-white-5">
+                            <p class="small text-muted mb-1">PASAJERO</p>
+                            <div class="d-flex align-items-center">
+                                <img *ngIf="selectedTrip.requestClientPhotoUrl"
+                                    [src]="selectedTrip.requestClientPhotoUrl" class="rounded-circle mr-2" width="40"
+                                    height="40">
+                                <div>
+                                    <p class="m-0 text-white font-weight-bold">{{ selectedTrip.requestClientName }}</p>
+                                    <p class="m-0 small text-muted-custom">{{ selectedTrip.requestClientPhone }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="user-info-box p-2 rounded bg-white-5" *ngIf="selectedTrip.requestDriverName">
+                            <p class="small text-muted mb-1">CONDUCTOR</p>
+                            <div class="d-flex align-items-center">
+                                <img *ngIf="selectedTrip.requestDriverPhotoUrl"
+                                    [src]="selectedTrip.requestDriverPhotoUrl" class="rounded-circle mr-2" width="40"
+                                    height="40">
+                                <div>
+                                    <p class="m-0 text-white font-weight-bold">{{ selectedTrip.requestDriverName }}</p>
+                                    <p class="m-0 small text-muted-custom">{{ selectedTrip.requestDriverPhone }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-center p-3" *ngIf="!selectedTrip.requestDriverName">
+                            <p class="text-muted italic small">Sin conductor asignado</p>
+                        </div>
+                    </div>
+                </div>
+                <!-- Ruta -->
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <div class="p-3 bg-white-5 rounded">
+                            <h6 class="small font-weight-bold text-muted uppercase mb-2">Itinerario</h6>
+                            <div class="mb-2">
+                                <i class="nc-icon nc-pin-3 text-success"></i>
+                                <span class="text-white small ml-2">{{ selectedTrip.requestClientAddressOrigin }}</span>
+                            </div>
+                            <div>
+                                <i class="nc-icon nc-pin-3 text-danger"></i>
+                                <span class="text-white small ml-2">{{ selectedTrip.requestClientAddressDestiny
+                                    }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Lightbox -->
+<div class="modal fade" id="documentLightbox" tabindex="-1" aria-labelledby="documentLightboxLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content bg-transparent border-0">
+            <div class="modal-body p-0 position-relative">
+                <button type="button" class="close text-white position-absolute"
+                    style="top: 10px; right: 10px; z-index: 10;" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true" style="font-size: 2rem;">&times;</span>
+                </button>
+                <img [src]="lightboxImage" class="img-fluid w-100 rounded shadow-lg" alt="Documento ampliado" />
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,267 @@
+/* Estilos para el Panel de Gestión de Viajes */
+
+
+.text-muted-custom {
+    color: rgba(255, 255, 255, 0.6) !important;
+}
+
+.text-warning-custom {
+    color: #ff8d72 !important;
+}
+
+.bg-white-5 {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.bg-white-10 {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Tarjetas de estadísticas mejoradas - Más compactas */
+.card-stats {
+    transition: transform 0.3s ease;
+    margin-bottom: 5px !important;
+}
+
+.card-stats:hover {
+    transform: translateY(-2px);
+}
+
+.card-stats .numbers .card-title {
+    font-size: 1.15rem;
+    /* Reducido para evitar desbordamiento */
+    font-weight: 700;
+}
+
+.card-stats .card-category {
+    font-size: 0.75rem;
+    /* Más pequeño */
+    margin-bottom: 2px !important;
+}
+
+.card-stats .card-body {
+    padding: 10px !important;
+}
+
+.card-stats .icon-big {
+    font-size: 2rem !important;
+    /* Iconos un poco más pequeños */
+}
+
+/* Reducción de márgenes generales y optimización de espacios */
+.main-content {
+    padding: 5px !important;
+}
+
+.container-fluid {
+    padding-left: 5px !important;
+    padding-right: 5px !important;
+}
+
+.row {
+    margin-right: -4px !important;
+    margin-left: -4px !important;
+}
+
+.col-lg-3,
+.col-md-6,
+.col-sm-6,
+.col-md-12,
+.col-md-3,
+.col-12 {
+    padding-left: 4px !important;
+    padding-right: 4px !important;
+}
+
+/* Tarjetas */
+.card {
+    margin-bottom: 8px !important;
+    border-radius: 8px !important;
+}
+
+.card-header {
+    padding: 10px 15px !important;
+}
+
+.card-body {
+    padding: 12px !important;
+}
+
+/* Tarjetas de estadísticas - Ultra compactas */
+.card-stats {
+    transition: transform 0.3s ease;
+}
+
+.card-stats:hover {
+    transform: translateY(-2px);
+}
+
+.card-stats .numbers {
+    text-align: right;
+}
+
+.card-stats .numbers .card-category {
+    margin-bottom: 0px !important;
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.5) !important;
+    text-transform: uppercase;
+}
+
+.card-stats .numbers .card-title {
+    font-size: 1.1rem;
+    /* Tamaño optimizado para evitar desbordamiento */
+    margin: 0 !important;
+    font-weight: 700;
+}
+
+.card-stats .icon-big {
+    font-size: 1.8rem !important;
+}
+
+/* Filtros */
+.form-control {
+    height: 38px !important;
+    /* Más compacto */
+    padding: 5px 10px !important;
+    font-size: 0.85rem !important;
+}
+
+.btn-round {
+    height: 38px !important;
+    padding: 5px 15px !important;
+}
+
+/* Tabla - Consistencia con Módulo de Países */
+.dashboard-table {
+    font-size: 0.85rem !important;
+    border: none !important;
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+/* Header con color var(--bgLightTwo) y sticky */
+.dashboard-table thead th {
+    background-color: #455266 !important;
+    /* var(--bgLightTwo) */
+    color: #ffffff !important;
+    padding: 12px 8px !important;
+    border: none !important;
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    text-transform: uppercase;
+    text-align: center;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+/* Bordes redondeados para el encabezado */
+.dashboard-table thead th:first-child {
+    border-top-left-radius: 12px !important;
+}
+
+.dashboard-table thead th:last-child {
+    border-top-right-radius: 12px !important;
+}
+
+/* Filas y Celdas */
+.dashboard-table tbody td {
+    padding: 12px 8px !important;
+    border: none !important;
+    border-bottom: 0.5px solid rgba(255, 255, 255, 0.05) !important;
+    color: #ffffff !important;
+    vertical-align: middle;
+}
+
+.dashboard-table tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.03);
+}
+
+/* Sombra similar a mat-elevation-z8 */
+.table-responsive {
+    box-shadow: 0 5px 5px -3px rgba(0, 0, 0, .2), 0 8px 10px 1px rgba(0, 0, 0, .14), 0 3px 14px 2px rgba(0, 0, 0, .12);
+    border-radius: 12px;
+}
+
+/* Badges y Botones */
+.badge {
+    font-size: 0.7rem !important;
+    padding: 4px 8px !important;
+    text-transform: uppercase;
+    border-radius: 4px;
+}
+
+.btn-icon-custom {
+    color: #ff8d72;
+    /* Color de advertencia típico en el dashboard */
+    cursor: pointer;
+    font-size: 1.1rem;
+    transition: transform 0.2s;
+}
+
+.btn-icon-custom:hover {
+    transform: scale(1.1);
+}
+
+/* Sticky Header para la tabla */
+.sticky-top {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+/* Badges */
+.badge {
+    padding: 6px 10px;
+    font-weight: 500;
+    border-radius: 4px;
+}
+
+/* Filtros */
+.form-control {
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    height: 45px;
+    border-radius: 8px;
+}
+
+.form-control:focus {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: #ff8d72;
+    box-shadow: none;
+    color: #ffffff;
+}
+
+/* Modal personalizado */
+.modal-content {
+    background-color: #1e1e2f;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.detail-row {
+    font-size: 0.95rem;
+}
+
+.route-info i {
+    width: 20px;
+}
+
+/* Scrollbar personalizado */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: #1e1e2f;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #27293d;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #ff8d72;
+}

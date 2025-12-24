@@ -73,8 +73,8 @@ app.post("/v1/sendNotification", async (req, res) => {
             android: {
                 priority: "high",
                 notification: {
-                    channelId: "high_priority_channel",
-                    sound: "default",
+                    channelId: "imove_driver_channel_v2",
+                    sound: "imove",
                 },
             },
         };
@@ -102,8 +102,8 @@ app.post("/v1/sendNotification", async (req, res) => {
     //     android: {
     //         priority: "high", // IMPORTANTE para heads-up
     //         notification: {
-    //             channelId: "high_priority_channel", // Debe coincidir con el canal configurado en la app
-    //             sound: "default",
+    //             channelId: "imove_driver_channel_v2", // Debe coincidir con el canal configurado en la app
+    //             sound: "imove",
     //         },
     //     },
     //     token: token,
@@ -159,15 +159,15 @@ app.post("/v1/sendNotificationUser", async (req, res) => {
             android: {
                 priority: "high",
                 notification: {
-                    channelId: "high_priority_channel",
-                    sound: "default",
-                    icon: "ic_launcher", // Asegúrate de tener este ícono en tu app
+                    channelId: "imove_driver_channel_v2",
+                    sound: "imove",
+                    icon: "ic_notification", // Asegúrate de tener este ícono en tu app
                 },
             },
             apns: {
                 payload: {
                     aps: {
-                        sound: "default",
+                        sound: "imove",
                     },
                 },
             },
@@ -230,8 +230,8 @@ app.post("/v1/sendNotificationToAdmin", async (req, res) => {
             android: {
                 priority: "high",
                 notification: {
-                    channelId: "high_priority_channel",
-                    sound: "default",
+                    channelId: "imove_driver_channel_v2",
+                    sound: "imove",
                 },
             },
         };
@@ -259,8 +259,8 @@ app.post("/v1/sendNotificationToAdmin", async (req, res) => {
     //     android: {
     //         priority: "high", // IMPORTANTE para heads-up
     //         notification: {
-    //             channelId: "high_priority_channel", // Debe coincidir con el canal configurado en la app
-    //             sound: "default",
+    //             channelId: "imove_driver_channel_v2", // Debe coincidir con el canal configurado en la app
+    //             sound: "imove",
     //         },
     //     },
     //     token: token,

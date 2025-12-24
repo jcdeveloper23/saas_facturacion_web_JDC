@@ -70,4 +70,29 @@ export class RequestVehicleService {
       ref.where('requestDriverUid', '==', driverUid)
     ).valueChanges();
   }
+  /**
+   * Obtiene solicitudes filtradas por múltiples criterios a nivel de base de datos
+   * @param statusList Lista de estados a filtrar
+   * @param startDate Fecha inicial (opcional)
+   * @param endDate Fecha final (opcional)
+   */
+  public getFilteredRequests(statusList?: string[], startDate?: Date, endDate?: Date) {
+    return this.db.collection<any>('requestVehicle', ref => {
+      let query: any = ref;
+
+      if (statusList && statusList.length > 0) {
+        query = query.where('requestStatusTrip', 'in', statusList);
+      }
+
+      // El filtrado por fecha en Firestore requiere que el campo sea un Timestamp
+      if (startDate) {
+        query = query.where('requestFullDate', '>=', startDate);
+      }
+      if (endDate) {
+        query = query.where('requestFullDate', '<=', endDate);
+      }
+
+      return query.orderBy('requestFullDate', 'desc');
+    }).valueChanges();
+  }
 }
