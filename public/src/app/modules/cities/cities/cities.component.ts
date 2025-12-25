@@ -8,6 +8,7 @@ import { CountriesService } from 'app/services/countries/countries.service';
 import { CategoriesService } from 'app/services/categories/categories.service';
 import { LoadingService } from 'app/services/loading/loading.service';
 import { UtilsService } from 'app/services/utils/utils.service';
+import Swal from 'sweetalert2';
 
 declare const $: any;
 
@@ -296,6 +297,35 @@ export class CitiesComponent implements OnInit {
   getPriceRanges(serviceId: string): PriceRange[] {
     const service = this.getServicePricing(serviceId);
     return service.priceRanges || [];
+  }
+
+  /**
+   * Delete a city
+   * @param city
+   */
+  deleteProvider(city: City) {
+    Swal.fire({
+      title: '¿Estás seguro?',
+      text: `Estás a punto de eliminar la ciudad: ${city.cityName}. Esta acción no se puede deshacer.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.loadingService.show('Eliminando ciudad...');
+        this.cityService.deleteCity(city.cityId).then(() => {
+          this.loadingService.hide();
+          this.utilsService.showNotification('top', 'right', 'nc-check-2', 'Ciudad eliminada correctamente', 'success');
+        }).catch((error) => {
+          this.loadingService.hide();
+          console.error('Error al eliminar ciudad:', error);
+          this.utilsService.showNotification('top', 'right', 'nc-simple-remove', 'Error al eliminar la ciudad', 'danger');
+        });
+      }
+    });
   }
 
 }

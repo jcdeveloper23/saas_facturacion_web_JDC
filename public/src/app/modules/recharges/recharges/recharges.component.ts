@@ -8,6 +8,7 @@ import { LoadingService } from 'app/services/loading/loading.service';
 import { RechargesService } from 'app/services/recharges/recharges.service';
 import { StorageService } from 'app/services/storage/storage.service';
 import { UtilsService } from 'app/services/utils/utils.service';
+import { UsersService } from 'app/services/users/users.service';
 import Swal from 'sweetalert2';
 import { read, utils, WorkBook, WorkSheet } from 'xlsx';
 import * as XLSX from 'xlsx';
@@ -40,11 +41,27 @@ export class RechargesComponent implements OnInit {
   ];
   /// *** #Usado para datatables ***
   public arrayCategory: Array<Recharges> = [];
+  public filteredArray: Array<Recharges> = [];
+  public currentFilter: string = 'pending';
+
+  // Statistics
+  public stats = {
+    total: 0,
+    pending: 0,
+    accepted: 0,
+    rejected: 0,
+    amountUsd: 0,
+    amountCop: 0,
+    amountVef: 0
+  };
 
 
   public isEdit: boolean = false;
-  public recharges: Recharges = {
-  };
+  public recharges: Recharges = {};
+  public userSearchQuery: string = '';
+  public allUsers: Array<Users> = [];
+  public filteredUsers: Array<Users> = [];
+  public selectedUser: Users;
 
   public previewImage: any = null;
   public fileDataImage: File = null;
@@ -55,6 +72,7 @@ export class RechargesComponent implements OnInit {
   constructor(
     public utilsService: UtilsService,
     public rechargesService: RechargesService,
+    public usersService: UsersService,
     private storageService: StorageService,
     public loadingService: LoadingService,
 
@@ -62,43 +80,105 @@ export class RechargesComponent implements OnInit {
 
   ngOnInit(): void {
     this.infoUser = JSON.parse(localStorage.getItem("infoUser"));
-
-    // this.getRecharges();
     this.getRecharges();
   }
 
-  public getRechargesByStatus() {
-    this.rechargesService.getRechargesByStatus('pending').subscribe(recharges => {
+  public getRecharges() {
+    this.loadingService.show('Cargando recargas...');
+    this.rechargesService.getRecharges().subscribe(recharges => {
       this.arrayCategory = recharges;
-      // console.log(JSON.stringify(this.arrayCategory, null, 3));
-      this.arrayCategory = recharges;
-      // console.log(this.arrayCategory);
-      this.dataSource = new MatTableDataSource<Recharges>(recharges);
-      this.dataSource.paginator = this.paginator;
-      this.dataSource.sort = this.sort;
-      this.loadingService.hide()
+      this.calculateStats();
+      this.applyFilter(this.currentFilter);
+      this.loadingService.hide();
     });
   }
 
-  public getRecharges() {
-    this.rechargesService.getRecharges().subscribe(recharges => {
-      this.arrayCategory = recharges;
-      // console.log(JSON.stringify(this.arrayCategory, null, 3));
-      this.arrayCategory = recharges;
-      // console.log(this.arrayCategory);
-      this.dataSource = new MatTableDataSource<Recharges>(recharges);
-      this.dataSource.paginator = this.paginator;
-      this.dataSource.sort = this.sort;
-      this.loadingService.hide()
+  private calculateStats() {
+    this.stats = {
+      total: this.arrayCategory.length,
+      pending: 0,
+      accepted: 0,
+      rejected: 0,
+      amountUsd: 0,
+      amountCop: 0,
+      amountVef: 0
+    };
+
+    this.arrayCategory.forEach(r => {
+      if (r.rechargeStatus === 'pending') this.stats.pending++;
+      if (r.rechargeStatus === 'accept' || r.rechargeStatus === 'approved') {
+        this.stats.accepted++;
+        this.stats.amountUsd += parseFloat(r.rechargeAmountUsd || '0');
+        this.stats.amountCop += parseFloat(r.rechargeAmountCop || '0');
+        this.stats.amountVef += parseFloat(r.rechargeAmountVef || '0');
+      }
+      if (r.rechargeStatus === 'reject' || r.rechargeStatus === 'rejected') this.stats.rejected++;
     });
+  }
+
+  public applyFilter(status: string) {
+    this.currentFilter = status;
+    if (status === 'all') {
+      this.filteredArray = this.arrayCategory;
+    } else if (status === 'pending') {
+      this.filteredArray = this.arrayCategory.filter(r => r.rechargeStatus === 'pending');
+    } else if (status === 'accept') {
+      this.filteredArray = this.arrayCategory.filter(r => r.rechargeStatus === 'accept' || r.rechargeStatus === 'approved');
+    } else if (status === 'reject') {
+      this.filteredArray = this.arrayCategory.filter(r => r.rechargeStatus === 'reject' || r.rechargeStatus === 'rejected');
+    }
+
+    this.dataSource = new MatTableDataSource<Recharges>(this.filteredArray);
+    this.dataSource.paginator = this.paginator;
+    this.dataSource.sort = this.sort;
   }
 
 
   public newRecharges() {
-    this.recharges = {}
+    this.recharges = {
+      rechargeId: 'REC-' + new Date().getTime(),
+      rechargeStatus: 'accept',
+      rechargeCreatedAt: this.utilsService.getDateCurrent() + ' - ' + this.utilsService.getTimeCurrent(),
+      rechargeAmountUsd: '0',
+      rechargeAmountCop: '0',
+      rechargeAmountVef: '0',
+      rechargePaymentMethodName: 'Manual / Admin'
+    }
     this.isEdit = false;
-    this.recharges.rechargeId = new Date().getTime().toString();
+    this.selectedUser = null;
+    this.userSearchQuery = '';
+    this.loadAllUsers();
     $('#modalNewRecharges').modal('show');
+  }
+
+  private loadAllUsers() {
+    if (this.allUsers.length === 0) {
+      this.usersService.getAllUsers().subscribe(users => {
+        this.allUsers = users;
+      });
+    }
+  }
+
+  public searchUser(query: string) {
+    if (!query || query.length < 3) {
+      this.filteredUsers = [];
+      return;
+    }
+    const q = query.toLowerCase();
+    this.filteredUsers = this.allUsers.filter(u =>
+      (u.userName && u.userName.toLowerCase().includes(q)) ||
+      (u.userEmail && u.userEmail.toLowerCase().includes(q)) ||
+      (u.userPhone && u.userPhone.includes(q))
+    ).slice(0, 5); // Limit to top 5 results
+  }
+
+  public selectUser(user: Users) {
+    this.selectedUser = user;
+    this.recharges.rechargeUserUid = user.userUid;
+    this.recharges.rechargeUserName = user.userName;
+    this.recharges.rechargeUserPhone = user.userPhone;
+    this.filteredUsers = [];
+    this.userSearchQuery = user.userName;
   }
 
 
@@ -133,14 +213,26 @@ export class RechargesComponent implements OnInit {
         this.rechargesService.editRecharges(this.recharges).then(() => {
           this.rechargesService.editRechargesInUsers(this.recharges).then(() => {
             this.editCreditBalanceUsers();
+          })
+        })
+      } else {
+        // New Manual Recharge
+        if (!this.recharges.rechargeUserUid) {
+          this.utilsService.showNotification('top', 'right', 'nc-alert-circle-i', 'Debe seleccionar un usuario', 'danger');
+          return;
+        }
+        this.recharges.rechargeVerifiedBy = this.infoUser.userEmail;
+        this.recharges.rechargeUpdateAt = this.utilsService.getDateCurrent() + ' - ' + this.utilsService.getTimeCurrent();
 
-
-            // this.utilsService.showNotification('top', 'right', 'nc-check-2', 'Recarga procesada correctamente', 'success');
-            // $('#modalNewRecharges').modal('hide');
+        this.rechargesService.saveRecharges(this.recharges).then(() => {
+          // We also need to add it to the user's subcollection
+          this.rechargesService.editRechargesInUsers(this.recharges).then(() => {
+            this.editCreditBalanceUsers();
+            $('#modalNewRecharges').modal('hide');
+            this.utilsService.showNotification('top', 'right', 'nc-check-2', 'Nueva recarga creada correctamente', 'success');
           })
         })
       }
-    } else {
     }
   }
 
@@ -178,7 +270,7 @@ export class RechargesComponent implements OnInit {
 
   }
 
-  public async createMovementOfWallet(user: Users)  {
+  public async createMovementOfWallet(user: Users) {
     var movementIdCredit = new Date().getTime().toString();
     var newBalance = 0;
     if (user.userWalletBalance == undefined) {
@@ -242,11 +334,11 @@ export class RechargesComponent implements OnInit {
 
     console.log('*** movementDataDebit ***');
     console.log(movementDataCredit);
-    
+
     this.rechargesService.saveMovement(movementDataCredit, movementIdCredit).then(async () => {
-          this.utilsService.showNotification('top', 'right', 'nc-check-2', 'Recarga procesada correctamente', 'success');
-          $('#modalNewRecharges').modal('hide');
-        });
+      this.utilsService.showNotification('top', 'right', 'nc-check-2', 'Recarga procesada correctamente', 'success');
+      $('#modalNewRecharges').modal('hide');
+    });
 
   }
 
@@ -299,7 +391,7 @@ export class RechargesComponent implements OnInit {
     this.recharges = recharges;
     $('#modalNewRecharges').modal('show');
   }
- 
+
   importRecharges() {
     $('#modalImport').modal('show');
   }

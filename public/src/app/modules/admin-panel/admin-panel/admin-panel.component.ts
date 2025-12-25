@@ -1,4 +1,5 @@
 import { Component, OnInit, AfterViewInit, OnDestroy } from '@angular/core';
+import { Router } from '@angular/router';
 import { Chart } from 'chart.js';
 import { CityService } from '../../../services/city/city.service';
 import { RechargesService } from '../../../services/recharges/recharges.service';
@@ -43,6 +44,7 @@ export class AdminPanelComponent implements OnInit, AfterViewInit, OnDestroy {
   public lightboxImage: string = '';
 
   constructor(
+    private router: Router,
     private cityService: CityService,
     private rechargesService: RechargesService,
     private usersService: UsersService,
@@ -270,8 +272,8 @@ export class AdminPanelComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   viewTripDetail(trip: any): void {
-    this.selectedTrip = { ...trip };
-    console.log('Selected trip:', JSON.stringify(trip, null, 2));
+    // Importar Router si no está importado
+    this.router.navigate(['/admin-panel/admin-trip-detail', trip.requestId]);
   }
 
   createWeeklyTripsChart() {

@@ -1,0 +1,462 @@
+<div class="main-content">
+    <div class="container-fluid">
+        <!-- Loading State -->
+        <div *ngIf="loading" class="text-center py-5">
+            <div class="spinner-border text-warning" role="status">
+                <span class="sr-only">Cargando...</span>
+            </div>
+            <p class="mt-3 text-white">Cargando detalles del viaje...</p>
+        </div>
+
+        <!-- Trip Not Found -->
+        <div *ngIf="!loading && !trip" class="text-center py-5">
+            <i class="nc-icon nc-alert-circle-i text-danger" style="font-size: 4rem;"></i>
+            <h4 class="text-white mt-3">Viaje no encontrado</h4>
+            <button class="btn btn-primary btn-round mt-3" (click)="goBack()">
+                <i class="nc-icon nc-minimal-left"></i> Volver
+            </button>
+        </div>
+
+        <!-- Trip Details -->
+        <div *ngIf="!loading && trip">
+            <!-- Header -->
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="card container-fluid-body">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <div>
+                                <h4 class="card-title mb-1">
+                                    <i class="nc-icon nc-delivery-fast"></i> Detalles del Viaje
+                                </h4>
+                                <p class="card-category mb-0">ID: #{{ trip.requestId }}</p>
+                            </div>
+                            <div>
+                                <span class="badge badge-lg mr-2"
+                                      [ngClass]="getStatusClass(trip.requestStatusTrip || trip.requestStatus)">
+                                    {{ getStatusLabel(trip.requestStatusTrip || trip.requestStatus) }}
+                                </span>
+                                <button class="btn btn-default btn-round" (click)="goBack()">
+                                    <i class="nc-icon nc-minimal-left"></i> Volver
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="row">
+                <!-- Left Column - Trip Info -->
+                <div class="col-lg-6">
+                    <!-- General Information Card -->
+                    <div class="card container-fluid-body">
+                        <div class="card-header">
+                            <h5 class="card-title">
+                                <i class="nc-icon nc-paper text-warning"></i> Información General
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="detail-grid">
+                                <div class="detail-item">
+                                    <span class="detail-label">Tipo de Servicio:</span>
+                                    <span class="detail-value">
+                                        <span class="badge badge-info">{{ trip.requestTypeService || 'N/A' }}</span>
+                                    </span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Categoría:</span>
+                                    <span class="detail-value">{{ trip.requestCategoryName || trip.requestCategory || 'N/A' }}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Fecha y Hora:</span>
+                                    <span class="detail-value">
+                                        {{ trip.requestRegisterTime || (trip.requestFullDate?.toDate() | date:'dd/MM/yyyy HH:mm') }}
+                                    </span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Distancia:</span>
+                                    <span class="detail-value text-info">{{ trip.requestTotalDistanceOriginDestiny || 'N/A' }} km</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Duración Estimada:</span>
+                                    <span class="detail-value text-info">{{ trip.requestTotalTimeOriginDestiny || 'N/A' }} min</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Método de Pago:</span>
+                                    <span class="detail-value">{{ trip.requestPaymentType || 'N/A' }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Route Information Card -->
+                    <div class="card container-fluid-body">
+                        <div class="card-header">
+                            <h5 class="card-title">
+                                <i class="nc-icon nc-route text-warning"></i> Información de Ruta
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="route-card mb-3">
+                                <div class="route-point origin">
+                                    <div class="route-icon">
+                                        <i class="nc-icon nc-pin-3"></i>
+                                    </div>
+                                    <div class="route-details">
+                                        <small class="route-label">ORIGEN</small>
+                                        <p class="route-address">{{ trip.requestClientAddressOrigin || 'No especificado' }}</p>
+                                        <small class="text-muted-custom">
+                                            Lat: {{ trip.requestLocationOriginLat | number:'1.6-6' }},
+                                            Lng: {{ trip.requestLocationOriginLng | number:'1.6-6' }}
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="route-separator">
+                                <i class="nc-icon nc-minimal-down"></i>
+                            </div>
+                            <div class="route-card">
+                                <div class="route-point destiny">
+                                    <div class="route-icon">
+                                        <i class="nc-icon nc-pin-3"></i>
+                                    </div>
+                                    <div class="route-details">
+                                        <small class="route-label">DESTINO</small>
+                                        <p class="route-address">{{ trip.requestClientAddressDestiny || 'No especificado' }}</p>
+                                        <small class="text-muted-custom">
+                                            Lat: {{ trip.requestLocationDestinyLat | number:'1.6-6' }},
+                                            Lng: {{ trip.requestLocationDestinyLng | number:'1.6-6' }}
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Stops if any -->
+                            <div *ngIf="trip.requestStop && trip.requestStop.length > 0" class="mt-3">
+                                <h6 class="text-warning small mb-2">PARADAS INTERMEDIAS</h6>
+                                <div *ngFor="let stop of trip.requestStop" class="stop-item">
+                                    <i class="nc-icon nc-pin-3 text-info"></i>
+                                    <span>{{ stop.address || stop }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Financial Information Card -->
+                    <div class="card container-fluid-body">
+                        <div class="card-header">
+                            <h5 class="card-title">
+                                <i class="nc-icon nc-money-coins text-warning"></i> Información Financiera
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="financial-item total">
+                                <span class="financial-label">Costo Total:</span>
+                                <span class="financial-value">${{ (trip.requestTripCost || trip.requestCustomerOffer || 0) | number:'1.2-2' }}</span>
+                            </div>
+                            <hr class="bg-white-10">
+                            <div class="financial-item" *ngIf="trip.requestDriverEarnings">
+                                <span class="financial-label">Ganancia Conductor:</span>
+                                <span class="financial-value driver">${{ trip.requestDriverEarnings | number:'1.2-2' }}</span>
+                            </div>
+                            <div class="financial-item" *ngIf="trip.requestCommission">
+                                <span class="financial-label">Comisión Plataforma:</span>
+                                <span class="financial-value platform">
+                                    ${{ trip.requestCommission | number:'1.2-2' }}
+                                    <span *ngIf="trip.requestCommissionRate" class="commission-rate">
+                                        ({{ trip.requestCommissionRate * 100 }}%)
+                                    </span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cancellation Info (if applicable) -->
+                    <div *ngIf="trip.requestReasonForCancellationTripName" class="card container-fluid-body">
+                        <div class="card-header">
+                            <h5 class="card-title">
+                                <i class="nc-icon nc-simple-remove text-danger"></i> Información de Cancelación
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="detail-item">
+                                <span class="detail-label">Razón:</span>
+                                <span class="detail-value text-danger">{{ trip.requestReasonForCancellationTripName }}</span>
+                            </div>
+                            <div class="detail-item" *ngIf="trip.requestCancellationNote">
+                                <span class="detail-label">Nota:</span>
+                                <span class="detail-value">{{ trip.requestCancellationNote }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Price Audit Log -->
+                    <div *ngIf="trip.requestPriceAuditLog" class="card container-fluid-body">
+                        <div class="card-header">
+                            <h5 class="card-title">
+                                <i class="nc-icon nc-chart-pie-36 text-warning"></i> Auditoría de Precios
+                            </h5>
+                            <p class="card-category mb-0">
+                                Calculado: {{ trip.requestPriceAuditLog.calculationTimestamp | date:'dd/MM/yyyy HH:mm:ss' }}
+                            </p>
+                        </div>
+                        <div class="card-body">
+                            <!-- Calculation Results -->
+                            <div class="audit-section">
+                                <h6 class="audit-section-title">
+                                    <i class="nc-icon nc-calculator"></i> Cálculo Final
+                                </h6>
+                                <div class="audit-grid">
+                                    <div class="audit-item highlight">
+                                        <span class="audit-label">Precio Total:</span>
+                                        <span class="audit-value total">${{ trip.requestPriceAuditLog.calculation?.totalPrice | number:'1.0-0' }}</span>
+                                    </div>
+                                    <div class="audit-item">
+                                        <span class="audit-label">Precio Base:</span>
+                                        <span class="audit-value">${{ trip.requestPriceAuditLog.calculation?.basePrice | number:'1.0-0' }}</span>
+                                    </div>
+                                    <div class="audit-item">
+                                        <span class="audit-label">Precio por Distancia:</span>
+                                        <span class="audit-value">${{ trip.requestPriceAuditLog.calculation?.distancePrice | number:'1.0-0' }}</span>
+                                    </div>
+                                    <div class="audit-item" *ngIf="trip.requestPriceAuditLog.calculation?.nightSurcharge > 0">
+                                        <span class="audit-label">Recargo Nocturno:</span>
+                                        <span class="audit-value surcharge">${{ trip.requestPriceAuditLog.calculation?.nightSurcharge | number:'1.0-0' }}</span>
+                                    </div>
+                                    <div class="audit-item">
+                                        <span class="audit-label">Distancia Total:</span>
+                                        <span class="audit-value">{{ trip.requestPriceAuditLog.calculation?.totalDistanceKm | number:'1.2-2' }} km</span>
+                                    </div>
+                                    <div class="audit-item">
+                                        <span class="audit-label">Distancia Base:</span>
+                                        <span class="audit-value">{{ trip.requestPriceAuditLog.calculation?.baseDistanceKm | number:'1.0-0' }} km</span>
+                                    </div>
+                                    <div class="audit-item" *ngIf="trip.requestPriceAuditLog.calculation?.additionalDistanceRaw > 0">
+                                        <span class="audit-label">Distancia Adicional:</span>
+                                        <span class="audit-value">{{ trip.requestPriceAuditLog.calculation?.additionalDistanceRaw | number:'1.2-2' }} km</span>
+                                    </div>
+                                    <div class="audit-item" *ngIf="trip.requestPriceAuditLog.calculation?.additionalDistanceCharged > 0">
+                                        <span class="audit-label">Dist. Adicional Cobrada:</span>
+                                        <span class="audit-value">${{ trip.requestPriceAuditLog.calculation?.additionalDistanceCharged | number:'1.0-0' }}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Input Data -->
+                            <div class="audit-section">
+                                <h6 class="audit-section-title">
+                                    <i class="nc-icon nc-notes"></i> Datos de Entrada
+                                </h6>
+                                <div class="audit-grid">
+                                    <div class="audit-item">
+                                        <span class="audit-label">Fecha/Hora del Viaje:</span>
+                                        <span class="audit-value">{{ trip.requestPriceAuditLog.inputData?.tripDateTime | date:'dd/MM/yyyy HH:mm' }}</span>
+                                    </div>
+                                    <div class="audit-item">
+                                        <span class="audit-label">Duración Estimada:</span>
+                                        <span class="audit-value">{{ trip.requestPriceAuditLog.inputData?.durationInMinutes }} min</span>
+                                    </div>
+                                    <div class="audit-item">
+                                        <span class="audit-label">Distancia Calculada:</span>
+                                        <span class="audit-value">{{ trip.requestPriceAuditLog.inputData?.distanceInKm | number:'1.2-2' }} km</span>
+                                    </div>
+                                    <div class="audit-item">
+                                        <span class="audit-label">Origen (Lat, Lng):</span>
+                                        <span class="audit-value small">{{ trip.requestPriceAuditLog.inputData?.originLat | number:'1.6-6' }}, {{ trip.requestPriceAuditLog.inputData?.originLng | number:'1.6-6' }}</span>
+                                    </div>
+                                    <div class="audit-item">
+                                        <span class="audit-label">Destino (Lat, Lng):</span>
+                                        <span class="audit-value small">{{ trip.requestPriceAuditLog.inputData?.destinyLat | number:'1.6-6' }}, {{ trip.requestPriceAuditLog.inputData?.destinyLng | number:'1.6-6' }}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Pricing Configuration -->
+                            <div class="audit-section">
+                                <h6 class="audit-section-title">
+                                    <i class="nc-icon nc-settings-gear-65"></i> Configuración Aplicada
+                                </h6>
+                                <div class="audit-grid">
+                                    <div class="audit-item">
+                                        <span class="audit-label">Tipo de Servicio:</span>
+                                        <span class="audit-value">{{ trip.requestPriceAuditLog.serviceTypeName }}</span>
+                                    </div>
+                                    <div class="audit-item">
+                                        <span class="audit-label">Ciudad:</span>
+                                        <span class="audit-value">{{ trip.requestPriceAuditLog.cityName }}</span>
+                                    </div>
+                                    <div class="audit-item">
+                                        <span class="audit-label">Moneda:</span>
+                                        <span class="audit-value">{{ trip.requestPriceAuditLog.cityCurrency?.toUpperCase() }}</span>
+                                    </div>
+                                    <div class="audit-item">
+                                        <span class="audit-label">Precio Base Config:</span>
+                                        <span class="audit-value">${{ trip.requestPriceAuditLog.pricingConfig?.basePrice | number:'1.0-0' }}</span>
+                                    </div>
+                                    <div class="audit-item">
+                                        <span class="audit-label">Precio por Km:</span>
+                                        <span class="audit-value">${{ trip.requestPriceAuditLog.pricingConfig?.pricePerKm | number:'1.0-0' }}/km</span>
+                                    </div>
+                                    <div class="audit-item">
+                                        <span class="audit-label">Distancia Base Config:</span>
+                                        <span class="audit-value">{{ trip.requestPriceAuditLog.pricingConfig?.baseDistanceKm }} km</span>
+                                    </div>
+                                    <div class="audit-item" *ngIf="trip.requestPriceAuditLog.pricingConfig?.nightSurchargePercent">
+                                        <span class="audit-label">Recargo Nocturno:</span>
+                                        <span class="audit-value">{{ trip.requestPriceAuditLog.pricingConfig?.nightSurchargePercent }}%</span>
+                                    </div>
+                                    <div class="audit-item" *ngIf="trip.requestPriceAuditLog.pricingConfig?.nightSurchargeStartHour">
+                                        <span class="audit-label">Horario Nocturno:</span>
+                                        <span class="audit-value">{{ trip.requestPriceAuditLog.pricingConfig?.nightSurchargeStartHour }}:00 - {{ trip.requestPriceAuditLog.pricingConfig?.nightSurchargeEndHour }}:00</span>
+                                    </div>
+                                    <div class="audit-item full-width">
+                                        <span class="audit-label">Usa Rangos de Distancia:</span>
+                                        <span class="audit-value">
+                                            <span class="badge" [ngClass]="trip.requestPriceAuditLog.pricingConfig?.usesDistanceRanges ? 'badge-success' : 'badge-secondary'">
+                                                {{ trip.requestPriceAuditLog.pricingConfig?.usesDistanceRanges ? 'Sí' : 'No' }}
+                                            </span>
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <!-- Distance Ranges -->
+                                <div *ngIf="trip.requestPriceAuditLog.pricingConfig?.distanceRanges?.length > 0" class="mt-3">
+                                    <h6 class="text-warning small mb-2">RANGOS DE DISTANCIA</h6>
+                                    <div class="distance-ranges">
+                                        <div *ngFor="let range of trip.requestPriceAuditLog.pricingConfig.distanceRanges" class="distance-range-item">
+                                            <span class="range-label">{{ range.label }}</span>
+                                            <span class="range-price">${{ range.pricePerKm | number:'1.0-0' }}/km</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column - People & Map -->
+                <div class="col-lg-6">
+                    <!-- Passenger Information Card -->
+                    <div class="card container-fluid-body">
+                        <div class="card-header">
+                            <h5 class="card-title">
+                                <i class="nc-icon nc-single-02 text-warning"></i> Información del Pasajero
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="person-card">
+                                <div class="person-avatar" *ngIf="trip.requestClientPhotoUrl">
+                                    <img [src]="trip.requestClientPhotoUrl" alt="Foto del pasajero" class="rounded-circle">
+                                </div>
+                                <div class="person-avatar-placeholder" *ngIf="!trip.requestClientPhotoUrl">
+                                    <i class="nc-icon nc-single-02"></i>
+                                </div>
+                                <div class="person-details">
+                                    <h6 class="person-name">{{ trip.requestClientName || 'N/A' }}</h6>
+                                    <div class="person-info-item">
+                                        <i class="nc-icon nc-mobile"></i>
+                                        <span>{{ trip.requestClientPhone || 'Sin teléfono' }}</span>
+                                    </div>
+                                    <div class="person-info-item" *ngIf="trip.requestClientEmail">
+                                        <i class="nc-icon nc-email-85"></i>
+                                        <span>{{ trip.requestClientEmail }}</span>
+                                    </div>
+                                    <div class="person-info-item" *ngIf="trip.requestClientRating">
+                                        <i class="nc-icon nc-star-bold text-warning"></i>
+                                        <span>{{ trip.requestClientRating }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Driver Information Card -->
+                    <div class="card container-fluid-body">
+                        <div class="card-header">
+                            <h5 class="card-title">
+                                <i class="nc-icon nc-badge text-warning"></i> Información del Conductor
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div *ngIf="trip.requestDriverName" class="person-card">
+                                <div class="person-avatar" *ngIf="trip.requestDriverPhotoUrl">
+                                    <img [src]="trip.requestDriverPhotoUrl" alt="Foto del conductor" class="rounded-circle">
+                                </div>
+                                <div class="person-avatar-placeholder" *ngIf="!trip.requestDriverPhotoUrl">
+                                    <i class="nc-icon nc-badge"></i>
+                                </div>
+                                <div class="person-details">
+                                    <h6 class="person-name">{{ trip.requestDriverName }}</h6>
+                                    <div class="person-info-item">
+                                        <i class="nc-icon nc-mobile"></i>
+                                        <span>{{ trip.requestDriverPhone || 'Sin teléfono' }}</span>
+                                    </div>
+                                    <div class="person-info-item" *ngIf="trip.requestDriverRating">
+                                        <i class="nc-icon nc-star-bold text-warning"></i>
+                                        <span>{{ trip.requestDriverRating }}</span>
+                                    </div>
+                                    <div class="person-info-item">
+                                        <i class="nc-icon nc-circle-10"></i>
+                                        <span class="badge" [ngClass]="trip.requestDriverState ? 'badge-success' : 'badge-danger'">
+                                            {{ trip.requestDriverState ? 'Activo' : 'Inactivo' }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div *ngIf="!trip.requestDriverName" class="text-center py-4">
+                                <i class="nc-icon nc-alert-circle-i text-muted" style="font-size: 2.5rem;"></i>
+                                <p class="text-muted mt-2 mb-0">Sin conductor asignado</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Vehicle Information Card -->
+                    <div class="card container-fluid-body" *ngIf="trip.requestDriverCarBrand">
+                        <div class="card-header">
+                            <h5 class="card-title">
+                                <i class="nc-icon nc-bus-front-12 text-warning"></i> Información del Vehículo
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="detail-grid">
+                                <div class="detail-item">
+                                    <span class="detail-label">Vehículo:</span>
+                                    <span class="detail-value font-weight-bold">
+                                        {{ trip.requestDriverCarBrand }} {{ trip.requestDriverCarModel }}
+                                    </span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Placa:</span>
+                                    <span class="detail-value vehicle-plate">{{ trip.requestDriverCarPlate || 'N/A' }}</span>
+                                </div>
+                                <div class="detail-item" *ngIf="trip.requestDriverCarDescription">
+                                    <span class="detail-label">Año:</span>
+                                    <span class="detail-value">{{ trip.requestDriverCarDescription }}</span>
+                                </div>
+                                <div class="detail-item" *ngIf="trip.requestDriverCarCompany">
+                                    <span class="detail-label">Compañía:</span>
+                                    <span class="detail-value">{{ trip.requestDriverCarCompany }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Map Card -->
+                    <div class="card container-fluid-body">
+                        <div class="card-header">
+                            <h5 class="card-title">
+                                <i class="nc-icon nc-world-2 text-warning"></i> Visualización de Ruta
+                            </h5>
+                            <p class="card-category mb-0">
+                                Ruta trazada con {{ trip.requestCoordinatesOriginDestiny?.length || 0 }} puntos
+                            </p>
+                        </div>
+                        <div class="card-body p-0">
+                            <div id="tripMap" class="trip-map"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

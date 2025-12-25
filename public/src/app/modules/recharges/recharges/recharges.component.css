@@ -1,24 +1,24 @@
 .modal-dialog {
-    min-width: 80%;
+  min-width: 80%;
 }
 
 .logo {
-    width: 40px;
+  width: 40px;
 }
 
 .icon-success {
-    color: rgb(125, 183, 10);
-    cursor: pointer;
+  color: rgb(125, 183, 10);
+  cursor: pointer;
 }
 
 .icon-info {
-    color: rgb(25, 131, 253);
-    cursor: pointer;
+  color: rgb(25, 131, 253);
+  cursor: pointer;
 }
 
 .icon-danger {
-    color: rgb(255, 66, 66);
-    cursor: pointer;
+  color: rgb(255, 66, 66);
+  cursor: pointer;
 }
 
 
@@ -141,6 +141,206 @@
 ::ng-deep .mat-form-field-disabled .mat-date-range-input-separator {
   color: rgba(255, 255, 255, 0.6) !important;
 }
+
 .voucher-img {
   width: 100%;
+}
+
+/* ===================================
+   OPTIMIZED COMPACT LAYOUT
+   =================================== */
+
+.page-header-compact {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #455266 0%, #3a4557 100%);
+  border-radius: 8px;
+  margin-bottom: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.header-left .page-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-left .page-title i {
+  font-size: 1.2rem;
+  color: #FF6B35;
+}
+
+.header-left .page-subtitle {
+  margin: 2px 0 0 0;
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Header Stats - Inline */
+.header-stats {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.stat-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.stat-item i {
+  font-size: 1.2rem;
+}
+
+.stat-item.stat-pending i {
+  color: #ffc107;
+}
+
+.stat-item.stat-accepted i {
+  color: #28a745;
+}
+
+.stat-item.stat-rejected i {
+  color: #dc3545;
+}
+
+.stat-item.stat-money i {
+  color: #17a2b8;
+}
+
+.stat-content {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.stat-value {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.stat-label {
+  font-size: 0.6rem;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Filters & Actions Compact */
+.filters-compact {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 6px;
+  margin-bottom: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.filter-group-compact {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-filter-compact {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.75rem;
+  padding: 6px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-filter-compact:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.btn-filter-compact.active {
+  background: #FF6B35;
+  border-color: #FF6B35;
+  color: #fff;
+  font-weight: 600;
+}
+
+.btn-filter-compact.active.pending {
+  background: #ffc107;
+  border-color: #ffc107;
+  color: #000;
+}
+
+.btn-filter-compact.active.accepted {
+  background: #28a745;
+  border-color: #28a745;
+}
+
+.btn-filter-compact.active.rejected {
+  background: #dc3545;
+  border-color: #dc3545;
+}
+
+/* Table Optimization */
+::ng-deep .mat-table {
+  background: transparent !important;
+}
+
+.text-mini {
+  font-size: 0.65rem;
+  font-weight: 600;
+}
+
+.user-search-results {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #2b3544;
+  z-index: 1000;
+  border-radius: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.user-result-item {
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.user-result-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+::ng-deep .mat-header-row {
+  height: 40px !important;
+}
+
+::ng-deep .mat-row {
+  height: 48px !important;
+}
+
+::ng-deep .mat-cell {
+  font-size: 0.8rem !important;
+  padding: 4px 8px !important;
 }

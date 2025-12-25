@@ -212,8 +212,8 @@ export class AdminTripsManageComponent implements OnInit, OnDestroy {
     }
 
     viewTripDetail(trip: any): void {
-        this.selectedTrip = { ...trip };
-        $('#tripDetailModal').modal('show');
+        // Navegar a la página de detalle del viaje
+        this.router.navigate(['/admin-panel/admin-trip-detail', trip.requestId]);
     }
 
     openDocumentLightbox(imageUrl: string): void {
