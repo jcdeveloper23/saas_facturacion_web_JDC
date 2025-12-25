@@ -178,6 +178,12 @@ export const ROUTES_SUPER_ADMIN: RouteInfo[] = [
         icontype: 'nc-icon nc-tag-content'
     },
     {
+        path: '/notifications',
+        title: 'Notificaciones Push',
+        type: 'link',
+        icontype: 'nc-icon nc-send'
+    },
+    {
         path: '/admin-panel',
         title: 'Panel',
         type: 'link',

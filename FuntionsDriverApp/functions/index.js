@@ -6,7 +6,7 @@ const express = require("express");
 const cors = require("cors");
 const admin = require("firebase-admin");
 const functionss = require("firebase-functions");
-const {onSchedule} = require("firebase-functions/v2/scheduler");
+const { onSchedule } = require("firebase-functions/v2/scheduler");
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -73,8 +73,16 @@ app.post("/v1/sendNotification", async (req, res) => {
             android: {
                 priority: "high",
                 notification: {
-                    channelId: "imove_driver_channel_v2",
+                    channelId: "imove_driver_channel_v3", // 🔥 ACTUALIZADO a v3
                     sound: "imove",
+                    icon: "ic_notification",
+                },
+            },
+            apns: {
+                payload: {
+                    aps: {
+                        sound: "imove.wav",
+                    },
                 },
             },
         };
@@ -152,6 +160,7 @@ app.post("/v1/sendNotificationUser", async (req, res) => {
             notification: {
                 title,
                 body,
+                image: req.body.image || undefined,
             },
             data: {
                 ...data,
@@ -159,15 +168,15 @@ app.post("/v1/sendNotificationUser", async (req, res) => {
             android: {
                 priority: "high",
                 notification: {
-                    channelId: "imove_driver_channel_v2",
+                    channelId: "imove_driver_channel_v3", // 🔥 ACTUALIZADO a v3
                     sound: "imove",
-                    icon: "ic_notification", // Asegúrate de tener este ícono en tu app
+                    icon: "ic_notification",
                 },
             },
             apns: {
                 payload: {
                     aps: {
-                        sound: "imove",
+                        sound: "imove.wav",
                     },
                 },
             },
@@ -230,8 +239,16 @@ app.post("/v1/sendNotificationToAdmin", async (req, res) => {
             android: {
                 priority: "high",
                 notification: {
-                    channelId: "imove_driver_channel_v2",
+                    channelId: "imove_driver_channel_v3", // 🔥 ACTUALIZADO a v3
                     sound: "imove",
+                    icon: "ic_notification",
+                },
+            },
+            apns: {
+                payload: {
+                    aps: {
+                        sound: "imove.wav",
+                    },
                 },
             },
         };
@@ -275,6 +292,95 @@ app.post("/v1/sendNotificationToAdmin", async (req, res) => {
     //     logger.error("Error sending message:", error);
     //     return res.status(500).json({ success: false, error: error.message });
     // }
+});
+
+/**
+ * Send push notification to a specific role (Drivers or Clients)
+ * POST /v1/sendNotificationToRole
+ * Body: {
+ *   title: string,
+ *   body: string,
+ *   role: number (1 for clients, 9 for drivers),
+ *   data: object (optional)
+ * }
+ */
+app.post("/v1/sendNotificationToRole", async (req, res) => {
+    const { title, body, role, data = {} } = req.body;
+
+    if (!title || !body || role === undefined) {
+        return res.status(400).json({ message: "Missing title, body, or role" });
+    }
+
+    try {
+        // Query users by role
+        const snapshot = await db.collection("users")
+            .where("userRol", "==", parseInt(role))
+            .get();
+
+        if (snapshot.empty) {
+            return res.status(404).json({ message: `No users found with role ${role}` });
+        }
+
+        const tokens = [];
+        snapshot.forEach(doc => {
+            const userData = doc.data();
+            if (userData.userMessagingToken) {
+                tokens.push(userData.userMessagingToken);
+            }
+        });
+
+        if (tokens.length === 0) {
+            return res.status(404).json({ message: "No FCM tokens available for this role" });
+        }
+
+        // Limit to 500 tokens per request for multicast
+        const batchSize = 500;
+        const results = [];
+
+        for (let i = 0; i < tokens.length; i += batchSize) {
+            const tokenBatch = tokens.slice(i, i + batchSize);
+            const message = {
+                notification: {
+                    title,
+                    body,
+                    image: req.body.image || undefined,
+                },
+                data: data,
+                tokens: tokenBatch,
+                android: {
+                    priority: "high",
+                    notification: {
+                        channelId: "imove_driver_channel_v3",
+                        sound: "imove",
+                        icon: "ic_notification",
+                    },
+                },
+                apns: {
+                    payload: {
+                        aps: {
+                            sound: "imove.wav",
+                        },
+                    },
+                },
+            };
+            const response = await admin.messaging().sendEachForMulticast(message);
+            results.push({
+                batch: i / batchSize,
+                successCount: response.successCount,
+                failureCount: response.failureCount
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            totalFound: snapshot.size,
+            totalWithTokens: tokens.length,
+            results
+        });
+    } catch (error) {
+        logger.error("Error sending role notifications:", error);
+        return res.status(500).json({ message: "Error sending role notifications", error: error.message });
+    }
 });
 
 /**
@@ -430,7 +536,7 @@ exports.onNewRequestCreated = onDocumentCreated(
             },
 
             // Última fecha
-            lastTripDate: date, 
+            lastTripDate: date,
         };
 
         // Métodos de pago
@@ -529,113 +635,113 @@ exports.onNewRequestCreated = onDocumentCreated(
  *
  */
 exports.checkInactiveDrivers = onSchedule({
-  schedule: "every 30 minutes", // Ejecutar cada 5 minutos
-  timeZone: "America/Caracas", // Zona horaria de Venezuela
-  retryCount: 3, // Reintentar 3 veces en caso de fallo
-  timeoutSeconds: 540, // Timeout de 9 minutos (debe ser menor que el intervalo)
+    schedule: "every 30 minutes", // Ejecutar cada 5 minutos
+    timeZone: "America/Caracas", // Zona horaria de Venezuela
+    retryCount: 3, // Reintentar 3 veces en caso de fallo
+    timeoutSeconds: 540, // Timeout de 9 minutos (debe ser menor que el intervalo)
 }, async () => {
-  try {
-    logger.info("🔍 Iniciando verificación de conductores inactivos...");
+    try {
+        logger.info("🔍 Iniciando verificación de conductores inactivos...");
 
-    const now = admin.firestore.Timestamp.now(); 
-    const inactivityThresholdMinutes = 10; // 10 minutos de inactividad
-    const thresholdTime = new Date(now.toDate().getTime() - (inactivityThresholdMinutes * 60 * 1000));
+        const now = admin.firestore.Timestamp.now();
+        const inactivityThresholdMinutes = 10; // 10 minutos de inactividad
+        const thresholdTime = new Date(now.toDate().getTime() - (inactivityThresholdMinutes * 60 * 1000));
 
-    logger.info(`⏰ Tiempo límite de inactividad: ${thresholdTime.toISOString()}`);
+        logger.info(`⏰ Tiempo límite de inactividad: ${thresholdTime.toISOString()}`);
 
-    // Buscar conductores que están marcados como "conectados"
-    const usersRef = admin.firestore().collection("users");
-    const connectedDriversQuery = usersRef.where("userStateShareLocation", "==", true);
+        // Buscar conductores que están marcados como "conectados"
+        const usersRef = admin.firestore().collection("users");
+        const connectedDriversQuery = usersRef.where("userStateShareLocation", "==", true);
 
-    const snapshot = await connectedDriversQuery.get();
+        const snapshot = await connectedDriversQuery.get();
 
-    if (snapshot.empty) {
-      logger.info("✅ No hay conductores conectados actualmente");
-      return null;
-    }
+        if (snapshot.empty) {
+            logger.info("✅ No hay conductores conectados actualmente");
+            return null;
+        }
 
-    logger.info(`📊 Total de conductores conectados: ${snapshot.size}`);
+        logger.info(`📊 Total de conductores conectados: ${snapshot.size}`);
 
-    let inactiveCount = 0;
-    let disconnectedCount = 0;
-    const batch = admin.firestore().batch();
+        let inactiveCount = 0;
+        let disconnectedCount = 0;
+        const batch = admin.firestore().batch();
 
-    // Revisar cada conductor conectado
-    for (const doc of snapshot.docs) {
-      const driverData = doc.data();
-      const driverId = doc.id;
-      const driverName = driverData.userName || "Sin nombre";
+        // Revisar cada conductor conectado
+        for (const doc of snapshot.docs) {
+            const driverData = doc.data();
+            const driverId = doc.id;
+            const driverName = driverData.userName || "Sin nombre";
 
-      // Verificar si tiene timestamp de última ubicación
-      if (!driverData.userLastLocationDate) {
-        logger.warn(`⚠️ Conductor ${driverName} (${driverId}) sin userLastLocationDate - omitiendo`);
-        continue;
-      }
+            // Verificar si tiene timestamp de última ubicación
+            if (!driverData.userLastLocationDate) {
+                logger.warn(`⚠️ Conductor ${driverName} (${driverId}) sin userLastLocationDate - omitiendo`);
+                continue;
+            }
 
-      // Convertir a Date para comparación
-      let lastLocationDate;
-      if (driverData.userLastLocationDate instanceof admin.firestore.Timestamp) {
-        lastLocationDate = driverData.userLastLocationDate.toDate();
-      } else if (typeof driverData.userLastLocationDate === "string") {
-        lastLocationDate = new Date(driverData.userLastLocationDate);
-      } else {
-        logger.warn(`⚠️ Formato de fecha inválido para conductor ${driverId}`);
-        continue;
-      }
+            // Convertir a Date para comparación
+            let lastLocationDate;
+            if (driverData.userLastLocationDate instanceof admin.firestore.Timestamp) {
+                lastLocationDate = driverData.userLastLocationDate.toDate();
+            } else if (typeof driverData.userLastLocationDate === "string") {
+                lastLocationDate = new Date(driverData.userLastLocationDate);
+            } else {
+                logger.warn(`⚠️ Formato de fecha inválido para conductor ${driverId}`);
+                continue;
+            }
 
-      // Verificar si está inactivo (más de 10 minutos sin actualizar ubicación)
-      if (lastLocationDate < thresholdTime) {
-        inactiveCount++;
-        const inactiveMinutes = Math.floor((now.toDate() - lastLocationDate) / 60000);
+            // Verificar si está inactivo (más de 10 minutos sin actualizar ubicación)
+            if (lastLocationDate < thresholdTime) {
+                inactiveCount++;
+                const inactiveMinutes = Math.floor((now.toDate() - lastLocationDate) / 60000);
 
-        logger.warn(
-            `🔴 Conductor INACTIVO detectado: ${driverName} (${driverId})`,
-            {
-              lastUpdate: lastLocationDate.toISOString(),
-              inactiveMinutes: inactiveMinutes,
-              threshold: inactivityThresholdMinutes,
-            },
-        );
+                logger.warn(
+                    `🔴 Conductor INACTIVO detectado: ${driverName} (${driverId})`,
+                    {
+                        lastUpdate: lastLocationDate.toISOString(),
+                        inactiveMinutes: inactiveMinutes,
+                        threshold: inactivityThresholdMinutes,
+                    },
+                );
 
-        // Marcar para desconexión en el batch
-        batch.update(doc.ref, {
-          userStateShareLocation: false,
-          lastAutoDisconnect: admin.firestore.FieldValue.serverTimestamp(),
-          autoDisconnectReason: `Inactivo por ${inactiveMinutes} minutos sin compartir ubicación`,
+                // Marcar para desconexión en el batch
+                batch.update(doc.ref, {
+                    userStateShareLocation: false,
+                    lastAutoDisconnect: admin.firestore.FieldValue.serverTimestamp(),
+                    autoDisconnectReason: `Inactivo por ${inactiveMinutes} minutos sin compartir ubicación`,
+                });
+
+                disconnectedCount++;
+            }
+        }
+
+        // Ejecutar desconexiones en batch (atómico)
+        if (disconnectedCount > 0) {
+            await batch.commit();
+            logger.info(
+                `✅ Desconexión completada: ${disconnectedCount} de ${inactiveCount} conductores inactivos`,
+            );
+        } else {
+            logger.info("✅ Todos los conductores conectados están activos");
+        }
+
+        // Log de resumen
+        logger.info("📋 Resumen de verificación:", {
+            totalConnected: snapshot.size,
+            inactiveDetected: inactiveCount,
+            disconnected: disconnectedCount,
+            timestamp: now.toDate().toISOString(),
         });
 
-        disconnectedCount++;
-      }
+        return {
+            success: true,
+            totalConnected: snapshot.size,
+            inactiveDetected: inactiveCount,
+            disconnected: disconnectedCount,
+        };
+    } catch (error) {
+        logger.error("❌ Error en checkInactiveDrivers:", error);
+        throw error; // Esto activará los reintentos automáticos
     }
-
-    // Ejecutar desconexiones en batch (atómico)
-    if (disconnectedCount > 0) {
-      await batch.commit();
-      logger.info(
-          `✅ Desconexión completada: ${disconnectedCount} de ${inactiveCount} conductores inactivos`,
-      );
-    } else {
-      logger.info("✅ Todos los conductores conectados están activos");
-    }
-
-    // Log de resumen
-    logger.info("📋 Resumen de verificación:", {
-      totalConnected: snapshot.size,
-      inactiveDetected: inactiveCount,
-      disconnected: disconnectedCount,
-      timestamp: now.toDate().toISOString(),
-    });
-
-    return {
-      success: true,
-      totalConnected: snapshot.size,
-      inactiveDetected: inactiveCount,
-      disconnected: disconnectedCount,
-    };
-  } catch (error) {
-    logger.error("❌ Error en checkInactiveDrivers:", error);
-    throw error; // Esto activará los reintentos automáticos
-  }
 });
 
 /**

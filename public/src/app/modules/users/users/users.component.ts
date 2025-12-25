@@ -48,6 +48,7 @@ export class UsersComponent implements OnInit {
     'phone',
     'documentsStatus',
     'state',
+    'location',
     'commission',
     'actions',
   ];
@@ -722,6 +723,38 @@ export class UsersComponent implements OnInit {
         this.showNotification('top', 'right', 'nc-check-2', `Usuario ${action}do correctamente`, 'success');
       } catch (error) {
         this.showNotification('top', 'right', 'nc-simple-remove', 'Error al actualizar estado', 'danger');
+      }
+    }
+  }
+
+  /**
+   * Toggle location sharing state
+   */
+  public async toggleLocationSharing(user: Users, event: any) {
+    event.stopPropagation();
+    const newState = !user.userStateShareLocation;
+    const action = newState ? 'activar' : 'desactivar';
+
+    const result = await Swal.fire({
+      title: `¿${action.charAt(0).toUpperCase() + action.slice(1)} ubicación?`,
+      text: `Se ${action}á el compartido de ubicación para ${user.userName}`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: newState ? '#10b981' : '#dc3545',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: `Sí, ${action}`,
+      cancelButtonText: 'Cancelar'
+    });
+
+    if (result.isConfirmed) {
+      try {
+        const updateData = { ...user, userStateShareLocation: newState };
+        await this.usersService.updateUser(updateData);
+        user.userStateShareLocation = newState;
+        this.showNotification('top', 'right', 'nc-check-2', `Compartido de ubicación ${action}do correctamente`, 'success');
+      } catch (error) {
+        console.error(error);
+        this.showNotification('top', 'right', 'nc-simple-remove', 'Error al actualizar compartido de ubicación', 'danger');
       }
     }
   }

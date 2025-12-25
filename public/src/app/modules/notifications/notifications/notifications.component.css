@@ -1,0 +1,342 @@
+/* Palette aligned with demo.css variables */
+.container-fluid-body {
+    background-color: var(--secondary) !important;
+    border: none;
+    color: white;
+    border-radius: 15px;
+}
+
+.border-primary {
+    border: 1px solid var(--primary) !important;
+}
+
+/* Stepper Styling */
+.stepper-wrapper {
+    display: flex;
+    justify-content: space-between;
+    position: relative;
+    max-width: 600px;
+    margin: 10px auto;
+}
+
+.stepper-wrapper::before {
+    content: "";
+    position: absolute;
+    top: 20px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: var(--bgLightTwo);
+    z-index: 1;
+}
+
+.stepper-item {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.step-counter {
+    width: 40px;
+    height: 40px;
+    background: var(--bgLight);
+    border: 2px solid var(--bgLightTwo);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 10px;
+    font-weight: 700;
+    color: var(--bgLightTwo);
+    transition: all 0.3s ease;
+}
+
+.step-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--bgLightTwo);
+}
+
+.stepper-item.active .step-counter {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+    box-shadow: 0 0 15px rgba(72, 128, 255, 0.4);
+}
+
+.stepper-item.active .step-name {
+    color: white;
+    font-weight: 700;
+}
+
+.stepper-item.completed .step-counter {
+    background: var(--green);
+    border-color: var(--green);
+    color: white;
+}
+
+.stepper-item.completed .step-counter::after {
+    content: "✓";
+}
+
+.stepper-item.completed .step-counter {
+    font-size: 0;
+}
+
+.stepper-item.completed .step-counter::after {
+    font-size: 18px;
+}
+
+/* Form Elements */
+.form-control {
+    background-color: var(--bgLight) !important;
+    border: 2px solid transparent !important;
+    color: white !important;
+    border-radius: 10px;
+}
+
+.form-control:focus {
+    border-color: var(--primary) !important;
+    box-shadow: none;
+}
+
+.border-dashed {
+    border: 2px dashed var(--bgLightTwo) !important;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+}
+
+.image-upload-zone:hover {
+    background-color: var(--bgLightTwo);
+    border-color: var(--primary) !important;
+}
+
+.image-preview-full img {
+    max-height: 250px;
+    width: 100%;
+    object-fit: cover;
+}
+
+.preview-overlay {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+}
+
+/* Phone Mockup */
+.phone-container {
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.phone-frame {
+    width: 320px;
+    height: 640px;
+    background: #000;
+    border-radius: 40px;
+    border: 8px solid #323d4e;
+    padding: 12px;
+    position: relative;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.phone-screen {
+    width: 100%;
+    height: 100%;
+    background: #111;
+    border-radius: 28px;
+    overflow: hidden;
+    position: relative;
+    background-image: url('https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=2070&auto=format&fit=crop');
+    background-size: cover;
+    background-position: center;
+}
+
+.phone-screen::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.phone-home-indicator {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 2px;
+}
+
+/* Notification Preview in Phone */
+.notification-preview {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.app-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+}
+
+.app-name {
+    font-size: 11px;
+    font-weight: 600;
+    opacity: 0.8;
+}
+
+.notif-time {
+    font-size: 10px;
+    opacity: 0.6;
+}
+
+.notif-title {
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.notif-body {
+    font-size: 12px;
+    opacity: 0.9;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.x-small {
+    font-size: 10px;
+}
+
+/* Templates Section */
+.template-card {
+    background-color: var(--bgLight);
+    border: 1px solid var(--bgLightTwo);
+    border-radius: 12px;
+    transition: all 0.2s;
+}
+
+.template-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--primary);
+    background-color: var(--bgLightTwo);
+}
+
+.template-img-thumb {
+    height: 80px;
+    overflow: hidden;
+}
+
+.template-img-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.delete-btn {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.template-card:hover .delete-btn {
+    opacity: 1;
+}
+
+/* Tables */
+::ng-deep .mat-paginator {
+    background-color: transparent !important;
+    color: white !important;
+}
+
+::ng-deep .mat-header-cell {
+    color: var(--primary) !important;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+::ng-deep .mat-cell {
+    color: rgba(255, 255, 255, 0.8) !important;
+    border-bottom: 1px solid var(--bgLightTwo) !important;
+}
+
+.avatar-table {
+    width: 36px;
+    height: 36px;
+    border: 2px solid var(--bgLightTwo);
+}
+
+.btn-neutral {
+    background-color: var(--bgLight) !important;
+    color: white !important;
+}
+
+.btn-neutral:hover {
+    background-color: var(--bgLightTwo) !important;
+}
+
+.badge-primary {
+    background-color: var(--primary);
+}
+
+.badge-warning {
+    background-color: #FEC53D;
+    color: #000;
+}
+
+.cursor-pointer {
+    cursor: pointer;
+}
+
+/* Simple Animations */
+.animate__animated {
+    animation-duration: 0.5s;
+    animation-fill-mode: both;
+}
+
+.animate__fadeIn {
+    animation-name: fadeIn;
+}
+
+.animate__fadeInDown {
+    animation-name: fadeInDown;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translate3d(0, -20px, 0);
+    }
+
+    to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+    }
+}
