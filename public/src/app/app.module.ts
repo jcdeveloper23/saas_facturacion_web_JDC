@@ -56,7 +56,8 @@ import { CustomCurrencyPipe } from './pipes_custom/custom-currency.pipe';
         AngularFirestoreModule,
         AngularFireStorageModule,
         AgmCoreModule.forRoot({
-            apiKey: 'AIzaSyABbbtwiiybWFt7e1ADeTGN6iGEQ0cRIe4'
+            apiKey: 'AIzaSyABbbtwiiybWFt7e1ADeTGN6iGEQ0cRIe4',
+            libraries: ['visualization', 'places']
         }),
         MatSortModule,
         MatPaginatorModule,

@@ -70,7 +70,7 @@
                                 <div class="detail-item">
                                     <span class="detail-label">Fecha y Hora:</span>
                                     <span class="detail-value">
-                                        {{ trip.requestRegisterTime || (trip.requestFullDate?.toDate() | date:'dd/MM/yyyy HH:mm') }}
+                                        {{ (trip.requestFullDate?.toDate() | date:'dd/MM/yyyy hh:mm a') }}
                                     </span>
                                 </div>
                                 <div class="detail-item">

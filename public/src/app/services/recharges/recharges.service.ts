@@ -32,6 +32,10 @@ export class RechargesService {
     return this.db.collection('recharges').doc(recharges.rechargeId).update(recharges);
   }
 
+  saveRechargesInUsers(recharges: Recharges) {
+    return this.db.collection('users').doc(recharges.rechargeUserUid).collection('recharges').doc(recharges.rechargeId).set(recharges);
+  }
+
   editRechargesInUsers(recharges: Recharges) {
     return this.db.collection('users').doc(recharges.rechargeUserUid).collection('recharges').doc(recharges.rechargeId).update(recharges);
   }

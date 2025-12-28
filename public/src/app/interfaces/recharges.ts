@@ -4,6 +4,7 @@ declare interface Recharges {
     rechargeAmountUsd?: string,
     rechargeAmountVef?: string,
     rechargeCreatedAt?: string,
+    rechargeCreatedBy?: string,
     rechargeObservations?: string,
     rechargePaymentMethodBank?: string,
     rechargePaymentMethodId?: string,

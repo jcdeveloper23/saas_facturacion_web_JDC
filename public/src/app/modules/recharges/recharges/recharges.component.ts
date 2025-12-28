@@ -9,6 +9,8 @@ import { RechargesService } from 'app/services/recharges/recharges.service';
 import { StorageService } from 'app/services/storage/storage.service';
 import { UtilsService } from 'app/services/utils/utils.service';
 import { UsersService } from 'app/services/users/users.service';
+import { BcvExchangeRateService } from 'app/services/bcv_exchange_rate/bcv-exchange-rate.service';
+import { NotificationService } from 'app/services/notifications/notification.service';
 import Swal from 'sweetalert2';
 import { read, utils, WorkBook, WorkSheet } from 'xlsx';
 import * as XLSX from 'xlsx';
@@ -68,6 +70,7 @@ export class RechargesComponent implements OnInit {
   public viewAll: boolean = false;
   public lightboxImage: string = '';
   public infoUser: Users;
+  public bcvRate: BcvRate = null;
 
   constructor(
     public utilsService: UtilsService,
@@ -75,12 +78,93 @@ export class RechargesComponent implements OnInit {
     public usersService: UsersService,
     private storageService: StorageService,
     public loadingService: LoadingService,
+    private bcvExchangeRateService: BcvExchangeRateService,
+    private notificationService: NotificationService,
 
   ) { }
 
   ngOnInit(): void {
     this.infoUser = JSON.parse(localStorage.getItem("infoUser"));
     this.getRecharges();
+    this.getBcvRate();
+  }
+
+  private getBcvRate() {
+    this.bcvExchangeRateService.getBcvRate().pipe(take(1)).subscribe(rates => {
+      if (rates && rates.length > 0) {
+        this.bcvRate = rates[0];
+      }
+    });
+  }
+
+  /**
+   * Calcula el valor en USD basado en el monto en COP
+   * @param copAmount Monto en COP a convertir
+   * @returns String con el valor en USD con 2 decimales
+   */
+  private getValueInUsd(copAmount: number): string {
+    if (!this.bcvRate || !this.bcvRate.reference || copAmount === 0) {
+      return '0.00';
+    }
+
+    const value = copAmount / this.bcvRate.reference;
+    return value.toFixed(2);
+  }
+
+  /**
+   * Calcula el valor en VEF basado en el monto en COP
+   * @param copAmount Monto en COP a convertir
+   * @returns String con el valor en VEF con 2 decimales
+   */
+  private getValueInVef(copAmount: number): string {
+    if (!this.bcvRate || !this.bcvRate.reference || !this.bcvRate.current?.usd || copAmount === 0) {
+      return '0.00';
+    }
+
+    const valueUsd = copAmount / this.bcvRate.reference;
+    const valueVef = valueUsd * this.bcvRate.current.usd;
+
+    return valueVef.toFixed(2);
+  }
+
+  /**
+   * Formatea un valor numérico a string con 2 decimales
+   * @param value Valor a formatear
+   * @returns String con 2 decimales (ej: '1000.00')
+   */
+  private formatAmount(value: string | number | undefined): string {
+    if (!value) return '0.00';
+    const numValue = typeof value === 'string' ? parseFloat(value) : value;
+    return isNaN(numValue) ? '0.00' : numValue.toFixed(2);
+  }
+
+  /**
+   * Método que se ejecuta cuando cambia el monto en COP
+   * Calcula automáticamente los valores en USD y VEF
+   * NO formatea COP aquí para no interferir con la escritura del usuario
+   */
+  public onCopAmountChange() {
+    const copAmount = parseFloat(this.recharges.rechargeAmountCop || '0');
+
+    if (copAmount && copAmount > 0 && this.bcvRate) {
+      // Calcular y formatear USD y VEF con 2 decimales (pero NO formatear COP aún)
+      this.recharges.rechargeAmountUsd = this.getValueInUsd(copAmount);
+      this.recharges.rechargeAmountVef = this.getValueInVef(copAmount);
+    } else {
+      // Si el valor es 0 o inválido, limpiar USD y VEF
+      this.recharges.rechargeAmountUsd = '0.00';
+      this.recharges.rechargeAmountVef = '0.00';
+    }
+  }
+
+  /**
+   * Método que se ejecuta cuando el input COP pierde el foco
+   * Formatea el valor COP con 2 decimales
+   */
+  public onCopBlur() {
+    const copAmount = parseFloat(this.recharges.rechargeAmountCop || '0');
+    // Formatear COP solo cuando el usuario termina de escribir
+    this.recharges.rechargeAmountCop = copAmount.toFixed(2);
   }
 
   public getRecharges() {
@@ -136,13 +220,13 @@ export class RechargesComponent implements OnInit {
 
   public newRecharges() {
     this.recharges = {
-      rechargeId: 'REC-' + new Date().getTime(),
-      rechargeStatus: 'accept',
+      rechargeId: new Date().getTime().toString(),
+      rechargeStatus: 'pending',
       rechargeCreatedAt: this.utilsService.getDateCurrent() + ' - ' + this.utilsService.getTimeCurrent(),
-      rechargeAmountUsd: '0',
-      rechargeAmountCop: '0',
-      rechargeAmountVef: '0',
-      rechargePaymentMethodName: 'Manual / Admin'
+      rechargeAmountUsd: '0.00',
+      rechargeAmountCop: '0.00',
+      rechargeAmountVef: '0.00',
+      rechargePaymentMethodName: 'Efectivo: Manual / Admin'
     }
     this.isEdit = false;
     this.selectedUser = null;
@@ -205,33 +289,61 @@ export class RechargesComponent implements OnInit {
       });
 
       if (this.isEdit) {
+        // Aprobando una recarga existente (de pending a accept)
         this.recharges.rechargeStatus = 'accept';
         this.recharges.rechargeVerifiedBy = this.infoUser.userEmail;
         this.recharges.rechargeUpdateAt = this.utilsService.getDateCurrent() + ' - ' + this.utilsService.getTimeCurrent();
 
+        // Asegurar que los valores estén formateados con 2 decimales antes de guardar
+        this.recharges.rechargeAmountCop = this.formatAmount(this.recharges.rechargeAmountCop);
+        this.recharges.rechargeAmountUsd = this.formatAmount(this.recharges.rechargeAmountUsd);
+        this.recharges.rechargeAmountVef = this.formatAmount(this.recharges.rechargeAmountVef);
 
         this.rechargesService.editRecharges(this.recharges).then(() => {
           this.rechargesService.editRechargesInUsers(this.recharges).then(() => {
+            // Solo actualizar el balance si se está aprobando la recarga
             this.editCreditBalanceUsers();
           })
         })
       } else {
-        // New Manual Recharge
+        // Nueva recarga manual - se crea como PENDING
         if (!this.recharges.rechargeUserUid) {
+          Swal.close();
           this.utilsService.showNotification('top', 'right', 'nc-alert-circle-i', 'Debe seleccionar un usuario', 'danger');
           return;
         }
-        this.recharges.rechargeVerifiedBy = this.infoUser.userEmail;
+
+        // La recarga ya viene con estado 'pending' desde newRecharges()
+        this.recharges.rechargeCreatedBy = this.infoUser.userEmail;
         this.recharges.rechargeUpdateAt = this.utilsService.getDateCurrent() + ' - ' + this.utilsService.getTimeCurrent();
 
+        // Asegurar que los valores estén formateados con 2 decimales antes de guardar
+        this.recharges.rechargeAmountCop = this.formatAmount(this.recharges.rechargeAmountCop);
+        this.recharges.rechargeAmountUsd = this.formatAmount(this.recharges.rechargeAmountUsd);
+        this.recharges.rechargeAmountVef = this.formatAmount(this.recharges.rechargeAmountVef);
+
+        // Guardar en la colección principal de recharges
         this.rechargesService.saveRecharges(this.recharges).then(() => {
-          // We also need to add it to the user's subcollection
-          this.rechargesService.editRechargesInUsers(this.recharges).then(() => {
-            this.editCreditBalanceUsers();
+          // Crear (no actualizar) en la subcolección del usuario
+          this.rechargesService.saveRechargesInUsers(this.recharges).then(() => {
+            // NO actualizar el balance aún - solo se actualizará cuando se apruebe
+
+            // Enviar notificación a los administradores
+            this.sendNewRechargeNotification();
+
+            Swal.close();
             $('#modalNewRecharges').modal('hide');
-            this.utilsService.showNotification('top', 'right', 'nc-check-2', 'Nueva recarga creada correctamente', 'success');
-          })
-        })
+            this.utilsService.showNotification('top', 'right', 'nc-check-2', 'Nueva recarga creada como PENDIENTE. Debe aprobarla manualmente para acreditar el saldo.', 'success');
+          }).catch(error => {
+            Swal.close();
+            console.error('Error al crear recarga en usuario:', error);
+            this.utilsService.showNotification('top', 'right', 'nc-alert-circle-i', 'Error al crear la recarga en el usuario', 'danger');
+          });
+        }).catch(error => {
+          Swal.close();
+          console.error('Error al crear recarga:', error);
+          this.utilsService.showNotification('top', 'right', 'nc-alert-circle-i', 'Error al crear la recarga', 'danger');
+        });
       }
     }
   }
@@ -370,9 +482,14 @@ export class RechargesComponent implements OnInit {
       this.recharges.rechargeStatus = 'reject';
       this.recharges.rechargeUpdateAt = this.utilsService.getDateCurrent() + ' - ' + this.utilsService.getTimeCurrent();
 
+      // Asegurar que los valores estén formateados con 2 decimales antes de guardar
+      this.recharges.rechargeAmountCop = this.formatAmount(this.recharges.rechargeAmountCop);
+      this.recharges.rechargeAmountUsd = this.formatAmount(this.recharges.rechargeAmountUsd);
+      this.recharges.rechargeAmountVef = this.formatAmount(this.recharges.rechargeAmountVef);
+
       this.rechargesService.editRecharges(this.recharges).then(() => {
         this.rechargesService.editRechargesInUsers(this.recharges).then(() => {
-          this.utilsService.showNotification('top', 'right', 'nc-check-2', 'Categoría editada correctamente', 'success');
+          this.utilsService.showNotification('top', 'right', 'nc-check-2', 'Recarga rechazada correctamente', 'success');
           $('#modalNewRecharges').modal('hide');
         })
       })
@@ -389,6 +506,12 @@ export class RechargesComponent implements OnInit {
   editRecharges(recharges: Recharges) {
     this.isEdit = true;
     this.recharges = recharges;
+
+    // Asegurar que todos los valores monetarios estén formateados con 2 decimales
+    this.recharges.rechargeAmountCop = this.formatAmount(this.recharges.rechargeAmountCop);
+    this.recharges.rechargeAmountUsd = this.formatAmount(this.recharges.rechargeAmountUsd);
+    this.recharges.rechargeAmountVef = this.formatAmount(this.recharges.rechargeAmountVef);
+
     $('#modalNewRecharges').modal('show');
   }
 
@@ -498,6 +621,34 @@ export class RechargesComponent implements OnInit {
 
     this.lightboxImage = url;
     ($('#documentLightbox') as any).modal('show');
+  }
+
+  /**
+   * Envía notificación a los administradores cuando se crea una nueva recarga
+   */
+  private sendNewRechargeNotification() {
+    const copAmount = parseFloat(this.recharges.rechargeAmountCop || '0');
+    const formattedAmount = new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(copAmount);
+
+    const title = '💳 🤑 iMove - Recarga 🤑 💳';
+    const body = `Se ha registrado una nueva recarga de saldo en la aplicación. Revisa los detalles en el panel de administración.\nValor de la recarga: COP $${formattedAmount}`;
+
+    this.notificationService.sendNotificationToAdmin(
+      '033-NewRecharge',
+      title,
+      body,
+      this.recharges.rechargeUserUid || ''
+    ).subscribe({
+      next: (response) => {
+        console.log('Notificación enviada a administradores:', response);
+      },
+      error: (error) => {
+        console.error('Error al enviar notificación a administradores:', error);
+      }
+    });
   }
 
 }

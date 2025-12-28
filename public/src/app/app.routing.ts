@@ -196,6 +196,11 @@ export const AppRoutes: Routes = [
                 canActivate: [AuthGuard],
             },
             {
+                path: 'city-search-analytics',
+                loadChildren: './modules/city-search-analytics/city-search-analytics.module#CitySearchAnalyticsModule',
+                canActivate: [AuthGuard],
+            },
+            {
                 path: 'admin-panel',
                 loadChildren: './modules/admin-panel/admin-panel.module#AdminPanelModule',
                 canActivate: [AuthGuard],

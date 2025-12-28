@@ -58,11 +58,13 @@
             </div>
             <div class="filter-group">
                 <i class="nc-icon nc-calendar-60"></i>
-                <input type="date" class="filter-input" [(ngModel)]="filterDateStart" (change)="loadTrips()" placeholder="Desde">
+                <input type="date" class="filter-input" [(ngModel)]="filterDateStart" (change)="loadTrips()"
+                    placeholder="Desde">
             </div>
             <div class="filter-group">
                 <i class="nc-icon nc-calendar-60"></i>
-                <input type="date" class="filter-input" [(ngModel)]="filterDateEnd" (change)="loadTrips()" placeholder="Hasta">
+                <input type="date" class="filter-input" [(ngModel)]="filterDateEnd" (change)="loadTrips()"
+                    placeholder="Hasta">
             </div>
             <button class="btn-filter-clear" (click)="clearDates()" title="Limpiar Filtros">
                 <i class="nc-icon nc-refresh-69"></i>
@@ -75,37 +77,36 @@
         <!-- Tabla de Resultados Optimizada -->
         <div class="table-wrapper-optimized">
             <div class="trips-table-container">
-                            <table class="trips-table">
-                                <thead>
-                                    <tr>
-                                        <th class="th-id">ID</th>
-                                        <th class="th-service">Servicio</th>
-                                        <th class="th-passenger">Pasajero</th>
-                                        <th class="th-driver">Conductor</th>
-                                        <th class="th-route">Ruta</th>
-                                        <th class="th-metrics">Dist/Tiempo</th>
-                                        <th class="th-cost">Costo</th>
-                                        <th class="th-status">Estado</th>
-                                        <th class="th-action"><i class="nc-icon nc-settings-gear-65"></i></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <!-- Empty State -->
-                                    <tr *ngIf="filteredTrips.length === 0" class="empty-row">
-                                        <td colspan="9">
-                                            <div class="empty-state">
-                                                <i class="nc-icon nc-alert-circle-i"></i>
-                                                <p>No se encontraron viajes con los filtros seleccionados</p>
-                                                <button class="btn btn-sm btn-outline-default" (click)="clearDates()">
-                                                    Limpiar Filtros
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
+                <table class="trips-table">
+                    <thead>
+                        <tr>
+                            <th class="th-id">ID</th>
+                            <th class="th-service">Servicio</th>
+                            <th class="th-passenger">Pasajero</th>
+                            <th class="th-driver">Conductor</th>
+                            <th class="th-route">Ruta</th>
+                            <th class="th-metrics">Dist/Tiempo</th>
+                            <th class="th-cost">Costo</th>
+                            <th class="th-status">Estado</th>
+                            <th class="th-action"><i class="nc-icon nc-settings-gear-65"></i></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Empty State -->
+                        <tr *ngIf="filteredTrips.length === 0" class="empty-row">
+                            <td colspan="9">
+                                <div class="empty-state">
+                                    <i class="nc-icon nc-alert-circle-i"></i>
+                                    <p>No se encontraron viajes con los filtros seleccionados</p>
+                                    <button class="btn btn-sm btn-outline-default" (click)="clearDates()">
+                                        Limpiar Filtros
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
 
-                                    <!-- Trip Rows -->
-                                    <tr *ngFor="let trip of filteredTrips" class="trip-row"
-                                        [ngClass]="{
+                        <!-- Trip Rows -->
+                        <tr *ngFor="let trip of filteredTrips" class="trip-row" [ngClass]="{
                                             'status-requested': trip.requestStatusTrip === 'requested',
                                             'status-accepted': trip.requestStatusTrip === 'acceptedByDriver' || trip.requestStatusTrip === 'driverIsInSitu',
                                             'status-in-travel': trip.requestStatusTrip === 'inTravel',
@@ -113,98 +114,106 @@
                                             'status-cancelled': trip.requestStatusTrip === 'cancelledByUser' || trip.requestStatusTrip === 'cancelledByDriver' || trip.requestStatus === 'Cancelada'
                                         }">
 
-                                        <!-- ID / Fecha -->
-                                        <td class="td-id">
-                                            <div class="trip-id-compact">
-                                                <span class="trip-id">#{{ trip.requestId | slice:-6 }}</span>
-                                                <span class="trip-datetime">{{ trip.requestRegisterTime || (trip.requestFullDate?.toDate() | date:'HH:mm') }}</span>
-                                            </div>
-                                        </td>
+                            <!-- ID / Fecha -->
+                            <td class="td-id">
+                                <div class="trip-id-compact">
+                                    <span class="trip-id">#{{ trip.requestId | slice:-6 }}</span>
+                                    <span class="trip-datetime">
+                                        {{ trip.requestFullDate?.toDate() | date:'dd/MM/yyyy hh:mm a' }}
+                                    </span>
+                                </div>
+                            </td>
 
-                                        <!-- Servicio -->
-                                        <td class="td-service">
-                                            <span class="service-compact">{{ trip.requestTypeService || 'N/A' }}</span>
-                                        </td>
+                            <!-- Servicio -->
+                            <td class="td-service">
+                                <span class="service-compact">{{ trip.requestTypeService || 'N/A' }}</span>
+                            </td>
 
-                                        <!-- Pasajero -->
-                                        <td class="td-passenger">
-                                            <div class="person-compact">
-                                                <img *ngIf="trip.requestClientPhotoUrl" [src]="trip.requestClientPhotoUrl" class="person-avatar" alt="P">
-                                                <div class="person-avatar-placeholder" *ngIf="!trip.requestClientPhotoUrl">P</div>
-                                                <div class="person-info">
-                                                    <span class="person-name">{{ trip.requestClientName || 'Pasajero' }}</span>
-                                                    <span class="person-detail">{{ trip.requestClientPhone || '-' }}</span>
-                                                </div>
-                                            </div>
-                                        </td>
+                            <!-- Pasajero -->
+                            <td class="td-passenger">
+                                <div class="person-compact">
+                                    <img *ngIf="trip.requestClientPhotoUrl" [src]="trip.requestClientPhotoUrl"
+                                        class="person-avatar" alt="P">
+                                    <div class="person-avatar-placeholder" *ngIf="!trip.requestClientPhotoUrl">P</div>
+                                    <div class="person-info">
+                                        <span class="person-name">{{ trip.requestClientName || 'Pasajero' }}</span>
+                                        <span class="person-detail">{{ trip.requestClientPhone || '-' }}</span>
+                                    </div>
+                                </div>
+                            </td>
 
-                                        <!-- Conductor -->
-                                        <td class="td-driver">
-                                            <div class="person-compact" *ngIf="trip.requestDriverName">
-                                                <img *ngIf="trip.requestDriverPhotoUrl" [src]="trip.requestDriverPhotoUrl" class="person-avatar" alt="C">
-                                                <div class="person-avatar-placeholder driver-placeholder" *ngIf="!trip.requestDriverPhotoUrl">C</div>
-                                                <div class="person-info">
-                                                    <span class="person-name">{{ trip.requestDriverName }}</span>
-                                                    <span class="person-detail">{{ trip.requestDriverPhone || '-' }}</span>
-                                                </div>
-                                            </div>
-                                            <span class="no-driver" *ngIf="!trip.requestDriverName">Sin asignar</span>
-                                        </td>
+                            <!-- Conductor -->
+                            <td class="td-driver">
+                                <div class="person-compact" *ngIf="trip.requestDriverName">
+                                    <img *ngIf="trip.requestDriverPhotoUrl" [src]="trip.requestDriverPhotoUrl"
+                                        class="person-avatar" alt="C">
+                                    <div class="person-avatar-placeholder driver-placeholder"
+                                        *ngIf="!trip.requestDriverPhotoUrl">C</div>
+                                    <div class="person-info">
+                                        <span class="person-name">{{ trip.requestDriverName }}</span>
+                                        <span class="person-detail">{{ trip.requestDriverPhone || '-' }}</span>
+                                    </div>
+                                </div>
+                                <span class="no-driver" *ngIf="!trip.requestDriverName">Sin asignar</span>
+                            </td>
 
-                                        <!-- Ruta -->
-                                        <td class="td-route">
-                                            <div class="route-compact">
-                                                <div class="route-line origin">
-                                                    <i class="nc-icon nc-pin-3"></i>
-                                                    {{ trip.requestClientAddressOrigin | slice:0:35 }}{{ trip.requestClientAddressOrigin?.length > 35 ? '...' : '' }}
-                                                </div>
-                                                <div class="route-line destiny">
-                                                    <i class="nc-icon nc-pin-3"></i>
-                                                    {{ trip.requestClientAddressDestiny | slice:0:35 }}{{ trip.requestClientAddressDestiny?.length > 35 ? '...' : '' }}
-                                                </div>
-                                            </div>
-                                        </td>
+                            <!-- Ruta -->
+                            <td class="td-route">
+                                <div class="route-compact">
+                                    <div class="route-line origin">
+                                        <i class="nc-icon nc-pin-3"></i>
+                                        {{ trip.requestClientAddressOrigin | slice:0:35 }}{{
+                                        trip.requestClientAddressOrigin?.length > 35 ? '...' : '' }}
+                                    </div>
+                                    <div class="route-line destiny">
+                                        <i class="nc-icon nc-pin-3"></i>
+                                        {{ trip.requestClientAddressDestiny | slice:0:35 }}{{
+                                        trip.requestClientAddressDestiny?.length > 35 ? '...' : '' }}
+                                    </div>
+                                </div>
+                            </td>
 
-                                        <!-- Distancia / Tiempo -->
-                                        <td class="td-metrics">
-                                            <div class="metrics-compact">
-                                                <span class="metric">{{ trip.requestTotalDistanceOriginDestiny || '0' }} km</span>
-                                                <span class="metric-separator">•</span>
-                                                <span class="metric">{{ trip.requestTotalTimeOriginDestiny || '0' }} min</span>
-                                            </div>
-                                        </td>
+                            <!-- Distancia / Tiempo -->
+                            <td class="td-metrics">
+                                <div class="metrics-compact">
+                                    <span class="metric">{{ trip.requestTotalDistanceOriginDestiny || '0' }} km</span>
+                                    <span class="metric-separator">•</span>
+                                    <span class="metric">{{ trip.requestTotalTimeOriginDestiny || '0' }} min</span>
+                                </div>
+                            </td>
 
-                                        <!-- Costo -->
-                                        <td class="td-cost">
-                                            <div class="cost-compact">
-                                                <span class="cost-main">${{ (trip.requestTripCost || trip.requestCustomerOffer || 0) | number:'1.0-0' }}</span>
-                                                <span class="cost-sub" *ngIf="trip.requestCommission">-${{ trip.requestCommission | number:'1.0-0' }}</span>
-                                            </div>
-                                        </td>
+                            <!-- Costo -->
+                            <td class="td-cost">
+                                <div class="cost-compact">
+                                    <span class="cost-main">${{ (trip.requestTripCost || trip.requestCustomerOffer || 0)
+                                        | number:'1.0-0' }}</span>
+                                    <span class="cost-sub" *ngIf="trip.requestCommission">-${{ trip.requestCommission |
+                                        number:'1.0-0' }}</span>
+                                </div>
+                            </td>
 
-                                        <!-- Estado -->
-                                        <td class="td-status">
-                                            <span class="status-compact"
-                                                 [ngClass]="{
+                            <!-- Estado -->
+                            <td class="td-status">
+                                <span class="status-compact" [ngClass]="{
                                                     'st-requested': trip.requestStatusTrip === 'requested',
                                                     'st-accepted': trip.requestStatusTrip === 'acceptedByDriver' || trip.requestStatusTrip === 'driverIsInSitu',
                                                     'st-travel': trip.requestStatusTrip === 'inTravel',
                                                     'st-finished': trip.requestStatusTrip === 'finished' || trip.requestStatus === 'Finalizada',
                                                     'st-cancelled': trip.requestStatusTrip === 'cancelledByUser' || trip.requestStatusTrip === 'cancelledByDriver' || trip.requestStatus === 'Cancelada'
                                                  }">
-                                                {{ getStatusLabel(trip.requestStatusTrip || trip.requestStatus) }}
-                                            </span>
-                                        </td>
+                                    {{ getStatusLabel(trip.requestStatusTrip || trip.requestStatus) }}
+                                </span>
+                            </td>
 
-                                        <!-- Acción -->
-                                        <td class="td-action">
-                                            <button class="btn-detail-compact" (click)="viewTripDetail(trip)" title="Ver Detalle">
-                                                <i class="nc-icon nc-zoom-split"></i>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                            <!-- Acción -->
+                            <td class="td-action">
+                                <button class="btn-detail-compact" (click)="viewTripDetail(trip)" title="Ver Detalle">
+                                    <i class="nc-icon nc-zoom-split"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>

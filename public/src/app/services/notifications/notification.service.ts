@@ -51,6 +51,21 @@ export class NotificationService {
     }
 
     /**
+     * Enviar notificación a todos los administradores
+     */
+    public sendNotificationToAdmin(token: string, title: string, body: string, userUid: string, data: any = {}): Observable<any> {
+        const url = `${this.baseUrl}/sendNotificationToAdmin`;
+        const payload = {
+            token,
+            title,
+            body,
+            userUid,
+            ...data
+        };
+        return this.http.post(url, payload);
+    }
+
+    /**
      * Subir imagen para notificación
      */
     public uploadNotificationImage(file: File): Promise<string> {

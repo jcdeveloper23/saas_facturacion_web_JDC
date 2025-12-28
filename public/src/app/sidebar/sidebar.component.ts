@@ -263,6 +263,12 @@ export const ROUTES_SUPER_ADMIN: RouteInfo[] = [
         icontype: 'nc-icon nc-icon nc-credit-card' // Icono de billetera/recarga
     },
     {
+        path: '/city-search-analytics',
+        title: 'Búsquedas de Ciudades',
+        type: 'link',
+        icontype: 'nc-icon nc-pin-3' // Icono de pin de mapa/ubicación
+    },
+    {
         path: '/appVersions',
         title: 'Versiones App',
         type: 'link',

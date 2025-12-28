@@ -1,0 +1,481 @@
+<div class="main-content">
+    <app-loading></app-loading>
+
+    <!-- Header Compacto con Estadísticas -->
+    <div class="page-header-compact">
+        <div class="header-left">
+            <h4 class="page-title">
+                <i class="nc-icon nc-pin-3"></i> Análisis de Búsquedas de Ciudades
+            </h4>
+            <p class="page-subtitle">Identifica áreas con demanda para expansión</p>
+        </div>
+        <div class="header-stats">
+            <div class="stat-item stat-total">
+                <i class="nc-icon nc-layout-11"></i>
+                <div class="stat-content">
+                    <span class="stat-value">{{ stats.total }}</span>
+                    <span class="stat-label">Total Búsquedas</span>
+                </div>
+            </div>
+            <div class="stat-item stat-success">
+                <i class="nc-icon nc-check-2"></i>
+                <div class="stat-content">
+                    <span class="stat-value text-success">{{ stats.success }}</span>
+                    <span class="stat-label">Exitosas</span>
+                </div>
+            </div>
+            <div class="stat-item stat-warning">
+                <i class="nc-icon nc-alert-circle-i"></i>
+                <div class="stat-content">
+                    <span class="stat-value text-warning">{{ stats.noCoverage }}</span>
+                    <span class="stat-label">Sin Cobertura</span>
+                </div>
+            </div>
+            <div class="stat-item stat-danger">
+                <i class="nc-icon nc-simple-remove"></i>
+                <div class="stat-content">
+                    <span class="stat-value text-danger">{{ stats.errors }}</span>
+                    <span class="stat-label">Errores</span>
+                </div>
+            </div>
+            <div class="stat-item stat-info">
+                <i class="nc-icon nc-single-02"></i>
+                <div class="stat-content">
+                    <span class="stat-value text-info">{{ stats.uniqueUsers }}</span>
+                    <span class="stat-label">Usuarios Únicos</span>
+                </div>
+            </div>
+            <div class="stat-item stat-distance">
+                <i class="nc-icon nc-pin-3"></i>
+                <div class="stat-content">
+                    <span class="stat-value">{{ stats.avgDistance | number:'1.1-1' }} km</span>
+                    <span class="stat-label">Distancia Promedio</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros Compactos -->
+    <div class="filters-compact shadow-sm">
+        <div class="filter-group-compact">
+            <button class="btn btn-sm btn-outline-info mr-2" (click)="toggleView()">
+                <i class="nc-icon" [ngClass]="showDailyView ? 'nc-bullet-list-67' : 'nc-calendar-60'"></i>
+                {{ showDailyView ? 'Ver Logs Detallados' : 'Ver Resumen Diario' }}
+            </button>
+
+            <button class="btn btn-sm btn-outline-warning mr-2" (click)="toggleHeatmap()">
+                <i class="nc-icon nc-world-2"></i>
+                {{ showHeatmap ? 'Ocultar Mapa de Calor' : 'Ver Mapa de Calor' }}
+            </button>
+
+            <button class="btn-filter-compact" [ngClass]="{'active': currentFilter === 'all'}"
+                (click)="applyFilter('all')" *ngIf="!showDailyView">
+                Todas
+            </button>
+            <button class="btn-filter-compact success" [ngClass]="{'active': currentFilter === 'success'}"
+                (click)="applyFilter('success')" *ngIf="!showDailyView">
+                Exitosas <span class="badge badge-success ml-1">{{ stats.success }}</span>
+            </button>
+            <button class="btn-filter-compact warning" [ngClass]="{'active': currentFilter === 'no_coverage'}"
+                (click)="applyFilter('no_coverage')" *ngIf="!showDailyView">
+                Sin Cobertura <span class="badge badge-warning ml-1">{{ stats.noCoverage }}</span>
+            </button>
+            <button class="btn-filter-compact danger" [ngClass]="{'active': currentFilter === 'error'}"
+                (click)="applyFilter('error')" *ngIf="!showDailyView">
+                Errores
+            </button>
+        </div>
+
+        <!-- Filtros adicionales -->
+        <div class="additional-filters" *ngIf="!showDailyView">
+            <select class="form-control form-control-sm" [(ngModel)]="platformFilter"
+                (ngModelChange)="onPlatformFilterChange()">
+                <option value="all">Todas las plataformas</option>
+                <option value="Android">Android</option>
+                <option value="iOS">iOS</option>
+            </select>
+
+            <select class="form-control form-control-sm ml-2" [(ngModel)]="dateRangeFilter"
+                (ngModelChange)="onDateRangeFilterChange()">
+                <option value="all">Todo el tiempo</option>
+                <option value="today">Hoy</option>
+                <option value="week">Última semana</option>
+                <option value="month">Último mes</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Mapa de Calor -->
+    <div class="row m-0 p-0 w-100 mt-3" *ngIf="showHeatmap">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="card-title mb-0">
+                            <i class="nc-icon nc-world-2 text-warning"></i>
+                            Mapa de Calor de Búsquedas
+                            <small class="text-muted ml-2">({{ heatmapData.length }} puntos)</small>
+                        </h5>
+                        <p class="text-muted small mb-0 mt-1">
+                            Visualiza geográficamente las zonas desde donde se conectan los usuarios
+                        </p>
+                    </div>
+                    <div>
+                        <select class="form-control form-control-sm" [(ngModel)]="heatmapFilter"
+                            (ngModelChange)="onHeatmapFilterChange()">
+                            <option value="all">Todas las búsquedas</option>
+                            <option value="success">Solo exitosas</option>
+                            <option value="no_coverage">Solo sin cobertura</option>
+                            <option value="error">Solo errores</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div style="height: 600px; width: 100%;">
+                        <agm-map
+                            [latitude]="mapCenter.lat"
+                            [longitude]="mapCenter.lng"
+                            [zoom]="mapZoom"
+                            [styles]="[
+                                { elementType: 'geometry', stylers: [{ color: '#242f3e' }] },
+                                { elementType: 'labels.text.stroke', stylers: [{ color: '#242f3e' }] },
+                                { elementType: 'labels.text.fill', stylers: [{ color: '#746855' }] },
+                                {
+                                    featureType: 'administrative.locality',
+                                    elementType: 'labels.text.fill',
+                                    stylers: [{ color: '#d59563' }]
+                                },
+                                {
+                                    featureType: 'poi',
+                                    elementType: 'labels.text.fill',
+                                    stylers: [{ color: '#d59563' }]
+                                },
+                                {
+                                    featureType: 'poi.park',
+                                    elementType: 'geometry',
+                                    stylers: [{ color: '#263c3f' }]
+                                },
+                                {
+                                    featureType: 'poi.park',
+                                    elementType: 'labels.text.fill',
+                                    stylers: [{ color: '#6b9a76' }]
+                                },
+                                {
+                                    featureType: 'road',
+                                    elementType: 'geometry',
+                                    stylers: [{ color: '#38414e' }]
+                                },
+                                {
+                                    featureType: 'road',
+                                    elementType: 'geometry.stroke',
+                                    stylers: [{ color: '#212a37' }]
+                                },
+                                {
+                                    featureType: 'road',
+                                    elementType: 'labels.text.fill',
+                                    stylers: [{ color: '#9ca5b3' }]
+                                },
+                                {
+                                    featureType: 'road.highway',
+                                    elementType: 'geometry',
+                                    stylers: [{ color: '#746855' }]
+                                },
+                                {
+                                    featureType: 'road.highway',
+                                    elementType: 'geometry.stroke',
+                                    stylers: [{ color: '#1f2835' }]
+                                },
+                                {
+                                    featureType: 'road.highway',
+                                    elementType: 'labels.text.fill',
+                                    stylers: [{ color: '#f3d19c' }]
+                                },
+                                {
+                                    featureType: 'transit',
+                                    elementType: 'geometry',
+                                    stylers: [{ color: '#2f3948' }]
+                                },
+                                {
+                                    featureType: 'transit.station',
+                                    elementType: 'labels.text.fill',
+                                    stylers: [{ color: '#d59563' }]
+                                },
+                                {
+                                    featureType: 'water',
+                                    elementType: 'geometry',
+                                    stylers: [{ color: '#17263c' }]
+                                },
+                                {
+                                    featureType: 'water',
+                                    elementType: 'labels.text.fill',
+                                    stylers: [{ color: '#515c6d' }]
+                                },
+                                {
+                                    featureType: 'water',
+                                    elementType: 'labels.text.stroke',
+                                    stylers: [{ color: '#17263c' }]
+                                }
+                            ]">
+
+                            <!-- Marcadores individuales para cada punto -->
+                            <agm-circle
+                                *ngFor="let point of heatmapData; let i = index"
+                                [latitude]="point.lat"
+                                [longitude]="point.lng"
+                                [radius]="markerRadius"
+                                [fillColor]="getMarkerColor()"
+                                [fillOpacity]="0.5"
+                                [strokeColor]="getMarkerColor()"
+                                [strokeOpacity]="0.8"
+                                [strokeWeight]="2"
+                                [clickable]="false">
+                            </agm-circle>
+                        </agm-map>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap">
+                        <div class="text-muted small mb-2 mb-md-0">
+                            <i class="nc-icon nc-bulb-63"></i>
+                            <strong>Tip:</strong> Ajusta el zoom y tamaño de puntos para mejor visualización
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="d-flex align-items-center mr-3">
+                                <button class="btn btn-sm btn-outline-secondary" (click)="markerRadius = markerRadius - 200" [disabled]="markerRadius <= 200">
+                                    <i class="nc-icon nc-simple-remove"></i>
+                                </button>
+                                <span class="mx-2 text-muted small">Tamaño: {{ markerRadius }}m</span>
+                                <button class="btn btn-sm btn-outline-secondary" (click)="markerRadius = markerRadius + 200" [disabled]="markerRadius >= 3000">
+                                    <i class="nc-icon nc-simple-add"></i>
+                                </button>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <button class="btn btn-sm btn-outline-secondary" (click)="mapZoom = mapZoom - 1" [disabled]="mapZoom <= 3">
+                                    <i class="nc-icon nc-zoom-split"></i> -
+                                </button>
+                                <span class="mx-2 text-muted small">Zoom: {{ mapZoom }}</span>
+                                <button class="btn btn-sm btn-outline-secondary" (click)="mapZoom = mapZoom + 1" [disabled]="mapZoom >= 18">
+                                    <i class="nc-icon nc-zoom-split"></i> +
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Localidades Sin Cobertura -->
+    <div class="row m-0 p-0 w-100 mt-3" *ngIf="topNoCoverageLocalities.length > 0 && !showHeatmap">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="nc-icon nc-pin-3 text-warning"></i>
+                        Top 10 Localidades Sin Cobertura
+                        <small class="text-muted ml-2">(Oportunidades de Expansión)</small>
+                    </h5>
+                    <button class="btn btn-sm btn-outline-primary" (click)="exportNoCoverageLocalities()">
+                        <i class="nc-icon nc-cloud-download-93"></i> Exportar CSV
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6" *ngFor="let item of topNoCoverageLocalities.slice(0, 5)">
+                            <div class="locality-item p-3 mb-2 border rounded bg-dark">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-1 text-warning">{{ item.locality }}</h6>
+                                        <small class="text-muted">{{ item.count }} búsquedas sin cobertura</small>
+                                    </div>
+                                    <button class="btn btn-sm btn-info" (click)="openGoogleMaps(item.coords.lat, item.coords.lng)">
+                                        <i class="nc-icon nc-pin-3"></i> Ver Mapa
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vista de Resumen Diario -->
+    <div class="row m-0 p-0 w-100 mt-3" *ngIf="showDailyView">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="nc-icon nc-calendar-60"></i> Resumen Diario de Búsquedas
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="text-center">Fecha</th>
+                                    <th class="text-center">Total Búsquedas</th>
+                                    <th class="text-center">Exitosas</th>
+                                    <th class="text-center">Sin Cobertura</th>
+                                    <th class="text-center">Errores</th>
+                                    <th class="text-center">Última Actualización</th>
+                                    <th class="text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr *ngFor="let day of dailyStats">
+                                    <td class="text-center">
+                                        <strong>{{ day.date }}</strong>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge badge-primary">{{ day.totalSearches || 0 }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge badge-success">{{ day.successCount || 0 }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge badge-warning">{{ day.noCoverageCount || 0 }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge badge-danger">{{ day.errorCount || 0 }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <small class="text-muted">{{ formatDate(day.lastUpdated) }}</small>
+                                    </td>
+                                    <td class="text-center">
+                                        <button class="btn btn-sm btn-info" (click)="loadLogsForDay(day.date!)">
+                                            <i class="nc-icon nc-zoom-split"></i> Ver Detalles
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr *ngIf="dailyStats.length === 0">
+                                    <td colspan="7" class="text-center text-muted py-4">
+                                        No hay datos disponibles
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de Logs -->
+    <div class="row m-0 p-0 w-100 mt-3" *ngIf="!showDailyView">
+        <div class="col-12 p-0 w-100 container-fluid-body m-0 p-0 table-responsive">
+            <table mat-table matSort [dataSource]="dataSource"
+                class="mat-elevation-z8 table-reponsive table-bordered container-fluid-body text-white"
+                style="min-width: 100%;">
+
+                <ng-container matColumnDef="timestamp">
+                    <th mat-header-cell *matHeaderCellDef mat-sort-header class="text-center title-table">
+                        Fecha/Hora
+                    </th>
+                    <td mat-cell *matCellDef="let row" class="text-center">
+                        <span class="small">{{ formatDate(row.timestamp) }}</span>
+                    </td>
+                </ng-container>
+
+                <ng-container matColumnDef="userLocation">
+                    <th mat-header-cell *matHeaderCellDef class="text-center title-table">
+                        Ubicación
+                    </th>
+                    <td mat-cell *matCellDef="let row" class="text-center">
+                        <div>
+                            <strong class="text-info">{{ row.googleLocality || 'Desconocida' }}</strong>
+                        </div>
+                        <small class="text-muted">{{ row.userAddress || 'Sin dirección' }}</small>
+                        <br>
+                        <button class="btn btn-xs btn-link text-info p-0 mt-1"
+                            (click)="openGoogleMaps(row.userLat, row.userLng)" *ngIf="row.userLat && row.userLng">
+                            <i class="nc-icon nc-pin-3"></i> Ver en mapa
+                        </button>
+                    </td>
+                </ng-container>
+
+                <ng-container matColumnDef="searchResult">
+                    <th mat-header-cell *matHeaderCellDef class="text-center title-table">
+                        Resultado
+                    </th>
+                    <td mat-cell *matCellDef="let row" class="text-center">
+                        <span class="badge" [ngClass]="getResultBadgeClass(row.searchResult)">
+                            {{ getResultText(row.searchResult) }}
+                        </span>
+                    </td>
+                </ng-container>
+
+                <ng-container matColumnDef="cityFound">
+                    <th mat-header-cell *matHeaderCellDef class="text-center title-table">
+                        Ciudad Encontrada
+                    </th>
+                    <td mat-cell *matCellDef="let row" class="text-center">
+                        <span *ngIf="row.cityFound">{{ row.cityFound }}</span>
+                        <span *ngIf="!row.cityFound" class="text-muted">N/A</span>
+                    </td>
+                </ng-container>
+
+                <ng-container matColumnDef="distance">
+                    <th mat-header-cell *matHeaderCellDef mat-sort-header class="text-center title-table">
+                        Distancia
+                    </th>
+                    <td mat-cell *matCellDef="let row" class="text-center">
+                        <span *ngIf="row.distanceToNearestCity">
+                            {{ row.distanceToNearestCity | number:'1.1-1' }} km
+                        </span>
+                        <span *ngIf="!row.distanceToNearestCity" class="text-muted">N/A</span>
+                    </td>
+                </ng-container>
+
+                <ng-container matColumnDef="coverage">
+                    <th mat-header-cell *matHeaderCellDef class="text-center title-table">
+                        Cobertura
+                    </th>
+                    <td mat-cell *matCellDef="let row" class="text-center">
+                        <span *ngIf="row.isWithinCoverage === true" class="badge badge-success">
+                            Dentro
+                        </span>
+                        <span *ngIf="row.isWithinCoverage === false" class="badge badge-warning">
+                            Fuera
+                        </span>
+                        <span *ngIf="row.isWithinCoverage === null || row.isWithinCoverage === undefined"
+                            class="text-muted">N/A</span>
+                    </td>
+                </ng-container>
+
+                <ng-container matColumnDef="platform">
+                    <th mat-header-cell *matHeaderCellDef class="text-center title-table">
+                        Plataforma
+                    </th>
+                    <td mat-cell *matCellDef="let row" class="text-center">
+                        <span *ngIf="row.platform">{{ row.platform }}</span>
+                        <span *ngIf="!row.platform" class="text-muted">N/A</span>
+                        <br>
+                        <small class="text-muted" *ngIf="row.appVersion">v{{ row.appVersion }}</small>
+                    </td>
+                </ng-container>
+
+                <ng-container matColumnDef="details">
+                    <th mat-header-cell *matHeaderCellDef class="text-center title-table">
+                        Usuario
+                    </th>
+                    <td mat-cell *matCellDef="let row" class="text-center">
+                        <div *ngIf="row.userEmail">
+                            <small class="text-info">{{ row.userEmail }}</small>
+                        </div>
+                        <div *ngIf="!row.userEmail">
+                            <small class="text-muted">Anónimo</small>
+                        </div>
+                    </td>
+                </ng-container>
+
+                <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+                <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+
+            </table>
+            <mat-paginator [pageSizeOptions]="[10, 25, 50, 100]" #tableLogs showFirstLastButtons>
+            </mat-paginator>
+        </div>
+    </div>
+</div>
