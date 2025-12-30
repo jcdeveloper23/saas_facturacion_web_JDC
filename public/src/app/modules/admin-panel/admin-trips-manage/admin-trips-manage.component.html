@@ -115,7 +115,7 @@
                                         }">
 
                             <!-- ID / Fecha -->
-                            <td class="td-id">
+                            <td class="td-id" data-label="ID">
                                 <div class="trip-id-compact">
                                     <span class="trip-id">#{{ trip.requestId | slice:-6 }}</span>
                                     <span class="trip-datetime">
@@ -125,12 +125,12 @@
                             </td>
 
                             <!-- Servicio -->
-                            <td class="td-service">
+                            <td class="td-service" data-label="Servicio">
                                 <span class="service-compact">{{ trip.requestTypeService || 'N/A' }}</span>
                             </td>
 
                             <!-- Pasajero -->
-                            <td class="td-passenger">
+                            <td class="td-passenger" data-label="Pasajero">
                                 <div class="person-compact">
                                     <img *ngIf="trip.requestClientPhotoUrl" [src]="trip.requestClientPhotoUrl"
                                         class="person-avatar" alt="P">
@@ -143,7 +143,7 @@
                             </td>
 
                             <!-- Conductor -->
-                            <td class="td-driver">
+                            <td class="td-driver" data-label="Conductor">
                                 <div class="person-compact" *ngIf="trip.requestDriverName">
                                     <img *ngIf="trip.requestDriverPhotoUrl" [src]="trip.requestDriverPhotoUrl"
                                         class="person-avatar" alt="C">
@@ -158,7 +158,7 @@
                             </td>
 
                             <!-- Ruta -->
-                            <td class="td-route">
+                            <td class="td-route" data-label="Ruta">
                                 <div class="route-compact">
                                     <div class="route-line origin">
                                         <i class="nc-icon nc-pin-3"></i>
@@ -174,7 +174,7 @@
                             </td>
 
                             <!-- Distancia / Tiempo -->
-                            <td class="td-metrics">
+                            <td class="td-metrics" data-label="Dist/Tiempo">
                                 <div class="metrics-compact">
                                     <span class="metric">{{ trip.requestTotalDistanceOriginDestiny || '0' }} km</span>
                                     <span class="metric-separator">•</span>
@@ -183,7 +183,7 @@
                             </td>
 
                             <!-- Costo -->
-                            <td class="td-cost">
+                            <td class="td-cost" data-label="Costo">
                                 <div class="cost-compact">
                                     <span class="cost-main">${{ (trip.requestTripCost || trip.requestCustomerOffer || 0)
                                         | number:'1.0-0' }}</span>
@@ -193,7 +193,7 @@
                             </td>
 
                             <!-- Estado -->
-                            <td class="td-status">
+                            <td class="td-status" data-label="Estado">
                                 <span class="status-compact" [ngClass]="{
                                                     'st-requested': trip.requestStatusTrip === 'requested',
                                                     'st-accepted': trip.requestStatusTrip === 'acceptedByDriver' || trip.requestStatusTrip === 'driverIsInSitu',
@@ -206,7 +206,7 @@
                             </td>
 
                             <!-- Acción -->
-                            <td class="td-action">
+                            <td class="td-action" data-label="Acción">
                                 <button class="btn-detail-compact" (click)="viewTripDetail(trip)" title="Ver Detalle">
                                     <i class="nc-icon nc-zoom-split"></i>
                                 </button>
@@ -214,6 +214,15 @@
                         </tr>
                     </tbody>
                 </table>
+            </div>
+            <!-- Footer de la tabla con Paginación -->
+            <div class="table-footer-pagination text-center p-3" *ngIf="filteredTrips.length >= pageLimit">
+                <button class="btn btn-sm btn-outline-primary" (click)="loadMore()"
+                    style="border-color: #FF6B35; color: #FF6B35;">
+                    <i class="nc-icon nc-minimal-down"></i> Cargar más viajes
+                </button>
+                <p style="color: rgba(255,255,255,0.5); font-size: 0.7rem; margin-top: 8px;">Mostrando los últimos {{
+                    filteredTrips.length }} viajes</p>
             </div>
         </div>
     </div>

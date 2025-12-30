@@ -16,10 +16,11 @@ export class AdminTripsManageComponent implements OnInit, OnDestroy {
     public allTrips: any[] = [];
     public filteredTrips: any[] = [];
 
-    // Filtros
+    // Filtros y Paginación
     public filterStatus: string = 'all';
     public filterDateStart: string = '';
     public filterDateEnd: string = '';
+    public pageLimit: number = 5; // Paginación inicial
 
     // Estadísticas
     public stats = {
@@ -64,6 +65,7 @@ export class AdminTripsManageComponent implements OnInit, OnDestroy {
     }
 
     loadTrips(): void {
+        console.log('DEBUG: loadTrips called');
         // Limpiar subscripciones anteriores
         this.subscriptions.forEach(sub => sub.unsubscribe());
         this.subscriptions = [];
@@ -81,31 +83,26 @@ export class AdminTripsManageComponent implements OnInit, OnDestroy {
         const start = this.filterDateStart ? new Date(this.filterDateStart + 'T00:00:00') : null;
         const end = this.filterDateEnd ? new Date(this.filterDateEnd + 'T23:59:59') : null;
 
-        // Usamos el nuevo método de filtrado en DB
-        const sub = this.requestVehicleService.getFilteredRequests(statusList, start, end).subscribe(
+        // Usamos el nuevo método de filtrado en DB con LÍMITE para ahorrar lecturas y evitar doble emisión
+        const sub = this.requestVehicleService.getFilteredRequestsOnce(statusList, start, end, this.pageLimit).subscribe(
             (trips: any[]) => {
                 this.allTrips = trips;
                 this.filteredTrips = trips;
                 this.calculateStats();
-                console.log('Trips loaded from DB:', trips.length);
+                console.log('Trips loaded from DB (limited):', trips.length);
             },
             error => {
                 console.error('Error loading filtered trips:', error);
-                this.loadTripsAll();
             }
         );
         this.subscriptions.push(sub);
     }
 
-    loadTripsAll(): void {
-        const sub = this.requestVehicleService.getAllRequests().subscribe(
-            (trips: any[]) => {
-                this.allTrips = trips;
-                this.applyFilters();
-            }
-        );
-        this.subscriptions.push(sub);
+    loadMore(): void {
+        this.pageLimit += 5;
+        this.loadTrips();
     }
+
 
     applyFilters(): void {
         this.filteredTrips = this.allTrips.filter(trip => {

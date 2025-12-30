@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { AngularFirestore } from '@angular/fire/firestore';
+import { take } from 'rxjs/operators';
 
 @Injectable({
   providedIn: 'root'
@@ -75,8 +76,9 @@ export class RequestVehicleService {
    * @param statusList Lista de estados a filtrar
    * @param startDate Fecha inicial (opcional)
    * @param endDate Fecha final (opcional)
+   * @param limit Cantidad máxima de resultados (opcional, por defecto 50)
    */
-  public getFilteredRequests(statusList?: string[], startDate?: Date, endDate?: Date) {
+  public getFilteredRequests(statusList?: string[], startDate?: Date, endDate?: Date, limit: number = 50) {
     return this.db.collection<any>('requestVehicle', ref => {
       let query: any = ref;
 
@@ -92,7 +94,20 @@ export class RequestVehicleService {
         query = query.where('requestFullDate', '<=', endDate);
       }
 
-      return query.orderBy('requestFullDate', 'desc');
+      query = query.orderBy('requestFullDate', 'desc');
+
+      if (limit) {
+        query = query.limit(limit);
+      }
+
+      return query;
     }).valueChanges();
+  }
+
+  /**
+   * Versión de carga única (no listener) de solicitudes filtradas
+   */
+  public getFilteredRequestsOnce(statusList?: string[], startDate?: Date, endDate?: Date, limit: number = 50) {
+    return this.getFilteredRequests(statusList, startDate, endDate, limit).pipe(take(1));
   }
 }

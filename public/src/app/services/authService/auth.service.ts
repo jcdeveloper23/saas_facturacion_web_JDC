@@ -146,19 +146,19 @@ export class AuthService {
         this.infoUser = JSON.parse(localStorage.getItem('infoUser'));
         console.log(JSON.stringify(this.infoUser, null, 3));
 
-        
+
 
         switch (this.infoUser.userRol) {
 
           case 0:
-            this.router.navigate(['/admin-panel'])
+            this.router.navigate(['/discount-coupons'])
             break;
           case 1:
             if (this.infoUser.userState) {
               this.router.navigate(['/perfil'])
             } else {
               this.showNotification('top', 'right', 'nc-alert-circle-i', 'Estamos validando tu cuenta, aun no tienes acceso a la plataforma', 'info')
-              this.router.navigate(['/']) 
+              this.router.navigate(['/'])
             }
             break;
           case 2:

@@ -5,7 +5,7 @@ import { Users } from 'app/interfaces/users';
 import { Vehicle } from 'app/interfaces/vehicle';
 import { environment } from 'environments/environment';
 import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { map, take } from 'rxjs/operators';
 
 @Injectable({
   providedIn: 'root'
@@ -46,6 +46,17 @@ export class UsersService {
 
   public getAllUsers() {
     return this.db.collection('users').valueChanges();
+  }
+
+  /**
+   * Obtiene todos los usuarios (una sola vez) con límite opcional
+   */
+  public getAllUsersOnce(limit: number = 0) {
+    return this.db.collection('users', ref => {
+      let query: any = ref;
+      if (limit > 0) query = query.limit(limit);
+      return query;
+    }).valueChanges().pipe(take(1));
   }
 
   /**

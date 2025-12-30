@@ -183,12 +183,12 @@ export const ROUTES_SUPER_ADMIN: RouteInfo[] = [
         type: 'link',
         icontype: 'nc-icon nc-send'
     },
-    {
-        path: '/admin-panel',
-        title: 'Panel',
-        type: 'link',
-        icontype: 'nc-icon nc-layout-11'
-    },
+    // {
+    //     path: '/admin-panel',
+    //     title: 'Panel',
+    //     type: 'link',
+    //     icontype: 'nc-icon nc-layout-11'
+    // },
     {
         path: '/admin-panel/admin-trips',
         title: 'Gestión de Viajes',
@@ -201,12 +201,12 @@ export const ROUTES_SUPER_ADMIN: RouteInfo[] = [
         type: 'link',
         icontype: 'nc-icon nc-tv-2' // Icono de monitor/pantalla
     },
-    {
-        path: '/countries',
-        title: 'Países',
-        type: 'link',
-        icontype: 'nc-icon nc-world-2' // Icono de globo terráqueo
-    },
+    // {
+    //     path: '/countries',
+    //     title: 'Países',
+    //     type: 'link',
+    //     icontype: 'nc-icon nc-world-2' // Icono de globo terráqueo
+    // },
 
     {
         path: '/help',
@@ -226,18 +226,18 @@ export const ROUTES_SUPER_ADMIN: RouteInfo[] = [
         type: 'link',
         icontype: 'nc-icon nc-pin-3' // Icono de pin de mapa
     },
-    {
-        path: '/admin-tutorial',
-        title: 'Tutorial Conductor',
-        type: 'link',
-        icontype: 'nc-icon nc-book-bookmark' // Icono de libro/tutorial
-    },
-    {
-        path: '/registerProcess',
-        title: 'Pasos de registro',
-        type: 'link',
-        icontype: 'nc-icon nc-tile-56' // Icono de pasos/lista
-    },
+    // {
+    //     path: '/admin-tutorial',
+    //     title: 'Tutorial Conductor',
+    //     type: 'link',
+    //     icontype: 'nc-icon nc-book-bookmark' // Icono de libro/tutorial
+    // },
+    // {
+    //     path: '/registerProcess',
+    //     title: 'Pasos de registro',
+    //     type: 'link',
+    //     icontype: 'nc-icon nc-tile-56' // Icono de pasos/lista
+    // },
     {
         path: '/categories',
         title: 'Categorías',
@@ -262,12 +262,12 @@ export const ROUTES_SUPER_ADMIN: RouteInfo[] = [
         type: 'link',
         icontype: 'nc-icon nc-icon nc-credit-card' // Icono de billetera/recarga
     },
-    {
-        path: '/city-search-analytics',
-        title: 'Búsquedas de Ciudades',
-        type: 'link',
-        icontype: 'nc-icon nc-pin-3' // Icono de pin de mapa/ubicación
-    },
+    // {
+    //     path: '/city-search-analytics',
+    //     title: 'Búsquedas de Ciudades',
+    //     type: 'link',
+    //     icontype: 'nc-icon nc-pin-3' // Icono de pin de mapa/ubicación
+    // },
     {
         path: '/appVersions',
         title: 'Versiones App',

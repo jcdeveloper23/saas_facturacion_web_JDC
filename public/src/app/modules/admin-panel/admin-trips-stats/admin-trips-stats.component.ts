@@ -71,7 +71,7 @@ export class AdminTripsStatsComponent implements OnInit, AfterViewInit, OnDestro
         // Si hay fecha final, ponerla al final del día
         if (end) end.setHours(23, 59, 59, 999);
 
-        const sub = this.requestVehicleService.getFilteredRequests(['requested', 'acceptedByDriver', 'driverIsInSitu', 'inTravel', 'finished', 'cancelledByUser', 'cancelledByDriver'], start, end).subscribe(
+        const sub = this.requestVehicleService.getFilteredRequestsOnce(['requested', 'acceptedByDriver', 'driverIsInSitu', 'inTravel', 'finished', 'cancelledByUser', 'cancelledByDriver'], start, end, 500).subscribe(
             (trips: any[]) => {
                 this.trips = trips;
                 this.processData();

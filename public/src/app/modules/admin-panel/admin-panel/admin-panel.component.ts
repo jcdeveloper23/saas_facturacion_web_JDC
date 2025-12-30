@@ -6,6 +6,7 @@ import { RechargesService } from '../../../services/recharges/recharges.service'
 import { UsersService } from '../../../services/users/users.service';
 import { RequestVehicleService } from '../../../services/request-vehicle/request-vehicle.service';
 import { Subscription } from 'rxjs';
+import { take } from 'rxjs/operators';
 
 declare var $: any;
 
@@ -94,15 +95,16 @@ export class AdminPanelComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   loadUsers(): void {
-    const usersSub = this.usersService.getAllUsers().subscribe(
+    // Solo cargamos los últimos 50 usuarios para el dashboard para ahorrar lecturas
+    const usersSub = this.usersService.getAllUsersOnce(50).subscribe(
       (users: any[]) => {
         this.users = users;
-        this.totalUsers = users.length;
-        // Contar conductores activos (userRol === 9)
+        this.totalUsers = users.length; // Nota: Esto será limitado a 50. 
+        // Para un conteo real sin leer todo, se recomienda un documento de contadores.
+
+        // Contar conductores activos de la muestra cargada
         this.activeDrivers = users.filter(u => u.userRol === 9 && u.userState === true).length;
-        console.log('Users loaded:', this.users);
-        console.log('Total users:', this.totalUsers);
-        console.log('Active drivers:', this.activeDrivers);
+        console.log('Latest users loaded:', this.users.length);
       },
       error => {
         console.error('Error loading users:', error);
@@ -182,22 +184,17 @@ export class AdminPanelComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   loadRequestVehicles(): void {
-    const requestsSub = this.requestVehicleService.getAllRequests().subscribe(
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+
+    // Optimizamos: Solo cargar viajes de HOY para el contador del dashboard
+    const requestsSub = this.requestVehicleService.getFilteredRequests(null, today, tomorrow, 100).pipe(take(1)).subscribe(
       (requests: any[]) => {
         this.requestVehicles = requests;
-        // Contar viajes de hoy
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        this.tripsToday = requests.filter(r => {
-          if (r.requestFullDate && r.requestFullDate.toDate) {
-            const requestDate = r.requestFullDate.toDate();
-            requestDate.setHours(0, 0, 0, 0);
-            return requestDate.getTime() === today.getTime();
-          }
-          return false;
-        }).length;
-        console.log('Request vehicles loaded:', this.requestVehicles.length);
-        console.log('Trips today:', this.tripsToday);
+        this.tripsToday = requests.length;
+        console.log('Request vehicles (today) loaded:', this.requestVehicles.length);
       },
       error => {
         console.error('Error loading request vehicles:', error);
@@ -301,7 +298,7 @@ export class AdminPanelComponent implements OnInit, AfterViewInit, OnDestroy {
         responsive: true,
         maintainAspectRatio: false,
         scales: {
-          y: { 
+          y: {
             beginAtZero: true,
             grid: {
               color: 'rgba(255, 255, 255, 0.1)' // Líneas de la cuadrícula más sutiles
@@ -310,8 +307,8 @@ export class AdminPanelComponent implements OnInit, AfterViewInit, OnDestroy {
               color: 'rgba(255, 255, 255, 0.8)' // Color claro para los números del eje Y
             }
           },
-          x: { 
-            grid: { 
+          x: {
+            grid: {
               display: false // Ocultar líneas de la cuadrícula en el eje X 
             },
             ticks: {
