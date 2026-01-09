@@ -176,7 +176,7 @@
                         </th>
                         <td mat-cell *matCellDef="let row" class="text-center py-2">
                             <div class="user-avatar">
-                                <img [src]="row.userPhotoURL || './assets/img/icons/gallery.png'" alt="{{row.userName}}"
+                                <img [src]="'./assets/img/icons/gallery.png'" alt="{{row.userFullName}}"
                                     class="avatar-img" style="object-fit: cover;">
                             </div>
                         </td>
@@ -188,7 +188,7 @@
                             <strong>Identificación</strong>
                         </th>
                         <td mat-cell *matCellDef="let row" class="text-center py-2">
-                            <span class="text-white">{{ row.userIdentification || 'N/A' }}</span>
+                            <span class="text-white">{{ row.userDniNumber || 'N/A' }}</span>
                         </td>
                     </ng-container>
 
@@ -199,7 +199,7 @@
                         </th>
                         <td mat-cell *matCellDef="let row" class="py-2">
                             <div class="user-name text-white">
-                                <strong>{{ row.userName }}</strong><br>
+                                <strong>{{ row.userFullName }}</strong><br>
                                 <small class="text-muted">{{ row.userEmail }}</small>
                             </div>
                         </td>
@@ -244,27 +244,8 @@
                             <strong>Docs</strong>
                         </th>
                         <td mat-cell *matCellDef="let row" class="text-center py-2">
-                            <span *ngIf="getDocumentsStatus(row) === 'N/A'" class="badge badge-sm badge-secondary"
-                                title="No aplica">
+                            <span class="badge badge-sm badge-secondary" title="No aplica">
                                 <i class="nc-icon nc-simple-remove"></i>
-                            </span>
-                            <span *ngIf="getDocumentsStatus(row) === 'verified'" class="badge badge-sm badge-success"
-                                title="Documentos verificados">
-                                <i class="nc-icon nc-check-2"></i>
-                            </span>
-                            <span *ngIf="getDocumentsStatus(row) === 'pending'" class="badge badge-sm badge-warning"
-                                title="Documentos pendientes">
-                                <i class="nc-icon nc-time-alarm"></i>
-                            </span>
-                            <span *ngIf="getDocumentsStatus(row) === 'missing'" class="badge badge-sm badge-danger"
-                                title="Sin documentos">
-                                <i class="nc-icon nc-paper"></i>
-                            </span>
-
-                            <!-- Admin Verification Indicator -->
-                            <span *ngIf="row.userAdminDocumentVerified" class="badge badge-sm badge-info ml-1"
-                                title="Validado por Administración">
-                                <i class="nc-icon nc-bookmark-2"></i>
                             </span>
                         </td>
                     </ng-container>
@@ -276,59 +257,18 @@
                         </th>
                         <td mat-cell *matCellDef="let row" class="text-center py-2">
                             <div class="d-flex align-items-center justify-content-center">
-                                <span *ngIf="row.userState && !row.userAccountBlock"
-                                    class="badge badge-sm badge-success" title="Usuario activo">
+                                <span *ngIf="row.state" class="badge badge-sm badge-success" title="Usuario activo">
                                     <i class="nc-icon nc-check-2"></i>
                                 </span>
-                                <span *ngIf="!row.userState" class="badge badge-sm badge-secondary"
+                                <span *ngIf="!row.state" class="badge badge-sm badge-secondary"
                                     title="Usuario inactivo">
                                     <i class="nc-icon nc-simple-remove"></i>
                                 </span>
-                                <span *ngIf="row.userAccountBlock" class="badge badge-sm badge-danger ml-1"
-                                    title="Usuario bloqueado">
-                                    <i class="nc-icon nc-lock-circle-open"></i>
-                                </span>
                             </div>
                         </td>
                     </ng-container>
 
-                    <!-- Location Column -->
-                    <ng-container matColumnDef="location">
-                        <th mat-header-cell *matHeaderCellDef class="text-center py-2">
-                            <strong>Ubicación</strong>
-                        </th>
-                        <td mat-cell *matCellDef="let row" class="text-center py-2">
-                            <div class="d-flex align-items-center justify-content-center">
-                                <button class="btn-action"
-                                    [ngClass]="row.userStateShareLocation ? 'btn-action-view' : 'btn-action-inactive'"
-                                    (click)="toggleLocationSharing(row, $event)"
-                                    [title]="row.userStateShareLocation ? 'Desactivar compartido de ubicación' : 'Activar compartido de ubicación'">
-                                    <i class="nc-icon"
-                                        [ngClass]="row.userStateShareLocation ? 'nc-pin-3' : 'nc-pin-3'"></i>
-                                </button>
-                            </div>
-                        </td>
-                    </ng-container>
 
-                    <!-- Commission Column -->
-                    <ng-container matColumnDef="commission">
-                        <th mat-header-cell *matHeaderCellDef class="text-center py-2">
-                            <strong>Comisión</strong>
-                        </th>
-                        <td mat-cell *matCellDef="let row" class="text-center py-2">
-                            <div class="d-flex align-items-center justify-content-center">
-                                <span *ngIf="hasDriverProfile(row)" class="commission-badge"
-                                    (click)="openCommissionModal(row); $event.stopPropagation()"
-                                    [title]="'Gestionar comisión - Click para editar'">
-                                    <i class="nc-icon nc-chart-bar-32"></i>
-                                    {{ getUserCommissionRate(row) }}%
-                                </span>
-                                <span *ngIf="!hasDriverProfile(row)" class="text-muted" style="font-size: 0.7rem;">
-                                    N/A
-                                </span>
-                            </div>
-                        </td>
-                    </ng-container>
 
                     <!-- Actions Column -->
                     <ng-container matColumnDef="actions">
@@ -344,19 +284,17 @@
                                 </button>
                                 <!-- Activar/Desactivar -->
                                 <button class="btn-action ml-1"
-                                    [ngClass]="row.userState ? 'btn-action-active' : 'btn-action-inactive'"
+                                    [ngClass]="row.state ? 'btn-action-active' : 'btn-action-inactive'"
                                     (click)="toggleUserState(row, $event)"
-                                    [title]="row.userState ? 'Desactivar usuario' : 'Activar usuario'">
-                                    <i class="nc-icon"
-                                        [ngClass]="row.userState ? 'nc-button-power' : 'nc-button-play'"></i>
+                                    [title]="row.state ? 'Desactivar usuario' : 'Activar usuario'">
+                                    <i class="nc-icon" [ngClass]="row.state ? 'nc-button-power' : 'nc-button-play'"></i>
                                 </button>
                                 <!-- Bloquear/Desbloquear -->
                                 <button class="btn-action ml-1"
-                                    [ngClass]="row.userAccountBlock ? 'btn-action-unlock' : 'btn-action-lock'"
+                                    [ngClass]="!row.state ? 'btn-action-unlock' : 'btn-action-lock'"
                                     (click)="toggleBlockUser(row)"
-                                    [title]="row.userAccountBlock ? 'Desbloquear usuario' : 'Bloquear usuario'">
-                                    <i class="nc-icon"
-                                        [ngClass]="row.userAccountBlock ? 'nc-key-25' : 'nc-lock-circle-open'"></i>
+                                    [title]="!row.state ? 'Desbloquear usuario' : 'Bloquear usuario'">
+                                    <i class="nc-icon" [ngClass]="!row.state ? 'nc-key-25' : 'nc-lock-circle-open'"></i>
                                 </button>
                                 <!-- Eliminar -->
                                 <button class="btn-action btn-action-delete ml-1" (click)="deleteUser(row, $event)"

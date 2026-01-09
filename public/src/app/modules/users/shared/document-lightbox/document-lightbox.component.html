@@ -4,8 +4,8 @@
     <!-- HEADER -->
     <div class="lightbox-header" (click)="$event.stopPropagation()">
         <h5 class="text-white mb-0" *ngIf="document">
-            <i class="nc-icon" [ngClass]="document.description ? 'nc-paper' : 'nc-image'"></i>
-            {{ document.label }}{{ document.type }}
+            <i class="nc-icon" [ngClass]="document.type === 'photo' ? 'nc-image' : 'nc-paper'"></i>
+            {{ document.label }}
         </h5>
         <button class="lightbox-close-btn" (click)="closeLightbox()" title="Cerrar">
             <i class="nc-icon nc-simple-remove"></i>
@@ -40,8 +40,7 @@
             <div class="verification-actions" *ngIf="document && document.uploaded && document.description">
                 <p class="doc-description d-none d-md-block">{{ document.description }}</p>
                 <div class="action-buttons">
-                    <button *ngIf="!document.verified" class="btn btn-success btn-sm mr-2"
-                        (click)="verifyDocument()">
+                    <button *ngIf="!document.verified" class="btn btn-success btn-sm mr-2" (click)="verifyDocument()">
                         <i class="nc-icon nc-check-2"></i> <span class="d-none d-sm-inline">Verificar</span>
                     </button>
                     <button class="btn btn-danger btn-sm" (click)="rejectDocument()">
@@ -53,25 +52,50 @@
 
         <!-- Rejection Mode Form -->
         <div class="rejection-form-container" *ngIf="isRejecting">
-            <h6 class="text-white mb-2">Motivo del rechazo</h6>
+            <div class="row m-0 w-100">
+                <!-- Left Side: Reason Selection -->
+                <div class="col-md-7 border-right-md p-0 pr-md-3">
+                    <h6 class="text-white mb-2" style="font-size: 14px;">1. Motivo del rechazo interno</h6>
 
-            <!-- Quick Reasons -->
-            <div class="quick-reasons mb-2">
-                <button *ngFor="let reason of predefinedReasons" class="badge badge-default mr-1 mb-1 border-0"
-                    style="cursor: pointer; text-transform: none; font-size: 11px;"
-                    (click)="setRejectionReason(reason)">
-                    {{ reason }}
-                </button>
+                    <div class="quick-reasons mb-2 d-flex flex-wrap">
+                        <button *ngFor="let reason of predefinedReasons" class="badge badge-pill mr-1 mb-1 border-1"
+                            [ngStyle]="{'background': rejectionReason === reason ? '#ef4444' : 'rgba(239, 68, 68, 0.1)', 'color': rejectionReason === reason ? '#fff' : '#f87171', 'border': '1px solid #ef4444'}"
+                            style="cursor: pointer; text-transform: none; font-size: 10px; transition: all 0.2s;"
+                            (click)="setRejectionReason(reason)">
+                            {{ reason }}
+                        </button>
+                    </div>
+
+                    <textarea class="form-control rejection-textarea mb-2" [(ngModel)]="rejectionReason"
+                        (ngModelChange)="updateNotificationPreview($event)"
+                        placeholder="Escribe o selecciona un motivo..." rows="2" style="font-size: 12px;"></textarea>
+                </div>
+
+                <!-- Right Side: Push Preview & Edit -->
+                <div class="col-md-5 p-0 pl-md-3 mt-3 mt-md-0">
+                    <h6 class="text-white mb-2" style="font-size: 14px;">2. Vista previa de la notificación Push</h6>
+
+                    <!-- Notification Mockup -->
+                    <div class="push-notification-preview mb-2">
+                        <div class="push-header">
+                            <img src="assets/img/apple-icon.png" class="push-app-icon" alt="App">
+                            <span class="push-app-name">iMove App</span>
+                            <span class="push-time">ahora</span>
+                        </div>
+                        <div class="push-content">
+                            <div class="push-title">{{ notificationTitle }}</div>
+                            <textarea class="push-body-editable" [(ngModel)]="notificationBody" rows="4"></textarea>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <textarea class="form-control rejection-textarea mb-2" [(ngModel)]="rejectionReason"
-                placeholder="Escribe el motivo del rechazo..." rows="2"></textarea>
-            <div class="rejection-actions">
+            <div class="rejection-actions border-top mt-2 pt-2 d-flex justify-content-end w-100">
                 <button class="btn btn-secondary btn-sm mr-2" (click)="cancelRejection()">
                     Cancelar
                 </button>
-                <button class="btn btn-danger btn-sm" (click)="confirmRejection()">
-                    Confirmar Rechazo
+                <button class="btn btn-danger btn-sm" (click)="confirmRejection()" [disabled]="!rejectionReason">
+                    Confirmar y Enviar Notificación
                 </button>
             </div>
         </div>

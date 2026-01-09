@@ -6,21 +6,20 @@ import { Subscription } from 'rxjs/Subscription';
 import { AuthService } from 'app/services/authService/auth.service';
 import { Users } from 'app/interfaces/users';
 
-var misc:any ={
+var misc: any = {
     navbar_menu_visible: 0,
     active_collapse: true,
     disabled_collapse_init: 0,
 }
 
 @Component({
-    moduleId: module.id,
     selector: 'navbar-cmp',
     templateUrl: 'navbar.component.html',
-    styleUrls: ['./navbar.component.css'] 
+    styleUrls: ['./navbar.component.css']
 
 })
 
-export class NavbarComponent implements OnInit{
+export class NavbarComponent implements OnInit {
     private listTitles: any[];
     location: Location;
     private nativeElement: Node;
@@ -30,18 +29,18 @@ export class NavbarComponent implements OnInit{
     public open: boolean = false;
     public infoUser: Users;
 
-    @ViewChild("navbar-cmp", {static: false}) button;
+    @ViewChild("navbar-cmp", { static: false }) button;
 
-    constructor(location:Location, private renderer : Renderer2, private element : ElementRef, private router: Router,
+    constructor(location: Location, private renderer: Renderer2, private element: ElementRef, private router: Router,
         private authService: AuthService) {
         this.location = location;
         this.nativeElement = element.nativeElement;
         this.sidebarVisible = false;
     }
 
-    ngOnInit(){
+    ngOnInit() {
         this.infoUser = JSON.parse(localStorage.getItem("infoUser"));
-        
+
         this.listTitles = ROUTES.filter(listTitle => listTitle);
 
         const navbar: HTMLElement = this.element.nativeElement;
@@ -51,95 +50,95 @@ export class NavbarComponent implements OnInit{
             misc.sidebar_mini_active = true;
         }
         this._router = this.router.events.filter(event => event instanceof NavigationEnd).subscribe((event: NavigationEnd) => {
-          const $layer = document.getElementsByClassName('close-layer')[0];
-          if ($layer) {
-            $layer.remove();
-          }
+            const $layer = document.getElementsByClassName('close-layer')[0];
+            if ($layer) {
+                $layer.remove();
+            }
         });
     }
 
-    minimizeSidebar(){
-      const body = document.getElementsByTagName('body')[0];
+    minimizeSidebar() {
+        const body = document.getElementsByTagName('body')[0];
 
-      if (misc.sidebar_mini_active === true) {
-          body.classList.remove('sidebar-mini');
-          misc.sidebar_mini_active = false;
+        if (misc.sidebar_mini_active === true) {
+            body.classList.remove('sidebar-mini');
+            misc.sidebar_mini_active = false;
 
-      } else {
-          setTimeout(function() {
-              body.classList.add('sidebar-mini');
+        } else {
+            setTimeout(function () {
+                body.classList.add('sidebar-mini');
 
-              misc.sidebar_mini_active = true;
-          }, 300);
-      }
+                misc.sidebar_mini_active = true;
+            }, 300);
+        }
 
-      // we simulate the window Resize so the charts will get updated in realtime.
-      const simulateWindowResize = setInterval(function() {
-          window.dispatchEvent(new Event('resize'));
-      }, 180);
+        // we simulate the window Resize so the charts will get updated in realtime.
+        const simulateWindowResize = setInterval(function () {
+            window.dispatchEvent(new Event('resize'));
+        }, 180);
 
-      // we stop the simulation of Window Resize after the animations are completed
-      setTimeout(function() {
-          clearInterval(simulateWindowResize);
-      }, 1000);
+        // we stop the simulation of Window Resize after the animations are completed
+        setTimeout(function () {
+            clearInterval(simulateWindowResize);
+        }, 1000);
     }
 
-    isMobileMenu(){
-        if(window.outerWidth < 991){
+    isMobileMenu() {
+        if (window.outerWidth < 991) {
             return false;
         }
         return true;
     }
 
-    sidebarOpen(){
+    sidebarOpen() {
         var toggleButton = this.toggleButton;
         var html = document.getElementsByTagName('html')[0];
-        setTimeout(function(){
+        setTimeout(function () {
             toggleButton.classList.add('toggled');
-        },500);
-        const mainPanel =  <HTMLElement>document.getElementsByClassName('main-panel')[0];
+        }, 500);
+        const mainPanel = <HTMLElement>document.getElementsByClassName('main-panel')[0];
         if (window.innerWidth < 991) {
-          mainPanel.style.position = 'fixed';
+            mainPanel.style.position = 'fixed';
         }
         html.classList.add('nav-open');
         this.sidebarVisible = true;
     }
-    sidebarClose(){
+    sidebarClose() {
         var html = document.getElementsByTagName('html')[0];
         this.toggleButton.classList.remove('toggled');
         this.sidebarVisible = false;
         html.classList.remove('nav-open');
-        const mainPanel =  <HTMLElement>document.getElementsByClassName('main-panel')[0];
+        const mainPanel = <HTMLElement>document.getElementsByClassName('main-panel')[0];
 
         if (window.innerWidth < 991) {
-          setTimeout(function(){
-            mainPanel.style.position = '';
-          }, 500);
+            setTimeout(function () {
+                mainPanel.style.position = '';
+            }, 500);
         }
     }
-    sidebarToggle(){
+    sidebarToggle() {
         // var toggleButton = this.toggleButton;
         // var body = document.getElementsByTagName('body')[0];
-        if(this.sidebarVisible == false){
+        if (this.sidebarVisible == false) {
             this.sidebarOpen();
         } else {
             this.sidebarClose();
         }
     }
 
-    getTitle(){
+    getTitle() {
         var titlee = this.location.prepareExternalUrl(this.location.path());
-        if(titlee.charAt(0) === '#'){
-            titlee = titlee.slice( 1 );
+        if (titlee.charAt(0) === '#') {
+            titlee = titlee.slice(1);
         }
-        for(var item = 0; item < this.listTitles.length; item++){
+        for (var item = 0; item < this.listTitles.length; item++) {
             var parent = this.listTitles[item];
-            if(parent.path === titlee){
+            if (parent.path === titlee) {
                 return parent.title;
-            }else if(parent.children){
+            } else if (parent.children) {
                 var children_from_url = titlee.split("/")[2];
-                for(var current = 0; current < parent.children.length; current++){
-                    if(parent.children[current].path === children_from_url ){
+                for (var current = 0; current < parent.children.length; current++) {
+                    if (parent.children[current].path === children_from_url) {
                         return parent.children[current].title;
                     }
                 }
@@ -148,10 +147,10 @@ export class NavbarComponent implements OnInit{
         return 'Dashboard';
     }
 
-    getPath(){
+    getPath() {
         return this.location.prepareExternalUrl(this.location.path());
     }
-    
+
     public logout() {
         this.authService.logout()
     }

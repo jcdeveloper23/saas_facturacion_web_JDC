@@ -10,7 +10,7 @@ import { Subscription } from 'rxjs';
 })
 export class DriverMonitorComponent implements OnInit, OnDestroy {
 
-  public activeDrivers: Users[] = [];
+  public activeDrivers: any[] = [];
   public mapCenter = { lat: 7.7677778, lng: -72.234686 }; // Coordenadas por defecto
   public zoom = 12;
   private driversSubscription: Subscription;
@@ -47,11 +47,11 @@ export class DriverMonitorComponent implements OnInit, OnDestroy {
   loadActiveDrivers() {
     this.driversSubscription = this.usersService.getActiveDrivers().subscribe(drivers => {
       // Filtra y mapea los datos en un solo paso para mejorar el rendimiento.
-      this.activeDrivers = drivers.filter(driver =>
+      this.activeDrivers = drivers.filter((driver: any) =>
         driver.userLastLocationLatitude &&
         driver.userLastLocationLongitude
-        && driver.userStateShareLocation // Asegurarse de que estén compartiendo ubicación
-      ).map(driver => {
+        // && driver.userStateShareLocation // Legacy field, logic disabled or backend dependent
+      ).map((driver: any) => {
         // Pre-calculamos los valores para evitar llamadas a funciones en el template.
         return {
           ...driver,
@@ -62,22 +62,24 @@ export class DriverMonitorComponent implements OnInit, OnDestroy {
       });
 
       this.hasActiveDrivers = this.activeDrivers.length > 0;
-      
+
       // Centrar el mapa solo la primera vez que se cargan los conductores.
       if (this.followedDriverId) {
         // Si se está siguiendo a un conductor, mantener el mapa centrado en él.
-        const followedDriver = this.activeDrivers.find(d => d.userUid === this.followedDriverId);
+        const followedDriver = this.activeDrivers.find(d => d.userUuid === this.followedDriverId);
         if (followedDriver) {
+          const d: any = followedDriver;
           this.mapCenter = {
-            lat: followedDriver.userLastLocationLatitude,
-            lng: followedDriver.userLastLocationLongitude
+            lat: d.userLastLocationLatitude,
+            lng: d.userLastLocationLongitude
           };
         }
       } else if (this.hasActiveDrivers && !this.isMapInitialized) {
         // Si no se sigue a nadie, centrar el mapa solo la primera vez.
+        const d: any = this.activeDrivers[0];
         this.mapCenter = {
-          lat: this.activeDrivers[0].userLastLocationLatitude,
-          lng: this.activeDrivers[0].userLastLocationLongitude
+          lat: d.userLastLocationLatitude,
+          lng: d.userLastLocationLongitude
         };
         this.zoom = 14;
         this.isMapInitialized = true; // Marcar como inicializado para no volver a centrar.
@@ -85,12 +87,12 @@ export class DriverMonitorComponent implements OnInit, OnDestroy {
 
     });
   }
- 
+
   /**
    * Obtiene la etiqueta del marcador para cada conductor
    */
   getDriverLabel(driver: Users): string {
-    return driver.userName ? driver.userName.charAt(0).toUpperCase() : 'D';
+    return driver.userFullName ? driver.userFullName.charAt(0).toUpperCase() : 'D';
   }
 
   /**
@@ -109,8 +111,8 @@ export class DriverMonitorComponent implements OnInit, OnDestroy {
    */
   formatLastLocationDate(dateString: string): string {
     if (!dateString) return 'N/A';
-    try { 
-      const date = new Date(dateString); 
+    try {
+      const date = new Date(dateString);
       return date.toLocaleString(); // Formato local de fecha y hora
     } catch (error) {
       console.error('Error al formatear la fecha:', error);
@@ -125,7 +127,7 @@ export class DriverMonitorComponent implements OnInit, OnDestroy {
     if (this.activeDrivers.length > 0) {
       this.activeDrivers = this.activeDrivers.map(driver => ({
         ...driver,
-        formattedLastLocationDate: this.getRelativeTime(driver.userLastLocationDate)
+        formattedLastLocationDate: this.getRelativeTime((driver as any).userLastLocationDate)
       }));
     }
   }
@@ -165,14 +167,15 @@ export class DriverMonitorComponent implements OnInit, OnDestroy {
    * @param driver El conductor a seguir.
    */
   public toggleFollowDriver(driver: Users) {
-    if (this.followedDriverId === driver.userUid) {
+    if (this.followedDriverId === driver.userUuid) {
       // Si ya se está siguiendo a este conductor, se desactiva el seguimiento.
       this.followedDriverId = null;
     } else {
       // Si no, se activa el seguimiento para este conductor.
-      this.followedDriverId = driver.userUid;
+      this.followedDriverId = driver.userUuid;
       // Centra el mapa inmediatamente en el conductor y aumenta el zoom.
-      this.mapCenter = { lat: driver.userLastLocationLatitude, lng: driver.userLastLocationLongitude };
+      const d: any = driver;
+      this.mapCenter = { lat: d.userLastLocationLatitude, lng: d.userLastLocationLongitude };
       this.zoom = 16; // Un zoom más cercano para el seguimiento
     }
   }

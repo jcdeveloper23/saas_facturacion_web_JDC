@@ -1,11 +1,11 @@
-declare interface PriceRange {
+export interface PriceRange {
   minKm?: number,
   maxKm?: number,
   pricePerKm?: number,
   description?: string
 }
 
-declare interface ServicePricing {
+export interface ServicePricing {
   serviceTypeId?: string,
   serviceTypeName?: string,
   serviceIcon?: string,
@@ -22,19 +22,25 @@ declare interface ServicePricing {
   isActive?: boolean
 }
 
-declare interface City {
-  cityId?: string,
-  cityCode?: string,
-  cityCountyId?: string,
-  cityName?: string,
-  cityRegisterDate?: string,
-  cityState?: boolean,
-  cityLat?: number,
-  cityLng?: number,
-  citySupportNumber?: string,
-  cityCurrency?: string,
-  cityServicePricing?: ServicePricing[],
-  cityTimezone?: string,
-  cityCoverageRadiusKm?: number,
-  cityUpdatedAt?: string
+export interface City {
+  // Backend Model Fields (Sequelize)
+  id?: number;
+  cityName?: string;
+  cityCode?: string;
+  state?: boolean;
+  cityCountryCode?: string;
+
+  // Legacy / Frontend Specific Fields
+  cityId?: string;
+  cityCountyId?: string;
+  cityRegisterDate?: string;
+  cityState?: boolean; // Legacy flag
+  cityLat?: number;
+  cityLng?: number;
+  citySupportNumber?: string;
+  cityCurrency?: string;
+  cityServicePricing?: ServicePricing[];
+  cityTimezone?: string;
+  cityCoverageRadiusKm?: number;
+  cityUpdatedAt?: string;
 }

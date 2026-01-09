@@ -1,94 +1,47 @@
 import { Injectable } from '@angular/core';
-import { AngularFirestore } from '@angular/fire/firestore';
-import { Users } from 'app/interfaces/users';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { environment } from '../../../environments/environment';
+import { Country } from '../../interfaces/country';
+import { RequestVehicle } from '../../interfaces/requestVehicle';
+import { Observable } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
 })
 export class CountriesService {
+  private apiUrl = `${environment.apiGpsUrl}/countries`;
 
-  constructor(
-    private db: AngularFirestore
-  ) { }
+  constructor(private http: HttpClient) { }
 
-  public getCountries() {
-    return this.db.collection<Country>('countries').valueChanges();
-  }
-
-  public getRequest() {
-    // return this.db.collection<RequestVehicle>('requestVehicle', ref => ref.limit(50)).valueChanges();
-    return this.db.collection<RequestVehicle>('requestVehicle').valueChanges();
-  }
-
-
-  getUsers() {
-    return this.db.collection('users').snapshotChanges();
-  }
-
-  getUsersByUid(userUid) {
-    return this.db.collection('users').doc(userUid).valueChanges();
-
-  }
-
-  
-  saveUser(requestDriverUid) {
-    return this.db.collection('users').doc(requestDriverUid).set({
-      'usuario': requestDriverUid
+  private getHeaders() {
+    const token = localStorage.getItem('accessToken');
+    return new HttpHeaders({
+      'Authorization': `Bearer ${token}`
     });
   }
 
-  public deleteUser(userUid: string, requestId) {
-    var path = `users/${userUid}/requestVehicle/${requestId}`;
-    console.log('*** pathDelete ***', path);
-    
-
-    return this.db.collection('users').doc(userUid).collection('requestVehicle').doc(requestId).delete();
+  public getCountries(): Observable<Country[]> {
+    return this.http.get<Country[]>(this.apiUrl, { headers: this.getHeaders() });
   }
 
-  // deleteAllUsers() {
-  //   return this.db.collection('users').get().toPromise().then(snapshot => {
-  //     const batch = this.db.firestore.batch();
-  //     snapshot.forEach(doc => batch.delete(doc.ref));
-  //     return batch.commit();
-  //   });
-  // }
-
-  restoreUsers(users: Users[]) {
-    return;
-    const batch = this.db.firestore.batch();
-    users.forEach(user => {
-            console.log(`*** restaurando ${user.userUid} ***`);
-
-      
-      const { userUid, ...data } = user;
-      const ref = this.db.collection('users').doc(userUid).ref;
-      batch.set(ref, data);
-    });
-    return batch.commit();
+  public getRequest(): Observable<RequestVehicle[]> {
+    // Legacy endpoint for requests, pointing to a placeholder for now
+    return this.http.get<RequestVehicle[]>(`${environment.apiGpsUrl}/requests`, { headers: this.getHeaders() });
   }
 
-
-  saveRequestInUser(requestDriverUid, requestVehicle) {
-    return this.db.collection('users').doc(requestDriverUid).collection('requestVehicle').doc(requestVehicle.requestId).set(requestVehicle);
+  public getCountry(countryName: string): Observable<Country[]> {
+    return this.http.get<Country[]>(`${this.apiUrl}?countryName=${countryName}`, { headers: this.getHeaders() });
   }
 
-  public getCountry(country: string) {
-    return this.db.collection<Country>('countries', ref => ref.where('countryName', '==', country)).valueChanges();
+  saveCountry(country: Country): Observable<any> {
+    return this.http.post(this.apiUrl, country, { headers: this.getHeaders() });
   }
 
-  saveCountry(country: Country) {
-    return this.db.collection('countries').doc(country.countryId).set(country);
-  }
-  editCountry(country: Country) {
-    return this.db.collection('countries').doc(country.countryId).update(country);
+  editCountry(country: Country): Observable<any> {
+    return this.http.patch(`${this.apiUrl}/${country.countryId}`, country, { headers: this.getHeaders() });
   }
 
-  /**
-  * *** Delete company ***
-  * @param userId
-  * @returns 
-  */
-  public deleteCountry(countryId: string) {
-    return this.db.collection('countries').doc(countryId).delete();
+  public deleteCountry(countryId: string): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/${countryId}`, { headers: this.getHeaders() });
   }
 }

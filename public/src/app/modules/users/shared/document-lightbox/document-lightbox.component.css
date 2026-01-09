@@ -161,14 +161,82 @@
     }
 }
 
-/* Rejection Form */
+/* Rejection Form Expanded */
 .rejection-form-container {
     width: 100%;
-    max-width: 500px;
+    max-width: 850px;
+    /* Increased to accommodate preview */
     display: flex;
     flex-direction: column;
-    align-items: center;
     animation: fadeIn 0.2s ease;
+}
+
+.border-right-md {
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+@media (max-width: 767px) {
+    .border-right-md {
+        border-right: none;
+    }
+}
+
+/* Push Notification Mockup */
+.push-notification-preview {
+    background: rgba(45, 45, 60, 0.8);
+    border-radius: 12px;
+    padding: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    width: 100%;
+    max-width: 320px;
+    margin: 0 auto;
+}
+
+.push-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.push-app-icon {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    margin-right: 6px;
+}
+
+.push-app-name {
+    font-weight: 600;
+    flex-grow: 1;
+}
+
+.push-title {
+    color: white;
+    font-weight: 700;
+    font-size: 13px;
+    margin-bottom: 2px;
+}
+
+.push-body-editable {
+    background: transparent !important;
+    border: none !important;
+    color: rgba(255, 255, 255, 0.9) !important;
+    font-size: 12px !important;
+    width: 100%;
+    padding: 0 !important;
+    resize: none !important;
+    line-height: 1.4;
+    overflow-y: hidden;
+}
+
+.push-body-editable:focus {
+    box-shadow: none !important;
+    outline: none !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    border-radius: 4px;
 }
 
 .rejection-textarea {
@@ -181,13 +249,14 @@
 
 .rejection-textarea:focus {
     background: rgba(0, 0, 0, 0.5) !important;
-    border-color: var(--primary) !important;
+    border-color: #ef4444 !important;
+    /* Use red for rejection */
     box-shadow: none !important;
 }
 
 .rejection-actions {
     display: flex;
-    justify-content: center;
+    justify-content: flex-end;
     width: 100%;
     margin-top: 5px;
 }
@@ -195,7 +264,7 @@
 .quick-reasons {
     display: flex;
     flex-wrap: wrap;
-    justify-content: center;
+    justify-content: flex-start;
     max-width: 100%;
 }
 

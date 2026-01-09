@@ -224,22 +224,22 @@
                                 <ng-container matColumnDef="avatar">
                                     <th mat-header-cell *matHeaderCellDef></th>
                                     <td mat-cell *matCellDef="let row">
-                                        <img [src]="row.userAvatar || 'assets/img/default-avatar.png'"
+                                        <img [src]="'assets/img/default-avatar.png'"
                                             class="rounded-circle avatar-table shadow-sm">
                                     </td>
                                 </ng-container>
 
                                 <ng-container matColumnDef="name">
                                     <th mat-header-cell *matHeaderCellDef mat-sort-header> Nombre </th>
-                                    <td mat-cell *matCellDef="let row"> {{row.userName}} </td>
+                                    <td mat-cell *matCellDef="let row"> {{row.userFullName}} </td>
                                 </ng-container>
 
                                 <ng-container matColumnDef="userType">
                                     <th mat-header-cell *matHeaderCellDef mat-sort-header> Tipo </th>
                                     <td mat-cell *matCellDef="let row">
                                         <span class="badge"
-                                            [ngClass]="row.userRol == 9 ? 'badge-primary' : 'badge-warning'">
-                                            {{row.userRol == 9 ? 'Conductor' : 'Cliente'}}
+                                            [ngClass]="row.userCurrentRole == 9 ? 'badge-primary' : 'badge-warning'">
+                                            {{row.userCurrentRole == 9 ? 'Conductor' : 'Cliente'}}
                                         </span>
                                     </td>
                                 </ng-container>

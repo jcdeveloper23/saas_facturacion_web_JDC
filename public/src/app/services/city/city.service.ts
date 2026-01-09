@@ -3,8 +3,10 @@
  * */
 
 import { Injectable } from '@angular/core';
-import { AngularFirestore } from '@angular/fire/firestore';
-import { AngularFireAuth } from '@angular/fire/auth';
+import { HttpClient } from '@angular/common/http';
+import { environment } from 'environments/environment';
+import { map } from 'rxjs/operators';
+import { City } from 'app/interfaces/city';
 
 @Injectable({
   providedIn: 'root'
@@ -12,31 +14,50 @@ import { AngularFireAuth } from '@angular/fire/auth';
 export class CityService {
 
   constructor(
-    public db: AngularFirestore,
+    private http: HttpClient,
   ) {
   }
 
-  public getCities() {
-    return this.db.collection<City>('cities').valueChanges();
+  private getHeaders() {
+    const token = localStorage.getItem('accessToken');
+    return {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    };
   }
 
-  public getCity(city: string) {
-    return this.db.collection<City>('cities', ref => ref.where('cityName', '==', city)).valueChanges();
+  public getCities() {
+    const url = `${environment.apiGpsUrl}/cities`;
+    return this.http.get<any>(url, this.getHeaders()).pipe(
+      map(res => res.data || res)
+    );
+  }
+
+  public getCity(cityName: string) {
+    const url = `${environment.apiGpsUrl}/cities?cityName=${cityName}`;
+    return this.http.get<any>(url, this.getHeaders()).pipe(
+      map(res => res.data || res)
+    );
   }
 
   saveCity(city: City) {
-    return this.db.collection('cities').doc(city.cityId).set(city);
+    const url = `${environment.apiGpsUrl}/cities`;
+    return this.http.post(url, city, this.getHeaders());
   }
+
   editCity(city: City) {
-    return this.db.collection('cities').doc(city.cityId).update(city);
+    const url = `${environment.apiGpsUrl}/cities/${city.id || city.cityId}`;
+    return this.http.patch(url, city, this.getHeaders());
   }
 
   /**
-  * *** Delete company ***
-  * @param userId
+  * *** Delete city ***
+  * @param cityId
   * @returns 
   */
   public deleteCity(cityId: string) {
-    return this.db.collection('cities').doc(cityId).delete();
+    const url = `${environment.apiGpsUrl}/cities/${cityId}`;
+    return this.http.delete(url, this.getHeaders());
   }
 }

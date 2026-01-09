@@ -5,9 +5,10 @@ import { MatSort } from '@angular/material/sort';
 import { MatTableDataSource } from '@angular/material/table';
 import { CityService } from 'app/services/city/city.service';
 import { CountriesService } from 'app/services/countries/countries.service';
-import { CategoriesService } from 'app/services/categories/categories.service';
 import { LoadingService } from 'app/services/loading/loading.service';
 import { UtilsService } from 'app/services/utils/utils.service';
+import { City, ServicePricing, PriceRange } from 'app/interfaces/city';
+import { Country } from 'app/interfaces/country';
 import Swal from 'sweetalert2';
 
 declare const $: any;
@@ -47,16 +48,14 @@ export class CitiesComponent implements OnInit {
   public arrayCountries: Array<Country> = [];
   public country: Country = {};
 
-  public arrayServices: Categories[] = [];
-  public selectedServices: ServicePricing[] = [];
+  public arrayServices: any[] = [];
+  public selectedServices: any[] = [];
 
   constructor(
     public utilsService: UtilsService,
     public cityService: CityService,
     public loadingService: LoadingService,
     public countriesService: CountriesService,
-    public categoriesService: CategoriesService,
-
   ) {
   }
 
@@ -64,7 +63,6 @@ export class CitiesComponent implements OnInit {
     this.loadingService.show('Cargando...');
     this.getCities();
     this.getCountries();
-    this.getServices();
   }
 
   public getCities() {
@@ -87,11 +85,7 @@ export class CitiesComponent implements OnInit {
   }
 
   public getServices() {
-    this.categoriesService.getCategoriesByType('service').subscribe(services => {
-      this.arrayServices = services;
-      console.log('Servicios cargados:', this.arrayServices);
-      this.loadingService.hide();
-    });
+    // Legacy services logic removed
   }
 
   public newCity() {
@@ -126,17 +120,17 @@ export class CitiesComponent implements OnInit {
 
       if (this.isEdit) {
         this.city.cityUpdatedAt = new Date().toISOString();
-        this.cityService.editCity(this.city).then(() => {
+        this.cityService.editCity(this.city).subscribe(() => {
           this.utilsService.showNotification('top', 'right', 'nc-check-2', 'Ciudad editada correctamente', 'success');
           $('#modalNewCity').modal('hide');
         })
       } else {
         this.city.cityRegisterDate = new Date().toISOString();
-        this.cityService.saveCity(this.city).then(() => {
+        this.cityService.saveCity(this.city).subscribe(() => {
           this.utilsService.showNotification('top', 'right', 'nc-check-2', 'Ciudad creada correctamente', 'success');
           form.resetForm();
           $('#modalNewCity').modal('hide');
-        }).catch((e) => {
+        }, (e) => {
           console.log(JSON.stringify(e, null, 3));
         });
       }
@@ -316,10 +310,10 @@ export class CitiesComponent implements OnInit {
     }).then((result) => {
       if (result.isConfirmed) {
         this.loadingService.show('Eliminando ciudad...');
-        this.cityService.deleteCity(city.cityId).then(() => {
+        this.cityService.deleteCity(String(city.id || city.cityId)).subscribe(() => {
           this.loadingService.hide();
           this.utilsService.showNotification('top', 'right', 'nc-check-2', 'Ciudad eliminada correctamente', 'success');
-        }).catch((error) => {
+        }, (error) => {
           this.loadingService.hide();
           console.error('Error al eliminar ciudad:', error);
           this.utilsService.showNotification('top', 'right', 'nc-simple-remove', 'Error al eliminar la ciudad', 'danger');

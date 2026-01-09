@@ -1,9 +1,8 @@
 import { Injectable } from '@angular/core';
-import { AngularFireAuth } from '@angular/fire/auth';
-import { AngularFirestore } from '@angular/fire/firestore';
 import { Router } from '@angular/router';
-import { Representative } from 'app/interfaces/representative';
 import { Users } from 'app/interfaces/users';
+import { HttpClient } from '@angular/common/http';
+import { environment } from 'environments/environment';
 import { first, take } from 'rxjs/operators';
 import Swal from 'sweetalert2';
 import { UsersService } from '../users/users.service';
@@ -16,200 +15,64 @@ declare var $: any;
 export class AuthService {
   public infoUser: Users;
 
-  constructor(private afAuth: AngularFireAuth,
+  constructor(
     private router: Router,
-    private db: AngularFirestore,
     private userService: UsersService,
-
+    private http: HttpClient
   ) {
   }
 
-  /**
-   * *** Registro de autenticacion de usuario en firebase ***
-   * @param email
-   * @param password
-   */
-  async registerUserForAuth(email: string, password: string) {
-    try {
-      const result = await this.afAuth
-        .createUserWithEmailAndPassword(email, password)
-        .then((ok) => {
-          return ok.user;
-        })
-        .catch((error) => {
-          if (error.code == 'auth/user-not-found') {
-            this.showNotification('top', 'right', 'nc-alert-circle-i', 'No hay registro de usuario correspondiente a este email. El usuario puede haber sido eliminado', 'warning');
-          }
-          if (error.code == 'auth/email-already-in-use') {
-            this.showNotification('top', 'right', 'nc-alert-circle-i', 'El email ingresado ya está en uso', 'warning');
-
-          }
-          if (error.code == 'auth/wrong-password') {
-            this.showNotification('top', 'right', 'nc-alert-circle-i', 'La contraseña no es válida o el usuario no tiene una contraseña', 'warning');
-          }
-          if (error.code == 'auth/too-many-requests') {
-            this.showNotification('top', 'right', 'nc-alert-circle-i', 'Demasiados intentos de inicio de sesión fallidos.', 'warning');
-
-          }
-          if (error.code == 'auth/invalid-email') {
-            this.showNotification('top', 'right', 'nc-alert-circle-i', 'El email no tiene un formato válido.', 'warning');
-
-          }
-        });
-      return result;
-    } catch (error) {
-      if (error.code == 'auth/user-not-found') {
-        this.showNotification('top', 'right', 'nc-alert-circle-i', 'No hay registro de usuario correspondiente a este email. El usuario puede haber sido eliminado', 'warning');
-
-      }
-      if (error.code == 'auth/email-already-in-use') {
-        this.showNotification('top', 'right', 'nc-alert-circle-i', 'El email ingresado ya está en uso', 'warning');
-
-      }
-      if (error.code == 'auth/wrong-password') {
-        this.showNotification('top', 'right', 'nc-alert-circle-i', 'La contraseña no es válida o el usuario no tiene una contraseña', 'warning');
-
-      }
-      if (error.code == 'auth/too-many-requests') {
-        this.showNotification('top', 'right', 'nc-alert-circle-i', 'Demasiados intentos de inicio de sesión fallidos.', 'warning');
-
-      }
-      if (error.code == 'auth/invalid-email') {
-        this.showNotification('top', 'right', 'nc-alert-circle-i', 'El email no tiene un formato válido.', 'warning');
-
-      }
-      return error;
-    }
-  }
-
-  public async changePass(newPassword: string, pass, email) {
-    const representative: Representative = {};
-    const results = await this.afAuth.signInWithEmailAndPassword(
-      email,
-      pass
-    );
-    const result = await this.afAuth.currentUser;
-    results.user.updatePassword(newPassword).then(function () {
-    }).catch(function (error) {
-      console.log('error! ', error)
-    });
-  }
-
   public async login(email: string, password: string) {
-
-    const user: Users = {
-      userName: 'Super Administrador',
-      userEmail: 'superadmin@gmail.com',
-      userUid: 'guQwLW6J6KaRet4tWyRoPf1yw9r2',
-      userState: true,
-      userRol: 0,
-      userId: 'guQwLW6J6KaRet4tWyRoPf1yw9r2',
-    }
-    // this.userService.saveUser(user).then(() => {
-    //   // this.studentService.getStudentById(student).pipe(take(1)).subscribe((s) => {
-    //   //   if (s) {
-    //   //     this.studentService.updateStudent(student);
-    //   //   } else {
-    //   //     this.studentService.saveStudent(student)
-    //   //   }
-    //   // })
-
-    // });
+    console.log('*** Logging in via Backend API ***');
+    const url = `${environment.apiGpsUrl}/authentication`;
+    const payload = {
+      strategy: 'local',
+      userEmail: email,
+      userPassword: password
+    };
 
     try {
-      const result = await this.afAuth.signInWithEmailAndPassword(
-        email,
-        password
-      );
+      const response: any = await this.http.post(url, payload).toPromise();
+      console.log('Login successful:', JSON.stringify(response, null, 2));
 
-      let user_info: any;
-      let infoUser: Users = {};
-      user_info = (await this.getUserByUid(result.user.uid)).pipe(take(1))
-        .toPromise();
+      if (response && response.accessToken) {
+        localStorage.setItem('accessToken', response.accessToken);
+        const infoUser: Users = response.user;
 
-      if (await user_info) {
-        console.log(JSON.stringify(user_info, null, 3));
-        console.log((await user_info)['userRol']);
-
-        infoUser = {
-          userEmail: (await user_info)['userEmail'],
-          userRol: (await user_info)['userRol'],
-          userId: (await user_info)['userId'],
-          userUid: (await user_info)['userUid'],
-          userState: (await user_info)['userState'],
-        };
-      }
-      console.log(infoUser.userState);
-
-      if (infoUser.userState) {
         localStorage.setItem('infoUser', JSON.stringify(infoUser));
-        this.infoUser = JSON.parse(localStorage.getItem('infoUser'));
-        console.log(JSON.stringify(this.infoUser, null, 3));
+        this.infoUser = infoUser;
 
-
-
-        switch (this.infoUser.userRol) {
-
-          case 0:
-            this.router.navigate(['/discount-coupons'])
-            break;
-          case 1:
-            if (this.infoUser.userState) {
-              this.router.navigate(['/perfil'])
-            } else {
-              this.showNotification('top', 'right', 'nc-alert-circle-i', 'Estamos validando tu cuenta, aun no tienes acceso a la plataforma', 'info')
-              this.router.navigate(['/'])
-            }
-            break;
-          case 2:
-            this.router.navigate(['//perfil-representative/childrens'])
-            break;
-          case 3:
-            this.showNotification('top', 'right', 'nc-alert-circle-i', 'El acceso a la plataforma para los estudiantes es mediante la aplicación móvil', 'warning')
-            break;
-          default:
-            this.router.navigate([''])
-            break;
+        // Check if user is active (handle both boolean and number 1/0)
+        if (!this.infoUser.state) {
+          this.showNotification('top', 'right', 'nc-alert-circle-i', 'El usuario se encuentra desactivado.', 'danger');
+          localStorage.clear();
+          return;
         }
-      } else {
-        this.showNotification('top', 'right', 'nc-alert-circle-i', 'El usuario se encuentra desactivado.', 'danger')
-      }
 
+        const role = this.infoUser.userCurrentRole;
+
+        // Redirect based on role for GPS application
+        if (role?.toString() === '0') {
+          this.router.navigate(['/admin-panel']);
+        } else {
+          // Standard users/clients go to Monitor
+          this.router.navigate(['/monitor']);
+        }
+      }
     } catch (error) {
-      console.log(JSON.stringify(error, null, 3));
-
-      if (error.code === 'auth/internal-error') {
-        this.showNotification('top', 'right', 'nc-alert-circle-i', 'Las credenciales ingresadas son incorrectas', 'warning')
-      }
-      else if (error.code === 'auth/wrong-password') {
-        this.showNotification('top', 'right', 'nc-alert-circle-i', 'La contraseña no es válida o el usuario no tiene una contraseña', 'warning')
-      }
-      else if (error.code === 'auth/user-not-found') {
-        this.showNotification('top', 'right', 'nc-alert-circle-i', 'No hay registro de usuario correspondiente a este email. El usuario pudo haber sido eliminado', 'warning')
-
-      }
-      else if (error.code === 'auth/invalid-email') {
-        this.showNotification('top', 'right', 'nc-alert-circle-i', 'El email no tiene un formato válido.', 'warning')
-      }
-      else if (error.code === 'auth/too-many-requests') {
-        this.showNotification('top', 'right', 'nc-alert-circle-i', 'Atención, Demasiados intentos de inicio de sesión fallidos.', 'warning')
+      console.error('Login error:', error);
+      if (error.status === 401) {
+        this.showNotification('top', 'right', 'nc-alert-circle-i', 'Las credenciales ingresadas son incorrectas', 'warning');
       } else {
-        this.showNotification('top', 'right', 'nc-alert-circle-i', 'Ha ocurrido un error al iniciar sesión intente más tarde.', 'warning')
+        this.showNotification('top', 'right', 'nc-alert-circle-i', 'Ha ocurrido un error al iniciar sesión intente más tarde.', 'warning');
       }
     }
   }
 
   public async logout() {
-    await this.afAuth.signOut();
+    // await this.afAuth.signOut();
     localStorage.clear()
     this.router.navigate([''])
-  }
-
-  public async getUserByUid(uid: string) {
-    const result = await this.db.collection('users').doc(`${uid}`).valueChanges();
-    console.log(result);
-
-    return result
   }
 
   public showNotification(from, align, icon, message, type) {
@@ -223,32 +86,13 @@ export class AuthService {
       },
       confirmButtonText: 'Aceptar'
     });
-
-    // $.notify({
-    //   icon: icon,
-    //   message: message,
-    // }, {
-    //   type: type,
-    //   timer: 4000,
-    //   placement: {
-    //     from: from,
-    //     align: align
-    //   },
-    //   template: '<div data-notify="container" class="col-11 col-md-4 alert alert-{0} alert-with-icon" role="alert"><button type="button" aria-hidden="true" class="close" data-notify="dismiss"><i class="nc-icon nc-simple-remove"></i></button><span data-notify="icon" class="nc-icon {{icon}}"></span> <span data-notify="title">{1}</span> <span data-notify="message">{2}</span><div class="progress" data-notify="progressbar"><div class="progress-bar progress-bar-{0}" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%;"></div></div><a href="{3}" target="{4}" data-notify="url"></a></div>'
-    // });
   }
   /**
   * *** method retrun state user authentication true or false ***
   */
-  async getAuthStatus() {
-    var stateAuthentication = false;
-    var currentUser = await this.afAuth.authState.pipe(first()).toPromise();
-
-    if (currentUser) {
-      stateAuthentication = true;
-    } else {
-      stateAuthentication = false;
-    }
-    return stateAuthentication;
+  async getAuthStatus(): Promise<boolean> {
+    const token = localStorage.getItem('accessToken');
+    const infoUser = localStorage.getItem('infoUser');
+    return !!(token && infoUser);
   }
 }

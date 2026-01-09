@@ -15,11 +15,12 @@ export class DocumentLightboxComponent implements OnInit {
   @Input() isOpen: boolean = false;
   @Input() document: any = null; // Document object with url, label, type, verified, etc.
   @Input() imageUrl: string = '';
+  @Input() userName: string = ''; // Full name of the user
 
   // Outputs
   @Output() onClose = new EventEmitter<void>();
   @Output() onVerify = new EventEmitter<void>();
-  @Output() onReject = new EventEmitter<string>(); // Emits rejection reason
+  @Output() onReject = new EventEmitter<any>(); // Emits { reason, customNotification: { title, body } }
 
   // Zoom control
   public zoomLevel: number = 1;
@@ -27,12 +28,21 @@ export class DocumentLightboxComponent implements OnInit {
   // Rejection logic
   public isRejecting: boolean = false;
   public rejectionReason: string = '';
+  public notificationTitle: string = '';
+  public notificationBody: string = '';
   public predefinedReasons: string[] = [
-    'Documento ilegible o borroso',
-    'El documento está vencido',
-    'Los datos no coinciden',
-    'Documento incompleto',
-    'No es el documento solicitado'
+    'Imagen borrosa o ilegible',
+    'Documento cortado o incompleto',
+    'Fecha de vencimiento expirada',
+    'Nombre no coincide con el perfil',
+    'Documento no corresponde a lo solicitado',
+    'Falta la parte posterior del documento',
+    'Reflejo de luz impide ver los datos',
+    'Documento parece estar alterado o editado',
+    'Foto de perfil: Rostro no es visible o está cubierto',
+    'Foto de perfil: No es una foto real de la persona',
+    'Foto de perfil: Demasiada obscura o mala iluminación',
+    'Foto de perfil: Contiene a más de una persona'
   ];
 
   constructor() { }
@@ -74,6 +84,7 @@ export class DocumentLightboxComponent implements OnInit {
   public rejectDocument(): void {
     this.isRejecting = true;
     this.rejectionReason = '';
+    this.updateNotificationPreview('(selecciona un motivo)');
   }
 
   /**
@@ -82,6 +93,27 @@ export class DocumentLightboxComponent implements OnInit {
   public cancelRejection(): void {
     this.isRejecting = false;
     this.rejectionReason = '';
+    this.notificationTitle = '';
+    this.notificationBody = '';
+  }
+
+  /**
+   * Extract first name from full name
+   */
+  private getFirstName(): string {
+    if (!this.userName) return 'Usuario';
+    return this.userName.split(' ')[0];
+  }
+
+  /**
+   * Update notification preview based on reason
+   */
+  public updateNotificationPreview(reason: string): void {
+    const docLabel = this.document ? this.document.label : 'Documento';
+    const firstName = this.getFirstName();
+
+    this.notificationTitle = `🚨 Documento Rechazado: ${docLabel}`;
+    this.notificationBody = `Hola ${firstName}, tu ${docLabel} ha sido rechazado. MOTIVO: ${reason}. Por favor, sube una nueva versión válida.`;
   }
 
   /**
@@ -89,6 +121,7 @@ export class DocumentLightboxComponent implements OnInit {
    */
   public setRejectionReason(reason: string): void {
     this.rejectionReason = reason;
+    this.updateNotificationPreview(reason);
   }
 
   /**
@@ -96,11 +129,16 @@ export class DocumentLightboxComponent implements OnInit {
    */
   public confirmRejection(): void {
     if (!this.rejectionReason || this.rejectionReason.trim().length === 0) {
-      // Emit error or show notification
       return;
     }
 
-    this.onReject.emit(this.rejectionReason);
+    this.onReject.emit({
+      reason: this.rejectionReason,
+      customNotification: {
+        title: this.notificationTitle,
+        body: this.notificationBody
+      }
+    });
     this.cancelRejection();
   }
 

@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CountriesService } from 'app/services/countries/countries.service';
 import { DomainService } from 'app/services/domainService/domain.service';
+import { Country } from 'app/interfaces/country';
 
 @Component({
   selector: 'app-terms',
@@ -9,7 +10,7 @@ import { DomainService } from 'app/services/domainService/domain.service';
 })
 export class TermsComponent implements OnInit {
 
-   public country: string;
+  public country: string;
   public countrySelected: Country = {};
 
   constructor(
@@ -18,11 +19,11 @@ export class TermsComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
-    
+
 
     this.country = this.domainService.getCountry();
     console.log(this.country);
-    
+
     if (this.country) {
       this.getCountry(this.country);
     }
@@ -31,7 +32,7 @@ export class TermsComponent implements OnInit {
   public async getCountry(country: string) {
     this.countriesService.getCountry(country).subscribe(async country => {
       console.log(JSON.stringify(country));
-      
+
       if (country.length > 0) {
         this.countrySelected = country[0];
       }

@@ -1,9 +1,11 @@
-declare interface Country {
-    countryId?: string,
-    countryCode?: string,
-    countryName?: string,
-    countryTermsAndConditions?: string,
-    countryPrivacity?: string,
-    countryPhone?: string,
-    countryState?: boolean,
-} 
+export interface Country {
+    countryId?: string;
+    countryName?: string;
+    countryCode?: string;
+    countryFlag?: string;
+    countryCurrency?: string;
+    countryCurrencySymbol?: string;
+    countryState?: boolean;
+    createdAt?: string;
+    updatedAt?: string;
+}

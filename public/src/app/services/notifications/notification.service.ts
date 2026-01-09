@@ -23,7 +23,30 @@ export class NotificationService {
      */
     public sendNotificationToUser(userUid: string, title: string, body: string, image?: string, data: any = {}): Observable<any> {
         const url = `${this.baseUrl}/sendNotificationUser`;
-        const payload = { userUid, title, body, image, data };
+
+        // Sanitizar data: FCM solo acepta strings en el objeto data
+        const sanitizedData: any = {};
+        if (data) {
+            Object.keys(data).forEach(key => {
+                const value = data[key];
+                if (value !== undefined && value !== null) {
+                    sanitizedData[key] = String(value);
+                }
+            });
+        }
+
+        const payload: any = {
+            userUid,
+            title,
+            body,
+            data: sanitizedData
+        };
+
+        // Solo incluir image si tiene valor
+        if (image) {
+            payload.image = image;
+        }
+
         return this.http.post(url, payload);
     }
 
@@ -33,7 +56,30 @@ export class NotificationService {
      */
     public sendNotificationToRole(role: number, title: string, body: string, image?: string, data: any = {}): Observable<any> {
         const url = `${this.baseUrl}/sendNotificationToRole`;
-        const payload = { role, title, body, image, data };
+
+        // Sanitizar data: FCM solo acepta strings en el objeto data
+        const sanitizedData: any = {};
+        if (data) {
+            Object.keys(data).forEach(key => {
+                const value = data[key];
+                if (value !== undefined && value !== null) {
+                    sanitizedData[key] = String(value);
+                }
+            });
+        }
+
+        const payload: any = {
+            role,
+            title,
+            body,
+            data: sanitizedData
+        };
+
+        // Solo incluir image si tiene valor
+        if (image) {
+            payload.image = image;
+        }
+
         return this.http.post(url, payload);
     }
 

@@ -261,19 +261,19 @@ export class NotificationsComponent implements OnInit {
                 const recipients = this.selection.selected;
                 for (const user of recipients) {
                     try {
-                        await this.notificationService.sendNotificationToUser(user.userUid, title, body, imageUrl).toPromise();
+                        await this.notificationService.sendNotificationToUser(user.userUuid, title, body, imageUrl).toPromise();
                         this.campaignReport.success++;
                         this.campaignReport.details.push({
-                            name: user.userName,
-                            avatar: user.userPhotoURL,
+                            name: user.userFullName,
+                            avatar: './assets/img/icons/gallery.png',
                             status: 'success',
                             message: 'Enviado correctamente'
                         });
                     } catch (error) {
                         this.campaignReport.failed++;
                         this.campaignReport.details.push({
-                            name: user.userName,
-                            avatar: user.userPhotoURL,
+                            name: user.userFullName,
+                            avatar: './assets/img/icons/gallery.png',
                             status: 'error',
                             message: error.error?.message || 'Error desconocido'
                         });

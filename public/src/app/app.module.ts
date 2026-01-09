@@ -17,10 +17,6 @@ import { NavbarModule } from './shared/navbar/navbar.module';
 import { AdminLayoutComponent } from './layouts/admin/admin-layout.component';
 import { AuthLayoutComponent } from './layouts/auth/auth-layout.component';
 import { AppRoutes } from './app.routing';
-import { AngularFireAuthModule } from '@angular/fire/auth';
-import { AngularFireStorageModule } from '@angular/fire/storage';
-import { AngularFirestoreModule } from '@angular/fire/firestore'
-import { AngularFireModule } from '@angular/fire';
 import { environment } from 'environments/environment';
 import { MatSortModule } from '@angular/material/sort';
 import { MatPaginatorModule } from '@angular/material/paginator';
@@ -51,10 +47,6 @@ import { CustomCurrencyPipe } from './pipes_custom/custom-currency.pipe';
         NavbarModule,
         FooterModule,
         FixedPluginModule,
-        AngularFireModule.initializeApp(environment.firebaseConfig),
-        AngularFireAuthModule,
-        AngularFirestoreModule,
-        AngularFireStorageModule,
         AgmCoreModule.forRoot({
             apiKey: 'AIzaSyABbbtwiiybWFt7e1ADeTGN6iGEQ0cRIe4',
             libraries: ['visualization', 'places']

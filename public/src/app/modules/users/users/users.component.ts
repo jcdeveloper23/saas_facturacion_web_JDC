@@ -48,15 +48,13 @@ export class UsersComponent implements OnInit {
     'phone',
     'documentsStatus',
     'state',
-    'location',
-    'commission',
     'actions',
   ];
 
   // Filters
   public searchTerm: string = '';
   public selectedUserType: string = '';
-  public selectedDocStatus: string = 'admin_pending';
+  public selectedDocStatus: string = '';
   public selectedAccountStatus: string = '';
 
   // Stats
@@ -104,16 +102,6 @@ export class UsersComponent implements OnInit {
     'No es el documento solicitado'
   ];
 
-  // Commission Management
-  public isEditingCommission: boolean = false;
-  public newCommissionRate: number = 20; // Default 20%
-  public commissionChangeReason: string = '';
-  public readonly DEFAULT_COMMISSION_RATE = 20; // Constante para el valor por defecto
-
-  // Commission Modal
-  public showCommissionModal: boolean = false;
-  public commissionModalUser: Users | null = null;
-
   constructor(
     private usersService: UsersService,
     private router: Router
@@ -131,8 +119,8 @@ export class UsersComponent implements OnInit {
    */
   public getUsersList() {
     this.usersService.getAllUsers().pipe(take(1)).subscribe((users) => {
-      // Filtrar super admins (userRol === 0)
-      this.array_user = users.filter((u: Users) => u.userRol !== 0);
+      // Filtrar super admins (userCurrentRole === 0)
+      this.array_user = users.filter((u: Users) => u.userCurrentRole !== 0);
       this.filteredUsers = this.array_user;
       this.calculateStats();
       this.filterUsers();
@@ -146,20 +134,13 @@ export class UsersComponent implements OnInit {
   private calculateStats() {
     this.stats.totalUsers = this.array_user.length;
     // Contar por rol actual
-    this.stats.totalClients = this.array_user.filter(u => u.userRol === 1).length;
-    this.stats.totalDrivers = this.array_user.filter(u => u.userRol === 9).length;
-    this.stats.blockedAccounts = this.array_user.filter(u => u.userAccountBlock).length;
-    this.stats.activeDrivers = this.array_user.filter(u => u.userRol === 9 && u.userState).length;
+    this.stats.totalClients = this.array_user.filter(u => u.userCurrentRole === 1).length;
+    this.stats.totalDrivers = this.array_user.filter(u => u.userCurrentRole === 9).length;
+    this.stats.blockedAccounts = this.array_user.filter(u => !u.state).length;
+    this.stats.activeDrivers = this.array_user.filter(u => u.userCurrentRole === 9 && u.state).length;
 
-    // Count pending documents - considerar cualquier usuario con perfil de conductor
-    this.stats.pendingDocs = this.array_user.filter(u =>
-      this.hasDriverProfile(u) && (
-        !u.userDniVerified ||
-        !u.userLicenceVerified ||
-        !u.userDniUploaded ||
-        !u.userLicenseUploaded
-      )
-    ).length;
+    // Count pending documents - consider as 0 for now until new logic is defined
+    this.stats.pendingDocs = 0;
   }
 
   /**
@@ -172,44 +153,24 @@ export class UsersComponent implements OnInit {
     this.filteredUsers = this.array_user.filter(user => {
       // Search filter
       const matchesSearch = !search ||
-        user.userName?.toLowerCase().includes(search) ||
+        user.userFullName?.toLowerCase().includes(search) ||
+        user.userLastName?.toLowerCase().includes(search) ||
         user.userEmail?.toLowerCase().includes(search) ||
-        user.userIdentification?.toLowerCase().includes(search) ||
         user.userPhone?.toLowerCase().includes(search);
 
       // User type filter - basado en rol actual
       const matchesUserType = !this.selectedUserType || this.selectedUserType === 'all' ||
-        (this.selectedUserType === 'client' && user.userRol === 1) ||
-        (this.selectedUserType === 'driver' && user.userRol === 9);
+        (this.selectedUserType === 'client' && user.userCurrentRole === 1) ||
+        (this.selectedUserType === 'driver' && user.userCurrentRole === 9);
 
-      // Document status filter - aplicar solo si tiene perfil de conductor
+      // Document status filter - Logic removed as fields are legacy
       let matchesDocStatus = true;
-      if (this.selectedDocStatus && this.selectedDocStatus !== 'all') {
-        // Solo filtrar si el usuario tiene perfil de conductor
-        if (this.hasDriverProfile(user)) {
-          if (this.selectedDocStatus === 'verified') {
-            matchesDocStatus = user.userDniVerified && user.userLicenceVerified;
-          } else if (this.selectedDocStatus === 'pending') {
-            matchesDocStatus = (user.userDniUploaded || user.userLicenseUploaded) &&
-              (!user.userDniVerified || !user.userLicenceVerified);
-          } else if (this.selectedDocStatus === 'admin_verified') {
-            matchesDocStatus = user.userAdminDocumentVerified === true;
-          } else if (this.selectedDocStatus === 'admin_pending') {
-            matchesDocStatus = !user.userAdminDocumentVerified;
-          } else if (this.selectedDocStatus === 'missing') {
-            matchesDocStatus = !user.userDniUploaded || !user.userLicenseUploaded;
-          }
-        } else {
-          // Si no tiene perfil de conductor, no coincide con filtros de documentos
-          matchesDocStatus = false;
-        }
-      }
 
       // Account status filter
       const matchesAccountStatus = !this.selectedAccountStatus ||
-        (this.selectedAccountStatus === 'active' && user.userState && !user.userAccountBlock) ||
-        (this.selectedAccountStatus === 'inactive' && !user.userState) ||
-        (this.selectedAccountStatus === 'blocked' && user.userAccountBlock);
+        (this.selectedAccountStatus === 'active' && user.state) ||
+        (this.selectedAccountStatus === 'inactive' && !user.state) ||
+        (this.selectedAccountStatus === 'blocked' && !user.state);
 
       return matchesSearch && matchesUserType && matchesDocStatus && matchesAccountStatus;
     });
@@ -242,53 +203,35 @@ export class UsersComponent implements OnInit {
    * Los usuarios pueden cambiar de cliente a conductor y viceversa
    */
   public getUserType(user: Users): any {
-    if (user.userRol == undefined) user.userRol = 1;
+    if (user.userCurrentRole == undefined) user.userCurrentRole = 1;
 
-    // userRol 1 = Cliente, userRol 9 = Conductor
+    // userCurrentRole 1 = Cliente, userCurrentRole 9 = Conductor
     // Priorizar rol de conductor si tiene ese rol actualmente
-    if (user.userRol === 9) {
+    if (user.userCurrentRole === 9) {
       return this.userTypes[2]; // Conductor
-    } else if (user.userRol === 1) {
+    } else if (user.userCurrentRole === 1) {
       return this.userTypes[1]; // Cliente
     }
 
     return this.userTypes[0]; // Todos (default)
   }
 
-  /**
-   * Determinar si el usuario tiene perfil de conductor
-   * (ha subido documentos de conductor o tiene rol 9)
-   */
   public hasDriverProfile(user: Users): boolean {
-    return user.userRol === 9 ||
-      user.userDniUploaded === true ||
-      user.userLicenseUploaded === true ||
-      user.userDocumentCarUploaded === true;
+    return user.userCurrentRole === 9; // Only role check as uploads are legacy
   }
 
   /**
    * Determinar si el usuario tiene perfil de cliente
    */
   public hasClientProfile(user: Users): boolean {
-    return user.userRol === 1 || !this.hasDriverProfile(user);
+    return user.userCurrentRole === 1 || !this.hasDriverProfile(user);
   }
 
   /**
    * Get documents status
    * Ahora considera que un usuario puede tener documentos de conductor aunque su rol sea cliente
-   */
   public getDocumentsStatus(user: Users): string {
-    // Si no tiene perfil de conductor, no aplica
-    if (!this.hasDriverProfile(user)) return 'N/A';
-
-    // Si tiene perfil de conductor, verificar documentos
-    if (!user.userDniUploaded || !user.userLicenseUploaded) {
-      return 'missing';
-    }
-    if (user.userDniVerified && user.userLicenceVerified) {
-      return 'verified';
-    }
-    return 'pending';
+    return 'N/A'; // Legacy fields removed
   }
 
   /**
@@ -296,14 +239,14 @@ export class UsersComponent implements OnInit {
    */
   public viewUserProfile(user: Users) {
     // Navigate to detail component
-    this.router.navigate(['/users', user.userUid]);
+    this.router.navigate(['/users', user.userUuid]);
   }
 
   /**
    * Load user vehicles
    */
-  private loadUserVehicles(userUid: string) {
-    this.usersService.getVehiclesByUser(userUid).pipe(take(1)).subscribe((vehicles) => {
+  private loadUserVehicles(userUuid: string) {
+    this.usersService.getVehiclesByUser(userUuid).pipe(take(1)).subscribe((vehicles) => {
       this.arrayVehicles = vehicles;
       if (vehicles.length > 0) {
         this.selectVehicle(vehicles[0], 0);
@@ -327,74 +270,38 @@ export class UsersComponent implements OnInit {
   public updateDocumentsList() {
     if (!this.user) return;
 
-    // Personal Documents (DNI) - Visible for all users
-    const personalDocs = [];
+    // Previously managed DNI and License. Now removed.
+    // Logic can be restored if new fields (e.g., inside 'Vehicle' or new User docs structure) are added.
+    this.documentsList = [];
+    this.personalDocumentsList = [];
 
-    personalDocs.push({
-      label: 'DNI (Identidad)',
-      url: this.user.userDniURL, // Prioritize DNI URL if separate, otherwise fallback to Identification if needed, but per request DNI is key
-      type: 'dni',
-      verified: this.user.userDniVerified,
-      uploaded: this.user.userDniUploaded,
-      description: 'Documento Nacional de Identidad'
-    });
-
-    this.personalDocumentsList = personalDocs;
-
-
-    // Driver Documents - Visible only if driver profile
-    const driverDocs = [];
-
-    // 1. Licencia
-    driverDocs.push({
-      label: 'Licencia de Conducir',
-      url: this.user.userLicenceURL,
-      type: 'license',
-      verified: this.user.userLicenceVerified,
-      uploaded: this.user.userLicenseUploaded, // Note: userLicenseUploaded vs userLicenceUploaded check interface
-      description: 'Licencia de conducir'
-    });
-
-    // 2. Documento del Carro (User level - sometimes legacy, but keeping if needed or moving to vehicle)
-    // If requirement says separate DNI from driver docs, license is definitely driver doc.
-    // If user has 'userDocumentCarURL' distinct from vehicle, keep it. 
-    // Assuming 'userDocumentCarURL' is the "Certificado Médico" or generic car doc? 
-    // Usually standard is License + Vehicle Docs. 
-    // Let's keep existing logic but split list.
-
-    if (this.user.userDocumentCarURL) {
-      driverDocs.push({
-        label: 'Documentos del Vehículo (Usuario)',
-        url: this.user.userDocumentCarURL,
-        type: 'userCarDocument',
-        verified: this.user.userDocumentCarVerified,
-        uploaded: this.user.userDocumentCarUploaded,
-        description: 'Documento del vehículo del usuario'
-      });
-    }
-
-    // Si hay vehículo seleccionado, agregar sus documentos
+    // Si hay vehículo seleccionado, agregar sus documentos (SI SE MANTIENEN EN VEHICLE)
     if (this.vehicleSelected && this.vehicleSelected.vehicleId) {
-      driverDocs.push({
-        label: 'Seguro del Vehículo',
-        url: this.vehicleSelected.vehicleDocumentCarSureURL,
-        type: 'insurance',
-        verified: this.vehicleSelected.vehicleSureVerified,
-        uploaded: this.vehicleSelected.vehicleDocumentCarSureUploaded,
-        description: 'Póliza de seguro del vehículo'
-      });
+      const driverDocs = [];
 
-      driverDocs.push({
-        label: 'Matrícula del Vehículo',
-        url: this.vehicleSelected.vehicleDocumentCarURL,
-        type: 'registration',
-        verified: this.vehicleSelected.vehicleDocumentVerified,
-        uploaded: this.vehicleSelected.vehicleDocumentUploaded,
-        description: 'Matrícula del vehículo'
-      });
+      if (this.vehicleSelected.vehicleDocumentCarSureURL) {
+        driverDocs.push({
+          label: 'Seguro del Vehículo',
+          url: this.vehicleSelected.vehicleDocumentCarSureURL,
+          type: 'insurance',
+          verified: this.vehicleSelected.vehicleSureVerified,
+          uploaded: this.vehicleSelected.vehicleDocumentCarSureUploaded, // Check if this exists in Vehicle interface
+          description: 'Póliza de seguro del vehículo'
+        });
+      }
+
+      if (this.vehicleSelected.vehicleDocumentCarURL) {
+        driverDocs.push({
+          label: 'Matrícula del Vehículo',
+          url: this.vehicleSelected.vehicleDocumentCarURL,
+          type: 'registration',
+          verified: this.vehicleSelected.vehicleDocumentVerified,
+          uploaded: this.vehicleSelected.vehicleDocumentUploaded, // Check if this exists in Vehicle interface
+          description: 'Matrícula del vehículo'
+        });
+      }
+      this.documentsList = driverDocs;
     }
-
-    this.documentsList = driverDocs;
   }
 
   /**
@@ -512,7 +419,7 @@ export class UsersComponent implements OnInit {
             // Update vehicle
             this.vehicleSelected.vehicleSureVerified = true;
             this.vehicleSelected.vehicleSureRejectionReason = null;
-            await this.usersService.updateVehicleState(this.user.userUid, this.vehicleSelected);
+            await this.usersService.updateVehicleState(this.vehicleSelected);
             this.showNotification('top', 'right', 'nc-check-2', 'Documento verificado correctamente', 'success');
             this.currentDocument.verified = true;
             // Update docs list
@@ -523,7 +430,7 @@ export class UsersComponent implements OnInit {
             // Update vehicle
             this.vehicleSelected.vehicleDocumentVerified = true;
             this.vehicleSelected.vehicleDocumentRejectionReason = null;
-            await this.usersService.updateVehicleState(this.user.userUid, this.vehicleSelected);
+            await this.usersService.updateVehicleState(this.vehicleSelected);
             this.showNotification('top', 'right', 'nc-check-2', 'Documento verificado correctamente', 'success');
             this.currentDocument.verified = true;
             // Update docs list
@@ -592,31 +499,12 @@ export class UsersComponent implements OnInit {
 
       // Rechazo individual para cada tipo de documento
       switch (this.currentDocument.type) {
-        case 'identificationFront':
-          updateData.userIdentificationFrontVerified = false;
-          updateData.userIdentificationFrontRejectionReason = reason;
-          break;
-        case 'identificationBack':
-          updateData.userIdentificationBackVerified = false;
-          updateData.userIdentificationBackRejectionReason = reason;
-          break;
-        case 'dni':
-          updateData.userDniVerified = false;
-          updateData.userDniRejectionReason = reason;
-          break;
-        case 'license':
-          updateData.userLicenceVerified = false;
-          updateData.userLicenceRejectionReason = reason;
-          break;
-        case 'userCarDocument':
-          updateData.userDocumentCarVerified = false;
-          updateData.userDocumentCarRejectionReason = reason;
-          break;
+        // Legacy document types removed
         case 'insurance':
           this.vehicleSelected.vehicleSureVerified = false;
           this.vehicleSelected.vehicleSureRejectionReason = reason;
 
-          await this.usersService.updateVehicleState(this.user.userUid, this.vehicleSelected);
+          await this.usersService.updateVehicleState(this.vehicleSelected);
           this.showNotification('top', 'right', 'nc-check-2', 'Documento rechazado', 'info');
           this.currentDocument.verified = false;
           // Update docs list
@@ -627,7 +515,7 @@ export class UsersComponent implements OnInit {
           this.vehicleSelected.vehicleDocumentVerified = false;
           this.vehicleSelected.vehicleDocumentRejectionReason = reason;
 
-          await this.usersService.updateVehicleState(this.user.userUid, this.vehicleSelected);
+          await this.usersService.updateVehicleState(this.vehicleSelected);
           this.showNotification('top', 'right', 'nc-check-2', 'Documento rechazado', 'info');
           this.currentDocument.verified = false;
           // Update docs list
@@ -661,40 +549,7 @@ export class UsersComponent implements OnInit {
   /**
    * Toggle account verification status
    * */
-  public async toggleAccountVerification(type: 'client' | 'driver', event: any) {
-    // Prevent default to control the state change manually if needed, 
-    // but typically for checkboxes we let it change and revert on error.
-    // Here getting the new value from the model which ngModel should have updated.
-
-    if (!this.user) return;
-
-    const isChecked = event.target.checked;
-    const updateData: any = {};
-
-    if (type === 'client') {
-      updateData.userClientAccountIsVerify = isChecked;
-      this.user.userClientAccountIsVerify = isChecked;
-    } else {
-      updateData.userDriverAccountIsVerify = isChecked;
-      this.user.userDriverAccountIsVerify = isChecked;
-    }
-
-    try {
-      await this.usersService.updateUser({ ...this.user, ...updateData });
-      const role = type === 'client' ? 'Cliente' : 'Conductor';
-      const status = isChecked ? 'verificada' : 'desverificada';
-      this.showNotification('top', 'right', 'nc-check-2', `Cuenta de ${role} ${status}`, 'success');
-    } catch (error) {
-      console.error(error);
-      this.showNotification('top', 'right', 'nc-simple-remove', 'Error al actualizar estado', 'danger');
-      // Revert change
-      if (type === 'client') {
-        this.user.userClientAccountIsVerify = !isChecked;
-      } else {
-        this.user.userDriverAccountIsVerify = !isChecked;
-      }
-    }
-  }
+  // Method toggleAccountVerification removed (legacy fields)
 
   /**
    * Update user state
@@ -702,12 +557,12 @@ export class UsersComponent implements OnInit {
    */
   public async toggleUserState(user: Users, event: any) {
     event.stopPropagation();
-    const newState = !user.userState;
+    const newState = !user.state;
     const action = newState ? 'activar' : 'desactivar';
 
     const result = await Swal.fire({
       title: `¿${action.charAt(0).toUpperCase() + action.slice(1)} usuario?`,
-      text: `Se ${action}á la cuenta de ${user.userName}`,
+      text: `Se ${action}á la cuenta de ${user.userFullName}`,
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: newState ? '#10b981' : '#dc3545',
@@ -718,8 +573,8 @@ export class UsersComponent implements OnInit {
 
     if (result.isConfirmed) {
       try {
-        await this.usersService.updateUserState(user.userUid, newState);
-        user.userState = newState;
+        await this.usersService.updateUserState(user.userUuid, newState);
+        user.state = newState;
         this.showNotification('top', 'right', 'nc-check-2', `Usuario ${action}do correctamente`, 'success');
       } catch (error) {
         this.showNotification('top', 'right', 'nc-simple-remove', 'Error al actualizar estado', 'danger');
@@ -732,31 +587,9 @@ export class UsersComponent implements OnInit {
    */
   public async toggleLocationSharing(user: Users, event: any) {
     event.stopPropagation();
-    const newState = !user.userStateShareLocation;
-    const action = newState ? 'activar' : 'desactivar';
-
-    const result = await Swal.fire({
-      title: `¿${action.charAt(0).toUpperCase() + action.slice(1)} ubicación?`,
-      text: `Se ${action}á el compartido de ubicación para ${user.userName}`,
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonColor: newState ? '#10b981' : '#dc3545',
-      cancelButtonColor: '#6c757d',
-      confirmButtonText: `Sí, ${action}`,
-      cancelButtonText: 'Cancelar'
-    });
-
-    if (result.isConfirmed) {
-      try {
-        const updateData = { ...user, userStateShareLocation: newState };
-        await this.usersService.updateUser(updateData);
-        user.userStateShareLocation = newState;
-        this.showNotification('top', 'right', 'nc-check-2', `Compartido de ubicación ${action}do correctamente`, 'success');
-      } catch (error) {
-        console.error(error);
-        this.showNotification('top', 'right', 'nc-simple-remove', 'Error al actualizar compartido de ubicación', 'danger');
-      }
-    }
+    // Feature disabled as it depends on legacy fields (userStateShareLocation)
+    this.showNotification('top', 'right', 'nc-icon nc-alert-circle-i',
+      'La función de compartir ubicación se está migrando al nuevo sistema de dispositivos.', 'info');
   }
 
   /**
@@ -770,28 +603,12 @@ export class UsersComponent implements OnInit {
 
     const newState = !vehicle.vehicleState;
 
-    // VALIDATION: Cannot activate if documents are not verified
+    // VALIDATION: removed call to userLicenceVerified
+    /*
     if (newState === true) {
-      const isVehicleDocsVerified = vehicle.vehicleDocumentVerified && vehicle.vehicleSureVerified;
-      const isLicenceVerified = this.user.userLicenceVerified;
-
-      if (!isVehicleDocsVerified || !isLicenceVerified) {
-        let errorMsg = 'No se puede activar: ';
-        if (!isLicenceVerified) errorMsg += 'Licencia de Conducir ';
-        if (!isVehicleDocsVerified) errorMsg += (isLicenceVerified ? '' : 'y ') + 'Documentos del vehículo (Matrícula/Seguro) ';
-        errorMsg += 'no verificado(s).';
-
-        Swal.fire({
-          title: 'No se puede activar',
-          text: errorMsg,
-          icon: 'warning',
-          confirmButtonColor: '#fbc658',
-          confirmButtonText: 'Entendido'
-        });
-        setTimeout(() => vehicle.vehicleState = false, 0);
-        return;
-      }
+       // Legacy check removed
     }
+    */
 
     // CONFIRMATION Dialog
     const action = newState ? 'activar' : 'desactivar';
@@ -813,7 +630,7 @@ export class UsersComponent implements OnInit {
           vehicle.vehicleInReview = false;
         }
 
-        await this.usersService.updateVehicleState(this.user.userUid, vehicle);
+        await this.usersService.updateVehicleState(vehicle);
         this.showNotification('top', 'right', 'nc-check-2', `Vehículo ${action}do correctamente`, 'success');
       } catch (error) {
         console.error(error);
@@ -828,18 +645,22 @@ export class UsersComponent implements OnInit {
   /**
    * Toggle Admin Verification Status
    */
-  public async toggleAdminVerification(user: Users, event?: any) {
-    if (!user) return;
+  // Method toggleAdminVerification removed (legacy fields)
 
-    const newState = !user.userAdminDocumentVerified;
-    const action = newState ? 'validar' : 'invalidar';
+
+  /**
+   * Block/Unblock user account con modal intuitivo
+   */
+  public async toggleBlockUser(user: Users) {
+    const newState = !user.state;
+    const action = newState ? 'activar' : 'bloquear';
 
     const result = await Swal.fire({
-      title: `¿${action.charAt(0).toUpperCase() + action.slice(1)} documentación?`,
-      text: `Se marcará la documentación de ${user.userName} como ${newState ? 'VALIDADA' : 'PENDIENTE'} por administración.`,
-      icon: 'question',
+      title: `¿${action.charAt(0).toUpperCase() + action.slice(1)} cuenta?`,
+      text: `El usuario ${user.userFullName} será ${action}do`,
+      icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: newState ? '#10b981' : '#f59e0b',
+      confirmButtonColor: newState ? '#10b981' : '#dc3545',
       cancelButtonColor: '#6c757d',
       confirmButtonText: `Sí, ${action}`,
       cancelButtonText: 'Cancelar'
@@ -847,138 +668,12 @@ export class UsersComponent implements OnInit {
 
     if (result.isConfirmed) {
       try {
-        const updateData: any = {
-          userAdminDocumentVerified: newState,
-          userAdminDocumentVerifiedDate: new Date().toISOString(),
-          userAdminDocumentVerifiedBy: this.infoUser.userEmail // Tracking who did it
-        };
-
-        await this.usersService.updateUser({ ...user, ...updateData });
-
-        // Update local state
-        user.userAdminDocumentVerified = newState;
-        user.userAdminDocumentVerifiedDate = updateData.userAdminDocumentVerifiedDate;
-
-        this.showNotification('top', 'right', 'nc-check-2', `Documentación ${newState ? 'validada' : 'pendiente'} correctamente`, 'success');
-
-        // Refresh stats/view
-        this.updateDataSource();
-
+        await this.usersService.updateUserState(user.userUuid, newState);
+        user.state = newState;
+        this.showNotification('top', 'right', 'nc-check-2', `Cuenta ${action}da correctamente`, 'success');
+        this.getUsersList();
       } catch (error) {
-        console.error(error);
-        if (event) event.target.checked = !newState; // Revert on error
         this.showNotification('top', 'right', 'nc-simple-remove', 'Error al actualizar estado', 'danger');
-      }
-    } else {
-      // Cancelled - Revert UI
-      if (event) event.target.checked = !newState;
-    }
-  }
-
-  /**
-   * Block/Unblock user account con modal intuitivo
-   */
-  public async toggleBlockUser(user: Users) {
-    const isBlocking = !user.userAccountBlock;
-
-    if (isBlocking) {
-      // Mostrar modal de bloqueo con opciones predefinidas
-      const { value: formValues } = await Swal.fire({
-        title: 'Bloquear Cuenta de Usuario',
-        html: `
-          <div class="text-left">
-            <p class="mb-3"><strong>Usuario:</strong> ${user.userName}</p>
-            <p class="mb-3"><strong>Email:</strong> ${user.userEmail}</p>
-            <hr>
-            <label class="font-weight-bold mb-2">Motivo del bloqueo:</label>
-            <select id="swal-reason" class="form-control mb-3">
-              <option value="">Selecciona un motivo...</option>
-              <option value="Violación de términos de servicio">Violación de términos de servicio</option>
-              <option value="Comportamiento inapropiado">Comportamiento inapropiado</option>
-              <option value="Fraude o actividad sospechosa">Fraude o actividad sospechosa</option>
-              <option value="Documentos falsos o adulterados">Documentos falsos o adulterados</option>
-              <option value="Múltiples quejas de usuarios">Múltiples quejas de usuarios</option>
-              <option value="Otro">Otro (especificar abajo)</option>
-            </select>
-            <label class="font-weight-bold mb-2">Detalles adicionales:</label>
-            <textarea id="swal-details" class="form-control" rows="3" placeholder="Escribe detalles adicionales (opcional)..."></textarea>
-          </div>
-        `,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#ef4444',
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Bloquear Cuenta',
-        cancelButtonText: 'Cancelar',
-        preConfirm: () => {
-          const reason = (document.getElementById('swal-reason') as HTMLSelectElement).value;
-          const details = (document.getElementById('swal-details') as HTMLTextAreaElement).value;
-
-          if (!reason) {
-            Swal.showValidationMessage('Por favor selecciona un motivo');
-            return false;
-          }
-
-          return { reason, details };
-        }
-      });
-
-      if (formValues) {
-        try {
-          const blockMotive = formValues.details
-            ? `${formValues.reason} - ${formValues.details}`
-            : formValues.reason;
-
-          const updateData: any = {
-            userAccountBlock: true,
-            userBlockAccountMotive: blockMotive,
-            userBlockAccountDate: new Date().toLocaleDateString(),
-            userBlockAccountTime: new Date().toLocaleTimeString()
-          };
-
-          await this.usersService.updateUser({ ...user, ...updateData });
-          Object.assign(user, updateData);
-          this.showNotification('top', 'right', 'nc-check-2', 'Cuenta bloqueada correctamente', 'success');
-          this.getUsersList();
-        } catch (error) {
-          this.showNotification('top', 'right', 'nc-simple-remove', 'Error al bloquear cuenta', 'danger');
-        }
-      }
-    } else {
-      // Desbloquear cuenta
-      const result = await Swal.fire({
-        title: 'Desbloquear Cuenta',
-        html: `
-          <p><strong>Usuario:</strong> ${user.userName}</p>
-          <p><strong>Bloqueado por:</strong> ${user.userBlockAccountMotive || 'No especificado'}</p>
-          <p><strong>Fecha:</strong> ${user.userBlockAccountDate} ${user.userBlockAccountTime}</p>
-          <hr>
-          <p>¿Estás seguro de desbloquear esta cuenta?</p>
-        `,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#10b981',
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Sí, desbloquear',
-        cancelButtonText: 'Cancelar'
-      });
-
-      if (result.isConfirmed) {
-        try {
-          const updateData: any = {
-            userAccountBlock: false,
-            userBlockAccountMotive: '',
-            userBlockAccountDate: '',
-            userBlockAccountTime: ''
-          };
-
-          await this.usersService.updateUser({ ...user, ...updateData });
-          Object.assign(user, updateData);
-          this.showNotification('top', 'right', 'nc-check-2', 'Cuenta desbloqueada correctamente', 'success');
-          this.getUsersList();
-        } catch (error) {
-          this.showNotification('top', 'right', 'nc-simple-remove', 'Error al desbloquear cuenta', 'danger');
-        }
       }
     }
   }
@@ -997,7 +692,7 @@ export class UsersComponent implements OnInit {
       title: '¿Eliminar usuario?',
       html: `
         <p>Esta acción no se puede deshacer.</p>
-        <p><strong>Usuario:</strong> ${user.userName}</p>
+        <p><strong>Usuario:</strong> ${user.userFullName}</p>
         <p><strong>Email:</strong> ${user.userEmail}</p>
         <br>
         <p style="font-size: 12px; color: #666;">
@@ -1023,14 +718,14 @@ export class UsersComponent implements OnInit {
         }
       });
 
-      this.usersService.deleteUser(user.userUid).subscribe({
+      this.usersService.deleteUser(user.userUuid).subscribe({
         next: (response) => {
           console.log('*** Respuesta de eliminación ***', response);
           Swal.close();
 
           if (response.success) {
             this.showNotification('top', 'right', 'nc-check-2',
-              `Usuario ${response.data.userName} eliminado correctamente`, 'success');
+              `Usuario eliminado correctamente`, 'success');
             this.getUsersList();
           } else {
             this.showNotification('top', 'right', 'nc-simple-remove',
@@ -1047,8 +742,6 @@ export class UsersComponent implements OnInit {
     }
   }
 
-  /**
-  }
 
   /**
    * Show notification
@@ -1089,209 +782,7 @@ export class UsersComponent implements OnInit {
     this.vehicleSelected = {};
     this.documentsList = [];
     this.personalDocumentsList = [];
-    this.isEditingCommission = false;
-    this.newCommissionRate = this.DEFAULT_COMMISSION_RATE;
-    this.commissionChangeReason = '';
-    this.commissionModalUser = null;
   }
 
-  /**
-   * ============================================
-   * COMMISSION MANAGEMENT METHODS
-   * ============================================
-   */
-
-  /**
-   * Get user commission rate
-   * Returns custom rate if set, otherwise default 20%
-   */
-  public getUserCommissionRate(user: Users): number {
-    if (!user) return this.DEFAULT_COMMISSION_RATE;
-
-    // Si tiene comisión personalizada, usarla
-    if (user.userCommissionCustomEnabled && user.userCommissionRate !== undefined) {
-      return user.userCommissionRate;
-    }
-
-    // Si tiene comisión configurada pero no personalizada
-    if (user.userCommissionRate !== undefined) {
-      return user.userCommissionRate;
-    }
-
-    // Valor por defecto
-    return this.DEFAULT_COMMISSION_RATE;
-  }
-
-  /**
-   * Start editing commission
-   */
-  public startEditingCommission() {
-    this.isEditingCommission = true;
-    this.newCommissionRate = this.getUserCommissionRate(this.user);
-    this.commissionChangeReason = '';
-  }
-
-  /**
-   * Cancel editing commission
-   */
-  public cancelEditingCommission() {
-    this.isEditingCommission = false;
-    this.newCommissionRate = this.getUserCommissionRate(this.user);
-    this.commissionChangeReason = '';
-  }
-
-  /**
-   * Validate commission input
-   */
-  public isCommissionValid(): boolean {
-    if (this.newCommissionRate === null || this.newCommissionRate === undefined) {
-      return false;
-    }
-
-    // Validar rango (0-100)
-    if (this.newCommissionRate < 0 || this.newCommissionRate > 100) {
-      return false;
-    }
-
-    // Validar que sea diferente al valor actual
-    if (this.newCommissionRate === this.getUserCommissionRate(this.user)) {
-      return false;
-    }
-
-    return true;
-  }
-
-  /**
-   * Save commission change
-   */
-  public async saveCommissionChange() {
-    if (!this.isCommissionValid()) {
-      this.showNotification('top', 'right', 'nc-simple-remove',
-        'Por favor ingresa un porcentaje válido entre 0% y 100%', 'danger');
-      return;
-    }
-
-    // Confirm change
-    const result = await Swal.fire({
-      title: 'Cambiar comisión',
-      html: `
-        <p>¿Estás seguro de cambiar la comisión del conductor?</p>
-        <div style="background: rgba(72, 128, 255, 0.1); padding: 15px; border-radius: 8px; margin: 15px 0;">
-          <p style="margin: 5px 0;"><strong>Comisión actual:</strong> ${this.getUserCommissionRate(this.user)}%</p>
-          <p style="margin: 5px 0;"><strong>Nueva comisión:</strong> ${this.newCommissionRate}%</p>
-          ${this.commissionChangeReason ? `<p style="margin: 5px 0;"><strong>Motivo:</strong> ${this.commissionChangeReason}</p>` : ''}
-        </div>
-        <p style="font-size: 13px; color: #9A9A9A;">El cambio se aplicará a partir del próximo viaje</p>
-      `,
-      icon: 'question',
-      showCancelButton: true,
-      cancelButtonColor: '#6b7280',
-      confirmButtonText: 'Sí, cambiar',
-      cancelButtonText: 'Cancelar'
-    });
-
-    if (!result.isConfirmed) {
-      return;
-    }
-
-    try {
-      const previousRate = this.getUserCommissionRate(this.user);
-      const currentDate = new Date();
-
-      // Create history entry
-      const historyEntry = {
-        date: currentDate.toISOString().split('T')[0],
-        time: currentDate.toTimeString().split(' ')[0],
-        previousRate: previousRate,
-        newRate: this.newCommissionRate,
-        updatedBy: 'Admin', // TODO: Get from auth service
-        reason: this.commissionChangeReason || 'Sin motivo especificado'
-      };
-
-      // Update user object
-      const updatedUser: Users = {
-        ...this.user,
-        userCommissionRate: this.newCommissionRate,
-        userCommissionType: 'percentage' as const,
-        userCommissionCustomEnabled: this.newCommissionRate !== this.DEFAULT_COMMISSION_RATE,
-        userCommissionLastUpdate: currentDate.toISOString(),
-        userCommissionUpdatedBy: 'Admin', // TODO: Get from auth service
-        userCommissionHistory: [
-          historyEntry,
-          ...(this.user.userCommissionHistory || [])
-        ].slice(0, 50) // Keep last 50 changes
-      };
-
-      // Save to Firestore
-      await this.usersService.updateUser(updatedUser);
-
-      // Update local user object
-      this.user = updatedUser;
-
-      // Close edit mode
-      this.isEditingCommission = false;
-      this.commissionChangeReason = '';
-
-      // Show success message
-      this.showNotification('top', 'right', 'nc-check-2',
-        `Comisión actualizada correctamente a ${this.newCommissionRate}%`, 'success');
-
-    } catch (error) {
-      console.error('Error updating commission:', error);
-      this.showNotification('top', 'right', 'nc-simple-remove',
-        'Error al actualizar la comisión', 'danger');
-    }
-  }
-
-  /**
-   * Open commission modal for a specific user
-   */
-  public openCommissionModal(user: Users) {
-    if (!this.hasDriverProfile(user)) {
-      this.showNotification('top', 'right', 'nc-simple-remove',
-        'Solo los conductores tienen comisión', 'warning');
-      return;
-    }
-
-    this.commissionModalUser = user;
-    this.newCommissionRate = this.getUserCommissionRate(user);
-    this.commissionChangeReason = '';
-    this.isEditingCommission = false;
-    this.showCommissionModal = true;
-  }
-
-  /**
-   * Close commission modal
-   */
-  public closeCommissionModal() {
-    this.showCommissionModal = false;
-    this.commissionModalUser = null;
-    this.isEditingCommission = false;
-    this.commissionChangeReason = '';
-  }
-
-  /**
-   * Save commission change from dedicated modal
-   */
-  public async saveCommissionFromModal() {
-    if (!this.commissionModalUser) return;
-
-    // Temporary swap user to use existing saveCommissionChange logic
-    const originalUser = this.user;
-    this.user = this.commissionModalUser;
-
-    await this.saveCommissionChange();
-
-    // Restore original user and close modal
-    this.user = originalUser;
-
-    // Update the user in the table
-    const index = this.array_user.findIndex((u: Users) => u.userId === this.commissionModalUser.userId);
-    if (index !== -1) {
-      this.array_user[index] = { ...this.commissionModalUser };
-      this.dataSource.data = [...this.array_user];
-    }
-
-    this.closeCommissionModal();
-  }
+  // Commission management methods removed (legacy fields)
 }

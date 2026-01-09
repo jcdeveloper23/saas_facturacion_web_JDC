@@ -1,0 +1,92 @@
+<div *ngIf="isOpen" class="notification-modal-overlay" (click)="close()">
+    <div class="notification-modal-content" (click)="$event.stopPropagation()">
+
+        <!-- Header -->
+        <div class="modal-header-custom">
+            <h5 class="text-white mb-0">
+                <i class="nc-icon nc-send"></i> Enviar Notificación Push
+            </h5>
+            <button class="close-btn" (click)="close()">
+                <i class="nc-icon nc-simple-remove"></i>
+            </button>
+        </div>
+
+        <!-- Body -->
+        <div class="modal-body-custom">
+            <div class="row m-0">
+                <!-- Left: Instructions & Details -->
+                <div class="col-md-6 border-right-md p-0 pr-md-3">
+                    <ng-container *ngIf="!isCustom">
+                        <h6 class="text-white font-weight-bold" style="font-size: 14px;">Acción realizada:</h6>
+                        <div class="action-summary mb-3">
+                            <span class="badge badge-primary mr-2">{{ role }}</span>
+                            <span class="text-white">Cuenta marcada como <strong
+                                    [class.text-success]="actionType === 'verificada'"
+                                    [class.text-danger]="actionType === 'desverificada'">{{ actionType
+                                    }}</strong></span>
+                        </div>
+                    </ng-container>
+
+                    <ng-container *ngIf="isCustom">
+                        <h6 class="text-white font-weight-bold mb-3" style="font-size: 14px;">
+                            <i class="nc-icon nc-bullet-list-67 mr-1"></i> Seleccionar una plantilla:
+                        </h6>
+                        <div class="template-list-container">
+                            <div *ngFor="let temp of templates" class="template-item" (click)="selectTemplate(temp)"
+                                [class.active]="editedTitle === temp.title">
+                                <span class="template-label">{{ temp.label }}</span>
+                                <i class="nc-icon nc-minimal-right"></i>
+                            </div>
+                        </div>
+                    </ng-container>
+
+                    <p class="text-muted small mt-3">
+                        El usuario recibirá una notificación push en sus dispositivos registrados. Puedes editar el
+                        mensaje a la derecha si lo deseas.
+                    </p>
+
+                    <div class="mt-4 d-none d-md-block">
+                        <img src="assets/img/apple-icon.png" style="width: 40px; opacity: 0.5; filter: grayscale(1);"
+                            alt="App">
+                        <p class="text-muted small mt-2">Personalizado para: {{ getFirstName() }}</p>
+                    </div>
+                </div>
+
+                <!-- Right: Push Preview -->
+                <div class="col-md-6 p-0 pl-md-3 mt-3 mt-md-0">
+                    <h6 class="text-white mb-2" style="font-size: 14px;">Vista previa de la notificación Push</h6>
+
+                    <!-- Notification Mockup -->
+                    <div class="push-notification-preview">
+                        <div class="push-header">
+                            <img src="assets/img/apple-icon.png" class="push-app-icon" alt="App">
+                            <span class="push-app-name">iMove App</span>
+                            <span class="push-time">ahora</span>
+                        </div>
+                        <div class="push-content">
+                            <input class="push-title-editable" [(ngModel)]="editedTitle"
+                                placeholder="Título de la notificación">
+                            <textarea class="push-body-editable" [(ngModel)]="editedBody" rows="5"
+                                placeholder="Contenido de la notificación..."></textarea>
+                        </div>
+                    </div>
+
+                    <small class="text-muted d-block mt-2" style="font-size: 10px;">
+                        <i class="nc-icon nc-alert-circle-i mr-1"></i>
+                        Haz clic en el título o cuerpo del mensaje para editar.
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="modal-footer-custom">
+            <button class="btn btn-secondary btn-sm mr-2" (click)="close()">
+                Ahora no
+            </button>
+            <button class="btn btn-success btn-sm" (click)="confirm()">
+                Confirmar y Enviar
+            </button>
+        </div>
+    </div>
+</div>

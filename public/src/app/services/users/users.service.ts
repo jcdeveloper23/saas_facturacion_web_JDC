@@ -1,5 +1,4 @@
 import { Injectable } from '@angular/core';
-import { AngularFirestore } from '@angular/fire/firestore';
 import { HttpClient } from '@angular/common/http';
 import { Users } from 'app/interfaces/users';
 import { Vehicle } from 'app/interfaces/vehicle';
@@ -13,50 +12,64 @@ import { map, take } from 'rxjs/operators';
 export class UsersService {
 
   constructor(
-    private db: AngularFirestore,
     private http: HttpClient
   ) {
   }
 
+  private getHeaders() {
+    const token = localStorage.getItem('accessToken');
+    return {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    };
+  }
+
   public saveUser(user: Users) {
-    return this.db.collection('users').doc(`${user.userUid}`).set(user);
+    const url = `${environment.apiGpsUrl}/users`;
+    return this.http.post(url, user, this.getHeaders()).toPromise();
   }
 
   /**
    * Actualiza el estado del usuario para bloquear el acceso
    * */
-  public updateUserState(userUid: string, state: boolean) {
-    return this.db.collection('users').doc(userUid).update({ 'userState': state });
+  public updateUserState(id: string | number, state: boolean) {
+    const url = `${environment.apiGpsUrl}/users/${id}`;
+    return this.http.patch(url, { state }, this.getHeaders()).toPromise();
   }
 
   public getUserByEmail(email: string) {
-    return this.db.collection('users', ref => ref.where('userEmail', '==', email)).valueChanges();
+    const url = `${environment.apiGpsUrl}/users?userEmail=${email}`;
+    return this.http.get<any>(url, this.getHeaders()).pipe(
+      map(res => res.data || res)
+    );
   }
 
   public getVehiclesByUser(userUid: string) {
-    return this.db.collection('vehicles', ref => ref.where('vehicleUserUid', '==', userUid)).snapshotChanges()
-      .pipe(
-        map(actions => actions.map(a => {
-          const data = a.payload.doc.data() as Vehicle;
-          const vehicleId = a.payload.doc.id;
-          return { ...data, vehicleId };
-        }))
-      );
+    // Maps to /devices?userId=...
+    const url = `${environment.apiGpsUrl}/devices?userId=${userUid}`;
+    return this.http.get<any>(url, this.getHeaders()).pipe(
+      map(res => res.data || res)
+    );
   }
 
   public getAllUsers() {
-    return this.db.collection('users').valueChanges();
+    const url = `${environment.apiGpsUrl}/users`;
+    return this.http.get<any>(url, this.getHeaders()).pipe(
+      map(res => res.data || res)
+    );
   }
 
   /**
    * Obtiene todos los usuarios (una sola vez) con límite opcional
    */
   public getAllUsersOnce(limit: number = 0) {
-    return this.db.collection('users', ref => {
-      let query: any = ref;
-      if (limit > 0) query = query.limit(limit);
-      return query;
-    }).valueChanges().pipe(take(1));
+    let url = `${environment.apiGpsUrl}/users`;
+    if (limit > 0) url += `?$limit=${limit}`;
+    return this.http.get<any>(url, this.getHeaders()).pipe(
+      take(1),
+      map(res => res.data || res)
+    );
   }
 
   /**
@@ -65,15 +78,8 @@ export class UsersService {
    * @returns Observable con los datos del usuario
    */
   public getUserById(userId: string): Observable<Users> {
-    return this.db.collection('users').doc<Users>(userId).valueChanges()
-      .pipe(
-        map(user => {
-          if (user) {
-            return { ...user, userUid: userId };
-          }
-          return null;
-        })
-      );
+    const url = `${environment.apiGpsUrl}/users/${userId}`;
+    return this.http.get<Users>(url, this.getHeaders());
   }
 
   /**
@@ -82,76 +88,68 @@ export class UsersService {
    * @returns Observable con los datos del usuario que se actualiza en tiempo real
    */
   public getUserByIdRealtime(userId: string): Observable<Users> {
-    return this.db.collection('users').doc<Users>(userId).snapshotChanges()
-      .pipe(
-        map(doc => {
-          if (doc.payload.exists) {
-            const data = doc.payload.data() as Users;
-            return { ...data, userUid: doc.payload.id };
-          }
-          return null;
-        })
-      );
+    // For now, since Feathers real-time (Socket.io) isn't fully set up on frontend, we fallback to one-time fetch or polling.
+    // Ideally use feathers-client.
+    return this.getUserById(userId);
   }
 
   /**
- * Actualiza el estado del usuario para bloquear el acceso
- * */
+  * Actualiza el usuario
+  * */
   public updateUser(users: Users) {
-    return this.db.collection('users').doc(users.userUid).update(users);
+    const id = users.id || users.userUuid;
+    const url = `${environment.apiGpsUrl}/users/${id}`;
+    return this.http.patch(url, users, this.getHeaders()).toPromise();
   }
 
   /**
-   * Elimina un usuario de forma segura usando Cloud Function
-   * - Crea respaldo en colección deleted_users
-   * - Elimina credenciales de Firebase Authentication
-   * - Elimina documento de Firestore
-   * @param userUid - UID del usuario a eliminar
+   * Elimina un usuario
+   * @param id - ID del usuario a eliminar
    * @returns Observable con la respuesta de la función
    */
-  public deleteUser(userUid: string): Observable<any> {
-    console.log('*** Eliminando usuario vía Cloud Function *** ', userUid);
-
-    const url = `${environment.cloudFunctionsUrl}/api/v1/deleteUser`;
-
-    return this.http.post(url, { userUid });
+  public deleteUser(id: string | number): Observable<any> {
+    const url = `${environment.apiGpsUrl}/users/${id}`;
+    return this.http.delete(url, this.getHeaders());
   }
 
 
   /**
-   * Actualiza el estado del vehiculo
+   * Actualiza el estado del vehiculo (ahora dispositivo)
    * */
-  public updateVehicleState(userUid: string, vehicle: Vehicle) {
-    console.log(`[UsersService] updateVehicleState called.`);
-    console.log(`[UsersService] Target Document ID: ${vehicle.vehicleId}`);
-    console.log(`[UsersService] Payload:`, JSON.stringify(vehicle, null, 2));
-
-    if (!vehicle.vehicleId) {
-      console.error('[UsersService] CRITICAL ERROR: vehicleId is missing!');
-      throw new Error('vehicleId is missing');
-    }
-
-    return this.db.collection('vehicles').doc(vehicle.vehicleId).update(vehicle)
-      .then(() => console.log(`[UsersService] Update SUCCESS for ${vehicle.vehicleId}`))
-      .catch(err => console.error(`[UsersService] Update FAILED for ${vehicle.vehicleId}`, err));
+  public updateVehicleState(vehicle: any) {
+    const id = vehicle.id || vehicle.deviceImei;
+    const url = `${environment.apiGpsUrl}/devices/${id}`;
+    return this.http.patch(url, vehicle, this.getHeaders()).toPromise();
   }
 
   /**
-   * Elimina un vehículo por ID
-   */
-  public deleteVehicle(vehicleId: string): Promise<void> {
-    console.log(`[UsersService] Deleting vehicle: ${vehicleId}`);
-    return this.db.collection('vehicles').doc(vehicleId).delete();
-  }
-
-  /**
-   * Obtiene conductores activos con ubicación compartida
+   * Obtiene conductores activos
    * */
   public getActiveDrivers() {
-    return this.db.collection<Users>('users', ref =>
-      ref.where('userStateShareLocation', '==', true)
-        .where('userRol', '==', 9) // 2 = conductor
-    ).valueChanges();
+    const url = `${environment.apiGpsUrl}/users?userCurrentRole=9`;
+    return this.http.get<any>(url, this.getHeaders()).pipe(
+      map(res => res.data || res)
+    );
+  }
+
+  public updateUserBatch(user: Users): Promise<any> {
+    const id = user.id || user.userUuid;
+    const url = `${environment.apiGpsUrl}/users/${id}`;
+    return this.http.patch(url, user, this.getHeaders()).toPromise();
+  }
+
+  public searchUsersByProfile(
+    searchTerm: string,
+    userCurrentRole: number | null,
+    pageSize: number = 25
+  ): Observable<Users[]> {
+    let url = `${environment.apiGpsUrl}/users?$limit=${pageSize}&userFullName[$like]=%${searchTerm}%`;
+    if (userCurrentRole !== null) {
+      url += `&userCurrentRole=${userCurrentRole}`;
+    }
+    return this.http.get<any>(url, this.getHeaders()).pipe(
+      map(res => res.data)
+    );
   }
 
 }

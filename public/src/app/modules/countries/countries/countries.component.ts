@@ -8,8 +8,8 @@ import { MatSort } from '@angular/material/sort';
 import { MatPaginator } from '@angular/material/paginator';
 import * as ClassicEditor from '@ckeditor/ckeditor5-build-classic';
 import { LoadingService } from 'app/services/loading/loading.service';
+import { Country } from 'app/interfaces/country';
 import { Users } from 'app/interfaces/users';
-import { take } from 'rxjs/operators';
 
 declare var $: any;
 
@@ -63,68 +63,16 @@ export class CountriesComponent implements OnInit {
   }
 
   public getRequest() {
-
-    return;
-    this.countriesService.getUsers().pipe(take(1)).subscribe(async resp => {
-      this.validUsers = resp.map(u => {
-        const data: any = u.payload.doc.data();
-        const id = u.payload.doc.id;
-        return { id, ...data };
-      }).filter(u => Object.keys(u).length > 1); // descartar vacíos
-
-
-      setTimeout(async () => {
-        console.log('*** Luego de 5 ***');
-        console.log("Usuarios válidos guardados:", this.validUsers);
-        await this.countriesService.restoreUsers(this.validUsers);
-
-      }, 15000);
-
-
-
-
-      // // 2. Eliminar toda la colección
-      // await this.countriesService.deleteAllUsers();
-      // console.log("Colección 'users' eliminada");
-
-      // // 3. Restaurar usuarios válidos
-      // await this.countriesService.restoreUsers(this.validUsers);
-      // console.log("Usuarios válidos restaurados"); 
-    });
-
-
-    return;
-
-    // return;
+    // Legacy logic commented out as it references deleted CountriesService methods
+    /*
     this.countriesService.getRequest().subscribe(resp => {
-      // console.log(resp.length);
-      // console.log(JSON.stringify(resp[resp.length - 1], null, 3));
       resp.forEach(element => {
-        if (element.requestDriverUid != undefined)
-          var path = `users/${element.requestDriverUid}/requestVehicle/${element.requestId}`;
-        console.log(path);
-        this.countriesService.getUsersByUid(element.requestDriverUid).subscribe(async resp => {
-
-
-          if (resp == undefined) {
-            console.log('*** se guarda ***');
-            this.countriesService.saveUser(element.requestDriverUid);
-            // this.countriesService.deleteUser(element.requestDriverUid, element.requestId);
-          }
-
-          // var path = `users/${element.requestDriverUid}/requestVehicle/${element.requestId}`;
-          // console.log(path);
-
-          // setTimeout(() => {
-          //   console.log(element.requestDriverUid);
-          //   // this.countriesService.saveRequestInUser(element.requestDriverUid, element).then(() => {
-
-          //   // });
-          // }, 1500);
-        });
-
+        if (element.requestDriverUid != undefined) {
+           // Standard logic removed for cleanup
+        }
       });
     });
+    */
   }
 
 
@@ -150,19 +98,16 @@ export class CountriesComponent implements OnInit {
   public async saveCountry(isValid: boolean, form: NgForm) {
     if (isValid) {
       if (this.isEdit) {
-
-        this.countriesService.editCountry(this.country).then(() => {
-
+        this.countriesService.editCountry(this.country).subscribe(() => {
           this.utilsService.showNotification('top', 'right', 'nc-check-2', 'País editado correctamente', 'success');
           $('#modalNewCountry').modal('hide');
-        })
+        });
       } else {
-        this.countriesService.saveCountry(this.country).then(() => {
-
+        this.countriesService.saveCountry(this.country).subscribe(() => {
           this.utilsService.showNotification('top', 'right', 'nc-check-2', 'País creado correctamente', 'success');
           form.resetForm();
           $('#modalNewCountry').modal('hide');
-        }).catch((e) => {
+        }, (e) => {
           console.log(JSON.stringify(e, null, 3));
         });
       }
@@ -231,7 +176,7 @@ export class CountriesComponent implements OnInit {
         countryAux.countryName = element[1];
         countryAux.countryState = true;
 
-        this.countriesService.saveCountry(countryAux).then(() => { });
+        this.countriesService.saveCountry(countryAux).subscribe(() => { });
       }
     });
   }
@@ -239,7 +184,7 @@ export class CountriesComponent implements OnInit {
 
 
   deleteCountry(country: Country) {
-    this.countriesService.deleteCountry(country.countryId).then(() => {
+    this.countriesService.deleteCountry(country.countryId).subscribe(() => {
       this.utilsService.showNotification('top', 'right', 'nc-check-2', 'País eliminado correctamente', 'success');
     });
   }
