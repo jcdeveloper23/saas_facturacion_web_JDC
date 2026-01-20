@@ -1,0 +1,24 @@
+import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { CardModule, GridModule } from '@coreui/angular';
+
+@Component({
+  selector: 'app-routes-history',
+  standalone: true,
+  imports: [CommonModule, CardModule, GridModule],
+  template: `
+    <c-row>
+      <c-col>
+        <c-card>
+          <c-card-header>
+            <strong>Historial de Rutas</strong>
+          </c-card-header>
+          <c-card-body>
+            <p>Módulo de historial de rutas en desarrollo...</p>
+          </c-card-body>
+        </c-card>
+      </c-col>
+    </c-row>
+  `
+})
+export class RoutesHistoryComponent {}
