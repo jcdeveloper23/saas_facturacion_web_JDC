@@ -1,24 +1,21 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { CardModule, GridModule } from '@coreui/angular';
+import { CardModule, GridModule, ButtonModule } from '@coreui/angular';
+import { IconModule } from '@coreui/icons-angular';
+import { HasPermissionDirective } from '../../shared/directives/has-permission.directive';
 
 @Component({
   selector: 'app-organizations',
   standalone: true,
-  imports: [CommonModule, CardModule, GridModule],
-  template: `
-    <c-row>
-      <c-col>
-        <c-card>
-          <c-card-header>
-            <strong>Gestión de Organizaciones</strong>
-          </c-card-header>
-          <c-card-body>
-            <p>Módulo de organizaciones en desarrollo...</p>
-          </c-card-body>
-        </c-card>
-      </c-col>
-    </c-row>
-  `
+  imports: [
+    CommonModule,
+    CardModule,
+    GridModule,
+    ButtonModule,
+    IconModule,
+    HasPermissionDirective
+  ],
+  templateUrl: './organizations.component.html',
+  styleUrl: './organizations.component.scss'
 })
 export class OrganizationsComponent {}

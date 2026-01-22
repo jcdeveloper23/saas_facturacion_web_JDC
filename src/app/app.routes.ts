@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard, adminGuard, loginGuard } from './core/guards';
+import { authGuard, adminGuard, loginGuard, permissionGuard } from './core/guards';
 
 export const routes: Routes = [
   {
@@ -14,48 +14,61 @@ export const routes: Routes = [
       title: 'Home'
     },
     children: [
-      // GPS Tracking Routes (Protected)
+      // GPS Tracking Routes (Protected by permissions)
       {
         path: 'monitor',
         loadChildren: () => import('./features/gps-monitor/routes').then((m) => m.routes),
-        canActivate: [authGuard],
-        data: { title: 'Monitor GPS' }
+        canActivate: [authGuard, permissionGuard],
+        data: { title: 'Monitor GPS', permissions: ['monitor.view'] }
       },
       {
         path: 'devices',
         loadChildren: () => import('./features/devices/routes').then((m) => m.routes),
-        canActivate: [authGuard],
-        data: { title: 'Dispositivos' }
+        canActivate: [authGuard, permissionGuard],
+        data: { title: 'Dispositivos', permissions: ['devices.view'] }
       },
       {
         path: 'geofences',
         loadChildren: () => import('./features/geofences/routes').then((m) => m.routes),
-        canActivate: [authGuard],
-        data: { title: 'Geocercas' }
+        canActivate: [authGuard, permissionGuard],
+        data: { title: 'Geocercas', permissions: ['geofences.view'] }
       },
       {
         path: 'alerts',
         loadChildren: () => import('./features/alerts/routes').then((m) => m.routes),
-        canActivate: [authGuard],
-        data: { title: 'Alertas' }
+        canActivate: [authGuard, permissionGuard],
+        data: { title: 'Alertas', permissions: ['alerts.view'] }
       },
       {
         path: 'routes',
         loadChildren: () => import('./features/routes/routes').then((m) => m.routes),
-        canActivate: [authGuard],
-        data: { title: 'Rutas' }
+        canActivate: [authGuard, permissionGuard],
+        data: { title: 'Rutas', permissions: ['routes.view'] }
+      },
+      // Administration Routes
+      {
+        path: 'profiles',
+        loadChildren: () => import('./features/profiles/routes').then((m) => m.routes),
+        canActivate: [authGuard, permissionGuard],
+        data: { title: 'Perfiles', permissions: ['profiles.view'] }
       },
       {
         path: 'users',
         loadChildren: () => import('./features/users/routes').then((m) => m.routes),
-        canActivate: [adminGuard],
-        data: { title: 'Usuarios' }
+        canActivate: [authGuard, permissionGuard],
+        data: { title: 'Usuarios', permissions: ['users.view'] }
+      },
+      {
+        path: 'permissions',
+        loadChildren: () => import('./features/permissions/routes').then((m) => m.routes),
+        canActivate: [authGuard, permissionGuard],
+        data: { title: 'Permisos', permissions: ['permissions.view', 'permissions.manage'] }
       },
       {
         path: 'organizations',
         loadChildren: () => import('./features/organizations/routes').then((m) => m.routes),
-        canActivate: [adminGuard],
-        data: { title: 'Organizaciones' }
+        canActivate: [authGuard, permissionGuard],
+        data: { title: 'Organizaciones', permissions: ['organizations.view'] }
       },
       // CoreUI Demo Routes
       {
@@ -112,6 +125,13 @@ export const routes: Routes = [
     loadComponent: () => import('./views/pages/page500/page500.component').then(m => m.Page500Component),
     data: {
       title: 'Page 500'
+    }
+  },
+  {
+    path: 'unauthorized',
+    loadComponent: () => import('./views/pages/unauthorized/unauthorized.component').then(m => m.UnauthorizedComponent),
+    data: {
+      title: 'Sin Autorización'
     }
   },
   {

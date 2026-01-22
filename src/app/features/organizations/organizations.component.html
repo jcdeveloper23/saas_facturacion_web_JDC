@@ -1,0 +1,21 @@
+<c-row>
+  <c-col>
+    <c-card class="mb-4">
+      <c-card-header>
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <strong>Gestión de Organizaciones</strong>
+            <p class="text-muted mb-0 small">Administra las empresas del sistema</p>
+          </div>
+          <button cButton color="primary" *hasPermission="'organizations.create'">
+            <svg cIcon name="cilPlus" size="sm"></svg>
+            Nueva Organización
+          </button>
+        </div>
+      </c-card-header>
+      <c-card-body>
+        <p class="text-muted">Módulo de organizaciones en desarrollo...</p>
+      </c-card-body>
+    </c-card>
+  </c-col>
+</c-row>

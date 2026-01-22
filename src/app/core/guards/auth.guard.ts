@@ -24,7 +24,7 @@ export const authGuard: CanActivateFn = (route, state) => {
 /**
  * Admin Guard - Protects routes requiring admin role
  */
-export const adminGuard: CanActivateFn = (route, state) => {
+export const adminGuard: CanActivateFn = () => {
   const authService = inject(AuthService);
   const router = inject(Router);
 
@@ -33,7 +33,7 @@ export const adminGuard: CanActivateFn = (route, state) => {
     return false;
   }
 
-  if (authService.isAdmin()) {
+  if (authService.isSuperAdmin() || authService.isOrgAdmin()) {
     return true;
   }
 

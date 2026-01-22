@@ -5,35 +5,60 @@
         <c-card-group>
           <c-card class="p-4">
             <c-card-body>
-              <form cForm>
-                <h1>Loginssd</h1>
-                <p class="text-body-secondary">Sign In to your account</p>
+              <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" cForm>
+                <div class="mb-4">
+                  <h1>Iniciar Sesión</h1>
+                  <p class="text-body-secondary">Ingresa a tu cuenta</p>
+                </div>
+
+                @if (errorMessage()) {
+                <div class="alert alert-danger" role="alert">
+                  {{ errorMessage() }}
+                </div>
+                }
+
                 <c-input-group class="mb-3">
                   <span cInputGroupText>
                     <svg cIcon name="cilUser"></svg>
                   </span>
-                  <input autoComplete="username" cFormControl placeholder="Username" />
+                  <input autoComplete="username" cFormControl placeholder="Email" formControlName="username" [ngClass]="{ 
+                      'is-valid': loginForm.get('username')?.touched && loginForm.get('username')?.valid,
+                      'is-invalid': loginForm.get('username')?.touched && loginForm.get('username')?.invalid 
+                    }" />
+                  <div class="invalid-feedback" *ngIf="loginForm.get('username')?.errors?.['required']">
+                    El email es requerido
+                  </div>
+                  <div class="invalid-feedback" *ngIf="loginForm.get('username')?.errors?.['email']">
+                    Ingrese un email válido
+                  </div>
                 </c-input-group>
+
                 <c-input-group class="mb-4">
                   <span cInputGroupText>
                     <svg cIcon name="cilLockLocked"></svg>
                   </span>
-                  <input
-                    autoComplete="current-password"
-                    cFormControl
-                    placeholder="Password"
-                    type="password"
-                  />
+                  <input autoComplete="current-password" cFormControl placeholder="Contraseña" type="password"
+                    formControlName="password" [ngClass]="{ 
+                      'is-valid': loginForm.get('password')?.touched && loginForm.get('password')?.valid,
+                      'is-invalid': loginForm.get('password')?.touched && loginForm.get('password')?.invalid 
+                    }" />
+                  <div class="invalid-feedback">
+                    La contraseña es requerida
+                  </div>
                 </c-input-group>
+
                 <c-row>
                   <c-col xs="6">
-                    <button cButton class="px-4" color="primary">
+                    <button cButton class="px-4" color="primary" type="submit" [disabled]="isLoading()">
+                      @if (isLoading()) {
+                      <c-spinner size="sm" class="me-2"></c-spinner>
+                      }
                       Login
                     </button>
                   </c-col>
                   <c-col class="text-end" xs="6">
-                    <button cButton class="px-0" color="link">
-                      Forgot password?
+                    <button cButton class="px-0" color="link" type="button">
+                      ¿Olvidaste tu contraseña?
                     </button>
                   </c-col>
                 </c-row>

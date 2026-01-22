@@ -1,0 +1,22 @@
+.driver-item {
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.driver-item:hover {
+  background-color: var(--cui-tertiary-bg);
+}
+.driver-item.active {
+  background-color: var(--cui-primary-bg-subtle);
+  border-left: 3px solid var(--cui-primary);
+}
+.driver-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  font-size: 16px;
+}

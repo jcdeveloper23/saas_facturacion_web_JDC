@@ -1,9 +1,12 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, tap, map, catchError, throwError } from 'rxjs';
+import { Observable, tap, map, catchError, throwError, switchMap, of } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { User, AuthUser, UserRole } from '../interfaces';
+import { User, AuthUser } from '../interfaces';
+import { Role, PermissionString, SYSTEM_ROLES } from '../interfaces/permission.interface';
+import { PermissionsService } from './permissions.service';
+import { SecureStorageService } from './secure-storage.service';
 
 interface LoginPayload {
   strategy: 'local';
@@ -13,12 +16,15 @@ interface LoginPayload {
 
 interface LoginResponse {
   accessToken: string;
-  user: User;
+  user: User & {
+    role?: Role;
+    permissions?: PermissionString[];
+  };
 }
 
 /**
  * Auth Service - Handles authentication with JWT tokens
- * Uses Angular 21 signals for reactive state
+ * Integrates with PermissionsService for RBAC
  */
 @Injectable({
   providedIn: 'root'
@@ -26,6 +32,8 @@ interface LoginResponse {
 export class AuthService {
   private http = inject(HttpClient);
   private router = inject(Router);
+  private permissionsService = inject(PermissionsService);
+  private secureStorage = inject(SecureStorageService);
 
   private readonly apiUrl = `${environment.apiGpsUrl}/authentication`;
 
@@ -35,8 +43,12 @@ export class AuthService {
 
   readonly user = computed(() => this.currentUser());
   readonly isAuthenticated = computed(() => !!this.token());
-  readonly userRole = computed(() => this.currentUser()?.userCurrentRole);
+  readonly currentRole = computed(() => this.permissionsService.role());
 
+  /**
+   * Login with email and password
+   * After successful auth, loads user permissions
+   */
   login(email: string, password: string): Observable<AuthUser> {
     const payload: LoginPayload = {
       strategy: 'local',
@@ -46,10 +58,27 @@ export class AuthService {
 
     return this.http.post<LoginResponse>(this.apiUrl, payload).pipe(
       tap(response => {
+        console.log(`Login response: ${JSON.stringify(response, null, 2)}`);
+
         if (!response.user.state) {
           throw new Error('Usuario inactivo');
         }
         this.setSession(response);
+      }),
+      // Load permissions after login
+      switchMap(response => {
+        // If backend returns permissions directly, use them
+        if (response.user.permissions && response.user.role) {
+          this.permissionsService.setPermissions(
+            response.user.permissions,
+            response.user.role
+          );
+          return of(response);
+        }
+        // Otherwise, load permissions from API
+        return this.loadPermissionsForUser(response.user.id!).pipe(
+          map(() => response)
+        );
       }),
       map(response => ({
         user: response.user,
@@ -62,58 +91,153 @@ export class AuthService {
     );
   }
 
+  /**
+   * Logout - clears session and permissions
+   */
   logout(): void {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('infoUser');
+    this.secureStorage.removeItem('accessToken');
+    this.secureStorage.removeItem('infoUser');
+    this.secureStorage.removeItem('userPermissions');
     this.currentUser.set(null);
     this.token.set(null);
+    this.permissionsService.clearPermissions();
     this.router.navigate(['/login']);
   }
 
+  /**
+   * Get current JWT token
+   */
   getToken(): string | null {
     return this.token();
   }
 
+  /**
+   * Get default route based on user role
+   */
   getDefaultRoute(): string {
-    const role = this.userRole();
-    if (role === 0) {
-      return '/admin-panel';
+    const role = this.permissionsService.role();
+
+    if (!role) return '/monitor';
+
+    switch (role.code) {
+      case 'super_admin':
+        return '/organizations';
+      case 'org_admin':
+      case 'org_manager':
+        return '/monitor';
+      case 'driver':
+        return '/monitor';
+      default:
+        return '/monitor';
     }
-    return '/monitor';
   }
 
-  isAdmin(): boolean {
-    return this.userRole() === 0;
+  /**
+   * Check if user is super admin
+   */
+  isSuperAdmin(): boolean {
+    return this.permissionsService.isAdmin();
   }
 
-  isDriver(): boolean {
-    return this.userRole() === 9;
+  /**
+   * Check if user is organization admin
+   */
+  isOrgAdmin(): boolean {
+    const role = this.permissionsService.role();
+    return role?.code === 'org_admin';
   }
 
-  hasRole(role: UserRole): boolean {
-    return this.userRole() === role;
+  /**
+   * Initialize session from storage (called on app startup)
+   */
+  initializeSession(): Observable<boolean> {
+    const user = this.currentUser();
+    const token = this.token();
+
+    if (!user || !token) {
+      return of(false);
+    }
+
+    // Load permissions from storage or API
+    const storedPermissions = this.loadPermissionsFromStorage();
+    if (storedPermissions) {
+      this.permissionsService.setPermissions(
+        storedPermissions.permissions,
+        storedPermissions.role
+      );
+      return of(true);
+    }
+
+    // Load from API if not in storage
+    return this.loadPermissionsForUser(user.id!).pipe(
+      map(() => true),
+      catchError(() => of(false))
+    );
   }
 
+  /**
+   * Load permissions for a user from API
+   */
+  private loadPermissionsForUser(userId: number): Observable<PermissionString[]> {
+    return this.permissionsService.loadUserPermissions(userId).pipe(
+      tap(permissions => {
+        // Store in localStorage for persistence
+        const role = this.permissionsService.role();
+        this.secureStorage.setItem('userPermissions', { permissions, role });
+      })
+    );
+  }
+
+  /**
+   * Set session data after login
+   */
   private setSession(response: LoginResponse): void {
-    localStorage.setItem('accessToken', response.accessToken);
-    localStorage.setItem('infoUser', JSON.stringify(response.user));
+    this.secureStorage.setItem('accessToken', response.accessToken);
+    this.secureStorage.setItem('infoUser', response.user);
     this.token.set(response.accessToken);
     this.currentUser.set(response.user);
   }
 
+  /**
+   * Load user from localStorage
+   */
   private loadUserFromStorage(): User | null {
-    const userStr = localStorage.getItem('infoUser');
-    if (userStr) {
-      try {
-        return JSON.parse(userStr);
-      } catch {
-        return null;
-      }
-    }
-    return null;
+    return this.secureStorage.getItem<User>('infoUser');
   }
 
+  /**
+   * Load token from localStorage
+   */
   private loadTokenFromStorage(): string | null {
-    return localStorage.getItem('accessToken');
+    // Some libraries might expect raw token string, but here we decrypt it
+    return this.secureStorage.getItem<string>('accessToken') || null;
+  }
+
+  /**
+   * Load permissions from localStorage
+   */
+  private loadPermissionsFromStorage(): { permissions: PermissionString[]; role: Role } | null {
+    return this.secureStorage.getItem<{ permissions: PermissionString[]; role: Role }>('userPermissions');
+  }
+
+  // ============================================================================
+  // TEMPORARY: Mock permissions for development
+  // Remove this when backend supports permissions API
+  // ============================================================================
+
+  /**
+   * Set mock permissions for development
+   * Call this after login if backend doesn't return permissions yet
+   */
+  setMockPermissions(roleCode: string = 'org_admin'): void {
+    const role = SYSTEM_ROLES.find(r => r.code === roleCode);
+    if (role) {
+      this.permissionsService.setPermissions(role.permissions, role as Role);
+      this.secureStorage.setItem('userPermissions', {
+        permissions: role.permissions,
+        role
+      });
+    }
   }
 }
+

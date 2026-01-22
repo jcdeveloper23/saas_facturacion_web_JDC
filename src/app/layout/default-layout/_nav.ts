@@ -13,27 +13,32 @@ export const navItems: INavData[] = [
     badge: {
       color: 'success',
       text: 'LIVE'
-    }
+    },
+    attributes: { permission: 'monitor.view' }
   },
   {
     name: 'Dispositivos',
     url: '/devices',
-    iconComponent: { name: 'cil-mobile' }
+    iconComponent: { name: 'cil-mobile' },
+    attributes: { permission: 'devices.view' }
   },
   {
     name: 'Geocercas',
     url: '/geofences',
-    iconComponent: { name: 'cil-map' }
+    iconComponent: { name: 'cil-map' },
+    attributes: { permission: 'geofences.view' }
   },
   {
     name: 'Alertas',
     url: '/alerts',
-    iconComponent: { name: 'cil-bell' }
+    iconComponent: { name: 'cil-bell' },
+    attributes: { permission: 'alerts.view' }
   },
   {
     name: 'Historial de Rutas',
     url: '/routes',
-    iconComponent: { name: 'cil-compass' }
+    iconComponent: { name: 'cil-compass' },
+    attributes: { permission: 'routes.view' }
   },
   // Administration Section
   {
@@ -43,14 +48,40 @@ export const navItems: INavData[] = [
   {
     name: 'Usuarios',
     url: '/users',
-    iconComponent: { name: 'cil-people' }
+    iconComponent: { name: 'cil-people' },
+    attributes: { permission: 'users.view' }
+  },
+  {
+    name: 'Perfiles y Roles',
+    url: '/profiles',
+    iconComponent: { name: 'cil-badge' },
+    attributes: { permission: 'profiles.view' }
+  },
+  {
+    name: 'Gestión de Permisos',
+    url: '/permissions',
+    iconComponent: { name: 'cil-lock-locked' }, // using a lock icon
+    attributes: { permission: 'permissions.view' }
   },
   {
     name: 'Organizaciones',
     url: '/organizations',
-    iconComponent: { name: 'cil-building' }
+    iconComponent: { name: 'cil-building' },
+    attributes: { permission: 'organizations.view' }
   },
-  // CoreUI Demo Section (can be removed later)
+  // System Section (for super admins)
+  {
+    title: true,
+    name: 'Sistema',
+    attributes: { permission: 'settings.view' }
+  },
+  {
+    name: 'Configuración',
+    url: '/settings',
+    iconComponent: { name: 'cil-settings' },
+    attributes: { permission: 'settings.view' }
+  },
+  // Demo Section (can be removed later)
   {
     title: true,
     name: 'Demo CoreUI'
@@ -61,32 +92,10 @@ export const navItems: INavData[] = [
     iconComponent: { name: 'cil-speedometer' }
   },
   {
-    name: 'Theme',
-    url: '/theme',
-    iconComponent: { name: 'cil-drop' },
-    children: [
-      {
-        name: 'Colors',
-        url: '/theme/colors',
-        icon: 'nav-icon-bullet'
-      },
-      {
-        name: 'Typography',
-        url: '/theme/typography',
-        icon: 'nav-icon-bullet'
-      }
-    ]
-  },
-  {
-    name: 'Components',
+    name: 'Componentes',
     url: '/base',
     iconComponent: { name: 'cil-puzzle' },
     children: [
-      {
-        name: 'Accordion',
-        url: '/base/accordion',
-        icon: 'nav-icon-bullet'
-      },
       {
         name: 'Cards',
         url: '/base/cards',
@@ -98,54 +107,38 @@ export const navItems: INavData[] = [
         icon: 'nav-icon-bullet'
       },
       {
-        name: 'Tabs',
-        url: '/base/tabs',
-        icon: 'nav-icon-bullet'
-      }
-    ]
-  },
-  {
-    name: 'Forms',
-    url: '/forms',
-    iconComponent: { name: 'cil-notes' },
-    children: [
-      {
-        name: 'Form Control',
-        url: '/forms/form-control',
-        icon: 'nav-icon-bullet'
-      },
-      {
-        name: 'Validation',
+        name: 'Forms',
         url: '/forms/validation',
-        icon: 'nav-icon-bullet'
-      }
-    ]
-  },
-  {
-    name: 'Charts',
-    iconComponent: { name: 'cil-chart-pie' },
-    url: '/charts'
-  },
-  {
-    name: 'Notifications',
-    url: '/notifications',
-    iconComponent: { name: 'cil-bell' },
-    children: [
-      {
-        name: 'Alerts',
-        url: '/notifications/alerts',
-        icon: 'nav-icon-bullet'
-      },
-      {
-        name: 'Modal',
-        url: '/notifications/modal',
-        icon: 'nav-icon-bullet'
-      },
-      {
-        name: 'Toast',
-        url: '/notifications/toasts',
         icon: 'nav-icon-bullet'
       }
     ]
   }
 ];
+
+/**
+ * Helper function to filter nav items by permissions
+ * Use this in the sidebar component
+ */
+export function filterNavByPermissions(
+  items: INavData[],
+  hasPermission: (permission: string) => boolean
+): INavData[] {
+  return items.filter(item => {
+    // Check if item requires permission
+    const requiredPermission = item.attributes?.['permission'];
+    if (requiredPermission && !hasPermission(requiredPermission)) {
+      return false;
+    }
+
+    // Filter children recursively
+    if (item.children) {
+      item.children = filterNavByPermissions(item.children, hasPermission);
+      // Hide parent if all children are hidden
+      if (item.children.length === 0) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+}

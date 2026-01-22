@@ -1,6 +1,10 @@
 // Core Services - GPS Tracking System
 export { LoadingService } from './loading.service';
 export { AuthService } from './auth.service';
+export { PermissionsService } from './permissions.service';
+export { ModulesService } from './modules.service';
+export { ActionsService } from './actions.service';
+export { NavigationService } from './navigation.service';
 export { DevicesService } from './devices.service';
 export { LocationsService } from './locations.service';
 export { RoutesService } from './routes.service';

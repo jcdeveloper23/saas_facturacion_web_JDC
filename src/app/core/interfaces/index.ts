@@ -8,6 +8,7 @@ export * from './user.interface';
 export * from './organization.interface';
 export * from './device-command.interface';
 export * from './gps-protocol.interface';
+export * from './permission.interface';
 
 // Common types
 export interface ApiResponse<T> {

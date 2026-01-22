@@ -1,0 +1,514 @@
+<c-container fluid>
+    <!-- Header -->
+    <c-row class="mb-4">
+        <c-col xs="12">
+            <h2 class="mb-0 text-primary">Gestión de Permisos</h2>
+            <p class="text-muted mb-0">Administra módulos, acciones y permisos del sistema</p>
+        </c-col>
+    </c-row>
+
+    <!-- Tabs Navigation -->
+    <c-row class="mb-4">
+        <c-col xs="12">
+            <c-nav variant="tabs">
+                <c-nav-item>
+                    <a cNavLink [active]="activeTab() === 'permissions'" (click)="setActiveTab('permissions')">
+                        <svg cIcon name="cilLockLocked" class="me-2"></svg>
+                        Permisos
+                    </a>
+                </c-nav-item>
+                <c-nav-item>
+                    <a cNavLink [active]="activeTab() === 'modules'" (click)="setActiveTab('modules')">
+                        <svg cIcon name="cilApps" class="me-2"></svg>
+                        Módulos
+                    </a>
+                </c-nav-item>
+                <c-nav-item>
+                    <a cNavLink [active]="activeTab() === 'actions'" (click)="setActiveTab('actions')">
+                        <svg cIcon name="cilBolt" class="me-2"></svg>
+                        Acciones
+                    </a>
+                </c-nav-item>
+            </c-nav>
+        </c-col>
+    </c-row>
+
+    <!-- Loading State -->
+    @if (isLoading()) {
+    <div class="text-center p-5">
+        <c-spinner color="primary"></c-spinner>
+        <p class="mt-3 text-muted">Cargando datos...</p>
+    </div>
+    } @else {
+
+    <!-- ============================================================================ -->
+    <!-- PERMISSIONS TAB -->
+    <!-- ============================================================================ -->
+    @if (activeTab() === 'permissions') {
+    <c-row class="mb-3">
+        <c-col xs="12" class="d-flex justify-content-end">
+            <button cButton color="primary" (click)="openPermissionModal()">
+                <svg cIcon name="cilPlus" class="me-2"></svg>
+                Crear Permiso
+            </button>
+        </c-col>
+    </c-row>
+
+    <c-row>
+        <c-col xs="12">
+            @for (group of groupedPermissions(); track group.moduleName) {
+            <c-card class="mb-4">
+                <c-card-header class="d-flex align-items-center">
+                    <svg cIcon [name]="group.moduleIcon || 'cil-folder'" class="me-2 text-primary"></svg>
+                    <strong>{{ group.moduleName }}</strong>
+                    <c-badge color="info" shape="rounded-pill" class="ms-auto">
+                        {{ group.permissions.length }} permisos
+                    </c-badge>
+                </c-card-header>
+                <c-card-body class="p-0">
+                    <table cTable hover responsive class="mb-0">
+                        <thead>
+                            <tr>
+                                <th scope="col" style="width: 20%">Código</th>
+                                <th scope="col" style="width: 20%">Nombre</th>
+                                <th scope="col" style="width: 25%">Descripción</th>
+                                <th scope="col" style="width: 15%">Acción</th>
+                                <th scope="col" style="width: 10%">Tipo</th>
+                                <th scope="col" style="width: 10%" class="text-end">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (perm of group.permissions; track perm.id) {
+                            <tr>
+                                <td><code>{{ perm.code }}</code></td>
+                                <td class="fw-semibold">{{ perm.name }}</td>
+                                <td class="text-muted small">{{ perm.description || '-' }}</td>
+                                <td>
+                                    <c-badge color="secondary">{{ perm.action?.name || getActionName(perm.action_id) }}</c-badge>
+                                </td>
+                                <td>
+                                    @if (perm.isSystem) {
+                                    <c-badge color="warning">Sistema</c-badge>
+                                    } @else {
+                                    <c-badge color="success">Custom</c-badge>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    <button cButton color="ghost" size="sm" (click)="openPermissionModal(perm)"
+                                        cTooltip="Editar">
+                                        <svg cIcon name="cilPencil" class="text-warning"></svg>
+                                    </button>
+                                    @if (!perm.isSystem) {
+                                    <button cButton color="ghost" size="sm" (click)="deletePermission(perm)"
+                                        cTooltip="Eliminar">
+                                        <svg cIcon name="cilTrash" class="text-danger"></svg>
+                                    </button>
+                                    }
+                                </td>
+                            </tr>
+                            }
+                        </tbody>
+                    </table>
+                </c-card-body>
+            </c-card>
+            } @empty {
+            <c-alert color="info">
+                No hay permisos registrados. Crea módulos y acciones primero.
+            </c-alert>
+            }
+        </c-col>
+    </c-row>
+    }
+
+    <!-- ============================================================================ -->
+    <!-- MODULES TAB -->
+    <!-- ============================================================================ -->
+    @if (activeTab() === 'modules') {
+    <c-row class="mb-3">
+        <c-col xs="12" class="d-flex justify-content-end">
+            <button cButton color="primary" (click)="openModuleModal()">
+                <svg cIcon name="cilPlus" class="me-2"></svg>
+                Crear Módulo
+            </button>
+        </c-col>
+    </c-row>
+
+    <c-row>
+        <c-col xs="12">
+            <c-card>
+                <c-card-body class="p-0">
+                    <table cTable hover responsive class="mb-0 table-sm">
+                        <thead>
+                            <tr>
+                                <th scope="col" style="width: 5%">#</th>
+                                <th scope="col" style="width: 5%"></th>
+                                <th scope="col" style="width: 12%">Código</th>
+                                <th scope="col" style="width: 15%">Nombre</th>
+                                <th scope="col" style="width: 12%">URL</th>
+                                <th scope="col" style="width: 10%">Tipo</th>
+                                <th scope="col" style="width: 10%">Badge</th>
+                                <th scope="col" style="width: 8%">Menú</th>
+                                <th scope="col" style="width: 8%">Estado</th>
+                                <th scope="col" style="width: 10%" class="text-end">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (mod of modules(); track mod.id) {
+                            <tr [class.table-light]="mod.isTitle">
+                                <td>
+                                    <span class="text-muted small">{{ mod.order }}</span>
+                                </td>
+                                <td>
+                                    @if (mod.icon) {
+                                    <svg cIcon [name]="mod.icon" class="text-primary"></svg>
+                                    }
+                                </td>
+                                <td><code class="small">{{ mod.code }}</code></td>
+                                <td class="fw-semibold">
+                                    @if (mod.isTitle) {
+                                    <em class="text-muted">{{ mod.name }}</em>
+                                    } @else {
+                                    {{ mod.name }}
+                                    }
+                                </td>
+                                <td>
+                                    @if (mod.url) {
+                                    <code class="small text-info">{{ mod.url }}</code>
+                                    } @else {
+                                    <span class="text-muted">-</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (mod.isTitle) {
+                                    <c-badge color="warning" class="small">Título</c-badge>
+                                    } @else {
+                                    <c-badge color="info" class="small">Módulo</c-badge>
+                                    }
+                                </td>
+                                <td>
+                                    @if (mod.badgeText) {
+                                    <c-badge [color]="mod.badgeColor || 'secondary'">{{ mod.badgeText }}</c-badge>
+                                    } @else {
+                                    <span class="text-muted">-</span>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    @if (mod.showInMenu) {
+                                    <svg cIcon name="cilCheckAlt" class="text-success"></svg>
+                                    } @else {
+                                    <svg cIcon name="cilX" class="text-muted"></svg>
+                                    }
+                                </td>
+                                <td>
+                                    @if (mod.state) {
+                                    <c-badge color="success" class="small">Activo</c-badge>
+                                    } @else {
+                                    <c-badge color="secondary" class="small">Inactivo</c-badge>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    <button cButton color="ghost" size="sm" (click)="openModuleModal(mod)"
+                                        cTooltip="Editar">
+                                        <svg cIcon name="cilPencil" class="text-warning"></svg>
+                                    </button>
+                                    <button cButton color="ghost" size="sm" (click)="deleteModule(mod)"
+                                        cTooltip="Eliminar">
+                                        <svg cIcon name="cilTrash" class="text-danger"></svg>
+                                    </button>
+                                </td>
+                            </tr>
+                            } @empty {
+                            <tr>
+                                <td colspan="10" class="text-center text-muted py-4">
+                                    No hay módulos registrados
+                                </td>
+                            </tr>
+                            }
+                        </tbody>
+                    </table>
+                </c-card-body>
+            </c-card>
+        </c-col>
+    </c-row>
+    }
+
+    <!-- ============================================================================ -->
+    <!-- ACTIONS TAB -->
+    <!-- ============================================================================ -->
+    @if (activeTab() === 'actions') {
+    <c-row class="mb-3">
+        <c-col xs="12" class="d-flex justify-content-end">
+            <button cButton color="primary" (click)="openActionModal()">
+                <svg cIcon name="cilPlus" class="me-2"></svg>
+                Crear Acción
+            </button>
+        </c-col>
+    </c-row>
+
+    <c-row>
+        <c-col xs="12">
+            <c-card>
+                <c-card-body class="p-0">
+                    <table cTable hover responsive class="mb-0">
+                        <thead>
+                            <tr>
+                                <th scope="col" style="width: 20%">Código</th>
+                                <th scope="col" style="width: 25%">Nombre</th>
+                                <th scope="col" style="width: 35%">Descripción</th>
+                                <th scope="col" style="width: 10%">Estado</th>
+                                <th scope="col" style="width: 10%" class="text-end">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (action of actions(); track action.id) {
+                            <tr>
+                                <td><code>{{ action.code }}</code></td>
+                                <td class="fw-semibold">{{ action.name }}</td>
+                                <td class="text-muted small">{{ action.description || '-' }}</td>
+                                <td>
+                                    @if (action.state) {
+                                    <c-badge color="success">Activo</c-badge>
+                                    } @else {
+                                    <c-badge color="secondary">Inactivo</c-badge>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    <button cButton color="ghost" size="sm" (click)="openActionModal(action)"
+                                        cTooltip="Editar">
+                                        <svg cIcon name="cilPencil" class="text-warning"></svg>
+                                    </button>
+                                    <button cButton color="ghost" size="sm" (click)="deleteAction(action)"
+                                        cTooltip="Eliminar">
+                                        <svg cIcon name="cilTrash" class="text-danger"></svg>
+                                    </button>
+                                </td>
+                            </tr>
+                            } @empty {
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-4">
+                                    No hay acciones registradas
+                                </td>
+                            </tr>
+                            }
+                        </tbody>
+                    </table>
+                </c-card-body>
+            </c-card>
+        </c-col>
+    </c-row>
+    }
+
+    }
+</c-container>
+
+<!-- ============================================================================ -->
+<!-- PERMISSION MODAL -->
+<!-- ============================================================================ -->
+<c-modal [visible]="showPermissionModal()" (visibleChange)="showPermissionModal.set($event)" size="lg">
+    <c-modal-header>
+        <h5 cModalTitle>{{ editingPermission() ? 'Editar' : 'Crear' }} Permiso</h5>
+    </c-modal-header>
+    <c-modal-body>
+        <form [formGroup]="permissionForm" cForm>
+            <c-row class="mb-3">
+                <c-col md="6">
+                    <label cLabel for="perm_module_id">Módulo</label>
+                    <select cSelect id="perm_module_id" formControlName="module_id">
+                        <option value="" disabled>Seleccionar Módulo</option>
+                        @for (mod of modules(); track mod.id) {
+                        <option [value]="mod.id">{{ mod.name }}</option>
+                        }
+                    </select>
+                </c-col>
+                <c-col md="6">
+                    <label cLabel for="perm_action_id">Acción</label>
+                    <select cSelect id="perm_action_id" formControlName="action_id">
+                        <option value="" disabled>Seleccionar Acción</option>
+                        @for (action of actions(); track action.id) {
+                        <option [value]="action.id">{{ action.name }}</option>
+                        }
+                    </select>
+                </c-col>
+            </c-row>
+
+            <div class="mb-3">
+                <label cLabel for="perm_name">Nombre Legible</label>
+                <input cFormControl id="perm_name" formControlName="name" placeholder="ej. Ver Usuarios" />
+            </div>
+
+            <div class="mb-3">
+                <label cLabel for="perm_description">Descripción</label>
+                <textarea cFormControl id="perm_description" formControlName="description" rows="3"></textarea>
+            </div>
+
+            @if (editingPermission() && editingPermission()?.isSystem) {
+            <c-alert color="warning">
+                <svg cIcon name="cilWarning" class="me-2"></svg>
+                Este es un permiso del sistema. Solo puedes editar el nombre y la descripción.
+            </c-alert>
+            }
+        </form>
+    </c-modal-body>
+    <c-modal-footer>
+        <button cButton color="secondary" (click)="closePermissionModal()">Cancelar</button>
+        <button cButton color="primary" (click)="savePermission()" [disabled]="permissionForm.invalid">
+            Guardar
+        </button>
+    </c-modal-footer>
+</c-modal>
+
+<!-- ============================================================================ -->
+<!-- MODULE MODAL -->
+<!-- ============================================================================ -->
+<c-modal [visible]="showModuleModal()" (visibleChange)="showModuleModal.set($event)" size="xl">
+    <c-modal-header>
+        <h5 cModalTitle>{{ editingModule() ? 'Editar' : 'Crear' }} Módulo</h5>
+    </c-modal-header>
+    <c-modal-body>
+        <form [formGroup]="moduleForm" cForm>
+            <!-- Basic Info -->
+            <h6 class="text-muted mb-3">Información Básica</h6>
+            <c-row class="mb-3">
+                <c-col md="4">
+                    <label cLabel for="mod_code">Código</label>
+                    <input cFormControl id="mod_code" formControlName="code" placeholder="ej. users, devices" />
+                    <div cFormText>Solo minúsculas y guiones bajos</div>
+                </c-col>
+                <c-col md="4">
+                    <label cLabel for="mod_name">Nombre</label>
+                    <input cFormControl id="mod_name" formControlName="name" placeholder="ej. Usuarios" />
+                </c-col>
+                <c-col md="4">
+                    <label cLabel for="mod_url">URL de Ruta</label>
+                    <input cFormControl id="mod_url" formControlName="url" placeholder="ej. /users" />
+                    <div cFormText>Dejar vacío para títulos</div>
+                </c-col>
+            </c-row>
+
+            <div class="mb-3">
+                <label cLabel for="mod_description">Descripción</label>
+                <textarea cFormControl id="mod_description" formControlName="description" rows="2"></textarea>
+            </div>
+
+            <!-- Navigation Config -->
+            <h6 class="text-muted mb-3 mt-4">Configuración de Navegación</h6>
+            <c-row class="mb-3">
+                <c-col md="4">
+                    <label cLabel for="mod_icon">Icono (CoreUI)</label>
+                    <input cFormControl id="mod_icon" formControlName="icon" placeholder="ej. cil-people" />
+                </c-col>
+                <c-col md="4">
+                    <label cLabel for="mod_order">Orden</label>
+                    <input cFormControl type="number" id="mod_order" formControlName="order" min="1" />
+                </c-col>
+                <c-col md="4">
+                    <label cLabel for="mod_parent">Módulo Padre</label>
+                    <select cSelect id="mod_parent" formControlName="parent_id">
+                        <option [ngValue]="null">-- Ninguno (raíz) --</option>
+                        @for (mod of modules(); track mod.id) {
+                            @if (!mod.isTitle && mod.id !== editingModule()?.id) {
+                                <option [ngValue]="mod.id">{{ mod.name }}</option>
+                            }
+                        }
+                    </select>
+                </c-col>
+            </c-row>
+
+            <!-- Badge Config -->
+            <h6 class="text-muted mb-3 mt-4">Badge (Opcional)</h6>
+            <c-row class="mb-3">
+                <c-col md="6">
+                    <label cLabel for="mod_badgeText">Texto del Badge</label>
+                    <input cFormControl id="mod_badgeText" formControlName="badgeText" placeholder="ej. LIVE, NEW" />
+                </c-col>
+                <c-col md="6">
+                    <label cLabel for="mod_badgeColor">Color del Badge</label>
+                    <select cSelect id="mod_badgeColor" formControlName="badgeColor">
+                        <option value="">-- Sin badge --</option>
+                        <option value="success">Verde (success)</option>
+                        <option value="danger">Rojo (danger)</option>
+                        <option value="warning">Amarillo (warning)</option>
+                        <option value="info">Azul (info)</option>
+                        <option value="primary">Primario (primary)</option>
+                        <option value="secondary">Secundario (secondary)</option>
+                    </select>
+                </c-col>
+            </c-row>
+
+            <!-- Options -->
+            <h6 class="text-muted mb-3 mt-4">Opciones</h6>
+            <c-row>
+                <c-col md="4">
+                    <c-form-check>
+                        <input cFormCheckInput type="checkbox" id="mod_isTitle" formControlName="isTitle" />
+                        <label cFormCheckLabel for="mod_isTitle">Es Título/Separador</label>
+                    </c-form-check>
+                    <div class="form-text small">Si es solo un encabezado de sección</div>
+                </c-col>
+                <c-col md="4">
+                    <c-form-check>
+                        <input cFormCheckInput type="checkbox" id="mod_showInMenu" formControlName="showInMenu" />
+                        <label cFormCheckLabel for="mod_showInMenu">Mostrar en Menú</label>
+                    </c-form-check>
+                    <div class="form-text small">Si aparece en la navegación</div>
+                </c-col>
+                <c-col md="4">
+                    <c-form-check>
+                        <input cFormCheckInput type="checkbox" id="mod_state" formControlName="state" />
+                        <label cFormCheckLabel for="mod_state">Activo</label>
+                    </c-form-check>
+                    <div class="form-text small">Habilitar módulo</div>
+                </c-col>
+            </c-row>
+        </form>
+    </c-modal-body>
+    <c-modal-footer>
+        <button cButton color="secondary" (click)="closeModuleModal()">Cancelar</button>
+        <button cButton color="primary" (click)="saveModule()" [disabled]="moduleForm.invalid">
+            Guardar
+        </button>
+    </c-modal-footer>
+</c-modal>
+
+<!-- ============================================================================ -->
+<!-- ACTION MODAL -->
+<!-- ============================================================================ -->
+<c-modal [visible]="showActionModal()" (visibleChange)="showActionModal.set($event)" size="lg">
+    <c-modal-header>
+        <h5 cModalTitle>{{ editingAction() ? 'Editar' : 'Crear' }} Acción</h5>
+    </c-modal-header>
+    <c-modal-body>
+        <form [formGroup]="actionForm" cForm>
+            <c-row class="mb-3">
+                <c-col md="6">
+                    <label cLabel for="act_code">Código</label>
+                    <input cFormControl id="act_code" formControlName="code" placeholder="ej. view, create, delete" />
+                    <div cFormText>Solo minúsculas y guiones bajos (a-z, _)</div>
+                </c-col>
+                <c-col md="6">
+                    <label cLabel for="act_name">Nombre</label>
+                    <input cFormControl id="act_name" formControlName="name" placeholder="ej. Ver, Crear, Eliminar" />
+                </c-col>
+            </c-row>
+
+            <div class="mb-3">
+                <label cLabel for="act_description">Descripción</label>
+                <textarea cFormControl id="act_description" formControlName="description" rows="2"
+                    placeholder="ej. Permite visualizar registros"></textarea>
+            </div>
+
+            <div class="mb-3">
+                <c-form-check>
+                    <input cFormCheckInput type="checkbox" id="act_state" formControlName="state" />
+                    <label cFormCheckLabel for="act_state">Activo</label>
+                </c-form-check>
+            </div>
+        </form>
+    </c-modal-body>
+    <c-modal-footer>
+        <button cButton color="secondary" (click)="closeActionModal()">Cancelar</button>
+        <button cButton color="primary" (click)="saveAction()" [disabled]="actionForm.invalid">
+            Guardar
+        </button>
+    </c-modal-footer>
+</c-modal>

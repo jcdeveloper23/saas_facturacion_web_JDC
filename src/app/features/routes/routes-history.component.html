@@ -1,0 +1,21 @@
+<c-row>
+  <c-col>
+    <c-card class="mb-4">
+      <c-card-header>
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <strong>Historial de Rutas</strong>
+            <p class="text-muted mb-0 small">Consulta y reproduce rutas históricas</p>
+          </div>
+          <button cButton color="secondary" *hasPermission="'routes.export'">
+            <svg cIcon name="cilCloudDownload" size="sm"></svg>
+            Exportar
+          </button>
+        </div>
+      </c-card-header>
+      <c-card-body>
+        <p class="text-muted">Módulo de historial de rutas en desarrollo...</p>
+      </c-card-body>
+    </c-card>
+  </c-col>
+</c-row>

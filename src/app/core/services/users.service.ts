@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { ApiBaseService } from './api-base.service';
-import { User, UserFilters, UserRole } from '../interfaces';
+import { User, UserFilters, UserRoleNumeric } from '../interfaces';
 
 /**
  * Users Service - Manages system users
@@ -80,10 +80,17 @@ export class UsersService extends ApiBaseService<User> {
   }
 
   /**
-   * Update user role
+   * Update user role (legacy numeric)
    */
-  updateRole(userId: number, role: UserRole): Observable<User> {
+  updateRole(userId: number, role: UserRoleNumeric): Observable<User> {
     return this.patch(userId, { userCurrentRole: role });
+  }
+
+  /**
+   * Assign role by ID (new role system)
+   */
+  assignRole(userId: number, roleId: number): Observable<User> {
+    return this.patch(userId, { roleId });
   }
 
   /**
@@ -100,7 +107,7 @@ export class UsersService extends ApiBaseService<User> {
   /**
    * Search users
    */
-  search(term: string, role?: UserRole, limit: number = 20): Observable<User[]> {
+  search(term: string, role?: UserRoleNumeric, limit: number = 20): Observable<User[]> {
     const query: Record<string, unknown> = {
       state: true,
       $limit: limit,

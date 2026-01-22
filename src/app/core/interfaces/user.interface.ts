@@ -1,3 +1,5 @@
+import { Role } from './permission.interface';
+
 /**
  * User Interface - Represents a system user
  */
@@ -13,7 +15,8 @@ export interface User {
   userCity?: number;
   userImageProfile?: string;
   userUuid?: string;
-  userCurrentRole: UserRole;
+  userCurrentRole?: UserRoleNumeric; // Legacy numeric role
+  roleId?: number; // New role system - foreign key to Role table
   userSettingId?: number;
 
   // Notification preferences
@@ -29,15 +32,20 @@ export interface User {
   userLastLocationLongitude?: number;
   userLastLocationDate?: string;
 
+  role?: Role; // Nested role object from backend
+  permissions?: string[]; // Effective permissions for this user
+
   state: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
 
-export type UserRole = 0 | 1 | 9; // 0: Admin, 1: User, 9: Driver
+// Legacy numeric role type (for compatibility with old backend)
+export type UserRoleNumeric = 0 | 1 | 9; // 0: Admin, 1: User, 9: Driver
 
 export interface UserFilters {
-  role?: UserRole;
+  role?: UserRoleNumeric;
+  roleId?: number;
   organizationId?: number;
   state?: boolean;
   search?: string;
