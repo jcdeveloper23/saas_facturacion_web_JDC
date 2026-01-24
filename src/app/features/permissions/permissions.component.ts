@@ -169,7 +169,7 @@ export class PermissionsComponent implements OnInit {
         this.isLoading.set(true);
 
         forkJoin({
-            modules: this.modulesService.getModules(false),
+            modules: this.modulesService.getModulesFlat(false),
             actions: this.actionsService.getActions(false),
             permissions: this.permissionsService.getPermissionsCatalog()
         }).subscribe({

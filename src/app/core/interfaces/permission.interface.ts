@@ -20,20 +20,23 @@ export interface Module {
   // Navigation properties
   url?: string;           // Route URL, e.g., '/users', '/devices'
   icon: string;           // CoreUI icon name
-  // Menu structure
-  isTitle: boolean;       // True for section headers
+  // Menu structure - Backend returns 0/1 as numbers
+  isTitle: boolean | number;       // True/1 for section headers
   parent_id?: number | null; // Parent module ID for nested menus
   children?: Module[];    // Child modules (populated by backend)
   // Badge (optional)
   badgeText?: string;     // e.g., 'LIVE', 'NEW'
   badgeColor?: string;    // e.g., 'success', 'danger'
-  // Visibility
-  showInMenu: boolean;    // Whether to show in navigation menu
-  // Order and state
+  // Visibility - Backend returns 0/1 as numbers
+  showInMenu: boolean | number;    // Whether to show in navigation menu
+  // Order and state - Backend returns 0/1 as numbers
   order: number;
-  state: boolean;
+  state: boolean | number;
   createdAt?: string;
   updatedAt?: string;
+  // UI hierarchy display (added by flattenModules)
+  _level?: number;        // 0 = root, 1 = child, 2 = grandchild, etc.
+  _parentName?: string | null;  // Parent module name for display
 }
 
 /**

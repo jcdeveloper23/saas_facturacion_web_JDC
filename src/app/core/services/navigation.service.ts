@@ -1,61 +1,68 @@
-import { Injectable, inject, signal, computed } from '@angular/core';
+import { Injectable, signal, computed } from '@angular/core';
 import { INavData } from '@coreui/angular';
-import { ModulesService } from './modules.service';
-import { PermissionsService } from './permissions.service';
-import { Module } from '../interfaces/permission.interface';
+import { UserModule } from '../interfaces/user.interface';
 
 /**
  * Navigation Service
- * Converts modules from DB to INavData for CoreUI sidebar
- * Handles permission-based menu filtering
+ * Converts user modules (from login) to INavData for CoreUI sidebar
+ * Modules are loaded from user data after login, not from a separate API call
  */
 @Injectable({
   providedIn: 'root'
 })
 export class NavigationService {
-  private modulesService = inject(ModulesService);
-  private permissionsService = inject(PermissionsService);
+  // User modules from login response
+  private userModules = signal<UserModule[]>([]);
 
-  // Loaded modules from DB
-  private modulesLoaded = signal<Module[]>([]);
-  private isLoading = signal(false);
-
-  // Computed nav items
-  readonly navItems = computed(() => this.convertModulesToNavData(this.modulesLoaded()));
-  readonly filteredNavItems = computed(() => this.filterByPermissions(this.navItems()));
+  // Computed nav items (automatically updates when modules change)
+  readonly navItems = computed(() => this.convertModulesToNavData(this.userModules()));
 
   /**
-   * Load modules from backend and convert to navigation
+   * Set modules from user login response
+   * Called by AuthService after successful login
    */
-  loadNavigation(): void {
-    if (this.isLoading()) return;
+  setModulesFromUser(modules: UserModule[]): void {
+    // Filter only modules that should be shown in menu and sort by order
+    const menuModules = modules
+      .filter(m => m.showInMenu)
+      .sort((a, b) => a.order - b.order);
 
-    this.isLoading.set(true);
-    this.modulesService.getModules(true).subscribe({
-      next: (modules) => {
-        // Filter only modules that should be shown in menu
-        const menuModules = modules.filter(m => m.showInMenu);
-        this.modulesLoaded.set(menuModules);
-        this.isLoading.set(false);
-      },
-      error: (err) => {
-        console.error('Error loading navigation:', err);
-        this.isLoading.set(false);
-      }
-    });
+    console.log('Navigation modules loaded:', menuModules);
+    this.userModules.set(menuModules);
   }
 
   /**
-   * Convert Module[] to INavData[]
+   * Clear navigation (called on logout)
    */
-  private convertModulesToNavData(modules: Module[]): INavData[] {
+  clearNavigation(): void {
+    this.userModules.set([]);
+  }
+
+  /**
+   * Get current modules
+   */
+  getModules(): UserModule[] {
+    return this.userModules();
+  }
+
+  /**
+   * Check if navigation is loaded
+   */
+  isLoaded(): boolean {
+    return this.userModules().length > 0;
+  }
+
+  /**
+   * Convert UserModule[] to INavData[]
+   */
+  private convertModulesToNavData(modules: UserModule[]): INavData[] {
     return modules.map(module => this.moduleToNavItem(module));
   }
 
   /**
-   * Convert single Module to INavData
+   * Convert single UserModule to INavData
    */
-  private moduleToNavItem(module: Module): INavData {
+  private moduleToNavItem(module: UserModule): INavData {
     const navItem: INavData = {
       name: module.name
     };
@@ -63,10 +70,6 @@ export class NavigationService {
     // Title/separator
     if (module.isTitle) {
       navItem.title = true;
-      // Titles can also have permission requirement
-      if (module.code && module.code !== 'title') {
-        navItem.attributes = { permission: `${module.code}.view` };
-      }
       return navItem;
     }
 
@@ -88,61 +91,16 @@ export class NavigationService {
       };
     }
 
-    // Permission attribute (uses module.code + '.view' as default permission)
-    if (module.code) {
-      navItem.attributes = { permission: `${module.code}.view` };
-    }
-
     // Children (recursive)
     if (module.children && module.children.length > 0) {
-      const activeChildren = module.children.filter(c => c.state && c.showInMenu);
+      const activeChildren = module.children.filter(c => c.showInMenu);
       if (activeChildren.length > 0) {
-        navItem.children = activeChildren.map(child => this.moduleToNavItem(child));
+        navItem.children = activeChildren
+          .sort((a, b) => a.order - b.order)
+          .map(child => this.moduleToNavItem(child));
       }
     }
 
     return navItem;
-  }
-
-  /**
-   * Filter nav items by user permissions
-   */
-  private filterByPermissions(items: INavData[]): INavData[] {
-    return items.filter(item => {
-      // Check if item requires permission
-      const requiredPermission = item.attributes?.['permission'];
-      if (requiredPermission && !this.permissionsService.hasPermission(requiredPermission)) {
-        return false;
-      }
-
-      // Filter children recursively
-      if (item.children && item.children.length > 0) {
-        item.children = this.filterByPermissions(item.children);
-        // Hide parent if all children are hidden
-        if (item.children.length === 0 && !item.title) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-  }
-
-  /**
-   * Get nav items (loads if not loaded)
-   */
-  getNavItems(): INavData[] {
-    if (this.modulesLoaded().length === 0 && !this.isLoading()) {
-      this.loadNavigation();
-    }
-    return this.filteredNavItems();
-  }
-
-  /**
-   * Refresh navigation (e.g., after module changes)
-   */
-  refreshNavigation(): void {
-    this.modulesLoaded.set([]);
-    this.loadNavigation();
   }
 }

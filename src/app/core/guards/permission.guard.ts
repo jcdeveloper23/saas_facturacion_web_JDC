@@ -26,8 +26,11 @@ export const permissionGuard: CanActivateFn = (route, state) => {
   const permissionsService = inject(PermissionsService);
   const router = inject(Router);
 
+  console.log('[PermissionGuard] Checking access to:', state.url);
+
   // First check if authenticated
   if (!authService.isAuthenticated()) {
+    console.log('[PermissionGuard] Not authenticated, redirecting to login');
     router.navigate(['/login'], { queryParams: { returnUrl: state.url } });
     return false;
   }
@@ -38,20 +41,28 @@ export const permissionGuard: CanActivateFn = (route, state) => {
 
   // If no permissions required, allow access
   if (!requiredPermissions || requiredPermissions.length === 0) {
+    console.log('[PermissionGuard] No permissions required, access granted');
     return true;
   }
 
   // Check permissions
+  const userPermissions = permissionsService.permissions();
   const hasPermission = permissionMode === 'all'
     ? permissionsService.hasAllPermissions(requiredPermissions)
     : permissionsService.hasAnyPermission(requiredPermissions);
+
+  console.log('[PermissionGuard] Check:', {
+    required: requiredPermissions,
+    userHas: userPermissions.length,
+    hasPermission
+  });
 
   if (hasPermission) {
     return true;
   }
 
   // Redirect to unauthorized page or home
-  console.warn(`Access denied. Required: ${requiredPermissions.join(', ')}`);
+  console.warn(`[PermissionGuard] Access denied to ${state.url}. Required: ${requiredPermissions.join(', ')}. User has: ${userPermissions.join(', ') || 'none'}`);
   router.navigate(['/unauthorized']);
   return false;
 };

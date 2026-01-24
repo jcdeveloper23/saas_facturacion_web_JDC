@@ -13,19 +13,19 @@
             <c-nav variant="tabs">
                 <c-nav-item>
                     <a cNavLink [active]="activeTab() === 'permissions'" (click)="setActiveTab('permissions')">
-                        <svg cIcon name="cilLockLocked" class="me-2"></svg>
+                        <svg cIcon name="cil-lock-locked" class="me-2"></svg>
                         Permisos
                     </a>
                 </c-nav-item>
                 <c-nav-item>
                     <a cNavLink [active]="activeTab() === 'modules'" (click)="setActiveTab('modules')">
-                        <svg cIcon name="cilApps" class="me-2"></svg>
+                        <svg cIcon name="cil-apps" class="me-2"></svg>
                         Módulos
                     </a>
                 </c-nav-item>
                 <c-nav-item>
                     <a cNavLink [active]="activeTab() === 'actions'" (click)="setActiveTab('actions')">
-                        <svg cIcon name="cilBolt" class="me-2"></svg>
+                        <svg cIcon name="cil-bolt" class="me-2"></svg>
                         Acciones
                     </a>
                 </c-nav-item>
@@ -48,7 +48,7 @@
     <c-row class="mb-3">
         <c-col xs="12" class="d-flex justify-content-end">
             <button cButton color="primary" (click)="openPermissionModal()">
-                <svg cIcon name="cilPlus" class="me-2"></svg>
+                <svg cIcon name="cil-plus" class="me-2"></svg>
                 Crear Permiso
             </button>
         </c-col>
@@ -84,7 +84,8 @@
                                 <td class="fw-semibold">{{ perm.name }}</td>
                                 <td class="text-muted small">{{ perm.description || '-' }}</td>
                                 <td>
-                                    <c-badge color="secondary">{{ perm.action?.name || getActionName(perm.action_id) }}</c-badge>
+                                    <c-badge color="secondary">{{ perm.action?.name || getActionName(perm.action_id)
+                                        }}</c-badge>
                                 </td>
                                 <td>
                                     @if (perm.isSystem) {
@@ -96,12 +97,12 @@
                                 <td class="text-end">
                                     <button cButton color="ghost" size="sm" (click)="openPermissionModal(perm)"
                                         cTooltip="Editar">
-                                        <svg cIcon name="cilPencil" class="text-warning"></svg>
+                                        <svg cIcon name="cil-pencil" class="text-warning"></svg>
                                     </button>
                                     @if (!perm.isSystem) {
                                     <button cButton color="ghost" size="sm" (click)="deletePermission(perm)"
                                         cTooltip="Eliminar">
-                                        <svg cIcon name="cilTrash" class="text-danger"></svg>
+                                        <svg cIcon name="cil-trash" class="text-danger"></svg>
                                     </button>
                                     }
                                 </td>
@@ -127,7 +128,7 @@
     <c-row class="mb-3">
         <c-col xs="12" class="d-flex justify-content-end">
             <button cButton color="primary" (click)="openModuleModal()">
-                <svg cIcon name="cilPlus" class="me-2"></svg>
+                <svg cIcon name="cil-plus" class="me-2"></svg>
                 Crear Módulo
             </button>
         </c-col>
@@ -154,7 +155,8 @@
                         </thead>
                         <tbody>
                             @for (mod of modules(); track mod.id) {
-                            <tr [class.table-light]="mod.isTitle">
+                            <tr [class.table-light]="mod.isTitle"
+                                [class.table-secondary]="mod._level && mod._level > 0">
                                 <td>
                                     <span class="text-muted small">{{ mod.order }}</span>
                                 </td>
@@ -165,10 +167,20 @@
                                 </td>
                                 <td><code class="small">{{ mod.code }}</code></td>
                                 <td class="fw-semibold">
+                                    <!-- Hierarchy indentation -->
+                                    @if (mod._level && mod._level > 0) {
+                                    <span class="text-muted me-1" [style.padding-left.px]="(mod._level - 1) * 20">
+                                        └─
+                                    </span>
+                                    }
                                     @if (mod.isTitle) {
                                     <em class="text-muted">{{ mod.name }}</em>
                                     } @else {
                                     {{ mod.name }}
+                                    }
+                                    <!-- Parent name indicator -->
+                                    @if (mod._parentName) {
+                                    <span class="text-muted small ms-2">(hijo de {{ mod._parentName }})</span>
                                     }
                                 </td>
                                 <td>
@@ -194,9 +206,9 @@
                                 </td>
                                 <td class="text-center">
                                     @if (mod.showInMenu) {
-                                    <svg cIcon name="cilCheckAlt" class="text-success"></svg>
+                                    <svg cIcon name="cil-check" class="text-success"></svg>
                                     } @else {
-                                    <svg cIcon name="cilX" class="text-muted"></svg>
+                                    <svg cIcon name="cil-x" class="text-muted"></svg>
                                     }
                                 </td>
                                 <td>
@@ -209,11 +221,11 @@
                                 <td class="text-end">
                                     <button cButton color="ghost" size="sm" (click)="openModuleModal(mod)"
                                         cTooltip="Editar">
-                                        <svg cIcon name="cilPencil" class="text-warning"></svg>
+                                        <svg cIcon name="cil-pencil" class="text-warning"></svg>
                                     </button>
                                     <button cButton color="ghost" size="sm" (click)="deleteModule(mod)"
                                         cTooltip="Eliminar">
-                                        <svg cIcon name="cilTrash" class="text-danger"></svg>
+                                        <svg cIcon name="cil-trash" class="text-danger"></svg>
                                     </button>
                                 </td>
                             </tr>
@@ -239,7 +251,7 @@
     <c-row class="mb-3">
         <c-col xs="12" class="d-flex justify-content-end">
             <button cButton color="primary" (click)="openActionModal()">
-                <svg cIcon name="cilPlus" class="me-2"></svg>
+                <svg cIcon name="cil-plus" class="me-2"></svg>
                 Crear Acción
             </button>
         </c-col>
@@ -275,11 +287,11 @@
                                 <td class="text-end">
                                     <button cButton color="ghost" size="sm" (click)="openActionModal(action)"
                                         cTooltip="Editar">
-                                        <svg cIcon name="cilPencil" class="text-warning"></svg>
+                                        <svg cIcon name="cil-pencil" class="text-warning"></svg>
                                     </button>
                                     <button cButton color="ghost" size="sm" (click)="deleteAction(action)"
                                         cTooltip="Eliminar">
-                                        <svg cIcon name="cilTrash" class="text-danger"></svg>
+                                        <svg cIcon name="cil-trash" class="text-danger"></svg>
                                     </button>
                                 </td>
                             </tr>
@@ -343,7 +355,7 @@
 
             @if (editingPermission() && editingPermission()?.isSystem) {
             <c-alert color="warning">
-                <svg cIcon name="cilWarning" class="me-2"></svg>
+                <svg cIcon name="cil-warning" class="me-2"></svg>
                 Este es un permiso del sistema. Solo puedes editar el nombre y la descripción.
             </c-alert>
             }
@@ -406,9 +418,9 @@
                     <select cSelect id="mod_parent" formControlName="parent_id">
                         <option [ngValue]="null">-- Ninguno (raíz) --</option>
                         @for (mod of modules(); track mod.id) {
-                            @if (!mod.isTitle && mod.id !== editingModule()?.id) {
-                                <option [ngValue]="mod.id">{{ mod.name }}</option>
-                            }
+                        @if (!mod.isTitle && mod.id !== editingModule()?.id) {
+                        <option [ngValue]="mod.id">{{ mod.name }}</option>
+                        }
                         }
                     </select>
                 </c-col>

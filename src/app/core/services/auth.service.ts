@@ -3,10 +3,11 @@ import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, tap, map, catchError, throwError, switchMap, of } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { User, AuthUser } from '../interfaces';
+import { User, AuthUser, UserModule } from '../interfaces';
 import { Role, PermissionString, SYSTEM_ROLES } from '../interfaces/permission.interface';
 import { PermissionsService } from './permissions.service';
 import { SecureStorageService } from './secure-storage.service';
+import { NavigationService } from './navigation.service';
 
 interface LoginPayload {
   strategy: 'local';
@@ -19,6 +20,7 @@ interface LoginResponse {
   user: User & {
     role?: Role;
     permissions?: PermissionString[];
+    modules?: UserModule[];
   };
 }
 
@@ -34,6 +36,7 @@ export class AuthService {
   private router = inject(Router);
   private permissionsService = inject(PermissionsService);
   private secureStorage = inject(SecureStorageService);
+  private navigationService = inject(NavigationService);
 
   private readonly apiUrl = `${environment.apiGpsUrl}/authentication`;
 
@@ -65,16 +68,27 @@ export class AuthService {
         }
         this.setSession(response);
       }),
-      // Load permissions after login
+      // Load permissions and modules after login
       switchMap(response => {
-        // If backend returns permissions directly, use them
+        // Load modules into navigation service
+        if (response.user.modules) {
+          this.navigationService.setModulesFromUser(response.user.modules);
+        }
+
+        // If backend returns permissions directly, use them and persist to storage
         if (response.user.permissions && response.user.role) {
           this.permissionsService.setPermissions(
             response.user.permissions,
             response.user.role
           );
+          // Persist permissions to storage for session recovery on refresh
+          this.secureStorage.setItem('userPermissions', {
+            permissions: response.user.permissions,
+            role: response.user.role
+          });
           return of(response);
         }
+
         // Otherwise, load permissions from API
         return this.loadPermissionsForUser(response.user.id!).pipe(
           map(() => response)
@@ -92,7 +106,7 @@ export class AuthService {
   }
 
   /**
-   * Logout - clears session and permissions
+   * Logout - clears session, permissions and navigation
    */
   logout(): void {
     this.secureStorage.removeItem('accessToken');
@@ -101,6 +115,7 @@ export class AuthService {
     this.currentUser.set(null);
     this.token.set(null);
     this.permissionsService.clearPermissions();
+    this.navigationService.clearNavigation();
     this.router.navigate(['/login']);
   }
 
@@ -154,13 +169,23 @@ export class AuthService {
     const user = this.currentUser();
     const token = this.token();
 
+    console.log('[AuthService] Initializing session...', { hasUser: !!user, hasToken: !!token });
+
     if (!user || !token) {
+      console.log('[AuthService] No user or token found in storage');
       return of(false);
+    }
+
+    // Load modules from stored user data
+    if (user.modules) {
+      console.log('[AuthService] Loading modules from stored user:', user.modules.length);
+      this.navigationService.setModulesFromUser(user.modules);
     }
 
     // Load permissions from storage or API
     const storedPermissions = this.loadPermissionsFromStorage();
     if (storedPermissions) {
+      console.log('[AuthService] Restoring permissions from storage:', storedPermissions.role?.code);
       this.permissionsService.setPermissions(
         storedPermissions.permissions,
         storedPermissions.role
@@ -169,9 +194,13 @@ export class AuthService {
     }
 
     // Load from API if not in storage
+    console.log('[AuthService] No stored permissions, loading from API...');
     return this.loadPermissionsForUser(user.id!).pipe(
       map(() => true),
-      catchError(() => of(false))
+      catchError((error) => {
+        console.error('[AuthService] Failed to load permissions from API:', error);
+        return of(false);
+      })
     );
   }
 

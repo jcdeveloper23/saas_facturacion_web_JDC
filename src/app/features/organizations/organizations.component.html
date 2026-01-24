@@ -1,21 +1,340 @@
-<c-row>
-  <c-col>
-    <c-card class="mb-4">
-      <c-card-header>
-        <div class="d-flex justify-content-between align-items-center">
-          <div>
-            <strong>Gestión de Organizaciones</strong>
-            <p class="text-muted mb-0 small">Administra las empresas del sistema</p>
-          </div>
-          <button cButton color="primary" *hasPermission="'organizations.create'">
-            <svg cIcon name="cilPlus" size="sm"></svg>
-            Nueva Organización
-          </button>
+<!-- Summary Cards -->
+<c-row class="mb-4">
+  <c-col sm="6" lg="3">
+    <c-card class="text-white bg-primary">
+      <c-card-body class="pb-0 d-flex justify-content-between align-items-start">
+        <div>
+          <div class="fs-4 fw-semibold">{{ summary().total }}</div>
+          <div>Total Organizaciones</div>
         </div>
-      </c-card-header>
-      <c-card-body>
-        <p class="text-muted">Módulo de organizaciones en desarrollo...</p>
+        <div class="bg-primary-dark p-3 rounded">
+          <svg cIcon name="cil-building" size="xl"></svg>
+        </div>
+      </c-card-body>
+    </c-card>
+  </c-col>
+
+  <c-col sm="6" lg="3">
+    <c-card class="text-white bg-success">
+      <c-card-body class="pb-0 d-flex justify-content-between align-items-start">
+        <div>
+          <div class="fs-4 fw-semibold">{{ summary().active }}</div>
+          <div>Activas</div>
+        </div>
+        <div class="bg-success-dark p-3 rounded">
+          <svg cIcon name="cil-check-circle" size="xl"></svg>
+        </div>
+      </c-card-body>
+    </c-card>
+  </c-col>
+
+  <c-col sm="6" lg="3">
+    <c-card class="text-white bg-info">
+      <c-card-body class="pb-0 d-flex justify-content-between align-items-start">
+        <div>
+          <div class="fs-4 fw-semibold">{{ summary().trial }}</div>
+          <div>Plan Gratuito</div>
+        </div>
+        <div class="bg-info-dark p-3 rounded">
+          <svg cIcon name="cil-gift" size="xl"></svg>
+        </div>
+      </c-card-body>
+    </c-card>
+  </c-col>
+
+  <c-col sm="6" lg="3">
+    <c-card class="text-white bg-danger">
+      <c-card-body class="pb-0 d-flex justify-content-between align-items-start">
+        <div>
+          <div class="fs-4 fw-semibold">{{ summary().suspended }}</div>
+          <div>Suspendidas</div>
+        </div>
+        <div class="bg-danger-dark p-3 rounded">
+          <svg cIcon name="cil-ban" size="xl"></svg>
+        </div>
       </c-card-body>
     </c-card>
   </c-col>
 </c-row>
+
+<!-- Main Card -->
+<c-row>
+  <c-col>
+    <c-card class="mb-4">
+      <!-- Header -->
+      <c-card-header>
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <div>
+            <strong>Gestión de Organizaciones</strong>
+            <p class="text-body-secondary mb-0 small">Administra las empresas y sus planes</p>
+          </div>
+          <button cButton color="primary" *hasPermission="'organizations.create'" (click)="openCreateModal()">
+            <svg cIcon name="cil-plus" size="sm" class="me-1"></svg>
+            Nueva Organización
+          </button>
+        </div>
+      </c-card-header>
+
+      <!-- Filters -->
+      <c-card-body class="border-bottom">
+        <c-row class="g-3 align-items-end">
+          <!-- Search -->
+          <c-col md="4">
+            <label cLabel for="search">Buscar</label>
+            <input cFormControl id="search" type="text" placeholder="Nombre, email o RIF..." [value]="searchTerm()"
+              (input)="onSearchChange($event)" />
+          </c-col>
+
+          <!-- Plan Filter -->
+          <c-col md="3">
+            <label cLabel for="planFilter">Plan</label>
+            <select cSelect id="planFilter" [ngModel]="selectedPlan()" (ngModelChange)="selectedPlan.set($event)">
+              @for (option of planOptions; track option.value) {
+              <option [value]="option.value">{{ option.label }}</option>
+              }
+            </select>
+          </c-col>
+
+          <!-- Status Filter -->
+          <c-col md="3">
+            <label cLabel for="statusFilter">Estado</label>
+            <select cSelect id="statusFilter" [ngModel]="selectedStatus()" (ngModelChange)="selectedStatus.set($event)">
+              @for (option of statusOptions; track option.value) {
+              <option [value]="option.value">{{ option.label }}</option>
+              }
+            </select>
+          </c-col>
+
+          <!-- Filter Buttons -->
+          <c-col md="2">
+            <div class="d-flex gap-2">
+              <button cButton color="primary" size="sm" (click)="applyFilters()">
+                <svg cIcon name="cil-search" size="sm"></svg>
+              </button>
+              <button cButton color="secondary" size="sm" variant="outline" (click)="clearFilters()">
+                <svg cIcon name="cil-x" size="sm"></svg>
+              </button>
+            </div>
+          </c-col>
+        </c-row>
+      </c-card-body>
+
+      <!-- Error Alert -->
+      @if (error()) {
+      <c-alert color="danger" class="m-3" [dismissible]="true" (visibleChange)="error.set(null)">
+        <svg cIcon name="cil-warning" size="lg" class="me-2"></svg>
+        {{ error() }}
+      </c-alert>
+      }
+
+      <!-- Loading -->
+      @if (isLoading()) {
+      <c-card-body class="text-center py-5">
+        <c-spinner color="primary"></c-spinner>
+        <p class="mt-2 text-body-secondary">Cargando organizaciones...</p>
+      </c-card-body>
+      }
+
+      <!-- Table -->
+      @if (!isLoading()) {
+      <div class="table-responsive">
+        <table cTable hover striped>
+          <thead>
+            <tr>
+              <th>Organización</th>
+              <th>Plan</th>
+              <th class="text-center">Dispositivos</th>
+              <th class="text-center">Usuarios</th>
+              <th>Estado</th>
+              <th>Creada</th>
+              <th class="text-end">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (org of filteredOrganizations(); track trackByOrgId($index, org)) {
+            <tr>
+              <!-- Organization Info -->
+              <td>
+                <div class="d-flex align-items-center">
+                  <div class="avatar avatar-md me-3 bg-light rounded d-flex align-items-center justify-content-center">
+                    @if (org.logo) {
+                    <img [src]="org.logo" [alt]="org.name" class="avatar-img rounded" />
+                    } @else {
+                    <svg cIcon name="cil-building" size="lg" class="text-primary"></svg>
+                    }
+                  </div>
+                  <div>
+                    <div class="fw-semibold">
+                      {{ org.name }}
+                      @if (org.is_verified) {
+                      <svg cIcon name="cil-check-circle" size="sm" class="text-success ms-1"
+                        cTooltip="Verificada"></svg>
+                      }
+                    </div>
+                    <small class="text-body-secondary">{{ org.email }}</small>
+                  </div>
+                </div>
+              </td>
+
+              <!-- Plan -->
+              <td>
+                <c-badge [color]="getPlanBadgeColor(org.plan)">
+                  {{ getPlanLabel(org.plan) }}
+                </c-badge>
+                @if (org.plan_expires_at) {
+                <br />
+                <small class="text-body-secondary">
+                  Vence: {{ formatDate(org.plan_expires_at) }}
+                </small>
+                }
+              </td>
+
+              <!-- Devices Usage -->
+              <td class="text-center">
+                <div class="small text-body-secondary mb-1">
+                  {{ org.devices_count || 0 }} / {{ org.max_devices }}
+                </div>
+                <c-progress [value]="getUsagePercent(org, 'devices')" style="height: 4px">
+                  <c-progress-bar [color]="getUsageColor(getUsagePercent(org, 'devices'))">
+                  </c-progress-bar>
+                </c-progress>
+              </td>
+
+              <!-- Users Usage -->
+              <td class="text-center">
+                <div class="small text-body-secondary mb-1">
+                  {{ org.users_count || 0 }} / {{ org.max_users }}
+                </div>
+                <c-progress [value]="getUsagePercent(org, 'users')" style="height: 4px">
+                  <c-progress-bar [color]="getUsageColor(getUsagePercent(org, 'users'))">
+                  </c-progress-bar>
+                </c-progress>
+              </td>
+
+              <!-- Status -->
+              <td>
+                @if (org.is_active) {
+                <c-badge color="success">Activa</c-badge>
+                } @else {
+                <c-badge color="danger">Inactiva</c-badge>
+                }
+              </td>
+
+              <!-- Created Date -->
+              <td>
+                <small>{{ formatDate(org.created_at) }}</small>
+              </td>
+
+              <!-- Actions -->
+              <td class="text-end">
+                <div class="btn-group" role="group">
+                  <button cButton color="info" size="sm" variant="ghost" cTooltip="Ver detalles"
+                    (click)="openDetailsModal(org)">
+                    <svg cIcon name="cil-magnifying-glass" size="sm"></svg>
+                  </button>
+
+                  <button cButton color="primary" size="sm" variant="ghost" cTooltip="Editar"
+                    *hasPermission="'organizations.edit'" (click)="openEditModal(org)">
+                    <svg cIcon name="cil-pencil" size="sm"></svg>
+                  </button>
+
+                  @if (!org.is_verified) {
+                  <button cButton color="success" size="sm" variant="ghost" cTooltip="Verificar"
+                    *hasPermission="'organizations.manage'" (click)="verifyOrganization(org)">
+                    <svg cIcon name="cil-check" size="sm"></svg>
+                  </button>
+                  }
+
+                  <button cButton [color]="org.is_active ? 'warning' : 'success'" size="sm" variant="ghost"
+                    [cTooltip]="org.is_active ? 'Suspender' : 'Activar'" *hasPermission="'organizations.manage'"
+                    (click)="toggleStatus(org)">
+                    <svg cIcon [name]="org.is_active ? 'cil-ban' : 'cil-check-circle'" size="sm"></svg>
+                  </button>
+
+                  <button cButton color="danger" size="sm" variant="ghost" cTooltip="Eliminar"
+                    *hasPermission="'organizations.delete'" (click)="deleteOrganization(org)">
+                    <svg cIcon name="cil-trash" size="sm"></svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            } @empty {
+            <tr>
+              <td colspan="7" class="text-center py-5">
+                <svg cIcon name="cil-folder-open" size="3xl" class="text-body-secondary mb-3"></svg>
+                <p class="text-body-secondary mb-0">No se encontraron organizaciones</p>
+                <button cButton color="primary" size="sm" class="mt-3" (click)="openCreateModal()">
+                  <svg cIcon name="cil-plus" size="sm" class="me-1"></svg>
+                  Crear primera organización
+                </button>
+              </td>
+            </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      @if (totalPages() > 1) {
+      <c-card-footer class="d-flex justify-content-between align-items-center">
+        <small class="text-body-secondary">
+          Mostrando {{ (currentPage() - 1) * pageSize() + 1 }} -
+          {{ Math.min(currentPage() * pageSize(), totalItems()) }} de {{ totalItems() }}
+        </small>
+
+        <nav aria-label="Page navigation">
+          <ul class="pagination pagination-sm mb-0">
+            <li class="page-item" [class.disabled]="currentPage() === 1">
+              <a class="page-link" (click)="onPageChange(currentPage() - 1)">
+                <svg cIcon name="cil-chevron-left" size="sm"></svg>
+              </a>
+            </li>
+
+            @for (page of paginationPages(); track page) {
+            <li class="page-item" [class.active]="page === currentPage()">
+              <a class="page-link" (click)="onPageChange(page)">{{ page }}</a>
+            </li>
+            }
+
+            <li class="page-item" [class.disabled]="currentPage() === totalPages()">
+              <a class="page-link" (click)="onPageChange(currentPage() + 1)">
+                <svg cIcon name="cil-chevron-right" size="sm"></svg>
+              </a>
+            </li>
+          </ul>
+        </nav>
+      </c-card-footer>
+      }
+      }
+    </c-card>
+  </c-col>
+</c-row>
+
+<!-- Form Modal -->
+<c-modal [visible]="showFormModal()" (visibleChange)="showFormModal.set($event)" size="xl" alignment="center"
+  [backdrop]="'static'">
+  <c-modal-header>
+    <h5 cModalTitle>
+      {{ isEditMode() ? 'Editar Organización' : 'Nueva Organización' }}
+    </h5>
+    <button cButtonClose (click)="closeFormModal()"></button>
+  </c-modal-header>
+  <c-modal-body>
+    <app-organization-form [organization]="selectedOrganization()" [isEditMode]="isEditMode()" (saved)="onFormSaved()"
+      (cancelled)="closeFormModal()"></app-organization-form>
+  </c-modal-body>
+</c-modal>
+
+<!-- Details Modal -->
+<c-modal [visible]="showDetailsModal()" (visibleChange)="showDetailsModal.set($event)" size="xl" alignment="center">
+  <c-modal-header>
+    <h5 cModalTitle>Detalles de Organización</h5>
+    <button cButtonClose (click)="closeDetailsModal()"></button>
+  </c-modal-header>
+  <c-modal-body>
+    @if (selectedOrganization()) {
+    <app-organization-details [organizationId]="selectedOrganization()!.id!"
+      (edit)="openEditModal(selectedOrganization()!); closeDetailsModal()"></app-organization-details>
+    }
+  </c-modal-body>
+</c-modal>

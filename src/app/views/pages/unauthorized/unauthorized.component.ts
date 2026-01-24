@@ -10,7 +10,7 @@ import { AuthService } from '../../../core/services/auth.service';
   standalone: true,
   imports: [
     CommonModule,
-    RouterLink,
+    // RouterLink,
     ButtonModule,
     GridModule,
     CardModule,
@@ -23,7 +23,7 @@ import { AuthService } from '../../../core/services/auth.service';
           <c-card class="text-center p-5">
             <div class="clearfix">
               <div class="display-1 text-danger mb-4">
-                <svg cIcon name="cilLockLocked" size="4xl"></svg>
+                <svg cIcon name="cil-lock-locked" size="4xl"></svg>
               </div>
               <h1 class="h4 mb-3">Acceso No Autorizado</h1>
               <p class="text-muted">
@@ -32,11 +32,11 @@ import { AuthService } from '../../../core/services/auth.service';
               </p>
               <div class="d-flex gap-2 justify-content-center mt-4">
                 <button cButton color="primary" (click)="goBack()">
-                  <svg cIcon name="cilArrowLeft" size="sm"></svg>
+                  <svg cIcon name="cil-arrow-left" size="sm"></svg>
                   Volver
                 </button>
                 <button cButton color="danger" variant="outline" (click)="logout()">
-                  <svg cIcon name="cilAccountLogout" size="sm"></svg>
+                  <svg cIcon name="cil-account-logout" size="sm"></svg>
                   Cerrar Sesión
                 </button>
               </div>

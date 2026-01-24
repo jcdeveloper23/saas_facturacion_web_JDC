@@ -1,0 +1,489 @@
+@if (isLoading()) {
+<div class="text-center py-5">
+  <c-spinner color="primary"></c-spinner>
+  <p class="mt-2 text-body-secondary">Cargando detalles...</p>
+</div>
+} @else if (error()) {
+<c-alert color="danger">
+  <svg cIcon name="cil-warning" size="lg" class="me-2"></svg>
+  {{ error() }}
+</c-alert>
+} @else if (organization()) {
+<!-- Header -->
+<div class="d-flex align-items-center mb-4 pb-3 border-bottom">
+  <div class="avatar avatar-xl me-4 bg-light rounded d-flex align-items-center justify-content-center">
+    @if (organization()!.logo) {
+    <img [src]="organization()!.logo" [alt]="organization()!.name" class="avatar-img rounded" />
+    } @else {
+    <svg cIcon name="cil-building" size="3xl" class="text-primary"></svg>
+    }
+  </div>
+  <div class="flex-grow-1">
+    <h4 class="mb-1">
+      {{ organization()!.name }}
+      @if (organization()!.is_verified) {
+      <svg cIcon name="cil-check-circle" size="sm" class="text-success ms-2" title="Verificada"></svg>
+      }
+    </h4>
+    <p class="text-body-secondary mb-2">{{ organization()!.email }}</p>
+    <div class="d-flex gap-2">
+      <c-badge [color]="getPlanBadgeColor(organization()!.plan)">
+        {{ getPlanLabel(organization()!.plan) }}
+      </c-badge>
+      @if (organization()!.is_active) {
+      <c-badge color="success">Activa</c-badge>
+      } @else {
+      <c-badge color="danger">Inactiva</c-badge>
+      }
+    </div>
+  </div>
+  <button cButton color="primary" variant="outline" *hasPermission="'organizations.edit'" (click)="onEdit()">
+    <svg cIcon name="cil-pencil" size="sm" class="me-1"></svg>
+    Editar
+  </button>
+</div>
+
+<!-- Stats Cards -->
+@if (stats()) {
+<c-row class="mb-4">
+  <c-col sm="6" lg="3">
+    <c-card class="h-100">
+      <c-card-body>
+        <div class="d-flex justify-content-between">
+          <div>
+            <div class="text-body-secondary small text-uppercase">Dispositivos</div>
+            <div class="fs-4 fw-semibold">
+              {{ organization()!.devices_count }} / {{ organization()!.max_devices }}
+            </div>
+          </div>
+          <svg cIcon name="cil-screen-smartphone" size="xl" class="text-primary"></svg>
+        </div>
+        <c-progress class="mt-2" [value]="stats()!.devices_usage_percent" style="height: 4px">
+          <c-progress-bar [color]="getUsageColor(stats()!.devices_usage_percent)"></c-progress-bar>
+        </c-progress>
+        <small class="text-body-secondary">{{ stats()!.devices_usage_percent }}% utilizado</small>
+      </c-card-body>
+    </c-card>
+  </c-col>
+
+  <c-col sm="6" lg="3">
+    <c-card class="h-100">
+      <c-card-body>
+        <div class="d-flex justify-content-between">
+          <div>
+            <div class="text-body-secondary small text-uppercase">Usuarios</div>
+            <div class="fs-4 fw-semibold">
+              {{ organization()!.users_count }} / {{ organization()!.max_users }}
+            </div>
+          </div>
+          <svg cIcon name="cil-people" size="xl" class="text-success"></svg>
+        </div>
+        <c-progress class="mt-2" [value]="stats()!.users_usage_percent" style="height: 4px">
+          <c-progress-bar [color]="getUsageColor(stats()!.users_usage_percent)"></c-progress-bar>
+        </c-progress>
+        <small class="text-body-secondary">{{ stats()!.users_usage_percent }}% utilizado</small>
+      </c-card-body>
+    </c-card>
+  </c-col>
+
+  <c-col sm="6" lg="3">
+    <c-card class="h-100">
+      <c-card-body>
+        <div class="d-flex justify-content-between">
+          <div>
+            <div class="text-body-secondary small text-uppercase">Llamadas API</div>
+            <div class="fs-4 fw-semibold">
+              {{ stats()!.api_calls_this_month | number }}
+            </div>
+          </div>
+          <svg cIcon name="cil-code" size="xl" class="text-info"></svg>
+        </div>
+        <c-progress class="mt-2" [value]="stats()!.api_usage_percent" style="height: 4px">
+          <c-progress-bar [color]="getUsageColor(stats()!.api_usage_percent)"></c-progress-bar>
+        </c-progress>
+        <small class="text-body-secondary">{{ stats()!.api_usage_percent }}% del límite mensual</small>
+      </c-card-body>
+    </c-card>
+  </c-col>
+
+  <c-col sm="6" lg="3">
+    <c-card class="h-100">
+      <c-card-body>
+        <div class="d-flex justify-content-between">
+          <div>
+            <div class="text-body-secondary small text-uppercase">Salud</div>
+            <div class="fs-4 fw-semibold">{{ stats()!.health_score }}%</div>
+          </div>
+          <svg cIcon name="cil-healing" size="xl" class="text-warning"></svg>
+        </div>
+        <c-progress class="mt-2" [value]="stats()!.health_score" style="height: 4px">
+          <c-progress-bar [color]="getUsageColor(100 - stats()!.health_score)"></c-progress-bar>
+        </c-progress>
+        <small class="text-body-secondary">Índice de actividad</small>
+      </c-card-body>
+    </c-card>
+  </c-col>
+</c-row>
+}
+
+<!-- Tabs -->
+<c-nav variant="tabs" class="mb-4">
+  <c-nav-item>
+    <a cNavLink [active]="activeTab() === 'overview'" (click)="setTab('overview')">
+      Información General
+    </a>
+  </c-nav-item>
+  <c-nav-item>
+    <a cNavLink [active]="activeTab() === 'contact'" (click)="setTab('contact')">
+      Contacto
+    </a>
+  </c-nav-item>
+  <c-nav-item>
+    <a cNavLink [active]="activeTab() === 'config'" (click)="setTab('config')">
+      Configuración
+    </a>
+  </c-nav-item>
+  <c-nav-item>
+    <a cNavLink [active]="activeTab() === 'api'" (click)="setTab('api')">
+      API
+    </a>
+  </c-nav-item>
+  <c-nav-item>
+    <a cNavLink [active]="activeTab() === 'users'" (click)="setTab('users')">
+      Usuarios
+    </a>
+  </c-nav-item>
+</c-nav>
+
+<!-- Tab Content -->
+@if (activeTab() === 'overview') {
+<c-row>
+  <c-col md="6">
+    <ul cListGroup flush>
+      <li cListGroupItem class="d-flex justify-content-between">
+        <span class="text-body-secondary">Nombre Corto</span>
+        <span>{{ organization()!.short_name || '-' }}</span>
+      </li>
+      <li cListGroupItem class="d-flex justify-content-between">
+        <span class="text-body-secondary">RIF / NIT</span>
+        <span>{{ organization()!.tax_document || '-' }}</span>
+      </li>
+      <li cListGroupItem class="d-flex justify-content-between">
+        <span class="text-body-secondary">Teléfono</span>
+        <span>{{ organization()!.phone || '-' }}</span>
+      </li>
+      <li cListGroupItem class="d-flex justify-content-between">
+        <span class="text-body-secondary">Sitio Web</span>
+        @if (organization()!.website) {
+        <a [href]="organization()!.website" target="_blank">{{ organization()!.website }}</a>
+        } @else {
+        <span>-</span>
+        }
+      </li>
+    </ul>
+  </c-col>
+  <c-col md="6">
+    <ul cListGroup flush>
+      <li cListGroupItem class="d-flex justify-content-between">
+        <span class="text-body-secondary">País</span>
+        <span>{{ organization()!.country || '-' }}</span>
+      </li>
+      <li cListGroupItem class="d-flex justify-content-between">
+        <span class="text-body-secondary">Estado/Provincia</span>
+        <span>{{ organization()!.province || '-' }}</span>
+      </li>
+      <li cListGroupItem class="d-flex justify-content-between">
+        <span class="text-body-secondary">Dirección</span>
+        <span class="text-end" style="max-width: 60%">{{ organization()!.address || '-' }}</span>
+      </li>
+      <li cListGroupItem class="d-flex justify-content-between">
+        <span class="text-body-secondary">Creada</span>
+        <span>{{ formatDate(organization()!.created_at) }}</span>
+      </li>
+    </ul>
+  </c-col>
+</c-row>
+}
+
+@if (activeTab() === 'contact') {
+<c-row>
+  <c-col md="6">
+    <h6 class="text-body-secondary mb-3">Contacto Principal</h6>
+    <ul cListGroup flush>
+      <li cListGroupItem class="d-flex justify-content-between">
+        <span class="text-body-secondary">Nombre</span>
+        <span>{{ organization()!.contact_name || '-' }}</span>
+      </li>
+      <li cListGroupItem class="d-flex justify-content-between">
+        <span class="text-body-secondary">Cargo</span>
+        <span>{{ organization()!.contact_position || '-' }}</span>
+      </li>
+      <li cListGroupItem class="d-flex justify-content-between">
+        <span class="text-body-secondary">Email</span>
+        <span>{{ organization()!.contact_email || '-' }}</span>
+      </li>
+      <li cListGroupItem class="d-flex justify-content-between">
+        <span class="text-body-secondary">Teléfono</span>
+        <span>{{ organization()!.contact_phone || '-' }}</span>
+      </li>
+    </ul>
+  </c-col>
+  <c-col md="6">
+    <h6 class="text-body-secondary mb-3">Facturación</h6>
+    <ul cListGroup flush>
+      <li cListGroupItem class="d-flex justify-content-between">
+        <span class="text-body-secondary">Email Facturación</span>
+        <span>{{ organization()!.billing_email || '-' }}</span>
+      </li>
+      <li cListGroupItem class="d-flex justify-content-between">
+        <span class="text-body-secondary">Gerente General</span>
+        <span>{{ organization()!.general_manager || '-' }}</span>
+      </li>
+      <li cListGroupItem class="d-flex justify-content-between">
+        <span class="text-body-secondary">Horario</span>
+        <span>{{ organization()!.working_hours || '-' }}</span>
+      </li>
+    </ul>
+  </c-col>
+</c-row>
+}
+
+@if (activeTab() === 'config') {
+<c-row>
+  <c-col md="6">
+    <h6 class="text-body-secondary mb-3">Regional</h6>
+    <ul cListGroup flush>
+      <li cListGroupItem class="d-flex justify-content-between">
+        <span class="text-body-secondary">Idioma</span>
+        <span>{{ organization()!.language | uppercase }}</span>
+      </li>
+      <li cListGroupItem class="d-flex justify-content-between">
+        <span class="text-body-secondary">Zona Horaria</span>
+        <span>{{ organization()!.timezone }}</span>
+      </li>
+      <li cListGroupItem class="d-flex justify-content-between">
+        <span class="text-body-secondary">Moneda</span>
+        <span>{{ organization()!.currency_code }}</span>
+      </li>
+    </ul>
+  </c-col>
+  <c-col md="6">
+    <h6 class="text-body-secondary mb-3">Branding</h6>
+    <ul cListGroup flush>
+      <li cListGroupItem class="d-flex justify-content-between align-items-center">
+        <span class="text-body-secondary">Color Primario</span>
+        <div class="d-flex align-items-center gap-2">
+          <div class="color-swatch" [style.background-color]="organization()!.primary_color || '#321fdb'"></div>
+          <span>{{ organization()!.primary_color || '#321fdb' }}</span>
+        </div>
+      </li>
+      <li cListGroupItem class="d-flex justify-content-between align-items-center">
+        <span class="text-body-secondary">Color Secundario</span>
+        <div class="d-flex align-items-center gap-2">
+          <div class="color-swatch" [style.background-color]="organization()!.secondary_color || '#3399ff'"></div>
+          <span>{{ organization()!.secondary_color || '#3399ff' }}</span>
+        </div>
+      </li>
+      <li cListGroupItem class="d-flex justify-content-between">
+        <span class="text-body-secondary">Slogan</span>
+        <span>{{ organization()!.slogan || '-' }}</span>
+      </li>
+    </ul>
+  </c-col>
+
+  @if (limits()) {
+  <c-col md="12" class="mt-4">
+    <h6 class="text-body-secondary mb-3">Features Habilitados</h6>
+    <div class="d-flex flex-wrap gap-2">
+      @if (limits()!.feature_real_time_tracking) {
+      <c-badge color="success">Tracking Tiempo Real</c-badge>
+      }
+      @if (limits()!.feature_geofences) {
+      <c-badge color="success">Geocercas</c-badge>
+      }
+      @if (limits()!.feature_alerts) {
+      <c-badge color="success">Alertas</c-badge>
+      }
+      @if (limits()!.feature_reports) {
+      <c-badge color="success">Reportes</c-badge>
+      }
+      @if (limits()!.feature_api_access) {
+      <c-badge color="success">Acceso API</c-badge>
+      }
+      @if (limits()!.feature_white_label) {
+      <c-badge color="success">White Label</c-badge>
+      }
+      @if (limits()!.feature_custom_integrations) {
+      <c-badge color="success">Integraciones</c-badge>
+      }
+    </div>
+  </c-col>
+  }
+</c-row>
+}
+
+@if (activeTab() === 'api') {
+<c-row>
+  <c-col md="12">
+    @if (organization()!.api_key) {
+    <c-card class="mb-3">
+      <c-card-body>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h6 class="mb-0">API Secrets</h6>
+          <div class="d-flex gap-2">
+            <button cButton color="warning" size="sm" variant="outline" *hasPermission="'organizations.manage'"
+              (click)="rotateApiKey()">
+              <svg cIcon name="cil-reload" size="sm" class="me-1"></svg>
+              Rotar Keys
+            </button>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="text-body-secondary small text-uppercase d-block mb-1">API Key</label>
+          <div class="d-flex gap-2 align-items-center">
+            <code class="flex-grow-1 p-2 bg-body-tertiary rounded">
+                    {{ maskApiKey(organization()!.api_key) }}
+                  </code>
+            <button cButton color="secondary" size="sm" variant="outline" (click)="copyApiKey()">
+              <svg cIcon name="cil-copy" size="sm"></svg>
+            </button>
+          </div>
+
+          <div>
+            <label class="text-body-secondary small text-uppercase d-block mb-1">API Secret</label>
+            <div class="d-flex gap-2 align-items-center">
+              <code class="flex-grow-1 p-2 bg-body-tertiary rounded">
+                    {{ showSecret() ? organization()!.api_secret : '****************************************************************' }}
+                  </code>
+              <button cButton color="secondary" size="sm" variant="outline" (click)="toggleSecret()">
+                <svg cIcon [name]="showSecret() ? 'cil-lock-locked' : 'cil-magnifying-glass'" size="sm"></svg>
+              </button>
+            </div>
+            @if (showSecret()) {
+            <small class="text-danger mt-1 d-block">
+              <svg cIcon name="cil-warning" size="sm" class="me-1"></svg>
+              Advertencia: Mantenga este secreto seguro. No lo comparta con nadie.
+            </small>
+            }
+          </div>
+      </c-card-body>
+    </c-card>
+
+    <ul cListGroup flush>
+      <li cListGroupItem class="d-flex justify-content-between">
+        <span class="text-body-secondary">Última llamada API</span>
+        <span>{{ formatDate(organization()!.last_api_call_at) }}</span>
+      </li>
+      <li cListGroupItem class="d-flex justify-content-between">
+        <span class="text-body-secondary">Llamadas este mes</span>
+        <span>{{ organization()!.api_calls_this_month | number }}</span>
+      </li>
+      <li cListGroupItem class="d-flex justify-content-between">
+        <span class="text-body-secondary">Webhook URL</span>
+        <span>{{ organization()!.webhook_url || '-' }}</span>
+      </li>
+    </ul>
+    } @else {
+    <c-alert color="info">
+      <svg cIcon name="cil-info" size="lg" class="me-2"></svg>
+      Esta organización no tiene una API Key configurada. Edita la organización para generar una.
+    </c-alert>
+    }
+  </c-col>
+</c-row>
+}
+
+@if (activeTab() === 'users') {
+<c-row>
+  <c-col md="12">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h6 class="mb-0">Usuarios de la Organización</h6>
+      <button cButton color="primary" size="sm" (click)="openUserModal()" *hasPermission="'users.create'">
+        <svg cIcon name="cil-plus" size="sm" class="me-1"></svg>
+        Agregar Usuario
+      </button>
+    </div>
+
+    @if (isUsersLoading()) {
+    <div class="text-center py-4">
+      <c-spinner color="primary" size="sm"></c-spinner>
+    </div>
+    } @else if (usersList().length === 0) {
+    <c-alert color="warning">
+      No hay usuarios registrados para esta organización.
+    </c-alert>
+    } @else {
+    <table cTable [hover]="true" [responsive]="true" [align]="'middle'">
+      <thead cTableColor="light">
+        <tr>
+          <th>Nombre</th>
+          <th>Email</th>
+          <th>Teléfono</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (user of usersList(); track user.id) {
+        <tr>
+          <td>{{ user.userFullName }} {{ user.userLastName }}</td>
+          <td>{{ user.userEmail }}</td>
+          <td>{{ user.userPhone }}</td>
+          <td>
+            <c-badge [color]="user.state ? 'success' : 'danger'">
+              {{ user.state ? 'Activo' : 'Inactivo' }}
+            </c-badge>
+          </td>
+        </tr>
+        }
+      </tbody>
+    </table>
+    }
+  </c-col>
+</c-row>
+}
+}
+
+<!-- User Creation Modal -->
+<c-modal [visible]="showUserModal()" (visibleChange)="showUserModal.set($event)" alignment="center">
+  <c-modal-header>
+    <h5 cModalTitle>Agregar Nuevo Usuario</h5>
+    <button (click)="showUserModal.set(false)" cButtonClose></button>
+  </c-modal-header>
+  <c-modal-body>
+    <form [formGroup]="userForm" (ngSubmit)="saveUser()">
+      <div class="mb-3">
+        <label cLabel for="userFullName">Nombres *</label>
+        <input cFormControl id="userFullName" formControlName="userFullName" placeholder="Ej: Juan" />
+      </div>
+      <div class="mb-3">
+        <label cLabel for="userLastName">Apellidos *</label>
+        <input cFormControl id="userLastName" formControlName="userLastName" placeholder="Ej: Pérez" />
+      </div>
+      <div class="mb-3">
+        <label cLabel for="userEmail">Email *</label>
+        <input cFormControl type="email" id="userEmail" formControlName="userEmail" placeholder="juan@empresa.com" />
+      </div>
+      <div class="mb-3">
+        <label cLabel for="userPhone">Teléfono *</label>
+        <input cFormControl id="userPhone" formControlName="userPhone" placeholder="04121234567" />
+      </div>
+      <div class="mb-3">
+        <label cLabel for="userPassword">Contraseña Inicial *</label>
+        <input cFormControl type="password" id="userPassword" formControlName="userPassword" />
+        <small class="text-body-secondary">El usuario podrá cambiarla después.</small>
+      </div>
+    </form>
+  </c-modal-body>
+  <c-modal-footer>
+    <button (click)="showUserModal.set(false)" cButton color="secondary" variant="outline">
+      Cancelar
+    </button>
+    <button cButton color="primary" (click)="saveUser()" [disabled]="isSavingUser()">
+      @if (isSavingUser()) {
+      <c-spinner size="sm" class="me-2"></c-spinner>
+      }
+      Crear Usuario
+    </button>
+  </c-modal-footer>
+</c-modal>

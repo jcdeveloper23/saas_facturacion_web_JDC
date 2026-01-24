@@ -13,85 +13,63 @@
       <c-card-body class="p-0">
         <!-- Buscador -->
         <div class="p-3 border-bottom">
-          <input
-            cFormControl
-            type="text"
-            placeholder="Buscar conductor..."
-            [(ngModel)]="searchTerm"
-            (ngModelChange)="onSearch($event)"
-          />
+          <input cFormControl type="text" placeholder="Buscar conductor..." [(ngModel)]="searchTerm"
+            (ngModelChange)="onSearch($event)" />
         </div>
 
         <!-- Lista de conductores -->
         <div class="driver-list" style="max-height: 60vh; overflow-y: auto;">
           @if (isLoading()) {
-            <div class="text-center p-4">
-              <c-spinner color="primary"></c-spinner>
-            </div>
+          <div class="text-center p-4">
+            <c-spinner color="primary"></c-spinner>
+          </div>
           } @else if (filteredDrivers().length === 0) {
-            <div class="text-center p-4 text-muted">
-              No hay conductores activos
-            </div>
+          <div class="text-center p-4 text-muted">
+            No hay conductores activos
+          </div>
           } @else {
-            @for (driver of filteredDrivers(); track driver.id) {
-              <div
-                class="driver-item p-3 border-bottom cursor-pointer"
-                [class.active]="selectedDriver()?.id === driver.id"
-                (click)="selectDriver(driver)"
-              >
-                <div class="d-flex align-items-center">
-                  <div
-                    class="driver-avatar me-3"
-                    [style.background-color]="getDriverColor(driver)"
-                  >
-                    {{ getDriverInitial(driver) }}
-                  </div>
-                  <div class="flex-grow-1">
-                    <div class="fw-bold">
-                      {{ driver.userFullName || 'Sin nombre' }}
-                    </div>
-                    <small class="text-muted">
-                      @if (driver.relativeTime) {
-                        <span class="text-success">
-                          <svg cIcon name="cilLocationPin" size="sm"></svg>
-                          {{ driver.relativeTime }}
-                        </span>
-                      } @else {
-                        <span class="text-warning">Sin ubicación</span>
-                      }
-                    </small>
-                  </div>
-                  @if (isFollowing() && selectedDriver()?.id === driver.id) {
-                    <c-badge color="info">Siguiendo</c-badge>
-                  }
-                </div>
+          @for (driver of filteredDrivers(); track driver.id) {
+          <div class="driver-item p-3 border-bottom cursor-pointer" [class.active]="selectedDriver()?.id === driver.id"
+            (click)="selectDriver(driver)">
+            <div class="d-flex align-items-center">
+              <div class="driver-avatar me-3" [style.background-color]="getDriverColor(driver)">
+                {{ getDriverInitial(driver) }}
               </div>
-            }
+              <div class="flex-grow-1">
+                <div class="fw-bold">
+                  {{ driver.userFullName || 'Sin nombre' }}
+                </div>
+                <small class="text-muted">
+                  @if (driver.relativeTime) {
+                  <span class="text-success">
+                    <svg cIcon name="cil-location-pin" size="sm"></svg>
+                    {{ driver.relativeTime }}
+                  </span>
+                  } @else {
+                  <span class="text-warning">Sin ubicación</span>
+                  }
+                </small>
+              </div>
+              @if (isFollowing() && selectedDriver()?.id === driver.id) {
+              <c-badge color="info">Siguiendo</c-badge>
+              }
+            </div>
+          </div>
+          }
           }
         </div>
       </c-card-body>
       <c-card-footer class="d-flex gap-2">
-        <button
-          cButton
-          color="primary"
-          size="sm"
-          class="flex-grow-1"
-          (click)="refreshDrivers()"
-          [disabled]="isLoading()"
-        >
-          <svg cIcon name="cilReload" size="sm"></svg>
+        <button cButton color="primary" size="sm" class="flex-grow-1" (click)="refreshDrivers()"
+          [disabled]="isLoading()">
+          <svg cIcon name="cil-reload" size="sm"></svg>
           Actualizar
         </button>
         @if (selectedDriver()) {
-          <button
-            cButton
-            [color]="isFollowing() ? 'warning' : 'success'"
-            size="sm"
-            (click)="toggleFollow()"
-          >
-            <svg cIcon [name]="isFollowing() ? 'cilX' : 'cilLocationPin'" size="sm"></svg>
-            {{ isFollowing() ? 'Dejar de seguir' : 'Seguir' }}
-          </button>
+        <button cButton [color]="isFollowing() ? 'warning' : 'success'" size="sm" (click)="toggleFollow()">
+          <svg cIcon [name]="isFollowing() ? 'cil-x' : 'cil-location-pin'" size="sm"></svg>
+          {{ isFollowing() ? 'Dejar de seguir' : 'Seguir' }}
+        </button>
         }
       </c-card-footer>
     </c-card>
@@ -114,39 +92,27 @@
         </div>
       </c-card-header>
       <c-card-body class="p-0">
-        <app-leaflet-map
-          #mapComponent
-          [height]="'70vh'"
-          [center]="mapCenter"
-          [zoom]="mapZoom"
-          [markers]="mapMarkers()"
+        <app-leaflet-map #mapComponent [height]="'70vh'" [center]="mapCenter" [zoom]="mapZoom" [markers]="mapMarkers()"
           [followMarker]="isFollowing() ? selectedDriver()?.id?.toString() : undefined"
-          (markerClick)="onMarkerClick($event)"
-          (mapReady)="onMapReady($event)"
-        ></app-leaflet-map>
+          (markerClick)="onMarkerClick($event)" (mapReady)="onMapReady($event)"></app-leaflet-map>
       </c-card-body>
       <c-card-footer>
         <div class="d-flex justify-content-between align-items-center">
           <div>
             @if (selectedDriver()) {
-              <strong>{{ selectedDriver()?.userFullName }}</strong>
-              @if (selectedDriver()?.userLastLocationLatitude) {
-                <span class="ms-2 text-muted">
-                  Lat: {{ selectedDriver()?.userLastLocationLatitude | number:'1.6-6' }},
-                  Lng: {{ selectedDriver()?.userLastLocationLongitude | number:'1.6-6' }}
-                </span>
-              }
+            <strong>{{ selectedDriver()?.userFullName }}</strong>
+            @if (selectedDriver()?.userLastLocationLatitude) {
+            <span class="ms-2 text-muted">
+              Lat: {{ selectedDriver()?.userLastLocationLatitude | number:'1.6-6' }},
+              Lng: {{ selectedDriver()?.userLastLocationLongitude | number:'1.6-6' }}
+            </span>
+            }
             } @else {
-              <span class="text-muted">Selecciona un conductor para ver detalles</span>
+            <span class="text-muted">Selecciona un conductor para ver detalles</span>
             }
           </div>
           <div>
-            <button
-              cButton
-              [color]="isAutoRefresh() ? 'warning' : 'success'"
-              size="sm"
-              (click)="toggleAutoRefresh()"
-            >
+            <button cButton [color]="isAutoRefresh() ? 'warning' : 'success'" size="sm" (click)="toggleAutoRefresh()">
               {{ isAutoRefresh() ? 'Pausar' : 'Iniciar' }} auto-actualización
             </button>
           </div>

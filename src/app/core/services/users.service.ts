@@ -21,7 +21,7 @@ export class UsersService extends ApiBaseService<User> {
     if (filters?.state !== undefined) {
       query['state'] = filters.state;
     } else {
-      query['state'] = true;
+      // query['state'] = 1;
     }
     if (filters?.role !== undefined) {
       query['userCurrentRole'] = filters.role;

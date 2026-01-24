@@ -1,6 +1,24 @@
 import { Role } from './permission.interface';
 
 /**
+ * User Module - Simplified module for navigation menu
+ * Comes from login response based on user's role permissions
+ */
+export interface UserModule {
+  code: string;
+  name: string;
+  url?: string;
+  icon: string;
+  isTitle: boolean;
+  showInMenu: boolean;
+  badgeText?: string | null;
+  badgeColor?: string | null;
+  order: number;
+  parent_id?: number | null;
+  children?: UserModule[];
+}
+
+/**
  * User Interface - Represents a system user
  */
 export interface User {
@@ -34,6 +52,7 @@ export interface User {
 
   role?: Role; // Nested role object from backend
   permissions?: string[]; // Effective permissions for this user
+  modules?: UserModule[]; // Modules accessible by this user based on role
 
   state: boolean;
   createdAt?: string;
