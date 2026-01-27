@@ -80,7 +80,10 @@ export class OrganizationsService extends ApiBaseService<Organization> {
       query['created_at'] = { ...query['created_at'] as object, $lte: filters.created_before };
     }
 
-    return this.find(query);
+    console.log(`*** query ${query} ***`);
+    
+
+    return this.find(query);   
   }
 
   /**

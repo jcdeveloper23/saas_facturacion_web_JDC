@@ -17,11 +17,12 @@ import { IconModule } from '@coreui/icons-angular';
 
 import { OrganizationsService } from '../../../../core/services/organizations.service';
 import { UsersService } from '../../../../core/services/users.service';
+import { PlansService } from '../../../../core/services/plans.service';
 import {
   Organization,
   OrganizationCreateInput,
   OrganizationUpdateInput,
-  OrganizationPlan,
+  Plan,
   User
 } from '../../../../core/interfaces';
 
@@ -57,6 +58,7 @@ export class OrganizationFormComponent implements OnInit, OnChanges {
   private fb = inject(FormBuilder);
   private organizationsService = inject(OrganizationsService);
   private usersService = inject(UsersService);
+  private plansService = inject(PlansService);
 
   form!: FormGroup;
   isLoading = signal(false);
@@ -68,12 +70,9 @@ export class OrganizationFormComponent implements OnInit, OnChanges {
   isUsersLoading = signal(false);
   usersLoaded = signal(false);
 
-  planOptions: { value: OrganizationPlan; label: string; description: string }[] = [
-    { value: 'free', label: 'Gratuito', description: '5 dispositivos, 3 usuarios' },
-    { value: 'starter', label: 'Starter', description: '20 dispositivos, 10 usuarios' },
-    { value: 'business', label: 'Business', description: '100 dispositivos, 50 usuarios' },
-    { value: 'enterprise', label: 'Enterprise', description: 'Ilimitado' }
-  ];
+  // Plans loaded from database
+  plans = signal<Plan[]>([]);
+  isPlansLoading = signal(false);
 
   timezones = [
     { value: 'America/Mexico_City', label: 'México (GMT-6)' },
@@ -106,7 +105,29 @@ export class OrganizationFormComponent implements OnInit, OnChanges {
 
   ngOnInit(): void {
     this.initForm();
+    this.loadPlans();
     this.resetComponent();
+  }
+
+  private loadPlans(): void {
+    this.isPlansLoading.set(true);
+    this.plansService.getActivePlans().subscribe({
+      next: (plans) => {
+        this.plans.set(plans);
+        this.isPlansLoading.set(false);
+
+        // Set default plan if creating new org and no plan selected
+        if (!this.isEditMode && plans.length > 0 && !this.form.get('plan')?.value) {
+          const defaultPlan = plans.find(p => p.code === 'free') || plans[0];
+          this.form.patchValue({ plan: defaultPlan.code });
+          this.applyPlanLimits(defaultPlan);
+        }
+      },
+      error: (err) => {
+        console.error('Error loading plans:', err);
+        this.isPlansLoading.set(false);
+      }
+    });
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -242,20 +263,23 @@ export class OrganizationFormComponent implements OnInit, OnChanges {
     }
   }
 
-  onPlanChange(plan: OrganizationPlan): void {
-    const limits: Record<OrganizationPlan, { devices: number; users: number; api: number }> = {
-      free: { devices: 5, users: 3, api: 10000 },
-      starter: { devices: 20, users: 10, api: 50000 },
-      business: { devices: 100, users: 50, api: 200000 },
-      enterprise: { devices: 1000, users: 500, api: 1000000 }
-    };
+  onPlanChange(planCode: string): void {
+    const selectedPlan = this.plans().find(p => p.code === planCode);
+    if (selectedPlan) {
+      this.applyPlanLimits(selectedPlan);
+    }
+  }
 
-    const planLimits = limits[plan];
+  private applyPlanLimits(plan: Plan): void {
     this.form.patchValue({
-      max_devices: planLimits.devices,
-      max_users: planLimits.users,
-      max_api_calls_per_month: planLimits.api
+      max_devices: plan.max_devices,
+      max_users: plan.max_users,
+      max_api_calls_per_month: plan.max_api_calls_per_month
     });
+  }
+
+  getPlanDescription(plan: Plan): string {
+    return `${plan.max_devices} dispositivos, ${plan.max_users} usuarios`;
   }
 
   setTab(tab: string): void {

@@ -439,7 +439,7 @@ export type SupportTier = 'standard' | 'priority' | 'dedicated';
 // =============================================================================
 
 export interface OrganizationFilters {
-  plan?: OrganizationPlan;
+  plan?: OrganizationPlan | string;  // Allow dynamic plan codes
   is_active?: boolean;
   is_verified?: boolean;
   subscription_status?: SubscriptionStatus;

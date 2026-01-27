@@ -70,6 +70,12 @@ export const routes: Routes = [
         canActivate: [authGuard, permissionGuard],
         data: { title: 'Organizaciones', permissions: ['organizations.view'] }
       },
+      {
+        path: 'plans',
+        loadChildren: () => import('./features/plans/routes').then((m) => m.default),
+        canActivate: [authGuard, permissionGuard],
+        data: { title: 'Planes', permissions: ['plans.view'] }
+      }, 
       // CoreUI Demo Routes
       {
         path: 'dashboard',

@@ -16,7 +16,12 @@ export class DevicesService extends ApiBaseService<Device> {
    * Get all devices with optional filters
    */
   getDevices(filters?: DeviceFilters): Observable<Device[]> {
-    const query: Record<string, unknown> = { state: true };
+    const query: Record<string, unknown> = {};
+
+    // Filtro de state: por defecto muestra todos, puede filtrar por activos/inactivos
+    if (filters?.state !== undefined && filters.state !== 'all') {
+      query['state'] = filters.state ? 1 : 0;
+    }
 
     if (filters?.status) {
       query['deviceStatus'] = filters.status;
@@ -34,7 +39,7 @@ export class DevicesService extends ApiBaseService<Device> {
       ];
     }
 
-    return this.find(query).pipe(map(response => response.data));
+    return this.find(query).pipe(map(response => response.data || []));
   }
 
   /**

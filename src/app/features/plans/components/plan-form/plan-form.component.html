@@ -1,0 +1,327 @@
+<!-- Error Alert -->
+@if (error()) {
+<c-alert color="danger" [dismissible]="true" (visibleChange)="error.set(null)" class="mb-3">
+  <svg cIcon name="cil-warning" size="lg" class="me-2"></svg>
+  {{ error() }}
+</c-alert>
+}
+
+<!-- Tabs Navigation -->
+<c-nav variant="tabs" class="mb-3">
+  <c-nav-item>
+    <a cNavLink [active]="activeTab() === 'basic'" (click)="setTab('basic')"
+      [class.text-danger]="hasTabError('basic')">
+      <svg cIcon name="cil-description" size="sm" class="me-1"></svg>
+      Información Básica
+    </a>
+  </c-nav-item>
+  <c-nav-item>
+    <a cNavLink [active]="activeTab() === 'pricing'" (click)="setTab('pricing')"
+      [class.text-danger]="hasTabError('pricing')">
+      <svg cIcon name="cil-dollar" size="sm" class="me-1"></svg>
+      Precios
+    </a>
+  </c-nav-item>
+  <c-nav-item>
+    <a cNavLink [active]="activeTab() === 'limits'" (click)="setTab('limits')"
+      [class.text-danger]="hasTabError('limits')">
+      <svg cIcon name="cil-speedometer" size="sm" class="me-1"></svg>
+      Límites
+    </a>
+  </c-nav-item>
+  <c-nav-item>
+    <a cNavLink [active]="activeTab() === 'features'" (click)="setTab('features')">
+      <svg cIcon name="cil-check-circle" size="sm" class="me-1"></svg>
+      Features
+    </a>
+  </c-nav-item>
+  <c-nav-item>
+    <a cNavLink [active]="activeTab() === 'config'" (click)="setTab('config')"
+      [class.text-danger]="hasTabError('config')">
+      <svg cIcon name="cil-settings" size="sm" class="me-1"></svg>
+      Configuración
+    </a>
+  </c-nav-item>
+</c-nav>
+
+<form [formGroup]="form" (ngSubmit)="onSubmit()">
+  <c-tab-content>
+    <!-- TAB: Basic Info -->
+    @if (activeTab() === 'basic') {
+    <c-tab-pane>
+      <c-row class="g-3">
+        <!-- Code -->
+        <c-col md="6">
+          <label cLabel for="code">Código *</label>
+          <input cFormControl id="code" type="text" formControlName="code" placeholder="ej: business_pro"
+            [valid]="isFieldInvalid('code') ? false : undefined" />
+          @if (isFieldInvalid('code')) {
+          <div class="invalid-feedback d-block">{{ getFieldError('code') }}</div>
+          }
+          <small class="text-muted">Identificador único (solo minúsculas, números y _)</small>
+        </c-col>
+
+        <!-- Name -->
+        <c-col md="6">
+          <label cLabel for="name">Nombre del Plan *</label>
+          <input cFormControl id="name" type="text" formControlName="name" placeholder="ej: Business Pro"
+            [valid]="isFieldInvalid('name') ? false : undefined" />
+          @if (isFieldInvalid('name')) {
+          <div class="invalid-feedback d-block">{{ getFieldError('name') }}</div>
+          }
+        </c-col>
+
+        <!-- Description -->
+        <c-col md="12">
+          <label cLabel for="description">Descripción</label>
+          <textarea cFormControl id="description" formControlName="description" rows="3"
+            placeholder="Descripción del plan para mostrar a los clientes..."></textarea>
+        </c-col>
+      </c-row>
+    </c-tab-pane>
+    }
+
+    <!-- TAB: Pricing -->
+    @if (activeTab() === 'pricing') {
+    <c-tab-pane>
+      <c-row class="g-3">
+        <!-- Currency -->
+        <c-col md="4">
+          <label cLabel for="currency">Moneda *</label>
+          <select cSelect id="currency" formControlName="currency">
+            @for (curr of currencies; track curr.value) {
+            <option [value]="curr.value">{{ curr.label }}</option>
+            }
+          </select>
+        </c-col>
+
+        <!-- Monthly Price -->
+        <c-col md="4">
+          <label cLabel for="price_monthly">Precio Mensual *</label>
+          <div class="input-group">
+            <span class="input-group-text">$</span>
+            <input cFormControl id="price_monthly" type="number" formControlName="price_monthly" step="0.01" min="0"
+              [valid]="isFieldInvalid('price_monthly') ? false : undefined" />
+          </div>
+          @if (isFieldInvalid('price_monthly')) {
+          <div class="invalid-feedback d-block">{{ getFieldError('price_monthly') }}</div>
+          }
+          <small class="text-muted">0 = Plan gratuito</small>
+        </c-col>
+
+        <!-- Yearly Price -->
+        <c-col md="4">
+          <label cLabel for="price_yearly">Precio Anual *</label>
+          <div class="input-group">
+            <span class="input-group-text">$</span>
+            <input cFormControl id="price_yearly" type="number" formControlName="price_yearly" step="0.01" min="0"
+              [valid]="isFieldInvalid('price_yearly') ? false : undefined" />
+            <button cButton color="secondary" type="button" cTooltip="Sugerir -20%" (click)="suggestYearlyPrice()">
+              <svg cIcon name="cil-calculator" size="sm"></svg>
+            </button>
+          </div>
+          @if (isFieldInvalid('price_yearly')) {
+          <div class="invalid-feedback d-block">{{ getFieldError('price_yearly') }}</div>
+          }
+        </c-col>
+      </c-row>
+
+      <!-- Pricing Info -->
+      <c-alert color="info" class="mt-3">
+        <svg cIcon name="cil-lightbulb" size="lg" class="me-2"></svg>
+        <strong>Tip:</strong> El precio anual suele tener un descuento del 15-20% respecto al precio mensual x 12.
+      </c-alert>
+    </c-tab-pane>
+    }
+
+    <!-- TAB: Limits -->
+    @if (activeTab() === 'limits') {
+    <c-tab-pane>
+      <c-row class="g-3">
+        <!-- Devices -->
+        <c-col md="4">
+          <label cLabel for="max_devices">Máx. Dispositivos *</label>
+          <input cFormControl id="max_devices" type="number" formControlName="max_devices" min="1"
+            [valid]="isFieldInvalid('max_devices') ? false : undefined" />
+          @if (isFieldInvalid('max_devices')) {
+          <div class="invalid-feedback d-block">{{ getFieldError('max_devices') }}</div>
+          }
+        </c-col>
+
+        <!-- Users -->
+        <c-col md="4">
+          <label cLabel for="max_users">Máx. Usuarios *</label>
+          <input cFormControl id="max_users" type="number" formControlName="max_users" min="1"
+            [valid]="isFieldInvalid('max_users') ? false : undefined" />
+          @if (isFieldInvalid('max_users')) {
+          <div class="invalid-feedback d-block">{{ getFieldError('max_users') }}</div>
+          }
+        </c-col>
+
+        <!-- Geofences -->
+        <c-col md="4">
+          <label cLabel for="max_geofences">Máx. Geocercas *</label>
+          <input cFormControl id="max_geofences" type="number" formControlName="max_geofences" min="1"
+            [valid]="isFieldInvalid('max_geofences') ? false : undefined" />
+          @if (isFieldInvalid('max_geofences')) {
+          <div class="invalid-feedback d-block">{{ getFieldError('max_geofences') }}</div>
+          }
+        </c-col>
+
+        <!-- Routes -->
+        <c-col md="4">
+          <label cLabel for="max_routes">Máx. Rutas *</label>
+          <input cFormControl id="max_routes" type="number" formControlName="max_routes" min="1"
+            [valid]="isFieldInvalid('max_routes') ? false : undefined" />
+          @if (isFieldInvalid('max_routes')) {
+          <div class="invalid-feedback d-block">{{ getFieldError('max_routes') }}</div>
+          }
+        </c-col>
+
+        <!-- Alerts -->
+        <c-col md="4">
+          <label cLabel for="max_alerts">Máx. Alertas *</label>
+          <input cFormControl id="max_alerts" type="number" formControlName="max_alerts" min="1"
+            [valid]="isFieldInvalid('max_alerts') ? false : undefined" />
+          @if (isFieldInvalid('max_alerts')) {
+          <div class="invalid-feedback d-block">{{ getFieldError('max_alerts') }}</div>
+          }
+        </c-col>
+
+        <!-- API Calls -->
+        <c-col md="4">
+          <label cLabel for="max_api_calls_per_month">Máx. Llamadas API/mes *</label>
+          <input cFormControl id="max_api_calls_per_month" type="number" formControlName="max_api_calls_per_month"
+            min="1000" step="1000" [valid]="isFieldInvalid('max_api_calls_per_month') ? false : undefined" />
+          @if (isFieldInvalid('max_api_calls_per_month')) {
+          <div class="invalid-feedback d-block">{{ getFieldError('max_api_calls_per_month') }}</div>
+          }
+        </c-col>
+
+        <!-- Storage -->
+        <c-col md="6">
+          <label cLabel for="max_storage_gb">Almacenamiento (GB) *</label>
+          <input cFormControl id="max_storage_gb" type="number" formControlName="max_storage_gb" min="0.1" step="0.1"
+            [valid]="isFieldInvalid('max_storage_gb') ? false : undefined" />
+          @if (isFieldInvalid('max_storage_gb')) {
+          <div class="invalid-feedback d-block">{{ getFieldError('max_storage_gb') }}</div>
+          }
+        </c-col>
+
+        <!-- Data Retention -->
+        <c-col md="6">
+          <label cLabel for="data_retention_days">Retención de datos (días) *</label>
+          <input cFormControl id="data_retention_days" type="number" formControlName="data_retention_days" min="7"
+            [valid]="isFieldInvalid('data_retention_days') ? false : undefined" />
+          @if (isFieldInvalid('data_retention_days')) {
+          <div class="invalid-feedback d-block">{{ getFieldError('data_retention_days') }}</div>
+          }
+          <small class="text-muted">Días que se mantiene el historial de posiciones GPS</small>
+        </c-col>
+      </c-row>
+    </c-tab-pane>
+    }
+
+    <!-- TAB: Features -->
+    @if (activeTab() === 'features') {
+    <c-tab-pane>
+      <p class="text-muted mb-3">Selecciona las funcionalidades incluidas en este plan:</p>
+
+      <c-row class="g-3">
+        @for (feature of featuresList; track feature.key) {
+        <c-col md="6">
+          <div class="form-check form-switch p-3 border rounded bg-light">
+            <input class="form-check-input" type="checkbox" [id]="'feature_' + feature.key"
+              [formControlName]="'feature_' + feature.key">
+            <label class="form-check-label" [for]="'feature_' + feature.key">
+              <strong>{{ feature.label }}</strong>
+              <br>
+              <small class="text-muted">{{ feature.description }}</small>
+            </label>
+          </div>
+        </c-col>
+        }
+
+        <!-- SLA Guarantee -->
+        <c-col md="12">
+          <label cLabel for="feature_sla_guarantee">Garantía SLA</label>
+          <input cFormControl id="feature_sla_guarantee" type="text" formControlName="feature_sla_guarantee"
+            placeholder="ej: 99.9% uptime" />
+          <small class="text-muted">Dejar vacío si no aplica</small>
+        </c-col>
+      </c-row>
+    </c-tab-pane>
+    }
+
+    <!-- TAB: Configuration -->
+    @if (activeTab() === 'config') {
+    <c-tab-pane>
+      <c-row class="g-3">
+        <!-- Trial Days -->
+        <c-col md="4">
+          <label cLabel for="trial_days">Días de Prueba *</label>
+          <input cFormControl id="trial_days" type="number" formControlName="trial_days" min="0"
+            [valid]="isFieldInvalid('trial_days') ? false : undefined" />
+          @if (isFieldInvalid('trial_days')) {
+          <div class="invalid-feedback d-block">{{ getFieldError('trial_days') }}</div>
+          }
+          <small class="text-muted">0 = Sin período de prueba</small>
+        </c-col>
+
+        <!-- Sort Order -->
+        <c-col md="4">
+          <label cLabel for="sort_order">Orden de Visualización *</label>
+          <input cFormControl id="sort_order" type="number" formControlName="sort_order" min="0"
+            [valid]="isFieldInvalid('sort_order') ? false : undefined" />
+          @if (isFieldInvalid('sort_order')) {
+          <div class="invalid-feedback d-block">{{ getFieldError('sort_order') }}</div>
+          }
+          <small class="text-muted">Menor número = aparece primero</small>
+        </c-col>
+
+        <c-col md="4"></c-col>
+
+        <!-- Is Public -->
+        <c-col md="4">
+          <div class="form-check form-switch p-3 border rounded">
+            <input class="form-check-input" type="checkbox" id="is_public" formControlName="is_public">
+            <label class="form-check-label" for="is_public">
+              <strong>Público</strong>
+              <br>
+              <small class="text-muted">Visible en la página de precios</small>
+            </label>
+          </div>
+        </c-col>
+
+        <!-- Is Popular -->
+        <c-col md="4">
+          <div class="form-check form-switch p-3 border rounded">
+            <input class="form-check-input" type="checkbox" id="is_popular" formControlName="is_popular">
+            <label class="form-check-label" for="is_popular">
+              <strong>Popular</strong>
+              <br>
+              <small class="text-muted">Mostrar badge "Más Popular"</small>
+            </label>
+          </div>
+        </c-col>
+      </c-row>
+    </c-tab-pane>
+    }
+  </c-tab-content>
+
+  <!-- Form Actions -->
+  <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+    <button cButton color="secondary" type="button" (click)="onCancel()" [disabled]="isLoading()">
+      Cancelar
+    </button>
+    <button cButton color="primary" type="submit" [disabled]="isLoading()">
+      @if (isLoading()) {
+      <c-spinner size="sm" class="me-1"></c-spinner>
+      Guardando...
+      } @else {
+      <svg cIcon name="cil-save" size="sm" class="me-1"></svg>
+      {{ isEditMode ? 'Actualizar Plan' : 'Crear Plan' }}
+      }
+    </button>
+  </div>
+</form>

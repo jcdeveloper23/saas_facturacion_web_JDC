@@ -18,6 +18,7 @@ import {
 
 import { DefaultFooterComponent, DefaultHeaderComponent } from './';
 import { NavigationService } from '../../core/services/navigation.service';
+import { ToastContainerComponent } from '../../shared/components';
 
 @Component({
   selector: 'app-dashboard',
@@ -38,7 +39,8 @@ import { NavigationService } from '../../core/services/navigation.service';
     NgScrollbar,
     RouterOutlet,
     RouterLink,
-    ShadowOnScrollDirective
+    ShadowOnScrollDirective,
+    ToastContainerComponent
   ]
 })
 export class DefaultLayoutComponent {

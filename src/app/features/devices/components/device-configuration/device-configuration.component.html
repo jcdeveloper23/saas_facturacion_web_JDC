@@ -1,0 +1,45 @@
+<div *ngIf="loading" class="text-center p-4">
+    <c-spinner color="primary"></c-spinner>
+</div>
+
+<form *ngIf="!loading" [formGroup]="configForm" (ngSubmit)="onSubmit()">
+    <c-row class="mb-3">
+        <c-col md="6">
+            <label cLabel for="reportInterval">Intervalo de Reporte (segundos)</label>
+            <input cFormControl type="number" id="reportInterval" formControlName="reportInterval" />
+            <div class="form-text">Mínimo 10 segundos</div>
+        </c-col>
+        <c-col md="6">
+            <label cLabel for="minSatellites">Mínimo de Satélites</label>
+            <input cFormControl type="number" id="minSatellites" formControlName="minSatellites" />
+        </c-col>
+    </c-row>
+
+    <c-row class="mb-3">
+        <c-col md="6">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <label cLabel class="mb-0">Habilitar Corte de Motor</label>
+                <c-form-check [switch]="true">
+                    <input cFormCheckInput type="checkbox" formControlName="engineCutEnabled" />
+                </c-form-check>
+            </div>
+            <div class="form-text">Si está habilitado, permite enviar comandos de apagado remoto.</div>
+        </c-col>
+        <c-col md="6">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <label cLabel class="mb-0">Sistema de Alertas</label>
+                <c-form-check [switch]="true">
+                    <input cFormCheckInput type="checkbox" formControlName="alertsEnabled" />
+                </c-form-check>
+            </div>
+            <div class="form-text">Activa o desactiva la generación de alertas para este dispositivo.</div>
+        </c-col>
+    </c-row>
+
+    <div class="d-flex justify-content-end mt-4">
+        <button cButton color="primary" type="submit" [disabled]="saving || configForm.invalid">
+            <c-spinner size="sm" *ngIf="saving" class="me-2"></c-spinner>
+            Guardar Cambios
+        </button>
+    </div>
+</form>

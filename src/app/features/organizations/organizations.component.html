@@ -89,7 +89,7 @@
           <c-col md="3">
             <label cLabel for="planFilter">Plan</label>
             <select cSelect id="planFilter" [ngModel]="selectedPlan()" (ngModelChange)="selectedPlan.set($event)">
-              @for (option of planOptions; track option.value) {
+              @for (option of planOptions(); track option.value) {
               <option [value]="option.value">{{ option.label }}</option>
               }
             </select>

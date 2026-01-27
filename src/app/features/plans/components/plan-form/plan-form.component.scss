@@ -1,0 +1,19 @@
+// Plan Form Styles
+
+.form-check-input:checked {
+  background-color: var(--cui-primary);
+  border-color: var(--cui-primary);
+}
+
+.form-switch .form-check-input {
+  width: 2.5em;
+  height: 1.25em;
+}
+
+.border-rounded {
+  border-radius: 0.5rem;
+}
+
+.bg-light {
+  background-color: rgba(0, 0, 0, 0.02) !important;
+}

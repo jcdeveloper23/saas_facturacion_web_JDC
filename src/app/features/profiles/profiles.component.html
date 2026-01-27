@@ -48,7 +48,7 @@
               <td>
                 <div class="d-flex align-items-center">
                   <div class="role-icon me-2" [style.background-color]="role.color || '#6c757d'">
-                    <svg cIcon [name]="role.icon?.includes('-') ? role.icon : 'cil-' + (role.icon || 'user')"
+                    <svg cIcon [name]="role.icon ? (role.icon.includes('-') ? role.icon : 'cil-' + role.icon) : 'cil-user'"
                       size="sm"></svg>
                   </div>
                   <div>
@@ -203,7 +203,7 @@
     @for (group of getPermissionsGroupedForRole(viewingRole()!); track group.module) {
     <div class="mb-3">
       <h6 class="text-muted mb-2">
-        <svg cIcon [name]="group.moduleIcon?.includes('-') ? group.moduleIcon : 'cil-' + (group.moduleIcon || 'folder')"
+        <svg cIcon [name]="group.moduleIcon ? (group.moduleIcon.includes('-') ? group.moduleIcon : 'cil-' + group.moduleIcon) : 'cil-folder'"
           size="sm" class="me-1"></svg>
         {{ group.moduleName }}
       </h6>

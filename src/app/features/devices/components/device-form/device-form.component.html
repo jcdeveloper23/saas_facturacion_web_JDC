@@ -1,0 +1,353 @@
+<!-- Loading State -->
+@if (loadingData()) {
+<div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
+    <div class="text-center">
+        <c-spinner color="primary"></c-spinner>
+        <p class="mt-3 text-muted">Cargando datos...</p>
+    </div>
+</div>
+} @else {
+
+<form [formGroup]="deviceForm" (ngSubmit)="onSubmit()">
+    <c-row>
+        <!-- Left Column: Main Form -->
+        <c-col lg="8">
+            <!-- Error Alert -->
+            @if (errorMessage()) {
+            <c-alert color="danger" [dismissible]="true" (visibleChange)="errorMessage.set('')">
+                <svg cIcon name="cilWarning" class="me-2"></svg>
+                {{ errorMessage() }}
+            </c-alert>
+            }
+
+            <!-- Identificación del Dispositivo -->
+            <c-card class="mb-4">
+                <c-card-header>
+                    <svg cIcon name="cilFingerprint" class="me-2"></svg>
+                    <strong>Identificacion del Dispositivo</strong>
+                </c-card-header>
+                <c-card-body>
+                    <c-row>
+                        <!-- IMEI -->
+                        <c-col md="6" class="mb-3">
+                            <label cLabel for="deviceImei">
+                                IMEI <span class="text-danger">*</span>
+                            </label>
+                            <input cFormControl
+                                id="deviceImei"
+                                formControlName="deviceImei"
+                                placeholder="123456789012345"
+                                maxlength="15"
+                                [valid]="deviceForm.get('deviceImei')?.touched ? (deviceForm.get('deviceImei')?.valid || undefined) : undefined" />
+                            @if (isFieldInvalid('deviceImei')) {
+                            <div class="text-danger small mt-1">
+                                <svg cIcon name="cilXCircle" size="sm" class="me-1"></svg>
+                                {{ getFieldError('deviceImei') }}
+                            </div>
+                            }
+                            <div class="form-text">Codigo unico de 15 digitos del dispositivo GPS</div>
+                        </c-col>
+
+                        <!-- Nombre -->
+                        <c-col md="6" class="mb-3">
+                            <label cLabel for="deviceName">
+                                Nombre <span class="text-danger">*</span>
+                            </label>
+                            <input cFormControl
+                                id="deviceName"
+                                formControlName="deviceName"
+                                placeholder="Ej: Camion 01, Moto Reparto"
+                                maxlength="100"
+                                [valid]="deviceForm.get('deviceName')?.touched ? (deviceForm.get('deviceName')?.valid || undefined) : undefined" />
+                            @if (isFieldInvalid('deviceName')) {
+                            <div class="text-danger small mt-1">
+                                <svg cIcon name="cilXCircle" size="sm" class="me-1"></svg>
+                                {{ getFieldError('deviceName') }}
+                            </div>
+                            }
+                            <div class="form-text">Nombre descriptivo para identificar el vehiculo</div>
+                        </c-col>
+
+                        <!-- Modelo -->
+                        <c-col md="6" class="mb-3">
+                            <label cLabel for="deviceModel">
+                                Modelo <span class="text-danger">*</span>
+                            </label>
+                            <select cSelect id="deviceModel" formControlName="deviceModel">
+                                @for (model of deviceModels; track model) {
+                                <option [value]="model">{{ model }}</option>
+                                }
+                            </select>
+                            <div class="form-text">Modelo/marca del dispositivo GPS</div>
+                        </c-col>
+
+                        <!-- Protocolo -->
+                        <c-col md="6" class="mb-3">
+                            <label cLabel for="deviceProtocol">Protocolo</label>
+                            <input cFormControl
+                                id="deviceProtocol"
+                                formControlName="deviceProtocol"
+                                placeholder="Ej: gt06, h02, teltonika"
+                                maxlength="50" />
+                            <div class="form-text">Protocolo de comunicacion (auto-detectado si se deja vacio)</div>
+                        </c-col>
+                    </c-row>
+                </c-card-body>
+            </c-card>
+
+            <!-- Conectividad -->
+            <c-card class="mb-4">
+                <c-card-header>
+                    <svg cIcon name="cilSignalCellular4" class="me-2"></svg>
+                    <strong>Conectividad</strong>
+                </c-card-header>
+                <c-card-body>
+                    <c-row>
+                        <!-- Número SIM -->
+                        <c-col md="6" class="mb-3">
+                            <label cLabel for="simNumber">Numero SIM</label>
+                            <input cFormControl
+                                id="simNumber"
+                                formControlName="simNumber"
+                                placeholder="+57 300 123 4567"
+                                maxlength="20" />
+                            <div class="form-text">Numero de telefono de la SIM instalada</div>
+                        </c-col>
+                    </c-row>
+                </c-card-body>
+            </c-card>
+
+            <!-- Configuración Operativa -->
+            <c-card class="mb-4">
+                <c-card-header>
+                    <svg cIcon name="cilSettings" class="me-2"></svg>
+                    <strong>Configuracion Operativa</strong>
+                </c-card-header>
+                <c-card-body>
+                    <c-row>
+                        <!-- Límite de Velocidad -->
+                        <c-col md="4" class="mb-3">
+                            <label cLabel for="speedLimit">
+                                Limite de Velocidad <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <input cFormControl
+                                    type="number"
+                                    id="speedLimit"
+                                    formControlName="speedLimit"
+                                    min="0"
+                                    max="300" />
+                                <span class="input-group-text">km/h</span>
+                            </div>
+                            @if (isFieldInvalid('speedLimit')) {
+                            <div class="text-danger small mt-1">
+                                <svg cIcon name="cilXCircle" size="sm" class="me-1"></svg>
+                                {{ getFieldError('speedLimit') }}
+                            </div>
+                            }
+                            <div class="form-text">Alerta cuando supere este limite</div>
+                        </c-col>
+
+                        <!-- Zona Horaria -->
+                        <c-col md="8" class="mb-3">
+                            <label cLabel for="timezone">
+                                Zona Horaria <span class="text-danger">*</span>
+                            </label>
+                            <select cSelect id="timezone" formControlName="timezone">
+                                @for (tz of timezones; track tz.value) {
+                                <option [value]="tz.value">{{ tz.label }}</option>
+                                }
+                            </select>
+                            <div class="form-text">Zona horaria para reportes y alertas</div>
+                        </c-col>
+                    </c-row>
+                </c-card-body>
+            </c-card>
+
+            <!-- Fechas de Servicio -->
+            <c-card class="mb-4">
+                <c-card-header>
+                    <svg cIcon name="cilCalendar" class="me-2"></svg>
+                    <strong>Fechas de Servicio</strong>
+                </c-card-header>
+                <c-card-body>
+                    <c-row>
+                        <!-- Fecha Instalación -->
+                        <c-col md="6" class="mb-3">
+                            <label cLabel for="installationDate">Fecha de Instalacion</label>
+                            <input cFormControl
+                                type="date"
+                                id="installationDate"
+                                formControlName="installationDate" />
+                            <div class="form-text">Fecha en que se instalo el dispositivo</div>
+                        </c-col>
+
+                        <!-- Fecha Vencimiento -->
+                        <c-col md="6" class="mb-3">
+                            <label cLabel for="expirationDate">Fecha de Vencimiento</label>
+                            <input cFormControl
+                                type="date"
+                                id="expirationDate"
+                                formControlName="expirationDate" />
+                            <div class="form-text">Fecha de vencimiento del servicio (opcional)</div>
+                        </c-col>
+                    </c-row>
+                </c-card-body>
+            </c-card>
+
+            <!-- Notas -->
+            <c-card class="mb-4">
+                <c-card-header>
+                    <svg cIcon name="cilNotes" class="me-2"></svg>
+                    <strong>Notas Adicionales</strong>
+                </c-card-header>
+                <c-card-body>
+                    <textarea cFormControl
+                        id="notes"
+                        formControlName="notes"
+                        rows="3"
+                        maxlength="500"
+                        placeholder="Informacion adicional sobre el dispositivo o vehiculo..."></textarea>
+                    <div class="form-text d-flex justify-content-between">
+                        <span>Notas internas sobre el dispositivo</span>
+                        <span>{{ deviceForm.get('notes')?.value?.length || 0 }}/500</span>
+                    </div>
+                </c-card-body>
+            </c-card>
+        </c-col>
+
+        <!-- Right Column: Assignment & Status -->
+        <c-col lg="4">
+            <!-- Asignación -->
+            <c-card class="mb-4">
+                <c-card-header>
+                    <svg cIcon name="cilPeople" class="me-2"></svg>
+                    <strong>Asignacion</strong>
+                </c-card-header>
+                <c-card-body>
+                    <!-- Organización (solo super admin) -->
+                    @if (isSuperAdmin()) {
+                    <div class="mb-3">
+                        <label cLabel for="organizationId">Organizacion</label>
+                        <select cSelect
+                            id="organizationId"
+                            formControlName="organizationId"
+                            (change)="onOrganizationChange()">
+                            <option [value]="null">-- Seleccionar --</option>
+                            @for (org of organizations(); track org.id) {
+                            <option [value]="org.id">{{ org.name }}</option>
+                            }
+                        </select>
+                        <div class="form-text">Organizacion propietaria del dispositivo</div>
+                    </div>
+                    }
+
+                    <!-- Usuario Responsable -->
+                    <div class="mb-3">
+                        <label cLabel for="userId">Usuario Responsable</label>
+                        <select cSelect id="userId" formControlName="userId">
+                            <option [value]="null">-- Sin asignar --</option>
+                            @for (user of users(); track user.id) {
+                            <option [value]="user.id">{{ user.userFullName || user.userEmail }}</option>
+                            }
+                        </select>
+                        <div class="form-text">Usuario encargado del vehiculo</div>
+                    </div>
+                </c-card-body>
+            </c-card>
+
+            <!-- Estado -->
+            <c-card class="mb-4">
+                <c-card-header>
+                    <svg cIcon name="cilCheckCircle" class="me-2"></svg>
+                    <strong>Estado</strong>
+                </c-card-header>
+                <c-card-body>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="fw-semibold">Dispositivo Activo</div>
+                            <small class="text-muted">Los dispositivos inactivos no reportan ubicacion</small>
+                        </div>
+                        <c-form-check [switch]="true">
+                            <input cFormCheckInput type="checkbox" formControlName="state" />
+                        </c-form-check>
+                    </div>
+
+                    <!-- Badge de estado -->
+                    <div class="mt-3 text-center">
+                        @if (deviceForm.get('state')?.value) {
+                        <c-badge color="success" shape="rounded-pill" class="px-3 py-2">
+                            <svg cIcon name="cilCheckCircle" class="me-1"></svg>
+                            Activo
+                        </c-badge>
+                        } @else {
+                        <c-badge color="secondary" shape="rounded-pill" class="px-3 py-2">
+                            <svg cIcon name="cilBan" class="me-1"></svg>
+                            Inactivo
+                        </c-badge>
+                        }
+                    </div>
+                </c-card-body>
+            </c-card>
+
+            <!-- Resumen (solo en modo edición) -->
+            @if (isEditMode) {
+            <c-card class="mb-4 border-info">
+                <c-card-header class="bg-info text-white">
+                    <svg cIcon name="cilInfo" class="me-2"></svg>
+                    <strong>Informacion</strong>
+                </c-card-header>
+                <c-card-body>
+                    <dl class="row mb-0 small">
+                        <dt class="col-5 text-muted">IMEI:</dt>
+                        <dd class="col-7 font-monospace">{{ deviceForm.get('deviceImei')?.value }}</dd>
+
+                        <dt class="col-5 text-muted">Modelo:</dt>
+                        <dd class="col-7">{{ deviceForm.get('deviceModel')?.value }}</dd>
+                    </dl>
+                    <hr class="my-2">
+                    <small class="text-muted">
+                        <svg cIcon name="cilInfo" size="sm" class="me-1"></svg>
+                        El IMEI no puede ser modificado despues de crear el dispositivo.
+                    </small>
+                </c-card-body>
+            </c-card>
+            }
+
+            <!-- Acciones -->
+            <c-card>
+                <c-card-body>
+                    <div class="d-grid gap-2">
+                        <button cButton color="primary" type="submit" size="lg"
+                            [disabled]="loading() || deviceForm.invalid">
+                            @if (loading()) {
+                            <c-spinner size="sm" class="me-2"></c-spinner>
+                            Guardando...
+                            } @else {
+                            <svg cIcon name="cilSave" class="me-2"></svg>
+                            {{ isEditMode ? 'Actualizar Dispositivo' : 'Crear Dispositivo' }}
+                            }
+                        </button>
+
+                        <button cButton color="secondary" variant="outline" type="button"
+                            (click)="cancel()" [disabled]="loading()">
+                            <svg cIcon name="cilArrowLeft" class="me-2"></svg>
+                            Cancelar
+                        </button>
+                    </div>
+
+                    @if (deviceForm.invalid && deviceForm.touched) {
+                    <c-alert color="warning" class="mt-3 mb-0 py-2">
+                        <small>
+                            <svg cIcon name="cilWarning" size="sm" class="me-1"></svg>
+                            Complete todos los campos requeridos
+                        </small>
+                    </c-alert>
+                    }
+                </c-card-body>
+            </c-card>
+        </c-col>
+    </c-row>
+</form>
+
+}

@@ -11,6 +11,7 @@ export interface Device {
   // Ownership
   userId: number;
   organizationId?: number;
+  organization_id?: number; // Backend field
 
   // Status
   deviceStatus: DeviceStatus;
@@ -33,9 +34,10 @@ export interface Device {
   simNumber?: string;
   installationDate?: string;
   expirationDate?: string;
+  notes?: string;
 
   // Metadata
-  state: boolean;
+  state: boolean | number;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -65,4 +67,5 @@ export interface DeviceFilters {
   userId?: number;
   organizationId?: number;
   search?: string;
+  state?: boolean | 'all'; // true = activos, false = inactivos, 'all' = todos
 }

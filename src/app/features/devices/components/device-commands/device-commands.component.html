@@ -1,0 +1,88 @@
+<c-row>
+    <c-col md="4">
+        <c-card class="mb-4">
+            <c-card-header>
+                <strong>Enviar Comando</strong>
+            </c-card-header>
+            <c-card-body>
+                <form [formGroup]="commandForm" (ngSubmit)="sendCommand()">
+
+                    <div class="mb-3">
+                        <label cLabel for="commandType">Tipo de Comando</label>
+                        <select cSelect id="commandType" formControlName="commandType">
+                            <option *ngFor="let type of commandTypes" [value]="type.type">
+                                {{ type.label }}
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3" *ngIf="showCustomInput">
+                        <label cLabel for="rawCommand">Comando Raw</label>
+                        <input cFormControl id="rawCommand" formControlName="rawCommand" placeholder="ej. RELAY,1#" />
+                    </div>
+
+                    <div class="mb-3" *ngIf="showIntervalInput">
+                        <label cLabel for="interval">Intervalo (segundos)</label>
+                        <input cFormControl type="number" id="interval" formControlName="interval" />
+                    </div>
+
+                    <div class="d-grid">
+                        <button cButton color="primary" type="submit" [disabled]="sending || commandForm.invalid">
+                            <c-spinner size="sm" *ngIf="sending" class="me-2"></c-spinner>
+                            Enviar
+                        </button>
+                    </div>
+
+                </form>
+            </c-card-body>
+        </c-card>
+    </c-col>
+
+    <c-col md="8">
+        <c-card>
+            <c-card-header>
+                <strong>Historial de Comandos</strong>
+            </c-card-header>
+            <c-card-body>
+                <div *ngIf="loading" class="text-center p-3">
+                    <c-spinner color="primary"></c-spinner>
+                </div>
+
+                <table cTable hover responsive striped *ngIf="!loading">
+                    <thead>
+                        <tr>
+                            <th>Tipo</th>
+                            <th>Payload / Detalle</th>
+                            <th>Estado</th>
+                            <th>Enviado</th>
+                            <th>Respuesta</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let cmd of commands">
+                            <td>
+                                <span class="fw-bold">{{ cmd.commandType | uppercase }}</span>
+                            </td>
+                            <td>
+                                <span *ngIf="cmd.commandType === 'custom'">{{ cmd.rawCommand }}</span>
+                                <span *ngIf="cmd.commandType !== 'custom'">
+                                    {{ cmd.commandPayload | json }}
+                                </span>
+                            </td>
+                            <td>
+                                <c-badge [color]="getStatusColor(cmd.commandStatus)">
+                                    {{ cmd.commandStatus }}
+                                </c-badge>
+                            </td>
+                            <td>{{ cmd.createdAt | date:'medium' }}</td>
+                            <td>{{ cmd.responsePayload ? (cmd.responsePayload | json) : '-' }}</td>
+                        </tr>
+                        <tr *ngIf="commands.length === 0">
+                            <td colspan="5" class="text-center text-muted">Sin historial de comandos.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </c-card-body>
+        </c-card>
+    </c-col>
+</c-row>

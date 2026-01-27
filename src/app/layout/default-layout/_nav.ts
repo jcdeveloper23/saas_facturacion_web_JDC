@@ -69,6 +69,12 @@ export const navItems: INavData[] = [
     iconComponent: { name: 'cil-building' },
     attributes: { permission: 'organizations.view' }
   },
+  {
+    name: 'Planes',
+    url: '/plans',
+    iconComponent: { name: 'cil-layers' },
+    attributes: { permission: 'plans.view' }
+  },
   // System Section (for super admins)
   {
     title: true,

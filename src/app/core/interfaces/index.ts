@@ -9,6 +9,8 @@ export * from './organization.interface';
 export * from './device-command.interface';
 export * from './gps-protocol.interface';
 export * from './permission.interface';
+export * from './device-settings.interface';
+export * from './device-avl-config.interface';
 
 // Common types
 export interface ApiResponse<T> {

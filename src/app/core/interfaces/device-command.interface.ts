@@ -16,6 +16,7 @@ export interface DeviceCommand {
 
   // Response
   responseData?: string;
+  responsePayload?: Record<string, unknown>;
 
   // Retry logic
   retryCount: number;

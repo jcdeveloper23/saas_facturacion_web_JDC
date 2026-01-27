@@ -13,3 +13,7 @@ export { AlertsService } from './alerts.service';
 export { UsersService } from './users.service';
 export { DeviceCommandsService } from './device-commands.service';
 export { OrganizationsService } from './organizations.service';
+export { PlansService } from './plans.service';
+export { DeviceSettingsService } from './device-settings.service';
+export { DeviceAvlConfigService } from './device-avl-config.service';
+export { NotificationService } from './notification.service';

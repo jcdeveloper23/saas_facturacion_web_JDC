@@ -1,0 +1,46 @@
+<div *ngIf="loading" class="text-center p-4">
+    <c-spinner color="primary"></c-spinner>
+</div>
+
+<div *ngIf="!loading">
+    <table cTable hover responsive striped>
+        <thead>
+            <tr>
+                <th>Severidad</th>
+                <th>Tipo</th>
+                <th>Mensaje</th>
+                <th>Fecha</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr *ngFor="let alert of alerts">
+                <td>
+                    <c-badge [color]="getSeverityColor(alert.severity)">
+                        {{ alert.severity | uppercase }}
+                    </c-badge>
+                </td>
+                <td>{{ alert.alertType }}</td>
+                <td>{{ alert.alertMessage }}</td>
+                <td>{{ alert.alertTimestamp | date:'short' }}</td>
+                <td>
+                    <c-badge [color]="alert.acknowledged ? 'success' : 'danger'" shape="rounded-pill">
+                        {{ alert.acknowledged ? 'ATENDIDA' : 'PENDIENTE' }}
+                    </c-badge>
+                </td>
+                <td>
+                    <button cButton color="success" size="sm" variant="ghost" *ngIf="!alert.acknowledged"
+                        (click)="acknowledge(alert)" title="Marcar como atendida">
+                        <svg cIcon name="cilCheck"></svg>
+                    </button>
+                </td>
+            </tr>
+            <tr *ngIf="alerts.length === 0">
+                <td colspan="6" class="text-center py-4 text-muted">
+                    No hay alertas registradas para este dispositivo.
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>

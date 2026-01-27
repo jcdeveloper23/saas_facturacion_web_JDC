@@ -121,7 +121,20 @@ import {
   cilFolder,
   cilApps,
   cilBolt,
-  cilArrowLeft
+  cilArrowLeft,
+  cilClock,
+  cilFingerprint,
+  cilHistory,
+  cilTerminal,
+  cilSignalCellular4,
+  cilXCircle,
+  cilDevices,
+  cilPowerStandby,
+  cilCarAlt,
+  cilBattery5,
+  cilActionRedo,
+  cilActionUndo,
+  cilRunning
 } from '@coreui/icons';
 
 import { signet } from './signet';
@@ -251,6 +264,19 @@ export const iconSubset = {
   cilApps,
   cilBolt,
   cilArrowLeft,
+  cilClock,
+  cilFingerprint,
+  cilHistory,
+  cilTerminal,
+  cilSignalCellular4,
+  cilXCircle,
+  cilDevices,
+  cilPowerStandby,
+  cilCarAlt,
+  cilBattery5,
+  cilActionRedo,
+  cilActionUndo,
+  cilRunning,
   logo,
   signet
 };
@@ -381,6 +407,19 @@ export enum IconSubset {
   cilApps = 'cilApps',
   cilBolt = 'cilBolt',
   cilArrowLeft = 'cilArrowLeft',
+  cilClock = 'cilClock',
+  cilFingerprint = 'cilFingerprint',
+  cilHistory = 'cilHistory',
+  cilTerminal = 'cilTerminal',
+  cilSignalCellular4 = 'cilSignalCellular4',
+  cilXCircle = 'cilXCircle',
+  cilDevices = 'cilDevices',
+  cilPowerStandby = 'cilPowerStandby',
+  cilCarAlt = 'cilCarAlt',
+  cilBattery5 = 'cilBattery5',
+  cilActionRedo = 'cilActionRedo',
+  cilActionUndo = 'cilActionUndo',
+  cilRunning = 'cilRunning',
   logo = 'logo',
   signet = 'signet'
 }

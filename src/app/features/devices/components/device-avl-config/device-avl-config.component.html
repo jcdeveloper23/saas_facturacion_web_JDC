@@ -1,0 +1,52 @@
+<div *ngIf="loading" class="text-center p-4">
+    <c-spinner color="primary"></c-spinner>
+</div>
+
+<div *ngIf="!loading">
+    <div class="d-flex justify-content-between mb-3">
+        <strong>Parámetros AVL (Teltonika)</strong>
+        <button cButton color="primary" size="sm" variant="outline">
+            <svg cIcon name="cilSync" class="me-1"></svg> Sincronizar
+        </button>
+    </div>
+
+    <table cTable hover responsive striped>
+        <thead>
+            <tr>
+                <th scope="col">ID</th>
+                <th scope="col">Parámetro</th>
+                <th scope="col">Prioridad</th>
+                <th scope="col">Guardar en</th>
+                <th scope="col">Visible</th>
+                <th scope="col" class="text-end">Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr *ngFor="let config of configs">
+                <td><code>{{ config.avlId }}</code></td>
+                <td>{{ config.parameterName }}</td>
+                <td>
+                    <c-badge [color]="getPriorityColor(config.priority)">
+                        {{ config.priority | uppercase }}
+                    </c-badge>
+                </td>
+                <td>{{ getSaveOnLabel(config.saveOn) }}</td>
+                <td>
+                    <c-badge [color]="config.isVisible ? 'success' : 'secondary'">
+                        {{ config.isVisible ? 'SI' : 'NO' }}
+                    </c-badge>
+                </td>
+                <td class="text-end">
+                    <button cButton color="info" size="sm" variant="ghost">
+                        <svg cIcon name="cilPencil"></svg>
+                    </button>
+                </td>
+            </tr>
+            <tr *ngIf="configs.length === 0">
+                <td colspan="6" class="text-center py-4 text-muted">
+                    No hay configuración AVL registrada para este dispositivo.
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>

@@ -264,17 +264,44 @@
   <c-row class="g-3">
     <c-col md="12">
       <label cLabel>Plan *</label>
+      @if (isPlansLoading()) {
+      <div class="text-center py-3">
+        <c-spinner size="sm" color="primary"></c-spinner>
+        <span class="ms-2 text-muted">Cargando planes...</span>
+      </div>
+      } @else if (plans().length === 0) {
+      <c-alert color="warning" class="mt-2">
+        <svg cIcon name="cil-warning" size="lg" class="me-2"></svg>
+        No hay planes disponibles. Por favor configure los planes primero.
+      </c-alert>
+      } @else {
       <div class="d-flex flex-wrap gap-3 mt-2">
-        @for (plan of planOptions; track plan.value) {
+        @for (plan of plans(); track plan.id) {
         <div class="plan-card p-3 border rounded cursor-pointer"
-          [class.border-primary]="form.get('plan')?.value === plan.value"
-          [class.bg-primary-subtle]="form.get('plan')?.value === plan.value"
-          (click)="form.get('plan')?.setValue(plan.value); onPlanChange(plan.value)">
-          <div class="fw-semibold">{{ plan.label }}</div>
-          <small class="text-body-secondary">{{ plan.description }}</small>
+          [class.border-primary]="form.get('plan')?.value === plan.code"
+          [class.bg-primary-subtle]="form.get('plan')?.value === plan.code"
+          (click)="form.get('plan')?.setValue(plan.code); onPlanChange(plan.code)">
+          <div class="fw-semibold">
+            {{ plan.name }}
+            @if (plan.is_popular) {
+            <c-badge color="warning" class="ms-1">Popular</c-badge>
+            }
+          </div>
+          <small class="text-body-secondary">{{ getPlanDescription(plan) }}</small>
+          @if (plan.price_monthly > 0) {
+          <div class="mt-1">
+            <strong class="text-primary">${{ plan.price_monthly }}</strong>
+            <small class="text-muted">/mes</small>
+          </div>
+          } @else {
+          <div class="mt-1">
+            <strong class="text-success">Gratis</strong>
+          </div>
+          }
         </div>
         }
       </div>
+      }
     </c-col>
 
     <c-col md="12">

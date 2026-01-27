@@ -1,6 +1,6 @@
 export const environment = {
   production: false,
-  apiGpsUrl: 'http://localhost:3020',
+  apiGpsUrl: 'http://13.59.90.173:3020',
   cloudFunctionsUrl: 'https://us-central1-driverappve.cloudfunctions.net/api/v1',
   firebase: {
     apiKey: 'AIzaSyBLTB4Zkc7DlD9y4OfNlawQYdlZnjtnXEo',

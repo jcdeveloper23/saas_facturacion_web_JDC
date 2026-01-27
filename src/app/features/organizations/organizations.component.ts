@@ -18,10 +18,11 @@ import {
 import { IconModule } from '@coreui/icons-angular';
 
 import { OrganizationsService } from '../../core/services/organizations.service';
+import { PlansService } from '../../core/services/plans.service';
 import {
   Organization,
   OrganizationFilters,
-  OrganizationPlan,
+  Plan,
   PLAN_COLORS
 } from '../../core/interfaces';
 import { HasPermissionDirective } from '../../shared/directives/has-permission.directive';
@@ -56,6 +57,7 @@ import { OrganizationDetailsComponent } from './components/organization-details/
 })
 export class OrganizationsComponent implements OnInit {
   private organizationsService = inject(OrganizationsService);
+  private plansService = inject(PlansService);
 
   // Expose Math for template
   Math = Math;
@@ -122,14 +124,19 @@ export class OrganizationsComponent implements OnInit {
     return pages;
   });
 
-  // Plan options for filter
-  planOptions: { value: OrganizationPlan | ''; label: string }[] = [
-    { value: '', label: 'Todos los planes' },
-    { value: 'free', label: 'Gratuito' },
-    { value: 'starter', label: 'Starter' },
-    { value: 'business', label: 'Business' },
-    { value: 'enterprise', label: 'Enterprise' }
-  ];
+  // Plans loaded from database
+  plans = signal<Plan[]>([]);
+
+  // Plan options computed from loaded plans
+  planOptions = computed(() => {
+    const options: { value: string; label: string }[] = [
+      { value: '', label: 'Todos los planes' }
+    ];
+    this.plans().forEach(plan => {
+      options.push({ value: plan.code, label: plan.name });
+    });
+    return options;
+  });
 
   statusOptions = [
     { value: '', label: 'Todos los estados' },
@@ -138,8 +145,16 @@ export class OrganizationsComponent implements OnInit {
   ];
 
   ngOnInit(): void {
+    this.loadPlans();
     this.loadOrganizations();
     this.loadSummary();
+  }
+
+  loadPlans(): void {
+    this.plansService.getActivePlans().subscribe({
+      next: (plans) => this.plans.set(plans),
+      error: (err) => console.error('Error loading plans:', err)
+    });
   }
 
   // ==========================================================================
@@ -197,10 +212,10 @@ export class OrganizationsComponent implements OnInit {
     const newFilters: OrganizationFilters = {};
 
     if (this.selectedPlan()) {
-      newFilters.plan = this.selectedPlan() as OrganizationPlan;
+      newFilters.plan = this.selectedPlan();
     }
 
-    if (this.selectedStatus() !== '') {
+    if (this.selectedStatus() !== '') { 
       newFilters.is_active = this.selectedStatus() === 'true';
     }
 
@@ -320,18 +335,24 @@ export class OrganizationsComponent implements OnInit {
   // HELPERS
   // ==========================================================================
 
-  getPlanBadgeColor(plan: OrganizationPlan): string {
-    return PLAN_COLORS[plan] || 'secondary';
+  getPlanBadgeColor(planCode: string): string {
+    // Use PLAN_COLORS if available, otherwise default based on plan
+    if (PLAN_COLORS[planCode as keyof typeof PLAN_COLORS]) {
+      return PLAN_COLORS[planCode as keyof typeof PLAN_COLORS];
+    }
+    // Dynamic color based on plan position
+    const plan = this.plans().find(p => p.code === planCode);
+    if (plan) {
+      const index = this.plans().indexOf(plan);
+      const colors = ['secondary', 'info', 'primary', 'warning', 'success'];
+      return colors[index % colors.length];
+    }
+    return 'secondary';
   }
 
-  getPlanLabel(plan: OrganizationPlan): string {
-    const labels: Record<OrganizationPlan, string> = {
-      free: 'Gratuito',
-      starter: 'Starter',
-      business: 'Business',
-      enterprise: 'Enterprise'
-    };
-    return labels[plan] || plan;
+  getPlanLabel(planCode: string): string {
+    const plan = this.plans().find(p => p.code === planCode);
+    return plan?.name || planCode;
   }
 
   getUsagePercent(org: Organization, type: 'devices' | 'users'): number {
