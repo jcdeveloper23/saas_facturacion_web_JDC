@@ -1,1 +1,93 @@
-// Routes history component styles
+// Routes history component styles - Theme compatible
+
+:host {
+  display: block;
+}
+
+// Row hover effect
+.route-row {
+  cursor: pointer;
+  transition: background-color 0.15s ease-in-out;
+
+  &:hover {
+    background-color: rgba(var(--cui-primary-rgb), 0.06);
+  }
+
+  &:active {
+    background-color: rgba(var(--cui-primary-rgb), 0.1);
+  }
+}
+
+// Table header styling
+.table-header {
+  background-color: var(--cui-tertiary-bg);
+
+  th {
+    font-weight: 600;
+    font-size: 0.8125rem;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+    color: var(--cui-secondary-color);
+    white-space: nowrap;
+    border-bottom-width: 2px;
+    border-bottom-color: var(--cui-border-color);
+  }
+}
+
+// Table body
+table tbody td {
+  vertical-align: middle;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-color: var(--cui-border-color);
+}
+
+// Pagination footer
+.pagination-footer {
+  background-color: var(--cui-tertiary-bg);
+}
+
+// Pagination styling
+.pagination {
+  .page-link {
+    min-width: 32px;
+    text-align: center;
+    color: var(--cui-body-color);
+    background-color: var(--cui-body-bg);
+    border-color: var(--cui-border-color);
+
+    &:hover {
+      background-color: var(--cui-secondary-bg);
+    }
+  }
+
+  .page-item.active .page-link {
+    background-color: var(--cui-primary);
+    border-color: var(--cui-primary);
+  }
+
+  .page-item.disabled .page-link {
+    color: var(--cui-secondary-color);
+    background-color: var(--cui-body-bg);
+  }
+}
+
+// Empty state icon wrapper
+.empty-icon-wrapper {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background-color: var(--cui-tertiary-bg);
+}
+
+// Badge adjustments
+c-badge {
+  font-weight: 500;
+}
+
+// Responsive adjustments
+@media (max-width: 991.98px) {
+  .filters-collapsed {
+    display: none;
+  }
+}

@@ -7,17 +7,18 @@ export interface Location {
   latitude: number;
   longitude: number;
   altitude?: number;
-  speed?: number;
+  speed?: number | string;
   heading?: number;
   satellites?: number;
   hdop?: number;
-  accStatus?: boolean;
+  accStatus?: number | boolean;
   batteryLevel?: number;
   gpsTimestamp: string;
   serverTimestamp?: string;
   routeId?: number;
   alertData?: Record<string, unknown>;
   state: boolean;
+  duration?: number;
 }
 
 export interface LocationHistory {

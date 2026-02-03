@@ -1,0 +1,395 @@
+<!-- Header -->
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+  <div class="d-flex align-items-center gap-3">
+    <button cButton color="secondary" variant="outline" (click)="goBack()">
+      <svg cIcon name="cilArrowLeft" class="me-1"></svg>
+      Volver
+    </button>
+    <div>
+      <h4 class="mb-0 d-flex align-items-center gap-2 flex-wrap">
+        Ruta #{{ routeId() }}
+        @if (route()) {
+        <c-badge [color]="getStatusColor(route()!.routeStatus)">
+          {{ translateStatus(route()!.routeStatus) }}
+        </c-badge>
+        <c-badge [color]="getRouteTypeColor(route()!.routeType)" size="sm">
+          {{ translateRouteType(route()!.routeType) }}
+        </c-badge>
+        }
+      </h4>
+      @if (route()) {
+      <small class="text-body-secondary">
+        {{ formatDate(route()!.startTime) }} - {{ formatDate(route()!.endTime) }}
+      </small>
+      }
+    </div>
+  </div>
+</div>
+
+<!-- Stats Row -->
+@if (loadingRoute()) {
+<div class="text-center p-5">
+  <c-spinner color="primary"></c-spinner>
+  <p class="mt-2 text-body-secondary">Cargando información de la ruta...</p>
+</div>
+} @else if (route()) {
+<c-row class="g-3 mb-4">
+  <c-col sm="6" xl="3">
+    <c-card class="h-100 stat-card">
+      <c-card-body class="d-flex align-items-center gap-3">
+        <div class="stat-icon bg-primary bg-opacity-10 text-primary">
+          <svg cIcon name="cilClock" size="lg"></svg>
+        </div>
+        <div>
+          <div class="fs-4 fw-bold">{{ formatDuration(route()!.duration) }}</div>
+          <small class="text-body-secondary text-uppercase">Duración</small>
+        </div>
+      </c-card-body>
+    </c-card>
+  </c-col>
+  <c-col sm="6" xl="3">
+    <c-card class="h-100 stat-card">
+      <c-card-body class="d-flex align-items-center gap-3">
+        <div class="stat-icon bg-danger bg-opacity-10 text-danger">
+          <svg cIcon name="cilLocationPin" size="lg"></svg>
+        </div>
+        <div>
+          <div class="fs-4 fw-bold">{{ formatDistance(route()!.totalDistance) }}</div>
+          <small class="text-body-secondary text-uppercase">Distancia</small>
+        </div>
+      </c-card-body>
+    </c-card>
+  </c-col>
+  <c-col sm="6" xl="3">
+    <c-card class="h-100 stat-card">
+      <c-card-body class="d-flex align-items-center gap-3">
+        <div class="stat-icon bg-warning bg-opacity-10 text-warning">
+          <svg cIcon name="cilSpeedometer" size="lg"></svg>
+        </div>
+        <div>
+          <div class="fs-4 fw-bold">{{ formatSpeed(route()!.maxSpeed) }}</div>
+          <small class="text-body-secondary text-uppercase">Vel. Máxima</small>
+        </div>
+      </c-card-body>
+    </c-card>
+  </c-col>
+  <c-col sm="6" xl="3">
+    <c-card class="h-100 stat-card">
+      <c-card-body class="d-flex align-items-center gap-3">
+        <div class="stat-icon bg-info bg-opacity-10 text-info">
+          <svg cIcon name="cilSpeedometer" size="lg"></svg>
+        </div>
+        <div>
+          <div class="fs-4 fw-bold">{{ formatSpeed(route()!.avgSpeed) }}</div>
+          <small class="text-body-secondary text-uppercase">Vel. Promedio</small>
+        </div>
+      </c-card-body>
+    </c-card>
+  </c-col>
+</c-row>
+
+<!-- Main Content -->
+<c-row>
+  <c-col lg="8" class="mb-4">
+    <c-card class="h-100">
+      <!-- Segmented Control Header -->
+      <c-card-header class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div class="view-switcher" role="group" aria-label="Vista de contenido">
+          @for (option of viewOptions; track option.id) {
+          <button class="view-btn" [class.active]="activeView() === option.id" (click)="setActiveView(option.id)">
+            <svg cIcon [name]="option.icon" size="sm"></svg>
+            <span>{{ option.label }}</span>
+            @if (option.id === 'points' && locations().length > 0) {
+            <c-badge color="primary" shape="rounded-pill" class="ms-1">{{ locations().length }}</c-badge>
+            }
+          </button>
+          }
+        </div>
+        @if (activeView() === 'map') {
+        <button cButton color="secondary" variant="ghost" size="sm" (click)="toggleFullscreen()"
+          cTooltip="Pantalla completa">
+          <svg cIcon [name]="isFullscreen() ? 'cilX' : 'cilExternalLink'"></svg>
+        </button>
+        }
+      </c-card-header>
+
+      <c-card-body class="p-0">
+        <!-- MAP VIEW -->
+        @if (activeView() === 'map') {
+        <div #mapContainer class="map-fullscreen-container" [class.is-fullscreen]="isFullscreen()">
+          <!-- Playback Controls -->
+          @if (locations().length > 0) {
+          <div class="playback-controls p-2 border-bottom d-flex align-items-center gap-2">
+            <button cButton color="primary" variant="ghost" size="sm"
+              (click)="isReplaying() ? pauseReplay() : startReplay()" cTooltip="Reproducir/Pausar">
+              @if (isReplaying()) {
+              <svg cIcon name="cilMediaPause"></svg>
+              } @else {
+              <svg cIcon name="cilMediaPlay"></svg>
+              }
+            </button>
+            <button cButton color="secondary" variant="ghost" size="sm" (click)="stopReplay()" cTooltip="Detener">
+              <svg cIcon name="cilMediaStop"></svg>
+            </button>
+
+            <div class="flex-grow-1 mx-2 position-relative">
+              <c-progress [value]="getReplayProgress()" height="8">
+                <c-progress-bar color="primary"></c-progress-bar>
+              </c-progress>
+              <input type="range" class="replay-slider" [min]="0" [max]="locations().length - 1" [value]="replayIndex()"
+                (input)="onSeek($event)">
+            </div>
+
+            <select class="form-select form-select-sm replay-speed" (change)="onSpeedChange($event)">
+              <option value="1">1x</option>
+              <option value="2">2x</option>
+              <option value="5">5x</option>
+              <option value="10">10x</option>
+            </select>
+
+            <span class="text-body-secondary small ms-2 d-none d-sm-inline">
+              {{ replayIndex() + 1 }}/{{ locations().length }}
+            </span>
+
+            @if (isFullscreen()) {
+            <button cButton color="light" size="sm" (click)="exitFullscreen()" class="ms-2">
+              <svg cIcon name="cilX" class="me-1"></svg>
+              Salir
+            </button>
+            }
+          </div>
+          }
+
+          <!-- Map -->
+          @if (loadingLocations()) {
+          <div class="d-flex justify-content-center align-items-center map-placeholder">
+            <c-spinner color="primary"></c-spinner>
+          </div>
+          } @else if (locations().length === 0) {
+          <div class="d-flex flex-column justify-content-center align-items-center text-body-secondary map-placeholder">
+            <svg cIcon name="cilMap" size="4xl" class="mb-3 opacity-50"></svg>
+            <p class="mb-0">No hay puntos GPS para esta ruta</p>
+          </div>
+          } @else {
+          <app-leaflet-map #mapComponent [height]="isFullscreen() ? 'calc(100vh - 56px)' : '450px'" [center]="mapCenter"
+            [zoom]="mapZoom" [markers]="mapMarkers()" [polylines]="mapPolylines()">
+          </app-leaflet-map>
+
+          <!-- Legend - Floating -->
+          <div class="map-legend" [class.fullscreen-legend]="isFullscreen()">
+            <div class="small fw-semibold mb-2">Leyenda</div>
+            @for (item of mapLegend; track item.letter) {
+            <div class="legend-item">
+              <span class="legend-marker" [style.background-color]="item.color">{{ item.letter }}</span>
+              <span class="small">{{ item.label }}</span>
+            </div>
+            }
+          </div>
+          }
+        </div>
+        }
+
+        <!-- TELEMETRY VIEW -->
+        @if (activeView() === 'telemetry') {
+        <div class="p-3 p-md-4">
+          <!-- Speed Chart -->
+          <div class="chart-section mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+              <div class="d-flex align-items-center gap-2">
+                <div class="chart-icon bg-primary bg-opacity-10 text-primary">
+                  <svg cIcon name="cilSpeedometer"></svg>
+                </div>
+                <div>
+                  <h6 class="mb-0">Perfil de Velocidad</h6>
+                  <small class="text-body-secondary">Variación durante el viaje</small>
+                </div>
+              </div>
+              @if (route()) {
+              <div class="d-flex gap-3">
+                <div class="text-end">
+                  <div class="small text-body-secondary">Máxima</div>
+                  <div class="fw-bold text-danger">{{ formatSpeed(route()!.maxSpeed) }}</div>
+                </div>
+                <div class="text-end">
+                  <div class="small text-body-secondary">Promedio</div>
+                  <div class="fw-bold text-primary">{{ formatSpeed(route()!.avgSpeed) }}</div>
+                </div>
+              </div>
+              }
+            </div>
+            <div class="chart-wrapper">
+              @if (speedChartData(); as chartData) {
+              <c-chart type="line" [data]="chartData" [options]="speedChartOptions"></c-chart>
+              } @else {
+              <div class="chart-loading">
+                <c-spinner color="primary" size="sm" class="me-2"></c-spinner>
+                Cargando datos...
+              </div>
+              }
+            </div>
+          </div>
+
+          <!-- Voltage Chart -->
+          <div class="chart-section">
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+              <div class="d-flex align-items-center gap-2">
+                <div class="chart-icon bg-success bg-opacity-10 text-success">
+                  <svg cIcon name="cilBolt"></svg>
+                </div>
+                <div>
+                  <h6 class="mb-0">Estado de Energía</h6>
+                  <small class="text-body-secondary">Voltaje externo y batería</small>
+                </div>
+              </div>
+            </div>
+            <div class="chart-wrapper">
+              @if (voltageChartData(); as chartData) {
+              <c-chart type="line" [data]="chartData" [options]="voltageChartOptions"></c-chart>
+              } @else {
+              <div class="chart-loading">
+                <c-spinner color="primary" size="sm" class="me-2"></c-spinner>
+                Cargando datos...
+              </div>
+              }
+            </div>
+          </div>
+        </div>
+        }
+
+        <!-- POINTS VIEW -->
+        @if (activeView() === 'points') {
+        <div class="table-responsive" style="max-height: 500px;">
+          <table cTable hover striped small class="mb-0">
+            <thead class="sticky-top">
+              <tr>
+                <th class="ps-3">#</th>
+                <th>Hora</th>
+                <th>Coordenadas</th>
+                <th class="text-end">Velocidad</th>
+                <th class="text-center d-none d-md-table-cell">Ignición</th>
+                <th class="text-center pe-3">Ver</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (loc of locations(); track loc.id; let i = $index) {
+              <tr [class.table-primary]="replayIndex() === i">
+                <td class="ps-3 text-body-secondary">{{ i + 1 }}</td>
+                <td>{{ loc.gpsTimestamp | date:'HH:mm:ss' }}</td>
+                <td>
+                  <code class="small">{{ formatCoordinate(loc.latitude) }}, {{ formatCoordinate(loc.longitude) }}</code>
+                </td>
+                <td class="text-end fw-medium">{{ formatSpeed(loc.speed) }}</td>
+                <td class="text-center d-none d-md-table-cell">
+                  <c-badge [color]="loc.accStatus === 1 ? 'success' : 'secondary'" size="sm">
+                    {{ loc.accStatus === 1 ? 'ON' : 'OFF' }}
+                  </c-badge>
+                </td>
+                <td class="text-center pe-3">
+                  <button cButton color="primary" variant="ghost" size="sm" (click)="centerOnPoint(loc)"
+                    cTooltip="Ver en mapa">
+                    <svg cIcon name="cilLocationPin"></svg>
+                  </button>
+                </td>
+              </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        }
+      </c-card-body>
+    </c-card>
+  </c-col>
+
+  <!-- Timeline Sidebar -->
+  <c-col lg="4" class="mb-4">
+    <c-card class="h-100">
+      <c-card-header>
+        <div class="d-flex align-items-center justify-content-between">
+          <strong>
+            <svg cIcon name="cilHistory" class="me-2 text-primary"></svg>
+            Cronología
+          </strong>
+          <div class="d-flex gap-1">
+            @if (identifiedStops().length > 0) {
+            <c-badge color="warning" shape="rounded-pill" size="sm">{{ identifiedStops().length }}</c-badge>
+            }
+            @if (routeEvents().length > 0) {
+            <c-badge color="info" shape="rounded-pill" size="sm">{{ routeEvents().length }}</c-badge>
+            }
+          </div>
+        </div>
+      </c-card-header>
+      <c-card-body class="timeline-container">
+        @if (loadingRoute()) {
+        <div class="text-center p-4">
+          <c-spinner color="primary" size="sm"></c-spinner>
+        </div>
+        } @else {
+        <!-- Start -->
+        <c-callout color="success" class="timeline-item">
+          <div class="d-flex gap-2">
+            <div class="timeline-icon bg-success">
+              <svg cIcon name="cilMediaPlay" size="sm"></svg>
+            </div>
+            <div>
+              <div class="small text-uppercase fw-bold text-success">Inicio</div>
+              <div class="fw-semibold">{{ formatDate(route()!.startTime) }}</div>
+              <div class="text-body-secondary small">{{ route()!.startAddress || 'Sin dirección registrada' }}</div>
+            </div>
+          </div>
+        </c-callout>
+
+        <!-- Stops -->
+        @for (stop of identifiedStops(); track stop.id; let i = $index) {
+        <c-callout color="warning" class="timeline-item">
+          <div class="d-flex gap-2">
+            <div class="timeline-icon bg-warning">
+              <svg cIcon name="cilClock" size="sm"></svg>
+            </div>
+            <div>
+              <div class="small text-uppercase fw-bold text-warning">Parada #{{ i + 1 }}</div>
+              <div class="fw-semibold">{{ Math.round(stop.duration) }} min</div>
+              <div class="text-body-secondary small">{{ formatDate(stop.gpsTimestamp) }}</div>
+            </div>
+          </div>
+        </c-callout>
+        }
+
+        <!-- Events -->
+        @for (event of routeEvents(); track $index) {
+        <c-callout [color]="event.type === 'ignition_on' ? 'info' : 'secondary'" class="timeline-item">
+          <div class="d-flex gap-2">
+            <div class="timeline-icon" [class.bg-info]="event.type === 'ignition_on'"
+              [class.bg-secondary]="event.type !== 'ignition_on'">
+              <svg cIcon name="cilBolt" size="sm"></svg>
+            </div>
+            <div>
+              <div class="small text-uppercase fw-bold" [class.text-info]="event.type === 'ignition_on'"
+                [class.text-secondary]="event.type !== 'ignition_on'">
+                {{ event.label }}
+              </div>
+              <div class="text-body-secondary small">{{ formatDate(event.timestamp) }}</div>
+            </div>
+          </div>
+        </c-callout>
+        }
+
+        <!-- End -->
+        <c-callout color="danger" class="timeline-item mb-0">
+          <div class="d-flex gap-2">
+            <div class="timeline-icon bg-danger">
+              <svg cIcon name="cilMediaStop" size="sm"></svg>
+            </div>
+            <div>
+              <div class="small text-uppercase fw-bold text-danger">Fin</div>
+              <div class="fw-semibold">{{ formatDate(route()!.endTime) }}</div>
+              <div class="text-body-secondary small">{{ route()!.endAddress || 'Sin dirección registrada' }}</div>
+            </div>
+          </div>
+        </c-callout>
+        }
+      </c-card-body>
+    </c-card>
+  </c-col>
+</c-row>
+}

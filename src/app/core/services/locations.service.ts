@@ -18,7 +18,7 @@ export class LocationsService extends ApiBaseService<Location> {
   getLatestByDevice(deviceImei: string): Observable<Location | null> {
     return this.find({
       deviceImei,
-      state: true,
+      state: 1,
       $limit: 1,
       $sort: { gpsTimestamp: -1 }
     }).pipe(
@@ -36,7 +36,7 @@ export class LocationsService extends ApiBaseService<Location> {
   ): Observable<LocationHistory> {
     return this.find({
       deviceImei,
-      state: true,
+      state: 1,
       gpsTimestamp: {
         $gte: startDate,
         $lte: endDate
@@ -60,8 +60,30 @@ export class LocationsService extends ApiBaseService<Location> {
   getByRoute(routeId: number): Observable<Location[]> {
     return this.find({
       routeId,
-      state: true,
-      $sort: { gpsTimestamp: 1 }
+      state: 1,
+      $sort: { gpsTimestamp: 1 },
+      $limit: 10000
+    }).pipe(map(response => response.data));
+  }
+
+  /**
+   * Get locations for a route by device and time range
+   * Use this when routeId is not set in locations
+   */
+  getByDeviceAndTimeRange(
+    deviceImei: string,
+    startTime: string,
+    endTime: string
+  ): Observable<Location[]> {
+    return this.find({
+      deviceImei,
+      state: 1,
+      gpsTimestamp: {
+        $gte: startTime,
+        $lte: endTime
+      },
+      $sort: { gpsTimestamp: 1 },
+      $limit: 10000
     }).pipe(map(response => response.data));
   }
 
@@ -73,7 +95,7 @@ export class LocationsService extends ApiBaseService<Location> {
     // For now, we'll get the latest location for each device
     return this.find({
       deviceImei: { $in: deviceImeis },
-      state: true,
+      state: 1,
       $sort: { gpsTimestamp: -1 }
     }).pipe(
       map(response => {

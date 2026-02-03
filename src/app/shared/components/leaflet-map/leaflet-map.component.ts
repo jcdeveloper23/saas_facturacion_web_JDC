@@ -7,6 +7,8 @@ import {
   OnInit,
   OnDestroy,
   AfterViewInit,
+  OnChanges,
+  SimpleChanges,
   signal,
   effect,
   inject,
@@ -63,9 +65,12 @@ export interface MapPolygon {
       width: 100%;
       min-height: 400px;
     }
+    :host ::ng-deep .leaflet-marker-icon.animated-marker {
+      transition: transform 1s linear !important;
+    }
   `]
 })
-export class LeafletMapComponent implements OnInit, AfterViewInit, OnDestroy {
+export class LeafletMapComponent implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   @ViewChild('mapContainer') mapContainer!: ElementRef;
 
   @Input() height = '500px';
@@ -106,6 +111,37 @@ export class LeafletMapComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngAfterViewInit(): void {
     this.initMap();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (!this.map) return;
+
+    // Re-render layers when inputs change
+    if (changes['markers']) {
+      this.renderMarkers();
+      // Auto-center on followed marker after render
+      if (this.followMarker) {
+        const followed = this.markers.find(m => m.id === this.followMarker);
+        if (followed) {
+          this.map.panTo([followed.position.lat, followed.position.lng], { animate: true, duration: 0.5 });
+        }
+      }
+    }
+    if (changes['polylines']) {
+      this.renderPolylines();
+    }
+    if (changes['circles']) {
+      this.renderCircles();
+    }
+    if (changes['polygons']) {
+      this.renderPolygons();
+    }
+    if (changes['center'] && !changes['center'].firstChange) {
+      const newCenter = changes['center'].currentValue;
+      if (newCenter) {
+        this.map.setView([newCenter.lat, newCenter.lng], this.zoom);
+      }
+    }
   }
 
   ngOnDestroy(): void {
@@ -155,7 +191,11 @@ export class LeafletMapComponent implements OnInit, AfterViewInit, OnDestroy {
   // Public methods for external control
   setCenter(lat: number, lng: number, zoom?: number): void {
     if (this.map) {
-      this.map.setView([lat, lng], zoom ?? this.map.getZoom());
+      if (zoom !== undefined) {
+        this.map.setView([lat, lng], zoom, { animate: true, duration: 0.5 });
+      } else {
+        this.map.panTo([lat, lng], { animate: true, duration: 0.5 });
+      }
     }
   }
 
@@ -166,9 +206,26 @@ export class LeafletMapComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   fitToMarkers(): void {
-    if (this.markers.length > 0 && this.map) {
-      const group = L.featureGroup(Array.from(this.markerLayers.values()));
-      this.map.fitBounds(group.getBounds(), { padding: [50, 50] });
+    if (!this.map) return;
+
+    // Collect all layers (markers and polylines)
+    const layers: L.Layer[] = [
+      ...Array.from(this.markerLayers.values()),
+      ...Array.from(this.polylineLayers.values())
+    ];
+
+    if (layers.length === 0) return;
+
+    try {
+      const group = L.featureGroup(layers);
+      const bounds = group.getBounds();
+
+      // Check if bounds are valid before fitting
+      if (bounds.isValid()) {
+        this.map.fitBounds(bounds, { padding: [50, 50] });
+      }
+    } catch (error) {
+      console.warn('Could not fit to markers/polylines:', error);
     }
   }
 
@@ -212,15 +269,32 @@ export class LeafletMapComponent implements OnInit, AfterViewInit, OnDestroy {
       const latLng = L.latLng(marker.position.lat, marker.position.lng);
 
       if (existing) {
-        // Update position
+        // Update position smoothly (CSS transition handles animation)
         existing.setLatLng(latLng);
+
+        // Update icon content directly via DOM to avoid flicker
+        if (marker.icon && marker.icon instanceof L.DivIcon) {
+          const el = existing.getElement();
+          if (el) {
+            const html = (marker.icon.options as L.DivIconOptions).html;
+            if (html && el.innerHTML !== html) {
+              el.innerHTML = html as string;
+            }
+          }
+        }
+
         if (marker.popup) {
           existing.setPopupContent(marker.popup);
         }
       } else {
-        // Create new marker
+        // Create new marker with animated class
+        const icon = marker.icon || this.defaultIcon;
+        if (icon instanceof L.DivIcon && icon.options.className) {
+          icon.options.className += ' animated-marker';
+        }
+
         const leafletMarker = L.marker(latLng, {
-          icon: marker.icon || this.defaultIcon,
+          icon: icon,
           title: marker.title
         });
 
@@ -354,7 +428,7 @@ export class LeafletMapComponent implements OnInit, AfterViewInit, OnDestroy {
   // Utility: Create a custom icon for vehicles/drivers
   createVehicleIcon(color: string = '#007bff', label?: string): L.DivIcon {
     return L.divIcon({
-      className: 'vehicle-marker',
+      className: 'vehicle-marker animated-marker',
       html: `
         <div style="
           background-color: ${color};
@@ -380,7 +454,7 @@ export class LeafletMapComponent implements OnInit, AfterViewInit, OnDestroy {
   // Utility: Create icon with heading/direction
   createDirectionalIcon(heading: number, color: string = '#007bff'): L.DivIcon {
     return L.divIcon({
-      className: 'directional-marker',
+      className: 'directional-marker animated-marker',
       html: `
         <div style="
           transform: rotate(${heading}deg);

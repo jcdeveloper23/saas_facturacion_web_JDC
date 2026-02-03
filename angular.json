@@ -41,7 +41,14 @@
               "src/scss/styles.scss"
             ],
             "scripts": [],
-            "allowedCommonJsDependencies": [],
+            "allowedCommonJsDependencies": [
+              "socket.io-client",
+              "engine.io-client",
+              "component-emitter",
+              "backo2",
+              "parseuri",
+              "crypto-js"
+            ],
             "stylePreprocessorOptions": {
               "sass": {
                 "silenceDeprecations": []

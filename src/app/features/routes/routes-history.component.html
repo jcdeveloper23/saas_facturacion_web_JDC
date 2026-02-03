@@ -1,20 +1,276 @@
 <c-row>
-  <c-col>
+  <c-col xs="12">
+    <!-- Filters Card - Compact Design -->
     <c-card class="mb-4">
-      <c-card-header>
+      <c-card-header class="border-bottom py-3">
         <div class="d-flex justify-content-between align-items-center">
-          <div>
-            <strong>Historial de Rutas</strong>
-            <p class="text-muted mb-0 small">Consulta y reproduce rutas históricas</p>
+          <div class="d-flex align-items-center gap-2">
+            <svg cIcon name="cilFilter" class="text-primary"></svg>
+            <strong>Filtros de Búsqueda</strong>
           </div>
-          <button cButton color="secondary" *hasPermission="'routes.export'">
-            <svg cIcon name="cil-cloud-download" size="sm"></svg>
-            Exportar
+          <button cButton color="link" size="sm" class="text-body-secondary d-lg-none" (click)="toggleFilters()">
+            <svg [cIcon]="filtersCollapsed() ? 'cilChevronBottom' : 'cilChevronTop'"></svg>
           </button>
         </div>
       </c-card-header>
-      <c-card-body>
-        <p class="text-muted">Módulo de historial de rutas en desarrollo...</p>
+      <div [visible]="!filtersCollapsed()" cCollapse class="d-lg-block">
+        <c-card-body class="py-3">
+          <!-- Date Presets Row -->
+          <div class="mb-3">
+            <label class="form-label small text-body-secondary mb-2">Período rápido</label>
+            <div class="d-flex flex-wrap gap-2">
+              @for (preset of datePresets; track preset.value) {
+              <button cButton [color]="activePreset() === preset.value ? 'primary' : 'secondary'"
+                [variant]="activePreset() === preset.value ? undefined : 'outline'" size="sm"
+                (click)="applyDatePreset(preset.value)">
+                {{ preset.label }}
+              </button>
+              }
+            </div>
+          </div>
+
+          <!-- Filters Row -->
+          <c-row class="g-3 align-items-end">
+            <c-col xs="12" sm="6" lg="3">
+              <label cLabel for="deviceSelect" class="small text-body-secondary">Dispositivo</label>
+              <select cSelect id="deviceSelect" [ngModel]="selectedDeviceImei()"
+                (ngModelChange)="selectedDeviceImei.set($event)" [disabled]="loadingDevices()">
+                <option value="" disabled>Seleccionar...</option>
+                @for (device of devices(); track device.deviceImei) {
+                <option [value]="device.deviceImei">
+                  {{ device.deviceName || device.deviceImei }}
+                </option>
+                }
+              </select>
+            </c-col>
+
+            <c-col xs="6" sm="6" lg="2">
+              <label cLabel for="statusSelect" class="small text-body-secondary">Estado</label>
+              <select cSelect id="statusSelect" [ngModel]="selectedStatus()"
+                (ngModelChange)="selectedStatus.set($event)">
+                @for (opt of statusOptions; track opt.value) {
+                <option [value]="opt.value">{{ opt.label }}</option>
+                }
+              </select>
+            </c-col>
+
+            <c-col xs="6" sm="6" lg="2">
+              <label cLabel for="startDate" class="small text-body-secondary">Desde</label>
+              <input cFormControl id="startDate" type="datetime-local" [ngModel]="startDate()"
+                (ngModelChange)="startDate.set($event); onDateChange()">
+            </c-col>
+
+            <c-col xs="6" sm="6" lg="2">
+              <label cLabel for="endDate" class="small text-body-secondary">Hasta</label>
+              <input cFormControl id="endDate" type="datetime-local" [ngModel]="endDate()"
+                (ngModelChange)="endDate.set($event); onDateChange()">
+            </c-col>
+
+            <c-col xs="12" sm="12" lg="3">
+              <div class="d-flex gap-2">
+                <button cButton color="primary" class="flex-grow-1" (click)="loadRoutes()"
+                  [disabled]="loading() || !selectedDeviceImei()">
+                  <svg cIcon name="cilMagnifyingGlass" class="me-1"></svg>
+                  Buscar
+                </button>
+                <button cButton color="secondary" variant="outline" (click)="applyDatePreset('today')"
+                  cTooltip="Reiniciar filtros">
+                  <svg cIcon name="cilReload"></svg>
+                </button>
+              </div>
+            </c-col>
+          </c-row>
+        </c-card-body>
+      </div>
+    </c-card>
+  </c-col>
+
+  <c-col xs="12">
+    <!-- Routes List -->
+    <c-card class="mb-4">
+      <c-card-header class="py-3">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <div class="d-flex align-items-center gap-2">
+            <svg cIcon name="cilMap" class="text-primary"></svg>
+            <strong>Historial de Rutas</strong>
+            @if (totalRoutes() > 0) {
+            <c-badge color="primary" shape="rounded-pill">{{ totalRoutes() }}</c-badge>
+            }
+          </div>
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <div class="d-flex align-items-center gap-2">
+              <span class="small text-body-secondary d-none d-sm-inline">Mostrar:</span>
+              <select cSelect size="sm" class="w-auto" [ngModel]="pageSize()"
+                (ngModelChange)="onPageSizeChange($event)">
+                @for (size of pageSizeOptions; track size) {
+                <option [ngValue]="size">{{ size }}</option>
+                }
+              </select>
+            </div>
+            <c-dropdown *hasPermission="'routes.export'" placement="bottom-end">
+              <button cButton color="primary" variant="outline" size="sm" cDropdownToggle
+                [disabled]="routes().length === 0">
+                <svg cIcon name="cilCloudDownload" size="sm" class="me-1"></svg>
+                <span class="d-none d-sm-inline">Exportar</span>
+              </button>
+              <ul cDropdownMenu>
+                <li>
+                  <a cDropdownItem (click)="exportToCSV()">
+                    <svg cIcon name="cilCloudDownload" class="me-2"></svg>
+                    Exportar CSV
+                  </a>
+                </li>
+                <li>
+                  <a cDropdownItem (click)="exportToExcel()">
+                    <svg cIcon name="cilCloudDownload" class="me-2"></svg>
+                    Exportar Excel
+                  </a>
+                </li>
+              </ul>
+            </c-dropdown>
+          </div>
+        </div>
+      </c-card-header>
+      <c-card-body class="p-0">
+        @if (loading()) {
+        <div class="text-center p-5">
+          <c-spinner color="primary"></c-spinner>
+          <p class="mt-2 text-body-secondary mb-0">Cargando rutas...</p>
+        </div>
+        } @else if (routes().length === 0) {
+        <div class="text-center p-5">
+          <div class="empty-icon-wrapper d-inline-flex align-items-center justify-content-center mb-3">
+            <svg cIcon name="cilMap" size="3xl" class="text-body-secondary opacity-50"></svg>
+          </div>
+          <h6 class="text-body-secondary">No se encontraron rutas</h6>
+          <p class="text-body-secondary small mb-0">Ajusta los filtros o selecciona un período diferente</p>
+        </div>
+        } @else {
+        <!-- Desktop Table -->
+        <div class="table-responsive">
+          <table cTable hover class="mb-0 align-middle">
+            <thead class="table-header">
+              <tr>
+                <th class="ps-3">Estado</th>
+                <th>Inicio</th>
+                <th>Fin</th>
+                <th class="text-end">Duración</th>
+                <th class="text-end">Distancia</th>
+                <th class="text-end d-none d-lg-table-cell">Vel. Max</th>
+                <th class="text-end d-none d-xl-table-cell">Vel. Prom</th>
+                <th class="d-none d-xl-table-cell">Origen</th>
+                <th class="d-none d-xxl-table-cell">Destino</th>
+                <th class="text-center pe-3" style="width: 60px;">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (route of routes(); track route.id) {
+              <tr class="route-row" (click)="viewRouteDetail(route)">
+                <td class="ps-3">
+                  <div class="d-flex align-items-center gap-2">
+                    <c-badge [color]="getStatusColor(route.routeStatus)">
+                      {{ translateStatus(route.routeStatus) }}
+                    </c-badge>
+                    <c-badge [color]="getRouteTypeColor(route.routeType)" class="d-none d-md-inline-flex" size="sm"
+                      textColor="white">
+                      {{ translateRouteType(route.routeType) }}
+                    </c-badge>
+                  </div>
+                </td>
+                <td>
+                  <div class="fw-medium">{{ route.startTime | date:'dd/MM/yy' }}</div>
+                  <small class="text-body-secondary">{{ route.startTime | date:'HH:mm' }}</small>
+                </td>
+                <td>
+                  @if (route.endTime) {
+                  <div class="fw-medium">{{ route.endTime | date:'dd/MM/yy' }}</div>
+                  <small class="text-body-secondary">{{ route.endTime | date:'HH:mm' }}</small>
+                  } @else {
+                  <span class="text-body-secondary">--</span>
+                  }
+                </td>
+                <td class="text-end">
+                  <span class="fw-semibold">{{ formatDuration(route.duration) }}</span>
+                </td>
+                <td class="text-end">
+                  <span class="fw-semibold">{{ formatDistance(route.totalDistance) }}</span>
+                </td>
+                <td class="text-end d-none d-lg-table-cell">
+                  {{ formatSpeed(route.maxSpeed) }}
+                </td>
+                <td class="text-end d-none d-xl-table-cell">
+                  {{ formatSpeed(route.avgSpeed) }}
+                </td>
+                <td class="d-none d-xl-table-cell">
+                  <div class="text-truncate" style="max-width: 150px;" [cTooltip]="route.startAddress || ''">
+                    {{ route.startAddress || '--' }}
+                  </div>
+                </td>
+                <td class="d-none d-xxl-table-cell">
+                  <div class="text-truncate" style="max-width: 150px;" [cTooltip]="route.endAddress || ''">
+                    {{ route.endAddress || '--' }}
+                  </div>
+                </td>
+                <td class="text-center pe-3">
+                  <c-dropdown placement="bottom-end">
+                    <button cButton color="transparent" size="sm" cDropdownToggle class="p-1"
+                      (click)="$event.stopPropagation()">
+                      <svg cIcon name="cilOptions"></svg>
+                    </button>
+                    <ul cDropdownMenu>
+                      <li>
+                        <a cDropdownItem (click)="viewRouteDetail(route); $event.stopPropagation()">
+                          <svg cIcon name="cilMap" class="me-2"></svg>
+                          Ver detalle
+                        </a>
+                      </li>
+                    </ul>
+                  </c-dropdown>
+                </td>
+              </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination Controls -->
+        @if (totalPages() > 1) {
+        <div class="d-flex justify-content-between align-items-center p-3 border-top pagination-footer">
+          <div class="text-body-secondary small">
+            {{ getDisplayRange().start }}-{{ getDisplayRange().end }} de {{ totalRoutes() }}
+          </div>
+          <nav>
+            <ul class="pagination pagination-sm mb-0">
+              <li class="page-item" [class.disabled]="currentPage() === 1">
+                <a class="page-link" (click)="goToPage(1)" role="button" aria-label="Primera página">
+                  <span aria-hidden="true">&laquo;</span>
+                </a>
+              </li>
+              <li class="page-item" [class.disabled]="currentPage() === 1">
+                <a class="page-link" (click)="goToPage(currentPage() - 1)" role="button" aria-label="Anterior">
+                  <span aria-hidden="true">&lsaquo;</span>
+                </a>
+              </li>
+              @for (page of getPageNumbers(); track page) {
+              <li class="page-item" [class.active]="page === currentPage()">
+                <a class="page-link" (click)="goToPage(page)" role="button">{{ page }}</a>
+              </li>
+              }
+              <li class="page-item" [class.disabled]="currentPage() === totalPages()">
+                <a class="page-link" (click)="goToPage(currentPage() + 1)" role="button" aria-label="Siguiente">
+                  <span aria-hidden="true">&rsaquo;</span>
+                </a>
+              </li>
+              <li class="page-item" [class.disabled]="currentPage() === totalPages()">
+                <a class="page-link" (click)="goToPage(totalPages())" role="button" aria-label="Última página">
+                  <span aria-hidden="true">&raquo;</span>
+                </a>
+              </li>
+            </ul>
+          </nav>
+        </div>
+        }
+        }
       </c-card-body>
     </c-card>
   </c-col>

@@ -68,17 +68,29 @@ export abstract class ApiBaseService<T> {
    */
   protected buildParams(query?: Record<string, unknown>): HttpParams {
     let params = new HttpParams();
+
     if (query) {
       Object.entries(query).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          if (typeof value === 'object') {
-            params = params.set(key, JSON.stringify(value));
-          } else {
-            params = params.set(key, String(value));
-          }
+        if (value === undefined || value === null) return;
+
+        if (Array.isArray(value)) {
+          value.forEach(v => {
+            params = params.append(`${key}[]`, String(v));
+          });
+        } else if (typeof value === 'object' && !(value instanceof Date)) {
+          // Flatten simple objects for Feathers/Express: key[subKey]=value
+          // This supports operators like { $gte: '...' } -> key[$gte]=...
+          Object.entries(value as Record<string, unknown>).forEach(([subKey, subValue]) => {
+            if (subValue !== undefined && subValue !== null) {
+              params = params.append(`${key}[${subKey}]`, String(subValue));
+            }
+          });
+        } else {
+          params = params.set(key, String(value));
         }
       });
     }
+
     return params;
   }
 }

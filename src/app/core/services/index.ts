@@ -17,3 +17,7 @@ export { PlansService } from './plans.service';
 export { DeviceSettingsService } from './device-settings.service';
 export { DeviceAvlConfigService } from './device-avl-config.service';
 export { NotificationService } from './notification.service';
+export { GeocodingService } from './geocoding.service';
+export type { GeocodedAddress } from './geocoding.service';
+export { SocketService } from './socket.service';
+export type { LocationUpdateEvent, DeviceStatusEvent, AlertEvent, ConnectionStatus } from './socket.service';

@@ -69,3 +69,21 @@ export interface DeviceFilters {
   search?: string;
   state?: boolean | 'all'; // true = activos, false = inactivos, 'all' = todos
 }
+
+/**
+ * Device with real-time location data for monitoring
+ */
+export interface DeviceWithLocation extends Device {
+  currentLocation?: {
+    latitude: number;
+    longitude: number;
+    speed?: number;
+    heading?: number;
+    altitude?: number;
+    gpsTimestamp: string;
+    accStatus?: boolean;
+    batteryLevel?: number;
+  };
+  relativeTime?: string;
+  isMoving?: boolean;
+}

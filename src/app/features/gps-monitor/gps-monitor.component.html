@@ -1,58 +1,115 @@
 <c-row>
-  <!-- Sidebar con lista de conductores -->
+  <!-- Sidebar con lista de dispositivos -->
   <c-col [lg]="3" [md]="4" class="mb-3">
+    <!-- Estadisticas -->
+    <c-card class="mb-3">
+      <c-card-body class="py-2">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <small class="text-muted">Estado de conexion</small>
+          <c-badge [color]="isSocketConnected() ? 'success' : 'danger'">
+            {{ isSocketConnected() ? 'Conectado' : socketStatus() }}
+          </c-badge>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+          <button cButton size="sm" [color]="statusFilter() === 'all' ? 'primary' : 'secondary'" variant="outline"
+            (click)="setStatusFilter('all')">
+            Todos ({{ stats().total }})
+          </button>
+          <button cButton size="sm" [color]="statusFilter() === 'online' ? 'success' : 'secondary'" variant="outline"
+            (click)="setStatusFilter('online')">
+            <svg cIcon name="cil-check-circle" size="sm"></svg>
+            {{ stats().online }}
+          </button>
+          <button cButton size="sm" [color]="statusFilter() === 'offline' ? 'danger' : 'secondary'" variant="outline"
+            (click)="setStatusFilter('offline')">
+            <svg cIcon name="cil-x-circle" size="sm"></svg>
+            {{ stats().offline }}
+          </button>
+        </div>
+        @if (stats().moving > 0) {
+        <div class="mt-2">
+          <small class="text-info">
+            <svg cIcon name="cil-truck" size="sm"></svg>
+            {{ stats().moving }} en movimiento
+          </small>
+        </div>
+        }
+      </c-card-body>
+    </c-card>
+
+    <!-- Lista de dispositivos -->
     <c-card>
       <c-card-header>
         <div class="d-flex justify-content-between align-items-center">
-          <strong>Conductores</strong>
-          <c-badge [color]="isLoading() ? 'warning' : 'success'">
-            {{ drivers().length }}
+          <strong>Dispositivos GPS</strong>
+          <c-badge [color]="isLoading() ? 'warning' : 'info'">
+            {{ filteredDevices().length }}
           </c-badge>
         </div>
       </c-card-header>
       <c-card-body class="p-0">
         <!-- Buscador -->
         <div class="p-3 border-bottom">
-          <input cFormControl type="text" placeholder="Buscar conductor..." [(ngModel)]="searchTerm"
+          <input cFormControl type="text" placeholder="Buscar por IMEI o nombre..." [ngModel]="searchTerm()"
             (ngModelChange)="onSearch($event)" />
         </div>
 
-        <!-- Lista de conductores -->
-        <div class="driver-list" style="max-height: 60vh; overflow-y: auto;">
+        <!-- Lista de dispositivos -->
+        <div class="device-list" style="max-height: 50vh; overflow-y: auto;">
           @if (isLoading()) {
           <div class="text-center p-4">
             <c-spinner color="primary"></c-spinner>
+            <div class="mt-2 text-muted">Cargando dispositivos...</div>
           </div>
-          } @else if (filteredDrivers().length === 0) {
+          } @else if (filteredDevices().length === 0) {
           <div class="text-center p-4 text-muted">
-            No hay conductores activos
+            @if (searchTerm() || statusFilter() !== 'all') {
+            <svg cIcon name="cil-search" size="xl" class="mb-2"></svg>
+            <div>No se encontraron dispositivos</div>
+            <small>Intenta con otros filtros</small>
+            } @else {
+            <svg cIcon name="cil-location-pin" size="xl" class="mb-2"></svg>
+            <div>No hay dispositivos registrados</div>
+            }
           </div>
           } @else {
-          @for (driver of filteredDrivers(); track driver.id) {
-          <div class="driver-item p-3 border-bottom cursor-pointer" [class.active]="selectedDriver()?.id === driver.id"
-            (click)="selectDriver(driver)">
+          @for (device of filteredDevices(); track device.deviceImei) {
+          <div class="device-item p-3 border-bottom" [class.active]="selectedDevice()?.deviceImei === device.deviceImei"
+            [class.online]="device.deviceStatus === 'online'" [class.moving]="device.isMoving"
+            (click)="selectDevice(device)">
             <div class="d-flex align-items-center">
-              <div class="driver-avatar me-3" [style.background-color]="getDriverColor(driver)">
-                {{ getDriverInitial(driver) }}
+              <div class="device-icon me-3" [style.background-color]="getDeviceColor(device)">
+                <svg cIcon [name]="getDeviceIcon(device)" size="lg"></svg>
               </div>
-              <div class="flex-grow-1">
-                <div class="fw-bold">
-                  {{ driver.userFullName || 'Sin nombre' }}
+              <div class="flex-grow-1 min-width-0">
+                <div class="fw-bold text-truncate">
+                  {{ device.deviceName || device.deviceImei }}
                 </div>
-                <small class="text-muted">
-                  @if (driver.relativeTime) {
-                  <span class="text-success">
-                    <svg cIcon name="cil-location-pin" size="sm"></svg>
-                    {{ driver.relativeTime }}
-                  </span>
-                  } @else {
-                  <span class="text-warning">Sin ubicación</span>
-                  }
+                <small class="text-muted d-block text-truncate">
+                  {{ device.deviceImei }}
                 </small>
+                <div class="d-flex align-items-center gap-2 mt-1">
+                  <c-badge [color]="getStatusBadgeColor(device.deviceStatus)" size="sm">
+                    {{ device.deviceStatus === 'online' ? 'En linea' : device.deviceStatus === 'offline' ? 'Desconectado'
+                    : 'Inactivo' }}
+                  </c-badge>
+                  @if (device.relativeTime && device.relativeTime !== 'Sin datos') {
+                  <small class="text-muted">{{ device.relativeTime }}</small>
+                  }
+                </div>
               </div>
-              @if (isFollowing() && selectedDriver()?.id === driver.id) {
-              <c-badge color="info">Siguiendo</c-badge>
-              }
+              <div class="text-end ms-2">
+                @if (device.isMoving) {
+                <div class="text-info fw-bold">
+                  {{ formatSpeed(device.currentLocation?.speed ?? device.lastSpeed) }}
+                </div>
+                }
+                @if (isFollowing() && selectedDevice()?.deviceImei === device.deviceImei) {
+                <c-badge color="info" size="sm">
+                  <svg cIcon name="cil-location-pin" size="sm"></svg>
+                </c-badge>
+                }
+              </div>
             </div>
           </div>
           }
@@ -60,15 +117,14 @@
         </div>
       </c-card-body>
       <c-card-footer class="d-flex gap-2">
-        <button cButton color="primary" size="sm" class="flex-grow-1" (click)="refreshDrivers()"
+        <button cButton color="primary" size="sm" class="flex-grow-1" (click)="refreshDevices()"
           [disabled]="isLoading()">
           <svg cIcon name="cil-reload" size="sm"></svg>
           Actualizar
         </button>
-        @if (selectedDriver()) {
-        <button cButton [color]="isFollowing() ? 'warning' : 'success'" size="sm" (click)="toggleFollow()">
-          <svg cIcon [name]="isFollowing() ? 'cil-x' : 'cil-location-pin'" size="sm"></svg>
-          {{ isFollowing() ? 'Dejar de seguir' : 'Seguir' }}
+        @if (!isSocketConnected()) {
+        <button cButton color="warning" size="sm" (click)="reconnectSocket()" cTooltip="Reconectar WebSocket">
+          <svg cIcon name="cil-signal-cellular-0" size="sm"></svg>
         </button>
         }
       </c-card-footer>
@@ -80,41 +136,72 @@
     <c-card>
       <c-card-header>
         <div class="d-flex justify-content-between align-items-center">
-          <strong>Mapa en Tiempo Real</strong>
+          <strong>
+            <svg cIcon name="cil-map" size="lg" class="me-2"></svg>
+            Monitor en Tiempo Real
+          </strong>
           <div class="d-flex gap-2 align-items-center">
-            <small class="text-muted">
-              Actualización: cada {{ refreshInterval / 1000 }}s
-            </small>
-            <c-badge [color]="isAutoRefresh() ? 'success' : 'secondary'">
-              {{ isAutoRefresh() ? 'Auto' : 'Manual' }}
-            </c-badge>
+            @if (isSocketConnected()) {
+            <span class="connection-indicator connected"></span>
+            <small class="text-success">Tiempo real activo</small>
+            } @else {
+            <span class="connection-indicator disconnected"></span>
+            <small class="text-danger">Sin conexion</small>
+            }
+            <button cButton color="light" size="sm" (click)="fitAllDevices()" cTooltip="Ver todos">
+              <svg cIcon name="cil-fullscreen" size="sm"></svg>
+            </button>
           </div>
         </div>
       </c-card-header>
       <c-card-body class="p-0">
         <app-leaflet-map #mapComponent [height]="'70vh'" [center]="mapCenter" [zoom]="mapZoom" [markers]="mapMarkers()"
-          [followMarker]="isFollowing() ? selectedDriver()?.id?.toString() : undefined"
-          (markerClick)="onMarkerClick($event)" (mapReady)="onMapReady($event)"></app-leaflet-map>
+          [followMarker]="isFollowing() ? selectedDevice()?.deviceImei : undefined" (markerClick)="onMarkerClick($event)"
+          (mapReady)="onMapReady($event)"></app-leaflet-map>
       </c-card-body>
       <c-card-footer>
-        <div class="d-flex justify-content-between align-items-center">
-          <div>
-            @if (selectedDriver()) {
-            <strong>{{ selectedDriver()?.userFullName }}</strong>
-            @if (selectedDriver()?.userLastLocationLatitude) {
-            <span class="ms-2 text-muted">
-              Lat: {{ selectedDriver()?.userLastLocationLatitude | number:'1.6-6' }},
-              Lng: {{ selectedDriver()?.userLastLocationLongitude | number:'1.6-6' }}
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <div class="device-info">
+            @if (selectedDevice(); as device) {
+            <div class="d-flex align-items-center gap-3">
+              <div>
+                <strong>{{ device.deviceName || device.deviceImei }}</strong>
+                <c-badge [color]="getStatusBadgeColor(device.deviceStatus)" class="ms-2">
+                  {{ device.deviceStatus }}
+                </c-badge>
+              </div>
+              @if (hasValidLocation(device)) {
+              <div class="d-none d-md-block">
+                <small class="text-muted">
+                  <svg cIcon name="cil-location-pin" size="sm"></svg>
+                  {{ (device.currentLocation?.latitude ?? device.lastLatitude) | number:'1.5-5' }},
+                  {{ (device.currentLocation?.longitude ?? device.lastLongitude) | number:'1.5-5' }}
+                </small>
+              </div>
+              @if (device.currentLocation?.speed !== undefined || device.lastSpeed !== undefined) {
+              <div>
+                <small class="text-info">
+                  <svg cIcon name="cil-speedometer" size="sm"></svg>
+                  {{ formatSpeed(device.currentLocation?.speed ?? device.lastSpeed) }}
+                </small>
+              </div>
+              }
+              }
+            </div>
+            } @else {
+            <span class="text-muted">
+              <svg cIcon name="cil-cursor" size="sm"></svg>
+              Selecciona un dispositivo para ver detalles
             </span>
             }
-            } @else {
-            <span class="text-muted">Selecciona un conductor para ver detalles</span>
-            }
           </div>
-          <div>
-            <button cButton [color]="isAutoRefresh() ? 'warning' : 'success'" size="sm" (click)="toggleAutoRefresh()">
-              {{ isAutoRefresh() ? 'Pausar' : 'Iniciar' }} auto-actualización
+          <div class="d-flex gap-2">
+            @if (selectedDevice()) {
+            <button cButton [color]="isFollowing() ? 'warning' : 'success'" size="sm" (click)="toggleFollow()">
+              <svg cIcon [name]="isFollowing() ? 'cil-x' : 'cil-location-pin'" size="sm"></svg>
+              {{ isFollowing() ? 'Dejar de seguir' : 'Seguir' }}
             </button>
+            }
           </div>
         </div>
       </c-card-footer>
