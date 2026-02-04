@@ -20,14 +20,15 @@ export class UsersService extends ApiBaseService<User> {
 
     if (filters?.state !== undefined) {
       query['state'] = filters.state;
-    } else {
-      // query['state'] = 1;
     }
     if (filters?.role !== undefined) {
       query['userCurrentRole'] = filters.role;
     }
+    if (filters?.roleId !== undefined) {
+      query['roleId'] = filters.roleId;
+    }
     if (filters?.organizationId) {
-      query['organization_id'] = filters.organizationId;
+      query['organization_id'] = filters.organizationId; // Backend uses snake_case
     }
     if (filters?.search) {
       query['$or'] = [
@@ -35,6 +36,9 @@ export class UsersService extends ApiBaseService<User> {
         { userEmail: { $like: `%${filters.search}%` } }
       ];
     }
+
+    console.log(`getUsers query: ${JSON.stringify(query, null, 2)}`);
+    
 
     return this.find(query).pipe(map(response => response.data));
   }
@@ -102,6 +106,13 @@ export class UsersService extends ApiBaseService<User> {
       userLastLocationLongitude: lng,
       userLastLocationDate: new Date().toISOString()
     });
+  }
+
+  /**
+   * Change user password
+   */
+  changePassword(userId: number, password: string): Observable<User> {
+    return this.patch(userId, { userPassword: password });
   }
 
   /**

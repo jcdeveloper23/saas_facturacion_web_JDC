@@ -1,4 +1,6 @@
 import { Role } from './permission.interface';
+import { Organization } from './organization.interface';
+
 
 /**
  * User Module - Simplified module for navigation menu
@@ -38,23 +40,25 @@ export interface User {
   userSettingId?: number;
 
   // Notification preferences
-  userReceiveNotifications?: boolean;
-  userMuteNotifications?: boolean;
+  userReceiveNotifications?: boolean | number; // Backend returns 0/1
+  userMuteNotifications?: boolean | number; // Backend returns 0/1
 
-  // Organization
-  organizationId?: number;
+  // Organization (backend uses snake_case)
+  organization_id?: number; // Backend field name
+  organizationId?: number; // Alias for compatibility
   organizationName?: string;
+  organization?: Organization; // Populated organization object from backend
 
   // Driver-specific (role 9)
   userLastLocationLatitude?: number;
   userLastLocationLongitude?: number;
   userLastLocationDate?: string;
 
-  role?: Role; // Nested role object from backend
+  role?: Role; // Nested role object from backend (already populated)
   permissions?: string[]; // Effective permissions for this user
   modules?: UserModule[]; // Modules accessible by this user based on role
 
-  state: boolean;
+  state: boolean | number; // Backend returns 0/1
   createdAt?: string;
   updatedAt?: string;
 }
@@ -66,7 +70,7 @@ export interface UserFilters {
   role?: UserRoleNumeric;
   roleId?: number;
   organizationId?: number;
-  state?: boolean;
+  state?: boolean | number;
   search?: string;
 }
 
@@ -79,6 +83,13 @@ export interface UserPreferences {
   mapType?: string;
   defaultZoom?: number;
   refreshInterval?: number;
+}
+
+export interface UserStats {
+  total: number;
+  admins: number;
+  active: number;
+  inactive: number;
 }
 
 export interface AuthUser {

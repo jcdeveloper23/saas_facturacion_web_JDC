@@ -1,6 +1,6 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { Component, computed, inject, input } from '@angular/core';
-import { RouterLink, RouterLinkActive } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 
 import {
   AvatarComponent,
@@ -23,6 +23,7 @@ import {
 } from '@coreui/angular';
 
 import { IconDirective } from '@coreui/icons-angular';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-default-header',
@@ -32,7 +33,13 @@ import { IconDirective } from '@coreui/icons-angular';
 export class DefaultHeaderComponent extends HeaderComponent {
 
   readonly #colorModeService = inject(ColorModeService);
+  readonly #authService = inject(AuthService);
+  readonly #router = inject(Router);
+
   readonly colorMode = this.#colorModeService.colorMode;
+
+  // Datos del usuario actual
+  readonly currentUser = this.#authService.user;
 
   readonly colorModes = [
     { name: 'light', text: 'Light', icon: 'cilSun' },
@@ -126,4 +133,27 @@ export class DefaultHeaderComponent extends HeaderComponent {
     { id: 4, title: 'Angular Version', value: 100, color: 'success' }
   ];
 
+  /**
+   * Cierra la sesión del usuario y redirige al login
+   */
+  logout(): void {
+    this.#authService.logout();
+    this.#router.navigate(['/login']);
+  }
+
+  /**
+   * Obtiene las iniciales del usuario para el avatar
+   */
+  getUserInitials(): string {
+    const user = this.currentUser();
+    if (!user) return '?';
+
+    const firstName = user.userFullName?.charAt(0) || '';
+    const lastName = user.userLastName?.charAt(0) || '';
+
+    if (firstName && lastName) {
+      return (firstName + lastName).toUpperCase();
+    }
+    return (user.userEmail?.charAt(0) || '?').toUpperCase();
+  }
 }

@@ -225,33 +225,79 @@
                     <strong>Asignacion</strong>
                 </c-card-header>
                 <c-card-body>
-                    <!-- Organización (solo super admin) -->
-                    @if (isSuperAdmin()) {
+                    <!-- Organización -->
                     <div class="mb-3">
-                        <label cLabel for="organizationId">Organizacion</label>
+                        <label cLabel for="organizationId">
+                            Organización
+                            @if (isSuperAdmin()) {
+                            <span class="text-danger">*</span>
+                            }
+                        </label>
+
+                        @if (isSuperAdmin()) {
+                        <!-- Super admin: puede cambiar organización -->
                         <select cSelect
                             id="organizationId"
                             formControlName="organizationId"
                             (change)="onOrganizationChange()">
-                            <option [value]="null">-- Seleccionar --</option>
+                            <option [value]="null">-- Seleccionar Organización --</option>
                             @for (org of organizations(); track org.id) {
                             <option [value]="org.id">{{ org.name }}</option>
                             }
                         </select>
-                        <div class="form-text">Organizacion propietaria del dispositivo</div>
+                        <div class="form-text">
+                            <svg cIcon name="cilInfo" size="sm" class="me-1"></svg>
+                            Seleccione primero la Organización para ver sus usuarios
+                        </div>
+                        } @else {
+                        <!-- Otros roles: solo lectura -->
+                        <input cFormControl
+                            type="text"
+                            [value]="currentOrganizationName()"
+                            readonly 
+                            class="bg-light" />
+                        <div class="form-text text-muted">
+                            <svg cIcon name="cilLockLocked" size="sm" class="me-1"></svg>
+                            Solo puedes gestionar dispositivos de tu organización
+                        </div>
+                        }
                     </div>
-                    }
 
                     <!-- Usuario Responsable -->
                     <div class="mb-3">
                         <label cLabel for="userId">Usuario Responsable</label>
-                        <select cSelect id="userId" formControlName="userId">
-                            <option [value]="null">-- Sin asignar --</option>
-                            @for (user of users(); track user.id) {
-                            <option [value]="user.id">{{ user.userFullName || user.userEmail }}</option>
+                        <div class="position-relative">
+                            <select cSelect id="userId" formControlName="userId"
+                                [disabled]="loadingUsers()">
+                                @if (loadingUsers()) {
+                                <option [value]="null">Cargando usuarios...</option>
+                                } @else if (users().length === 0) {
+                                <option [value]="null">-- No hay usuarios disponibles --</option>
+                                } @else {
+                                <option [value]="null">-- Sin asignar --</option>
+                                @for (user of users(); track user.id) {
+                                <option [value]="user.id">{{ user.userFullName || user.userEmail }}</option>
+                                }
+                                }
+                            </select>
+                            @if (loadingUsers()) {
+                            <div class="position-absolute top-50 end-0 translate-middle-y me-4">
+                                <c-spinner size="sm" color="primary"></c-spinner>
+                            </div>
                             }
-                        </select>
-                        <div class="form-text">Usuario encargado del vehiculo</div>
+                        </div>
+                        <div class="form-text">
+                            @if (users().length > 0) {
+                            {{ users().length }} usuario(s) disponible(s)
+                            } @else if (!loadingUsers() && isSuperAdmin()) {
+                            <span class="text-warning">
+                                <svg cIcon name="cilWarning" size="sm" class="me-1"></svg>
+                                Seleccione una Organización para ver usuarios
+                            </span>
+                            } @else if (!loadingUsers()) {
+                            <span class="text-muted">No hay usuarios activos disponibles</span>
+                            }
+                        </div>
                     </div>
                 </c-card-body>
             </c-card>

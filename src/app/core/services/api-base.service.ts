@@ -23,7 +23,7 @@ export abstract class ApiBaseService<T> {
   find(query?: PaginationParams & Record<string, unknown>): Observable<ApiResponse<T[]>> {
     const params = this.buildParams(query);
     console.log('url', this.url);
-    console.log('params', params);
+    // console.log('params', params);
 
     return this.http.get<ApiResponse<T[]>>(this.url, { params });
   }
@@ -31,8 +31,9 @@ export abstract class ApiBaseService<T> {
   /**
    * Get a single record by ID
    */
-  get(id: number | string): Observable<T> {
-    return this.http.get<T>(`${this.url}/${id}`);
+  get(id: number | string, query?: Record<string, unknown>): Observable<T> {
+    const params = this.buildParams(query);
+    return this.http.get<T>(`${this.url}/${id}`, { params });
   }
 
   /**

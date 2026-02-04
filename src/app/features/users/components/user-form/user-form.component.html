@@ -1,0 +1,360 @@
+<!-- Loading State -->
+@if (loadingData()) {
+<div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
+    <div class="text-center">
+        <c-spinner color="primary"></c-spinner>
+        <p class="mt-3 text-muted">Cargando datos...</p>
+    </div>
+</div>
+} @else {
+
+<form [formGroup]="userForm" (ngSubmit)="onSubmit()">
+    <c-row>
+        <!-- Left Column: Main Form -->
+        <c-col lg="8">
+            <!-- Error Alert -->
+            @if (errorMessage()) {
+            <c-alert color="danger" [dismissible]="true" (visibleChange)="errorMessage.set('')">
+                <svg cIcon name="cilWarning" class="me-2"></svg>
+                {{ errorMessage() }}
+            </c-alert>
+            }
+
+            <!-- Informacion Personal -->
+            <c-card class="mb-4">
+                <c-card-header>
+                    <svg cIcon name="cilUser" class="me-2"></svg>
+                    <strong>Informacion Personal</strong>
+                </c-card-header>
+                <c-card-body>
+                    <c-row>
+                        <!-- Nombre -->
+                        <c-col md="6" class="mb-3">
+                            <label cLabel for="userFullName">
+                                Nombre <span class="text-danger">*</span>
+                            </label>
+                            <input cFormControl
+                                id="userFullName"
+                                formControlName="userFullName"
+                                placeholder="Nombre del usuario"
+                                maxlength="100"
+                                [valid]="userForm.get('userFullName')?.touched ? (userForm.get('userFullName')?.valid || undefined) : undefined" />
+                            @if (isFieldInvalid('userFullName')) {
+                            <div class="text-danger small mt-1">
+                                <svg cIcon name="cilXCircle" size="sm" class="me-1"></svg>
+                                {{ getFieldError('userFullName') }}
+                            </div>
+                            }
+                        </c-col>
+
+                        <!-- Apellido -->
+                        <c-col md="6" class="mb-3">
+                            <label cLabel for="userLastName">
+                                Apellido <span class="text-danger">*</span>
+                            </label>
+                            <input cFormControl
+                                id="userLastName"
+                                formControlName="userLastName"
+                                placeholder="Apellido del usuario"
+                                maxlength="100"
+                                [valid]="userForm.get('userLastName')?.touched ? (userForm.get('userLastName')?.valid || undefined) : undefined" />
+                            @if (isFieldInvalid('userLastName')) {
+                            <div class="text-danger small mt-1">
+                                <svg cIcon name="cilXCircle" size="sm" class="me-1"></svg>
+                                {{ getFieldError('userLastName') }}
+                            </div>
+                            }
+                        </c-col>
+
+                        <!-- Email -->
+                        <c-col md="6" class="mb-3">
+                            <label cLabel for="userEmail">
+                                Correo Electronico <span class="text-danger">*</span>
+                            </label>
+                            <input cFormControl
+                                id="userEmail"
+                                formControlName="userEmail"
+                                type="email"
+                                placeholder="usuario@ejemplo.com"
+                                [valid]="userForm.get('userEmail')?.touched ? (userForm.get('userEmail')?.valid || undefined) : undefined" />
+                            @if (isFieldInvalid('userEmail')) {
+                            <div class="text-danger small mt-1">
+                                <svg cIcon name="cilXCircle" size="sm" class="me-1"></svg>
+                                {{ getFieldError('userEmail') }}
+                            </div>
+                            }
+                            @if (isEditMode) {
+                            <div class="form-text">El correo no puede ser modificado</div>
+                            }
+                        </c-col>
+
+                        <!-- Telefono -->
+                        <c-col md="6" class="mb-3">
+                            <label cLabel for="userPhone">Telefono</label>
+                            <input cFormControl
+                                id="userPhone"
+                                formControlName="userPhone"
+                                placeholder="+57 300 123 4567"
+                                maxlength="20" />
+                        </c-col>
+                    </c-row>
+                </c-card-body>
+            </c-card>
+
+            <!-- Seguridad -->
+            <c-card class="mb-4">
+                <c-card-header>
+                    <svg cIcon name="cilLockLocked" class="me-2"></svg>
+                    <strong>Seguridad</strong>
+                </c-card-header>
+                <c-card-body>
+                    <c-row>
+                        <!-- Password -->
+                        <c-col md="6" class="mb-3">
+                            <label cLabel for="userPassword">
+                                Contrasena
+                                @if (!isEditMode) {
+                                <span class="text-danger">*</span>
+                                }
+                            </label>
+                            <input cFormControl
+                                id="userPassword"
+                                formControlName="userPassword"
+                                type="password"
+                                [placeholder]="isEditMode ? 'Dejar vacio para mantener la actual' : 'Minimo 6 caracteres'"
+                                [valid]="userForm.get('userPassword')?.touched ? (userForm.get('userPassword')?.valid || undefined) : undefined" />
+                            @if (isFieldInvalid('userPassword')) {
+                            <div class="text-danger small mt-1">
+                                <svg cIcon name="cilXCircle" size="sm" class="me-1"></svg>
+                                {{ getFieldError('userPassword') }}
+                            </div>
+                            }
+                        </c-col>
+
+                        <!-- Confirm Password -->
+                        <c-col md="6" class="mb-3">
+                            <label cLabel for="passwordConfirm">
+                                Confirmar Contrasena
+                                @if (!isEditMode) {
+                                <span class="text-danger">*</span>
+                                }
+                            </label>
+                            <input cFormControl
+                                id="passwordConfirm"
+                                formControlName="passwordConfirm"
+                                type="password"
+                                placeholder="Repita la contrasena" />
+                            @if (isFieldInvalid('passwordConfirm')) {
+                            <div class="text-danger small mt-1">
+                                <svg cIcon name="cilXCircle" size="sm" class="me-1"></svg>
+                                {{ getFieldError('passwordConfirm') }}
+                            </div>
+                            }
+                        </c-col>
+                    </c-row>
+                </c-card-body>
+            </c-card>
+
+            <!-- Contacto de Emergencia -->
+            <c-card class="mb-4">
+                <c-card-header>
+                    <svg cIcon name="cilContact" class="me-2"></svg>
+                    <strong>Contacto de Emergencia</strong>
+                </c-card-header>
+                <c-card-body>
+                    <c-row>
+                        <c-col md="6" class="mb-3">
+                            <label cLabel for="userPhoneEmergency">Telefono de Emergencia</label>
+                            <input cFormControl
+                                id="userPhoneEmergency"
+                                formControlName="userPhoneEmergency"
+                                placeholder="+57 300 123 4567"
+                                maxlength="20" />
+                        </c-col>
+                        <c-col md="6" class="mb-3">
+                            <label cLabel for="userEmailEmergency">Email de Emergencia</label>
+                            <input cFormControl
+                                id="userEmailEmergency"
+                                formControlName="userEmailEmergency"
+                                type="email"
+                                placeholder="emergencia@ejemplo.com" />
+                            @if (isFieldInvalid('userEmailEmergency')) {
+                            <div class="text-danger small mt-1">
+                                <svg cIcon name="cilXCircle" size="sm" class="me-1"></svg>
+                                {{ getFieldError('userEmailEmergency') }}
+                            </div>
+                            }
+                        </c-col>
+                    </c-row>
+                </c-card-body>
+            </c-card>
+
+            <!-- Notificaciones -->
+            <c-card class="mb-4">
+                <c-card-header>
+                    <svg cIcon name="cilBell" class="me-2"></svg>
+                    <strong>Notificaciones</strong>
+                </c-card-header>
+                <c-card-body>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <div class="fw-semibold">Recibir Notificaciones</div>
+                            <small class="text-muted">El usuario recibira alertas y notificaciones del sistema</small>
+                        </div>
+                        <c-form-check [switch]="true">
+                            <input cFormCheckInput type="checkbox" formControlName="userReceiveNotifications" />
+                        </c-form-check>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="fw-semibold">Silenciar Notificaciones</div>
+                            <small class="text-muted">Las notificaciones se almacenan pero no se muestran</small>
+                        </div>
+                        <c-form-check [switch]="true">
+                            <input cFormCheckInput type="checkbox" formControlName="userMuteNotifications" />
+                        </c-form-check>
+                    </div>
+                </c-card-body>
+            </c-card>
+        </c-col>
+
+        <!-- Right Column: Assignment & Status -->
+        <c-col lg="4">
+            <!-- Rol y Asignacion -->
+            <c-card class="mb-4">
+                <c-card-header>
+                    <svg cIcon name="cilShieldAlt" class="me-2"></svg>
+                    <strong>Rol y Asignacion</strong>
+                </c-card-header>
+                <c-card-body>
+                    <!-- Organizacion (solo super admin) -->
+                    @if (isSuperAdmin()) {
+                    <div class="mb-3">
+                        <label cLabel for="organizationId">Organizacion</label>
+                        <select cSelect
+                            id="organizationId"
+                            formControlName="organizationId"
+                            (change)="onOrganizationChange()">
+                            <option [value]="null">-- Seleccionar --</option>
+                            @for (org of organizations(); track org.id) {
+                            <option [value]="org.id">{{ org.name }}</option>
+                            }
+                        </select>
+                        <div class="form-text">Organizacion a la que pertenece el usuario</div>
+                    </div>
+                    }
+
+                    <!-- Rol -->
+                    <div class="mb-3">
+                        <label cLabel for="roleId">
+                            Rol <span class="text-danger">*</span>
+                        </label>
+                        <select cSelect id="roleId" formControlName="roleId">
+                            <option [value]="null">-- Seleccionar rol --</option>
+                            @for (role of assignableRoles(); track role.id) {
+                            <option [value]="role.id">{{ role.name }}</option>
+                            }
+                        </select>
+                        @if (isFieldInvalid('roleId')) {
+                        <div class="text-danger small mt-1">
+                            <svg cIcon name="cilXCircle" size="sm" class="me-1"></svg>
+                            {{ getFieldError('roleId') }}
+                        </div>
+                        }
+                        <div class="form-text">Nivel de acceso del usuario</div>
+                    </div>
+                </c-card-body>
+            </c-card>
+
+            <!-- Estado -->
+            <c-card class="mb-4">
+                <c-card-header>
+                    <svg cIcon name="cilCheckCircle" class="me-2"></svg>
+                    <strong>Estado</strong>
+                </c-card-header>
+                <c-card-body>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="fw-semibold">Usuario Activo</div>
+                            <small class="text-muted">Los usuarios inactivos no pueden iniciar sesion</small>
+                        </div>
+                        <c-form-check [switch]="true">
+                            <input cFormCheckInput type="checkbox" formControlName="state" />
+                        </c-form-check>
+                    </div>
+
+                    <!-- Badge de estado -->
+                    <div class="mt-3 text-center">
+                        @if (userForm.get('state')?.value) {
+                        <c-badge color="success" shape="rounded-pill" class="px-3 py-2">
+                            <svg cIcon name="cilCheckCircle" class="me-1"></svg>
+                            Activo
+                        </c-badge>
+                        } @else {
+                        <c-badge color="secondary" shape="rounded-pill" class="px-3 py-2">
+                            <svg cIcon name="cilBan" class="me-1"></svg>
+                            Inactivo
+                        </c-badge>
+                        }
+                    </div>
+                </c-card-body>
+            </c-card>
+
+            <!-- Informacion (solo en modo edicion) -->
+            @if (isEditMode) {
+            <c-card class="mb-4 border-info">
+                <c-card-header class="bg-info text-white">
+                    <svg cIcon name="cilInfo" class="me-2"></svg>
+                    <strong>Informacion</strong>
+                </c-card-header>
+                <c-card-body>
+                    <dl class="row mb-0 small">
+                        <dt class="col-5 text-muted">Email:</dt>
+                        <dd class="col-7">{{ userForm.get('userEmail')?.value }}</dd>
+                    </dl>
+                    <hr class="my-2">
+                    <small class="text-muted">
+                        <svg cIcon name="cilInfo" size="sm" class="me-1"></svg>
+                        El correo electronico no puede ser modificado despues de crear el usuario.
+                    </small>
+                </c-card-body>
+            </c-card>
+            }
+
+            <!-- Acciones -->
+            <c-card>
+                <c-card-body>
+                    <div class="d-grid gap-2">
+                        <button cButton color="primary" type="submit" size="lg"
+                            [disabled]="loading() || userForm.invalid">
+                            @if (loading()) {
+                            <c-spinner size="sm" class="me-2"></c-spinner>
+                            Guardando...
+                            } @else {
+                            <svg cIcon name="cilSave" class="me-2"></svg>
+                            {{ isEditMode ? 'Actualizar Usuario' : 'Crear Usuario' }}
+                            }
+                        </button>
+
+                        <button cButton color="secondary" variant="outline" type="button"
+                            (click)="cancel()" [disabled]="loading()">
+                            <svg cIcon name="cilArrowLeft" class="me-2"></svg>
+                            Cancelar
+                        </button>
+                    </div>
+
+                    @if (userForm.invalid && userForm.touched) {
+                    <c-alert color="warning" class="mt-3 mb-0 py-2">
+                        <small>
+                            <svg cIcon name="cilWarning" size="sm" class="me-1"></svg>
+                            Complete todos los campos requeridos
+                        </small>
+                    </c-alert>
+                    }
+                </c-card-body>
+            </c-card>
+        </c-col>
+    </c-row>
+</form>
+
+}

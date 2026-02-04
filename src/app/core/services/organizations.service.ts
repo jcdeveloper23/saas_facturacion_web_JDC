@@ -45,15 +45,19 @@ export class OrganizationsService extends ApiBaseService<Organization> {
     filters?: OrganizationFilters,
     pagination?: PaginationParams
   ): Observable<ApiResponse<Organization[]>> {
-    const query: Record<string, unknown> = { ...pagination };
+    const query: Record<string, unknown> = {
+      $limit: 500,  // Default limit for selects
+      ...pagination
+    };
 
     // Apply filters
     if (filters?.is_active !== undefined) {
-      query['is_active'] = filters.is_active;
+      // Backend expects 0/1 instead of true/false
+      query['is_active'] = filters.is_active ? 1 : 0;
     }
 
     if (filters?.is_verified !== undefined) {
-      query['is_verified'] = filters.is_verified;
+      query['is_verified'] = filters.is_verified ? 1 : 0;
     }
 
     if (filters?.plan) {
@@ -80,10 +84,10 @@ export class OrganizationsService extends ApiBaseService<Organization> {
       query['created_at'] = { ...query['created_at'] as object, $lte: filters.created_before };
     }
 
-    console.log(`*** query ${query} ***`);
-    
+    console.log('OrganizationsService - Query:', query);
 
-    return this.find(query);   
+
+    return this.find(query);
   }
 
   /**

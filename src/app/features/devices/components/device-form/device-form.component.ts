@@ -78,9 +78,13 @@ export class DeviceFormComponent implements OnInit {
     timezones = TIMEZONES;
     users = signal<User[]>([]);
     organizations = signal<Organization[]>([]);
+    loadingUsers = signal(false);
 
     // Verificar si es super admin para mostrar organización
     isSuperAdmin = signal(false);
+
+    // Nombre de la organización actual (para usuarios no super_admin)
+    currentOrganizationName = signal<string>('');
 
     ngOnInit(): void {
         this.initForm();
@@ -134,31 +138,97 @@ export class DeviceFormComponent implements OnInit {
 
     private checkPermissions(): void {
         const user = this.authService.user();
-        // Super admin tiene role 0 o es 'super_admin'
-        this.isSuperAdmin.set(user?.userCurrentRole === 0 || user?.roleId === 1);
+
+        console.log('=== DEBUG checkPermissions ===');
+        console.log('user:', user);
+        console.log('user.role:', user?.role);
+        console.log('user.role?.code:', user?.role?.code);
+        console.log('user.userCurrentRole:', user?.userCurrentRole);
+        console.log('user.roleId:', user?.roleId);
+
+        // Super admin: verificar múltiples formas
+        const isSuperAdmin =
+            user?.role?.code === 'super_admin' ||           // Por código de rol
+            user?.userCurrentRole === 0 ||                   // Legacy: rol numérico 0
+            user?.roleId === 1 ||                            // Role ID 1 = super_admin
+            String(user?.role?.code).toLowerCase() === 'super_admin'; // Por si viene con diferente case
+
+        console.log('isSuperAdmin:', isSuperAdmin);
+        console.log('=== END DEBUG ===');
+
+        this.isSuperAdmin.set(isSuperAdmin);
     }
 
     private loadSelectOptions(): void {
         const currentUser = this.authService.user();
-        const orgId = currentUser?.organizationId;
+        const orgId = currentUser?.organizationId || currentUser?.organization_id;
 
-        // Cargar usuarios de la organización actual
-        const usersRequest$ = orgId
-            ? this.usersService.getUsers({ organizationId: orgId, state: true })
-            : this.usersService.getUsers({ state: true });
+        console.log('=== DEBUG loadSelectOptions ===');
+        console.log('currentUser:', currentUser);
+        console.log('orgId:', orgId);
+        console.log('currentUser.organization:', currentUser?.organization);
+        console.log('currentUser.organizationName:', currentUser?.organizationName);
+        console.log('isSuperAdmin:', this.isSuperAdmin());
+        console.log('isEditMode:', this.isEditMode);
 
-        usersRequest$.subscribe({
-            next: (users) => this.users.set(users),
-            error: (err) => console.error('Error loading users:', err)
-        });
-
-        // Solo super admin puede ver organizaciones
+        // Solo super admin puede ver y cambiar organizaciones
         if (this.isSuperAdmin()) {
             this.organizationsService.getOrganizations({ is_active: true }).subscribe({
                 next: (response) => this.organizations.set(response.data || []),
                 error: (err) => console.error('Error loading organizations:', err)
             });
+        } else {
+            // Para otros usuarios: cargar nombre de organización desde backend
+            if (orgId) {
+                // Cargar datos de la organización
+                this.organizationsService.get(orgId).subscribe({
+                    next: (org) => {
+                        console.log('Organización cargada:', JSON.stringify(org, null, 2));
+                        this.currentOrganizationName.set(org.name || 'Organización');
+                    },
+                    error: (err) => {
+                        console.error('Error loading organization:', err);
+                        this.currentOrganizationName.set('Organización');
+                    }
+                });
+
+                // Cargar usuarios de la organización
+                this.loadUsersByOrganization(orgId);
+            } else {
+                console.warn('No se encontró organization_id en el usuario');
+                this.currentOrganizationName.set('Sin organización');
+            }
         }
+    }
+
+    /**
+     * Carga usuarios de una organización específica
+     */
+    private loadUsersByOrganization(orgId?: number | null): void {
+        console.log('=== loadUsersByOrganization ===');
+        console.log('orgId recibido:', orgId);
+
+        this.loadingUsers.set(true);
+        this.users.set([]);
+
+        // Usar state: 1 para compatibilidad con backend (0/1 en lugar de true/false)
+        const filters = orgId
+            ? { organizationId: orgId, state: 1 as any }
+            : { state: 1 as any };
+
+        console.log('Filters para usuarios:', filters);
+
+        this.usersService.getUsers(filters).subscribe({
+            next: (users) => {
+                console.log('Usuarios recibidos:', users);
+                this.users.set(users);
+                this.loadingUsers.set(false);
+            },
+            error: (err) => {
+                console.error('Error loading users:', err);
+                this.loadingUsers.set(false);
+            }
+        });
     }
 
     loadDevice(imei: string): void {
@@ -166,13 +236,27 @@ export class DeviceFormComponent implements OnInit {
         this.deviceService.getByImei(imei).subscribe({
             next: (device) => {
                 // Formatear fechas para inputs de tipo date
+                const deviceOrgId = device.organizationId || device.organization_id;
                 const formData = {
                     ...device,
                     installationDate: this.formatDateForInput(device.installationDate),
                     expirationDate: this.formatDateForInput(device.expirationDate),
-                    organizationId: device.organizationId || device.organization_id
+                    organizationId: deviceOrgId
                 };
                 this.deviceForm.patchValue(formData);
+
+                // Establecer nombre de organización (para usuarios no super_admin)
+                if (!this.isSuperAdmin()) {
+                    const orgName = (device as any).organization?.name ||
+                                    this.authService.user()?.organization?.name ||
+                                    this.authService.user()?.organizationName ||
+                                    'Organización';
+                    this.currentOrganizationName.set(orgName);
+                }
+
+                // Cargar usuarios de la organización del dispositivo
+                this.loadUsersByOrganization(deviceOrgId);
+
                 this.loadingData.set(false);
             },
             error: (err) => {
@@ -264,18 +348,33 @@ export class DeviceFormComponent implements OnInit {
 
     onOrganizationChange(): void {
         const orgId = this.deviceForm.get('organizationId')?.value;
+
+        // Reset usuario cuando cambia la organización
+        this.deviceForm.patchValue({ userId: null });
+
         if (orgId) {
             // Recargar usuarios de la organización seleccionada
-            this.usersService.getUsers({ organizationId: orgId, state: true }).subscribe({
+            this.loadingUsers.set(true);
+            this.users.set([]);
+
+            this.usersService.getUsers({ organizationId: Number(orgId), state: 1 }).subscribe({
                 next: (users) => {
                     this.users.set(users);
-                    // Reset user si no pertenece a la nueva organización
-                    const currentUserId = this.deviceForm.get('userId')?.value;
-                    if (currentUserId && !users.find(u => u.id === currentUserId)) {
-                        this.deviceForm.patchValue({ userId: null });
+                    this.loadingUsers.set(false);
+
+                    if (users.length === 0) {
+                        this.notification.warning('No hay usuarios activos en esta organización');
                     }
+                },
+                error: (err) => {
+                    console.error('Error loading users:', err);
+                    this.loadingUsers.set(false);
+                    this.notification.error('Error al cargar usuarios de la organización');
                 }
             });
+        } else {
+            // Si no hay organización seleccionada, limpiar usuarios
+            this.users.set([]);
         }
     }
 
