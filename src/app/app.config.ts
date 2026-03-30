@@ -4,58 +4,54 @@ import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import {
   provideRouter,
   withEnabledBlockingInitialNavigation,
-  withHashLocation,
   withInMemoryScrolling,
   withRouterConfig,
   withViewTransitions
 } from '@angular/router';
+import { provideFirebaseApp, initializeApp } from '@angular/fire/app';
+import { provideFirestore, getFirestore } from '@angular/fire/firestore';
+import { provideAuth, getAuth, authState } from '@angular/fire/auth';
+import { provideStorage, getStorage } from '@angular/fire/storage';
+import { provideFunctions, getFunctions } from '@angular/fire/functions';
 import { IconSetService } from '@coreui/icons-angular';
 import { firstValueFrom } from 'rxjs';
 import { routes } from './app.routes';
-import { authInterceptor, loadingInterceptor } from './core/interceptors';
+import { loadingInterceptor } from './core/interceptors';
+import { environment } from '../environments/environment';
 import { AuthService } from './core/services/auth.service';
 
 /**
- * Initialize session from storage on app startup
- * This ensures permissions and modules are loaded before navigation
+ * Wait for Firebase Auth to resolve its initial state before navigation.
+ * This prevents the app from redirecting to /login on refresh when the user is logged in.
  */
-function initializeApp(): () => Promise<void> {
+function initializeAuth(): () => Promise<void> {
   const authService = inject(AuthService);
-
-  return async () => {
-    try {
-      await firstValueFrom(authService.initializeSession());
-      console.log('Session initialized successfully');
-    } catch (error) {
-      console.warn('No active session found');
-    }
-  };
+  return () => authService.waitForAuthReady();
 }
 
 export const appConfig: ApplicationConfig = {
   providers: [
-    provideRouter(routes,
-      withRouterConfig({
-        onSameUrlNavigation: 'reload'
-      }),
-      withInMemoryScrolling({
-        scrollPositionRestoration: 'top',
-        anchorScrolling: 'enabled'
-      }),
+    provideRouter(
+      routes,
+      withRouterConfig({ onSameUrlNavigation: 'reload' }),
+      withInMemoryScrolling({ scrollPositionRestoration: 'top', anchorScrolling: 'enabled' }),
       withEnabledBlockingInitialNavigation(),
       withViewTransitions()
     ),
     provideHttpClient(
-      withInterceptors([authInterceptor, loadingInterceptor])
+      withInterceptors([loadingInterceptor])
     ),
+    provideFirebaseApp(() => initializeApp(environment.firebase)),
+    provideFirestore(() => getFirestore()),
+    provideAuth(() => getAuth()),
+    provideStorage(() => getStorage()),
+    provideFunctions(() => getFunctions()),
     IconSetService,
     provideAnimationsAsync(),
-    // Initialize session before app starts
     {
       provide: APP_INITIALIZER,
-      useFactory: initializeApp,
+      useFactory: initializeAuth,
       multi: true
     }
   ]
 };
-

@@ -16,8 +16,12 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import * as L from 'leaflet';
-import { environment } from '../../../../environments/environment';
-import { LatLng, Location } from '../../../core/interfaces';
+import { LatLng } from '../../../core/interfaces';
+
+const DEFAULT_CENTER: LatLng = { lat: -0.1807, lng: -78.4678 }; // Quito, Ecuador
+const DEFAULT_ZOOM = 13;
+const DEFAULT_TILE_LAYER = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+const DEFAULT_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
 export interface MapMarker {
   id: string;
@@ -74,8 +78,8 @@ export class LeafletMapComponent implements OnInit, AfterViewInit, OnDestroy, On
   @ViewChild('mapContainer') mapContainer!: ElementRef;
 
   @Input() height = '500px';
-  @Input() center: LatLng = environment.mapDefaults.center;
-  @Input() zoom = environment.mapDefaults.zoom;
+  @Input() center: LatLng = DEFAULT_CENTER;
+  @Input() zoom = DEFAULT_ZOOM;
   @Input() markers: MapMarker[] = [];
   @Input() polylines: MapPolyline[] = [];
   @Input() circles: MapCircle[] = [];
@@ -168,8 +172,8 @@ export class LeafletMapComponent implements OnInit, AfterViewInit, OnDestroy, On
     });
 
     // Add OpenStreetMap tile layer
-    L.tileLayer(environment.mapDefaults.tileLayer, {
-      attribution: environment.mapDefaults.attribution,
+    L.tileLayer(DEFAULT_TILE_LAYER, {
+      attribution: DEFAULT_ATTRIBUTION,
       maxZoom: 19
     }).addTo(this.map);
 

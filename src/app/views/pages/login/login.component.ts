@@ -19,7 +19,6 @@ import {
 } from '@coreui/angular';
 import { AuthService } from '../../../core/services/auth.service';
 import { CommonModule } from '@angular/common';
-import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-login',
@@ -59,9 +58,7 @@ export class LoginComponent {
     password: ['', [Validators.required, Validators.minLength(4)]]
   });
 
-  onSubmit(): void {
-    console.log(`Login form submitted: ${this.loginForm.value}`);
-
+  async onSubmit(): Promise<void> {
     if (this.loginForm.invalid) {
       this.loginForm.markAllAsTouched();
       return;
@@ -72,28 +69,26 @@ export class LoginComponent {
 
     const { username, password } = this.loginForm.value;
 
-    this.authService.login(username, password)
-      .pipe(finalize(() => this.isLoading.set(false)))
-      .subscribe({
-        next: () => {
-          const returnUrl = this.route.snapshot.queryParams['returnUrl'] || this.authService.getDefaultRoute();
-          this.router.navigateByUrl(returnUrl);
-        },
-        error: (err) => {
-          console.error('Login failed', err);
-          let msg = 'Error al iniciar sesión. Verifique sus credenciales.';
+    try {
+      await this.authService.login(username, password);
+      const returnUrl = this.route.snapshot.queryParams['returnUrl'] || this.authService.getDefaultRoute();
+      this.router.navigateByUrl(returnUrl);
+    } catch (err: unknown) {
+      console.error('Login failed', err);
+      let msg = 'Error al iniciar sesión. Verifique sus credenciales.';
 
-          // Check for specific backend error message
-          if (err.error && err.error.message) {
-            msg = err.error.message === 'Invalid login' ? 'Credenciales incorrectas' : err.error.message;
-          } else if (err.status === 401 || err.status === 403) {
-            msg = 'Credenciales incorrectas';
-          } else if (err.message) {
-            msg = err.message;
-          }
-
-          this.errorMessage.set(msg);
+      if (err instanceof Error) {
+        const code = (err as { code?: string }).code;
+        if (code === 'auth/user-not-found' || code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
+          msg = 'Credenciales incorrectas';
+        } else if (err.message) {
+          msg = err.message;
         }
-      });
+      }
+
+      this.errorMessage.set(msg);
+    } finally {
+      this.isLoading.set(false);
+    }
   }
 }

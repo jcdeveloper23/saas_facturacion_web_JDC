@@ -1,0 +1,32 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // SRI certificates — Cloud Functions access only, never from browser
+    match /companies/{companyId}/certificates/{file} {
+      allow read, write: if false;
+    }
+
+    // Company logos — readable by company members, writable by admin
+    match /companies/{companyId}/logos/{file} {
+      allow read: if request.auth != null && request.auth.token.companyId == companyId;
+      allow write: if request.auth != null
+                   && request.auth.token.companyId == companyId
+                   && request.auth.token.role == 'admin';
+    }
+
+    // Product images — readable by company members, writable by admin/seller
+    match /companies/{companyId}/products/{file} {
+      allow read: if request.auth != null && request.auth.token.companyId == companyId;
+      allow write: if request.auth != null
+                   && request.auth.token.companyId == companyId
+                   && request.auth.token.role in ['admin', 'seller'];
+    }
+
+    // Electronic documents (XML, RIDE PDFs) — readable by company members
+    match /companies/{companyId}/electronic-documents/{file} {
+      allow read: if request.auth != null && request.auth.token.companyId == companyId;
+      allow write: if false; // Cloud Functions only
+    }
+  }
+}

@@ -1,42 +1,33 @@
 import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { catchError, throwError } from 'rxjs';
-import { SecureStorageService } from '../services/secure-storage.service';
+import { Auth } from '@angular/fire/auth';
+import { from, switchMap, catchError, throwError } from 'rxjs';
 
 /**
- * Auth Interceptor - Adds JWT token to requests and handles auth errors
- * Uses Angular 21 functional interceptor pattern
+ * authInterceptor — attaches Firebase ID token to outbound HTTP requests.
+ * Only applies to Cloud Functions calls (urls containing cloudFunctionsUrl).
+ * Firebase SDK handles Firestore auth automatically — no interceptor needed for that.
  */
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
+  const auth = inject(Auth);
   const router = inject(Router);
-  const secureStorage = inject(SecureStorageService);
-  const token = secureStorage.getItem('accessToken');
 
-  // Clone request with auth header if token exists
-  const authReq = token
-    ? req.clone({
-      setHeaders: {
-        Authorization: `Bearer ${token}`
-      }
-    })
-    : req;
+  // Only inject token for Cloud Functions / REST API calls
+  const currentUser = auth.currentUser;
+  if (!currentUser) return next(req);
 
-  return next(authReq).pipe(
+  return from(currentUser.getIdToken()).pipe(
+    switchMap(token => {
+      const authReq = req.clone({
+        setHeaders: { Authorization: `Bearer ${token}` }
+      });
+      return next(authReq);
+    }),
     catchError((error: HttpErrorResponse) => {
-      // Handle 401 Unauthorized - redirect to login
       if (error.status === 401) {
-        secureStorage.removeItem('accessToken');
-        secureStorage.removeItem('infoUser');
-        secureStorage.removeItem('userPermissions');
-        router.navigate(['/login']);
+        auth.signOut().then(() => router.navigate(['/login']));
       }
-
-      // Handle 403 Forbidden
-      if (error.status === 403) {
-        console.error('Access forbidden:', error.message);
-      }
-
       return throwError(() => error);
     })
   );

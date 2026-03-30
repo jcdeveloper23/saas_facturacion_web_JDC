@@ -10,7 +10,6 @@ import {
   ContainerComponent,
   DropdownComponent,
   DropdownDividerDirective,
-  DropdownHeaderDirective,
   DropdownItemDirective,
   DropdownMenuDirective,
   DropdownToggleDirective,
@@ -28,7 +27,7 @@ import { AuthService } from '../../../core/services/auth.service';
 @Component({
   selector: 'app-default-header',
   templateUrl: './default-header.component.html',
-  imports: [ContainerComponent, HeaderTogglerDirective, SidebarToggleDirective, IconDirective, HeaderNavComponent, NavItemComponent, NavLinkDirective, RouterLink, RouterLinkActive, NgTemplateOutlet, BreadcrumbRouterComponent, DropdownComponent, DropdownToggleDirective, AvatarComponent, DropdownMenuDirective, DropdownHeaderDirective, DropdownItemDirective, BadgeComponent, DropdownDividerDirective]
+  imports: [ContainerComponent, HeaderTogglerDirective, SidebarToggleDirective, IconDirective, HeaderNavComponent, NavItemComponent, NavLinkDirective, RouterLink, RouterLinkActive, NgTemplateOutlet, BreadcrumbRouterComponent, DropdownComponent, DropdownToggleDirective, AvatarComponent, DropdownMenuDirective, DropdownItemDirective, BadgeComponent, DropdownDividerDirective]
 })
 export class DefaultHeaderComponent extends HeaderComponent {
 
@@ -148,12 +147,13 @@ export class DefaultHeaderComponent extends HeaderComponent {
     const user = this.currentUser();
     if (!user) return '?';
 
-    const firstName = user.userFullName?.charAt(0) || '';
-    const lastName = user.userLastName?.charAt(0) || '';
-
-    if (firstName && lastName) {
-      return (firstName + lastName).toUpperCase();
+    const parts = (user.displayName || '').trim().split(' ').filter(Boolean);
+    if (parts.length >= 2) {
+      return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
     }
-    return (user.userEmail?.charAt(0) || '?').toUpperCase();
+    if (parts.length === 1) {
+      return parts[0].charAt(0).toUpperCase();
+    }
+    return (user.email?.charAt(0) || '?').toUpperCase();
   }
 }

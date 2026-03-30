@@ -1,150 +1,145 @@
 import { INavData } from '@coreui/angular';
 
+/**
+ * Billing system sidebar navigation.
+ * Items are uncommented progressively as each feature module is built.
+ * role: used by filterNavByRole() to show/hide items per user role.
+ */
 export const navItems: INavData[] = [
-  // GPS Tracking Section
+
+  // ─── Sales ───────────────────────────────────────────────────────────────
   {
     title: true,
-    name: 'GPS Tracking'
-  },
-  {
-    name: 'Monitor GPS',
-    url: '/monitor',
-    iconComponent: { name: 'cil-location-pin' },
-    badge: {
-      color: 'success',
-      text: 'LIVE'
-    },
-    attributes: { permission: 'monitor.view' }
-  },
-  {
-    name: 'Dispositivos',
-    url: '/devices',
-    iconComponent: { name: 'cil-mobile' },
-    attributes: { permission: 'devices.view' }
-  },
-  {
-    name: 'Geocercas',
-    url: '/geofences',
-    iconComponent: { name: 'cil-map' },
-    attributes: { permission: 'geofences.view' }
-  },
-  {
-    name: 'Alertas',
-    url: '/alerts',
-    iconComponent: { name: 'cil-bell' },
-    attributes: { permission: 'alerts.view' }
-  },
-  {
-    name: 'Historial de Rutas',
-    url: '/routes',
-    iconComponent: { name: 'cil-compass' },
-    attributes: { permission: 'routes.view' }
-  },
-  // Administration Section
-  {
-    title: true,
-    name: 'Administración'
-  },
-  {
-    name: 'Usuarios',
-    url: '/users',
-    iconComponent: { name: 'cil-people' },
-    attributes: { permission: 'users.view' }
-  },
-  {
-    name: 'Perfiles y Roles',
-    url: '/profiles',
-    iconComponent: { name: 'cil-badge' },
-    attributes: { permission: 'profiles.view' }
-  },
-  {
-    name: 'Gestión de Permisos',
-    url: '/permissions',
-    iconComponent: { name: 'cil-lock-locked' }, // using a lock icon
-    attributes: { permission: 'permissions.view' }
-  },
-  {
-    name: 'Organizaciones',
-    url: '/organizations',
-    iconComponent: { name: 'cil-building' },
-    attributes: { permission: 'organizations.view' }
-  },
-  {
-    name: 'Planes',
-    url: '/plans',
-    iconComponent: { name: 'cil-layers' },
-    attributes: { permission: 'plans.view' }
-  },
-  // System Section (for super admins)
-  {
-    title: true,
-    name: 'Sistema',
-    attributes: { permission: 'settings.view' }
-  },
-  {
-    name: 'Configuración',
-    url: '/settings',
-    iconComponent: { name: 'cil-settings' },
-    attributes: { permission: 'settings.view' }
-  },
-  // Demo Section (can be removed later)
-  {
-    title: true,
-    name: 'Demo CoreUI'
+    name: 'Sales'
   },
   {
     name: 'Dashboard',
     url: '/dashboard',
     iconComponent: { name: 'cil-speedometer' }
   },
+  // {
+  //   name: 'Invoices',
+  //   url: '/invoices',
+  //   iconComponent: { name: 'cil-description' },
+  //   attributes: { roles: ['admin', 'seller', 'cashier'] }
+  // },
+  // {
+  //   name: 'Point of Sale',
+  //   url: '/pos',
+  //   iconComponent: { name: 'cil-calculator' },
+  //   attributes: { roles: ['admin', 'cashier'] }
+  // },
+  // {
+  //   name: 'Quotes',
+  //   url: '/quotes',
+  //   iconComponent: { name: 'cil-file' },
+  //   attributes: { roles: ['admin', 'seller'] }
+  // },
+  // {
+  //   name: 'Orders',
+  //   url: '/orders',
+  //   iconComponent: { name: 'cil-cart' },
+  //   attributes: { roles: ['admin', 'seller'] }
+  // },
+
+  // ─── Catalog ─────────────────────────────────────────────────────────────
+  // {
+  //   title: true,
+  //   name: 'Catalog'
+  // },
+  // {
+  //   name: 'Products',
+  //   url: '/products',
+  //   iconComponent: { name: 'cil-tag' },
+  //   attributes: { roles: ['admin', 'seller'] }
+  // },
+  // {
+  //   name: 'Customers',
+  //   url: '/customers',
+  //   iconComponent: { name: 'cil-people' },
+  //   attributes: { roles: ['admin', 'seller'] }
+  // },
+  // {
+  //   name: 'Suppliers',
+  //   url: '/suppliers',
+  //   iconComponent: { name: 'cil-truck' },
+  //   attributes: { roles: ['admin', 'seller'] }
+  // },
+
+  // ─── Inventory ───────────────────────────────────────────────────────────
+  // {
+  //   title: true,
+  //   name: 'Inventory'
+  // },
+  // {
+  //   name: 'Stock',
+  //   url: '/stock',
+  //   iconComponent: { name: 'cil-layers' },
+  //   attributes: { roles: ['admin', 'seller'] }
+  // },
+
+  // ─── Administration ──────────────────────────────────────────────────────
+  // {
+  //   title: true,
+  //   name: 'Administration'
+  // },
+  // {
+  //   name: 'Electronic Invoicing',
+  //   url: '/electronic-invoicing',
+  //   iconComponent: { name: 'cil-cloud-upload' },
+  //   attributes: { roles: ['admin'] }
+  // },
+  // {
+  //   name: 'Settings',
+  //   url: '/settings',
+  //   iconComponent: { name: 'cil-settings' },
+  //   attributes: { roles: ['admin'] }
+  // },
+  // {
+  //   name: 'Users',
+  //   url: '/settings/users',
+  //   iconComponent: { name: 'cil-user' },
+  //   attributes: { roles: ['admin'] }
+  // },
+
+  // ─── CoreUI reference (remove after development) ─────────────────────────
   {
-    name: 'Componentes',
+    title: true,
+    name: 'UI Components'
+  },
+  {
+    name: 'Components',
     url: '/base',
     iconComponent: { name: 'cil-puzzle' },
     children: [
-      {
-        name: 'Cards',
-        url: '/base/cards',
-        icon: 'nav-icon-bullet'
-      },
-      {
-        name: 'Tables',
-        url: '/base/tables',
-        icon: 'nav-icon-bullet'
-      },
-      {
-        name: 'Forms',
-        url: '/forms/validation',
-        icon: 'nav-icon-bullet'
-      }
+      { name: 'Cards', url: '/base/cards', icon: 'nav-icon-bullet' },
+      { name: 'Tables', url: '/base/tables', icon: 'nav-icon-bullet' },
+      { name: 'Forms', url: '/forms/validation', icon: 'nav-icon-bullet' }
     ]
+  },
+  {
+    name: 'Charts',
+    url: '/charts',
+    iconComponent: { name: 'cil-chart-pie' }
   }
 ];
 
 /**
- * Helper function to filter nav items by permissions
- * Use this in the sidebar component
+ * Filters nav items based on the user's role.
+ * Items without `attributes.roles` are visible to all authenticated users.
  */
-export function filterNavByPermissions(
+export function filterNavByRole(
   items: INavData[],
-  hasPermission: (permission: string) => boolean
+  userRole: string | null
 ): INavData[] {
   return items.filter(item => {
-    // Check if item requires permission
-    const requiredPermission = item.attributes?.['permission'];
-    if (requiredPermission && !hasPermission(requiredPermission)) {
-      return false;
-    }
+    const allowedRoles = item.attributes?.['roles'] as string[] | undefined;
+    if (allowedRoles && userRole && !allowedRoles.includes(userRole)) return false;
 
-    // Filter children recursively
     if (item.children) {
-      item.children = filterNavByPermissions(item.children, hasPermission);
-      // Hide parent if all children are hidden
-      if (item.children.length === 0) {
-        return false;
-      }
+      item.children = filterNavByRole(item.children, userRole);
+      if (item.children.length === 0) return false;
     }
-
     return true;
   });
 }

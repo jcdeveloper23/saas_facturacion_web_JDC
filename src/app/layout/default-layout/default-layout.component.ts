@@ -17,8 +17,9 @@ import {
 } from '@coreui/angular';
 
 import { DefaultFooterComponent, DefaultHeaderComponent } from './';
-import { NavigationService } from '../../core/services/navigation.service';
+import { AuthService } from '../../core/services/auth.service';
 import { ToastContainerComponent } from '../../shared/components';
+import { navItems, filterNavByRole } from './_nav';
 
 @Component({
   selector: 'app-dashboard',
@@ -44,8 +45,9 @@ import { ToastContainerComponent } from '../../shared/components';
   ]
 })
 export class DefaultLayoutComponent {
-  private navigationService = inject(NavigationService);  
+  private authService = inject(AuthService);
 
-  // Nav items loaded from user's modules (set during login)
-  public navItems = computed<INavData[]>(() => this.navigationService.navItems());
+  public navItems = computed<INavData[]>(() =>
+    filterNavByRole(navItems, this.authService.user()?.role ?? null)
+  );
 }

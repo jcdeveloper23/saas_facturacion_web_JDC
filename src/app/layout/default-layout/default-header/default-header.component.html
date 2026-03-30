@@ -61,11 +61,11 @@
       <!-- Header con info del usuario -->
       <li>
         <div class="px-3 py-2 bg-body-secondary rounded-top">
-          <div class="fw-semibold">{{ currentUser()?.userFullName || 'Usuario' }}</div>
-          <small class="text-body-secondary">{{ currentUser()?.userEmail }}</small>
-          @if (currentUser()?.role?.name) {
+          <div class="fw-semibold">{{ currentUser()?.displayName || 'Usuario' }}</div>
+          <small class="text-body-secondary">{{ currentUser()?.email }}</small>
+          @if (currentUser()?.role) {
           <div>
-            <c-badge color="info" class="mt-1">{{ currentUser()?.role?.name }}</c-badge>
+            <c-badge color="info" class="mt-1">{{ currentUser()?.role }}</c-badge>
           </div>
           }
         </div>

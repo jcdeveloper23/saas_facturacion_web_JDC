@@ -1,0 +1,118 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function belongsToCompany(companyId) {
+      return request.auth.token.companyId == companyId;
+    }
+
+    function hasRole(role) {
+      return request.auth.token.role == role;
+    }
+
+    function isSuperAdmin() {
+      return hasRole('super_admin');
+    }
+
+    function isAdmin() {
+      return hasRole('admin');
+    }
+
+    function canWrite() {
+      return request.auth.token.role in ['admin', 'seller', 'cashier'];
+    }
+
+    // ─── Companies (tenants) ──────────────────────────────────────────────
+    match /companies/{companyId} {
+      allow read: if isAuthenticated() && (isSuperAdmin() || belongsToCompany(companyId));
+      allow write: if isSuperAdmin();
+
+      // ─── All tenant sub-collections ─────────────────────────────────
+      match /customers/{id} {
+        allow read: if isAuthenticated() && belongsToCompany(companyId);
+        allow create, update: if isAuthenticated() && belongsToCompany(companyId) && canWrite();
+        allow delete: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
+      }
+
+      match /suppliers/{id} {
+        allow read: if isAuthenticated() && belongsToCompany(companyId);
+        allow create, update: if isAuthenticated() && belongsToCompany(companyId) && canWrite();
+        allow delete: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
+      }
+
+      match /products/{id} {
+        allow read: if isAuthenticated() && belongsToCompany(companyId);
+        allow create, update: if isAuthenticated() && belongsToCompany(companyId) && canWrite();
+        allow delete: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
+      }
+
+      match /invoices/{id} {
+        allow read: if isAuthenticated() && belongsToCompany(companyId);
+        allow create: if isAuthenticated() && belongsToCompany(companyId) && canWrite();
+        // Cannot edit a cancelled invoice
+        allow update: if isAuthenticated() && belongsToCompany(companyId) && canWrite()
+                       && resource.data.status != 'cancelled';
+        allow delete: if false; // NEVER delete invoices
+      }
+
+      match /quotes/{id} {
+        allow read: if isAuthenticated() && belongsToCompany(companyId);
+        allow create, update: if isAuthenticated() && belongsToCompany(companyId) && canWrite();
+        allow delete: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
+      }
+
+      match /orders/{id} {
+        allow read: if isAuthenticated() && belongsToCompany(companyId);
+        allow create, update: if isAuthenticated() && belongsToCompany(companyId) && canWrite();
+        allow delete: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
+      }
+
+      match /electronic-documents/{id} {
+        allow read: if isAuthenticated() && belongsToCompany(companyId);
+        allow create: if isAuthenticated() && belongsToCompany(companyId) && canWrite();
+        allow update, delete: if false; // Cloud Functions only
+      }
+
+      match /configuration/{doc} {
+        allow read: if isAuthenticated() && belongsToCompany(companyId);
+        allow write: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
+      }
+
+      match /warehouses/{id} {
+        allow read: if isAuthenticated() && belongsToCompany(companyId);
+        allow write: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
+      }
+
+      match /counters/{id} {
+        allow read, write: if false; // Cloud Functions only
+      }
+
+      match /stock-movements/{id} {
+        allow read: if isAuthenticated() && belongsToCompany(companyId);
+        allow write: if false; // Cloud Functions only
+      }
+
+      // Default rule for all other sub-collections
+      match /{collection}/{id} {
+        allow read: if isAuthenticated() && belongsToCompany(companyId);
+        allow write: if isAuthenticated() && belongsToCompany(companyId) && canWrite();
+      }
+    }
+
+    // ─── Global users registry ────────────────────────────────────────────
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (isSuperAdmin() || request.auth.uid == userId);
+      allow write: if isSuperAdmin();
+    }
+
+    // ─── Subscription plans ───────────────────────────────────────────────
+    match /plans/{planId} {
+      allow read: if isAuthenticated();
+      allow write: if isSuperAdmin();
+    }
+  }
+}
