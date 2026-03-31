@@ -1,0 +1,109 @@
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h5 class="mb-0">Impuestos (IVA)</h5>
+    <small class="text-muted">Tarifas por defecto para nuevas empresas</small>
+  </div>
+  <button cButton color="primary" size="sm" (click)="openNew()">
+    <svg cIcon name="cilPlus" class="me-1"></svg> Nuevo Impuesto
+  </button>
+</div>
+
+<c-card>
+  <c-card-body>
+    @if (loading()) {
+      <div class="text-center py-4"><c-spinner color="primary"></c-spinner></div>
+    } @else if (items().length === 0) {
+      <p class="text-center text-muted py-4">No hay impuestos configurados.</p>
+    } @else {
+      <table cTable hover responsive>
+        <thead>
+          <tr>
+            <th>Código</th><th>Nombre</th><th>%</th><th>Cód. SRI</th><th>Por defecto</th><th>Estado</th><th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of items(); track trackById($index, item)) {
+            <tr>
+              <td><code>{{ item.code }}</code></td>
+              <td>{{ item.name }}</td>
+              <td>{{ item.rate }}%</td>
+              <td>{{ item.sriCode }}</td>
+              <td>
+                @if (item.isDefault) { <c-badge color="primary">Sí</c-badge> }
+                @else { <span class="text-muted">—</span> }
+              </td>
+              <td>
+                <c-badge [color]="item.isActive ? 'success' : 'secondary'">
+                  {{ item.isActive ? 'Activo' : 'Inactivo' }}
+                </c-badge>
+              </td>
+              <td>
+                <div class="d-flex gap-2">
+                  <button cButton color="outline-primary" size="sm" (click)="openEdit(item)">
+                    <svg cIcon name="cilPencil"></svg>
+                  </button>
+                  <button cButton color="outline-danger" size="sm" (click)="delete(item)">
+                    <svg cIcon name="cilTrash"></svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </c-card-body>
+</c-card>
+
+<c-modal [visible]="showModal()" (visibleChange)="showModal.set($event)" alignment="center">
+  <c-modal-header>
+    <h5 cModalTitle>{{ editingId() ? 'Editar Impuesto' : 'Nuevo Impuesto' }}</h5>
+    <button cButtonClose (click)="showModal.set(false)"></button>
+  </c-modal-header>
+  <c-modal-body>
+    @if (errorMessage()) { <c-alert color="danger" class="mb-3">{{ errorMessage() }}</c-alert> }
+    <form [formGroup]="form">
+      <c-row class="g-3">
+        <c-col md="4">
+          <label cLabel>Código *</label>
+          <input cFormControl formControlName="code" placeholder="VAT15"
+                 [class.is-invalid]="hasError('code')">
+          @if (hasError('code')) { <div class="invalid-feedback">Requerido</div> }
+        </c-col>
+        <c-col md="8">
+          <label cLabel>Nombre *</label>
+          <input cFormControl formControlName="name" placeholder="IVA 15%"
+                 [class.is-invalid]="hasError('name')">
+          @if (hasError('name')) { <div class="invalid-feedback">Requerido</div> }
+        </c-col>
+        <c-col md="4">
+          <label cLabel>% Tarifa *</label>
+          <input cFormControl type="number" formControlName="rate" min="0" max="100">
+        </c-col>
+        <c-col md="4">
+          <label cLabel>Código SRI *</label>
+          <input cFormControl formControlName="sriCode" placeholder="3"
+                 [class.is-invalid]="hasError('sriCode')">
+          @if (hasError('sriCode')) { <div class="invalid-feedback">Requerido</div> }
+        </c-col>
+        <c-col md="4" class="d-flex align-items-end gap-3">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="taxDefault" formControlName="isDefault">
+            <label class="form-check-label" for="taxDefault">Por defecto</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="taxActive" formControlName="isActive">
+            <label class="form-check-label" for="taxActive">Activo</label>
+          </div>
+        </c-col>
+      </c-row>
+    </form>
+  </c-modal-body>
+  <c-modal-footer>
+    <button cButton color="secondary" (click)="showModal.set(false)" [disabled]="saving()">Cancelar</button>
+    <button cButton color="primary" (click)="save()" [disabled]="saving()">
+      @if (saving()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+      {{ editingId() ? 'Guardar cambios' : 'Agregar' }}
+    </button>
+  </c-modal-footer>
+</c-modal>

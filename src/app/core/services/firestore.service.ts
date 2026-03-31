@@ -13,7 +13,8 @@ import {
   writeBatch,
   runTransaction,
   Timestamp,
-  QueryConstraint
+  QueryConstraint,
+  onSnapshot
 } from '@angular/fire/firestore';
 import { Observable } from 'rxjs';
 import { TenantService } from './tenant.service';
@@ -42,21 +43,37 @@ export class FirestoreService {
   // ─── Read (realtime) ─────────────────────────────────────────────────────
 
   getCollection<T>(collectionName: string): Observable<T[]> {
-    const ref = collection(this.firestore, this.companyPath(collectionName));
-    return collectionData(ref, { idField: 'id' }) as Observable<T[]>;
+    return new Observable<T[]>(observer => {
+      const ref = collection(this.firestore, this.companyPath(collectionName));
+      return onSnapshot(ref, {
+        next: (snap) => observer.next(snap.docs.map(d => ({ id: d.id, ...d.data() }) as T)),
+        error: (err) => observer.error(err)
+      });
+    });
   }
 
   getCollectionQuery<T>(
     collectionName: string,
     ...constraints: QueryConstraint[]
   ): Observable<T[]> {
-    const ref = collection(this.firestore, this.companyPath(collectionName));
-    const q = query(ref, ...constraints);
-    return collectionData(q, { idField: 'id' }) as Observable<T[]>;
+    return new Observable<T[]>(observer => {
+      const ref = collection(this.firestore, this.companyPath(collectionName));
+      const q = query(ref, ...constraints);
+      return onSnapshot(q, {
+        next: (snap) => observer.next(snap.docs.map(d => ({ id: d.id, ...d.data() }) as T)),
+        error: (err) => observer.error(err)
+      });
+    });
   }
 
   getDocument<T>(collectionName: string, id: string): Observable<T | undefined> {
-    return docData(this.docRef(collectionName, id), { idField: 'id' }) as Observable<T>;
+    return new Observable<T | undefined>(observer => {
+      const ref = this.docRef(collectionName, id);
+      return onSnapshot(ref, {
+        next: (snap) => observer.next(snap.exists() ? ({ id: snap.id, ...snap.data() } as T) : undefined),
+        error: (err) => observer.error(err)
+      });
+    });
   }
 
   // ─── Read (one-time) ─────────────────────────────────────────────────────
@@ -118,8 +135,13 @@ export class FirestoreService {
   // ─── Root-level access (super-admin only) ────────────────────────────────
 
   getRootCollection<T>(collectionName: string): Observable<T[]> {
-    const ref = collection(this.firestore, collectionName);
-    return collectionData(ref, { idField: 'id' }) as Observable<T[]>;
+    return new Observable<T[]>(observer => {
+      const ref = collection(this.firestore, collectionName);
+      return onSnapshot(ref, {
+        next: (snap) => observer.next(snap.docs.map(d => ({ id: d.id, ...d.data() }) as T)),
+        error: (err) => observer.error(err)
+      });
+    });
   }
 
   getRootCollectionQuery<T>(
@@ -129,5 +151,31 @@ export class FirestoreService {
     const ref = collection(this.firestore, collectionName);
     const q = query(ref, ...constraints);
     return getDocs(q).then(snap => snap.docs.map(d => ({ id: d.id, ...d.data() }) as T));
+  }
+
+  getRootDocument<T>(collectionName: string, id: string): Observable<T | undefined> {
+    return new Observable<T | undefined>(observer => {
+      const ref = doc(this.firestore, `${collectionName}/${id}`);
+      return onSnapshot(ref, {
+        next: (snap) => observer.next(snap.exists() ? ({ id: snap.id, ...snap.data() } as T) : undefined),
+        error: (err) => observer.error(err)
+      });
+    });
+  }
+
+  async addRootDocument<T extends object>(collectionName: string, data: T): Promise<string> {
+    const ref = collection(this.firestore, collectionName);
+    const now = Timestamp.now();
+    const docRef = await addDoc(ref, { ...data, createdAt: now, updatedAt: now });
+    return docRef.id;
+  }
+
+  async updateRootDocument<T extends object>(
+    collectionName: string,
+    id: string,
+    data: Partial<T>
+  ): Promise<void> {
+    const ref = doc(this.firestore, `${collectionName}/${id}`);
+    await updateDoc(ref, { ...data, updatedAt: Timestamp.now() } as any);
   }
 }

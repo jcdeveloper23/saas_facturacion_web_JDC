@@ -39,11 +39,20 @@ export class AuthService {
   readonly isReady = computed(() => this._isReady());
 
   constructor() {
+    this.initializeAuthListener();
+  }
+
+  private initializeAuthListener(): void {
     onAuthStateChanged(this.auth, async (firebaseUser) => {
       if (firebaseUser) {
-        const authUser = await this.buildAuthUser(firebaseUser);
-        this._currentUser.set(authUser);
-        this.tenantService.setCompanyId(authUser.companyId);
+        try {
+          const authUser = await this.buildAuthUser(firebaseUser);
+          this._currentUser.set(authUser);
+          this.tenantService.setCompanyId(authUser.companyId);
+        } catch (error) {
+          console.error('[AuthService] Error building auth user:', error);
+          this._currentUser.set(null);
+        }
       } else {
         this._currentUser.set(null);
       }
@@ -56,12 +65,18 @@ export class AuthService {
    * Used in APP_INITIALIZER to block navigation until auth is known.
    */
   waitForAuthReady(): Promise<void> {
+    if (this._isReady()) return Promise.resolve();
+    
     return new Promise((resolve) => {
       const unsubscribe = onAuthStateChanged(this.auth, async (firebaseUser) => {
         if (firebaseUser) {
-          const authUser = await this.buildAuthUser(firebaseUser);
-          this._currentUser.set(authUser);
-          this.tenantService.setCompanyId(authUser.companyId);
+          try {
+            const authUser = await this.buildAuthUser(firebaseUser);
+            this._currentUser.set(authUser);
+            this.tenantService.setCompanyId(authUser.companyId);
+          } catch (error) {
+            console.error('[AuthService] Error during init:', error);
+          }
         } else {
           this._currentUser.set(null);
         }

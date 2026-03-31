@@ -1,5 +1,7 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
+import { toObservable } from '@angular/core/rxjs-interop';
+import { filter, map, take } from 'rxjs';
 import { AuthService, UserRole } from '../services/auth.service';
 
 /**
@@ -12,8 +14,15 @@ export const roleGuard: CanActivateFn = (route) => {
 
   const allowedRoles = (route.data?.['roles'] as UserRole[]) ?? [];
 
-  if (allowedRoles.length === 0 || authService.hasRole(...allowedRoles)) return true;
+  return toObservable(authService.isReady).pipe(
+    filter(ready => ready === true),
+    take(1),
+    map(() => {
+      if (allowedRoles.length === 0 || authService.hasRole(...allowedRoles)) return true;
 
-  router.navigate(['/dashboard']);
-  return false;
+      // Unauthenticated users are handled by authGuard, or they default back to /dashboard
+      router.navigate(['/dashboard']);
+      return false;
+    })
+  );
 };

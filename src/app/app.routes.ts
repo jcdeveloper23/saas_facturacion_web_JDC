@@ -21,13 +21,12 @@ export const routes: Routes = [
   },
 
   // ─── Super Admin (no tenant context) ─────────────────────────────────────
-  // TODO Phase 2: implement super-admin feature module
-  // {
-  //   path: 'super-admin',
-  //   canActivate: [authGuard, roleGuard],
-  //   data: { roles: ['super_admin'] },
-  //   loadChildren: () => import('./features/super-admin/super-admin.routes').then(m => m.SUPER_ADMIN_ROUTES)
-  // },
+  {
+    path: 'super-admin',
+    canActivate: [authGuard, roleGuard],
+    data: { roles: ['super_admin'] },
+    loadChildren: () => import('./features/super-admin/super-admin.routes').then(m => m.SUPER_ADMIN_ROUTES)
+  },
 
   // ─── Authenticated app (tenant context) ──────────────────────────────────
   {
@@ -112,12 +111,12 @@ export const routes: Routes = [
       // },
 
       // ── Settings ───────────────────────────────────────────────────────
-      // {
-      //   path: 'settings',
-      //   canActivate: [roleGuard],
-      //   data: { roles: ['admin'], title: 'Settings' },
-      //   loadChildren: () => import('./features/settings/settings.routes').then(m => m.SETTINGS_ROUTES)
-      // },
+      {
+        path: 'settings',
+        canActivate: [roleGuard],
+        data: { roles: ['admin'], title: 'Settings' },
+        loadChildren: () => import('./features/settings/settings.routes').then(m => m.SETTINGS_ROUTES)
+      },
 
       // ── CoreUI component library (keep for reference during development) ─
       {

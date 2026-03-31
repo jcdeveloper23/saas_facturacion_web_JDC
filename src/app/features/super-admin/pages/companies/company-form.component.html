@@ -1,0 +1,223 @@
+<c-row class="mb-4 align-items-center">
+  <c-col>
+    <h2 class="mb-0">{{ isEdit() ? 'Editar Empresa' : 'Nueva Empresa' }}</h2>
+    <p class="text-muted small mb-0">
+      {{ isEdit() ? 'Modificar datos del tenant' : 'Registrar un nuevo tenant en el sistema' }}
+    </p>
+  </c-col>
+  <c-col xs="auto">
+    <a routerLink="/super-admin/companies" cButton color="outline-secondary" size="sm">
+      <svg cIcon name="cilArrowLeft" class="me-1"></svg> Volver
+    </a>
+  </c-col>
+</c-row>
+
+@if (loading()) {
+  <div class="text-center py-5"><c-spinner color="primary"></c-spinner></div>
+} @else {
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    @if (errorMessage()) {
+      <c-alert color="danger" class="mb-4">{{ errorMessage() }}</c-alert>
+    }
+
+    <!-- ── Datos Generales ─────────────────────────────────────────── -->
+    <c-card class="mb-4">
+      <c-card-header>
+        <svg cIcon name="cilBuilding" class="me-2"></svg><strong>Datos Generales</strong>
+      </c-card-header>
+      <c-card-body>
+        <c-row class="g-3">
+          <c-col md="6">
+            <label cLabel for="name">Razón Social *</label>
+            <input cFormControl id="name" formControlName="name"
+                   [class.is-invalid]="hasError('name')">
+            @if (hasError('name')) { <div class="invalid-feedback">{{ getError('name') }}</div> }
+          </c-col>
+          <c-col md="6">
+            <label cLabel for="tradeName">Nombre Comercial</label>
+            <input cFormControl id="tradeName" formControlName="tradeName">
+          </c-col>
+          <c-col md="4">
+            <label cLabel for="taxId">RUC *</label>
+            <input cFormControl id="taxId" formControlName="taxId" maxlength="13"
+                   [class.is-invalid]="hasError('taxId')">
+            @if (hasError('taxId')) { <div class="invalid-feedback">{{ getError('taxId') }}</div> }
+          </c-col>
+          <c-col md="4">
+            <label cLabel for="phone">Teléfono *</label>
+            <input cFormControl id="phone" formControlName="phone"
+                   [class.is-invalid]="hasError('phone')">
+            @if (hasError('phone')) { <div class="invalid-feedback">{{ getError('phone') }}</div> }
+          </c-col>
+          <c-col md="4">
+            <label cLabel for="email">Email *</label>
+            <input cFormControl id="email" type="email" formControlName="email"
+                   [class.is-invalid]="hasError('email')">
+            @if (hasError('email')) { <div class="invalid-feedback">{{ getError('email') }}</div> }
+          </c-col>
+          <c-col md="8">
+            <label cLabel for="fiscalAddress">Dirección Fiscal *</label>
+            <input cFormControl id="fiscalAddress" formControlName="fiscalAddress"
+                   [class.is-invalid]="hasError('fiscalAddress')">
+            @if (hasError('fiscalAddress')) { <div class="invalid-feedback">{{ getError('fiscalAddress') }}</div> }
+          </c-col>
+          <c-col md="4">
+            <label cLabel for="city">Ciudad *</label>
+            <input cFormControl id="city" formControlName="city"
+                   [class.is-invalid]="hasError('city')">
+            @if (hasError('city')) { <div class="invalid-feedback">{{ getError('city') }}</div> }
+          </c-col>
+        </c-row>
+      </c-card-body>
+    </c-card>
+
+    <!-- ── Suscripción ─────────────────────────────────────────────── -->
+    <c-card class="mb-4">
+      <c-card-header>
+        <svg cIcon name="cilCreditCard" class="me-2"></svg><strong>Suscripción</strong>
+      </c-card-header>
+      <c-card-body>
+        <c-row class="g-3">
+          <c-col md="4">
+            <label cLabel for="planId">Plan contratado *</label>
+            <select cSelect id="planId" formControlName="planId"
+                    (change)="onPlanChange()"
+                    [class.is-invalid]="hasError('planId')">
+              <option value="">— Seleccionar —</option>
+              @for (plan of plans(); track plan.id) {
+                <option [value]="plan.id">{{ plan.name }} — ${{ plan.price }}/mes</option>
+              }
+            </select>
+            @if (hasError('planId')) { <div class="invalid-feedback d-block">{{ getError('planId') }}</div> }
+          </c-col>
+          <c-col md="4">
+            <label cLabel for="status">Estado cuenta *</label>
+            <select cSelect id="status" formControlName="status"
+                    [class.is-invalid]="hasError('status')">
+              <option value="trial">Trial</option>
+              <option value="active">Activa</option>
+              <option value="suspended">Suspendida</option>
+              <option value="cancelled">Cancelada</option>
+            </select>
+            @if (hasError('status')) { <div class="invalid-feedback d-block">{{ getError('status') }}</div> }
+          </c-col>
+          <c-col md="4">
+            <label cLabel for="subscriptionEnd">Vencimiento *</label>
+            <input cFormControl id="subscriptionEnd" type="date" formControlName="subscriptionEnd"
+                   [class.is-invalid]="hasError('subscriptionEnd')">
+            @if (hasError('subscriptionEnd')) { <div class="invalid-feedback d-block">{{ getError('subscriptionEnd') }}</div> }
+          </c-col>
+        </c-row>
+      </c-card-body>
+    </c-card>
+
+    <!-- ── Configuración SRI ───────────────────────────────────────── -->
+    <c-card class="mb-4" formGroupName="sri">
+      <c-card-header>
+        <svg cIcon name="cilFile" class="me-2"></svg><strong>Configuración SRI (Ecuador)</strong>
+      </c-card-header>
+      <c-card-body>
+        <c-row class="g-3">
+          <c-col md="6">
+            <label cLabel for="businessName">Razón Social SRI *</label>
+            <input cFormControl id="businessName" formControlName="businessName"
+                   [class.is-invalid]="hasError('sri.businessName')">
+            @if (hasError('sri.businessName')) { <div class="invalid-feedback">{{ getError('sri.businessName') }}</div> }
+          </c-col>
+          <c-col md="6">
+            <label cLabel for="sriRuc">RUC SRI *</label>
+            <input cFormControl id="sriRuc" formControlName="ruc" maxlength="13"
+                   [class.is-invalid]="hasError('sri.ruc')">
+            @if (hasError('sri.ruc')) { <div class="invalid-feedback">{{ getError('sri.ruc') }}</div> }
+          </c-col>
+          <c-col md="3">
+            <label cLabel for="establishment">Establecimiento *</label>
+            <input cFormControl id="establishment" formControlName="establishment" maxlength="3"
+                   placeholder="001" [class.is-invalid]="hasError('sri.establishment')">
+            @if (hasError('sri.establishment')) { <div class="invalid-feedback">{{ getError('sri.establishment') }}</div> }
+          </c-col>
+          <c-col md="3">
+            <label cLabel for="emissionPoint">Punto de Emisión *</label>
+            <input cFormControl id="emissionPoint" formControlName="emissionPoint" maxlength="3"
+                   placeholder="001" [class.is-invalid]="hasError('sri.emissionPoint')">
+            @if (hasError('sri.emissionPoint')) { <div class="invalid-feedback">{{ getError('sri.emissionPoint') }}</div> }
+          </c-col>
+          <c-col md="3">
+            <label cLabel for="environment">Ambiente *</label>
+            <select cSelect id="environment" formControlName="environment">
+              <option value="testing">Pruebas</option>
+              <option value="production">Producción</option>
+            </select>
+          </c-col>
+          <c-col md="3">
+            <label cLabel for="contributorType">Tipo Contribuyente *</label>
+            <select cSelect id="contributorType" formControlName="contributorType">
+              <option value="juridica">Persona Jurídica</option>
+              <option value="natural">Persona Natural</option>
+            </select>
+          </c-col>
+          <c-col md="12">
+            <c-form-check>
+              <input cFormCheckInput id="accountingRequired" type="checkbox"
+                     formControlName="accountingRequired">
+              <label cFormCheckLabel for="accountingRequired">Obligado a llevar contabilidad</label>
+            </c-form-check>
+          </c-col>
+        </c-row>
+      </c-card-body>
+    </c-card>
+
+    <!-- ── Credenciales de Acceso ──────────────────────────────────── -->
+    @if (!isEdit()) {
+      <c-card class="mb-4">
+        <c-card-header>
+          <svg cIcon name="cilLockLocked" class="me-2"></svg><strong>Credenciales del Administrador</strong>
+        </c-card-header>
+        <c-card-body>
+          <c-row class="g-3">
+            <c-col md="6">
+              <label cLabel for="adminPassword">Contraseña Temporal *</label>
+              
+              <c-input-group class="mb-1">
+                <input cFormControl id="adminPassword" 
+                       [type]="showPassword() ? 'text' : 'password'" 
+                       formControlName="adminPassword"
+                       [class.is-invalid]="hasError('adminPassword')"
+                       placeholder="EJ: Xy#9mK2p">
+                       
+                <button cButton color="secondary" variant="outline" type="button" 
+                        (click)="togglePassword()" title="Ver/Ocultar">
+                  <svg cIcon [name]="showPassword() ? 'cilLockUnlocked' : 'cilLockLocked'"></svg>
+                </button>
+                <button cButton color="secondary" variant="outline" type="button" 
+                        (click)="copyPassword()" title="Copiar al portapapeles">
+                  <svg cIcon name="cilCopy"></svg>
+                </button>
+                <button cButton color="primary" variant="outline" type="button" 
+                        (click)="generateRandomPassword()" title="Generar clave">
+                  <svg cIcon name="cilSync"></svg> Generar
+                </button>
+              </c-input-group>
+
+              <div class="form-text">El administrador iniciará sesión con el Email corporativo y esta contraseña.</div>
+              @if (hasError('adminPassword')) { <div class="invalid-feedback d-block">{{ getError('adminPassword') }}</div> }
+            </c-col>
+          </c-row>
+        </c-card-body>
+      </c-card>
+    }
+
+    <!-- ── Acciones ────────────────────────────────────────────────── -->
+    <div class="d-flex gap-2 justify-content-end">
+      <a routerLink="/super-admin/companies" cButton color="outline-secondary">
+        Cancelar
+      </a>
+      <button cButton color="primary" type="submit" [disabled]="saving()">
+        @if (saving()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+        {{ isEdit() ? 'Guardar Cambios' : 'Crear Empresa' }}
+      </button>
+    </div>
+
+  </form>
+}

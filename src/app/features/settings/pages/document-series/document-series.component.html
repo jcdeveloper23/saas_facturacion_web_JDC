@@ -1,0 +1,111 @@
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h5 class="mb-0">Series de Documentos</h5>
+  <button cButton color="primary" size="sm" (click)="openNew()">
+    <svg cIcon name="cilPlus" class="me-1"></svg> Nueva Serie
+  </button>
+</div>
+
+<c-card>
+  <c-card-body>
+    @if (loading()) {
+      <div class="text-center py-4"><c-spinner color="primary"></c-spinner></div>
+    } @else if (series().length === 0) {
+      <p class="text-center text-muted py-4">No hay series configuradas.</p>
+    } @else {
+      <table cTable hover responsive>
+        <thead>
+          <tr>
+            <th>Tipo</th>
+            <th>Código</th>
+            <th>Nombre</th>
+            <th>Establecimiento</th>
+            <th>Pto. Emisión</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (s of series(); track trackById($index, s)) {
+            <tr>
+              <td>
+                <c-badge [color]="s.documentType === 'invoice' ? 'primary' : s.documentType === 'quote' ? 'info' : 'secondary'">
+                  {{ docTypeLabels[s.documentType] }}
+                </c-badge>
+              </td>
+              <td class="font-monospace">{{ s.code }}</td>
+              <td>{{ s.name }}</td>
+              <td class="font-monospace">{{ s.establishment }}</td>
+              <td class="font-monospace">{{ s.emissionPoint }}</td>
+              <td>
+                <div class="d-flex gap-2">
+                  <button cButton color="outline-primary" size="sm" (click)="openEdit(s)">
+                    <svg cIcon name="cilPencil"></svg>
+                  </button>
+                  <button cButton color="outline-danger" size="sm" (click)="delete(s)">
+                    <svg cIcon name="cilTrash"></svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </c-card-body>
+</c-card>
+
+<c-modal [visible]="showModal()" (visibleChange)="showModal.set($event)" alignment="center">
+  <c-modal-header>
+    <h5 cModalTitle>{{ editingId() ? 'Editar Serie' : 'Nueva Serie' }}</h5>
+    <button cButtonClose (click)="showModal.set(false)"></button>
+  </c-modal-header>
+  <c-modal-body>
+    @if (errorMessage()) { <c-alert color="danger" class="mb-3">{{ errorMessage() }}</c-alert> }
+    <form [formGroup]="form">
+      <c-row class="g-3">
+        <c-col md="6">
+          <label cLabel>Tipo de Documento *</label>
+          <select cFormSelect formControlName="documentType">
+            <option value="invoice">Factura</option>
+            <option value="quote">Presupuesto</option>
+            <option value="order">Pedido</option>
+          </select>
+        </c-col>
+        <c-col md="6">
+          <label cLabel>Código *</label>
+          <input cFormControl formControlName="code" placeholder="001"
+                 [class.is-invalid]="hasError('code')">
+          @if (hasError('code')) { <div class="invalid-feedback">Requerido (máx 10 chars)</div> }
+        </c-col>
+        <c-col md="12">
+          <label cLabel>Nombre *</label>
+          <input cFormControl formControlName="name" placeholder="Serie Facturas Quito"
+                 [class.is-invalid]="hasError('name')">
+          @if (hasError('name')) { <div class="invalid-feedback">Requerido</div> }
+        </c-col>
+        <c-col md="6">
+          <label cLabel>Establecimiento (3 dígitos) *</label>
+          <input cFormControl formControlName="establishment" maxlength="3" placeholder="001"
+                 [class.is-invalid]="hasError('establishment')">
+          @if (hasError('establishment')) { <div class="invalid-feedback">3 dígitos requeridos</div> }
+        </c-col>
+        <c-col md="6">
+          <label cLabel>Punto de Emisión (3 dígitos) *</label>
+          <input cFormControl formControlName="emissionPoint" maxlength="3" placeholder="001"
+                 [class.is-invalid]="hasError('emissionPoint')">
+          @if (hasError('emissionPoint')) { <div class="invalid-feedback">3 dígitos requeridos</div> }
+        </c-col>
+        <c-col md="12">
+          <label cLabel>Descripción</label>
+          <input cFormControl formControlName="description">
+        </c-col>
+      </c-row>
+    </form>
+  </c-modal-body>
+  <c-modal-footer>
+    <button cButton color="secondary" (click)="showModal.set(false)" [disabled]="saving()">Cancelar</button>
+    <button cButton color="primary" (click)="save()" [disabled]="saving()">
+      @if (saving()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+      Guardar
+    </button>
+  </c-modal-footer>
+</c-modal>

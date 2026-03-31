@@ -1,5 +1,7 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
+import { toObservable } from '@angular/core/rxjs-interop';
+import { filter, map, take } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 
 /**
@@ -9,10 +11,18 @@ export const authGuard: CanActivateFn = (_, state) => {
   const authService = inject(AuthService);
   const router = inject(Router);
 
-  if (authService.isAuthenticated()) return true;
+  // Use observable to wait for initial state if not ready yet
+  return toObservable(authService.isReady).pipe(
+    filter(ready => ready === true),
+    take(1),
+    map(() => {
+      if (authService.isAuthenticated()) return true;
 
-  router.navigate(['/login'], { queryParams: { returnUrl: state.url } });
-  return false;
+      // Redirect to login with returnUrl
+      router.navigate(['/login'], { queryParams: { returnUrl: state.url } });
+      return false;
+    })
+  );
 };
 
 /**
@@ -22,9 +32,15 @@ export const loginGuard: CanActivateFn = () => {
   const authService = inject(AuthService);
   const router = inject(Router);
 
-  if (authService.isAuthenticated()) {
-    router.navigate([authService.getDefaultRoute()]);
-    return false;
-  }
-  return true;
+  return toObservable(authService.isReady).pipe(
+    filter(ready => ready === true),
+    take(1),
+    map(() => {
+      if (authService.isAuthenticated()) {
+        router.navigate([authService.getDefaultRoute()]);
+        return false;
+      }
+      return true;
+    })
+  );
 };

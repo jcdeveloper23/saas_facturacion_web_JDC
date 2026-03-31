@@ -1,0 +1,73 @@
+<div class="mb-4">
+  <h2 class="mb-1">Configuración</h2>
+  <p class="text-muted small mb-0">Parámetros generales de la empresa</p>
+</div>
+
+<c-card>
+  <c-card-body class="p-0">
+    <!-- Tabs nav -->
+    <c-nav variant="underline" class="px-3 pt-2 border-bottom">
+      <c-nav-item>
+        <a cNavLink
+           routerLink="company"
+           routerLinkActive="active"
+           class="nav-link d-flex align-items-center gap-1 py-3">
+          <svg cIcon name="cilBuilding" size="sm"></svg> Empresa
+        </a>
+      </c-nav-item>
+      <c-nav-item>
+        <a cNavLink
+           routerLink="warehouses"
+           routerLinkActive="active"
+           class="nav-link d-flex align-items-center gap-1 py-3">
+          <svg cIcon name="cilLayers" size="sm"></svg> Almacenes
+        </a>
+      </c-nav-item>
+      <c-nav-item>
+        <a cNavLink
+           routerLink="document-series"
+           routerLinkActive="active"
+           class="nav-link d-flex align-items-center gap-1 py-3">
+          <svg cIcon name="cilFile" size="sm"></svg> Series
+        </a>
+      </c-nav-item>
+      <c-nav-item>
+        <a cNavLink
+           routerLink="payment-terms"
+           routerLinkActive="active"
+           class="nav-link d-flex align-items-center gap-1 py-3">
+          <svg cIcon name="cilWallet" size="sm"></svg> Condiciones de Pago
+        </a>
+      </c-nav-item>
+      <c-nav-item>
+        <a cNavLink
+           routerLink="tax-rates"
+           routerLinkActive="active"
+           class="nav-link d-flex align-items-center gap-1 py-3">
+          <svg cIcon name="cilPercent" size="sm"></svg> Impuestos
+        </a>
+      </c-nav-item>
+      <c-nav-item>
+        <a cNavLink
+           routerLink="currencies"
+           routerLinkActive="active"
+           class="nav-link d-flex align-items-center gap-1 py-3">
+          <svg cIcon name="cilMoney" size="sm"></svg> Divisas
+        </a>
+      </c-nav-item>
+      <c-nav-item>
+        <a cNavLink
+           routerLink="countries"
+           routerLinkActive="active"
+           class="nav-link d-flex align-items-center gap-1 py-3">
+          <svg cIcon name="cilGlobeAlt" size="sm"></svg> Países
+        </a>
+      </c-nav-item>
+    </c-nav>
+
+    <!-- Tab content -->
+    <div class="p-4">
+      <router-outlet></router-outlet>
+    </div>
+  </c-card-body>
+</c-card>

@@ -1,0 +1,90 @@
+<c-row class="mb-4 align-items-center">
+  <c-col>
+    <h2 class="mb-0">Empresas</h2>
+    <p class="text-muted mb-0 small">Gestión de tenants del sistema</p>
+  </c-col>
+  <c-col xs="auto">
+    <a routerLink="/super-admin/companies/new" cButton color="primary" size="sm">
+      <svg cIcon name="cilPlus" class="me-1"></svg> Nueva Empresa
+    </a>
+  </c-col>
+</c-row>
+
+<c-card>
+  <c-card-header class="d-flex align-items-center">
+    <svg cIcon name="cilBuilding" class="me-2"></svg>
+    <strong>Listado de Empresas</strong>
+    <c-badge color="secondary" class="ms-2">{{ companies().length }}</c-badge>
+  </c-card-header>
+  <c-card-body>
+
+    @if (loading()) {
+      <div class="text-center py-5">
+        <c-spinner color="primary"></c-spinner>
+        <p class="mt-2 text-muted">Cargando empresas…</p>
+      </div>
+    } @else if (companies().length === 0) {
+      <div class="text-center py-5 text-muted">
+        <svg cIcon name="cilBuilding" size="xl" class="mb-3 text-secondary"></svg>
+        <p>No hay empresas registradas.</p>
+        <a routerLink="/super-admin/companies/new" cButton color="primary" size="sm">
+          Crear primera empresa
+        </a>
+      </div>
+    } @else {
+      <table cTable hover responsive>
+        <thead>
+          <tr>
+            <th>Empresa</th>
+            <th>RUC</th>
+            <th>Plan</th>
+            <th>Estado</th>
+            <th>Vencimiento</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (company of companies(); track trackById($index, company)) {
+            <tr>
+              <td>
+                <div class="fw-semibold">{{ company.name }}</div>
+                <div class="small text-muted">{{ company.email }}</div>
+              </td>
+              <td class="font-monospace">{{ company.taxId }}</td>
+              <td>{{ company.planName }}</td>
+              <td>
+                <c-badge [color]="statusColors[company.status]">
+                  {{ statusLabels[company.status] }}
+                </c-badge>
+              </td>
+              <td class="small">
+                {{ company.subscriptionEnd?.toDate() | date:'dd/MM/yyyy' }}
+              </td>
+              <td>
+                <div class="d-flex gap-2">
+                  <a [routerLink]="['/super-admin/companies', company.id, 'edit']"
+                     cButton color="outline-primary" size="sm" title="Editar">
+                    <svg cIcon name="cilPencil"></svg>
+                  </a>
+                  <button cButton
+                          [color]="company.status === 'active' ? 'outline-warning' : 'outline-success'"
+                          size="sm"
+                          [disabled]="actionInProgress() === company.id"
+                          (click)="toggleStatus(company)"
+                          [title]="company.status === 'active' ? 'Suspender' : 'Activar'">
+                    @if (actionInProgress() === company.id) {
+                      <c-spinner size="sm"></c-spinner>
+                    } @else {
+                      <svg cIcon [name]="company.status === 'active' ? 'cilBan' : 'cilCheckCircle'"></svg>
+                    }
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+
+  </c-card-body>
+</c-card>

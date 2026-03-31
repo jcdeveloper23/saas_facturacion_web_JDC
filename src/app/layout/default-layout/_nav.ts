@@ -79,28 +79,59 @@ export const navItems: INavData[] = [
   // },
 
   // ─── Administration ──────────────────────────────────────────────────────
-  // {
-  //   title: true,
-  //   name: 'Administration'
-  // },
+  {
+    title: true,
+    name: 'Administration'
+  },
   // {
   //   name: 'Electronic Invoicing',
   //   url: '/electronic-invoicing',
   //   iconComponent: { name: 'cil-cloud-upload' },
   //   attributes: { roles: ['admin'] }
   // },
-  // {
-  //   name: 'Settings',
-  //   url: '/settings',
-  //   iconComponent: { name: 'cil-settings' },
-  //   attributes: { roles: ['admin'] }
-  // },
-  // {
-  //   name: 'Users',
-  //   url: '/settings/users',
-  //   iconComponent: { name: 'cil-user' },
-  //   attributes: { roles: ['admin'] }
-  // },
+  {
+    name: 'Settings',
+    url: '/settings',
+    iconComponent: { name: 'cil-settings' },
+    attributes: { roles: ['admin'] },
+    children: [
+      {
+        name: 'Mi Empresa',
+        url: '/settings/company',
+        icon: 'nav-icon-bullet'
+      },
+      {
+        name: 'Almacenes',
+        url: '/settings/warehouses',
+        icon: 'nav-icon-bullet'
+      },
+      {
+        name: 'Series de Documentos',
+        url: '/settings/document-series',
+        icon: 'nav-icon-bullet'
+      },
+      {
+        name: 'Métodos de Pago',
+        url: '/settings/payment-terms',
+        icon: 'nav-icon-bullet'
+      },
+      {
+        name: 'Tasas de Impuestos',
+        url: '/settings/tax-rates',
+        icon: 'nav-icon-bullet'
+      },
+      {
+        name: 'Divisas',
+        url: '/settings/currencies',
+        icon: 'nav-icon-bullet'
+      },
+      {
+        name: 'Países',
+        url: '/settings/countries',
+        icon: 'nav-icon-bullet'
+      }
+    ]
+  },
 
   // ─── CoreUI reference (remove after development) ─────────────────────────
   {

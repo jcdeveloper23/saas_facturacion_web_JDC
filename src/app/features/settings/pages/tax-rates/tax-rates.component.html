@@ -1,0 +1,99 @@
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h5 class="mb-0">Tasas de Impuesto</h5>
+  <button cButton color="primary" size="sm" (click)="openNew()">
+    <svg cIcon name="cilPlus" class="me-1"></svg> Nuevo Impuesto
+  </button>
+</div>
+
+<c-card>
+  <c-card-body>
+    @if (loading()) {
+      <div class="text-center py-4"><c-spinner color="primary"></c-spinner></div>
+    } @else if (taxRates().length === 0) {
+      <p class="text-center text-muted py-4">No hay tasas de impuesto configuradas.</p>
+    } @else {
+      <table cTable hover responsive>
+        <thead>
+          <tr><th>Código</th><th>Nombre</th><th>Tasa %</th><th>Código SRI</th><th>Por Defecto</th><th>Acciones</th></tr>
+        </thead>
+        <tbody>
+          @for (t of taxRates(); track trackById($index, t)) {
+            <tr>
+              <td class="font-monospace">{{ t.code }}</td>
+              <td>{{ t.name }}</td>
+              <td class="fw-semibold">{{ t.rate }}%</td>
+              <td class="font-monospace">{{ t.sriCode }}</td>
+              <td>
+                @if (t.isDefault) {
+                  <c-badge color="primary">Predeterminado</c-badge>
+                }
+              </td>
+              <td>
+                <div class="d-flex gap-2">
+                  <button cButton color="outline-primary" size="sm" (click)="openEdit(t)">
+                    <svg cIcon name="cilPencil"></svg>
+                  </button>
+                  <button cButton color="outline-danger" size="sm"
+                          [disabled]="t.isDefault" (click)="delete(t)">
+                    <svg cIcon name="cilTrash"></svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </c-card-body>
+</c-card>
+
+<c-modal [visible]="showModal()" (visibleChange)="showModal.set($event)" alignment="center">
+  <c-modal-header>
+    <h5 cModalTitle>{{ editingId() ? 'Editar Impuesto' : 'Nuevo Impuesto' }}</h5>
+    <button cButtonClose (click)="showModal.set(false)"></button>
+  </c-modal-header>
+  <c-modal-body>
+    @if (errorMessage()) { <c-alert color="danger" class="mb-3">{{ errorMessage() }}</c-alert> }
+    <form [formGroup]="form">
+      <c-row class="g-3">
+        <c-col md="4">
+          <label cLabel>Código *</label>
+          <input cFormControl formControlName="code" placeholder="VAT15"
+                 [class.is-invalid]="hasError('code')">
+          @if (hasError('code')) { <div class="invalid-feedback">Requerido</div> }
+        </c-col>
+        <c-col md="8">
+          <label cLabel>Nombre *</label>
+          <input cFormControl formControlName="name" placeholder="IVA 15%"
+                 [class.is-invalid]="hasError('name')">
+          @if (hasError('name')) { <div class="invalid-feedback">Requerido</div> }
+        </c-col>
+        <c-col md="4">
+          <label cLabel>Tasa % *</label>
+          <input cFormControl type="number" formControlName="rate" min="0" max="100">
+        </c-col>
+        <c-col md="8">
+          <label cLabel>Código SRI *</label>
+          <select cFormSelect formControlName="sriCode">
+            @for (opt of sriCodeOptions; track opt.value) {
+              <option [value]="opt.value">{{ opt.label }}</option>
+            }
+          </select>
+        </c-col>
+        <c-col md="12">
+          <c-form-check>
+            <input cFormCheckInput id="isDefault" type="checkbox" formControlName="isDefault">
+            <label cFormCheckLabel for="isDefault">Impuesto predeterminado</label>
+          </c-form-check>
+        </c-col>
+      </c-row>
+    </form>
+  </c-modal-body>
+  <c-modal-footer>
+    <button cButton color="secondary" (click)="showModal.set(false)" [disabled]="saving()">Cancelar</button>
+    <button cButton color="primary" (click)="save()" [disabled]="saving()">
+      @if (saving()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+      Guardar
+    </button>
+  </c-modal-footer>
+</c-modal>

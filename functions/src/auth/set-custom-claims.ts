@@ -6,7 +6,7 @@ type UserRole = 'admin' | 'seller' | 'cashier' | 'read_only' | 'super_admin';
 const VALID_ROLES: UserRole[] = ['admin', 'seller', 'cashier', 'read_only', 'super_admin'];
 
 /**
- * setUserCustomClaims
+ * setUserCustomClaims 
  *
  * Called by an admin to assign companyId + role to a Firebase Auth user.
  * These claims are then available in the JWT token as:

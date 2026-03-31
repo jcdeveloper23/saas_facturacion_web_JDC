@@ -1,0 +1,128 @@
+<c-row class="mb-4 align-items-center">
+  <c-col>
+    <h2 class="mb-0">Planes de Suscripción</h2>
+    <p class="text-muted small mb-0">Define los planes disponibles para las empresas</p>
+  </c-col>
+  <c-col xs="auto">
+    <button cButton color="primary" size="sm" (click)="openNew()">
+      <svg cIcon name="cilPlus" class="me-1"></svg> Nuevo Plan
+    </button>
+  </c-col>
+</c-row>
+
+<c-card>
+  <c-card-header>
+    <svg cIcon name="cilCreditCard" class="me-2"></svg>
+    <strong>Listado de Planes</strong>
+    <c-badge color="secondary" class="ms-2">{{ plans().length }}</c-badge>
+  </c-card-header>
+  <c-card-body>
+
+    @if (loading()) {
+      <div class="text-center py-5"><c-spinner color="primary"></c-spinner></div>
+    } @else if (plans().length === 0) {
+      <div class="text-center py-5 text-muted">
+        <p>No hay planes configurados.</p>
+        <button cButton color="primary" size="sm" (click)="openNew()">Crear primer plan</button>
+      </div>
+    } @else {
+      <table cTable hover responsive>
+        <thead>
+          <tr>
+            <th>Plan</th>
+            <th>Precio/mes</th>
+            <th>Usuarios</th>
+            <th>Facturas/mes</th>
+            <th>Almacenes</th>
+            <th>Storage</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (plan of plans(); track trackById($index, plan)) {
+            <tr>
+              <td class="fw-semibold">{{ plan.name }}</td>
+              <td>${{ plan.price }}</td>
+              <td>{{ plan.limits.users }}</td>
+              <td>{{ plan.limits.invoicesPerMonth }}</td>
+              <td>{{ plan.limits.warehouses }}</td>
+              <td>{{ plan.limits.storageGb }} GB</td>
+              <td>
+                <c-badge [color]="plan.isActive ? 'success' : 'secondary'">
+                  {{ plan.isActive ? 'Activo' : 'Inactivo' }}
+                </c-badge>
+              </td>
+              <td>
+                <div class="d-flex gap-2">
+                  <button cButton color="outline-primary" size="sm" (click)="openEdit(plan)" title="Editar">
+                    <svg cIcon name="cilPencil"></svg>
+                  </button>
+                  @if (plan.isActive) {
+                    <button cButton color="outline-danger" size="sm" (click)="deactivate(plan)" title="Desactivar">
+                      <svg cIcon name="cilBan"></svg>
+                    </button>
+                  }
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+
+  </c-card-body>
+</c-card>
+
+<!-- ── Modal Add/Edit Plan ─────────────────────────────────────────── -->
+<c-modal [visible]="showModal()" (visibleChange)="showModal.set($event)" alignment="center">
+  <c-modal-header>
+    <h5 cModalTitle>{{ editingId() ? 'Editar Plan' : 'Nuevo Plan' }}</h5>
+    <button cButtonClose (click)="closeModal()"></button>
+  </c-modal-header>
+
+  <c-modal-body>
+    @if (errorMessage()) {
+      <c-alert color="danger" class="mb-3">{{ errorMessage() }}</c-alert>
+    }
+    <form [formGroup]="form" id="planForm">
+      <c-row class="g-3">
+        <c-col md="8">
+          <label cLabel for="planName">Nombre del Plan *</label>
+          <input cFormControl id="planName" formControlName="name"
+                 placeholder="ej: Professional"
+                 [class.is-invalid]="hasError('name')">
+          @if (hasError('name')) { <div class="invalid-feedback">Campo requerido</div> }
+        </c-col>
+        <c-col md="4">
+          <label cLabel for="planPrice">Precio USD/mes *</label>
+          <input cFormControl id="planPrice" type="number" formControlName="price" min="0">
+        </c-col>
+        <c-col md="3">
+          <label cLabel>Usuarios *</label>
+          <input cFormControl type="number" formControlName="limits.users" min="1">
+        </c-col>
+        <c-col md="3">
+          <label cLabel>Facturas/mes *</label>
+          <input cFormControl type="number" formControlName="limits.invoicesPerMonth" min="1">
+        </c-col>
+        <c-col md="3">
+          <label cLabel>Almacenes *</label>
+          <input cFormControl type="number" formControlName="limits.warehouses" min="1">
+        </c-col>
+        <c-col md="3">
+          <label cLabel>Storage GB *</label>
+          <input cFormControl type="number" formControlName="limits.storageGb" min="1">
+        </c-col>
+      </c-row>
+    </form>
+  </c-modal-body>
+
+  <c-modal-footer>
+    <button cButton color="secondary" (click)="closeModal()" [disabled]="saving()">Cancelar</button>
+    <button cButton color="primary" (click)="save()" [disabled]="saving()">
+      @if (saving()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+      {{ editingId() ? 'Guardar Cambios' : 'Crear Plan' }}
+    </button>
+  </c-modal-footer>
+</c-modal>

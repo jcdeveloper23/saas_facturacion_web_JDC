@@ -15,3 +15,34 @@
 .select-week .calendar-row.current {
   cursor: pointer;
 }
+
+// ── Compact Layout — optimización de espacios ─────────────────────────────────
+
+// El wrapper ya maneja padding-inline para el sidebar via --cui-sidebar-occupy-start.
+// Reducimos al mínimo cualquier padding adicional del contenedor principal.
+.body {
+  > .container-fluid {
+    padding-inline: 0.5rem;
+  }
+}
+
+// Cards y tablas más densas: reducir padding interno de cards
+.card-body {
+  padding: 0.75rem;
+}
+
+// Reducir padding de card header
+.card-header {
+  padding: 0.5rem 0.75rem;
+}
+
+// Tabla más compacta por defecto
+.table {
+  --cui-table-cell-padding-y: 0.4rem;
+  --cui-table-cell-padding-x: 0.6rem;
+}
+
+// Sidebar footer más compacto
+.sidebar-footer {
+  min-height: 2.5rem !important;
+}

@@ -1,0 +1,95 @@
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h5 class="mb-0">Países (Plataforma)</h5>
+    <small class="text-muted">Valores por defecto para nuevas empresas</small>
+  </div>
+  <button cButton color="primary" size="sm" (click)="openNew()">
+    <svg cIcon name="cilPlus" class="me-1"></svg> Nuevo País
+  </button>
+</div>
+
+<c-card class="mb-3">
+  <c-card-body>
+    <input class="form-control form-control-sm" placeholder="Buscar por nombre o código ISO..."
+           [value]="searchTerm()" (input)="searchTerm.set($any($event.target).value)">
+  </c-card-body>
+</c-card>
+
+<c-card>
+  <c-card-body>
+    @if (loading()) {
+      <div class="text-center py-4"><c-spinner color="primary"></c-spinner></div>
+    } @else if (filtered.length === 0) {
+      <p class="text-center text-muted py-4">
+        {{ searchTerm() ? 'Sin resultados para "' + searchTerm() + '"' : 'No hay países configurados. Ejecuta "Inicializar datos de fábrica".' }}
+      </p>
+    } @else {
+      <table cTable hover responsive>
+        <thead>
+          <tr>
+            <th>ISO-2</th><th>ISO-3</th><th>Nombre</th><th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (c of filtered; track trackById($index, c)) {
+            <tr>
+              <td class="font-monospace fw-semibold">{{ c.code2 }}</td>
+              <td class="font-monospace text-muted">{{ c.code3 }}</td>
+              <td>{{ c.name }}</td>
+              <td>
+                <div class="d-flex gap-2">
+                  <button cButton color="outline-primary" size="sm" (click)="openEdit(c)" title="Editar">
+                    <svg cIcon name="cilPencil"></svg>
+                  </button>
+                  <button cButton color="outline-danger" size="sm" (click)="delete(c)" title="Eliminar">
+                    <svg cIcon name="cilTrash"></svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      <small class="text-muted">{{ filtered.length }} país(es) mostrados de {{ countries().length }} totales</small>
+    }
+  </c-card-body>
+</c-card>
+
+<c-modal [visible]="showModal()" (visibleChange)="showModal.set($event)" alignment="center">
+  <c-modal-header>
+    <h5 cModalTitle>{{ editingId() ? 'Editar País' : 'Nuevo País' }}</h5>
+    <button cButtonClose (click)="showModal.set(false)"></button>
+  </c-modal-header>
+  <c-modal-body>
+    @if (errorMessage()) { <c-alert color="danger" class="mb-3">{{ errorMessage() }}</c-alert> }
+    <form [formGroup]="form">
+      <c-row class="g-3">
+        <c-col md="4">
+          <label cLabel>ISO-2 * <small class="text-muted">(ej: EC)</small></label>
+          <input cFormControl formControlName="code2" placeholder="EC" maxlength="3"
+                 style="text-transform:uppercase" [class.is-invalid]="hasError('code2')">
+          @if (hasError('code2')) { <div class="invalid-feedback">Requerido (2-3 chars)</div> }
+        </c-col>
+        <c-col md="4">
+          <label cLabel>ISO-3 * <small class="text-muted">(ej: ECU)</small></label>
+          <input cFormControl formControlName="code3" placeholder="ECU" maxlength="3"
+                 style="text-transform:uppercase" [class.is-invalid]="hasError('code3')">
+          @if (hasError('code3')) { <div class="invalid-feedback">Requerido (3 chars)</div> }
+        </c-col>
+        <c-col md="12">
+          <label cLabel>Nombre *</label>
+          <input cFormControl formControlName="name" placeholder="Ecuador"
+                 [class.is-invalid]="hasError('name')">
+          @if (hasError('name')) { <div class="invalid-feedback">Requerido</div> }
+        </c-col>
+      </c-row>
+    </form>
+  </c-modal-body>
+  <c-modal-footer>
+    <button cButton color="secondary" (click)="showModal.set(false)" [disabled]="saving()">Cancelar</button>
+    <button cButton color="primary" (click)="save()" [disabled]="saving()">
+      @if (saving()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+      Guardar
+    </button>
+  </c-modal-footer>
+</c-modal>

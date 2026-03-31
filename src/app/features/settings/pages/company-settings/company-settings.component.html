@@ -1,0 +1,105 @@
+@if (loading()) {
+  <div class="text-center py-5"><c-spinner color="primary"></c-spinner></div>
+} @else {
+  <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    @if (errorMessage()) {
+      <c-alert color="danger" class="mb-4">{{ errorMessage() }}</c-alert>
+    }
+
+    <!-- ── Datos de la Empresa ─────────────────────────────────── -->
+    <c-card class="mb-4">
+      <c-card-header>
+        <svg cIcon name="cilBuilding" class="me-2"></svg><strong>Datos de la Empresa</strong>
+      </c-card-header>
+      <c-card-body>
+        <c-row class="g-3">
+          <c-col md="6">
+            <label cLabel for="companyName">Razón Social *</label>
+            <input cFormControl id="companyName" formControlName="companyName"
+                   [class.is-invalid]="hasError('companyName')">
+            @if (hasError('companyName')) { <div class="invalid-feedback">{{ getError('companyName') }}</div> }
+          </c-col>
+          <c-col md="3">
+            <label cLabel for="taxId">RUC *</label>
+            <input cFormControl id="taxId" formControlName="taxId" maxlength="13"
+                   [class.is-invalid]="hasError('taxId')">
+            @if (hasError('taxId')) { <div class="invalid-feedback">{{ getError('taxId') }}</div> }
+          </c-col>
+          <c-col md="3">
+            <label cLabel for="phone">Teléfono *</label>
+            <input cFormControl id="phone" formControlName="phone"
+                   [class.is-invalid]="hasError('phone')">
+            @if (hasError('phone')) { <div class="invalid-feedback">{{ getError('phone') }}</div> }
+          </c-col>
+          <c-col md="4">
+            <label cLabel for="email">Email *</label>
+            <input cFormControl id="email" type="email" formControlName="email"
+                   [class.is-invalid]="hasError('email')">
+            @if (hasError('email')) { <div class="invalid-feedback">{{ getError('email') }}</div> }
+          </c-col>
+          <c-col md="4">
+            <label cLabel for="website">Sitio Web</label>
+            <input cFormControl id="website" formControlName="website" placeholder="https://...">
+          </c-col>
+          <c-col md="4">
+            <label cLabel for="country">País</label>
+            <input cFormControl id="country" formControlName="country">
+          </c-col>
+          <c-col md="8">
+            <label cLabel for="fiscalAddress">Dirección Fiscal *</label>
+            <input cFormControl id="fiscalAddress" formControlName="fiscalAddress"
+                   [class.is-invalid]="hasError('fiscalAddress')">
+            @if (hasError('fiscalAddress')) { <div class="invalid-feedback">{{ getError('fiscalAddress') }}</div> }
+          </c-col>
+          <c-col md="2">
+            <label cLabel for="city">Ciudad *</label>
+            <input cFormControl id="city" formControlName="city"
+                   [class.is-invalid]="hasError('city')">
+            @if (hasError('city')) { <div class="invalid-feedback">{{ getError('city') }}</div> }
+          </c-col>
+          <c-col md="2">
+            <label cLabel for="province">Provincia</label>
+            <input cFormControl id="province" formControlName="province">
+          </c-col>
+        </c-row>
+      </c-card-body>
+    </c-card>
+
+    <!-- ── Configuración Fiscal ────────────────────────────────── -->
+    <c-card class="mb-4">
+      <c-card-header>
+        <svg cIcon name="cilFile" class="me-2"></svg><strong>Configuración Fiscal</strong>
+      </c-card-header>
+      <c-card-body>
+        <c-row class="g-3">
+          <c-col md="3">
+            <label cLabel for="defaultCurrency">Moneda</label>
+            <select cFormSelect id="defaultCurrency" formControlName="defaultCurrency">
+              <option value="USD">USD — Dólar Americano</option>
+              <option value="EUR">EUR — Euro</option>
+            </select>
+          </c-col>
+          <c-col md="3">
+            <label cLabel for="vatRate">IVA % *</label>
+            <c-input-group>
+              <input cFormControl id="vatRate" type="number" formControlName="vatRate"
+                     min="0" max="100" step="1">
+              <span cInputGroupText>%</span>
+            </c-input-group>
+          </c-col>
+          <c-col md="3">
+            <label cLabel for="fiscalYear">Año Fiscal *</label>
+            <input cFormControl id="fiscalYear" type="number" formControlName="fiscalYear">
+          </c-col>
+        </c-row>
+      </c-card-body>
+    </c-card>
+
+    <div class="d-flex justify-content-end">
+      <button cButton color="primary" type="submit" [disabled]="saving()">
+        @if (saving()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+        Guardar Configuración
+      </button>
+    </div>
+  </form>
+}

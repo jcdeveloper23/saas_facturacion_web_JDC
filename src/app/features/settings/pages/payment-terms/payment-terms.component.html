@@ -1,0 +1,86 @@
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h5 class="mb-0">Condiciones de Pago</h5>
+  <button cButton color="primary" size="sm" (click)="openNew()">
+    <svg cIcon name="cilPlus" class="me-1"></svg> Nueva Condición
+  </button>
+</div>
+
+<c-card>
+  <c-card-body>
+    @if (loading()) {
+      <div class="text-center py-4"><c-spinner color="primary"></c-spinner></div>
+    } @else if (terms().length === 0) {
+      <p class="text-center text-muted py-4">No hay condiciones de pago configuradas.</p>
+    } @else {
+      <table cTable hover responsive>
+        <thead>
+          <tr><th>Código</th><th>Nombre</th><th>Días</th><th>Acciones</th></tr>
+        </thead>
+        <tbody>
+          @for (t of terms(); track trackById($index, t)) {
+            <tr>
+              <td class="font-monospace">{{ t.code }}</td>
+              <td>{{ t.name }}</td>
+              <td>
+                @if (t.days === 0) {
+                  <c-badge color="success">Contado</c-badge>
+                } @else {
+                  {{ t.days }} días
+                }
+              </td>
+              <td>
+                <div class="d-flex gap-2">
+                  <button cButton color="outline-primary" size="sm" (click)="openEdit(t)">
+                    <svg cIcon name="cilPencil"></svg>
+                  </button>
+                  <button cButton color="outline-danger" size="sm" (click)="delete(t)">
+                    <svg cIcon name="cilTrash"></svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </c-card-body>
+</c-card>
+
+<c-modal [visible]="showModal()" (visibleChange)="showModal.set($event)" alignment="center">
+  <c-modal-header>
+    <h5 cModalTitle>{{ editingId() ? 'Editar Condición' : 'Nueva Condición' }}</h5>
+    <button cButtonClose (click)="showModal.set(false)"></button>
+  </c-modal-header>
+  <c-modal-body>
+    @if (errorMessage()) { <c-alert color="danger" class="mb-3">{{ errorMessage() }}</c-alert> }
+    <form [formGroup]="form">
+      <c-row class="g-3">
+        <c-col md="4">
+          <label cLabel>Código *</label>
+          <input cFormControl formControlName="code" placeholder="CASH"
+                 [class.is-invalid]="hasError('code')">
+          @if (hasError('code')) { <div class="invalid-feedback">Requerido</div> }
+        </c-col>
+        <c-col md="5">
+          <label cLabel>Nombre *</label>
+          <input cFormControl formControlName="name" placeholder="Contado"
+                 [class.is-invalid]="hasError('name')">
+          @if (hasError('name')) { <div class="invalid-feedback">Requerido</div> }
+        </c-col>
+        <c-col md="3">
+          <label cLabel>Días *</label>
+          <input cFormControl type="number" formControlName="days" min="0"
+                 [class.is-invalid]="hasError('days')">
+          @if (hasError('days')) { <div class="invalid-feedback">Requerido (≥ 0)</div> }
+        </c-col>
+      </c-row>
+    </form>
+  </c-modal-body>
+  <c-modal-footer>
+    <button cButton color="secondary" (click)="showModal.set(false)" [disabled]="saving()">Cancelar</button>
+    <button cButton color="primary" (click)="save()" [disabled]="saving()">
+      @if (saving()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+      Guardar
+    </button>
+  </c-modal-footer>
+</c-modal>
