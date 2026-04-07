@@ -26,6 +26,24 @@ export const SUPER_ADMIN_ROUTES: Routes = [
         data: { title: 'Edit Company' }
       },
       {
+        path: 'companies/:id/plugins',
+        loadComponent: () =>
+          import('./pages/companies/company-plugins.component').then(m => m.CompanyPluginsComponent),
+        data: { title: 'Company Plugins' }
+      },
+      {
+        path: 'companies/:id/form-config',
+        loadComponent: () =>
+          import('./pages/companies/company-form-config.component').then(m => m.CompanyFormConfigComponent),
+        data: { title: 'Form Configuration' }
+      },
+      {
+        path: 'catalog',
+        loadComponent: () =>
+          import('../../features/permissions/permissions.component').then(m => m.PermissionsComponent),
+        data: { title: 'Catálogo de Plugins' }
+      },
+      {
         path: 'plans',
         loadComponent: () =>
           import('./pages/plans/plans.component').then(m => m.PlansComponent),

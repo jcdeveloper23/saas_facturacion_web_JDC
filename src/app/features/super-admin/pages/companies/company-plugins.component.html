@@ -1,0 +1,133 @@
+<c-container fluid>
+
+  <!-- Header -->
+  <c-row class="mb-4 align-items-center">
+    <c-col xs="12" class="d-flex align-items-center gap-3">
+      <button cButton color="ghost" size="sm" (click)="back()">
+        <svg cIcon name="cil-arrow-left"></svg>
+      </button>
+      <div>
+        <h4 class="mb-0">
+          <svg cIcon name="cil-puzzle" class="me-2 text-primary"></svg>
+          Plugins — {{ company()?.name ?? '...' }}
+        </h4>
+        <small class="text-muted">Activa o desactiva módulos para esta empresa</small>
+      </div>
+    </c-col>
+  </c-row>
+
+  @if (error()) {
+  <c-alert color="danger" class="mb-4">{{ error() }}</c-alert>
+  }
+
+  @if (isLoading()) {
+  <div class="text-center p-5">
+    <c-spinner color="primary"></c-spinner>
+    <p class="mt-3 text-muted">Cargando módulos...</p>
+  </div>
+  } @else {
+
+  <!-- Info bar -->
+  <c-row class="mb-4">
+    <c-col xs="12">
+      <c-alert color="info" class="mb-0 d-flex align-items-center gap-2">
+        <svg cIcon name="cil-info"></svg>
+        <span>
+          <strong>{{ enabled().size }}</strong> módulos activos.
+          Los módulos grises tienen dependencias sin activar.
+          Desactivar un módulo desactiva automáticamente los que dependen de él.
+        </span>
+      </c-alert>
+    </c-col>
+  </c-row>
+
+  <!-- Sections -->
+  @for (section of sectioned(); track section.title) {
+  <c-row class="mb-2">
+    <c-col xs="12">
+      <p class="text-muted fw-semibold text-uppercase small mb-2 border-bottom pb-1">
+        {{ section.title }}
+      </p>
+    </c-col>
+  </c-row>
+
+  <c-row class="mb-4 g-3">
+    @for (row of section.rows; track row.module.code) {
+    <c-col xs="12" sm="6" lg="4" xl="3">
+      <c-card
+        [class.border-success]="row.enabled"
+        [class.border-secondary]="!row.enabled && row.canEnable"
+        [class.border-warning]="!row.enabled && !row.canEnable"
+        [class.opacity-75]="!row.canEnable && !row.enabled"
+        style="cursor: pointer; transition: all .15s"
+        (click)="toggle(row)">
+
+        <c-card-body class="p-3">
+          <div class="d-flex align-items-start justify-content-between mb-2">
+            <!-- Icon + Name -->
+            <div class="d-flex align-items-center gap-2">
+              <svg cIcon [name]="row.module.icon || 'cil-puzzle'"
+                [class.text-success]="row.enabled"
+                [class.text-muted]="!row.enabled"
+                style="width:20px;height:20px">
+              </svg>
+              <span class="fw-semibold">{{ row.module.name }}</span>
+            </div>
+
+            <!-- Toggle indicator / spinner -->
+            @if (saving() === row.module.code) {
+            <c-spinner size="sm" color="primary"></c-spinner>
+            } @else {
+            <div class="form-check form-switch mb-0" style="pointer-events:none">
+              <input class="form-check-input" type="checkbox" [checked]="row.enabled" readonly />
+            </div>
+            }
+          </div>
+
+          <!-- Description -->
+          @if (row.module.description) {
+          <p class="text-muted small mb-2" style="min-height:2.5rem;font-size:.78rem">
+            {{ row.module.description }}
+          </p>
+          }
+
+          <!-- Dependencies -->
+          @if (row.module.dependencies?.length) {
+          <div class="d-flex flex-wrap gap-1 mt-1">
+            @for (dep of row.module.dependencies; track dep) {
+            <c-badge
+              [color]="enabled().has(dep) ? 'success' : 'warning'"
+              shape="rounded-pill"
+              class="small">
+              {{ dep }}
+            </c-badge>
+            }
+          </div>
+          }
+
+          <!-- Warning: missing deps -->
+          @if (!row.enabled && !row.canEnable) {
+          <p class="text-warning small mb-0 mt-2" style="font-size:.75rem">
+            <svg cIcon name="cil-warning" style="width:12px;height:12px"></svg>
+            Activa primero: {{ row.missingDeps.join(', ') }}
+          </p>
+          }
+
+          <!-- Warning: cascade disable -->
+          @if (row.enabled && row.willDisable.length) {
+          <p class="text-muted small mb-0 mt-2" style="font-size:.75rem">
+            <svg cIcon name="cil-warning" style="width:12px;height:12px"></svg>
+            Desactivar también afecta: {{ row.willDisable.join(', ') }}
+          </p>
+          }
+
+        </c-card-body>
+      </c-card>
+    </c-col>
+    }
+  </c-row>
+  }
+
+  }<!-- end @else isLoading -->
+
+</c-container>

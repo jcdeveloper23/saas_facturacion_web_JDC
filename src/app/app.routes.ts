@@ -44,27 +44,26 @@ export const routes: Routes = [
         data: { title: 'Dashboard' }
       },
 
-      // ── Customers ──────────────────────────────────────────────────────
-      // TODO Phase 3: implement customers feature module
-      // {
-      //   path: 'customers',
-      //   loadChildren: () => import('./features/customers/customers.routes').then(m => m.CUSTOMERS_ROUTES),
-      //   data: { title: 'Customers' }
-      // },
-
-      // ── Suppliers ──────────────────────────────────────────────────────
-      // {
-      //   path: 'suppliers',
-      //   loadChildren: () => import('./features/suppliers/suppliers.routes').then(m => m.SUPPLIERS_ROUTES),
-      //   data: { title: 'Suppliers' }
-      // },
+      // ── Personas (clientes, proveedores, empleados) ────────────────────
+      {
+        path: 'personas',
+        canActivate: [roleGuard],
+        data: { roles: ['admin', 'seller'], title: 'Personas' },
+        loadChildren: () => import('./features/personas/personas.routes').then(m => m.PERSONAS_ROUTES)
+      },
+      {
+        path: 'customers',
+        redirectTo: '/personas?role=customer',
+        pathMatch: 'prefix'
+      },
 
       // ── Products ───────────────────────────────────────────────────────
-      // {
-      //   path: 'products',
-      //   loadChildren: () => import('./features/products/products.routes').then(m => m.PRODUCTS_ROUTES),
-      //   data: { title: 'Products' }
-      // },
+      {
+        path: 'products',
+        canActivate: [roleGuard],
+        data: { roles: ['admin', 'seller'], title: 'Artículos' },
+        loadChildren: () => import('./features/products/products.routes').then(m => m.PRODUCTS_ROUTES)
+      },
 
       // ── Invoices ───────────────────────────────────────────────────────
       // {
@@ -117,6 +116,7 @@ export const routes: Routes = [
         data: { roles: ['admin'], title: 'Settings' },
         loadChildren: () => import('./features/settings/settings.routes').then(m => m.SETTINGS_ROUTES)
       },
+
 
       // ── CoreUI component library (keep for reference during development) ─
       {

@@ -1,0 +1,18 @@
+[
+{"type":"header","version":"5.2.1","comment":"Export to JSON plugin for PHPMyAdmin"},
+{"type":"database","name":"system-pro-optica"},
+{"type":"table","name":"cuentasbcocli","database":"system-pro-optica","data":
+[
+{"descripcion":"saddasda","swift":"dasdad","ctaentidad":null,"iban":"dasdasd","agencia":null,"entidad":null,"codcliente":"000002","ctaagencia":null,"codcuenta":"1","cuenta":null,"principal":"0","fmandato":null},
+{"descripcion":"Banco 566","swift":"oJzBOtDU","ctaentidad":null,"iban":"","agencia":null,"entidad":null,"codcliente":"001108","ctaagencia":null,"codcuenta":"10","cuenta":null,"principal":"0","fmandato":"2017-01-08"},
+{"descripcion":"Banco 823","swift":"","ctaentidad":null,"iban":"ES68 9254 5636 1414 2710 7735","agencia":null,"entidad":null,"codcliente":"001169","ctaagencia":null,"codcuenta":"100","cuenta":null,"principal":"0","fmandato":"2026-03-08"},
+{"descripcion":"Banco 350","swift":"m6XQ1U2q","ctaentidad":null,"iban":"","agencia":null,"entidad":null,"codcliente":"001169","ctaagencia":null,"codcuenta":"101","cuenta":null,"principal":"1","fmandato":"2026-03-17"},
+{"descripcion":"Banco 635","swift":"","ctaentidad":null,"iban":"ES29 1633 2886 4095 4243 5223","agencia":null,"entidad":null,"codcliente":"001170","ctaagencia":null,"codcuenta":"102","cuenta":null,"principal":"1","fmandato":"2015-05-08"},
+{"descripcion":"Banco 935","swift":"","ctaentidad":null,"iban":"ES59 5173 6211 4707 9604 2545","agencia":null,"entidad":null,"codcliente":"001172","ctaagencia":null,"codcuenta":"103","cuenta":null,"principal":"0","fmandato":"2016-10-29"},
+{"descripcion":"Banco 386","swift":"uBtrp4fi","ctaentidad":null,"iban":"","agencia":null,"entidad":null,"codcliente":"001172","ctaagencia":null,"codcuenta":"104","cuenta":null,"principal":"1","fmandato":null},
+{"descripcion":"Banco 398","swift":"","ctaentidad":null,"iban":"ES25 2265 1660 2098 3254 3289","agencia":null,"entidad":null,"codcliente":"001173","ctaagencia":null,"codcuenta":"105","cuenta":null,"principal":"1","fmandato":null},
+{"descripcion":"Banco 327","swift":"DI9jlax5","ctaentidad":null,"iban":"","agencia":null,"entidad":null,"codcliente":"001175","ctaagencia":null,"codcuenta":"106","cuenta":null,"principal":"1","fmandato":null},
+{"descripcion":"Banco 772","swift":"rEPuAMZC","ctaentidad":null,"iban":"ES30 5375 7291 3471 4423 3308","agencia":null,"entidad":null,"codcliente":"001176","ctaagencia":null,"codcuenta":"107","cuenta":null,"principal":"0","fmandato":"2016-09-01"}
+]
+}
+]

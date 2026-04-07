@@ -62,6 +62,14 @@
               </td>
               <td>
                 <div class="d-flex gap-2">
+                  <a [routerLink]="['/super-admin/companies', company.id, 'plugins']"
+                     cButton color="outline-info" size="sm" title="Plugins">
+                    <svg cIcon name="cilPuzzle"></svg>
+                  </a>
+                  <a [routerLink]="['/super-admin/companies', company.id, 'form-config']"
+                     cButton color="outline-secondary" size="sm" title="Configuración de Formularios">
+                    <svg cIcon name="cilOptions"></svg>
+                  </a>
                   <a [routerLink]="['/super-admin/companies', company.id, 'edit']"
                      cButton color="outline-primary" size="sm" title="Editar">
                     <svg cIcon name="cilPencil"></svg>

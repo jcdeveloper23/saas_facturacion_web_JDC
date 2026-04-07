@@ -1,42 +1,47 @@
 /**
  * Permission System Interfaces
  * RBAC (Role-Based Access Control) for SaaS Multi-Tenant
- * Now with dynamic modules and actions from DB
+ *
+ * Plugin architecture: modules, actions and permissions are stored in Firestore
+ * root collections (/modules, /actions, /permissions) — managed by super_admin.
+ * Each company activates modules via company.enabledModules (see TenantService).
  */
 
 // ============================================================================
-// MODULES (Dynamic from DB)
+// MODULES — Platform plugin catalog (/modules root collection)
 // ============================================================================
 
 /**
- * Module entity from database
- * Supports navigation menu structure
+ * Module entity stored in Firestore /modules/{id}
+ * Equivalent to FacturaScripts fs_pages table.
+ * Supports navigation menu structure and plugin dependency resolution.
  */
 export interface Module {
-  id: number;
-  code: string;
-  name: string;
+  id: string;                       // Firestore doc ID (same as code for traceability)
+  code: string;                     // Unique slug: 'customers', 'invoices', 'pos'
+  name: string;                     // Display name: 'Clientes', 'Facturas'
   description?: string;
+  // Plugin dependency — codes of modules that must be active first
+  dependencies: string[];           // e.g. ['products', 'customers'] for invoices
   // Navigation properties
-  url?: string;           // Route URL, e.g., '/users', '/devices'
-  icon: string;           // CoreUI icon name
-  // Menu structure - Backend returns 0/1 as numbers
-  isTitle: boolean | number;       // True/1 for section headers
-  parent_id?: number | null; // Parent module ID for nested menus
-  children?: Module[];    // Child modules (populated by backend)
+  url?: string;                     // Route: '/customers', '/invoices'
+  icon: string;                     // CoreUI icon: 'cil-people'
+  // Menu structure
+  isTitle: boolean;                 // True = section separator (no URL)
+  parent_id?: string | null;        // Parent module ID for nested menus
+  children?: Module[];              // Populated at runtime by flattenModules
   // Badge (optional)
-  badgeText?: string;     // e.g., 'LIVE', 'NEW'
-  badgeColor?: string;    // e.g., 'success', 'danger'
-  // Visibility - Backend returns 0/1 as numbers
-  showInMenu: boolean | number;    // Whether to show in navigation menu
-  // Order and state - Backend returns 0/1 as numbers
-  order: number;
-  state: boolean | number;
-  createdAt?: string;
-  updatedAt?: string;
-  // UI hierarchy display (added by flattenModules)
-  _level?: number;        // 0 = root, 1 = child, 2 = grandchild, etc.
-  _parentName?: string | null;  // Parent module name for display
+  badgeText?: string;               // 'NEW', 'LIVE'
+  badgeColor?: string;              // CoreUI color: 'success', 'danger'
+  // Visibility & state
+  showInMenu: boolean;              // Show in sidebar navigation
+  order: number;                    // Sort order within section
+  state: boolean;                   // Enabled in the platform catalog
+  createdAt?: any;
+  updatedAt?: any;
+  // UI hierarchy display (added by flattenModules — not persisted)
+  _level?: number;                  // 0 = root, 1 = child
+  _parentName?: string | null;
 }
 
 /**
@@ -46,10 +51,11 @@ export interface ModuleInput {
   code: string;
   name: string;
   description?: string;
+  dependencies?: string[];
   url?: string;
   icon?: string;
   isTitle?: boolean;
-  parent_id?: number | null;
+  parent_id?: string | null;
   badgeText?: string;
   badgeColor?: string;
   showInMenu?: boolean;
@@ -58,20 +64,21 @@ export interface ModuleInput {
 }
 
 // ============================================================================
-// ACTIONS (Dynamic from DB)
+// ACTIONS — Verb catalog (/actions root collection)
 // ============================================================================
 
 /**
- * Action entity from database
+ * Action entity stored in Firestore /actions/{id}
+ * Examples: view, create, edit, delete, export, approve
  */
 export interface Action {
-  id: number;
-  code: string;
-  name: string;
+  id: string;                       // Firestore doc ID
+  code: string;                     // 'view', 'create', 'edit', 'delete', 'export'
+  name: string;                     // 'Ver', 'Crear', 'Editar', 'Eliminar', 'Exportar'
   description?: string;
   state: boolean;
-  createdAt?: string;
-  updatedAt?: string;
+  createdAt?: any;
+  updatedAt?: any;
 }
 
 /**
@@ -85,40 +92,41 @@ export interface ActionInput {
 }
 
 // ============================================================================
-// PERMISSIONS
+// PERMISSIONS — Module × Action combinations (/permissions root collection)
 // ============================================================================
 
 /**
  * Permission string format: "module.action"
- * Examples: "devices.view", "users.create", "alerts.manage"
+ * Examples: "customers.view", "invoices.create", "users.delete"
  */
 export type PermissionString = string;
 
 /**
- * Permission definition with relations
+ * Permission entity stored in Firestore /permissions/{id}
+ * Represents a module × action combination that can be assigned to roles.
  */
 export interface Permission {
-  id?: number;
-  module_id: number;
-  action_id: number;
-  code: string;
-  name: string;
+  id?: string;                      // Firestore doc ID
+  module_id: string;                // Module Firestore ID (same as module.code)
+  action_id: string;                // Action Firestore ID (same as action.code)
+  code: string;                     // 'customers.view', generated as module.code + '.' + action.code
+  name: string;                     // 'Ver Clientes'
   description?: string;
-  isSystem: boolean;
+  isSystem: boolean;                // System permissions cannot be deleted
   state: boolean;
-  // Relations from backend
+  // Relations populated at runtime (not persisted in Firestore)
   module?: Module;
   action?: Action;
-  createdAt?: string;
-  updatedAt?: string;
+  createdAt?: any;
+  updatedAt?: any;
 }
 
 /**
  * Data for creating/updating a permission
  */
 export interface PermissionInput {
-  module_id: number;
-  action_id: number;
+  module_id: string;
+  action_id: string;
   name: string;
   description?: string;
   isSystem?: boolean;
@@ -129,7 +137,7 @@ export interface PermissionInput {
  * Grouped permissions by module for UI display
  */
 export interface PermissionGroup {
-  module: Module | string;
+  module: Module;
   moduleName: string;
   moduleIcon?: string;
   permissions: Permission[];
@@ -139,88 +147,33 @@ export interface PermissionGroup {
 // ROLES / PROFILES
 // ============================================================================
 
-/**
- * Role type
- */
 export type RoleType = 'system' | 'custom';
 
-/**
- * System role codes (predefined, cannot be deleted)
- */
 export type SystemRoleCode =
   | 'super_admin'
-  | 'org_admin'
-  | 'org_manager'
-  | 'operator'
-  | 'viewer'
-  | 'driver';
+  | 'admin'
+  | 'seller'
+  | 'cashier'
+  | 'read_only';
 
-/**
- * Role/Profile definition
- */
 export interface Role {
-  id?: number;
+  id?: string;
   code: string;
   name: string;
   description?: string;
   type: RoleType;
   permissions: PermissionString[];
-  organizationId?: number | null;
   level: number;
   color?: string;
   icon?: string;
   isDefault?: boolean;
   state: boolean;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-/**
- * Role with full permission objects (for editing)
- */
-export interface RoleWithPermissions extends Omit<Role, 'permissions'> {
-  permissions: Permission[];
+  createdAt?: any;
+  updatedAt?: any;
 }
 
 // ============================================================================
-// USER-ROLE ASSIGNMENT
-// ============================================================================
-
-export interface UserRole {
-  userId: number;
-  roleId: number;
-  organizationId: number;
-  assignedAt: string;
-  assignedBy?: number;
-}
-
-export interface UserWithPermissions {
-  id: number;
-  userEmail: string;
-  userFullName?: string;
-  organizationId: number;
-  organizationName?: string;
-  role: Role;
-  effectivePermissions: PermissionString[];
-}
-
-// ============================================================================
-// PERMISSION CHECKS
-// ============================================================================
-
-export interface PermissionCheckResult {
-  allowed: boolean;
-  reason?: string;
-  missingPermissions?: PermissionString[];
-}
-
-export interface BulkPermissionCheck {
-  permissions: PermissionString[];
-  mode: 'all' | 'any';
-}
-
-// ============================================================================
-// API RESPONSE TYPES
+// API RESPONSE TYPES (kept for compatibility)
 // ============================================================================
 
 export interface PaginatedResponse<T> {
@@ -229,36 +182,3 @@ export interface PaginatedResponse<T> {
   limit: number;
   skip: number;
 }
-
-// ============================================================================
-// LEGACY SUPPORT - Keep for backward compatibility during migration
-// ============================================================================
-
-/** @deprecated Use Module interface instead */
-export type PermissionModule = string;
-
-/** @deprecated Use Action interface instead */
-export type PermissionAction = string;
-
-/** @deprecated Modules are now loaded from DB */
-export const MODULE_METADATA: Record<string, { name: string; icon: string; order: number }> = {
-  dashboard: { name: 'Dashboard', icon: 'cil-speedometer', order: 1 },
-  monitor: { name: 'Monitor GPS', icon: 'cil-location-pin', order: 2 },
-  devices: { name: 'Dispositivos', icon: 'cil-mobile', order: 3 },
-  geofences: { name: 'Geocercas', icon: 'cil-map', order: 4 },
-  alerts: { name: 'Alertas', icon: 'cil-bell', order: 5 },
-  routes: { name: 'Rutas', icon: 'cil-compass', order: 6 },
-  reports: { name: 'Reportes', icon: 'cil-chart-pie', order: 7 },
-  users: { name: 'Usuarios', icon: 'cil-people', order: 8 },
-  profiles: { name: 'Perfiles', icon: 'cil-badge', order: 9 },
-  permissions: { name: 'Permisos', icon: 'cil-lock-locked', order: 10 },
-  organizations: { name: 'Organizaciones', icon: 'cil-building', order: 11 },
-  settings: { name: 'Configuración', icon: 'cil-settings', order: 12 },
-  billing: { name: 'Facturación', icon: 'cil-credit-card', order: 13 }
-};
-
-/** @deprecated Permissions are now loaded from DB */
-export const PERMISSIONS_CATALOG: Permission[] = [];
-
-/** @deprecated Roles are now loaded from DB */
-export const SYSTEM_ROLES: Omit<Role, 'id' | 'createdAt' | 'updatedAt'>[] = [];

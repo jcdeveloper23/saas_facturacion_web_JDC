@@ -1,0 +1,166 @@
+<!-- ── Cabecera ─────────────────────────────────────────────────────────── -->
+<div class="d-flex align-items-center gap-3 mb-4">
+  <button cButton color="light" size="sm" (click)="back()">
+    <svg cIcon name="cilArrowLeft"></svg>
+  </button>
+  <div class="flex-grow-1">
+    <h4 class="mb-0 fw-semibold">Configuración de Formularios</h4>
+    @if (company()) {
+      <p class="text-muted small mb-0">
+        <span class="fw-semibold text-body">{{ company()!.name }}</span>
+        — configure qué campos aparecen y cuáles son obligatorios
+      </p>
+    }
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    @if (saving()) { <c-spinner size="sm" color="primary"></c-spinner> }
+    <button cButton color="outline-secondary" size="sm" (click)="resetDefaults()" [disabled]="saving()">
+      <svg cIcon name="cilReload" class="me-1"></svg> Restablecer
+    </button>
+  </div>
+</div>
+
+<!-- ── Selector de entidad ────────────────────────────────────────────────── -->
+<div class="d-flex gap-2 mb-4">
+  @for (opt of entityOptions; track opt.value) {
+    <button cButton [color]="entity() === opt.value ? 'primary' : 'outline-secondary'"
+            size="sm" class="px-4" (click)="switchEntity(opt.value)">
+      {{ opt.label }}
+    </button>
+  }
+</div>
+
+<!-- ── Contenido ──────────────────────────────────────────────────────────── -->
+@if (loading()) {
+  <div class="text-center py-5"><c-spinner color="primary"></c-spinner></div>
+
+} @else if (error()) {
+  <c-alert color="danger">{{ error() }}</c-alert>
+
+} @else {
+
+  @for (section of sections(); track section.key) {
+    <c-card class="mb-4 border-0 shadow-sm">
+
+      <c-card-header class="d-flex align-items-center gap-2 py-3 px-4 border-bottom">
+        <div class="bg-primary bg-opacity-10 p-1 rounded">
+          <svg cIcon [name]="section.icon" size="sm" class="text-primary"></svg>
+        </div>
+        <span class="fw-semibold">{{ section.label }}</span>
+        <span class="badge bg-body-secondary text-body ms-1">{{ section.activeRows.length }}</span>
+      </c-card-header>
+
+      <c-card-body class="p-4">
+
+        <c-row class="g-3">
+          @for (field of section.activeRows; track field.key) {
+            <c-col [sm]="6" [md]="4" [lg]="3">
+              <div class="card h-100 border shadow-none overflow-hidden"
+                   [class.border-danger]="field.alwaysRequired || field.required"
+                   [class.border-primary]="!field.required && !field.alwaysRequired">
+
+                <!-- Card header -->
+                <div class="card-header py-2 px-3 d-flex align-items-center justify-content-between gap-2"
+                     [class.bg-danger]="field.alwaysRequired || field.required"
+                     [class.bg-primary]="!field.required && !field.alwaysRequired"
+                     style="--cui-bg-opacity:.08">
+
+                  @if (editingKey() === field.key) {
+                    <input class="form-control form-control-sm py-0 border-0 bg-transparent fw-semibold"
+                           style="min-width:0;box-shadow:none"
+                           [(ngModel)]="editingValue"
+                           [placeholder]="field.defaultLabel"
+                           (keyup.enter)="confirmEdit(field)"
+                           (keyup.escape)="cancelEdit()"
+                           autofocus>
+                    <div class="d-flex gap-1 flex-shrink-0">
+                      <button cButton color="success" size="sm" class="px-1 py-0"
+                              (click)="confirmEdit(field)">
+                        <svg cIcon name="cilCheck" size="sm"></svg>
+                      </button>
+                      <button cButton color="light" size="sm" class="px-1 py-0"
+                              (click)="cancelEdit()">
+                        <svg cIcon name="cilX" size="sm"></svg>
+                      </button>
+                    </div>
+                  } @else {
+                    <div class="d-flex flex-column min-w-0 flex-grow-1 overflow-hidden">
+                      <span class="fw-semibold small text-truncate">{{ displayLabel(field) }}</span>
+                      @if (hasCustomLabel(field)) {
+                        <span class="text-muted" style="font-size:.65rem;opacity:.7">
+                          {{ field.defaultLabel }}
+                        </span>
+                      }
+                    </div>
+                    <div class="d-flex gap-1 flex-shrink-0 ms-1">
+                      <button cButton color="light" size="sm" class="px-1 py-0"
+                              (click)="startEdit(field)" cTooltip="Cambiar etiqueta">
+                        <svg cIcon name="cilPen" size="sm"></svg>
+                      </button>
+                      @if (!field.alwaysVisible) {
+                        <button cButton color="light" size="sm" class="px-1 py-0 text-danger"
+                                (click)="removeField(field)" cTooltip="Quitar del formulario">
+                          <svg cIcon name="cilX" size="sm"></svg>
+                        </button>
+                      } @else {
+                        <span class="px-1 py-0 d-flex align-items-center"
+                              cTooltip="Campo obligatorio del sistema">
+                          <svg cIcon name="cilLockLocked" size="sm" class="text-muted opacity-50"></svg>
+                        </span>
+                      }
+                    </div>
+                  }
+                </div>
+
+                <!-- Card footer: required toggle -->
+                <div class="card-footer bg-body py-2 px-3 border-top-0">
+                  @if (field.alwaysRequired) {
+                    <div class="d-flex align-items-center justify-content-center gap-1">
+                      <svg cIcon name="cilLockLocked" size="sm" class="text-danger opacity-75"></svg>
+                      <span class="small text-danger fw-semibold">Siempre requerido</span>
+                    </div>
+                  } @else {
+                    <button cButton
+                            [color]="field.required ? 'danger' : 'secondary'"
+                            variant="ghost"
+                            size="sm"
+                            class="w-100 d-flex align-items-center justify-content-center gap-2"
+                            (click)="toggleRequired(field)"
+                            [cTooltip]="field.required ? 'Clic para hacer opcional' : 'Clic para hacer requerido'">
+                      <span class="rounded-circle d-inline-block"
+                            style="width:8px;height:8px"
+                            [class.bg-danger]="field.required"
+                            [class.bg-secondary]="!field.required"></span>
+                      <span class="small fw-semibold">{{ field.required ? 'Requerido' : 'Opcional' }}</span>
+                    </button>
+                  }
+                </div>
+
+              </div>
+            </c-col>
+          }
+        </c-row>
+
+        @if (section.availableRows.length > 0) {
+          <div class="mt-4 pt-3 border-top border-body-secondary">
+            <p class="text-muted small mb-2">
+              <svg cIcon name="cilPlus" size="sm" class="me-1"></svg>
+              Campos disponibles para agregar:
+            </p>
+            <div class="d-flex flex-wrap gap-2">
+              @for (field of section.availableRows; track field.key) {
+                <button cButton color="outline-secondary" size="sm"
+                        class="rounded-pill px-3"
+                        style="font-size:.75rem; border-style:dashed"
+                        (click)="addField(field)">
+                  <svg cIcon name="cilPlus" size="sm" class="me-1"></svg>{{ field.defaultLabel }}
+                </button>
+              }
+            </div>
+          </div>
+        }
+
+      </c-card-body>
+    </c-card>
+  }
+}

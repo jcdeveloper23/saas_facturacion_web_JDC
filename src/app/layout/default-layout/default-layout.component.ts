@@ -18,8 +18,9 @@ import {
 
 import { DefaultFooterComponent, DefaultHeaderComponent } from './';
 import { AuthService } from '../../core/services/auth.service';
+import { TenantService } from '../../core/services/tenant.service';
 import { ToastContainerComponent } from '../../shared/components';
-import { navItems, filterNavByRole } from './_nav';
+import { navItems, filterNav } from './_nav';
 
 @Component({
   selector: 'app-dashboard',
@@ -45,9 +46,14 @@ import { navItems, filterNavByRole } from './_nav';
   ]
 })
 export class DefaultLayoutComponent {
-  private authService = inject(AuthService);
+  private authService  = inject(AuthService);
+  private tenantService = inject(TenantService);
 
   public navItems = computed<INavData[]>(() =>
-    filterNavByRole(navItems, this.authService.user()?.role ?? null)
+    filterNav(
+      navItems,
+      this.authService.user()?.role ?? null,
+      this.tenantService.activeModules()
+    )
   );
 }

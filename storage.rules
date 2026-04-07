@@ -7,20 +7,28 @@ service firebase.storage {
       allow read, write: if false;
     }
 
-    // Company logos — readable by company members, writable by admin
+    // Company logos — readable by company members, writable by admin or super_admin
     match /companies/{companyId}/logos/{file} {
-      allow read: if request.auth != null && request.auth.token.companyId == companyId;
+      allow read: if request.auth != null
+                  && (request.auth.token.companyId == companyId
+                      || request.auth.token.role == 'super_admin');
       allow write: if request.auth != null
-                   && request.auth.token.companyId == companyId
-                   && request.auth.token.role == 'admin';
+                   && (request.auth.token.companyId == companyId
+                       || request.auth.token.role == 'super_admin')
+                   && request.auth.token.role in ['admin', 'super_admin'];
     }
 
-    // Product images — readable by company members, writable by admin/seller
-    match /companies/{companyId}/products/{file} {
-      allow read: if request.auth != null && request.auth.token.companyId == companyId;
+    // Product images — path: companies/{companyId}/products/{productId}/main.{ext}
+    match /companies/{companyId}/products/{allPaths=**} {
+      allow read: if request.auth != null
+                  && (request.auth.token.companyId == companyId
+                      || request.auth.token.role == 'super_admin');
       allow write: if request.auth != null
-                   && request.auth.token.companyId == companyId
-                   && request.auth.token.role in ['admin', 'seller'];
+                   && (request.auth.token.companyId == companyId
+                       || request.auth.token.role == 'super_admin')
+                   && request.auth.token.role in ['admin', 'seller', 'super_admin']
+                   && request.resource.size < 2 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
     }
 
     // Electronic documents (XML, RIDE PDFs) — readable by company members

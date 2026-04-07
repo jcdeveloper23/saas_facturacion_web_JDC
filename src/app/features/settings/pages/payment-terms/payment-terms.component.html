@@ -1,86 +1,145 @@
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <h5 class="mb-0">Condiciones de Pago</h5>
-  <button cButton color="primary" size="sm" (click)="openNew()">
-    <svg cIcon name="cilPlus" class="me-1"></svg> Nueva Condición
+<!-- ── Cabecera Pro ────────────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-center mb-1">
+  <div class="d-flex align-items-center gap-2">
+    <div class="bg-info bg-opacity-10 p-2 rounded">
+      <svg cIcon name="cilWallet" size="xl" class="text-info"></svg>
+    </div>
+    <div>
+      <h3 class="mb-0 fw-semibold">Condiciones de Pago</h3>
+      <p class="text-muted small mb-0">Gestión de plazos, créditos y vencimientos</p>
+    </div>
+  </div>
+  <button cButton color="primary" size="sm" (click)="openNew()" class="px-3 shadow-sm">
+    <svg cIcon name="cilPlus" class="me-1"></svg> Agregar Condición
   </button>
 </div>
 
-<c-card>
-  <c-card-body>
+<!-- ── Ayuda CEO (Callout) ──────────────────────────────────────── -->
+<c-callout color="info" class="bg-body border-start-4 shadow-sm mb-4">
+  <div class="d-flex gap-3 align-items-start">
+    <svg cIcon name="cilInfo" size="lg" class="text-info mt-1"></svg>
+    <div>
+      <p class="mb-1 fw-bold">Política de Crédito</p>
+      <p class="mb-0 text-muted small">
+        Las condiciones definidas aquí determinan el cálculo automático de los vencimientos en tus facturas. 
+        Puedes establecer condiciones de contado (0 días) o plazos de crédito personalizados.
+      </p>
+    </div>
+  </div>
+</c-callout>
+
+<!-- ── Listado de Condiciones ──────────────────────────────────── -->
+<c-card class="border-0 shadow-sm overflow-hidden">
+  <c-card-body class="p-0">
     @if (loading()) {
-      <div class="text-center py-4"><c-spinner color="primary"></c-spinner></div>
+      <div class="text-center py-5"><c-spinner color="primary"></c-spinner></div>
     } @else if (terms().length === 0) {
-      <p class="text-center text-muted py-4">No hay condiciones de pago configuradas.</p>
+      <div class="text-center py-5 bg-body-secondary">
+        <svg cIcon name="cilWallet" size="3xl" class="text-muted mb-3 opacity-25"></svg>
+        <p class="text-muted">No has configurado condiciones de pago todavía</p>
+      </div>
     } @else {
-      <table cTable hover responsive>
-        <thead>
-          <tr><th>Código</th><th>Nombre</th><th>Días</th><th>Acciones</th></tr>
-        </thead>
-        <tbody>
-          @for (t of terms(); track trackById($index, t)) {
+      <div class="table-responsive">
+        <table cTable hover align="middle" class="mb-0 border-0">
+          <thead class="bg-body-secondary text-uppercase small fw-bold">
             <tr>
-              <td class="font-monospace">{{ t.code }}</td>
-              <td>{{ t.name }}</td>
-              <td>
-                @if (t.days === 0) {
-                  <c-badge color="success">Contado</c-badge>
-                } @else {
-                  {{ t.days }} días
-                }
-              </td>
-              <td>
-                <div class="d-flex gap-2">
-                  <button cButton color="outline-primary" size="sm" (click)="openEdit(t)">
-                    <svg cIcon name="cilPencil"></svg>
-                  </button>
-                  <button cButton color="outline-danger" size="sm" (click)="delete(t)">
-                    <svg cIcon name="cilTrash"></svg>
-                  </button>
-                </div>
-              </td>
+              <th class="border-0 px-4 py-3">Código</th>
+              <th class="border-0 py-3">Nombre de la Condición</th>
+              <th class="border-0 py-3 text-center">Plazo (Días)</th>
+              <th class="border-0 py-3 text-center">Estado</th>
+              <th class="border-0 px-4 py-3 text-end" style="min-width: 140px">Acciones</th>
             </tr>
-          }
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            @for (t of terms(); track trackById($index, t)) {
+              <tr class="align-middle border-bottom border-body-secondary">
+                <td class="px-4 py-3">
+                  <span class="badge bg-secondary bg-opacity-10 text-secondary px-2 py-1 font-monospace fw-bold">{{ t.code }}</span>
+                </td>
+                <td>
+                  <div class="fw-bold">{{ t.name }}</div>
+                </td>
+                <td class="text-center">
+                  @if (t.days === 0) {
+                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3">Efectivo / Contado</span>
+                  } @else {
+                    <div class="fw-semibold text-primary">{{ t.days }} días</div>
+                  }
+                </td>
+                <td class="text-center">
+                  <c-badge [color]="t.isActive ? 'success' : 'secondary'" shape="rounded-pill" class="px-3">
+                    {{ t.isActive ? 'Habilitada' : 'No Disponible' }}
+                  </c-badge>
+                </td>
+                <td class="px-4 py-3 text-end">
+                  <div class="d-flex gap-2 justify-content-end">
+                    <button cButton color="light" size="sm" (click)="openEdit(t)" title="Editar condición">
+                      <svg cIcon name="cilPencil"></svg>
+                    </button>
+                    <button cButton [color]="t.isActive ? 'outline-danger' : 'outline-success'" size="sm"
+                            (click)="toggleActive(t)" [title]="t.isActive ? 'Desactivar' : 'Activar'">
+                      <svg cIcon [name]="t.isActive ? 'cilBan' : 'cilCheck'"></svg>
+                    </button>
+                    <button cButton color="light" size="sm" (click)="delete(t)" class="text-danger" title="Eliminar">
+                      <svg cIcon name="cilTrash"></svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
     }
   </c-card-body>
 </c-card>
 
-<c-modal [visible]="showModal()" (visibleChange)="showModal.set($event)" alignment="center">
-  <c-modal-header>
-    <h5 cModalTitle>{{ editingId() ? 'Editar Condición' : 'Nueva Condición' }}</h5>
+<!-- ── Modal Edición ───────────────────────────────────────────── -->
+<c-modal [visible]="showModal()" (visibleChange)="showModal.set($event)" alignment="center" backdrop="static">
+  <c-modal-header class="bg-body-secondary border-bottom-0 pb-0">
+    <h5 cModalTitle class="fw-semibold">
+      <svg cIcon [name]="editingId() ? 'cilPencil' : 'cilPlus'" class="me-2"></svg>
+      {{ editingId() ? 'Ficha de Condición' : 'Crear Condición de Pago' }}
+    </h5>
     <button cButtonClose (click)="showModal.set(false)"></button>
   </c-modal-header>
-  <c-modal-body>
-    @if (errorMessage()) { <c-alert color="danger" class="mb-3">{{ errorMessage() }}</c-alert> }
+  <c-modal-body class="pt-3">
+    @if (errorMessage()) { <c-alert color="danger" variant="solid" class="mb-3 d-flex align-items-center gap-2">
+      <svg cIcon name="cilXCircle" size="xl"></svg> {{ errorMessage() }}
+    </c-alert> }
+    
     <form [formGroup]="form">
       <c-row class="g-3">
-        <c-col md="4">
-          <label cLabel>Código *</label>
-          <input cFormControl formControlName="code" placeholder="CASH"
+        <c-col md="6">
+          <label cLabel>Código de Referencia <span class="text-danger">*</span></label>
+          <input cFormControl formControlName="code" placeholder="Ej: CRED-30"
                  [class.is-invalid]="hasError('code')">
-          @if (hasError('code')) { <div class="invalid-feedback">Requerido</div> }
         </c-col>
-        <c-col md="5">
-          <label cLabel>Nombre *</label>
-          <input cFormControl formControlName="name" placeholder="Contado"
-                 [class.is-invalid]="hasError('name')">
-          @if (hasError('name')) { <div class="invalid-feedback">Requerido</div> }
-        </c-col>
-        <c-col md="3">
-          <label cLabel>Días *</label>
-          <input cFormControl type="number" formControlName="days" min="0"
+        <c-col md="6">
+          <label cLabel>Días de Plazo <span class="text-danger">*</span></label>
+          <input cFormControl type="number" formControlName="days" min="0" placeholder="0 para Contado"
                  [class.is-invalid]="hasError('days')">
-          @if (hasError('days')) { <div class="invalid-feedback">Requerido (≥ 0)</div> }
+        </c-col>
+        <c-col md="12">
+          <label cLabel>Nombre Comercial <span class="text-danger">*</span></label>
+          <input cFormControl formControlName="name" placeholder="Ej: Crédito a 30 Días"
+                 [class.is-invalid]="hasError('name')">
+        </c-col>
+        <c-col md="12">
+          <c-form-check switch>
+            <input cFormCheckInput id="isActiveTerm" type="checkbox" formControlName="isActive">
+            <label cFormCheckLabel for="isActiveTerm" class="fw-semibold text-info">Condición Operativa</label>
+          </c-form-check>
+          <p class="text-muted small ps-4 mt-1">Si se desactiva, los vendedores no podrán seleccionarla en nuevas facturas.</p>
         </c-col>
       </c-row>
     </form>
   </c-modal-body>
-  <c-modal-footer>
-    <button cButton color="secondary" (click)="showModal.set(false)" [disabled]="saving()">Cancelar</button>
-    <button cButton color="primary" (click)="save()" [disabled]="saving()">
+  <c-modal-footer class="border-top-0 pt-0 pb-4">
+    <button cButton color="light" (click)="showModal.set(false)" [disabled]="saving()" class="px-4">Cancelar</button>
+    <button cButton color="primary" (click)="save()" [disabled]="saving()" class="px-4 shadow-sm">
       @if (saving()) { <c-spinner size="sm" class="me-1"></c-spinner> }
-      Guardar
+      {{ editingId() ? 'Actualizar Ficha' : 'Habilitar Condición' }}
     </button>
   </c-modal-footer>
 </c-modal>

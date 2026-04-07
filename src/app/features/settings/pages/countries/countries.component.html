@@ -1,92 +1,157 @@
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <h5 class="mb-0">Países</h5>
-  <button cButton color="primary" size="sm" (click)="openNew()">
-    <svg cIcon name="cilPlus" class="me-1"></svg> Nuevo País
+<!-- ── Cabecera Pro ────────────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-center mb-1">
+  <div class="d-flex align-items-center gap-2">
+    <div class="bg-primary bg-opacity-10 p-2 rounded">
+      <svg cIcon name="cilGlobeAlt" size="xl" class="text-primary"></svg>
+    </div>
+    <div>
+      <h3 class="mb-0 fw-semibold">Países Operativos</h3>
+      <p class="text-muted small mb-0">Gestión de territorios habilitados para tu facturación</p>
+    </div>
+  </div>
+  <button cButton color="primary" size="sm" (click)="openNew()" class="px-3 shadow-sm">
+    <svg cIcon name="cilPlus" class="me-1"></svg> Agregar País
   </button>
 </div>
 
-<c-card class="mb-3">
-  <c-card-body>
-    <input class="form-control form-control-sm" placeholder="Buscar por nombre o código ISO..."
-           [value]="searchTerm()" (input)="searchTerm.set($any($event.target).value)">
+<!-- ── Ayuda CEO (Callout) ──────────────────────────────────────── -->
+<c-callout color="info" class="bg-body border-start-4 shadow-sm mb-4">
+  <div class="d-flex gap-3 align-items-start">
+    <svg cIcon name="cilInfo" size="lg" class="text-info mt-1"></svg>
+    <div>
+      <p class="mb-1 fw-bold">Guía de Configuración</p>
+      <p class="mb-0 text-muted small">
+        El país predeterminado de tu operación es el configurado en la ficha de tu 
+        <a routerLink="/settings/company" class="fw-semibold text-decoration-none">Empresa</a>. 
+        Aquí puedes habilitar otros territorios si realizas exportaciones o tienes sucursales internacionales.
+      </p>
+    </div>
+  </div>
+</c-callout>
+
+<!-- ── Buscador ────────────────────────────────────────────────── -->
+<c-card class="mb-4 border-0 shadow-sm">
+  <c-card-body class="py-2">
+    <c-input-group>
+      <span cInputGroupText class="bg-transparent border-end-0">
+        <svg cIcon name="cilSearch" size="sm"></svg>
+      </span>
+      <input cFormControl class="border-start-0 ps-0 form-control-sm" 
+             placeholder="Buscar por nombre, ISO-2 o ISO-3..."
+             [value]="searchTerm()" (input)="searchTerm.set($any($event.target).value)">
+    </c-input-group>
   </c-card-body>
 </c-card>
 
-<c-card>
-  <c-card-body>
+<!-- ── Tabla de Países ─────────────────────────────────────────── -->
+<c-card class="border-0 shadow-sm overflow-hidden">
+  <c-card-body class="p-0">
     @if (loading()) {
-      <div class="text-center py-4"><c-spinner color="primary"></c-spinner></div>
+      <div class="text-center py-5"><c-spinner color="primary"></c-spinner></div>
     } @else if (filtered.length === 0) {
-      <p class="text-center text-muted py-4">
-        {{ searchTerm() ? 'Sin resultados para "' + searchTerm() + '"' : 'No hay países configurados.' }}
-      </p>
+      <div class="text-center py-5 bg-body-secondary">
+        <svg cIcon name="cilSearch" size="3xl" class="text-muted mb-3 opacity-25"></svg>
+        <p class="text-muted">
+          {{ searchTerm() ? 'No se encontraron resultados para tu búsqueda' : 'No hay países configurados aún' }}
+        </p>
+      </div>
     } @else {
-      <table cTable hover responsive>
-        <thead>
-          <tr>
-            <th>ISO-2</th><th>ISO-3</th><th>Nombre</th><th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (c of filtered; track trackById($index, c)) {
+      <div class="table-responsive">
+        <table cTable hover align="middle" class="mb-0 border-0">
+          <thead class="bg-body-secondary">
             <tr>
-              <td class="font-monospace fw-semibold">{{ c.code2 }}</td>
-              <td class="font-monospace text-muted">{{ c.code3 }}</td>
-              <td>{{ c.name }}</td>
-              <td>
-                <div class="d-flex gap-2">
-                  <button cButton color="outline-primary" size="sm" (click)="openEdit(c)">
-                    <svg cIcon name="cilPencil"></svg>
-                  </button>
-                  <button cButton color="outline-danger" size="sm" (click)="delete(c)">
-                    <svg cIcon name="cilTrash"></svg>
-                  </button>
-                </div>
-              </td>
+              <th class="border-0 px-4 py-3">ISO-2</th>
+              <th class="border-0 py-3">ISO-3</th>
+              <th class="border-0 py-3">Nombre del Territorio</th>
+              <th class="border-0 py-3 text-center">Estado</th>
+              <th class="border-0 px-4 py-3 text-end" style="min-width: 150px">Acciones</th>
             </tr>
-          }
-        </tbody>
-      </table>
-      <small class="text-muted">{{ filtered.length }} país(es) mostrados de {{ countries().length }} totales</small>
+          </thead>
+          <tbody>
+            @for (c of filtered; track trackById($index, c)) {
+              <tr class="align-middle border-bottom border-body-secondary">
+                <td class="px-4 py-3 font-monospace fw-bold text-primary">{{ c.code2 }}</td>
+                <td class="font-monospace text-muted">{{ c.code3 }}</td>
+                <td class="fw-medium">{{ c.name }}</td>
+                <td class="text-center">
+                  <c-badge [color]="c.isActive ? 'success' : 'secondary'" shape="rounded-pill" class="px-3">
+                    {{ c.isActive ? 'Activo' : 'Inactivo' }}
+                  </c-badge>
+                </td>
+                <td class="px-4 py-3 text-end">
+                  <div class="d-flex gap-2 justify-content-end">
+                    <button cButton color="light" size="sm" (click)="openEdit(c)" title="Editar configuración">
+                      <svg cIcon name="cilPencil"></svg>
+                    </button>
+                    <button cButton [color]="c.isActive ? 'outline-danger' : 'outline-success'" size="sm"
+                            (click)="toggleActive(c)" [title]="c.isActive ? 'Desactivar' : 'Activar'">
+                      <svg cIcon [name]="c.isActive ? 'cilBan' : 'cilCheck'"></svg>
+                    </button>
+                    <button cButton color="light" size="sm" (click)="delete(c)" class="text-danger" title="Eliminar">
+                      <svg cIcon name="cilTrash"></svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <div class="bg-body-secondary px-4 py-2 border-top">
+        <small class="text-muted">Se muestran {{ filtered.length }} registros de un total de {{ countries().length }}</small>
+      </div>
     }
   </c-card-body>
 </c-card>
 
-<c-modal [visible]="showModal()" (visibleChange)="showModal.set($event)" alignment="center">
-  <c-modal-header>
-    <h5 cModalTitle>{{ editingId() ? 'Editar País' : 'Nuevo País' }}</h5>
+<!-- ── Modal Edición ───────────────────────────────────────────── -->
+<c-modal [visible]="showModal()" (visibleChange)="showModal.set($event)" alignment="center" backdrop="static">
+  <c-modal-header class="bg-body-secondary border-bottom-0 pb-0">
+    <h5 cModalTitle class="fw-semibold">
+      <svg cIcon [name]="editingId() ? 'cilPencil' : 'cilPlus'" class="me-2"></svg>
+      {{ editingId() ? 'Editar País' : 'Añadir Nuevo País' }}
+    </h5>
     <button cButtonClose (click)="showModal.set(false)"></button>
   </c-modal-header>
-  <c-modal-body>
-    @if (errorMessage()) { <c-alert color="danger" class="mb-3">{{ errorMessage() }}</c-alert> }
+  <c-modal-body class="pt-3">
+    @if (errorMessage()) { <c-alert color="danger" variant="solid" class="mb-3 d-flex align-items-center gap-2">
+      <svg cIcon name="cilXCircle" size="xl"></svg> {{ errorMessage() }}
+    </c-alert> }
+    
     <form [formGroup]="form">
       <c-row class="g-3">
-        <c-col md="4">
-          <label cLabel>ISO-2 * <small class="text-muted">(ej: EC)</small></label>
-          <input cFormControl formControlName="code2" placeholder="EC" maxlength="3"
+        <c-col md="6">
+          <label cLabel>Código ISO-2 <span class="text-danger">*</span></label>
+          <input cFormControl formControlName="code2" placeholder="Ej: EC" maxlength="3"
                  style="text-transform:uppercase" [class.is-invalid]="hasError('code2')">
-          @if (hasError('code2')) { <div class="invalid-feedback">Requerido (2-3 chars)</div> }
+          <small class="text-muted ps-1">Identificador de 2 caracteres</small>
         </c-col>
-        <c-col md="4">
-          <label cLabel>ISO-3 * <small class="text-muted">(ej: ECU)</small></label>
-          <input cFormControl formControlName="code3" placeholder="ECU" maxlength="3"
+        <c-col md="6">
+          <label cLabel>Código ISO-3 <span class="text-danger">*</span></label>
+          <input cFormControl formControlName="code3" placeholder="Ej: ECU" maxlength="3"
                  style="text-transform:uppercase" [class.is-invalid]="hasError('code3')">
-          @if (hasError('code3')) { <div class="invalid-feedback">Requerido (3 chars)</div> }
+          <small class="text-muted ps-1">Identificador de 3 caracteres</small>
         </c-col>
         <c-col md="12">
-          <label cLabel>Nombre *</label>
-          <input cFormControl formControlName="name" placeholder="Ecuador"
+          <label cLabel>Nombre Completo <span class="text-danger">*</span></label>
+          <input cFormControl formControlName="name" placeholder="Ej: Ecuador"
                  [class.is-invalid]="hasError('name')">
-          @if (hasError('name')) { <div class="invalid-feedback">Requerido</div> }
+        </c-col>
+        <c-col md="12">
+          <c-form-check switch>
+            <input cFormCheckInput id="isActive" type="checkbox" formControlName="isActive">
+            <label cFormCheckLabel for="isActive" class="fw-semibold">País disponible para facturación</label>
+          </c-form-check>
+          <p class="text-muted small ps-4 mt-1">Si se desactiva, no aparecerá en los listados de selección de documentos.</p>
         </c-col>
       </c-row>
     </form>
   </c-modal-body>
-  <c-modal-footer>
-    <button cButton color="secondary" (click)="showModal.set(false)" [disabled]="saving()">Cancelar</button>
-    <button cButton color="primary" (click)="save()" [disabled]="saving()">
+  <c-modal-footer class="border-top-0 pt-0 pb-4">
+    <button cButton color="light" (click)="showModal.set(false)" [disabled]="saving()" class="px-4">Cancelar</button>
+    <button cButton color="primary" (click)="save()" [disabled]="saving()" class="px-4 shadow-sm">
       @if (saving()) { <c-spinner size="sm" class="me-1"></c-spinner> }
-      Guardar
+      {{ editingId() ? 'Guardar Cambios' : 'Habilitar País' }}
     </button>
   </c-modal-footer>
 </c-modal>

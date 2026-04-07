@@ -5,11 +5,12 @@ import {
   CardComponent, CardBodyComponent,
   TableDirective, BadgeComponent, ButtonDirective, SpinnerComponent,
   RowComponent, ColComponent,
-  ModalComponent, ModalHeaderComponent, ModalBodyComponent, ModalFooterComponent,
-  ModalTitleDirective, ButtonCloseDirective,
-  FormLabelDirective, FormControlDirective, FormSelectDirective, AlertComponent
+  ModalTitleDirective, ButtonCloseDirective, ModalComponent, ModalHeaderComponent, ModalBodyComponent, ModalFooterComponent,
+  FormLabelDirective, FormControlDirective, FormSelectDirective, AlertComponent,
+  CalloutComponent, FormCheckComponent, FormCheckInputDirective, FormCheckLabelDirective
 } from '@coreui/angular';
-import { IconDirective } from '@coreui/icons-angular';
+import { IconDirective, IconSetService } from '@coreui/icons-angular';
+import { iconSubset } from '../../../../icons/icon-subset';
 import { SettingsService } from '../../services/settings.service';
 import { DocumentSeries, DocumentSeriesFormData } from '../../models/settings.interfaces';
 import { NotificationService } from '../../../../core/services/notification.service';
@@ -24,13 +25,15 @@ import { NotificationService } from '../../../../core/services/notification.serv
     ButtonDirective, SpinnerComponent, RowComponent, ColComponent,
     ModalComponent, ModalHeaderComponent, ModalBodyComponent, ModalFooterComponent,
     ModalTitleDirective, ButtonCloseDirective,
-    FormLabelDirective, FormControlDirective, FormSelectDirective, AlertComponent, IconDirective
+    FormLabelDirective, FormControlDirective, FormSelectDirective, AlertComponent, IconDirective,
+    CalloutComponent, FormCheckComponent, FormCheckInputDirective, FormCheckLabelDirective
   ]
 })
 export class DocumentSeriesComponent implements OnInit {
   private svc = inject(SettingsService);
   private notifications = inject(NotificationService);
   private fb = inject(FormBuilder);
+  private iconSet = inject(IconSetService);
 
   series = signal<DocumentSeries[]>([]);
   loading = signal(true);
@@ -38,6 +41,10 @@ export class DocumentSeriesComponent implements OnInit {
   saving = signal(false);
   editingId = signal<string | null>(null);
   errorMessage = signal('');
+
+  constructor() {
+    this.iconSet.icons = { ...iconSubset };
+  }
 
   readonly docTypeLabels: Record<string, string> = {
     invoice: 'Factura', quote: 'Presupuesto', order: 'Pedido'
@@ -49,7 +56,8 @@ export class DocumentSeriesComponent implements OnInit {
     description:    [''],
     documentType:   ['invoice', Validators.required],
     establishment:  ['001', [Validators.required, Validators.pattern(/^\d{3}$/)]],
-    emissionPoint:  ['001', [Validators.required, Validators.pattern(/^\d{3}$/)]]
+    emissionPoint:  ['001', [Validators.required, Validators.pattern(/^\d{3}$/)]],
+    isActive:       [true]
   });
 
   ngOnInit(): void {
@@ -72,8 +80,15 @@ export class DocumentSeriesComponent implements OnInit {
 
   openEdit(s: DocumentSeries): void {
     this.editingId.set(s.id);
-    this.form.patchValue({ code: s.code, name: s.name, description: s.description ?? '',
-      documentType: s.documentType, establishment: s.establishment, emissionPoint: s.emissionPoint });
+    this.form.patchValue({
+      code: s.code,
+      name: s.name,
+      description: s.description ?? '',
+      documentType: s.documentType,
+      establishment: s.establishment,
+      emissionPoint: s.emissionPoint,
+      isActive: s.isActive
+    });
     this.errorMessage.set('');
     this.showModal.set(true);
   }
@@ -107,6 +122,15 @@ export class DocumentSeriesComponent implements OnInit {
       this.notifications.success('Serie eliminada');
     } catch {
       this.notifications.error('Error al eliminar');
+    }
+  }
+
+  async toggleActive(s: DocumentSeries): Promise<void> {
+    try {
+      await this.svc.updateDocumentSeries(s.id, { isActive: !s.isActive });
+      this.notifications.success('Estado actualizado');
+    } catch {
+      this.notifications.error('Error al actualizar estado');
     }
   }
 

@@ -9,9 +9,11 @@ import {
   ModalTitleDirective, ButtonCloseDirective,
   FormLabelDirective, FormControlDirective, FormCheckComponent,
   FormCheckInputDirective, FormCheckLabelDirective,
-  AlertComponent
+  AlertComponent, CalloutComponent,
+  InputGroupComponent, InputGroupTextDirective
 } from '@coreui/angular';
-import { IconDirective } from '@coreui/icons-angular';
+import { IconDirective, IconSetService } from '@coreui/icons-angular';
+import { iconSubset } from '../../../../icons/icon-subset';
 import { SettingsService } from '../../services/settings.service';
 import { Warehouse, WarehouseFormData } from '../../models/settings.interfaces';
 import { NotificationService } from '../../../../core/services/notification.service';
@@ -29,13 +31,15 @@ import { NotificationService } from '../../../../core/services/notification.serv
     ModalTitleDirective, ButtonCloseDirective,
     FormLabelDirective, FormControlDirective,
     FormCheckComponent, FormCheckInputDirective, FormCheckLabelDirective,
-    AlertComponent, IconDirective
+    AlertComponent, IconDirective, CalloutComponent,
+    InputGroupComponent, InputGroupTextDirective
   ]
 })
 export class WarehousesComponent implements OnInit {
   private svc = inject(SettingsService);
   private notifications = inject(NotificationService);
   private fb = inject(FormBuilder);
+  private iconSet = inject(IconSetService);
 
   warehouses = signal<Warehouse[]>([]);
   loading = signal(true);
@@ -45,12 +49,17 @@ export class WarehousesComponent implements OnInit {
   editingId = signal<string | null>(null);
   errorMessage = signal('');
 
+  constructor() {
+    this.iconSet.icons = { ...iconSubset };
+  }
+
   form = this.fb.group({
     code:    ['', Validators.required],
     name:    ['', Validators.required],
     address: [''],
     city:    [''],
-    isMain:  [false]
+    isMain:  [false],
+    isActive: [true]
   });
 
   ngOnInit(): void {
@@ -73,7 +82,14 @@ export class WarehousesComponent implements OnInit {
 
   openEdit(w: Warehouse): void {
     this.editingId.set(w.id);
-    this.form.patchValue({ code: w.code, name: w.name, address: w.address ?? '', city: w.city ?? '', isMain: w.isMain });
+    this.form.patchValue({
+      code: w.code,
+      name: w.name,
+      address: w.address ?? '',
+      city: w.city ?? '',
+      isMain: w.isMain,
+      isActive: w.isActive
+    });
     this.errorMessage.set('');
     this.showModal.set(true);
   }
@@ -111,6 +127,15 @@ export class WarehousesComponent implements OnInit {
       this.notifications.error('Error al eliminar almacén');
     } finally {
       this.deletingId.set(null);
+    }
+  }
+
+  async toggleActive(w: Warehouse): Promise<void> {
+    try {
+      await this.svc.updateWarehouse(w.id, { isActive: !w.isActive });
+      this.notifications.success('Estado actualizado');
+    } catch {
+      this.notifications.error('Error al actualizar estado');
     }
   }
 

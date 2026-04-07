@@ -6,9 +6,11 @@ import {
   ButtonDirective, SpinnerComponent, RowComponent, ColComponent,
   ModalComponent, ModalHeaderComponent, ModalBodyComponent, ModalFooterComponent,
   ModalTitleDirective, ButtonCloseDirective,
-  FormLabelDirective, FormControlDirective, AlertComponent
+  FormLabelDirective, FormControlDirective, AlertComponent,
+  CalloutComponent, FormCheckComponent, FormCheckInputDirective, FormCheckLabelDirective
 } from '@coreui/angular';
-import { IconDirective } from '@coreui/icons-angular';
+import { IconDirective, IconSetService } from '@coreui/icons-angular';
+import { iconSubset } from '../../../../icons/icon-subset';
 import { SettingsService } from '../../services/settings.service';
 import { PaymentTerm, PaymentTermFormData } from '../../models/settings.interfaces';
 import { NotificationService } from '../../../../core/services/notification.service';
@@ -23,13 +25,15 @@ import { NotificationService } from '../../../../core/services/notification.serv
     ButtonDirective, SpinnerComponent, RowComponent, ColComponent,
     ModalComponent, ModalHeaderComponent, ModalBodyComponent, ModalFooterComponent,
     ModalTitleDirective, ButtonCloseDirective,
-    FormLabelDirective, FormControlDirective, AlertComponent, IconDirective
+    FormLabelDirective, FormControlDirective, AlertComponent, IconDirective,
+    CalloutComponent, FormCheckComponent, FormCheckInputDirective, FormCheckLabelDirective
   ]
 })
 export class PaymentTermsComponent implements OnInit {
   private svc = inject(SettingsService);
   private notifications = inject(NotificationService);
   private fb = inject(FormBuilder);
+  private iconSet = inject(IconSetService);
 
   terms = signal<PaymentTerm[]>([]);
   loading = signal(true);
@@ -38,10 +42,15 @@ export class PaymentTermsComponent implements OnInit {
   editingId = signal<string | null>(null);
   errorMessage = signal('');
 
+  constructor() {
+    this.iconSet.icons = { ...iconSubset };
+  }
+
   form = this.fb.group({
     code: ['', Validators.required],
     name: ['', Validators.required],
-    days: [0,  [Validators.required, Validators.min(0)]]
+    days: [0,  [Validators.required, Validators.min(0)]],
+    isActive: [true]
   });
 
   ngOnInit(): void {
@@ -64,7 +73,12 @@ export class PaymentTermsComponent implements OnInit {
 
   openEdit(t: PaymentTerm): void {
     this.editingId.set(t.id);
-    this.form.patchValue({ code: t.code, name: t.name, days: t.days });
+    this.form.patchValue({
+      code: t.code,
+      name: t.name,
+      days: t.days,
+      isActive: t.isActive
+    });
     this.errorMessage.set('');
     this.showModal.set(true);
   }
@@ -77,7 +91,8 @@ export class PaymentTermsComponent implements OnInit {
       const data: PaymentTermFormData = {
         code: this.form.value.code!,
         name: this.form.value.name!,
-        days: Number(this.form.value.days)
+        days: Number(this.form.value.days),
+        isActive: !!this.form.value.isActive
       };
       const id = this.editingId();
       if (id) {
@@ -102,6 +117,15 @@ export class PaymentTermsComponent implements OnInit {
       this.notifications.success('Condición eliminada');
     } catch {
       this.notifications.error('Error al eliminar');
+    }
+  }
+
+  async toggleActive(t: PaymentTerm): Promise<void> {
+    try {
+      await this.svc.updatePaymentTerm(t.id, { isActive: !t.isActive });
+      this.notifications.success('Estado actualizado');
+    } catch {
+      this.notifications.error('Error al actualizar estado');
     }
   }
 

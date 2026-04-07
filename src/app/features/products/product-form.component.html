@@ -1,0 +1,1338 @@
+@if (loading()) {
+  <div class="text-center py-5"><c-spinner color="primary"></c-spinner></div>
+} @else {
+
+<!-- ── Page header ─────────────────────────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div class="d-flex align-items-center gap-3">
+    <button cButton color="light" size="sm" (click)="cancel()" class="px-2">
+      <svg cIcon name="cilArrowLeft"></svg>
+    </button>
+    <div>
+      <h3 class="mb-0 fw-semibold">{{ isEditing() ? 'Editar Artículo' : 'Nuevo Artículo' }}</h3>
+      <p class="text-muted small mb-0">
+        {{ isEditing() ? 'Modifique los datos y guarde los cambios' : 'Complete los datos del artículo o servicio' }}
+      </p>
+    </div>
+  </div>
+</div>
+
+@if (errorMsg()) {
+  <c-alert color="danger" variant="solid" class="mb-3">{{ errorMsg() }}</c-alert>
+}
+
+<!-- ── Tabs nav ────────────────────────────────────────────────────────────── -->
+<c-nav variant="tabs" class="mb-0">
+  <c-nav-item>
+    <a cNavLink [active]="activeTab() === 'general'" (click)="activeTab.set('general')" role="button">
+      <svg cIcon name="cilInfo" class="me-1"></svg> General
+    </a>
+  </c-nav-item>
+  <c-nav-item>
+    <a cNavLink [active]="activeTab() === 'pricing'" (click)="activeTab.set('pricing')" role="button">
+      <svg cIcon name="cilDollar" class="me-1"></svg> Precios
+    </a>
+  </c-nav-item>
+  <c-nav-item>
+    <a cNavLink [active]="activeTab() === 'stock'" (click)="activeTab.set('stock')" role="button">
+      <svg cIcon name="cilStorage" class="me-1"></svg> Stock
+      @if (isEditing() && totalStock() > 0) {
+        <c-badge color="success" shape="rounded-pill" class="ms-1">{{ totalStock() | number:'1.0-0' }}</c-badge>
+      }
+    </a>
+  </c-nav-item>
+  <c-nav-item>
+    <a cNavLink [active]="activeTab() === 'suppliers'" (click)="activeTab.set('suppliers')" role="button">
+      <svg cIcon name="cilTruck" class="me-1"></svg> Proveedores
+      @if (suppliers().length) {
+        <c-badge color="primary" shape="rounded-pill" class="ms-1">{{ suppliers().length }}</c-badge>
+      }
+    </a>
+  </c-nav-item>
+  @if (hasVariantsOn()) {
+    <c-nav-item>
+      <a cNavLink [active]="activeTab() === 'variants'" (click)="activeTab.set('variants')" role="button">
+        <svg cIcon name="cilLayers" class="me-1"></svg> Variantes
+        @if (variants().length) {
+          <c-badge color="info" shape="rounded-pill" class="ms-1">{{ variants().length }}</c-badge>
+        }
+      </a>
+    </c-nav-item>
+  }
+</c-nav>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     TAB: GENERAL
+═══════════════════════════════════════════════════════════════════════════ -->
+@if (activeTab() === 'general') {
+  <c-card class="border-0 shadow-sm border-top-0 rounded-top-0">
+
+    <c-card-header class="d-flex align-items-center justify-content-between">
+      <div class="d-flex align-items-center gap-2">
+        <svg cIcon name="cilInfo" class="text-primary"></svg>
+        <span class="fw-semibold">Información General</span>
+      </div>
+      <c-badge [color]="form.get('type')?.value === 'service' ? 'info' : 'success'" shape="rounded-pill">
+        {{ form.get('type')?.value === 'service' ? 'Servicio' : 'Producto' }}
+      </c-badge>
+    </c-card-header>
+
+    <c-card-body class="p-4">
+      <form [formGroup]="form">
+        <c-row class="g-4">
+
+          <!-- ══ Columna formulario (9) ════════════════════════════════════ -->
+          <c-col lg="9">
+            <c-row class="g-4">
+
+              <!-- ── Sub-card: Identificación ───────────────────────────── -->
+              <c-col [sm]="12">
+                <c-card class="border shadow-none">
+                  <c-card-header class="py-2 px-3">
+                    <span class="small fw-semibold text-muted text-uppercase">
+                      <svg cIcon name="cilBarcode" class="me-1"></svg> Identificación
+                    </span>
+                  </c-card-header>
+                  <c-card-body class="p-3">
+                    <c-row class="g-3">
+                      <c-col md="4">
+                        <label cLabel>SKU / Referencia <span class="text-danger">*</span></label>
+                        <input cFormControl formControlName="sku" class="font-monospace text-uppercase"
+                               placeholder="Ej: MONT-RIM-001"
+                               [class.is-invalid]="hasError(form, 'sku')">
+                        @if (form.get('sku')?.errors?.['pattern']) {
+                          <div class="invalid-feedback">Solo letras, números, guiones y puntos</div>
+                        } @else {
+                          <div class="invalid-feedback">Requerido (máx 18 caracteres)</div>
+                        }
+                        <div class="form-text">Código único del artículo. Úselo para búsquedas rápidas en facturas. Ej: <em>MONT-001</em>, <em>ARV-LEN-002</em></div>
+                      </c-col>
+                      <c-col md="5">
+                        <label cLabel>Nombre del Artículo <span class="text-danger">*</span></label>
+                        <input cFormControl formControlName="name"
+                               placeholder="Ej: Montura metálica ovalada dorada"
+                               [class.is-invalid]="hasError(form, 'name')">
+                        <div class="invalid-feedback">Requerido</div>
+                        <div class="form-text">Descripción completa que aparecerá en facturas y documentos del cliente.</div>
+                      </c-col>
+                      <c-col md="3">
+                        <label cLabel>Nombre Corto / Alias</label>
+                        <input cFormControl formControlName="shortName" placeholder="Ej: Mont. Oval Dorada">
+                        <div class="form-text">Versión abreviada para tickets de punto de venta (POS) donde el espacio es limitado.</div>
+                      </c-col>
+                      <c-col md="4">
+                        <label cLabel>Código de Barras</label>
+                        <input cFormControl formControlName="barcode" class="font-monospace"
+                               placeholder="Escanee o ingrese el código">
+                        <div class="form-text">Escanee con un lector o ingrese manualmente. Se usa para búsqueda rápida en ventas.</div>
+                      </c-col>
+                      <c-col md="3">
+                        <label cLabel>Tipo de C. Barras</label>
+                        <select cSelect formControlName="barcodeType">
+                          @for (bt of BARCODE_TYPES; track bt.value) {
+                            <option [value]="bt.value">{{ bt.label }}</option>
+                          }
+                        </select>
+                        <div class="form-text">EAN-13 es el más común en productos comerciales. QR para mayor capacidad de datos.</div>
+                      </c-col>
+                      <c-col md="3">
+                        <label cLabel>Part Number</label>
+                        <input cFormControl formControlName="partNumber" class="font-monospace"
+                               placeholder="Código del fabricante">
+                        <div class="form-text">Referencia interna del fabricante. Útil para pedidos a proveedores.</div>
+                      </c-col>
+                      <c-col md="2">
+                        <label cLabel>SKU Equivalente</label>
+                        <input cFormControl formControlName="equivalentSku" class="font-monospace"
+                               placeholder="Sustituto">
+                        <div class="form-text">SKU de un artículo sustituto cuando este no esté disponible.</div>
+                      </c-col>
+                    </c-row>
+                  </c-card-body>
+                </c-card>
+              </c-col>
+
+              <!-- ── Sub-card: Tipo y Clasificación ─────────────────────── -->
+              <c-col [sm]="12">
+                <c-card class="border shadow-none">
+                  <c-card-header class="py-2 px-3">
+                    <span class="small fw-semibold text-muted text-uppercase">
+                      <svg cIcon name="cilTag" class="me-1"></svg> Tipo y Clasificación
+                    </span>
+                  </c-card-header>
+                  <c-card-body class="p-3">
+                    <c-row class="g-3">
+                      <c-col md="3">
+                        <label cLabel>Tipo <span class="text-danger">*</span></label>
+                        <select cSelect formControlName="type">
+                          <option value="product">Producto (bien físico)</option>
+                          <option value="service">Servicio</option>
+                        </select>
+                        <div class="form-text">Seleccione <strong>Servicio</strong> para honorarios, instalaciones o mano de obra — no maneja stock.</div>
+                      </c-col>
+                      <c-col md="4">
+                        <label cLabel>Familia / Categoría</label>
+                        <select cSelect formControlName="familyId">
+                          <option value="">— Sin familia —</option>
+                          @for (f of families(); track f.id) {
+                            <option [value]="f.id">
+                              {{ '—'.repeat(f.depth) }}{{ f.depth > 0 ? ' ' : '' }}{{ f.name }}
+                            </option>
+                          }
+                        </select>
+                        <div class="form-text">Agrupe sus artículos por categoría para facilitar reportes y búsquedas. Adminístrelas en <strong>Configuración → Familias</strong>.</div>
+                      </c-col>
+                      <c-col md="3">
+                        <label cLabel>Fabricante / Marca</label>
+                        <select cSelect formControlName="manufacturerId">
+                          <option value="">— Sin fabricante —</option>
+                          @for (m of manufacturers(); track m.id) {
+                            <option [value]="m.id">{{ m.name }}</option>
+                          }
+                        </select>
+                        <div class="form-text">Marca o fabricante del artículo. Adminístrelos en <strong>Configuración → Fabricantes</strong>.</div>
+                      </c-col>
+                      <c-col md="2">
+                        <label cLabel>Impuesto <span class="text-danger">*</span></label>
+                        <select cSelect formControlName="taxRateCode"
+                                [class.is-invalid]="hasError(form, 'taxRateCode')">
+                          <option value="">Seleccionar</option>
+                          @for (t of taxRates(); track t.code) {
+                            <option [value]="t.code">{{ t.name }} ({{ t.rate }}%)</option>
+                          }
+                        </select>
+                        <div class="invalid-feedback">Requerido</div>
+                        <div class="form-text">Tarifa de IVA según el SRI. La mayoría de productos usan <strong>12%</strong>. Medicamentos y básicos pueden ser <strong>0%</strong>.</div>
+                      </c-col>
+                    </c-row>
+                  </c-card-body>
+                </c-card>
+              </c-col>
+
+              <!-- ── Sub-card: Stock ────────────────────────────────────── -->
+              <c-col [sm]="12">
+                <c-card class="border shadow-none">
+                  <c-card-header class="py-2 px-3 d-flex align-items-center justify-content-between">
+                    <span class="small fw-semibold text-muted text-uppercase">
+                      <svg cIcon name="cilStorage" class="me-1"></svg> Stock
+                    </span>
+                    @if (isEditing()) {
+                      <c-badge [color]="productStockQty() > 0 ? 'success' : (productStockQty() < 0 ? 'danger' : 'secondary')" shape="rounded-pill" class="small">
+                        {{ productStockQty() }} uds
+                      </c-badge>
+                    }
+                  </c-card-header>
+                  <c-card-body class="p-3">
+                    <c-row class="g-3">
+                      <c-col md="12">
+                        <div class="d-flex gap-4 flex-wrap">
+                          <c-form-check switch>
+                            <input cFormCheckInput id="trackStock" type="checkbox" formControlName="trackStock">
+                            <label cFormCheckLabel for="trackStock" class="fw-semibold">
+                              Controlar stock
+                            </label>
+                          </c-form-check>
+                          <c-form-check switch>
+                            <input cFormCheckInput id="noStock" type="checkbox" formControlName="noStock">
+                            <label cFormCheckLabel for="noStock" class="fw-semibold text-muted">
+                              Sin stock
+                            </label>
+                          </c-form-check>
+                        </div>
+                        <div class="form-text">
+                          <strong>Controlar stock:</strong> actívelo para registrar entradas, salidas y ajustes de inventario con trazabilidad completa. &nbsp;|&nbsp;
+                          <strong>Sin stock:</strong> úselo para servicios o artículos descargables que no requieren inventario físico.
+                        </div>
+                      </c-col>
+                      @if (!form.get('noStock')?.value) {
+                        @if (isEditing()) {
+                          <c-col md="3">
+                            <label cLabel>Stock actual</label>
+                            <div class="input-group">
+                              <span class="form-control bg-light"
+                                    [ngClass]="{'text-danger fw-bold': productStockQty() < 0, 'text-secondary': productStockQty() === 0, 'text-success fw-bold': productStockQty() > 0}">
+                                {{ productStockQty() }} uds
+                              </span>
+                            </div>
+                            <div class="form-text">Total en todos los almacenes. Para ajustar vaya a la pestaña <strong>Stock</strong>.</div>
+                          </c-col>
+                        }
+                        <c-col md="3">
+                          <label cLabel>Stock Mínimo</label>
+                          <div class="input-group">
+                            <input cFormControl type="number" min="0" step="1" formControlName="stockMin">
+                            <span class="input-group-text">uds</span>
+                          </div>
+                          <div class="form-text">Si el stock cae por debajo de este valor se mostrará una alerta. Ingrese <strong>0</strong> para desactivar.</div>
+                        </c-col>
+                        <c-col md="3">
+                          <label cLabel>Stock Máximo</label>
+                          <div class="input-group">
+                            <input cFormControl type="number" min="0" step="1" formControlName="stockMax">
+                            <span class="input-group-text">uds</span>
+                          </div>
+                          <div class="form-text">Cantidad máxima sugerida para reposición. Solo referencial. Ingrese <strong>0</strong> para sin límite.</div>
+                        </c-col>
+                      }
+                    </c-row>
+                  </c-card-body>
+                </c-card>
+              </c-col>
+
+              <!-- ── Sub-card: Notas ─────────────────────────────────────── -->
+              <c-col [sm]="12">
+                <c-card class="border shadow-none">
+                  <c-card-header class="py-2 px-3">
+                    <span class="small fw-semibold text-muted text-uppercase">
+                      <svg cIcon name="cilNotes" class="me-1"></svg> Observaciones
+                    </span>
+                  </c-card-header>
+                  <c-card-body class="p-3">
+                    <textarea cFormControl formControlName="notes" rows="3"
+                              placeholder="Ej: Requiere estuche protector. Frágil. No exponer al sol."></textarea>
+                    <div class="form-text">Notas internas visibles solo para su equipo. Úselas para instrucciones especiales, advertencias de manejo o características destacadas del artículo.</div>
+                  </c-card-body>
+                </c-card>
+              </c-col>
+
+            </c-row>
+          </c-col>
+
+          <!-- ══ Columna imagen (3) ════════════════════════════════════════ -->
+          <c-col lg="3">
+            <c-card class="h-100 border">
+              <c-card-header class="text-center py-2">
+                <span class="small fw-semibold text-muted">
+                  <svg cIcon name="cilImage" class="me-1"></svg> Imagen del Artículo
+                </span>
+              </c-card-header>
+              <c-card-body class="p-2 d-flex flex-column">
+                <div class="image-upload-zone rounded flex-grow-1 position-relative overflow-hidden"
+                     [class.drag-over]="imageDragOver()"
+                     style="min-height:220px; cursor:pointer;"
+                     (dragover)="onImageDragOver($event)"
+                     (dragleave)="onImageDragLeave()"
+                     (drop)="onImageDrop($event)"
+                     (click)="!imageUrl() && imageFileInput.click()">
+
+                  @if (!imageUrl() && !imageUploading()) {
+                    <div class="d-flex flex-column align-items-center justify-content-center
+                                h-100 text-center p-3 text-muted" style="min-height:220px;">
+                      <svg cIcon name="cilImage" size="3xl" class="mb-2 opacity-25"></svg>
+                      <span class="small fw-semibold">Arrastra una imagen aquí</span>
+                      <span class="small">o haz clic para buscar</span>
+                      <span class="text-muted mt-1" style="font-size:.7rem;">JPG · PNG · WEBP · máx 2 MB</span>
+                    </div>
+                  }
+
+                  @if (imageUploading()) {
+                    <div class="d-flex flex-column align-items-center justify-content-center
+                                h-100 p-3" style="min-height:220px;">
+                      <c-spinner color="primary" class="mb-3"></c-spinner>
+                      <div class="w-100">
+                        <div class="progress" style="height:6px;">
+                          <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary"
+                               [style.width]="imageProgress() + '%'"></div>
+                        </div>
+                        <div class="text-center small text-muted mt-1">{{ imageProgress() }}%</div>
+                      </div>
+                    </div>
+                  }
+
+                  @if (imageUrl() && !imageUploading()) {
+                    <img [src]="imageUrl()" alt="Imagen" class="w-100 h-100 object-fit-cover" style="min-height:220px;">
+                    <div class="image-overlay position-absolute top-0 start-0 w-100 h-100
+                                 d-flex align-items-center justify-content-center gap-2">
+                      <button type="button" cButton color="light" size="sm"
+                              class="rounded-circle p-2 shadow-sm" cTooltip="Cambiar imagen"
+                              (click)="$event.stopPropagation(); imageFileInput.click()">
+                        <svg cIcon name="cilPencil"></svg>
+                      </button>
+                      <button type="button" cButton color="danger" size="sm"
+                              class="rounded-circle p-2 shadow-sm" cTooltip="Eliminar imagen"
+                              (click)="$event.stopPropagation(); removeImage()">
+                        <svg cIcon name="cilTrash"></svg>
+                      </button>
+                    </div>
+                  }
+                </div>
+                @if (imageError()) {
+                  <p class="text-danger small mb-0 mt-2 px-1">
+                    <svg cIcon name="cilWarning" class="me-1"></svg>{{ imageError() }}
+                  </p>
+                }
+              </c-card-body>
+              <c-card-footer class="py-2 px-3">
+                @if (!isEditing()) {
+                  <span class="small text-muted d-flex align-items-center gap-1">
+                    <svg cIcon name="cilInfo"></svg> Guarda primero para subir la imagen
+                  </span>
+                } @else if (imageUrl()) {
+                  <button type="button" cButton color="light" size="sm" class="w-100"
+                          (click)="imageFileInput.click()">
+                    <svg cIcon name="cilCloudUpload" class="me-1"></svg> Cambiar imagen
+                  </button>
+                } @else {
+                  <span class="small text-muted d-flex align-items-center gap-1">
+                    <svg cIcon name="cilCamera"></svg> Sin imagen asignada
+                  </span>
+                }
+              </c-card-footer>
+            </c-card>
+            <input #imageFileInput type="file" accept="image/jpeg,image/png,image/webp"
+                   class="d-none" (change)="onImageFileSelected($event)">
+          </c-col>
+
+        </c-row>
+      </form>
+    </c-card-body>
+
+    <!-- Footer: flags + guardar -->
+    <c-card-footer>
+      <form [formGroup]="form">
+        <div class="d-flex flex-wrap align-items-center gap-4 mb-3">
+          <c-form-check switch>
+            <input cFormCheckInput id="isSold" type="checkbox" formControlName="isSold">
+            <label cFormCheckLabel for="isSold" class="small fw-semibold">Se vende</label>
+          </c-form-check>
+          <c-form-check switch>
+            <input cFormCheckInput id="isPurchased" type="checkbox" formControlName="isPurchased">
+            <label cFormCheckLabel for="isPurchased" class="small fw-semibold">Se compra</label>
+          </c-form-check>
+          <c-form-check switch>
+            <input cFormCheckInput id="isPublic" type="checkbox" formControlName="isPublic">
+            <label cFormCheckLabel for="isPublic" class="small fw-semibold">Público (catálogo)</label>
+          </c-form-check>
+          <c-form-check switch>
+            <input cFormCheckInput id="hasVariants" type="checkbox" formControlName="hasVariants">
+            <label cFormCheckLabel for="hasVariants" class="small fw-semibold text-info">Tiene variantes</label>
+          </c-form-check>
+          <c-form-check switch>
+            <input cFormCheckInput id="traceable" type="checkbox" formControlName="traceable">
+            <label cFormCheckLabel for="traceable" class="small fw-semibold">Trazabilidad</label>
+          </c-form-check>
+          <c-form-check switch>
+            <input cFormCheckInput id="isBlocked" type="checkbox" formControlName="isBlocked">
+            <label cFormCheckLabel for="isBlocked" class="small fw-semibold text-danger">Bloqueado</label>
+          </c-form-check>
+          <c-form-check switch>
+            <input cFormCheckInput id="isActive" type="checkbox" formControlName="isActive">
+            <label cFormCheckLabel for="isActive" class="small fw-semibold text-primary">Activo</label>
+          </c-form-check>
+        </div>
+      </form>
+      <div class="d-flex justify-content-end gap-2">
+        <button cButton color="light" (click)="cancel()" [disabled]="saving()" class="px-4">Cancelar</button>
+        <button cButton color="primary" (click)="save()" [disabled]="saving()" class="px-4 shadow-sm">
+          @if (saving()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+          {{ isEditing() ? 'Guardar Cambios' : 'Registrar Artículo' }}
+        </button>
+      </div>
+    </c-card-footer>
+
+  </c-card>
+}
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     TAB: PRECIOS
+═══════════════════════════════════════════════════════════════════════════ -->
+@if (activeTab() === 'pricing') {
+  <c-card class="border-0 shadow-sm border-top-0 rounded-top-0">
+
+    <c-card-header class="d-flex align-items-center justify-content-between">
+      <div class="d-flex align-items-center gap-2">
+        <svg cIcon name="cilDollar" class="text-warning"></svg>
+        <span class="fw-semibold">Precios y Márgenes</span>
+      </div>
+      <c-badge [color]="(form.get('marginInput')?.value ?? 0) >= 0 ? 'success' : 'danger'" shape="rounded-pill">
+        Margen: {{ (form.get('marginInput')?.value ?? 0) | number:'1.1-1' }}%
+      </c-badge>
+    </c-card-header>
+
+    <c-card-body class="p-4">
+      <form [formGroup]="form">
+        <c-row class="g-4">
+
+          <!-- Sub-card: Calculadora de precios bidireccional -->
+          <c-col [sm]="12">
+            <c-card class="border shadow-none">
+              <c-card-header class="py-2 px-3">
+                <span class="small fw-semibold text-muted text-uppercase">
+                  <svg cIcon name="cilDollar" class="me-1"></svg> Precios de Venta
+                </span>
+              </c-card-header>
+              <c-card-body class="p-3">
+                <c-row class="g-3">
+
+                  <!-- PVP sin IVA -->
+                  <c-col [md]="3">
+                    <label cLabel class="small fw-semibold">
+                      P.V.P. sin IVA <span class="text-danger">*</span>
+                    </label>
+                    <c-input-group>
+                      <span cInputGroupText>$</span>
+                      <input cFormControl type="number" min="0" step="0.01"
+                             formControlName="salePrice" placeholder="0.00"
+                             [class.is-invalid]="hasError(form, 'salePrice')">
+                    </c-input-group>
+                    <div class="form-text small text-muted">Precio base sin impuesto</div>
+                    <div class="invalid-feedback">Requerido</div>
+                  </c-col>
+
+                  <!-- IVA % — solo lectura, viene del impuesto en General -->
+                  <c-col [md]="2">
+                    <label cLabel class="small fw-semibold">IVA %</label>
+                    <c-input-group>
+                      <input cFormControl type="text" readonly
+                             [value]="selectedTaxRatePct() + '%'"
+                             class="bg-light text-center fw-semibold">
+                      <span cInputGroupText>
+                        <svg cIcon name="cilInfo" class="text-muted" size="sm"></svg>
+                      </span>
+                    </c-input-group>
+                    <div class="form-text small text-muted">Configurado en General</div>
+                  </c-col>
+
+                  <!-- PVP con IVA — editable, bidireccional -->
+                  <c-col [md]="3">
+                    <label cLabel class="small fw-semibold">
+                      P.V.P. con IVA
+                      <span class="badge bg-primary-subtle text-primary ms-1" style="font-size:0.65rem">
+                        ← editable
+                      </span>
+                    </label>
+                    <c-input-group>
+                      <span cInputGroupText>$</span>
+                      <input cFormControl type="number" min="0" step="0.01"
+                             formControlName="salePriceWithTax" placeholder="0.00"
+                             class="fw-semibold">
+                    </c-input-group>
+                    <div class="form-text small text-muted">Precio al público (con IVA incluido)</div>
+                  </c-col>
+
+                  <!-- Margen % — editable, bidireccional -->
+                  <c-col [md]="2">
+                    <label cLabel class="small fw-semibold">
+                      Margen %
+                      <span class="badge bg-primary-subtle text-primary ms-1" style="font-size:0.65rem">
+                        ← editable
+                      </span>
+                    </label>
+                    <c-input-group>
+                      <input cFormControl type="number" step="0.1"
+                             formControlName="marginInput" placeholder="0.0"
+                             [class.text-success]="(form.get('marginInput')?.value ?? 0) > 0"
+                             [class.text-danger]="(form.get('marginInput')?.value ?? 0) < 0"
+                             class="text-center fw-bold">
+                      <span cInputGroupText>%</span>
+                    </c-input-group>
+                    <div class="form-text small text-muted">(PVP − Costo) ÷ PVP</div>
+                  </c-col>
+
+                  <!-- Precio de Coste -->
+                  <c-col [md]="2">
+                    <label cLabel class="small fw-semibold">Precio de Coste</label>
+                    <c-input-group>
+                      <span cInputGroupText>$</span>
+                      <input cFormControl type="number" min="0" step="0.01"
+                             formControlName="costPrice" placeholder="0.00">
+                    </c-input-group>
+                    <div class="form-text small text-muted">Último costo de compra</div>
+                  </c-col>
+
+                </c-row>
+
+                <!-- Resumen visual de precios -->
+                <div class="mt-4 p-3 rounded" style="background: var(--cui-secondary-bg)">
+                  <div class="row g-0 align-items-center text-center">
+                    <!-- Coste -->
+                    <div class="col">
+                      <div class="small text-muted mb-1">Costo</div>
+                      <div class="fw-bold fs-5">
+                        $ {{ (form.get('costPrice')?.value || 0) | number:'1.2-2' }}
+                      </div>
+                    </div>
+                    <!-- Arrow + margen -->
+                    <div class="col-auto px-2 text-muted">
+                      <svg cIcon name="cilArrowRight" class="me-1"></svg>
+                      <span class="small"
+                            [class.text-success]="(form.get('marginInput')?.value ?? 0) > 0"
+                            [class.text-danger]="(form.get('marginInput')?.value ?? 0) < 0">
+                        {{ (form.get('marginInput')?.value ?? 0) | number:'1.1-1' }}%
+                      </span>
+                    </div>
+                    <!-- PVP sin IVA -->
+                    <div class="col">
+                      <div class="small text-muted mb-1">P.V.P. sin IVA</div>
+                      <div class="fw-bold fs-5">
+                        $ {{ (form.get('salePrice')?.value || 0) | number:'1.2-2' }}
+                      </div>
+                    </div>
+                    <!-- Arrow + IVA% -->
+                    <div class="col-auto px-2 text-muted">
+                      <svg cIcon name="cilArrowRight" class="me-1"></svg>
+                      <span class="small text-warning">
+                        IVA {{ selectedTaxRatePct() }}%
+                      </span>
+                    </div>
+                    <!-- PVP con IVA -->
+                    <div class="col">
+                      <div class="small text-muted mb-1">P.V.P. con IVA</div>
+                      <div class="fw-bold fs-5 text-primary">
+                        $ {{ (form.get('salePriceWithTax')?.value || 0) | number:'1.2-2' }}
+                      </div>
+                    </div>
+                  </div>
+                  <!-- Tip bidireccional -->
+                  <div class="text-center mt-2">
+                    <span class="small text-muted">
+                      <svg cIcon name="cilInfo" size="sm" class="me-1"></svg>
+                      Edite cualquier campo: los demás se recalculan automáticamente.
+                    </span>
+                  </div>
+                </div>
+
+              </c-card-body>
+            </c-card>
+          </c-col>
+
+          <!-- Sub-card: Contabilidad -->
+          <c-col [sm]="12">
+            <c-card class="border shadow-none">
+              <c-card-header class="py-2 px-3">
+                <span class="small fw-semibold text-muted text-uppercase">
+                  <svg cIcon name="cilSpreadsheet" class="me-1"></svg> Contabilidad
+                </span>
+              </c-card-header>
+              <c-card-body class="p-3">
+                <c-row class="g-3">
+                  <c-col md="4">
+                    <label cLabel>Cuenta Contable Compras</label>
+                    <input cFormControl formControlName="purchaseAccountCode"
+                           class="font-monospace" placeholder="Ej: 5.1.01.001">
+                    <div class="form-text small text-muted">Cuenta de gasto en el plan de cuentas</div>
+                  </c-col>
+                </c-row>
+              </c-card-body>
+            </c-card>
+          </c-col>
+
+        </c-row>
+      </form>
+    </c-card-body>
+
+    <c-card-footer class="d-flex align-items-center justify-content-between">
+      <span class="small text-muted">
+        <svg cIcon name="cilInfo" class="me-1"></svg>
+        @if (priceUpdatedAt()) {
+          Precios actualizados: {{ priceUpdatedAt() | date:'dd/MM/yyyy HH:mm' }}
+        } @else {
+          El IVA se aplica al emitir documentos; el precio base se guarda sin impuesto.
+        }
+      </span>
+      <div class="d-flex gap-2">
+        <button cButton color="light" (click)="cancel()" [disabled]="saving()" class="px-4">Cancelar</button>
+        <button cButton color="primary" (click)="save()" [disabled]="saving()" class="px-4 shadow-sm">
+          @if (saving()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+          {{ isEditing() ? 'Guardar Cambios' : 'Registrar Artículo' }}
+        </button>
+      </div>
+    </c-card-footer>
+
+  </c-card>
+}
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     TAB: STOCK
+═══════════════════════════════════════════════════════════════════════════ -->
+@if (activeTab() === 'stock') {
+  <c-card class="border-0 shadow-sm border-top-0 rounded-top-0">
+
+    <c-card-header class="d-flex align-items-center justify-content-between">
+      <div class="d-flex align-items-center gap-2">
+        <svg cIcon name="cilStorage" class="text-info"></svg>
+        <span class="fw-semibold">Control de Inventario</span>
+      </div>
+      @if (isEditing()) {
+        <c-badge [color]="totalStock() > 0 ? 'success' : 'secondary'" shape="rounded-pill">
+          Total: {{ totalStock() | number:'1.0-0' }} uds
+        </c-badge>
+      }
+    </c-card-header>
+
+    <c-card-body class="p-4">
+      <form [formGroup]="form">
+        <c-row class="g-4">
+
+          <!-- Sub-card: Ajuste de Stock por Almacén -->
+          <c-col [sm]="12">
+            <c-card class="border shadow-none">
+              <c-card-header class="py-2 px-3 d-flex align-items-center justify-content-between">
+                <span class="small fw-semibold text-muted text-uppercase">
+                  <svg cIcon name="cilBuilding" class="me-1"></svg> Stock por Almacén
+                </span>
+                @if (isEditing()) {
+                  <c-badge [color]="totalStock() > 0 ? 'success' : 'secondary'" shape="rounded-pill" class="small">
+                    Total: {{ totalStock() | number:'1.0-0' }} uds
+                  </c-badge>
+                }
+              </c-card-header>
+              <c-card-body class="p-0">
+                @if (!isEditing()) {
+                  <div class="p-3">
+                    <c-callout color="warning" class="mb-0">
+                      <small>Guarda el artículo primero para ver el stock por almacén.</small>
+                    </c-callout>
+                  </div>
+                } @else {
+                  <div class="table-responsive">
+                    <table cTable hover align="middle" class="mb-0">
+                      <thead class="table-light text-uppercase small fw-bold">
+                        <tr>
+                          <th class="py-2 px-3">Almacén</th>
+                          <th class="py-2 text-center" style="width:100px">Cant. actual</th>
+                          <th class="py-2" style="width:180px">Ubicación</th>
+                          <th class="py-2" style="width:130px">Nueva cantidad</th>
+                          <th class="py-2">Motivo</th>
+                          <th class="py-2 text-center" style="width:60px">Guardar</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (s of stocks(); track s.warehouseCode) {
+                          <tr class="border-bottom">
+                            <td class="py-2 px-3">
+                              <span class="fw-semibold">{{ getWarehouseName(s.warehouseCode) }}</span>
+                              <c-badge [color]="stockAlertColor(s)" shape="rounded-pill" class="ms-2 small">
+                                @if (s.qty <= 0) { Sin stock }
+                                @else if (s.stockMin > 0 && s.qty <= s.stockMin) { Bajo mínimo }
+                                @else { OK }
+                              </c-badge>
+                            </td>
+                            <td class="py-2 text-center fw-bold">{{ s.qty | number:'1.0-2' }}</td>
+                            <td class="py-2">
+                              <input cFormControl size="sm" type="text"
+                                     [value]="getAdjust(s.warehouseCode).location"
+                                     (input)="setAdjust(s.warehouseCode, 'location', $any($event.target).value)"
+                                     placeholder="ej: Estante A3">
+                            </td>
+                            <td class="py-2">
+                              <input cFormControl size="sm" type="number" min="0" step="any"
+                                     [value]="getAdjust(s.warehouseCode).newQty"
+                                     (input)="setAdjust(s.warehouseCode, 'newQty', +$any($event.target).value)">
+                            </td>
+                            <td class="py-2">
+                              <input cFormControl size="sm" type="text"
+                                     [value]="getAdjust(s.warehouseCode).reason"
+                                     (input)="setAdjust(s.warehouseCode, 'reason', $any($event.target).value)"
+                                     placeholder="Motivo del cambio">
+                            </td>
+                            <td class="py-2 text-center">
+                              <button cButton color="primary" size="sm" variant="ghost"
+                                      [disabled]="getAdjust(s.warehouseCode).saving"
+                                      (click)="saveStockAdjust(s)"
+                                      title="Guardar ajuste">
+                                @if (getAdjust(s.warehouseCode).saving) {
+                                  <c-spinner size="sm"></c-spinner>
+                                } @else {
+                                  <svg cIcon name="cilSave"></svg>
+                                }
+                              </button>
+                            </td>
+                          </tr>
+                        }
+
+                        <!-- Fila para agregar stock en almacén nuevo -->
+                        @if (newWhStock()) {
+                          <tr class="table-info border-bottom">
+                            <td class="py-2 px-3">
+                              <select cSelect size="sm"
+                                      [value]="newWhStock()!.warehouseCode"
+                                      (change)="setNewWh('warehouseCode', $any($event.target).value)">
+                                @for (w of availableWarehouses(); track w.code) {
+                                  <option [value]="w.code">{{ w.name }}</option>
+                                }
+                              </select>
+                            </td>
+                            <td class="py-2 text-center text-muted small">0</td>
+                            <td class="py-2">
+                              <input cFormControl size="sm" type="text"
+                                     [value]="newWhStock()!.location"
+                                     (input)="setNewWh('location', $any($event.target).value)"
+                                     placeholder="Ubicación">
+                            </td>
+                            <td class="py-2">
+                              <input cFormControl size="sm" type="number" min="0" step="any"
+                                     [value]="newWhStock()!.newQty"
+                                     (input)="setNewWh('newQty', +$any($event.target).value)">
+                            </td>
+                            <td class="py-2">
+                              <input cFormControl size="sm" type="text"
+                                     [value]="newWhStock()!.reason"
+                                     (input)="setNewWh('reason', $any($event.target).value)"
+                                     placeholder="Motivo">
+                            </td>
+                            <td class="py-2 text-center d-flex gap-1 justify-content-center">
+                              <button cButton color="success" size="sm" variant="ghost"
+                                      (click)="saveNewWarehouseStock()" title="Guardar">
+                                <svg cIcon name="cilSave"></svg>
+                              </button>
+                              <button cButton color="secondary" size="sm" variant="ghost"
+                                      (click)="newWhStock.set(null)" title="Cancelar">
+                                <svg cIcon name="cilX"></svg>
+                              </button>
+                            </td>
+                          </tr>
+                        }
+                      </tbody>
+                      <tfoot class="fw-bold table-light">
+                        <tr>
+                          <td class="px-3 py-2">TOTAL</td>
+                          <td class="py-2 text-center">{{ totalStock() | number:'1.0-2' }}</td>
+                          <td colspan="3"></td>
+                          <td class="py-2 text-center">
+                            @if (availableWarehouses().length > 0 && !newWhStock()) {
+                              <button cButton color="success" size="sm" variant="ghost"
+                                      (click)="openNewWarehouseStock()" title="Agregar almacén">
+                                <svg cIcon name="cilPlus"></svg>
+                              </button>
+                            }
+                          </td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                }
+              </c-card-body>
+            </c-card>
+          </c-col>
+
+          <!-- Sub-card: Movimientos por almacén -->
+          @if (isEditing() && stocks().length > 0) {
+            <c-col [sm]="12">
+              <c-card class="border shadow-none">
+                <c-card-header class="py-2 px-3 d-flex align-items-center justify-content-between"
+                               style="cursor:pointer" (click)="showMovements.set(!showMovements())">
+                  <span class="small fw-semibold text-muted text-uppercase">
+                    <svg cIcon name="cilTransfer" class="me-1"></svg> Historial de Movimientos
+                  </span>
+                  <svg cIcon [name]="showMovements() ? 'cilChevronTop' : 'cilChevronBottom'" class="small text-muted"></svg>
+                </c-card-header>
+
+                @if (showMovements()) {
+                  <c-card-body class="p-0">
+                    <!-- Tabs: one per warehouse + Regularizaciones -->
+                    <c-nav variant="tabs" class="px-3 pt-2">
+                      @for (s of stocks(); track s.warehouseCode) {
+                        <c-nav-item>
+                          <a cNavLink [active]="activeMovTab() === s.warehouseCode"
+                             (click)="activeMovTab.set(s.warehouseCode)" role="button">
+                            <svg cIcon name="cilBuilding" class="me-1 small"></svg>
+                            {{ getWarehouseName(s.warehouseCode) }}
+                            <c-badge color="secondary" shape="rounded-pill" class="ms-1 small">
+                              {{ movementsForWarehouse(s.warehouseCode).length }}
+                            </c-badge>
+                          </a>
+                        </c-nav-item>
+                      }
+                      <c-nav-item>
+                        <a cNavLink [active]="activeMovTab() === '__adj'" (click)="activeMovTab.set('__adj')" role="button">
+                          <svg cIcon name="cilSettings" class="me-1 small"></svg> Regularizaciones
+                          <c-badge color="secondary" shape="rounded-pill" class="ms-1 small">
+                            {{ adjustments().length }}
+                          </c-badge>
+                        </a>
+                      </c-nav-item>
+                    </c-nav>
+
+                    <!-- Movements table per warehouse -->
+                    @for (s of stocks(); track s.warehouseCode) {
+                      @if (activeMovTab() === s.warehouseCode) {
+                        <div class="table-responsive">
+                          <table cTable hover class="mb-0 small">
+                            <thead class="table-light text-uppercase fw-bold">
+                              <tr>
+                                <th class="py-2 px-3">Documento</th>
+                                <th class="py-2 text-end" style="width:90px">Ingreso</th>
+                                <th class="py-2 text-end" style="width:90px">Salida</th>
+                                <th class="py-2 text-end" style="width:100px">Cant. final</th>
+                                <th class="py-2">Motivo</th>
+                                <th class="py-2 text-end" style="width:100px">Fecha</th>
+                                <th class="py-2 text-end" style="width:70px">Hora</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              @for (m of movementsForWarehouse(s.warehouseCode); track m.id) {
+                                <tr [class.table-success]="m.qtyDelta > 0"
+                                    [class.table-danger]="m.qtyDelta < 0"
+                                    [class.table-warning]="m.type === 'adjustment'">
+                                  <td class="py-1 px-3">
+                                    {{ m.sourceDocType ?? m.type }}
+                                    @if (m.sourceDocId) { — {{ m.sourceDocId }} }
+                                  </td>
+                                  <td class="py-1 text-end text-success fw-semibold">
+                                    @if (m.qtyDelta > 0) { +{{ m.qtyDelta | number:'1.0-2' }} }
+                                  </td>
+                                  <td class="py-1 text-end text-danger fw-semibold">
+                                    @if (m.qtyDelta < 0) { {{ m.qtyDelta | number:'1.0-2' }} }
+                                  </td>
+                                  <td class="py-1 text-end fw-bold">{{ m.qtyAfter | number:'1.0-2' }}</td>
+                                  <td class="py-1 text-muted">{{ m.reason || '—' }}</td>
+                                  <td class="py-1 text-end text-muted">{{ movDate(m) }}</td>
+                                  <td class="py-1 text-end text-muted">{{ movTime(m) }}</td>
+                                </tr>
+                              }
+                              @if (movementsForWarehouse(s.warehouseCode).length === 0) {
+                                <tr>
+                                  <td colspan="7" class="py-3 text-center text-muted">Sin movimientos registrados.</td>
+                                </tr>
+                              }
+                            </tbody>
+                          </table>
+                        </div>
+                      }
+                    }
+
+                    <!-- Regularizaciones tab -->
+                    @if (activeMovTab() === '__adj') {
+                      <div class="table-responsive">
+                        <table cTable hover class="mb-0 small">
+                          <thead class="table-light text-uppercase fw-bold">
+                            <tr>
+                              <th class="py-2 px-3">Almacén</th>
+                              <th class="py-2">Usuario</th>
+                              <th class="py-2">Motivo</th>
+                              <th class="py-2 text-end" style="width:100px">Cant. inicial</th>
+                              <th class="py-2 text-end" style="width:100px">Cant. final</th>
+                              <th class="py-2 text-end" style="width:100px">Fecha</th>
+                              <th class="py-2 text-end" style="width:70px">Hora</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            @for (m of adjustments(); track m.id) {
+                              <tr [class.table-danger]="m.qtyAfter < m.qtyBefore">
+                                <td class="py-1 px-3">{{ getWarehouseName(m.warehouseCode) }}</td>
+                                <td class="py-1 text-muted">{{ m.userId }}</td>
+                                <td class="py-1 text-muted">{{ m.reason || '—' }}</td>
+                                <td class="py-1 text-end">{{ m.qtyBefore | number:'1.0-2' }}</td>
+                                <td class="py-1 text-end fw-bold">{{ m.qtyAfter | number:'1.0-2' }}</td>
+                                <td class="py-1 text-end text-muted">{{ movDate(m) }}</td>
+                                <td class="py-1 text-end text-muted">{{ movTime(m) }}</td>
+                              </tr>
+                            }
+                            @if (adjustments().length === 0) {
+                              <tr>
+                                <td colspan="7" class="py-3 text-center text-muted">Sin regularizaciones registradas.</td>
+                              </tr>
+                            }
+                          </tbody>
+                        </table>
+                      </div>
+                    }
+                  </c-card-body>
+                }
+              </c-card>
+            </c-col>
+          }
+
+        </c-row>
+      </form>
+    </c-card-body>
+
+    <c-card-footer class="d-flex align-items-center justify-content-between">
+      <span class="small text-muted">
+        <svg cIcon name="cilInfo" class="me-1"></svg>
+        Ajuste manual de stock por almacén. Los movimientos quedan registrados en el historial.
+      </span>
+      <div class="d-flex gap-2">
+        <button cButton color="light" (click)="cancel()" [disabled]="saving()" class="px-4">Cancelar</button>
+        <button cButton color="primary" (click)="save()" [disabled]="saving()" class="px-4 shadow-sm">
+          @if (saving()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+          {{ isEditing() ? 'Guardar Cambios' : 'Registrar Artículo' }}
+        </button>
+      </div>
+    </c-card-footer>
+
+  </c-card>
+}
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     TAB: PROVEEDORES
+═══════════════════════════════════════════════════════════════════════════ -->
+@if (activeTab() === 'suppliers') {
+  <c-card class="border-0 shadow-sm border-top-0 rounded-top-0">
+
+    <c-card-header class="d-flex align-items-center justify-content-between">
+      <div class="d-flex align-items-center gap-2">
+        <svg cIcon name="cilTruck" class="text-secondary"></svg>
+        <span class="fw-semibold">Proveedores del Artículo</span>
+        @if (suppliers().length) {
+          <c-badge color="primary" shape="rounded-pill">{{ suppliers().length }}</c-badge>
+        }
+      </div>
+      @if (isEditing() && !showSupplierForm()) {
+        <button cButton color="primary" size="sm" (click)="openAddSupplier()">
+          <svg cIcon name="cilPlus" class="me-1"></svg> Agregar Proveedor
+        </button>
+      }
+    </c-card-header>
+
+    <c-card-body class="p-4">
+      @if (!isEditing()) {
+        <c-callout color="warning">
+          <small>Guarda el artículo primero para registrar proveedores.</small>
+        </c-callout>
+      } @else {
+
+        <!-- Tabla de proveedores -->
+        @if (suppliers().length > 0 && !showSupplierForm()) {
+          <div class="table-responsive mb-3">
+            <table cTable hover align="middle" class="mb-0 border-0">
+              <thead class="text-uppercase small fw-bold">
+                <tr>
+                  <th class="border-0 py-2 px-3">Proveedor</th>
+                  <th class="border-0 py-2">Ref. Proveedor</th>
+                  <th class="border-0 py-2 text-end">Precio</th>
+                  <th class="border-0 py-2 text-center">Dto %</th>
+                  <th class="border-0 py-2 text-center">Divisa</th>
+                  <th class="border-0 py-2 text-center">Preferido</th>
+                  <th class="border-0 py-2 text-end px-3">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (s of suppliers(); track trackById($index, s)) {
+                  <tr class="border-bottom">
+                    <td class="py-2 px-3">
+                      <div class="fw-semibold">{{ s.supplierName || s.supplierCode }}</div>
+                      @if (s.supplierName) {
+                        <div class="text-muted small font-monospace">{{ s.supplierCode }}</div>
+                      }
+                    </td>
+                    <td class="py-2 font-monospace small">{{ s.supplierRef }}</td>
+                    <td class="py-2 text-end fw-semibold">{{ s.price | currency:'USD':'symbol':'1.2-2' }}</td>
+                    <td class="py-2 text-center small">{{ s.discountPct | number:'1.0-1' }}%</td>
+                    <td class="py-2 text-center">
+                      <c-badge color="secondary" class="small">{{ s.currency }}</c-badge>
+                    </td>
+                    <td class="py-2 text-center">
+                      @if (s.isPreferred) {
+                        <c-badge color="success" class="small">★ Preferido</c-badge>
+                      }
+                    </td>
+                    <td class="py-2 text-end px-3">
+                      <div class="d-flex gap-1 justify-content-end">
+                        <button cButton color="light" size="sm" (click)="openEditSupplier(s)">
+                          <svg cIcon name="cilPencil"></svg>
+                        </button>
+                        <button cButton color="light" size="sm" class="text-danger" (click)="deleteSupplier(s)">
+                          <svg cIcon name="cilTrash"></svg>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+
+        <!-- Empty state -->
+        @if (suppliers().length === 0 && !showSupplierForm()) {
+          <div class="text-center py-5 text-muted">
+            <svg cIcon name="cilTruck" size="xl" class="opacity-25 d-block mx-auto mb-2"></svg>
+            <p class="small">Sin proveedores registrados para este artículo</p>
+            <button cButton color="outline-primary" size="sm" (click)="openAddSupplier()">
+              <svg cIcon name="cilPlus" class="me-1"></svg> Agregar el primer proveedor
+            </button>
+          </div>
+        }
+
+        <!-- Formulario inline add/edit -->
+        @if (showSupplierForm()) {
+          <c-card class="border shadow-none">
+            <c-card-header class="py-2 px-3">
+              <span class="small fw-semibold text-muted text-uppercase">
+                <svg cIcon name="cilTruck" class="me-1"></svg>
+                {{ editingSupplierId() ? 'Editar proveedor' : 'Nuevo proveedor' }}
+              </span>
+            </c-card-header>
+            <c-card-body class="p-3">
+              <form [formGroup]="supplierForm">
+                <c-row class="g-3">
+                  <c-col md="4">
+                    <label cLabel class="small">Código Proveedor <span class="text-danger">*</span></label>
+                    <input cFormControl formControlName="supplierCode" class="font-monospace"
+                           placeholder="Código de la ficha del proveedor"
+                           [class.is-invalid]="hasError(supplierForm, 'supplierCode')">
+                  </c-col>
+                  <c-col md="4">
+                    <label cLabel class="small">Nombre Proveedor</label>
+                    <input cFormControl formControlName="supplierName" placeholder="Nombre para mostrar">
+                  </c-col>
+                  <c-col md="4">
+                    <label cLabel class="small">Referencia del Proveedor <span class="text-danger">*</span></label>
+                    <input cFormControl formControlName="supplierRef" class="font-monospace"
+                           placeholder="Código que usa el proveedor"
+                           [class.is-invalid]="hasError(supplierForm, 'supplierRef')">
+                  </c-col>
+                  <c-col md="4">
+                    <label cLabel class="small">Precio de Compra <span class="text-danger">*</span></label>
+                    <c-input-group>
+                      <span cInputGroupText>$</span>
+                      <input cFormControl type="number" min="0" step="0.01" formControlName="price">
+                    </c-input-group>
+                  </c-col>
+                  <c-col md="2">
+                    <label cLabel class="small">Descuento %</label>
+                    <c-input-group>
+                      <input cFormControl type="number" min="0" max="100" step="0.01" formControlName="discountPct">
+                      <span cInputGroupText>%</span>
+                    </c-input-group>
+                  </c-col>
+                  <c-col md="2">
+                    <label cLabel class="small">Divisa</label>
+                    <input cFormControl formControlName="currency" placeholder="USD">
+                  </c-col>
+                  <c-col md="4">
+                    <label cLabel class="small">Descripción del Proveedor</label>
+                    <input cFormControl formControlName="description" placeholder="Como lo llama el proveedor">
+                  </c-col>
+                  <c-col md="12">
+                    <c-form-check switch>
+                      <input cFormCheckInput id="isPreferred" type="checkbox" formControlName="isPreferred">
+                      <label cFormCheckLabel for="isPreferred" class="small">Proveedor preferido</label>
+                    </c-form-check>
+                  </c-col>
+                </c-row>
+              </form>
+            </c-card-body>
+            <c-card-footer class="d-flex gap-2 justify-content-end py-2">
+              <button cButton color="light" size="sm" (click)="showSupplierForm.set(false)">Cancelar</button>
+              <button cButton color="primary" size="sm" (click)="saveSupplier()"
+                      [disabled]="supplierForm.invalid">Guardar proveedor</button>
+            </c-card-footer>
+          </c-card>
+        }
+
+      }
+    </c-card-body>
+
+    <c-card-footer class="d-flex align-items-center justify-content-between">
+      <span class="small text-muted">
+        <svg cIcon name="cilInfo" class="me-1"></svg>
+        El proveedor preferido se pre-selecciona en órdenes de compra.
+      </span>
+      <div class="d-flex gap-2">
+        <button cButton color="light" (click)="cancel()" [disabled]="saving()" class="px-4">Cancelar</button>
+        <button cButton color="primary" (click)="save()" [disabled]="saving()" class="px-4 shadow-sm">
+          @if (saving()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+          {{ isEditing() ? 'Guardar Cambios' : 'Registrar Artículo' }}
+        </button>
+      </div>
+    </c-card-footer>
+
+  </c-card>
+}
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     TAB: VARIANTES
+═══════════════════════════════════════════════════════════════════════════ -->
+@if (activeTab() === 'variants' && hasVariantsOn()) {
+  <c-card class="border-0 shadow-sm border-top-0 rounded-top-0">
+
+    <c-card-header class="d-flex align-items-center justify-content-between">
+      <div class="d-flex align-items-center gap-2">
+        <svg cIcon name="cilLayers" class="text-info"></svg>
+        <span class="fw-semibold">Variantes del Artículo</span>
+        @if (variants().length) {
+          <c-badge color="info" shape="rounded-pill">{{ variants().length }}</c-badge>
+        }
+      </div>
+      @if (isEditing() && !showVariantForm()) {
+        <button cButton color="info" size="sm" (click)="openAddVariant()">
+          <svg cIcon name="cilPlus" class="me-1"></svg> Agregar Variante
+        </button>
+      }
+    </c-card-header>
+
+    <c-card-body class="p-4">
+      @if (!isEditing()) {
+        <c-callout color="warning">
+          <small>Guarda el artículo primero para gestionar variantes.</small>
+        </c-callout>
+      } @else {
+
+        @if (variants().length > 0 && !showVariantForm()) {
+          <div class="table-responsive mb-3">
+            <table cTable hover align="middle" class="mb-0 border-0">
+              <thead class="text-uppercase small fw-bold">
+                <tr>
+                  <th class="border-0 py-2 px-3">SKU Variante</th>
+                  <th class="border-0 py-2">Atributos</th>
+                  <th class="border-0 py-2 text-end">Ajuste precio</th>
+                  <th class="border-0 py-2 text-center">Stock</th>
+                  <th class="border-0 py-2 text-center">Estado</th>
+                  <th class="border-0 py-2 text-end px-3">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (v of variants(); track trackById($index, v)) {
+                  <tr class="border-bottom" [class.opacity-50]="!v.isActive">
+                    <td class="py-2 px-3 font-monospace fw-semibold">{{ v.sku }}</td>
+                    <td class="py-2">
+                      <div class="d-flex flex-wrap gap-1">
+                        @for (a of v.attributes; track a.name) {
+                          <c-badge color="secondary" class="small px-2">{{ a.name }}: {{ a.value }}</c-badge>
+                        }
+                      </div>
+                    </td>
+                    <td class="py-2 text-end">
+                      <span [class.text-success]="v.priceAdjustment > 0"
+                            [class.text-danger]="v.priceAdjustment < 0"
+                            [class.text-muted]="v.priceAdjustment === 0">
+                        {{ v.priceAdjustment >= 0 ? '+' : '' }}{{ v.priceAdjustment | currency:'USD':'symbol':'1.2-2' }}
+                      </span>
+                    </td>
+                    <td class="py-2 text-center">{{ v.stockQty | number:'1.0-0' }}</td>
+                    <td class="py-2 text-center">
+                      <c-badge [color]="v.isActive ? 'success' : 'secondary'" class="small">
+                        {{ v.isActive ? 'Activa' : 'Inactiva' }}
+                      </c-badge>
+                    </td>
+                    <td class="py-2 text-end px-3">
+                      <div class="d-flex gap-1 justify-content-end">
+                        <button cButton color="light" size="sm" (click)="openEditVariant(v)">
+                          <svg cIcon name="cilPencil"></svg>
+                        </button>
+                        <button cButton color="light" size="sm" class="text-danger" (click)="deleteVariant(v)">
+                          <svg cIcon name="cilTrash"></svg>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+
+        @if (variants().length === 0 && !showVariantForm()) {
+          <div class="text-center py-5 text-muted">
+            <svg cIcon name="cilLayers" size="xl" class="opacity-25 d-block mx-auto mb-2"></svg>
+            <p class="small">Sin variantes. Agrega la primera variante.</p>
+            <button cButton color="outline-info" size="sm" (click)="openAddVariant()">
+              <svg cIcon name="cilPlus" class="me-1"></svg> Agregar primera variante
+            </button>
+          </div>
+        }
+
+        @if (showVariantForm()) {
+          <c-card class="border shadow-none">
+            <c-card-header class="py-2 px-3">
+              <span class="small fw-semibold text-muted text-uppercase">
+                <svg cIcon name="cilLayers" class="me-1"></svg>
+                {{ editingVariantId() ? 'Editar variante' : 'Nueva variante' }}
+              </span>
+            </c-card-header>
+            <c-card-body class="p-3">
+              <form [formGroup]="variantForm">
+                <c-row class="g-3">
+                  <c-col md="3">
+                    <label cLabel class="small">SKU Variante <span class="text-danger">*</span></label>
+                    <input cFormControl formControlName="sku" class="font-monospace text-uppercase"
+                           [class.is-invalid]="hasError(variantForm, 'sku')">
+                    <div class="invalid-feedback">Requerido</div>
+                  </c-col>
+                  <c-col md="3">
+                    <label cLabel class="small">Código de Barras</label>
+                    <input cFormControl formControlName="barcode" class="font-monospace">
+                  </c-col>
+                  <c-col md="3">
+                    <label cLabel class="small">Ajuste de precio (± USD)</label>
+                    <c-input-group>
+                      <span cInputGroupText>$</span>
+                      <input cFormControl type="number" step="0.01" formControlName="priceAdjustment">
+                    </c-input-group>
+                  </c-col>
+                  <c-col md="3">
+                    <label cLabel class="small">Stock inicial</label>
+                    <input cFormControl type="number" min="0" formControlName="stockQty">
+                  </c-col>
+                  <c-col [sm]="12">
+                    <label cLabel class="small fw-semibold">Atributos (Talla, Color, Material…)</label>
+                    @for (attr of variantAttrForms(); track $index; let i = $index) {
+                      <div class="d-flex gap-2 mb-2">
+                        <input cFormControl placeholder="Nombre (Talla, Color…)"
+                               [value]="attr.name"
+                               (input)="updateAttr(i, 'name', $any($event.target).value)"
+                               class="flex-grow-1">
+                        <input cFormControl placeholder="Valor (S, M, Rojo…)"
+                               [value]="attr.value"
+                               (input)="updateAttr(i, 'value', $any($event.target).value)"
+                               class="flex-grow-1">
+                        <button cButton color="light" size="sm" class="text-danger"
+                                (click)="removeAttrRow(i)" [disabled]="variantAttrForms().length <= 1">
+                          <svg cIcon name="cilX"></svg>
+                        </button>
+                      </div>
+                    }
+                    <button cButton color="outline-secondary" size="sm" (click)="addAttrRow()">
+                      <svg cIcon name="cilPlus" class="me-1"></svg> Añadir atributo
+                    </button>
+                  </c-col>
+                  <c-col [sm]="12">
+                    <c-form-check switch>
+                      <input cFormCheckInput id="varActive" type="checkbox" formControlName="isActive">
+                      <label cFormCheckLabel for="varActive" class="small">Variante activa</label>
+                    </c-form-check>
+                  </c-col>
+                </c-row>
+              </form>
+            </c-card-body>
+            <c-card-footer class="d-flex gap-2 justify-content-end py-2">
+              <button cButton color="light" size="sm" (click)="showVariantForm.set(false)">Cancelar</button>
+              <button cButton color="primary" size="sm" (click)="saveVariant()"
+                      [disabled]="variantForm.invalid">Guardar variante</button>
+            </c-card-footer>
+          </c-card>
+        }
+
+      }
+    </c-card-body>
+
+    <c-card-footer class="d-flex align-items-center justify-content-between">
+      <span class="small text-muted">
+        <svg cIcon name="cilInfo" class="me-1"></svg>
+        Las variantes comparten el precio base. El ajuste (+ o −) se aplica sobre el P.V.P. del artículo padre.
+      </span>
+      <div class="d-flex gap-2">
+        <button cButton color="light" (click)="cancel()" [disabled]="saving()" class="px-4">Cancelar</button>
+        <button cButton color="primary" (click)="save()" [disabled]="saving()" class="px-4 shadow-sm">
+          @if (saving()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+          {{ isEditing() ? 'Guardar Cambios' : 'Registrar Artículo' }}
+        </button>
+      </div>
+    </c-card-footer>
+
+  </c-card>
+}
+
+} <!-- end @if (!loading()) -->
+
+<style>
+.image-upload-zone {
+  background: var(--cui-tertiary-bg, #f8f9fa);
+  transition: background 0.2s, border-color 0.2s;
+}
+.image-upload-zone.drag-over {
+  background: rgba(var(--cui-primary-rgb, 50,31,219), 0.08);
+  border: 2px dashed var(--cui-primary) !important;
+}
+.image-overlay {
+  opacity: 0;
+  background: rgba(0, 0, 0, 0.4);
+  transition: opacity 0.2s;
+}
+.image-upload-zone:hover .image-overlay {
+  opacity: 1;
+}
+</style>

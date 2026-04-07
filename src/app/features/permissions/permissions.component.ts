@@ -17,10 +17,11 @@ import {
 } from '@coreui/angular';
 import { IconModule } from '@coreui/icons-angular';
 import { forkJoin } from 'rxjs';
+import { take } from 'rxjs/operators';
 
-import { PermissionsService } from '../../core/services/permissions.service';
 import { ModulesService } from '../../core/services/modules.service';
 import { ActionsService } from '../../core/services/actions.service';
+import { PermissionsCatalogService } from '../../core/services/permissions-catalog.service';
 import {
     Permission,
     PermissionInput,
@@ -30,6 +31,8 @@ import {
     Action,
     ActionInput
 } from '../../core/interfaces/permission.interface';
+import { MODULES_SEED, ACTIONS_SEED } from '../../core/seed/modules-seed';
+
 type ActiveTab = 'permissions' | 'modules' | 'actions';
 
 @Component({
@@ -43,87 +46,72 @@ type ActiveTab = 'permissions' | 'modules' | 'actions';
         ButtonModule,
         GridModule,
         BadgeModule,
-        SpinnerModule, 
+        SpinnerModule,
         TableModule,
         FormModule,
         ModalModule,
         TooltipModule,
         AlertModule,
         NavModule,
-        TabsModule, 
+        TabsModule,
         IconModule
     ],
     templateUrl: './permissions.component.html',
     styleUrl: './permissions.component.scss'
 })
 export class PermissionsComponent implements OnInit {
-    private permissionsService = inject(PermissionsService);
-    private modulesService = inject(ModulesService);
-    private actionsService = inject(ActionsService);
-    private fb = inject(FormBuilder);
+    private modulesService      = inject(ModulesService);
+    private actionsService      = inject(ActionsService);
+    private permCatalogService  = inject(PermissionsCatalogService);
+    private fb                  = inject(FormBuilder);
 
-    // Active tab
     activeTab = signal<ActiveTab>('permissions');
 
-    // Data
     permissions = signal<Permission[]>([]);
-    modules = signal<Module[]>([]);
-    actions = signal<Action[]>([]);
+    modules     = signal<Module[]>([]);
+    actions     = signal<Action[]>([]);
 
-    // Loading states
     isLoading = signal(false);
-    isLoadingModules = signal(false);
-    isLoadingActions = signal(false);
+    seeding   = signal(false);
+    seedLog   = signal<string[]>([]);
 
-    // Modal states
     showPermissionModal = signal(false);
-    showModuleModal = signal(false);
-    showActionModal = signal(false);
+    showModuleModal     = signal(false);
+    showActionModal     = signal(false);
 
-    // Editing items
     editingPermission = signal<Permission | null>(null);
-    editingModule = signal<Module | null>(null);
-    editingAction = signal<Action | null>(null);
+    editingModule     = signal<Module | null>(null);
+    editingAction     = signal<Action | null>(null);
 
-    // Forms
     permissionForm!: FormGroup;
     moduleForm!: FormGroup;
     actionForm!: FormGroup;
 
-    // Computed: Group permissions by module
-    groupedPermissions = computed(() => {
+    // Group permissions by module for the permissions tab
+    groupedPermissions = computed((): PermissionGroup[] => {
         const perms = this.permissions();
-        const mods = this.modules();
+        const mods  = this.modules();
 
-        const grouped = new Map<number, Permission[]>();
-
+        const byModule = new Map<string, Permission[]>();
         perms.forEach(p => {
-            const moduleId = p.module_id;
-            const current = grouped.get(moduleId) || [];
-            current.push(p);
-            grouped.set(moduleId, current);
+            const list = byModule.get(p.module_id) ?? [];
+            list.push(p);
+            byModule.set(p.module_id, list);
         });
 
-        const result: PermissionGroup[] = [];
-
-        mods.forEach(mod => {
-            const modulePerms = grouped.get(mod.id) || [];
-            if (modulePerms.length > 0) {
-                result.push({
-                    module: mod,
-                    moduleName: mod.name,
-                    moduleIcon: mod.icon,
-                    permissions: modulePerms.sort((a, b) => a.code.localeCompare(b.code))
-                });
-            }
-        });
-
-        return result.sort((a, b) => {
-            const modA = a.module as Module;
-            const modB = b.module as Module;
-            return modA.order - modB.order;
-        });
+        return mods
+            .filter(m => byModule.has(m.id))
+            .map(m => ({
+                module:      m,
+                moduleName:  m.name,
+                moduleIcon:  m.icon,
+                permissions: (byModule.get(m.id) ?? []).sort((a, b) => a.code.localeCompare(b.code))
+            }))
+            .sort((a, b) => a.module.order - b.module.order);
     });
+
+    // Available module codes for dependencies multi-select
+    moduleCodes = computed(() => this.modules().filter(m => !m.isTitle));
 
     ngOnInit(): void {
         this.initForms();
@@ -131,66 +119,57 @@ export class PermissionsComponent implements OnInit {
     }
 
     initForms(): void {
-        // Permission form
         this.permissionForm = this.fb.group({
-            module_id: ['', Validators.required],
-            action_id: ['', Validators.required],
-            name: ['', Validators.required],
+            module_id:   ['', Validators.required],
+            action_id:   ['', Validators.required],
+            name:        ['', Validators.required],
             description: [''],
-            isSystem: [false]
+            isSystem:    [false]
         });
 
-        // Module form
         this.moduleForm = this.fb.group({
-            code: ['', [Validators.required, Validators.pattern(/^[a-z_]+$/)]],
-            name: ['', Validators.required],
-            description: [''],
-            url: [''],
-            icon: ['cil-settings'],
-            isTitle: [false],
-            parent_id: [null],
-            badgeText: [''],
-            badgeColor: [''],
-            showInMenu: [true],
-            order: [99, [Validators.required, Validators.min(1)]],
-            state: [true]
+            code:         ['', [Validators.required, Validators.pattern(/^[a-z_]+$/)]],
+            name:         ['', Validators.required],
+            description:  [''],
+            dependencies: [[]],
+            url:          [''],
+            icon:         ['cil-puzzle'],
+            isTitle:      [false],
+            parent_id:    [null],
+            badgeText:    [''],
+            badgeColor:   [''],
+            showInMenu:   [true],
+            order:        [99, [Validators.required, Validators.min(1)]],
+            state:        [true]
         });
 
-        // Action form
         this.actionForm = this.fb.group({
-            code: ['', [Validators.required, Validators.pattern(/^[a-z_]+$/)]],
-            name: ['', Validators.required],
+            code:        ['', [Validators.required, Validators.pattern(/^[a-z_]+$/)]],
+            name:        ['', Validators.required],
             description: [''],
-            state: [true]
+            state:       [true]
         });
     }
 
     loadAllData(): void {
         this.isLoading.set(true);
-
         forkJoin({
-            modules: this.modulesService.getModulesFlat(false),
-            actions: this.actionsService.getActions(false),
-            permissions: this.permissionsService.getPermissionsCatalog()
+            modules:     this.modulesService.getModulesFlat(false).pipe(take(1)),
+            actions:     this.actionsService.getActions(false).pipe(take(1)),
+            permissions: this.permCatalogService.getPermissionsCatalog().pipe(take(1))
         }).subscribe({
             next: ({ modules, actions, permissions }) => {
-                console.log(`modules ${JSON.stringify(modules, null, 3)} `);
-                
                 this.modules.set(modules);
                 this.actions.set(actions);
                 this.permissions.set(permissions);
                 this.isLoading.set(false);
             },
-            error: (err) => {
-                console.error('Error loading data', err);
+            error: err => {
+                console.error('[PermissionsComponent] Error loading data:', err);
                 this.isLoading.set(false);
             }
         });
     }
-
-    // ============================================================================
-    // TAB NAVIGATION
-    // ============================================================================
 
     setActiveTab(tab: ActiveTab): void {
         this.activeTab.set(tab);
@@ -204,13 +183,12 @@ export class PermissionsComponent implements OnInit {
         if (permission) {
             this.editingPermission.set(permission);
             this.permissionForm.patchValue({
-                module_id: permission.module_id,
-                action_id: permission.action_id,
-                name: permission.name,
+                module_id:   permission.module_id,
+                action_id:   permission.action_id,
+                name:        permission.name,
                 description: permission.description,
-                isSystem: permission.isSystem
+                isSystem:    permission.isSystem
             });
-            // Disable module/action if editing (can't change code)
             this.permissionForm.get('module_id')?.disable();
             this.permissionForm.get('action_id')?.disable();
         } else {
@@ -227,50 +205,41 @@ export class PermissionsComponent implements OnInit {
         this.editingPermission.set(null);
     }
 
-    savePermission(): void {
+    async savePermission(): Promise<void> {
         if (this.permissionForm.invalid) return;
-
-        const formValue = this.permissionForm.getRawValue();
+        const v = this.permissionForm.getRawValue();
         const data: PermissionInput = {
-            module_id: formValue.module_id,
-            action_id: formValue.action_id,
-            name: formValue.name,
-            description: formValue.description,
-            isSystem: formValue.isSystem
+            module_id:   v.module_id,
+            action_id:   v.action_id,
+            name:        v.name,
+            description: v.description,
+            isSystem:    v.isSystem
         };
-
         const editing = this.editingPermission();
-
-        if (editing) {
-            this.permissionsService.updatePermission(editing.id!, { name: data.name, description: data.description }).subscribe({
-                next: () => {
-                    this.loadAllData();
-                    this.closePermissionModal();
-                },
-                error: (err) => console.error('Error updating permission:', err)
-            });
-        } else {
-            this.permissionsService.createPermission(data).subscribe({
-                next: () => {
-                    this.loadAllData();
-                    this.closePermissionModal();
-                },
-                error: (err) => console.error('Error creating permission:', err)
-            });
+        try {
+            if (editing) {
+                await this.permCatalogService.updatePermission(editing.id!, { name: data.name, description: data.description });
+            } else {
+                await this.permCatalogService.createPermission(data);
+            }
+            this.loadAllData();
+            this.closePermissionModal();
+        } catch (err) {
+            console.error('[PermissionsComponent] Error saving permission:', err);
         }
     }
 
-    deletePermission(permission: Permission): void {
+    async deletePermission(permission: Permission): Promise<void> {
         if (permission.isSystem) {
             alert('No se pueden eliminar permisos del sistema.');
             return;
         }
-
-        if (confirm(`¿Estás seguro de eliminar el permiso "${permission.name}"?`)) {
-            this.permissionsService.deletePermission(permission.id!).subscribe({
-                next: () => this.loadAllData(),
-                error: (err) => console.error('Error deleting permission:', err)
-            });
+        if (!confirm(`¿Eliminar el permiso "${permission.name}"?`)) return;
+        try {
+            await this.permCatalogService.deletePermission(permission.id!);
+            this.loadAllData();
+        } catch (err) {
+            console.error('[PermissionsComponent] Error deleting permission:', err);
         }
     }
 
@@ -282,29 +251,31 @@ export class PermissionsComponent implements OnInit {
         if (module) {
             this.editingModule.set(module);
             this.moduleForm.patchValue({
-                code: module.code,
-                name: module.name,
-                description: module.description,
-                url: module.url || '',
-                icon: module.icon,
-                isTitle: module.isTitle,
-                parent_id: module.parent_id || null,
-                badgeText: module.badgeText || '',
-                badgeColor: module.badgeColor || '',
-                showInMenu: module.showInMenu,
-                order: module.order,
-                state: module.state
+                code:         module.code,
+                name:         module.name,
+                description:  module.description ?? '',
+                dependencies: module.dependencies ?? [],
+                url:          module.url ?? '',
+                icon:         module.icon,
+                isTitle:      module.isTitle,
+                parent_id:    module.parent_id ?? null,
+                badgeText:    module.badgeText ?? '',
+                badgeColor:   module.badgeColor ?? '',
+                showInMenu:   module.showInMenu,
+                order:        module.order,
+                state:        module.state
             });
             this.moduleForm.get('code')?.disable();
         } else {
             this.editingModule.set(null);
             this.moduleForm.reset({
-                icon: 'cil-settings',
-                order: 99,
-                state: true,
-                isTitle: false,
-                showInMenu: true,
-                parent_id: null
+                icon:         'cil-puzzle',
+                order:        99,
+                state:        true,
+                isTitle:      false,
+                showInMenu:   true,
+                parent_id:    null,
+                dependencies: []
             });
             this.moduleForm.get('code')?.enable();
         }
@@ -316,55 +287,46 @@ export class PermissionsComponent implements OnInit {
         this.editingModule.set(null);
     }
 
-    saveModule(): void {
+    async saveModule(): Promise<void> {
         if (this.moduleForm.invalid) return;
-
-        const formValue = this.moduleForm.getRawValue();
+        const v = this.moduleForm.getRawValue();
         const data: ModuleInput = {
-            code: formValue.code,
-            name: formValue.name,
-            description: formValue.description,
-            url: formValue.url || null,
-            icon: formValue.icon,
-            isTitle: formValue.isTitle,
-            parent_id: formValue.parent_id || null,
-            badgeText: formValue.badgeText || null,
-            badgeColor: formValue.badgeColor || null,
-            showInMenu: formValue.showInMenu,
-            order: formValue.order,
-            state: formValue.state
+            code:         v.code,
+            name:         v.name,
+            description:  v.description,
+            dependencies: v.dependencies ?? [],
+            url:          v.url || null,
+            icon:         v.icon,
+            isTitle:      v.isTitle,
+            parent_id:    v.parent_id || null,
+            badgeText:    v.badgeText || null,
+            badgeColor:   v.badgeColor || null,
+            showInMenu:   v.showInMenu,
+            order:        v.order,
+            state:        v.state
         };
-
         const editing = this.editingModule();
-
-        if (editing) {
-            this.modulesService.updateModule(editing.id, data).subscribe({
-                next: () => {
-                    this.loadAllData();
-                    this.closeModuleModal();
-                },
-                error: (err) => console.error('Error updating module:', err)
-            });
-        } else {
-            this.modulesService.createModule(data).subscribe({
-                next: () => {
-                    this.loadAllData();
-                    this.closeModuleModal();
-                },
-                error: (err) => console.error('Error creating module:', err)
-            });
+        try {
+            if (editing) {
+                await this.modulesService.updateModule(editing.id, data);
+            } else {
+                await this.modulesService.createModule(data);
+            }
+            this.loadAllData();
+            this.closeModuleModal();
+        } catch (err) {
+            console.error('[PermissionsComponent] Error saving module:', err);
         }
     }
 
-    deleteModule(module: Module): void {
-        if (confirm(`¿Estás seguro de eliminar el módulo "${module.name}"? Esto fallará si tiene permisos asociados.`)) {
-            this.modulesService.deleteModule(module.id).subscribe({
-                next: () => this.loadAllData(),
-                error: (err) => {
-                    console.error('Error deleting module:', err);
-                    alert('No se puede eliminar el módulo. Puede que tenga permisos asociados.');
-                }
-            });
+    async deleteModule(module: Module): Promise<void> {
+        if (!confirm(`¿Eliminar el módulo "${module.name}"? Fallará si tiene permisos asociados.`)) return;
+        try {
+            await this.modulesService.deleteModule(module.id);
+            this.loadAllData();
+        } catch (err) {
+            console.error('[PermissionsComponent] Error deleting module:', err);
+            alert('No se puede eliminar el módulo. Puede que tenga permisos asociados.');
         }
     }
 
@@ -376,10 +338,10 @@ export class PermissionsComponent implements OnInit {
         if (action) {
             this.editingAction.set(action);
             this.actionForm.patchValue({
-                code: action.code,
-                name: action.name,
+                code:        action.code,
+                name:        action.name,
                 description: action.description,
-                state: action.state
+                state:       action.state
             });
             this.actionForm.get('code')?.disable();
         } else {
@@ -395,47 +357,168 @@ export class PermissionsComponent implements OnInit {
         this.editingAction.set(null);
     }
 
-    saveAction(): void {
+    async saveAction(): Promise<void> {
         if (this.actionForm.invalid) return;
-
-        const formValue = this.actionForm.getRawValue();
-        const data: ActionInput = {
-            code: formValue.code,
-            name: formValue.name,
-            description: formValue.description,
-            state: formValue.state
-        };
-
+        const v = this.actionForm.getRawValue();
+        const data: ActionInput = { code: v.code, name: v.name, description: v.description, state: v.state };
         const editing = this.editingAction();
-
-        if (editing) {
-            this.actionsService.updateAction(editing.id, data).subscribe({
-                next: () => {
-                    this.loadAllData();
-                    this.closeActionModal();
-                },
-                error: (err) => console.error('Error updating action:', err)
-            });
-        } else {
-            this.actionsService.createAction(data).subscribe({
-                next: () => {
-                    this.loadAllData();
-                    this.closeActionModal();
-                },
-                error: (err) => console.error('Error creating action:', err)
-            });
+        try {
+            if (editing) {
+                await this.actionsService.updateAction(editing.id, data);
+            } else {
+                await this.actionsService.createAction(data);
+            }
+            this.loadAllData();
+            this.closeActionModal();
+        } catch (err) {
+            console.error('[PermissionsComponent] Error saving action:', err);
         }
     }
 
-    deleteAction(action: Action): void {
-        if (confirm(`¿Estás seguro de eliminar la acción "${action.name}"? Esto fallará si tiene permisos asociados.`)) {
-            this.actionsService.deleteAction(action.id).subscribe({
-                next: () => this.loadAllData(),
-                error: (err) => {
-                    console.error('Error deleting action:', err);
-                    alert('No se puede eliminar la acción. Puede que tenga permisos asociados.');
+    async deleteAction(action: Action): Promise<void> {
+        if (!confirm(`¿Eliminar la acción "${action.name}"?`)) return;
+        try {
+            await this.actionsService.deleteAction(action.id);
+            this.loadAllData();
+        } catch (err) {
+            console.error('[PermissionsComponent] Error deleting action:', err);
+            alert('No se puede eliminar la acción. Puede que tenga permisos asociados.');
+        }
+    }
+
+    // ============================================================================
+    // SEED — Registrar módulos y acciones por defecto
+    // ============================================================================
+
+    /**
+     * Sincroniza el catálogo de módulos con MODULES_SEED:
+     *  - Si existe por code → actualiza todos los campos.
+     *  - Caso especial 'customers' → 'personas': renombra el documento existente.
+     *  - Si no existe → crea.
+     */
+    async syncModules(): Promise<void> {
+        if (!confirm('Se actualizarán todos los módulos del catálogo con los datos del seed.\n¿Continuar?')) return;
+
+        this.seeding.set(true);
+        this.seedLog.set([]);
+        const log = (msg: string) => this.seedLog.update(l => [...l, msg]);
+
+        try {
+            const existing = this.modules();
+            const byCode = new Map(existing.map(m => [m.code, m]));
+
+            for (const seed of MODULES_SEED) {
+                const data: ModuleInput = {
+                    code:         seed.code,
+                    name:         seed.name,
+                    description:  seed.description,
+                    dependencies: seed.dependencies,
+                    ...(seed.url       != null ? { url:       seed.url }       : {}),
+                    ...(seed.parent_id != null ? { parent_id: seed.parent_id } : {}),
+                    icon:         seed.icon,
+                    isTitle:      seed.isTitle,
+                    showInMenu:   seed.showInMenu,
+                    order:        seed.order,
+                    state:        seed.state
+                };
+
+                if (byCode.has(seed.code)) {
+                    // Exact match — update
+                    const mod = byCode.get(seed.code)!;
+                    await this.modulesService.updateModule(mod.id, data);
+                    log(`↻ Actualizado: ${seed.name} (${seed.code})`);
+                } else if (seed.code === 'personas' && byCode.has('customers')) {
+                    // Rename: customers → personas
+                    const old = byCode.get('customers')!;
+                    await this.modulesService.updateModule(old.id, data);
+                    log(`↻ Renombrado: customers → personas (${old.id})`);
+                } else {
+                    // New module
+                    await this.modulesService.createModule(data);
+                    log(`✓ Creado: ${seed.name} (${seed.code})`);
                 }
-            });
+            }
+
+            log('\n✅ Sincronización completada.');
+            this.loadAllData();
+        } catch (err: any) {
+            log(`❌ Error: ${err?.message ?? err}`);
+            console.error('[SyncModules] Error:', err);
+        } finally {
+            this.seeding.set(false);
+        }
+    }
+
+    /**
+     * Registra el catálogo inicial de módulos y acciones en Firestore.
+     * Omite los que ya existen (compara por code).
+     * Sigue la estructura definida en modules-seed.ts (derivada de fs_pages del sistema PHP).
+     */
+    async seedDefaults(): Promise<void> {
+        const existingModules = this.modules();
+        const existingActions = this.actions();
+
+        const existingModuleCodes = new Set(existingModules.map(m => m.code));
+        const existingActionCodes = new Set(existingActions.map(a => a.code));
+
+        const modulesToInsert = MODULES_SEED.filter(m => !existingModuleCodes.has(m.code));
+        const actionsToInsert = ACTIONS_SEED.filter(a => !existingActionCodes.has(a.code));
+
+        if (modulesToInsert.length === 0 && actionsToInsert.length === 0) {
+            alert('El catálogo ya está completo. No hay datos nuevos que registrar.');
+            return;
+        }
+
+        const msg = [
+            modulesToInsert.length ? `${modulesToInsert.length} módulos nuevos` : '',
+            actionsToInsert.length ? `${actionsToInsert.length} acciones nuevas` : ''
+        ].filter(Boolean).join(' y ');
+
+        if (!confirm(`Se registrarán ${msg}.\n\nLos registros existentes no se modificarán. ¿Continuar?`)) return;
+
+        this.seeding.set(true);
+        this.seedLog.set([]);
+
+        const log = (msg: string) => this.seedLog.update(l => [...l, msg]);
+
+        try {
+            // ── Acciones ───────────────────────────────────────────────
+            for (const action of actionsToInsert) {
+                await this.actionsService.createAction({
+                    code:        action.code,
+                    name:        action.name,
+                    description: action.description,
+                    state:       action.state
+                });
+                log(`✓ Acción: ${action.name} (${action.code})`);
+            }
+
+            // ── Módulos ────────────────────────────────────────────────
+            for (const mod of modulesToInsert) {
+                await this.modulesService.createModule({
+                    code:         mod.code,
+                    name:         mod.name,
+                    description:  mod.description,
+                    dependencies: mod.dependencies,
+                    ...(mod.url       != null ? { url:       mod.url }       : {}),
+                    ...(mod.parent_id != null ? { parent_id: mod.parent_id } : {}),
+                    icon:         mod.icon,
+                    isTitle:      mod.isTitle,
+                    showInMenu:   mod.showInMenu,
+                    order:        mod.order,
+                    state:        mod.state
+                });
+                log(`✓ Módulo: ${mod.name} (${mod.code})`);
+            }
+
+            log(`\n✅ Seed completado: ${actionsToInsert.length} acciones, ${modulesToInsert.length} módulos.`);
+            this.loadAllData();
+
+        } catch (err: any) {
+            log(`❌ Error: ${err?.message ?? err}`);
+            console.error('[Seed] Error:', err);
+        } finally {
+            this.seeding.set(false);
         }
     }
 
@@ -443,13 +526,25 @@ export class PermissionsComponent implements OnInit {
     // HELPERS
     // ============================================================================
 
-    getModuleName(moduleId: number): string {
-        const mod = this.modules().find(m => m.id === moduleId);
-        return mod?.name || 'Desconocido';
+    getModuleName(moduleId: string): string {
+        return this.modules().find(m => m.id === moduleId)?.name ?? 'Desconocido';
     }
 
-    getActionName(actionId: number): string {
-        const act = this.actions().find(a => a.id === actionId);
-        return act?.name || 'Desconocido';
+    getActionName(actionId: string): string {
+        return this.actions().find(a => a.id === actionId)?.name ?? 'Desconocido';
+    }
+
+    isDependencySelected(code: string): boolean {
+        return (this.moduleForm.get('dependencies')?.value ?? []).includes(code);
+    }
+
+    toggleDependency(code: string): void {
+        const ctrl = this.moduleForm.get('dependencies')!;
+        const current: string[] = ctrl.value ?? [];
+        ctrl.setValue(
+            current.includes(code)
+                ? current.filter(c => c !== code)
+                : [...current, code]
+        );
     }
 }

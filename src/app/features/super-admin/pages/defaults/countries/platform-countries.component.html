@@ -27,7 +27,7 @@
       <table cTable hover responsive>
         <thead>
           <tr>
-            <th>ISO-2</th><th>ISO-3</th><th>Nombre</th><th>Acciones</th>
+            <th>ISO-2</th><th>ISO-3</th><th>Nombre</th><th>Estado</th><th style="min-width: 140px">Acciones</th>
           </tr>
         </thead>
         <tbody>
@@ -37,9 +37,18 @@
               <td class="font-monospace text-muted">{{ c.code3 }}</td>
               <td>{{ c.name }}</td>
               <td>
+                <c-badge [color]="c.isActive ? 'success' : 'secondary'">
+                  {{ c.isActive ? 'Activa' : 'Inactiva' }}
+                </c-badge>
+              </td>
+              <td>
                 <div class="d-flex gap-2">
                   <button cButton color="outline-primary" size="sm" (click)="openEdit(c)" title="Editar">
                     <svg cIcon name="cilPencil"></svg>
+                  </button>
+                  <button cButton [color]="c.isActive ? 'outline-success' : 'outline-danger'" size="sm"
+                          (click)="toggleActive(c)" [title]="c.isActive ? 'Desactivar' : 'Activar'">
+                    <svg cIcon [name]="c.isActive ? 'cilCheck' : 'cilBan'"></svg>
                   </button>
                   <button cButton color="outline-danger" size="sm" (click)="delete(c)" title="Eliminar">
                     <svg cIcon name="cilTrash"></svg>
@@ -81,6 +90,12 @@
           <input cFormControl formControlName="name" placeholder="Ecuador"
                  [class.is-invalid]="hasError('name')">
           @if (hasError('name')) { <div class="invalid-feedback">Requerido</div> }
+        </c-col>
+        <c-col md="12">
+          <c-form-check>
+            <input cFormCheckInput id="isActive" type="checkbox" formControlName="isActive">
+            <label cFormCheckLabel for="isActive">País Activo (se copiará a nuevas empresas)</label>
+          </c-form-check>
         </c-col>
       </c-row>
     </form>

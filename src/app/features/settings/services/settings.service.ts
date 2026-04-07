@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { Firestore, doc, setDoc, Timestamp } from '@angular/fire/firestore';
-import { orderBy, where } from '@angular/fire/firestore';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { FirestoreService } from '../../../core/services/firestore.service';
 import { TenantService } from '../../../core/services/tenant.service';
 import { AuthService } from '../../../core/services/auth.service';
@@ -41,11 +41,12 @@ export class SettingsService {
   // ─── Warehouses ───────────────────────────────────────────────────────────
 
   getWarehouses(): Observable<Warehouse[]> {
-    return this.fs.getCollectionQuery<Warehouse>(
-      'warehouses',
-      where('isActive', '==', true),
-      orderBy('name')
-    );
+    return this.fs.getCollection<Warehouse>('warehouses')
+      .pipe(map(list =>
+        list
+          .filter(w => w.isActive !== false)
+          .sort((a, b) => a.name.localeCompare(b.name, 'es'))
+      ));
   }
 
   async createWarehouse(data: WarehouseFormData): Promise<string> {
@@ -63,84 +64,90 @@ export class SettingsService {
   // ─── Document Series ──────────────────────────────────────────────────────
 
   getDocumentSeries(): Observable<DocumentSeries[]> {
-    return this.fs.getCollectionQuery<DocumentSeries>(
-      'document-series',
-      where('isActive', '==', true),
-      orderBy('documentType'),
-      orderBy('code')
-    );
+    return this.fs.getCollection<DocumentSeries>('documentSeries')
+      .pipe(map(list =>
+        list
+          .filter(s => s.isActive !== false)
+          .sort((a, b) =>
+            a.documentType.localeCompare(b.documentType, 'es') ||
+            a.code.localeCompare(b.code, 'es')
+          )
+      ));
   }
 
   async createDocumentSeries(data: DocumentSeriesFormData): Promise<string> {
-    return this.fs.addDocument<DocumentSeriesFormData>('document-series', data);
+    return this.fs.addDocument<DocumentSeriesFormData>('documentSeries', data);
   }
 
   async updateDocumentSeries(id: string, data: Partial<DocumentSeriesFormData>): Promise<void> {
-    return this.fs.updateDocument<DocumentSeries>('document-series', id, data);
+    return this.fs.updateDocument<DocumentSeries>('documentSeries', id, data);
   }
 
   async deleteDocumentSeries(id: string): Promise<void> {
-    return this.fs.softDelete('document-series', id);
+    return this.fs.softDelete('documentSeries', id);
   }
 
   // ─── Payment Terms ────────────────────────────────────────────────────────
 
   getPaymentTerms(): Observable<PaymentTerm[]> {
-    return this.fs.getCollectionQuery<PaymentTerm>(
-      'payment-terms',
-      where('isActive', '==', true),
-      orderBy('days')
-    );
+    return this.fs.getCollection<PaymentTerm>('paymentTerms')
+      .pipe(map(list =>
+        list
+          .filter(p => p.isActive !== false)
+          .sort((a, b) => (a.days ?? 0) - (b.days ?? 0))
+      ));
   }
 
   async createPaymentTerm(data: PaymentTermFormData): Promise<string> {
-    return this.fs.addDocument<PaymentTermFormData>('payment-terms', data);
+    return this.fs.addDocument<PaymentTermFormData>('paymentTerms', data);
   }
 
   async updatePaymentTerm(id: string, data: Partial<PaymentTermFormData>): Promise<void> {
-    return this.fs.updateDocument<PaymentTerm>('payment-terms', id, data);
+    return this.fs.updateDocument<PaymentTerm>('paymentTerms', id, data);
   }
 
   async deletePaymentTerm(id: string): Promise<void> {
-    return this.fs.softDelete('payment-terms', id);
+    return this.fs.softDelete('paymentTerms', id);
   }
 
   // ─── Tax Rates ────────────────────────────────────────────────────────────
 
   getTaxRates(): Observable<TaxRate[]> {
-    return this.fs.getCollectionQuery<TaxRate>(
-      'tax-rates',
-      where('isActive', '==', true),
-      orderBy('rate', 'desc')
-    );
+    return this.fs.getCollection<TaxRate>('taxRates')
+      .pipe(map(list =>
+        list
+          .filter(t => t.isActive !== false)   // include docs with missing isActive field
+          .sort((a, b) => b.rate - a.rate)
+      ));
   }
 
   async createTaxRate(data: TaxRateFormData): Promise<string> {
-    return this.fs.addDocument<TaxRateFormData>('tax-rates', data);
+    return this.fs.addDocument<TaxRateFormData>('taxRates', data);
   }
 
   async updateTaxRate(id: string, data: Partial<TaxRateFormData>): Promise<void> {
-    return this.fs.updateDocument<TaxRate>('tax-rates', id, data);
+    return this.fs.updateDocument<TaxRate>('taxRates', id, data);
   }
 
   async deleteTaxRate(id: string): Promise<void> {
-    return this.fs.softDelete('tax-rates', id);
+    return this.fs.softDelete('taxRates', id);
   }
 
   async setDefaultTaxRate(id: string, allIds: string[]): Promise<void> {
     for (const tid of allIds) {
-      await this.fs.updateDocument<TaxRate>('tax-rates', tid, { isDefault: tid === id } as any);
+      await this.fs.updateDocument<TaxRate>('taxRates', tid, { isDefault: tid === id } as any);
     }
   }
 
   // ─── Currencies ───────────────────────────────────────────────────────────
 
   getCurrencies(): Observable<Currency[]> {
-    return this.fs.getCollectionQuery<Currency>(
-      'currencies',
-      where('isActive', '==', true),
-      orderBy('code')
-    );
+    return this.fs.getCollection<Currency>('currencies')
+      .pipe(map(list =>
+        list
+          .filter(c => c.isActive !== false)
+          .sort((a, b) => a.code.localeCompare(b.code))
+      ));
   }
 
   async createCurrency(data: CurrencyFormData): Promise<string> {
@@ -158,11 +165,12 @@ export class SettingsService {
   // ─── Countries ────────────────────────────────────────────────────────────
 
   getCountries(): Observable<Country[]> {
-    return this.fs.getCollectionQuery<Country>(
-      'countries',
-      where('isActive', '==', true),
-      orderBy('name')
-    );
+    return this.fs.getCollection<Country>('countries')
+      .pipe(map(list =>
+        list
+          .filter(c => c.isActive !== false)
+          .sort((a, b) => a.name.localeCompare(b.name, 'es'))
+      ));
   }
 
   async createCountry(data: CountryFormData): Promise<string> {

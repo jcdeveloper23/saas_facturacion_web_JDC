@@ -8,9 +8,10 @@ import {
   ModalTitleDirective, ButtonCloseDirective,
   FormLabelDirective, FormControlDirective, FormSelectDirective,
   FormCheckComponent, FormCheckInputDirective, FormCheckLabelDirective,
-  AlertComponent
+  AlertComponent, CalloutComponent, InputGroupComponent, InputGroupTextDirective
 } from '@coreui/angular';
-import { IconDirective } from '@coreui/icons-angular';
+import { IconDirective, IconSetService } from '@coreui/icons-angular';
+import { iconSubset } from '../../../../icons/icon-subset';
 import { SettingsService } from '../../services/settings.service';
 import { TaxRate, TaxRateFormData } from '../../models/settings.interfaces';
 import { NotificationService } from '../../../../core/services/notification.service';
@@ -27,13 +28,15 @@ import { NotificationService } from '../../../../core/services/notification.serv
     ModalTitleDirective, ButtonCloseDirective,
     FormLabelDirective, FormControlDirective, FormSelectDirective,
     FormCheckComponent, FormCheckInputDirective, FormCheckLabelDirective,
-    AlertComponent, IconDirective
+    AlertComponent, IconDirective,
+    CalloutComponent, InputGroupComponent, InputGroupTextDirective
   ]
 })
 export class TaxRatesComponent implements OnInit {
   private svc = inject(SettingsService);
   private notifications = inject(NotificationService);
   private fb = inject(FormBuilder);
+  private iconSet = inject(IconSetService);
 
   taxRates = signal<TaxRate[]>([]);
   loading = signal(true);
@@ -42,12 +45,17 @@ export class TaxRatesComponent implements OnInit {
   editingId = signal<string | null>(null);
   errorMessage = signal('');
 
+  constructor() {
+    this.iconSet.icons = { ...iconSubset };
+  }
+
   form = this.fb.group({
     code:      ['', Validators.required],
     name:      ['', Validators.required],
     rate:      [15, [Validators.required, Validators.min(0), Validators.max(100)]],
     sriCode:   ['3', Validators.required],
-    isDefault: [false]
+    isDefault: [false],
+    isActive:  [true]
   });
 
   readonly sriCodeOptions = [
@@ -77,7 +85,14 @@ export class TaxRatesComponent implements OnInit {
 
   openEdit(t: TaxRate): void {
     this.editingId.set(t.id);
-    this.form.patchValue({ code: t.code, name: t.name, rate: t.rate, sriCode: t.sriCode, isDefault: t.isDefault });
+    this.form.patchValue({
+      code: t.code,
+      name: t.name,
+      rate: t.rate,
+      sriCode: t.sriCode,
+      isDefault: t.isDefault,
+      isActive: t.isActive
+    });
     this.errorMessage.set('');
     this.showModal.set(true);
   }
@@ -92,7 +107,8 @@ export class TaxRatesComponent implements OnInit {
         name: this.form.value.name!,
         rate: Number(this.form.value.rate),
         sriCode: this.form.value.sriCode!,
-        isDefault: !!this.form.value.isDefault
+        isDefault: !!this.form.value.isDefault,
+        isActive: !!this.form.value.isActive
       };
       const id = this.editingId();
       if (id) {
@@ -123,6 +139,15 @@ export class TaxRatesComponent implements OnInit {
       this.notifications.success('Impuesto eliminado');
     } catch {
       this.notifications.error('Error al eliminar');
+    }
+  }
+
+  async toggleActive(t: TaxRate): Promise<void> {
+    try {
+      await this.svc.updateTaxRate(t.id, { isActive: !t.isActive });
+      this.notifications.success('Estado actualizado');
+    } catch {
+      this.notifications.error('Error al actualizar estado');
     }
   }
 

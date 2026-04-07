@@ -1,0 +1,219 @@
+<!-- ── Header ─────────────────────────────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div class="d-flex align-items-center gap-2">
+    <div class="bg-success bg-opacity-10 p-2 rounded">
+      <svg cIcon name="cilTag" size="xl" class="text-success"></svg>
+    </div>
+    <div>
+      <h3 class="mb-0 fw-semibold">Artículos</h3>
+      <p class="text-muted small mb-0">Catálogo de productos y servicios</p>
+    </div>
+  </div>
+  <button cButton color="primary" size="sm" (click)="openNew()" class="px-3 shadow-sm">
+    <svg cIcon name="cilPlus" class="me-1"></svg> Nuevo Artículo
+  </button>
+</div>
+
+<!-- ── Stats cards ────────────────────────────────────────────────────────── -->
+@if (!loading()) {
+  <c-row class="g-3 mb-3">
+    <c-col sm="6" md="3">
+      <c-card class="border-0 shadow-sm text-center py-2">
+        <div class="fw-bold fs-4 text-primary">{{ stats().total }}</div>
+        <div class="text-muted small">Artículos activos</div>
+      </c-card>
+    </c-col>
+    <c-col sm="6" md="3">
+      <c-card class="border-0 shadow-sm text-center py-2">
+        <div class="fw-bold fs-4">{{ stats().products }}</div>
+        <div class="text-muted small">Productos</div>
+      </c-card>
+    </c-col>
+    <c-col sm="6" md="3">
+      <c-card class="border-0 shadow-sm text-center py-2">
+        <div class="fw-bold fs-4">{{ stats().services }}</div>
+        <div class="text-muted small">Servicios</div>
+      </c-card>
+    </c-col>
+    <c-col sm="6" md="3">
+      <c-card class="border-0 shadow-sm text-center py-2 {{ stats().lowStock > 0 ? 'border-warning' : '' }}">
+        <div class="fw-bold fs-4 {{ stats().lowStock > 0 ? 'text-warning' : '' }}">{{ stats().lowStock }}</div>
+        <div class="text-muted small">Stock bajo mínimo</div>
+      </c-card>
+    </c-col>
+  </c-row>
+}
+
+<!-- ── Filters tabs ───────────────────────────────────────────────────────── -->
+<c-nav variant="pills" class="mb-3 gap-1">
+  @for (opt of filterOptions; track opt.value) {
+    <c-nav-item>
+      <a cNavLink [active]="typeFilter() === opt.value"
+         (click)="typeFilter.set(opt.value)" role="button"
+         class="px-3 py-1 small fw-semibold">
+        {{ opt.label }}
+        @if (opt.value === 'low_stock' && stats().lowStock > 0) {
+          <c-badge color="warning" shape="rounded-pill" class="ms-1">{{ stats().lowStock }}</c-badge>
+        }
+      </a>
+    </c-nav-item>
+  }
+</c-nav>
+
+<!-- ── Search & family filter ─────────────────────────────────────────────── -->
+<c-card class="mb-3 border-0 shadow-sm">
+  <c-card-body class="py-2">
+    <div class="d-flex gap-3 align-items-center flex-wrap">
+      <c-input-group class="flex-grow-1">
+        <span cInputGroupText class="bg-transparent border-end-0">
+          <svg cIcon name="cilSearch" size="sm"></svg>
+        </span>
+        <input cFormControl class="border-start-0 ps-0"
+               placeholder="Buscar por SKU, nombre, código de barras, proveedor..."
+               [value]="searchTerm()" (input)="searchTerm.set($any($event.target).value)">
+      </c-input-group>
+      @if (families().length > 0) {
+        <select cSelect style="max-width:220px"
+                [value]="familyId()" (change)="familyId.set($any($event.target).value)">
+          <option value="">Todas las familias</option>
+          @for (f of families(); track f.id) {
+            <option [value]="f.id">{{ f.name }}</option>
+          }
+        </select>
+      }
+    </div>
+  </c-card-body>
+</c-card>
+
+<!-- ── Table ──────────────────────────────────────────────────────────────── -->
+<c-card class="border-0 shadow-sm overflow-hidden">
+  <c-card-body class="p-0">
+
+    @if (loading()) {
+      <div class="text-center py-5"><c-spinner color="primary"></c-spinner></div>
+
+    } @else if (filtered().length === 0) {
+      <div class="text-center py-5 bg-body-secondary">
+        <svg cIcon name="cilTag" size="3xl" class="text-muted mb-3 opacity-25 d-block mx-auto"></svg>
+        <p class="text-muted">
+          {{ searchTerm() ? 'Sin resultados para "' + searchTerm() + '"' : 'No hay artículos registrados' }}
+        </p>
+        @if (!searchTerm()) {
+          <button cButton color="primary" size="sm" (click)="openNew()">
+            <svg cIcon name="cilPlus" class="me-1"></svg> Nuevo Artículo
+          </button>
+        }
+      </div>
+
+    } @else {
+      <div class="table-responsive">
+        <table cTable hover align="middle" class="mb-0 border-0">
+          <thead class="bg-body-secondary text-uppercase small fw-bold">
+            <tr>
+              <th class="border-0 px-4 py-3">SKU</th>
+              <th class="border-0 py-3">Nombre</th>
+              <th class="border-0 py-3">Familia</th>
+              <th class="border-0 py-3 text-end">P.V.P</th>
+              <th class="border-0 py-3 text-center">Stock</th>
+              <th class="border-0 py-3 text-center">Tipo</th>
+              <th class="border-0 py-3 text-center">Estado</th>
+              <th class="border-0 px-4 py-3 text-end" style="min-width:130px">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (p of filtered(); track trackById($index, p)) {
+              <tr class="align-middle border-bottom border-body-secondary"
+                  [class.opacity-50]="!p.isActive">
+
+                <td class="px-4 py-2">
+                  <span class="badge bg-body-secondary text-body font-monospace px-2 py-1">
+                    {{ p.sku }}
+                  </span>
+                  @if (p.barcode) {
+                    <div class="text-muted x-small font-monospace">{{ p.barcode }}</div>
+                  }
+                </td>
+
+                <td class="py-2">
+                  <div class="fw-semibold">{{ p.name }}</div>
+                  @if (p.manufacturerName) {
+                    <div class="text-muted small">{{ p.manufacturerName }}</div>
+                  }
+                  @if (p.hasVariants) {
+                    <c-badge color="info" shape="rounded-pill" class="small px-2">Variantes</c-badge>
+                  }
+                </td>
+
+                <td class="py-2 small text-muted">
+                  {{ p.familyName || '—' }}
+                </td>
+
+                <td class="py-2 text-end fw-semibold">
+                  {{ p.salePrice | currency:'USD':'symbol':'1.2-2' }}
+                  @if (p.taxRateName) {
+                    <div class="text-muted x-small">+ {{ p.taxRateName }}</div>
+                  }
+                </td>
+
+                <td class="py-2 text-center">
+                  @if (p.noStock || p.type === 'service') {
+                    <c-badge color="secondary" shape="rounded-pill" class="small px-2">N/A</c-badge>
+                  } @else if (!p.trackStock) {
+                    <c-badge color="light" class="text-muted small px-2">Sin control</c-badge>
+                  } @else {
+                    <c-badge [color]="stockBadgeColor(p)" shape="rounded-pill" class="small px-2">
+                      {{ p.stockQty | number:'1.0-2' }}
+                      @if (p.stockMin > 0) { / {{ p.stockMin | number:'1.0-0' }} }
+                    </c-badge>
+                  }
+                </td>
+
+                <td class="py-2 text-center">
+                  <c-badge [color]="p.type === 'product' ? 'primary' : 'info'"
+                           shape="rounded-pill" class="small px-2">
+                    {{ p.type === 'product' ? 'Producto' : 'Servicio' }}
+                  </c-badge>
+                </td>
+
+                <td class="py-2 text-center">
+                  <c-badge [color]="p.isActive ? 'success' : 'secondary'"
+                           shape="rounded-pill" class="px-3">
+                    {{ p.isActive ? 'Activo' : 'Inactivo' }}
+                  </c-badge>
+                </td>
+
+                <td class="px-4 py-2 text-end">
+                  <div class="d-flex gap-2 justify-content-end">
+                    <button cButton color="light" size="sm" (click)="openEdit(p)" cTooltip="Editar">
+                      <svg cIcon name="cilPencil"></svg>
+                    </button>
+                    <button cButton [color]="p.isActive ? 'outline-danger' : 'outline-success'" size="sm"
+                            (click)="toggleActive(p)"
+                            [cTooltip]="p.isActive ? 'Desactivar' : 'Activar'">
+                      <svg cIcon [name]="p.isActive ? 'cilBan' : 'cilCheck'"></svg>
+                    </button>
+                    <button cButton color="light" size="sm" class="text-danger"
+                            (click)="delete(p)" cTooltip="Eliminar">
+                      <svg cIcon name="cilTrash"></svg>
+                    </button>
+                  </div>
+                </td>
+
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="bg-body-secondary px-4 py-2 border-top">
+        <small class="text-muted">
+          {{ filtered().length }} artículo{{ filtered().length !== 1 ? 's' : '' }}
+          @if (stats().outOfStock > 0) {
+            · <span class="text-danger fw-semibold">{{ stats().outOfStock }} sin stock</span>
+          }
+        </small>
+      </div>
+    }
+
+  </c-card-body>
+</c-card>

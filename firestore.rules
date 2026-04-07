@@ -32,6 +32,12 @@ service cloud.firestore {
       allow write: if isSuperAdmin();
 
       // ─── All tenant sub-collections ─────────────────────────────────
+      match /personas/{id} {
+        allow read: if isAuthenticated() && belongsToCompany(companyId);
+        allow create, update: if isAuthenticated() && belongsToCompany(companyId) && canWrite();
+        allow delete: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
+      }
+
       match /customers/{id} {
         allow read: if isAuthenticated() && belongsToCompany(companyId);
         allow create, update: if isAuthenticated() && belongsToCompany(companyId) && canWrite();
@@ -44,10 +50,45 @@ service cloud.firestore {
         allow delete: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
       }
 
-      match /products/{id} {
+      match /products/{productId} {
         allow read: if isAuthenticated() && belongsToCompany(companyId);
         allow create, update: if isAuthenticated() && belongsToCompany(companyId) && canWrite();
         allow delete: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
+
+        // Product subcollections
+        match /stocks/{warehouseCode} {
+          allow read: if isAuthenticated() && belongsToCompany(companyId);
+          // Only admins can manually adjust stock; Cloud Functions also write here
+          allow write: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
+        }
+        match /suppliers/{supplierId} {
+          allow read: if isAuthenticated() && belongsToCompany(companyId);
+          allow create, update: if isAuthenticated() && belongsToCompany(companyId) && canWrite();
+          allow delete: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
+        }
+        match /variants/{variantId} {
+          allow read: if isAuthenticated() && belongsToCompany(companyId);
+          allow create, update: if isAuthenticated() && belongsToCompany(companyId) && canWrite();
+          allow delete: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
+        }
+      }
+
+      match /families/{id} {
+        allow read: if isAuthenticated() && belongsToCompany(companyId);
+        allow write: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
+      }
+
+      match /manufacturers/{id} {
+        allow read: if isAuthenticated() && belongsToCompany(companyId);
+        allow write: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
+      }
+
+      match /stock-transfers/{id} {
+        allow read: if isAuthenticated() && belongsToCompany(companyId);
+        allow create: if isAuthenticated() && belongsToCompany(companyId) && canWrite();
+        // Only admin can receive or cancel a transfer
+        allow update: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
+        allow delete: if false; // audit trail
       }
 
       match /invoices/{id} {

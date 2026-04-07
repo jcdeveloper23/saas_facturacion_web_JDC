@@ -1,105 +1,199 @@
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <h5 class="mb-0">Almacenes</h5>
-  <button cButton color="primary" size="sm" (click)="openNew()">
-    <svg cIcon name="cilPlus" class="me-1"></svg> Nuevo Almacén
+<!-- ── Cabecera Pro ────────────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-center mb-1">
+  <div class="d-flex align-items-center gap-2">
+    <div class="bg-warning bg-opacity-10 p-2 rounded">
+      <svg cIcon name="cilLayers" size="xl" class="text-warning"></svg>
+    </div>
+    <div>
+      <h3 class="mb-0 fw-semibold">Almacenes y Bodegas</h3>
+      <p class="text-muted small mb-0">Gestión de ubicaciones físicas y puntos de despacho</p>
+    </div>
+  </div>
+  <button cButton color="primary" size="sm" (click)="openNew()" class="px-3 shadow-sm">
+    <svg cIcon name="cilPlus" class="me-1"></svg> Agregar Almacén
   </button>
 </div>
 
-<c-card>
-  <c-card-body>
+<!-- ── Ayuda CEO (Callout) ──────────────────────────────────────── -->
+<c-callout color="warning" class="bg-body border-start-4 shadow-sm mb-4">
+  <div class="d-flex gap-3 align-items-start">
+    <svg cIcon name="cilInfo" size="lg" class="text-warning mt-1"></svg>
+    <div>
+      <p class="mb-1 fw-bold">Gestión de Stock</p>
+      <p class="mb-0 text-muted small">
+        El sistema requiere al menos un <strong>Almacén Principal</strong> habilitado para procesar
+        facturas y movimientos de inventario de forma automática.
+      </p>
+    </div>
+  </div>
+</c-callout>
+
+<!-- ── Listado de Almacenes ────────────────────────────────────── -->
+<c-card class="border-0 shadow-sm overflow-hidden">
+  <c-card-body class="p-0">
     @if (loading()) {
-      <div class="text-center py-4"><c-spinner color="primary"></c-spinner></div>
+    <div class="text-center py-5"><c-spinner color="primary"></c-spinner></div>
     } @else if (warehouses().length === 0) {
-      <p class="text-center text-muted py-4">No hay almacenes configurados.</p>
+    <div class="text-center py-5 bg-body-secondary">
+      <svg cIcon name="cilLayers" size="3xl" class="text-muted mb-3 opacity-25"></svg>
+      <p class="text-muted">No has registrado ningún almacén todavía</p>
+    </div>
     } @else {
-      <table cTable hover responsive>
-        <thead>
+    <div class="table-responsive">
+      <table cTable hover align="middle" class="mb-0 border-0">
+        <thead class="bg-body-secondary text-uppercase small fw-bold">
           <tr>
-            <th>Código</th>
-            <th>Nombre</th>
-            <th>Ciudad</th>
-            <th>Principal</th>
-            <th>Acciones</th>
+            <th class="border-0 px-4 py-3">Referencia</th>
+            <th class="border-0 py-3">Información del Almacén</th>
+            <th class="border-0 py-3">Ubicación</th>
+            <th class="border-0 py-3 text-center">Estado</th>
+            <th class="border-0 px-4 py-3 text-end" style="min-width: 140px">Acciones</th>
           </tr>
         </thead>
         <tbody>
           @for (w of warehouses(); track trackById($index, w)) {
-            <tr>
-              <td class="font-monospace">{{ w.code }}</td>
-              <td>{{ w.name }}</td>
-              <td>{{ w.city || '—' }}</td>
-              <td>
+          <tr class="align-middle border-bottom border-body-secondary">
+            <td class="px-4 py-3">
+              <span class="badge bg-body-secondary text-body px-2 py-1 font-monospace">{{ w.code }}</span>
+            </td>
+            <td>
+              <div class="fw-bold d-flex align-items-center">
+                {{ w.name }}
                 @if (w.isMain) {
-                  <c-badge color="primary">Principal</c-badge>
+                <span class="ms-2 badge bg-primary text-white rounded-pill x-small"
+                  style="font-size: 0.65rem">Principal</span>
                 }
-              </td>
-              <td>
-                <div class="d-flex gap-2">
-                  <button cButton color="outline-primary" size="sm" (click)="openEdit(w)">
-                    <svg cIcon name="cilPencil"></svg>
-                  </button>
-                  <button cButton color="outline-danger" size="sm"
-                          [disabled]="w.isMain || deletingId() === w.id"
-                          (click)="delete(w)">
-                    @if (deletingId() === w.id) {
-                      <c-spinner size="sm"></c-spinner>
-                    } @else {
-                      <svg cIcon name="cilTrash"></svg>
-                    }
-                  </button>
-                </div>
-              </td>
-            </tr>
+              </div>
+            </td>
+            <td>
+              <div class="small text-muted">{{ w.city || 'Ciudad no definida' }}</div>
+              <div class="x-small text-muted opacity-75">{{ w.address || 'Sin dirección' }}</div>
+            </td>
+            <td class="text-center">
+              <c-badge [color]="w.isActive ? 'success' : 'secondary'" shape="rounded-pill" class="px-3">
+                {{ w.isActive ? 'Activo' : 'Inactivo' }}
+              </c-badge>
+            </td>
+            <td class="px-4 py-3 text-end">
+              <div class="d-flex gap-2 justify-content-end">
+                <button cButton color="light" size="sm" (click)="openEdit(w)" title="Editar almacén">
+                  <svg cIcon name="cilPencil"></svg>
+                </button>
+                <button cButton [color]="w.isActive ? 'outline-danger' : 'outline-success'" size="sm"
+                  (click)="toggleActive(w)" [title]="w.isActive ? 'Desactivar' : 'Activar'">
+                  <svg cIcon [name]="w.isActive ? 'cilBan' : 'cilCheck'"></svg>
+                </button>
+                <button cButton color="light" size="sm" (click)="delete(w)"
+                  [disabled]="w.isMain || deletingId() === w.id" class="text-danger" title="Eliminar">
+                  @if (deletingId() === w.id) {
+                  <c-spinner size="sm"></c-spinner>
+                  } @else {
+                  <svg cIcon name="cilTrash"></svg>
+                  }
+                </button>
+              </div>
+            </td>
+          </tr>
           }
         </tbody>
       </table>
+    </div>
     }
   </c-card-body>
 </c-card>
 
-<c-modal [visible]="showModal()" (visibleChange)="showModal.set($event)" alignment="center">
-  <c-modal-header>
-    <h5 cModalTitle>{{ editingId() ? 'Editar Almacén' : 'Nuevo Almacén' }}</h5>
+<!-- ── Modal Edición ───────────────────────────────────────────── -->
+<c-modal [visible]="showModal()" (visibleChange)="showModal.set($event)" alignment="center" backdrop="static" size="lg">
+  <c-modal-header [class]="editingId() ? 'bg-warning bg-opacity-10 border-bottom-0 pb-0' : 'bg-primary bg-opacity-10 border-bottom-0 pb-0'">
+    <h5 cModalTitle class="fw-semibold" [class]="editingId() ? 'text-warning' : 'text-primary'">
+      <svg cIcon [name]="editingId() ? 'cilPencil' : 'cilPlus'" class="me-2"></svg>
+      {{ editingId() ? 'Ficha de Almacén' : 'Nueva Ubicación' }}
+    </h5>
     <button cButtonClose (click)="showModal.set(false)"></button>
   </c-modal-header>
-  <c-modal-body>
-    @if (errorMessage()) { <c-alert color="danger" class="mb-3">{{ errorMessage() }}</c-alert> }
+  <c-modal-body class="pt-3">
+    @if (errorMessage()) { <c-alert color="danger" variant="solid" class="mb-3">{{ errorMessage() }}</c-alert> }
+
     <form [formGroup]="form">
-      <c-row class="g-3">
+      <!-- ── Datos Principales ─────────────────────────────────── -->
+      <h6 class="text-uppercase text-muted fw-bold small border-bottom pb-2 mb-3 mt-1">
+        <svg cIcon name="cilLayers" class="me-1"></svg> Datos Principales
+      </h6>
+      <c-row class="g-3 mb-4">
         <c-col md="4">
-          <label cLabel>Código *</label>
-          <input cFormControl formControlName="code" placeholder="BOD-01"
-                 [class.is-invalid]="hasError('code')">
-          @if (hasError('code')) { <div class="invalid-feedback">Requerido</div> }
+          <label cLabel>Referencia interna <span class="text-danger">*</span></label>
+          <c-input-group>
+            <span cInputGroupText><svg cIcon name="cilBarcode"></svg></span>
+            <input cFormControl formControlName="code" placeholder="Ej: BOD-01" [class.is-invalid]="hasError('code')">
+          </c-input-group>
         </c-col>
         <c-col md="8">
-          <label cLabel>Nombre *</label>
-          <input cFormControl formControlName="name" placeholder="Bodega Principal"
-                 [class.is-invalid]="hasError('name')">
-          @if (hasError('name')) { <div class="invalid-feedback">Requerido</div> }
+          <label cLabel>Nombre de la Bodega <span class="text-danger">*</span></label>
+          <c-input-group>
+            <span cInputGroupText><svg cIcon name="cilBuilding"></svg></span>
+            <input cFormControl formControlName="name" placeholder="Ej: Bodega Central" [class.is-invalid]="hasError('name')">
+          </c-input-group>
         </c-col>
+      </c-row>
+
+      <!-- ── Ubicación Geográfica ──────────────────────────────── -->
+      <h6 class="text-uppercase text-muted fw-bold small border-bottom pb-2 mb-3">
+        <svg cIcon name="cilMap" class="me-1"></svg> Ubicación Geográfica
+      </h6>
+      <c-row class="g-3 mb-4">
         <c-col md="8">
-          <label cLabel>Dirección</label>
-          <input cFormControl formControlName="address">
+          <label cLabel>Dirección Física</label>
+          <c-input-group>
+            <span cInputGroupText><svg cIcon name="cilLocationPin"></svg></span>
+            <input cFormControl formControlName="address" placeholder="Calle, Número, Sector">
+          </c-input-group>
         </c-col>
         <c-col md="4">
           <label cLabel>Ciudad</label>
-          <input cFormControl formControlName="city">
-        </c-col>
-        <c-col md="12">
-          <c-form-check>
-            <input cFormCheckInput id="isMain" type="checkbox" formControlName="isMain">
-            <label cFormCheckLabel for="isMain">Almacén principal</label>
-          </c-form-check>
+          <input cFormControl formControlName="city" placeholder="Ej: Quito">
         </c-col>
       </c-row>
+
+      <!-- ── Configuración de Estado ───────────────────────────── -->
+      <h6 class="text-uppercase text-muted fw-bold small border-bottom pb-2 mb-3">
+        <svg cIcon name="cilSettings" class="me-1"></svg> Configuración
+      </h6>
+      <c-row class="g-3">
+        <c-col md="6">
+          <div class="p-3 border rounded bg-body-secondary d-flex justify-content-between align-items-center h-100">
+            <div>
+              <div class="fw-semibold d-flex align-items-center gap-2">
+                <svg cIcon name="cilStar" class="text-primary"></svg> Principal
+              </div>
+              <small class="text-muted">Esta es la bodega por defecto</small>
+            </div>
+            <c-form-check switch class="mb-0">
+              <input cFormCheckInput id="isMainCheck" type="checkbox" formControlName="isMain">
+            </c-form-check>
+          </div>
+        </c-col>
+        <c-col md="6">
+          <div class="p-3 border rounded bg-body-secondary d-flex justify-content-between align-items-center h-100">
+            <div>
+              <div class="fw-semibold d-flex align-items-center gap-2">
+                <svg cIcon name="cilCheckCircle" class="text-success"></svg> Operativo
+              </div>
+              <small class="text-muted">Bodega visible en inventarios</small>
+            </div>
+            <c-form-check switch class="mb-0">
+              <input cFormCheckInput id="isActiveWarehouse" type="checkbox" formControlName="isActive">
+            </c-form-check>
+          </div>
+        </c-col>
+      </c-row>
+
     </form>
   </c-modal-body>
-  <c-modal-footer>
-    <button cButton color="secondary" (click)="showModal.set(false)" [disabled]="saving()">Cancelar</button>
-    <button cButton color="primary" (click)="save()" [disabled]="saving()">
+  <c-modal-footer class="border-top-0 pt-4 pb-4">
+    <button cButton color="light" (click)="showModal.set(false)" [disabled]="saving()" class="px-4">Cancelar</button>
+    <button cButton color="primary" (click)="save()" [disabled]="saving()" class="px-4 shadow-sm">
       @if (saving()) { <c-spinner size="sm" class="me-1"></c-spinner> }
-      Guardar
+      {{ editingId() ? 'Guardar Cambios' : 'Registrar Almacén' }}
     </button>
   </c-modal-footer>
 </c-modal>

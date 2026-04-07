@@ -1,126 +1,103 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable, map, catchError, of } from 'rxjs';
-import { environment } from '../../../environments/environment';
-import { Module, ModuleInput, PaginatedResponse } from '../interfaces/permission.interface';
+import { Observable, from, map } from 'rxjs';
+import { where } from '@angular/fire/firestore';
+import { FirestoreService } from './firestore.service';
+import { Module, ModuleInput } from '../interfaces/permission.interface';
 
-@Injectable({
-  providedIn: 'root'
-})
+/**
+ * ModulesService — manages the platform plugin catalog stored in Firestore /modules.
+ *
+ * ROOT-level collection (not tenant-scoped), managed by super_admin.
+ * Angular equivalent of FacturaScripts fs_pages table:
+ *   - Each module = a plugin with nav properties + dependency list
+ *   - super_admin creates/edits modules here
+ *   - Companies activate modules via company.enabledModules (see TenantService)
+ */
+@Injectable({ providedIn: 'root' })
 export class ModulesService {
-  private http = inject(HttpClient);
-  private readonly apiUrl = `${environment.apiGpsUrl}/modules`;
+  private fs = inject(FirestoreService);
 
-  /**
-   * Get all modules
-   */
+  // ─── Read ─────────────────────────────────────────────────────────────────
+
   getModules(activeOnly = true): Observable<Module[]> {
-    const params: Record<string, string> = {};
     if (activeOnly) {
-      params['state'] = '1';
+      return from(
+        this.fs.getRootCollectionQuery<Module>('modules', where('state', '==', true))
+      ).pipe(map(modules => modules.sort((a, b) => a.order - b.order)));
     }
-    params['$sort[order]'] = '1';
-
-    console.log(params);
-    
-    return this.http.get<PaginatedResponse<Module> | Module[]>(this.apiUrl, { params }).pipe(
-      map(response => {
-        console.log(`*** response Modules ${JSON.stringify(response, null, 3)} ***`);
-        
-        if (Array.isArray(response)) {
-          return response;
-        }
-        return response.data || [];
-      }),
-      catchError(error => {
-        console.error('Error loading modules:', error);
-        return of([]);
-      })
+    return this.fs.getRootCollection<Module>('modules').pipe(
+      map(modules => modules.sort((a, b) => a.order - b.order))
     );
   }
 
-  /**
-   * Get a single module by ID
-   */
-  getModule(id: number): Observable<Module> {
-    return this.http.get<Module>(`${this.apiUrl}/${id}`);
-  }
-
-  /**
-   * Create a new module
-   */
-  createModule(module: ModuleInput): Observable<Module> {
-    return this.http.post<Module>(this.apiUrl, module);
-  }
-
-  /**
-   * Update a module
-   */
-  updateModule(id: number, module: Partial<ModuleInput>): Observable<Module> {
-    return this.http.patch<Module>(`${this.apiUrl}/${id}`, module);
-  }
-
-  /**
-   * Delete a module
-   */
-  deleteModule(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/${id}`);
-  }
-
-  /**
-   * Get modules as options for select
-   */
-  getModulesAsOptions(): Observable<{ value: number; label: string }[]> {
-    return this.getModulesFlat(true).pipe(
-      map(modules => modules.map(m => ({
-        value: m.id,
-        label: m.name
-      })))
-    );
-  }
-
-  /**
-   * Get all modules as a flat list (including children)
-   * Useful for admin views where all modules need to be displayed
-   * Includes _level and _parentName for hierarchical display
-   */
   getModulesFlat(activeOnly = true): Observable<Module[]> {
     return this.getModules(activeOnly).pipe(
       map(modules => this.flattenModules(modules))
     );
   }
 
+  // ─── Write (super_admin only) ─────────────────────────────────────────────
+
+  async createModule(data: ModuleInput): Promise<string> {
+    const payload = {
+      code:         data.code,
+      name:         data.name,
+      description:  data.description  ?? '',
+      dependencies: data.dependencies  ?? [],
+      url:          data.url           ?? null,
+      icon:         data.icon          ?? 'cil-puzzle',
+      isTitle:      data.isTitle       ?? false,
+      parent_id:    data.parent_id     ?? null,
+      badgeText:    data.badgeText     ?? null,
+      badgeColor:   data.badgeColor    ?? null,
+      showInMenu:   data.showInMenu    ?? true,
+      order:        data.order         ?? 99,
+      state:        data.state         ?? true
+    };
+    return this.fs.addRootDocument('modules', payload);
+  }
+
+  async updateModule(id: string, data: Partial<ModuleInput>): Promise<void> {
+    return this.fs.updateRootDocument<Module>('modules', id, data as Partial<Module>);
+  }
+
+  async deleteModule(id: string): Promise<void> {
+    const { deleteDoc, doc, getFirestore } = await import('@angular/fire/firestore');
+    await deleteDoc(doc(getFirestore(), `modules/${id}`));
+  }
+
+  // ─── Helpers ──────────────────────────────────────────────────────────────
+
   /**
-   * Flatten hierarchical modules into a single array
-   * Children are extracted and placed after their parent
-   * Adds _level and _parentName for UI hierarchy display
+   * Flatten hierarchical modules into a single array for table display.
+   * Adds _level and _parentName for UI hierarchy rendering.
+   * Equivalent to FacturaScripts admin_home.all_pages() scan logic.
    */
-  private flattenModules(modules: Module[]): Module[] {
+  flattenModules(modules: Module[]): Module[] {
     const result: Module[] = [];
 
-    const processModule = (module: Module, level: number = 0, parentName?: string) => {
-      // Add the module with hierarchy info
-      const { children, ...moduleWithoutChildren } = module;
-      const flatModule = {
-        ...moduleWithoutChildren,
-        _level: level,
-        _parentName: parentName || null
-      } as Module;
-
-      result.push(flatModule);
-
-      // Process children recursively (they will be placed right after the parent)
-      if (children && children.length > 0) {
-        // Sort children by order before processing
-        const sortedChildren = [...children].sort((a, b) => a.order - b.order);
-        sortedChildren.forEach(child => processModule(child, level + 1, module.name));
+    const process = (module: Module, level = 0, parentName?: string) => {
+      const { children, ...rest } = module;
+      result.push({ ...rest, _level: level, _parentName: parentName ?? null });
+      if (children?.length) {
+        [...children]
+          .sort((a, b) => a.order - b.order)
+          .forEach(child => process(child, level + 1, module.name));
       }
     };
 
-    // First, sort root modules by order
-    const sortedModules = [...modules].sort((a, b) => a.order - b.order);
-    sortedModules.forEach(module => processModule(module, 0));
-
+    [...modules].sort((a, b) => a.order - b.order).forEach(m => process(m));
     return result;
+  }
+
+  /**
+   * Returns all module codes that depend on a given module.
+   * Used when disabling a module to cascade-disable dependents.
+   * Equivalent to FacturaScripts disable_plugin() cascade logic.
+   */
+  getDependents(moduleCode: string, allModules: Module[]): string[] {
+    return allModules
+      .filter(m => m.dependencies?.includes(moduleCode))
+      .map(m => m.code);
   }
 }

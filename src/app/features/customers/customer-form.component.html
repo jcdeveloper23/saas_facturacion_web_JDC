@@ -1,0 +1,505 @@
+@if (loading()) {
+  <div class="text-center py-5"><c-spinner color="primary"></c-spinner></div>
+} @else {
+
+<!-- ── Cabecera ─────────────────────────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div class="d-flex align-items-center gap-3">
+    <button cButton color="light" size="sm" (click)="cancel()" class="px-2">
+      <svg cIcon name="cilArrowLeft"></svg>
+    </button>
+    <div class="d-flex align-items-center gap-2">
+      <div class="bg-primary bg-opacity-10 p-2 rounded">
+        <svg cIcon [name]="isEditing ? 'cilPencil' : 'cilUserFollow'" size="xl" class="text-primary"></svg>
+      </div>
+      <div>
+        <h3 class="mb-0 fw-semibold">{{ isEditing ? 'Editar Cliente' : 'Nuevo Cliente' }}</h3>
+        <p class="text-muted small mb-0">
+          {{ isEditing ? 'Actualice los datos del cliente' : 'Complete los datos del nuevo cliente' }}
+        </p>
+      </div>
+    </div>
+  </div>
+  <div class="d-flex gap-2">
+    <button cButton color="light" (click)="cancel()" [disabled]="saving()" class="px-4">
+      Cancelar
+    </button>
+    <button cButton color="primary" (click)="save()" [disabled]="saving()" class="px-4 shadow-sm">
+      @if (saving()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+      {{ isEditing ? 'Guardar Cambios' : 'Registrar Cliente' }}
+    </button>
+  </div>
+</div>
+
+@if (errorMsg()) {
+  <c-alert color="danger" variant="solid" class="mb-3">{{ errorMsg() }}</c-alert>
+}
+
+<!-- ── Tabs ───────────────────────────────────────────────────────────────── -->
+<c-nav variant="tabs" class="mb-0">
+  <c-nav-item>
+    <a cNavLink [active]="activeTab() === 'general'" (click)="activeTab.set('general')" role="button">
+      <svg cIcon name="cilUser" class="me-1"></svg> General
+    </a>
+  </c-nav-item>
+  <c-nav-item>
+    <a cNavLink [active]="activeTab() === 'addresses'" (click)="activeTab.set('addresses')" role="button">
+      <svg cIcon name="cilLocationPin" class="me-1"></svg>
+      Direcciones
+      @if (addresses().length) {
+        <span class="ms-1 badge bg-primary rounded-pill">{{ addresses().length }}</span>
+      }
+    </a>
+  </c-nav-item>
+  <c-nav-item>
+    <a cNavLink [active]="activeTab() === 'banks'" (click)="activeTab.set('banks')" role="button">
+      <svg cIcon name="cilCreditCard" class="me-1"></svg>
+      Cuentas Bancarias
+      @if (bankAccounts().length) {
+        <span class="ms-1 badge bg-primary rounded-pill">{{ bankAccounts().length }}</span>
+      }
+    </a>
+  </c-nav-item>
+</c-nav>
+
+<!-- ── Tab: General ───────────────────────────────────────────────────────── -->
+@if (activeTab() === 'general') {
+  <c-card class="border-0 shadow-sm border-top-0 rounded-top-0">
+    <c-card-body class="p-4">
+      <form [formGroup]="form">
+        <c-row class="g-4">
+
+          <!-- ── Identificación ──────────────────────────────────────────── -->
+          <c-col [sm]="12">
+            <h6 class="text-uppercase text-muted fw-bold small border-bottom pb-2 mb-3">
+              {{ sectionLabel('fiscal') }}
+            </h6>
+            <c-row class="g-3">
+              <c-col md="3">
+                <label cLabel>{{ fieldLabel('taxIdType') }} <span class="text-danger">*</span></label>
+                <select cFormSelect formControlName="taxIdType">
+                  @for (t of taxIdTypes; track t.value) {
+                    <option [value]="t.value">{{ t.label }}</option>
+                  }
+                </select>
+              </c-col>
+              <c-col md="4">
+                <label cLabel>{{ fieldLabel('taxId') }} <span class="text-danger">*</span></label>
+                <input cFormControl formControlName="taxId" class="font-monospace"
+                       placeholder="{{ form.get('taxIdType')?.value === 'CI' ? '0123456789' : '0101010100001' }}"
+                       [class.is-invalid]="hasError(form, 'taxId')">
+                @if (form.get('taxId')?.errors?.['invalidCedula']) {
+                  <div class="invalid-feedback">Cédula inválida</div>
+                } @else if (form.get('taxId')?.errors?.['invalidRuc']) {
+                  <div class="invalid-feedback">RUC inválido</div>
+                } @else if (hasError(form, 'taxId')) {
+                  <div class="invalid-feedback">Requerido</div>
+                }
+              </c-col>
+              @if (isVisible('isCompany')) {
+                <c-col md="2" class="d-flex align-items-end pb-2">
+                  <c-form-check switch>
+                    <input cFormCheckInput id="isCompanyCheck" type="checkbox" formControlName="isCompany">
+                    <label cFormCheckLabel for="isCompanyCheck" class="small">Persona jurídica</label>
+                  </c-form-check>
+                </c-col>
+              }
+              <c-col md="3" class="d-flex align-items-end pb-2">
+                <c-form-check switch>
+                  <input cFormCheckInput id="isActiveCheck" type="checkbox" formControlName="isActive">
+                  <label cFormCheckLabel for="isActiveCheck" class="fw-semibold text-primary small">
+                    Cliente activo
+                  </label>
+                </c-form-check>
+              </c-col>
+            </c-row>
+          </c-col>
+
+          <!-- ── Datos del cliente ───────────────────────────────────────── -->
+          <c-col [sm]="12">
+            <h6 class="text-uppercase text-muted fw-bold small border-bottom pb-2 mb-3">
+              {{ sectionLabel('contact') }}
+            </h6>
+            <c-row class="g-3">
+              <c-col md="6">
+                <label cLabel>{{ fieldLabel('name') }} <span class="text-danger">*</span></label>
+                <input cFormControl formControlName="name"
+                       placeholder="Ej: Juan Pérez / Iisus Studio"
+                       [class.is-invalid]="hasError(form, 'name')">
+                <div class="invalid-feedback">Requerido</div>
+              </c-col>
+              <c-col md="6">
+                <label cLabel>{{ fieldLabel('legalName') }} <span class="text-danger">*</span></label>
+                <input cFormControl formControlName="legalName"
+                       placeholder="Nombre exacto según RUC"
+                       [class.is-invalid]="hasError(form, 'legalName')">
+                <div class="invalid-feedback">Requerido</div>
+              </c-col>
+              @if (isVisible('contactPerson')) {
+                <c-col md="4">
+                  <label cLabel>{{ fieldLabel('contactPerson') }}
+                    @if (isRequired('contactPerson')) { <span class="text-danger">*</span> }
+                  </label>
+                  <input cFormControl formControlName="contactPerson" placeholder="Opcional"
+                         [class.is-invalid]="hasError(form, 'contactPerson')">
+                  <div class="invalid-feedback">Requerido</div>
+                </c-col>
+              }
+              @if (isVisible('phone1')) {
+                <c-col md="4">
+                  <label cLabel>{{ fieldLabel('phone1') }}
+                    @if (isRequired('phone1')) { <span class="text-danger">*</span> }
+                  </label>
+                  <input cFormControl formControlName="phone1" placeholder="0987654321"
+                         [class.is-invalid]="hasError(form, 'phone1')">
+                  <div class="invalid-feedback">Requerido</div>
+                </c-col>
+              }
+              @if (isVisible('phone2')) {
+                <c-col md="4">
+                  <label cLabel>{{ fieldLabel('phone2') }}
+                    @if (isRequired('phone2')) { <span class="text-danger">*</span> }
+                  </label>
+                  <input cFormControl formControlName="phone2" placeholder="Opcional"
+                         [class.is-invalid]="hasError(form, 'phone2')">
+                  <div class="invalid-feedback">Requerido</div>
+                </c-col>
+              }
+              @if (isVisible('email')) {
+                <c-col md="6">
+                  <label cLabel>{{ fieldLabel('email') }}
+                    @if (isRequired('email')) { <span class="text-danger">*</span> }
+                  </label>
+                  <input cFormControl type="email" formControlName="email"
+                         placeholder="cliente@email.com"
+                         [class.is-invalid]="hasError(form, 'email')">
+                  <div class="invalid-feedback">Requerido</div>
+                </c-col>
+              }
+              @if (isVisible('web')) {
+                <c-col md="6">
+                  <label cLabel>{{ fieldLabel('web') }}
+                    @if (isRequired('web')) { <span class="text-danger">*</span> }
+                  </label>
+                  <input cFormControl formControlName="web" placeholder="www.cliente.com"
+                         [class.is-invalid]="hasError(form, 'web')">
+                  <div class="invalid-feedback">Requerido</div>
+                </c-col>
+              }
+            </c-row>
+          </c-col>
+
+          <!-- ── Condiciones comerciales ─────────────────────────────────── -->
+          <c-col [sm]="12">
+            <h6 class="text-uppercase text-muted fw-bold small border-bottom pb-2 mb-3">
+              {{ sectionLabel('commercial') }}
+            </h6>
+            <c-row class="g-3">
+              <c-col md="4">
+                <label cLabel>{{ fieldLabel('paymentTermCode') }} <span class="text-danger">*</span></label>
+                <select cFormSelect formControlName="paymentTermCode">
+                  @for (t of paymentTerms(); track t.code) {
+                    <option [value]="t.code">{{ t.name }}</option>
+                  }
+                </select>
+              </c-col>
+              @if (isVisible('vatRegime')) {
+                <c-col md="4">
+                  <label cLabel>{{ fieldLabel('vatRegime') }}
+                    @if (isRequired('vatRegime')) { <span class="text-danger">*</span> }
+                  </label>
+                  <select cFormSelect formControlName="vatRegime"
+                          [class.is-invalid]="hasError(form, 'vatRegime')">
+                    @for (r of vatRegimes; track r.value) {
+                      <option [value]="r.value">{{ r.label }}</option>
+                    }
+                  </select>
+                  <div class="invalid-feedback">Requerido</div>
+                </c-col>
+              }
+              @if (isVisible('creditLimit')) {
+                <c-col md="4">
+                  <label cLabel>{{ fieldLabel('creditLimit') }} (USD)
+                    @if (isRequired('creditLimit')) { <span class="text-danger">*</span> }
+                  </label>
+                  <c-input-group>
+                    <span cInputGroupText>$</span>
+                    <input cFormControl type="number" min="0" step="0.01"
+                           formControlName="creditLimit" placeholder="Sin límite"
+                           [class.is-invalid]="hasError(form, 'creditLimit')">
+                  </c-input-group>
+                  <div class="invalid-feedback">Requerido</div>
+                </c-col>
+              }
+              @if (isVisible('paymentDays')) {
+                <c-col md="4">
+                  <label cLabel>{{ fieldLabel('paymentDays') }}
+                    @if (isRequired('paymentDays')) { <span class="text-danger">*</span> }
+                  </label>
+                  <input cFormControl type="number" min="0" formControlName="paymentDays"
+                         placeholder="Días" [class.is-invalid]="hasError(form, 'paymentDays')">
+                  <div class="invalid-feedback">Requerido</div>
+                </c-col>
+              }
+              @if (isVisible('notes')) {
+                <c-col md="12">
+                  <label cLabel>{{ fieldLabel('notes') }}
+                    @if (isRequired('notes')) { <span class="text-danger">*</span> }
+                  </label>
+                  <textarea cFormControl formControlName="notes" rows="3"
+                            placeholder="Notas internas sobre el cliente..."
+                            [class.is-invalid]="hasError(form, 'notes')"></textarea>
+                  <div class="invalid-feedback">Requerido</div>
+                </c-col>
+              }
+            </c-row>
+          </c-col>
+
+        </c-row>
+      </form>
+    </c-card-body>
+  </c-card>
+}
+
+<!-- ── Tab: Direcciones ───────────────────────────────────────────────────── -->
+@if (activeTab() === 'addresses') {
+  <c-card class="border-0 shadow-sm border-top-0 rounded-top-0">
+    <c-card-body class="p-4">
+
+      @if (addresses().length === 0 && !showAddressForm()) {
+        <div class="text-center py-4 text-muted">
+          <svg cIcon name="cilLocationPin" size="xl" class="opacity-25 mb-2 d-block mx-auto"></svg>
+          <p class="small">Sin direcciones registradas</p>
+        </div>
+      }
+
+      @if (addresses().length > 0) {
+        <div class="table-responsive mb-3">
+          <table cTable hover align="middle" class="mb-0 border-0">
+            <thead class="bg-body-secondary text-uppercase small fw-bold">
+              <tr>
+                <th class="border-0 py-2 px-3">Descripción</th>
+                <th class="border-0 py-2">Provincia / Ciudad</th>
+                <th class="border-0 py-2">Dirección</th>
+                <th class="border-0 py-2 text-center">Uso</th>
+                <th class="border-0 py-2 text-end px-3">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (addr of addresses(); track addr.id; let i = $index) {
+                <tr class="border-bottom border-body-secondary">
+                  <td class="py-2 px-3 fw-semibold">{{ addr.label }}</td>
+                  <td class="py-2">
+                    <div class="small">{{ addr.province }}</div>
+                    <div class="text-muted x-small">{{ addr.city }}</div>
+                  </td>
+                  <td class="py-2 small text-muted">{{ addr.address || '—' }}</td>
+                  <td class="py-2 text-center">
+                    @if (addr.isBilling)  { <c-badge color="primary" class="me-1 small">Facturación</c-badge> }
+                    @if (addr.isShipping) { <c-badge color="info"    class="small">Envío</c-badge> }
+                  </td>
+                  <td class="py-2 text-end px-3">
+                    <div class="d-flex gap-1 justify-content-end">
+                      <button cButton color="light" size="sm" (click)="openEditAddress(i)">
+                        <svg cIcon name="cilPencil"></svg>
+                      </button>
+                      <button cButton color="light" size="sm" (click)="deleteAddress(i)" class="text-danger">
+                        <svg cIcon name="cilTrash"></svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
+      @if (!showAddressForm()) {
+        <button cButton color="outline-primary" size="sm" (click)="openAddAddress()">
+          <svg cIcon name="cilPlus" class="me-1"></svg> Agregar Dirección
+        </button>
+      }
+
+      @if (showAddressForm()) {
+        <div class="border rounded p-3 bg-body-secondary mt-2">
+          <h6 class="fw-semibold mb-3">
+            {{ editingAddrIdx() !== null ? 'Editar dirección' : 'Nueva dirección' }}
+          </h6>
+          <form [formGroup]="addressForm">
+            <c-row class="g-2">
+              <c-col md="5">
+                <label cLabel class="small">Descripción <span class="text-danger">*</span></label>
+                <input cFormControl formControlName="label" placeholder="Ej: Principal, Sucursal"
+                       [class.is-invalid]="hasError(addressForm, 'label')">
+              </c-col>
+              <c-col md="3">
+                <label cLabel class="small">Provincia <span class="text-danger">*</span></label>
+                <input cFormControl formControlName="province" placeholder="Ej: Azuay"
+                       [class.is-invalid]="hasError(addressForm, 'province')">
+              </c-col>
+              <c-col md="4">
+                <label cLabel class="small">Ciudad <span class="text-danger">*</span></label>
+                <input cFormControl formControlName="city" placeholder="Ej: Cuenca"
+                       [class.is-invalid]="hasError(addressForm, 'city')">
+              </c-col>
+              <c-col md="6">
+                <label cLabel class="small">Dirección</label>
+                <input cFormControl formControlName="address" placeholder="Calle, número, sector">
+              </c-col>
+              <c-col md="3">
+                <label cLabel class="small">País</label>
+                <input cFormControl formControlName="country" placeholder="ECU">
+              </c-col>
+              <c-col md="3">
+                <label cLabel class="small">Código Postal</label>
+                <input cFormControl formControlName="postalCode">
+              </c-col>
+              <c-col md="12" class="d-flex gap-4">
+                <c-form-check switch>
+                  <input cFormCheckInput id="addrBilling" type="checkbox" formControlName="isBilling">
+                  <label cFormCheckLabel for="addrBilling" class="small">Facturación</label>
+                </c-form-check>
+                <c-form-check switch>
+                  <input cFormCheckInput id="addrShipping" type="checkbox" formControlName="isShipping">
+                  <label cFormCheckLabel for="addrShipping" class="small">Envío</label>
+                </c-form-check>
+              </c-col>
+              <c-col md="12" class="d-flex gap-2 mt-1">
+                <button cButton color="primary" size="sm" (click)="saveAddress()"
+                        [disabled]="addressForm.invalid">Guardar</button>
+                <button cButton color="light" size="sm"
+                        (click)="showAddressForm.set(false)">Cancelar</button>
+              </c-col>
+            </c-row>
+          </form>
+        </div>
+      }
+
+    </c-card-body>
+  </c-card>
+}
+
+<!-- ── Tab: Cuentas Bancarias ─────────────────────────────────────────────── -->
+@if (activeTab() === 'banks') {
+  <c-card class="border-0 shadow-sm border-top-0 rounded-top-0">
+    <c-card-body class="p-4">
+
+      @if (bankAccounts().length === 0 && !showBankForm()) {
+        <div class="text-center py-4 text-muted">
+          <svg cIcon name="cilCreditCard" size="xl" class="opacity-25 mb-2 d-block mx-auto"></svg>
+          <p class="small">Sin cuentas bancarias registradas</p>
+        </div>
+      }
+
+      @if (bankAccounts().length > 0) {
+        <div class="table-responsive mb-3">
+          <table cTable hover align="middle" class="mb-0 border-0">
+            <thead class="bg-body-secondary text-uppercase small fw-bold">
+              <tr>
+                <th class="border-0 py-2 px-3">Descripción</th>
+                <th class="border-0 py-2">Banco</th>
+                <th class="border-0 py-2">IBAN</th>
+                <th class="border-0 py-2">SWIFT</th>
+                <th class="border-0 py-2 text-center">Principal</th>
+                <th class="border-0 py-2 text-end px-3">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (acc of bankAccounts(); track acc.id; let i = $index) {
+                <tr class="border-bottom border-body-secondary">
+                  <td class="py-2 px-3 fw-semibold">{{ acc.label }}</td>
+                  <td class="py-2 small">{{ acc.bank || '—' }}</td>
+                  <td class="py-2 font-monospace small">{{ acc.iban || '—' }}</td>
+                  <td class="py-2 font-monospace small">{{ acc.swift || '—' }}</td>
+                  <td class="py-2 text-center">
+                    @if (acc.isPrimary) { <c-badge color="success" class="small">Principal</c-badge> }
+                  </td>
+                  <td class="py-2 text-end px-3">
+                    <div class="d-flex gap-1 justify-content-end">
+                      <button cButton color="light" size="sm" (click)="openEditBank(i)">
+                        <svg cIcon name="cilPencil"></svg>
+                      </button>
+                      <button cButton color="light" size="sm" (click)="deleteBank(i)" class="text-danger">
+                        <svg cIcon name="cilTrash"></svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
+      @if (!showBankForm()) {
+        <button cButton color="outline-primary" size="sm" (click)="openAddBank()">
+          <svg cIcon name="cilPlus" class="me-1"></svg> Agregar Cuenta
+        </button>
+      }
+
+      @if (showBankForm()) {
+        <div class="border rounded p-3 bg-body-secondary mt-2">
+          <h6 class="fw-semibold mb-3">
+            {{ editingBankIdx() !== null ? 'Editar cuenta' : 'Nueva cuenta bancaria' }}
+          </h6>
+          <form [formGroup]="bankForm">
+            <c-row class="g-2">
+              <c-col md="6">
+                <label cLabel class="small">Descripción <span class="text-danger">*</span></label>
+                <input cFormControl formControlName="label" placeholder="Ej: Cuenta Corriente Pichincha"
+                       [class.is-invalid]="hasError(bankForm, 'label')">
+              </c-col>
+              <c-col md="6">
+                <label cLabel class="small">Banco / Entidad</label>
+                <input cFormControl formControlName="bank" placeholder="Ej: Banco Pichincha">
+              </c-col>
+              <c-col md="6">
+                <label cLabel class="small">IBAN</label>
+                <input cFormControl formControlName="iban" class="font-monospace">
+              </c-col>
+              <c-col md="6">
+                <label cLabel class="small">SWIFT / BIC</label>
+                <input cFormControl formControlName="swift" class="font-monospace" placeholder="PICHECXX">
+              </c-col>
+              <c-col md="6">
+                <label cLabel class="small">Agencia / Sucursal</label>
+                <input cFormControl formControlName="branch">
+              </c-col>
+              <c-col md="6">
+                <label cLabel class="small">Fecha de Mandato</label>
+                <input cFormControl type="date" formControlName="mandateDate">
+              </c-col>
+              <c-col md="12">
+                <c-form-check switch>
+                  <input cFormCheckInput id="bankPrimary" type="checkbox" formControlName="isPrimary">
+                  <label cFormCheckLabel for="bankPrimary" class="small">Cuenta principal</label>
+                </c-form-check>
+              </c-col>
+              <c-col md="12" class="d-flex gap-2 mt-1">
+                <button cButton color="primary" size="sm" (click)="saveBank()"
+                        [disabled]="bankForm.invalid">Guardar</button>
+                <button cButton color="light" size="sm"
+                        (click)="showBankForm.set(false)">Cancelar</button>
+              </c-col>
+            </c-row>
+          </form>
+        </div>
+      }
+
+    </c-card-body>
+  </c-card>
+}
+
+<!-- ── Botones pie (móvil) ────────────────────────────────────────────────── -->
+<div class="d-flex justify-content-end gap-2 mt-4 mb-5">
+  <button cButton color="light" (click)="cancel()" [disabled]="saving()" class="px-4">
+    Cancelar
+  </button>
+  <button cButton color="primary" (click)="save()" [disabled]="saving()" class="px-4 shadow-sm">
+    @if (saving()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+    {{ isEditing ? 'Guardar Cambios' : 'Registrar Cliente' }}
+  </button>
+</div>
+
+} <!-- end @if (!loading()) -->

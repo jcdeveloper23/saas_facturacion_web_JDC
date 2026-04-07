@@ -31,6 +31,11 @@ export interface Company {
     certificateExpiry?: Timestamp;
   };
 
+  // Plugin management — which modules are active for this company
+  // Equivalent to FacturaScripts enabled_plugins.list per installation
+  enabledModules: string[];     // module.code[] activated for this company (union of plan + manual)
+  disabledModules: string[];    // module codes manually disabled (override from plan)
+
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

@@ -1,0 +1,550 @@
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Router, ActivatedRoute, RouterLink } from '@angular/router';
+import {
+  FormBuilder, FormGroup, ReactiveFormsModule, Validators
+} from '@angular/forms';
+import {
+  CardModule, ButtonModule, GridModule, BadgeModule, SpinnerModule,
+  TableModule, FormModule, TooltipModule, AlertModule,
+  NavModule, TabsModule, InputGroupComponent, InputGroupTextDirective, CalloutComponent
+} from '@coreui/angular';
+import { IconModule } from '@coreui/icons-angular';
+import { take } from 'rxjs/operators';
+
+import { PersonasService, PersonCreateInput, PersonUpdateInput } from './services/personas.service';
+import { SettingsService }    from '../settings/services/settings.service';
+import { NotificationService } from '../../core/services/notification.service';
+import { TenantService }       from '../../core/services/tenant.service';
+import { FormConfigService }   from '../../core/services/form-config.service';
+import {
+  Person, PersonAddress, PersonBankAccount,
+  PersonRole, TaxIdType, VatRegime, ContractType,
+  ROLE_LABELS, ROLE_COLORS, ALL_ROLES
+} from './models/person.interface';
+import { PaymentTerm, Currency, DocumentSeries } from '../settings/models/settings.interfaces';
+import { EntityFormConfig } from '../../core/interfaces/form-config.interface';
+import { ecuadorTaxIdValidator } from '../../core/validators/ecuador.validators';
+
+type FormTab = 'general' | 'addresses' | 'banks';
+
+const CONTRACT_TYPES: { value: ContractType; label: string }[] = [
+  { value: 'indefinido',  label: 'Indefinido' },
+  { value: 'plazo_fijo',  label: 'Plazo Fijo' },
+  { value: 'honorarios',  label: 'Honorarios Profesionales' },
+  { value: 'obra_cierta', label: 'Obra Cierta' }
+];
+
+@Component({
+  selector: 'app-person-form',
+  standalone: true,
+  templateUrl: './person-form.component.html',
+  imports: [
+    CommonModule, ReactiveFormsModule, RouterLink,
+    CardModule, ButtonModule, GridModule, BadgeModule, SpinnerModule,
+    TableModule, FormModule, TooltipModule, AlertModule,
+    NavModule, TabsModule, IconModule,
+    InputGroupComponent, InputGroupTextDirective, CalloutComponent
+  ]
+})
+export class PersonFormComponent implements OnInit {
+  private svc           = inject(PersonasService);
+  private settingsSvc   = inject(SettingsService);
+  private notifications = inject(NotificationService);
+  private tenantSvc     = inject(TenantService);
+  private formConfigSvc = inject(FormConfigService);
+  private fb            = inject(FormBuilder);
+  private router        = inject(Router);
+  private route         = inject(ActivatedRoute);
+
+  // ─── State ──────────────────────────────────────────────────────────────
+
+  personId   = signal<string | null>(null);
+  loading    = signal(true);
+  saving     = signal(false);
+  activeTab  = signal<FormTab>('general');
+  errorMsg   = signal('');
+  formConfig = signal<EntityFormConfig>({ fields: {} });
+
+  paymentTerms   = signal<PaymentTerm[]>([]);
+  currencies     = signal<Currency[]>([]);
+  documentSeries = signal<DocumentSeries[]>([]);
+  selectedRoles  = signal<PersonRole[]>(['customer']);
+  existingCodes  = signal<{ customer?: string; supplier?: string; employee?: string }>({});
+
+  // Computed role flags used in template
+  hasCustomerRole = computed(() => this.selectedRoles().includes('customer'));
+  hasSupplierRole = computed(() => this.selectedRoles().includes('supplier'));
+  hasEmployeeRole = computed(() => this.selectedRoles().includes('employee'));
+
+  // ─── Inline address management ───────────────────────────────────────────
+  addresses       = signal<PersonAddress[]>([]);
+  showAddressForm = signal(false);
+  editingAddrIdx  = signal<number | null>(null);
+  addressForm!: FormGroup;
+
+  // ─── Inline bank account management ──────────────────────────────────────
+  bankAccounts   = signal<PersonBankAccount[]>([]);
+  showBankForm   = signal(false);
+  editingBankIdx = signal<number | null>(null);
+  bankForm!: FormGroup;
+
+  // ─── Main form ───────────────────────────────────────────────────────────
+  form!: FormGroup;
+
+  readonly ALL_ROLES     = ALL_ROLES;
+  readonly ROLE_LABELS   = ROLE_LABELS;
+  readonly ROLE_COLORS   = ROLE_COLORS;
+  readonly CONTRACT_TYPES = CONTRACT_TYPES;
+
+  readonly taxIdTypes: { value: TaxIdType; label: string }[] = [
+    { value: 'RUC',       label: 'RUC' },
+    { value: 'CI',        label: 'Cédula' },
+    { value: 'PASAPORTE', label: 'Pasaporte' },
+    { value: 'EXTERIOR',  label: 'Exterior' }
+  ];
+
+  readonly vatRegimes: { value: VatRegime; label: string }[] = [
+    { value: 'General',    label: 'General' },
+    { value: 'Especial',   label: 'Especial' },
+    { value: 'Exportador', label: 'Exportador' },
+    { value: 'No sujeto',  label: 'No sujeto' }
+  ];
+
+  get isEditing(): boolean { return !!this.personId(); }
+
+  /** True when the person is a legal entity (company). Drives name/legalName UX. */
+  get isCompanyVal(): boolean { return !!this.form?.get('isCompany')?.value; }
+
+  // ─── Init ────────────────────────────────────────────────────────────────
+
+  ngOnInit(): void {
+    this.initForms();
+
+    // Pre-select role from query param: /personas/new?role=supplier
+    const queryRole = this.route.snapshot.queryParamMap.get('role') as PersonRole | null;
+    if (queryRole && ALL_ROLES.includes(queryRole)) {
+      this.selectedRoles.set([queryRole]);
+      this.syncRoleValidators();
+    }
+
+    this.settingsSvc.getPaymentTerms().pipe(take(1)).subscribe({
+      next: terms => this.paymentTerms.set(terms.filter(t => t.isActive))
+    });
+    this.settingsSvc.getCurrencies().pipe(take(1)).subscribe({
+      next: list => this.currencies.set(list.filter(c => c.isActive))
+    });
+    this.settingsSvc.getDocumentSeries().pipe(take(1)).subscribe({
+      next: list => this.documentSeries.set(list.filter(s => s.isActive && s.documentType === 'invoice'))
+    });
+
+    this.formConfigSvc.getConfig(this.tenantSvc.companyId, 'personas').then(cfg => {
+      this.formConfig.set(cfg);
+      this.applyDynamicValidators(cfg);
+    });
+
+    const id = this.route.snapshot.paramMap.get('id');
+    if (id) {
+      this.personId.set(id);
+      this.svc.getPerson(id).then(person => {
+        if (!person) { this.router.navigate(['/personas']); return; }
+        this.patchForm(person);
+        this.loading.set(false);
+      });
+    } else {
+      this.loading.set(false);
+    }
+  }
+
+  // ─── Role management ─────────────────────────────────────────────────────
+
+  toggleRole(role: PersonRole): void {
+    const current = this.selectedRoles();
+    if (current.includes(role)) {
+      if (current.length === 1) return; // at least one role required
+      this.selectedRoles.update(r => r.filter(x => x !== role));
+    } else {
+      this.selectedRoles.update(r => [...r, role]);
+    }
+    this.syncRoleValidators();
+  }
+
+  private syncRoleValidators(): void {
+    const roles = this.selectedRoles();
+    const cg = this.form?.get('customerData');
+    const sg = this.form?.get('supplierData');
+    const eg = this.form?.get('employeeData');
+    if (roles.includes('customer')) cg?.enable({ emitEvent: false });
+    else cg?.disable({ emitEvent: false });
+    if (roles.includes('supplier')) sg?.enable({ emitEvent: false });
+    else sg?.disable({ emitEvent: false });
+    if (roles.includes('employee')) eg?.enable({ emitEvent: false });
+    else eg?.disable({ emitEvent: false });
+  }
+
+  // ─── Form config helpers ──────────────────────────────────────────────────
+
+  private applyDynamicValidators(cfg: EntityFormConfig): void {
+    const optionalFields = [
+      'contactPerson', 'email', 'phone1', 'phone2', 'web', 'notes', 'isCompany'
+    ];
+    for (const key of optionalFields) {
+      const ctrl = this.form.get(key);
+      if (!ctrl) continue;
+      if (this.formConfigSvc.isRequired(cfg, key, 'personas')) {
+        ctrl.addValidators(Validators.required);
+      } else {
+        ctrl.removeValidators(Validators.required);
+      }
+      ctrl.updateValueAndValidity({ emitEvent: false });
+    }
+  }
+
+  isVisible(key: string): boolean {
+    return this.formConfigSvc.isVisible(this.formConfig(), key, 'personas');
+  }
+
+  isRequired(key: string): boolean {
+    return this.formConfigSvc.isRequired(this.formConfig(), key, 'personas');
+  }
+
+  fieldLabel(key: string): string {
+    return this.formConfigSvc.getLabel(this.formConfig(), key, 'personas');
+  }
+
+  // ─── Form init ────────────────────────────────────────────────────────────
+
+  private initForms(): void {
+    this.form = this.fb.group({
+      // ── Common required ──────────────────────────────────────────────────
+      taxIdType: ['RUC',     Validators.required],
+      taxId:     ['',        [Validators.required, ecuadorTaxIdValidator('taxIdType')]],
+      name:      ['',        Validators.required],
+      legalName: ['',        Validators.required],
+      isActive:  [true],
+      isCompany: [false],
+      // ── Common optional ──────────────────────────────────────────────────
+      contactPerson: [''],
+      email:         [''],
+      phone1:        [''],
+      phone2:        [''],
+      web:           [''],
+      notes:         [''],
+      // ── Customer role data ───────────────────────────────────────────────
+      customerData: this.fb.group({
+        currency:            ['USD',  Validators.required],
+        paymentTermCode:     ['CONT', Validators.required],
+        vatRegime:           ['General'],
+        creditLimit:         [null],
+        discountPct:         [null, [Validators.min(0), Validators.max(100)]],
+        paymentDays:         [null],
+        priceListCode:       [''],
+        agentCode:           [''],
+        customerGroupCode:   [''],
+        documentSeriesCode:  [''],
+        accountingCode:      ['']
+      }),
+      // ── Supplier role data ───────────────────────────────────────────────
+      supplierData: this.fb.group({
+        currency:          ['USD', Validators.required],
+        paymentTermCode:   ['CONT', Validators.required],
+        vatRegime:         ['General'],
+        vatRetentionPct:   [null, [Validators.min(0), Validators.max(100)]],
+        irRetentionPct:    [null, [Validators.min(0), Validators.max(100)]],
+        paymentDays:       [null],
+        purchaseAccount:   [''],
+        accountingCode:    ['']
+      }),
+      // ── Employee role data ───────────────────────────────────────────────
+      employeeData: this.fb.group({
+        iessNumber:   [''],
+        position:     [''],
+        department:   [''],
+        salary:       [null],
+        hireDate:     [''],
+        endDate:      [''],
+        contractType: ['indefinido']
+      })
+    });
+
+    // Disable role data groups not in initial selectedRoles
+    this.syncRoleValidators();
+
+    // When taxIdType changes: re-validate taxId + auto-clear isCompany for personal IDs
+    this.form.get('taxIdType')?.valueChanges.subscribe((type: TaxIdType) => {
+      this.form.get('taxId')?.updateValueAndValidity();
+      if (type === 'CI' || type === 'PASAPORTE' || type === 'EXTERIOR') {
+        this.form.patchValue({ isCompany: false }, { emitEvent: false });
+      }
+    });
+
+    // When name changes and person is NOT a company, sync legalName automatically
+    this.form.get('name')?.valueChanges.subscribe((name: string) => {
+      if (!this.form.get('isCompany')?.value) {
+        this.form.patchValue({ legalName: name }, { emitEvent: false });
+      }
+    });
+
+    // When isCompany is toggled off, re-sync legalName from name
+    this.form.get('isCompany')?.valueChanges.subscribe((isCompany: boolean) => {
+      if (!isCompany) {
+        const name = this.form.get('name')?.value ?? '';
+        this.form.patchValue({ legalName: name }, { emitEvent: false });
+      }
+    });
+
+    this.addressForm = this.fb.group({
+      label:      ['Principal', Validators.required],
+      country:    ['ECU'],
+      province:   ['', Validators.required],
+      city:       ['', Validators.required],
+      address:    [''],
+      postalCode: [''],
+      isShipping: [true],
+      isBilling:  [true]
+    });
+
+    this.bankForm = this.fb.group({
+      label:      ['', Validators.required],
+      bank:       [''],
+      branch:     [''],
+      iban:       [''],
+      swift:      [''],
+      isPrimary:  [false],
+      mandateDate:['']
+    });
+  }
+
+  private patchForm(p: Person): void {
+    // Restore roles and store existing codes
+    this.selectedRoles.set([...p.roles]);
+    this.existingCodes.set({
+      customer: p.customerData?.code,
+      supplier: p.supplierData?.code,
+      employee: p.employeeData?.code
+    });
+
+    // Common fields
+    this.form.patchValue({
+      taxIdType:     p.taxIdType,
+      taxId:         p.taxId,
+      isCompany:     p.isCompany,
+      name:          p.name,
+      legalName:     p.legalName,
+      contactPerson: p.contactPerson  ?? '',
+      email:         p.email          ?? '',
+      phone1:        p.phone1         ?? '',
+      phone2:        p.phone2         ?? '',
+      web:           p.web            ?? '',
+      isActive:      p.isActive,
+      notes:         p.notes          ?? ''
+    });
+
+    // Role-specific data (patchValue handles extra/missing keys gracefully)
+    if (p.customerData) this.form.get('customerData')?.patchValue(p.customerData);
+    if (p.supplierData) this.form.get('supplierData')?.patchValue(p.supplierData);
+    if (p.employeeData) this.form.get('employeeData')?.patchValue(p.employeeData);
+    // Don't auto-sync legalName while patching — person already has their own legalName stored
+
+    this.addresses.set([...(p.addresses    ?? [])]);
+    this.bankAccounts.set([...(p.bankAccounts ?? [])]);
+
+    this.syncRoleValidators();
+  }
+
+  // ─── Save ────────────────────────────────────────────────────────────────
+
+  async save(): Promise<void> {
+    this.form.markAllAsTouched();
+    if (this.form.invalid) {
+      this.activeTab.set('general');
+      this.errorMsg.set('Corrija los errores antes de continuar.');
+      return;
+    }
+    this.saving.set(true);
+    this.errorMsg.set('');
+
+    try {
+      const v     = this.form.getRawValue();
+      const roles = this.selectedRoles();
+      const codes = this.existingCodes();
+
+      // ── Common fields ────────────────────────────────────────────────────
+      // For natural persons (isCompany=false), legalName = name (auto-sync)
+      const resolvedLegalName = v.isCompany
+        ? (v.legalName?.trim() || v.name.trim())
+        : v.name.trim();
+
+      const commonData = {
+        roles,
+        taxIdType:  v.taxIdType,
+        taxId:      v.taxId.trim(),
+        isCompany:  v.isCompany,
+        name:       v.name.trim(),
+        legalName:  resolvedLegalName,
+        isActive:   v.isActive,
+        addresses:  this.addresses(),
+        bankAccounts: this.bankAccounts(),
+        ...(v.contactPerson?.trim() && { contactPerson: v.contactPerson.trim() }),
+        ...(v.email?.trim()         && { email:         v.email.trim() }),
+        ...(v.phone1?.trim()        && { phone1:        v.phone1.trim() }),
+        ...(v.phone2?.trim()        && { phone2:        v.phone2.trim() }),
+        ...(v.web?.trim()           && { web:           v.web.trim() }),
+        ...(v.notes?.trim()         && { notes:         v.notes.trim() })
+      };
+
+      const id = this.personId();
+      if (id) {
+        // ── Update: include existing codes in role data ─────────────────────
+        const updateData: PersonUpdateInput = {
+          ...commonData,
+          ...(roles.includes('customer') && v.customerData ? {
+            customerData: { code: codes.customer ?? '', ...this.cleanRoleValues(v.customerData) }
+          } : {}),
+          ...(roles.includes('supplier') && v.supplierData ? {
+            supplierData: { code: codes.supplier ?? '', ...this.cleanRoleValues(v.supplierData) }
+          } : {}),
+          ...(roles.includes('employee') && v.employeeData ? {
+            employeeData: { code: codes.employee ?? '', ...this.cleanRoleValues(v.employeeData) }
+          } : {})
+        } as PersonUpdateInput;
+
+        await this.svc.updatePerson(id, updateData);
+        this.notifications.success('Persona actualizada');
+      } else {
+        // ── Create: service generates codes per role ────────────────────────
+        const createData: PersonCreateInput = {
+          ...commonData,
+          ...(roles.includes('customer') && v.customerData ? {
+            customerData: this.cleanRoleValues(v.customerData)
+          } : {}),
+          ...(roles.includes('supplier') && v.supplierData ? {
+            supplierData: this.cleanRoleValues(v.supplierData)
+          } : {}),
+          ...(roles.includes('employee') && v.employeeData ? {
+            employeeData: this.cleanRoleValues(v.employeeData)
+          } : {})
+        } as PersonCreateInput;
+
+        await this.svc.createPerson(createData);
+        this.notifications.success('Persona registrada');
+      }
+
+      this.router.navigate(['/personas'], {
+        queryParams: roles.length === 1 ? { role: roles[0] } : {}
+      });
+    } catch (err: any) {
+      this.errorMsg.set(err?.message ?? 'Error al guardar');
+    } finally {
+      this.saving.set(false);
+    }
+  }
+
+  /** Strips null/undefined/empty-string from a flat role data object */
+  private cleanRoleValues(obj: Record<string, any>): Record<string, any> {
+    const result: any = {};
+    for (const [k, v] of Object.entries(obj)) {
+      if (v === null || v === undefined) continue;
+      if (typeof v === 'string' && v.trim() === '') continue;
+      result[k] = typeof v === 'string' ? v.trim() : v;
+    }
+    return result;
+  }
+
+  cancel(): void {
+    const roles = this.selectedRoles();
+    this.router.navigate(['/personas'], {
+      queryParams: roles.length === 1 ? { role: roles[0] } : {}
+    });
+  }
+
+  // ─── Address inline CRUD ─────────────────────────────────────────────────
+
+  openAddAddress(): void {
+    this.editingAddrIdx.set(null);
+    this.addressForm.reset({ label: 'Principal', country: 'ECU', isShipping: true, isBilling: true });
+    this.showAddressForm.set(true);
+  }
+
+  openEditAddress(idx: number): void {
+    this.editingAddrIdx.set(idx);
+    this.addressForm.patchValue(this.addresses()[idx]);
+    this.showAddressForm.set(true);
+  }
+
+  saveAddress(): void {
+    this.addressForm.markAllAsTouched();
+    if (this.addressForm.invalid) return;
+    const v = this.addressForm.getRawValue();
+    const addr: PersonAddress = {
+      id:         this.addresses()[this.editingAddrIdx() ?? -1]?.id ?? crypto.randomUUID(),
+      label:      v.label,
+      country:    v.country || 'ECU',
+      province:   v.province,
+      city:       v.city,
+      isShipping: v.isShipping,
+      isBilling:  v.isBilling,
+      ...(v.address    && { address:    v.address }),
+      ...(v.postalCode && { postalCode: v.postalCode })
+    };
+    const idx = this.editingAddrIdx();
+    this.addresses.update(list =>
+      idx !== null ? list.map((a, i) => i === idx ? addr : a) : [...list, addr]
+    );
+    this.showAddressForm.set(false);
+    this.editingAddrIdx.set(null);
+  }
+
+  deleteAddress(idx: number): void {
+    this.addresses.update(list => list.filter((_, i) => i !== idx));
+    if (this.editingAddrIdx() === idx) this.showAddressForm.set(false);
+  }
+
+  // ─── Bank account inline CRUD ────────────────────────────────────────────
+
+  openAddBank(): void {
+    this.editingBankIdx.set(null);
+    this.bankForm.reset({ isPrimary: false });
+    this.showBankForm.set(true);
+  }
+
+  openEditBank(idx: number): void {
+    this.editingBankIdx.set(idx);
+    this.bankForm.patchValue(this.bankAccounts()[idx]);
+    this.showBankForm.set(true);
+  }
+
+  saveBank(): void {
+    this.bankForm.markAllAsTouched();
+    if (this.bankForm.invalid) return;
+    const v = this.bankForm.getRawValue();
+    const acc: PersonBankAccount = {
+      id:        this.bankAccounts()[this.editingBankIdx() ?? -1]?.id ?? crypto.randomUUID(),
+      label:     v.label,
+      isPrimary: v.isPrimary,
+      ...(v.bank        && { bank:        v.bank }),
+      ...(v.branch      && { branch:      v.branch }),
+      ...(v.iban        && { iban:        v.iban }),
+      ...(v.swift       && { swift:       v.swift }),
+      ...(v.mandateDate && { mandateDate: v.mandateDate })
+    };
+    const idx = this.editingBankIdx();
+    this.bankAccounts.update(list =>
+      idx !== null ? list.map((a, i) => i === idx ? acc : a) : [...list, acc]
+    );
+    this.showBankForm.set(false);
+    this.editingBankIdx.set(null);
+  }
+
+  deleteBank(idx: number): void {
+    this.bankAccounts.update(list => list.filter((_, i) => i !== idx));
+    if (this.editingBankIdx() === idx) this.showBankForm.set(false);
+  }
+
+  // ─── Helpers ─────────────────────────────────────────────────────────────
+
+  hasError(fg: FormGroup, field: string): boolean {
+    const c = fg.get(field);
+    return !!(c?.invalid && c?.touched);
+  }
+}

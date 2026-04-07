@@ -1,76 +1,51 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable, map, catchError, of } from 'rxjs';
-import { environment } from '../../../environments/environment';
-import { Action, ActionInput, PaginatedResponse } from '../interfaces/permission.interface';
+import { Observable, from, map } from 'rxjs';
+import { where } from '@angular/fire/firestore';
+import { FirestoreService } from './firestore.service';
+import { Action, ActionInput } from '../interfaces/permission.interface';
 
-@Injectable({
-  providedIn: 'root'
-})
+/**
+ * ActionsService — manages action verb catalog stored in Firestore /actions.
+ *
+ * ROOT-level collection (not tenant-scoped), managed by super_admin.
+ * Actions are verbs applied to modules: view, create, edit, delete, export, approve, etc.
+ * Combined with Module entries they form Permission entries: "customers.view".
+ */
+@Injectable({ providedIn: 'root' })
 export class ActionsService {
-  private http = inject(HttpClient);
-  private readonly apiUrl = `${environment.apiGpsUrl}/actions`;
+  private fs = inject(FirestoreService);
 
-  /**
-   * Get all actions
-   */
+  // ─── Read ─────────────────────────────────────────────────────────────────
+
   getActions(activeOnly = true): Observable<Action[]> {
-    const params: Record<string, string> = {};
     if (activeOnly) {
-      params['state'] = 'true';
+      return from(
+        this.fs.getRootCollectionQuery<Action>('actions', where('state', '==', true))
+      ).pipe(map(actions => actions.sort((a, b) => a.code.localeCompare(b.code))));
     }
-
-    return this.http.get<PaginatedResponse<Action> | Action[]>(this.apiUrl, { params }).pipe(
-      map(response => {
-        if (Array.isArray(response)) {
-          return response;
-        }
-        return response.data || [];
-      }),
-      catchError(error => {
-        console.error('Error loading actions:', error);
-        return of([]);
-      })
+    return this.fs.getRootCollection<Action>('actions').pipe(
+      map(actions => actions.sort((a, b) => a.code.localeCompare(b.code)))
     );
   }
 
-  /**
-   * Get a single action by ID
-   */
-  getAction(id: number): Observable<Action> {
-    return this.http.get<Action>(`${this.apiUrl}/${id}`);
+  // ─── Write (super_admin only) ─────────────────────────────────────────────
+
+  async createAction(data: ActionInput): Promise<string> {
+    const payload = {
+      code:        data.code,
+      name:        data.name,
+      description: data.description ?? '',
+      state:       data.state       ?? true
+    };
+    return this.fs.addRootDocument('actions', payload);
   }
 
-  /**
-   * Create a new action
-   */
-  createAction(action: ActionInput): Observable<Action> {
-    return this.http.post<Action>(this.apiUrl, action);
+  async updateAction(id: string, data: Partial<ActionInput>): Promise<void> {
+    return this.fs.updateRootDocument<Action>('actions', id, data as Partial<Action>);
   }
 
-  /**
-   * Update an action
-   */
-  updateAction(id: number, action: Partial<ActionInput>): Observable<Action> {
-    return this.http.patch<Action>(`${this.apiUrl}/${id}`, action);
-  }
-
-  /**
-   * Delete an action
-   */
-  deleteAction(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/${id}`);
-  }
-
-  /**
-   * Get actions as options for select
-   */
-  getActionsAsOptions(): Observable<{ value: number; label: string }[]> {
-    return this.getActions(true).pipe(
-      map(actions => actions.map(a => ({
-        value: a.id,
-        label: a.name
-      })))
-    );
+  async deleteAction(id: string): Promise<void> {
+    const { deleteDoc, doc, getFirestore } = await import('@angular/fire/firestore');
+    await deleteDoc(doc(getFirestore(), `actions/${id}`));
   }
 }

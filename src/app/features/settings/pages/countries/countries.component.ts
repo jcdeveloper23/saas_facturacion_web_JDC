@@ -1,14 +1,18 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Subscription } from 'rxjs';
 import {
-  CardComponent, CardBodyComponent, TableDirective,
+  CardComponent, CardBodyComponent, TableDirective, BadgeComponent,
   ButtonDirective, SpinnerComponent, RowComponent, ColComponent,
   ModalComponent, ModalHeaderComponent, ModalBodyComponent, ModalFooterComponent,
   ModalTitleDirective, ButtonCloseDirective,
-  FormLabelDirective, FormControlDirective, AlertComponent
+  FormLabelDirective, FormControlDirective, AlertComponent,
+  CalloutComponent, InputGroupComponent, InputGroupTextDirective,
+  FormCheckComponent, FormCheckInputDirective, FormCheckLabelDirective
 } from '@coreui/angular';
-import { IconDirective } from '@coreui/icons-angular';
+import { IconDirective, IconSetService } from '@coreui/icons-angular';
+import { iconSubset } from '../../../../icons/icon-subset';
 import { SettingsService } from '../../services/settings.service';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { Country, CountryFormData } from '../../models/settings.interfaces';
@@ -19,17 +23,21 @@ import { Country, CountryFormData } from '../../models/settings.interfaces';
   standalone: true,
   imports: [
     CommonModule, ReactiveFormsModule,
-    CardComponent, CardBodyComponent, TableDirective,
+    CardComponent, CardBodyComponent, TableDirective, BadgeComponent,
     ButtonDirective, SpinnerComponent, RowComponent, ColComponent,
     ModalComponent, ModalHeaderComponent, ModalBodyComponent, ModalFooterComponent,
     ModalTitleDirective, ButtonCloseDirective,
-    FormLabelDirective, FormControlDirective, AlertComponent, IconDirective
+    FormLabelDirective, FormControlDirective, AlertComponent, IconDirective,
+    CalloutComponent, InputGroupComponent, InputGroupTextDirective,
+    FormCheckComponent, FormCheckInputDirective, FormCheckLabelDirective
   ]
 })
 export class CountriesComponent implements OnInit {
   private svc = inject(SettingsService);
   private notifications = inject(NotificationService);
   private fb = inject(FormBuilder);
+  private iconSet = inject(IconSetService);
+  private subs = new Subscription();
 
   countries = signal<Country[]>([]);
   loading = signal(true);
@@ -39,10 +47,15 @@ export class CountriesComponent implements OnInit {
   errorMessage = signal('');
   searchTerm = signal('');
 
+  constructor() {
+    this.iconSet.icons = { ...iconSubset };
+  }
+
   form = this.fb.group({
     code2: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(3)]],
     code3: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(3)]],
-    name:  ['', Validators.required]
+    name:  ['', Validators.required],
+    isActive: [true]
   });
 
   get filtered(): Country[] {
@@ -94,7 +107,8 @@ export class CountriesComponent implements OnInit {
       const data: CountryFormData = {
         code2: v.code2!.toUpperCase(),
         code3: v.code3!.toUpperCase(),
-        name: v.name!
+        name: v.name!,
+        isActive: !!v.isActive
       };
       const id = this.editingId();
       if (id) {
@@ -119,6 +133,15 @@ export class CountriesComponent implements OnInit {
       this.notifications.success('País eliminado');
     } catch {
       this.notifications.error('Error al eliminar');
+    }
+  }
+
+  async toggleActive(item: any): Promise<void> {
+    try {
+      await this.svc.updateCountry(item.id, { isActive: !item.isActive });
+      this.notifications.success('Estado actualizado');
+    } catch {
+      this.notifications.error('Error al actualizar estado');
     }
   }
 

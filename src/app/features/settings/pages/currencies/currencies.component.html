@@ -1,108 +1,174 @@
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <h5 class="mb-0">Divisas</h5>
-  <button cButton color="primary" size="sm" (click)="openNew()">
-    <svg cIcon name="cilPlus" class="me-1"></svg> Nueva Divisa
+<!-- ── Cabecera Pro ────────────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-center mb-1">
+  <div class="d-flex align-items-center gap-2">
+    <div class="bg-success bg-opacity-10 p-2 rounded">
+      <svg cIcon name="cilMoney" size="xl" class="text-success"></svg>
+    </div>
+    <div>
+      <h3 class="mb-0 fw-semibold">Divisas del Sistema</h3>
+      <p class="text-muted small mb-0">Configura las monedas extranjeras y tasas de conversión</p>
+    </div>
+  </div>
+  <button cButton color="primary" size="sm" (click)="openNew()" class="px-3 shadow-sm">
+    <svg cIcon name="cilPlus" class="me-1"></svg> Agregar Divisa
   </button>
 </div>
 
-<c-card class="mb-3">
-  <c-card-body>
-    <input class="form-control form-control-sm" placeholder="Buscar por código, nombre o símbolo..."
-           [value]="searchTerm()" (input)="searchTerm.set($any($event.target).value)">
+<!-- ── Ayuda CEO (Callout) ──────────────────────────────────────── -->
+<c-callout color="success" class="bg-body border-start-4 shadow-sm mb-4">
+  <div class="d-flex gap-3 align-items-start">
+    <svg cIcon name="cilInfo" size="lg" class="text-success mt-1"></svg>
+    <div>
+      <p class="mb-1 fw-bold">Moneda de Facturación</p>
+      <p class="mb-0 text-muted small">
+        La moneda principal para tus reportes es la configurada en 
+        <a routerLink="/settings/company" class="fw-semibold text-decoration-none">Mi Empresa</a>. 
+        Aquí puedes activar otras divisas para emitir documentos en moneda extranjera.
+      </p>
+    </div>
+  </div>
+</c-callout>
+
+<!-- ── Buscador ────────────────────────────────────────────────── -->
+<c-card class="mb-4 border-0 shadow-sm">
+  <c-card-body class="py-2">
+    <c-input-group>
+      <span cInputGroupText class="bg-transparent border-end-0">
+        <svg cIcon name="cilSearch" size="sm"></svg>
+      </span>
+      <input cFormControl class="border-start-0 ps-0 form-control-sm" 
+             placeholder="Buscar por código, nombre o símbolo..."
+             [value]="searchTerm()" (input)="searchTerm.set($any($event.target).value)">
+    </c-input-group>
   </c-card-body>
 </c-card>
 
-<c-card>
-  <c-card-body>
+<!-- ── Tabla de Divisas ────────────────────────────────────────── -->
+<c-card class="border-0 shadow-sm overflow-hidden">
+  <c-card-body class="p-0">
     @if (loading()) {
-      <div class="text-center py-4"><c-spinner color="primary"></c-spinner></div>
+      <div class="text-center py-5"><c-spinner color="primary"></c-spinner></div>
     } @else if (filtered.length === 0) {
-      <p class="text-center text-muted py-4">
-        {{ searchTerm() ? 'Sin resultados para "' + searchTerm() + '"' : 'No hay divisas configuradas.' }}
-      </p>
+      <div class="text-center py-5 bg-body-secondary">
+        <svg cIcon name="cilSearch" size="3xl" class="text-muted mb-3 opacity-25"></svg>
+        <p class="text-muted">No se encontraron divisas con esos criterios</p>
+      </div>
     } @else {
-      <table cTable hover responsive>
-        <thead>
-          <tr>
-            <th>Código</th><th>Nombre</th><th>Símbolo</th><th>T.Compra</th><th>T.Venta</th><th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (c of filtered; track trackById($index, c)) {
+      <div class="table-responsive">
+        <table cTable hover align="middle" class="mb-0 border-0">
+          <thead class="bg-body-secondary text-uppercase small fw-bold">
             <tr>
-              <td class="font-monospace fw-semibold">{{ c.code }}</td>
-              <td>{{ c.name }}</td>
-              <td class="text-center fw-bold">{{ c.symbol }}</td>
-              <td class="text-end">{{ c.buyRate | number:'1.4-4' }}</td>
-              <td class="text-end">{{ c.sellRate | number:'1.4-4' }}</td>
-              <td>
-                <div class="d-flex gap-2">
-                  <button cButton color="outline-primary" size="sm" (click)="openEdit(c)">
-                    <svg cIcon name="cilPencil"></svg>
-                  </button>
-                  <button cButton color="outline-danger" size="sm"
-                          [disabled]="!!c.isDefault" (click)="delete(c)">
-                    <svg cIcon name="cilTrash"></svg>
-                  </button>
-                </div>
-              </td>
+              <th class="border-0 px-4 py-3">Código</th>
+              <th class="border-0 py-3">Nombre / Símbolo</th>
+              <th class="border-0 py-3 text-end">T. Compra</th>
+              <th class="border-0 py-3 text-end">T. Venta</th>
+              <th class="border-0 py-3 text-center">Estado</th>
+              <th class="border-0 px-4 py-3 text-end" style="min-width: 140px">Acciones</th>
             </tr>
-          }
-        </tbody>
-      </table>
-      <small class="text-muted">{{ filtered.length }} divisa(s) mostradas</small>
+          </thead>
+          <tbody>
+            @for (c of filtered; track trackById($index, c)) {
+              <tr class="align-middle border-bottom border-body-secondary">
+                <td class="px-4 py-3">
+                  <span class="badge bg-primary bg-opacity-10 text-primary px-2 py-1 font-monospace">{{ c.code }}</span>
+                  @if (c.isDefault) {
+                    <span class="ms-2 badge bg-info text-white rounded-pill small">Principal</span>
+                  }
+                </td>
+                <td>
+                  <div class="fw-bold">{{ c.name }}</div>
+                  <div class="text-muted small">Símbolo: <span class="fw-bold">{{ c.symbol }}</span> | ISO: {{ c.isoCode }}</div>
+                </td>
+                <td class="text-end font-monospace">{{ c.buyRate | number:'1.4-4' }}</td>
+                <td class="text-end font-monospace">{{ c.sellRate | number:'1.4-4' }}</td>
+                <td class="text-center">
+                  <c-badge [color]="c.isActive ? 'success' : 'secondary'" shape="rounded-pill" class="px-3">
+                    {{ c.isActive ? 'Activa' : 'Inactiva' }}
+                  </c-badge>
+                </td>
+                <td class="px-4 py-3 text-end">
+                  <div class="d-flex gap-2 justify-content-end">
+                    <button cButton color="light" size="sm" (click)="openEdit(c)" title="Editar moneda">
+                      <svg cIcon name="cilPencil"></svg>
+                    </button>
+                    <button cButton [color]="c.isActive ? 'outline-danger' : 'outline-success'" size="sm"
+                            (click)="toggleActive(c)" [title]="c.isActive ? 'Desactivar' : 'Activar'">
+                      <svg cIcon [name]="c.isActive ? 'cilBan' : 'cilCheck'"></svg>
+                    </button>
+                    <button cButton color="light" size="sm" (click)="delete(c)" 
+                            [disabled]="!!c.isDefault" class="text-danger" title="Eliminar">
+                      <svg cIcon name="cilTrash"></svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
     }
   </c-card-body>
 </c-card>
 
-<c-modal [visible]="showModal()" (visibleChange)="showModal.set($event)" alignment="center">
-  <c-modal-header>
-    <h5 cModalTitle>{{ editingId() ? 'Editar Divisa' : 'Nueva Divisa' }}</h5>
+<!-- ── Modal Edición ───────────────────────────────────────────── -->
+<c-modal [visible]="showModal()" (visibleChange)="showModal.set($event)" alignment="center" backdrop="static">
+  <c-modal-header class="bg-body-secondary border-bottom-0 pb-0">
+    <h5 cModalTitle class="fw-semibold">
+      <svg cIcon [name]="editingId() ? 'cilPencil' : 'cilPlus'" class="me-2"></svg>
+      {{ editingId() ? 'Gestión de Divisa' : 'Nueva Divisa' }}
+    </h5>
     <button cButtonClose (click)="showModal.set(false)"></button>
   </c-modal-header>
-  <c-modal-body>
-    @if (errorMessage()) { <c-alert color="danger" class="mb-3">{{ errorMessage() }}</c-alert> }
+  <c-modal-body class="pt-3">
+    @if (errorMessage()) { <c-alert color="danger" variant="solid" class="mb-3">{{ errorMessage() }}</c-alert> }
+    
     <form [formGroup]="form">
       <c-row class="g-3">
-        <c-col md="4">
-          <label cLabel>Código * <small class="text-muted">(ej: USD)</small></label>
-          <input cFormControl formControlName="code" placeholder="USD"
+        <c-col md="6">
+          <label cLabel>Código ISO <span class="text-danger">*</span></label>
+          <input cFormControl formControlName="code" placeholder="Ej: USD" maxlength="10"
                  [class.is-invalid]="hasError('code')">
-          @if (hasError('code')) { <div class="invalid-feedback">Requerido</div> }
         </c-col>
-        <c-col md="4">
-          <label cLabel>Símbolo *</label>
-          <input cFormControl formControlName="symbol" placeholder="$"
+        <c-col md="6">
+          <label cLabel>Símbolo <span class="text-danger">*</span></label>
+          <input cFormControl formControlName="symbol" placeholder="Ej: $"
                  [class.is-invalid]="hasError('symbol')">
-          @if (hasError('symbol')) { <div class="invalid-feedback">Requerido</div> }
-        </c-col>
-        <c-col md="4">
-          <label cLabel>Código ISO</label>
-          <input cFormControl formControlName="isoCode" placeholder="840"
-                 [class.is-invalid]="hasError('isoCode')">
         </c-col>
         <c-col md="12">
-          <label cLabel>Nombre *</label>
-          <input cFormControl formControlName="name" placeholder="DÓLARES EE.UU."
+          <label cLabel>Nombre Comercial <span class="text-danger">*</span></label>
+          <input cFormControl formControlName="name" placeholder="Ej: Dólar Americano"
                  [class.is-invalid]="hasError('name')">
-          @if (hasError('name')) { <div class="invalid-feedback">Requerido</div> }
         </c-col>
         <c-col md="6">
           <label cLabel>Tasa de Compra</label>
-          <input cFormControl type="number" step="0.0001" formControlName="buyRate">
+          <c-input-group>
+            <input cFormControl type="number" step="0.0001" formControlName="buyRate">
+          </c-input-group>
         </c-col>
         <c-col md="6">
           <label cLabel>Tasa de Venta</label>
-          <input cFormControl type="number" step="0.0001" formControlName="sellRate">
+          <c-input-group>
+            <input cFormControl type="number" step="0.0001" formControlName="sellRate">
+          </c-input-group>
+        </c-col>
+        <c-col md="6">
+          <label cLabel>Código ISO Numérico</label>
+          <input cFormControl formControlName="isoCode" placeholder="Ej: 840">
+        </c-col>
+        <c-col md="6" class="d-flex align-items-end">
+          <c-form-check switch class="mb-2">
+            <input cFormCheckInput id="isActiveCurrency" type="checkbox" formControlName="isActive">
+            <label cFormCheckLabel for="isActiveCurrency" class="fw-semibold">Moneda Activa</label>
+          </c-form-check>
         </c-col>
       </c-row>
     </form>
   </c-modal-body>
-  <c-modal-footer>
-    <button cButton color="secondary" (click)="showModal.set(false)" [disabled]="saving()">Cancelar</button>
-    <button cButton color="primary" (click)="save()" [disabled]="saving()">
+  <c-modal-footer class="border-top-0 pt-0 pb-4">
+    <button cButton color="light" (click)="showModal.set(false)" [disabled]="saving()" class="px-4">Cancelar</button>
+    <button cButton color="primary" (click)="save()" [disabled]="saving()" class="px-4 shadow-sm">
       @if (saving()) { <c-spinner size="sm" class="me-1"></c-spinner> }
-      Guardar
+      {{ editingId() ? 'Guardar Cambios' : 'Habilitar Divisa' }}
     </button>
   </c-modal-footer>
 </c-modal>

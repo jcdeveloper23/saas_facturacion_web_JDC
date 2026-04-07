@@ -1,4 +1,22 @@
 {
-  "indexes": [],
+  "indexes": [
+    {
+      "collectionGroup": "personas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "roles",     "arrayConfig": "CONTAINS" },
+        { "fieldPath": "name",      "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "personas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "roles",     "arrayConfig": "CONTAINS" },
+        { "fieldPath": "isActive",  "order": "ASCENDING" },
+        { "fieldPath": "name",      "order": "ASCENDING" }
+      ]
+    }
+  ],
   "fieldOverrides": []
 }

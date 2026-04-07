@@ -1,0 +1,192 @@
+<!-- ── Cabecera ─────────────────────────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div class="d-flex align-items-center gap-2">
+    <div class="bg-primary bg-opacity-10 p-2 rounded">
+      <svg cIcon name="cilPeople" size="xl" class="text-primary"></svg>
+    </div>
+    <div>
+      <h3 class="mb-0 fw-semibold">{{ pageTitle() }}</h3>
+      <p class="text-muted small mb-0">{{ pageSubtitle() }}</p>
+    </div>
+  </div>
+  <button cButton color="primary" size="sm" (click)="openNew()" class="px-3 shadow-sm">
+    <svg cIcon name="cilPlus" class="me-1"></svg>
+    Nuevo {{ roleFilter() ? ROLE_LABELS[roleFilter()!] : 'Persona' }}
+  </button>
+</div>
+
+<!-- ── Filtro por rol (tabs) ──────────────────────────────────────────────── -->
+<c-nav variant="pills" class="mb-3 gap-1">
+  @for (opt of roleOptions; track opt.role) {
+    <c-nav-item>
+      <a cNavLink
+         [active]="roleFilter() === opt.role"
+         (click)="switchRole(opt.role)"
+         role="button"
+         class="px-3 py-1 small fw-semibold">
+        {{ opt.label }}
+      </a>
+    </c-nav-item>
+  }
+</c-nav>
+
+<!-- ── Buscador y filtros ─────────────────────────────────────────────────── -->
+<c-card class="mb-3 border-0 shadow-sm">
+  <c-card-body class="py-2">
+    <div class="d-flex gap-3 align-items-center flex-wrap">
+      <c-input-group class="flex-grow-1">
+        <span cInputGroupText class="bg-transparent border-end-0">
+          <svg cIcon name="cilSearch" size="sm"></svg>
+        </span>
+        <input cFormControl class="border-start-0 ps-0"
+               placeholder="Buscar por nombre, RUC/CI, teléfono o código..."
+               [value]="searchTerm()" (input)="searchTerm.set($any($event.target).value)">
+      </c-input-group>
+      <c-form-check switch class="text-nowrap">
+        <input cFormCheckInput id="showInactiveToggle" type="checkbox"
+               [checked]="showInactive()" (change)="showInactive.set($any($event.target).checked)">
+        <label cFormCheckLabel for="showInactiveToggle" class="small">Ver inactivos</label>
+      </c-form-check>
+    </div>
+  </c-card-body>
+</c-card>
+
+<!-- ── Tabla ──────────────────────────────────────────────────────────────── -->
+<c-card class="border-0 shadow-sm overflow-hidden">
+  <c-card-body class="p-0">
+
+    @if (loading()) {
+      <div class="text-center py-5"><c-spinner color="primary"></c-spinner></div>
+
+    } @else if (filtered().length === 0) {
+      <div class="text-center py-5 bg-body-secondary">
+        <svg cIcon name="cilPeople" size="3xl" class="text-muted mb-3 opacity-25"></svg>
+        <p class="text-muted">
+          {{ searchTerm()
+              ? 'Sin resultados para "' + searchTerm() + '"'
+              : 'No hay ' + pageTitle().toLowerCase() + ' registrados todavía' }}
+        </p>
+        @if (!searchTerm()) {
+          <button cButton color="primary" size="sm" (click)="openNew()">
+            <svg cIcon name="cilPlus" class="me-1"></svg>
+            Registrar {{ roleFilter() ? ROLE_LABELS[roleFilter()!] : 'Persona' }}
+          </button>
+        }
+      </div>
+
+    } @else {
+      <div class="table-responsive">
+        <table cTable hover align="middle" class="mb-0 border-0">
+          <thead class="bg-body-secondary text-uppercase small fw-bold">
+            <tr>
+              @if (showCodeColumn()) {
+                <th class="border-0 px-4 py-3">Código</th>
+              }
+              <th class="border-0 py-3 px-4">Nombre / Razón Social</th>
+              <th class="border-0 py-3">RUC / CI</th>
+              <th class="border-0 py-3">Teléfono</th>
+              @if (showPaymentColumn()) {
+                <th class="border-0 py-3 text-center">Forma de Pago</th>
+              }
+              @if (showPositionColumn()) {
+                <th class="border-0 py-3">Cargo</th>
+              }
+              <th class="border-0 py-3">Roles</th>
+              <th class="border-0 py-3 text-center">Estado</th>
+              <th class="border-0 px-4 py-3 text-end" style="min-width:140px">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (p of filtered(); track trackById($index, p)) {
+              <tr class="align-middle border-bottom border-body-secondary"
+                  [class.opacity-50]="!p.isActive">
+
+                @if (showCodeColumn()) {
+                  <td class="px-4 py-3">
+                    <span class="badge bg-body-secondary text-body font-monospace px-2 py-1">
+                      {{ getCode(p) }}
+                    </span>
+                  </td>
+                }
+
+                <td class="py-3 px-4">
+                  <div class="fw-bold">{{ p.name }}</div>
+                  @if (p.legalName !== p.name) {
+                    <div class="text-muted small">{{ p.legalName }}</div>
+                  }
+                </td>
+
+                <td class="py-3">
+                  <div class="font-monospace small">{{ p.taxId }}</div>
+                  <div class="text-muted x-small">{{ p.taxIdType }}</div>
+                </td>
+
+                <td class="py-3">
+                  <div class="small">{{ p.phone1 || '—' }}</div>
+                  @if (p.phone2) {
+                    <div class="text-muted x-small">{{ p.phone2 }}</div>
+                  }
+                </td>
+
+                @if (showPaymentColumn()) {
+                  <td class="py-3 text-center">
+                    <span class="badge bg-body-secondary text-body border small">
+                      {{ getPaymentTerm(p) }}
+                    </span>
+                  </td>
+                }
+
+                @if (showPositionColumn()) {
+                  <td class="py-3 small">{{ p.employeeData?.position || '—' }}</td>
+                }
+
+                <td class="py-3">
+                  <div class="d-flex gap-1 flex-wrap">
+                    @for (role of p.roles; track role) {
+                      <c-badge [color]="ROLE_COLORS[role]" shape="rounded-pill" class="px-2 small">
+                        {{ ROLE_LABELS[role] }}
+                      </c-badge>
+                    }
+                  </div>
+                </td>
+
+                <td class="py-3 text-center">
+                  <c-badge [color]="p.isActive ? 'success' : 'secondary'" shape="rounded-pill" class="px-3">
+                    {{ p.isActive ? 'Activo' : 'Inactivo' }}
+                  </c-badge>
+                </td>
+
+                <td class="px-4 py-3 text-end">
+                  <div class="d-flex gap-2 justify-content-end">
+                    <button cButton color="light" size="sm" (click)="openEdit(p)" cTooltip="Editar">
+                      <svg cIcon name="cilPencil"></svg>
+                    </button>
+                    <button cButton [color]="p.isActive ? 'outline-danger' : 'outline-success'" size="sm"
+                            (click)="toggleActive(p)"
+                            [cTooltip]="p.isActive ? 'Desactivar' : 'Activar'">
+                      <svg cIcon [name]="p.isActive ? 'cilBan' : 'cilCheck'"></svg>
+                    </button>
+                    <button cButton color="light" size="sm" (click)="delete(p)"
+                            [disabled]="isConsumidorFinal(p)"
+                            class="text-danger" cTooltip="Eliminar">
+                      <svg cIcon name="cilTrash"></svg>
+                    </button>
+                  </div>
+                </td>
+
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="bg-body-secondary px-4 py-2 border-top">
+        <small class="text-muted">
+          {{ filtered().length }} {{ filtered().length !== 1 ? pageTitle().toLowerCase() : (roleFilter() ? ROLE_LABELS[roleFilter()!].toLowerCase() : 'persona') }}
+          @if (!showInactive()) { (activos) }
+        </small>
+      </div>
+    }
+
+  </c-card-body>
+</c-card>

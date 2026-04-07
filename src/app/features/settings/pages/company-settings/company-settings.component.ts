@@ -6,9 +6,10 @@ import {
   RowComponent, ColComponent,
   FormLabelDirective, FormControlDirective, FormSelectDirective,
   InputGroupComponent, InputGroupTextDirective,
-  ButtonDirective, SpinnerComponent, AlertComponent
+  ButtonDirective, SpinnerComponent, AlertComponent, CalloutComponent
 } from '@coreui/angular';
-import { IconDirective } from '@coreui/icons-angular';
+import { IconDirective, IconSetService } from '@coreui/icons-angular';
+import { iconSubset } from '../../../../icons/icon-subset';
 import { SettingsService } from '../../services/settings.service';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { ecuadorRucValidator } from '../../../../shared/validators/ruc.validator';
@@ -24,18 +25,23 @@ import { ecuadorRucValidator } from '../../../../shared/validators/ruc.validator
     RowComponent, ColComponent,
     FormLabelDirective, FormControlDirective, FormSelectDirective,
     InputGroupComponent, InputGroupTextDirective,
-    ButtonDirective, SpinnerComponent, AlertComponent,
-    IconDirective
+    ButtonDirective, SpinnerComponent, AlertComponent, IconDirective,
+    CalloutComponent
   ]
 })
 export class CompanySettingsComponent implements OnInit {
   private svc = inject(SettingsService);
   private notifications = inject(NotificationService);
   private fb = inject(FormBuilder);
+  private iconSet = inject(IconSetService);
 
   loading = signal(true);
   saving = signal(false);
   errorMessage = signal('');
+
+  constructor() {
+    this.iconSet.icons = { ...iconSubset };
+  }
 
   form = this.fb.group({
     companyName:     ['', Validators.required],

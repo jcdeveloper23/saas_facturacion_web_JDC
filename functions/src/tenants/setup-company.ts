@@ -1,5 +1,6 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
+import { Timestamp } from 'firebase-admin/firestore';
 
 /**
  * setupCompany
@@ -54,7 +55,7 @@ export const setupCompany = onCall(async (request) => {
   }
 
   const db = admin.firestore();
-  const now = admin.firestore.Timestamp.now();
+  const now = Timestamp.now();
 
   // ── Load platform defaults ─────────────────────────────────────────────────
   console.log('[setupCompany] Loading platform defaults from Firestore...');
@@ -86,7 +87,7 @@ export const setupCompany = onCall(async (request) => {
   console.log(`[setupCompany] config resolved — country: ${country}, currency: ${defaultCurrency}, vatRate: ${defaultVatRate}`);
 
   const taxRates = !taxRatesSnap.empty
-    ? (console.log('[setupCompany] taxRates: Firestore'), taxRatesSnap.docs.map(d => d.data() as Record<string, any>))
+    ? (console.log('[setupCompany] taxRates: Firestore'), taxRatesSnap.docs.map(d => d.data() as Record<string, any>).filter(d => d['isActive'] !== false))
     : (console.log('[setupCompany] taxRates: HARDCODED fallback'), [
         { code: 'VAT15', name: 'IVA 15%',  rate: 15, sriCode: '3', isDefault: true  },
         { code: 'VAT5',  name: 'IVA 5%',   rate: 5,  sriCode: '5', isDefault: false },
@@ -95,7 +96,7 @@ export const setupCompany = onCall(async (request) => {
       ]);
 
   const paymentTerms = !paymentTermsSnap.empty
-    ? (console.log('[setupCompany] paymentTerms: Firestore'), paymentTermsSnap.docs.map(d => d.data() as Record<string, any>))
+    ? (console.log('[setupCompany] paymentTerms: Firestore'), paymentTermsSnap.docs.map(d => d.data() as Record<string, any>).filter(d => d['isActive'] !== false))
     : (console.log('[setupCompany] paymentTerms: HARDCODED fallback'), [
         { code: 'CASH', name: 'Contado',  days: 0  },
         { code: 'D30',  name: '30 días',  days: 30 },
@@ -104,7 +105,7 @@ export const setupCompany = onCall(async (request) => {
       ]);
 
   const documentSeries = !seriesSnap.empty
-    ? (console.log('[setupCompany] documentSeries: Firestore'), seriesSnap.docs.map(d => d.data() as Record<string, any>))
+    ? (console.log('[setupCompany] documentSeries: Firestore'), seriesSnap.docs.map(d => d.data() as Record<string, any>).filter(d => d['isActive'] !== false))
     : (console.log('[setupCompany] documentSeries: HARDCODED fallback'), [
         { code: '001', name: 'Serie Facturas',     documentType: 'invoice' },
         { code: '001', name: 'Serie Presupuestos', documentType: 'quote'   },
@@ -112,19 +113,19 @@ export const setupCompany = onCall(async (request) => {
       ]);
 
   const warehouses = !warehousesSnap.empty
-    ? (console.log('[setupCompany] warehouses: Firestore'), warehousesSnap.docs.map(d => d.data() as Record<string, any>))
-    : (console.log('[setupCompany] warehouses: HARDCODED fallback'), [
+    ? (console.log('[setupCompany] ✅ warehouses: Firestore'), warehousesSnap.docs.map(d => d.data() as Record<string, any>).filter(d => d['isActive'] !== false))
+    : (console.warn('[setupCompany] ⚠️ warehouses: HARDCODED fallback! Check platform/defaults/warehouses'), [
         { code: 'BOD-01', name: 'Bodega Principal', isMain: true },
       ]);
 
   const currencies = !currenciesSnap.empty
-    ? (console.log('[setupCompany] currencies: Firestore'), currenciesSnap.docs.map(d => d.data() as Record<string, any>))
+    ? (console.log('[setupCompany] currencies: Firestore'), currenciesSnap.docs.map(d => d.data() as Record<string, any>).filter(d => d['isActive'] !== false))
     : (console.log('[setupCompany] currencies: HARDCODED fallback'), [
         { code: 'USD', name: 'DÓLARES EE.UU.', symbol: '$', isoCode: '840', buyRate: 1, sellRate: 1, isDefault: true },
       ]);
 
   const countries = !countriesSnap.empty
-    ? (console.log('[setupCompany] countries: Firestore'), countriesSnap.docs.map(d => d.data() as Record<string, any>))
+    ? (console.log('[setupCompany] countries: Firestore'), countriesSnap.docs.map(d => d.data() as Record<string, any>).filter(d => d['isActive'] !== false))
     : (console.log('[setupCompany] countries: HARDCODED fallback'), [
         { code2: 'EC', code3: 'ECU', name: 'Ecuador' },
       ]);
@@ -162,8 +163,8 @@ export const setupCompany = onCall(async (request) => {
     ...companyDataToSave,
     subscriptionStart: now,
     subscriptionEnd: data.subscriptionEnd
-      ? admin.firestore.Timestamp.fromDate(new Date(data.subscriptionEnd))
-      : admin.firestore.Timestamp.fromMillis(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      ? Timestamp.fromDate(new Date(data.subscriptionEnd))
+      : Timestamp.fromMillis(Date.now() + 30 * 24 * 60 * 60 * 1000),
     createdAt: now,
     updatedAt: now
   });
@@ -202,7 +203,7 @@ export const setupCompany = onCall(async (request) => {
 
   // ── Tax rates ──────────────────────────────────────────────────────────────
   for (const tax of taxRates) {
-    const ref = db.collection(`companies/${companyId}/tax-rates`).doc();
+    const ref = db.collection(`companies/${companyId}/taxRates`).doc();
     batch.set(ref, {
       code:      tax['code'],
       name:      tax['name'],
@@ -217,7 +218,7 @@ export const setupCompany = onCall(async (request) => {
 
   // ── Payment terms ──────────────────────────────────────────────────────────
   for (const term of paymentTerms) {
-    const ref = db.collection(`companies/${companyId}/payment-terms`).doc();
+    const ref = db.collection(`companies/${companyId}/paymentTerms`).doc();
     batch.set(ref, {
       code: term['code'],
       name: term['name'],
@@ -230,7 +231,7 @@ export const setupCompany = onCall(async (request) => {
 
   // ── Document series ────────────────────────────────────────────────────────
   for (const s of documentSeries) {
-    const ref = db.collection(`companies/${companyId}/document-series`).doc();
+    const ref = db.collection(`companies/${companyId}/documentSeries`).doc();
     batch.set(ref, {
       code:         s['code'],
       name:         s['name'],

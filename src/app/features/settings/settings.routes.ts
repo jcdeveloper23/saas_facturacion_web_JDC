@@ -48,6 +48,12 @@ export const SETTINGS_ROUTES: Routes = [
         loadComponent: () =>
           import('./pages/countries/countries.component').then(m => m.CountriesComponent),
         data: { title: 'Países' }
+      },
+      {
+        path: 'form-config',
+        loadComponent: () =>
+          import('./pages/form-config/settings-form-config.component').then(m => m.SettingsFormConfigComponent),
+        data: { title: 'Opciones de Formularios' }
       }
     ]
   }

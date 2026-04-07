@@ -6,9 +6,12 @@ import {
   ButtonDirective, SpinnerComponent, RowComponent, ColComponent,
   ModalComponent, ModalHeaderComponent, ModalBodyComponent, ModalFooterComponent,
   ModalTitleDirective, ButtonCloseDirective,
-  FormLabelDirective, FormControlDirective, AlertComponent
+  FormLabelDirective, FormControlDirective, AlertComponent,
+  CalloutComponent, InputGroupComponent, InputGroupTextDirective,
+  FormCheckComponent, FormCheckInputDirective, FormCheckLabelDirective
 } from '@coreui/angular';
-import { IconDirective } from '@coreui/icons-angular';
+import { IconDirective, IconSetService } from '@coreui/icons-angular';
+import { iconSubset } from '../../../../icons/icon-subset';
 import { SettingsService } from '../../services/settings.service';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { Currency, CurrencyFormData } from '../../models/settings.interfaces';
@@ -23,13 +26,16 @@ import { Currency, CurrencyFormData } from '../../models/settings.interfaces';
     ButtonDirective, SpinnerComponent, RowComponent, ColComponent,
     ModalComponent, ModalHeaderComponent, ModalBodyComponent, ModalFooterComponent,
     ModalTitleDirective, ButtonCloseDirective,
-    FormLabelDirective, FormControlDirective, AlertComponent, IconDirective
+    FormLabelDirective, FormControlDirective, AlertComponent, IconDirective,
+    CalloutComponent, InputGroupComponent, InputGroupTextDirective,
+    FormCheckComponent, FormCheckInputDirective, FormCheckLabelDirective
   ]
 })
 export class CurrenciesComponent implements OnInit {
   private svc = inject(SettingsService);
   private notifications = inject(NotificationService);
   private fb = inject(FormBuilder);
+  private iconSet = inject(IconSetService);
 
   currencies = signal<Currency[]>([]);
   loading = signal(true);
@@ -39,6 +45,10 @@ export class CurrenciesComponent implements OnInit {
   errorMessage = signal('');
   searchTerm = signal('');
 
+  constructor() {
+    this.iconSet.icons = { ...iconSubset };
+  }
+
   form = this.fb.group({
     code:     ['', [Validators.required, Validators.maxLength(10)]],
     name:     ['', Validators.required],
@@ -46,7 +56,8 @@ export class CurrenciesComponent implements OnInit {
     isoCode:  ['', Validators.required],
     buyRate:  [1, [Validators.required, Validators.min(0)]],
     sellRate: [1, [Validators.required, Validators.min(0)]],
-    isDefault: [false]
+    isDefault: [false],
+    isActive:  [true]
   });
 
   get filtered(): Currency[] {
@@ -99,7 +110,8 @@ export class CurrenciesComponent implements OnInit {
         isoCode: v.isoCode!,
         buyRate: Number(v.buyRate),
         sellRate: Number(v.sellRate),
-        isDefault: !!v.isDefault
+        isDefault: !!v.isDefault,
+        isActive: !!v.isActive
       };
       const id = this.editingId();
       if (id) {
@@ -125,6 +137,15 @@ export class CurrenciesComponent implements OnInit {
       this.notifications.success('Divisa eliminada');
     } catch {
       this.notifications.error('Error al eliminar');
+    }
+  }
+
+  async toggleActive(item: Currency): Promise<void> {
+    try {
+      await this.svc.updateCurrency(item.id, { isActive: !item.isActive });
+      this.notifications.success('Estado actualizado');
+    } catch {
+      this.notifications.error('Error al actualizar estado');
     }
   }
 

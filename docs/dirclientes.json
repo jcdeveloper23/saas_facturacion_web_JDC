@@ -1,0 +1,18 @@
+[
+{"type":"header","version":"5.2.1","comment":"Export to JSON plugin for PHPMyAdmin"},
+{"type":"database","name":"system-pro-optica"},
+{"type":"table","name":"dirclientes","database":"system-pro-optica","data":
+[
+{"codcliente":"000001","codpais":"ECU","apartado":"","idprovincia":null,"provincia":"Azuay","ciudad":"Cuenca","codpostal":"","direccion":"","domenvio":"1","domfacturacion":"1","descripcion":"Principal","id":"1","fecha":"2025-03-02"},
+{"codcliente":"000002","codpais":"ECU","apartado":"","idprovincia":null,"provincia":"Azuay","ciudad":"Cuenca","codpostal":"","direccion":"","domenvio":"1","domfacturacion":"1","descripcion":"Principal","id":"2","fecha":"2025-03-07"},
+{"codcliente":"000615","codpais":"ECU","apartado":"","idprovincia":null,"provincia":"Azuay","ciudad":"Cuenca","codpostal":"010701","direccion":"C\/","domenvio":"1","domfacturacion":"1","descripcion":"Principal","id":"3","fecha":"2025-09-20"},
+{"codcliente":"000834","codpais":"ECU","apartado":"","idprovincia":null,"provincia":"","ciudad":"","codpostal":"","direccion":"","domenvio":"1","domfacturacion":"1","descripcion":"Principal","id":"4","fecha":"2025-09-20"},
+{"codcliente":"001100","codpais":"ECU","apartado":"","idprovincia":null,"provincia":"La Rioja","ciudad":"Murcia","codpostal":"45306","direccion":"Calle Del Pacífico, 31","domenvio":"0","domfacturacion":"0","descripcion":"Dirección #2","id":"5","fecha":"2026-03-31"},
+{"codcliente":"001100","codpais":"ECU","apartado":"","idprovincia":null,"provincia":"Melilla","ciudad":"Tarragona","codpostal":"76384","direccion":"Polígono Rue, 92","domenvio":"0","domfacturacion":"1","descripcion":"Dirección #1","id":"6","fecha":"2026-03-31"},
+{"codcliente":"001103","codpais":"BWA","apartado":"","idprovincia":null,"provincia":"Melilla","ciudad":"Melilla","codpostal":"96095","direccion":"Avenida Bañez, 72","domenvio":"0","domfacturacion":"0","descripcion":"Dirección #2","id":"7","fecha":"2026-03-31"},
+{"codcliente":"001103","codpais":"ECU","apartado":"12342","idprovincia":null,"provincia":"Segovia","ciudad":"Pontevedra","codpostal":"67290","direccion":"Polígono d&#39;Ambrosio, 20","domenvio":"1","domfacturacion":"1","descripcion":"Dirección #1","id":"8","fecha":"2026-03-31"},
+{"codcliente":"001104","codpais":"ECU","apartado":"","idprovincia":null,"provincia":"Vizcaya","ciudad":"Almería","codpostal":"24305","direccion":"Polígono Infante, 51","domenvio":"0","domfacturacion":"0","descripcion":"Dirección #2","id":"9","fecha":"2026-03-31"},
+{"codcliente":"001104","codpais":"BWA","apartado":"","idprovincia":null,"provincia":"Soria","ciudad":"La Rioja","codpostal":"86386","direccion":"Polígono Principal, 27","domenvio":"1","domfacturacion":"1","descripcion":"Dirección #1","id":"10","fecha":"2026-03-31"}
+]
+}
+]

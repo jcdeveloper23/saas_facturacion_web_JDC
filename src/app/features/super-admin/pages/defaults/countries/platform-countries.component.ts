@@ -7,9 +7,11 @@ import {
   ButtonDirective, SpinnerComponent, RowComponent, ColComponent,
   ModalComponent, ModalHeaderComponent, ModalBodyComponent, ModalFooterComponent,
   ModalTitleDirective, ButtonCloseDirective,
-  FormLabelDirective, FormControlDirective, AlertComponent
+  FormLabelDirective, FormControlDirective, AlertComponent,
+  FormCheckComponent, FormCheckInputDirective, FormCheckLabelDirective
 } from '@coreui/angular';
-import { IconDirective } from '@coreui/icons-angular';
+import { IconDirective, IconSetService } from '@coreui/icons-angular';
+import { iconSubset } from '../../../../../icons/icon-subset';
 import { PlatformDefaultsService } from '../../../services/platform-defaults.service';
 import { NotificationService } from '../../../../../core/services/notification.service';
 import { DefaultCountry } from '../../../models/platform-defaults.interface';
@@ -24,13 +26,15 @@ import { DefaultCountry } from '../../../models/platform-defaults.interface';
     ButtonDirective, SpinnerComponent, RowComponent, ColComponent,
     ModalComponent, ModalHeaderComponent, ModalBodyComponent, ModalFooterComponent,
     ModalTitleDirective, ButtonCloseDirective,
-    FormLabelDirective, FormControlDirective, AlertComponent, IconDirective
+    FormLabelDirective, FormControlDirective, AlertComponent, IconDirective,
+    FormCheckComponent, FormCheckInputDirective, FormCheckLabelDirective
   ]
 })
 export class PlatformCountriesComponent implements OnInit, OnDestroy {
   private svc = inject(PlatformDefaultsService);
   private notifications = inject(NotificationService);
   private fb = inject(FormBuilder);
+  private iconSet = inject(IconSetService);
   private subs = new Subscription();
 
   countries = signal<DefaultCountry[]>([]);
@@ -40,6 +44,10 @@ export class PlatformCountriesComponent implements OnInit, OnDestroy {
   editingId = signal<string | null>(null);
   errorMessage = signal('');
   searchTerm = signal('');
+
+  constructor() {
+    this.iconSet.icons = { ...iconSubset };
+  }
 
   form = this.fb.group({
     code2: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(3)]],
@@ -125,6 +133,14 @@ export class PlatformCountriesComponent implements OnInit, OnDestroy {
       this.notifications.success('País eliminado');
     } catch {
       this.notifications.error('Error al eliminar');
+    }
+  }
+
+  async toggleActive(item: DefaultCountry): Promise<void> {
+    try {
+      await this.svc.updateCountry(item.id, { isActive: !item.isActive });
+    } catch {
+      this.notifications.error('Error al actualizar estado');
     }
   }
 
