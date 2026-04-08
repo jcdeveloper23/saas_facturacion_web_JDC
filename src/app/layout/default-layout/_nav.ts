@@ -24,12 +24,12 @@ export const navItems: INavData[] = [
     iconComponent: { name: 'cil-speedometer' },
     attributes: { module: 'dashboard' }
   },
-  // {
-  //   name: 'Facturas',
-  //   url: '/invoices',
-  //   iconComponent: { name: 'cil-description' },
-  //   attributes: { module: 'invoices', roles: ['admin', 'seller', 'cashier'] }
-  // },
+  {
+    name: 'Facturas',
+    url: '/invoices',
+    iconComponent: { name: 'cil-description' },
+    attributes: { module: 'invoices', roles: ['admin', 'seller', 'cashier'] }
+  },
   // {
   //   name: 'Punto de Venta',
   //   url: '/pos',

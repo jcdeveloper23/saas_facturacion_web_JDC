@@ -66,11 +66,12 @@ export const routes: Routes = [
       },
 
       // ── Invoices ───────────────────────────────────────────────────────
-      // {
-      //   path: 'invoices',
-      //   loadChildren: () => import('./features/invoices/invoices.routes').then(m => m.INVOICES_ROUTES),
-      //   data: { title: 'Invoices' }
-      // },
+      {
+        path: 'invoices',
+        canActivate: [roleGuard],
+        data: { roles: ['admin', 'seller'], title: 'Facturas de Venta' },
+        loadChildren: () => import('./features/invoices/invoices.routes').then(m => m.INVOICES_ROUTES)
+      },
 
       // ── Quotes ─────────────────────────────────────────────────────────
       // {

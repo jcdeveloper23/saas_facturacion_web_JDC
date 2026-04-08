@@ -1,0 +1,432 @@
+<!-- ── Alerta de huecos de numeración ─────────────────────────────────────── -->
+@if (gaps().length > 0) {
+  <div class="gaps-alert">
+    <svg cIcon name="cilWarning" size="sm"></svg>
+    <span>Hay <strong>{{ gaps().length }}</strong> hueco{{ gaps().length !== 1 ? 's' : '' }} en la numeración de facturas.</span>
+    <button cButton color="warning" variant="ghost" size="sm" class="ms-auto py-0 px-2" (click)="showGapsModal.set(true)">
+      Ver detalle
+    </button>
+  </div>
+}
+
+<!-- ── Cabecera ─────────────────────────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-start mb-3">
+  <div>
+    <h4 class="mb-1">Facturas de Venta</h4>
+    <div class="stat-strip">
+      <button class="stat-pill" [class.stat-pill--active]="statusFilter() === null"
+              (click)="setStatusFilter(null)">
+        Todas <span class="count">{{ counts().total }}</span>
+      </button>
+      <button class="stat-pill" [class.stat-pill--active]="statusFilter() === 'issued'"
+              (click)="setStatusFilter('issued')">
+        Emitidas <span class="count">{{ counts().issued }}</span>
+      </button>
+      <button class="stat-pill" [class.stat-pill--active]="statusFilter() === 'paid'"
+              (click)="setStatusFilter('paid')">
+        Pagadas <span class="count">{{ counts().paid }}</span>
+      </button>
+      <button class="stat-pill" [class.stat-pill--active]="statusFilter() === 'draft'"
+              (click)="setStatusFilter('draft')">
+        Borradores <span class="count">{{ counts().draft }}</span>
+      </button>
+      @if (counts().void > 0) {
+        <button class="stat-pill" [class.stat-pill--active]="statusFilter() === 'void'"
+                (click)="setStatusFilter('void')">
+          Anuladas <span class="count">{{ counts().void }}</span>
+        </button>
+      }
+      @if (counts().credit_note > 0) {
+        <button class="stat-pill" [class.stat-pill--active]="statusFilter() === 'credit_note'"
+                (click)="setStatusFilter('credit_note')">
+          N. Crédito <span class="count">{{ counts().credit_note }}</span>
+        </button>
+      }
+    </div>
+  </div>
+  <div class="d-flex gap-2 align-items-center">
+    <button cButton color="secondary" variant="outline" size="sm"
+            cTooltip="Buscar en líneas de factura"
+            (click)="showLineSearch.set(true)">
+      <svg cIcon name="cilSearch" size="sm" class="me-1"></svg>
+      Buscar líneas
+    </button>
+    <button cButton color="primary" size="sm" (click)="openNew()">
+      <svg cIcon name="cilPlus" class="me-1"></svg>
+      Nueva Factura
+    </button>
+  </div>
+</div>
+
+<!-- ── Filtros ─────────────────────────────────────────────────────────────── -->
+<c-card class="border shadow-none mb-3">
+  <c-card-body class="py-2 px-3">
+    <div class="d-flex gap-2 align-items-center flex-wrap">
+
+      <c-input-group class="search-input flex-grow-1">
+        <span cInputGroupText class="bg-transparent border-end-0">
+          <svg cIcon name="cilSearch" size="sm"></svg>
+        </span>
+        <input cFormControl class="border-start-0 ps-0"
+               placeholder="Número, cliente, RUC/CI, observaciones..."
+               [value]="searchTerm()"
+               (input)="searchTerm.set($any($event.target).value)">
+        @if (searchTerm()) {
+          <button cButton color="secondary" variant="ghost" class="border-start-0"
+                  (click)="searchTerm.set('')">
+            <svg cIcon name="cilX" size="sm"></svg>
+          </button>
+        }
+      </c-input-group>
+
+      <select cSelect class="year-select"
+              [value]="yearFilter()"
+              (change)="changeYear($any($event.target).value)">
+        @for (y of years; track y) {
+          <option [value]="y">{{ y }}</option>
+        }
+      </select>
+
+      <button cButton [color]="showAdvancedFilters() || hasActiveFilters() ? 'primary' : 'secondary'"
+              [variant]="hasActiveFilters() ? undefined : 'outline'"
+              size="sm"
+              (click)="showAdvancedFilters.set(!showAdvancedFilters())">
+        <svg cIcon name="cilOptions" size="sm" class="me-1"></svg>
+        Filtros
+        @if (hasActiveFilters()) { <span class="ms-1 badge bg-white text-primary">•</span> }
+      </button>
+
+      @if (hasActiveFilters()) {
+        <button cButton color="secondary" variant="ghost" size="sm"
+                cTooltip="Limpiar filtros"
+                (click)="clearFilters()">
+          <svg cIcon name="cilX" size="sm"></svg>
+        </button>
+      }
+    </div>
+
+    <!-- Filtros avanzados -->
+    @if (showAdvancedFilters()) {
+      <div class="adv-filters">
+        <div class="row g-2">
+          <div class="col-sm-3">
+            <label class="form-label mb-1" style="font-size:.75rem">Serie</label>
+            <select cSelect [value]="seriesFilter()"
+                    (change)="seriesFilter.set($any($event.target).value)">
+              <option value="">Todas las series</option>
+              @for (s of series(); track s.id) {
+                <option [value]="s.code">{{ s.name }} ({{ s.establishment }}-{{ s.emissionPoint }})</option>
+              }
+            </select>
+          </div>
+          <div class="col-sm-3">
+            <label class="form-label mb-1" style="font-size:.75rem">Desde</label>
+            <input cFormControl type="date"
+                   [value]="dateFrom()"
+                   (change)="dateFrom.set($any($event.target).value)">
+          </div>
+          <div class="col-sm-3">
+            <label class="form-label mb-1" style="font-size:.75rem">Hasta</label>
+            <input cFormControl type="date"
+                   [value]="dateTo()"
+                   (change)="dateTo.set($any($event.target).value)">
+          </div>
+        </div>
+      </div>
+    }
+  </c-card-body>
+</c-card>
+
+<!-- ── Tabla ──────────────────────────────────────────────────────────────── -->
+<c-card class="border shadow-none overflow-hidden">
+  <c-card-body class="p-0">
+
+    @if (loading()) {
+      <div class="text-center py-5"><c-spinner color="primary"></c-spinner></div>
+
+    } @else if (filtered().length === 0) {
+      <div class="text-center py-5">
+        <svg cIcon name="cilDescription" size="3xl" class="text-muted mb-3 opacity-25"></svg>
+        <p class="text-muted mb-2">
+          {{ searchTerm() || hasActiveFilters()
+              ? 'Sin resultados con los filtros aplicados'
+              : 'No hay facturas en ' + yearFilter() }}
+        </p>
+        @if (!searchTerm() && !hasActiveFilters()) {
+          <button cButton color="primary" size="sm" (click)="openNew()">
+            <svg cIcon name="cilPlus" class="me-1"></svg>
+            Crear Factura
+          </button>
+        }
+      </div>
+
+    } @else {
+      <div class="table-responsive">
+        <table class="inv-table">
+          <thead>
+            <tr>
+              <th style="width:24px"></th>
+              <th>Número</th>
+              <th>Fecha</th>
+              <th>Vencimiento</th>
+              <th>Cliente</th>
+              <th>RUC / CI</th>
+              <th>Observaciones</th>
+              <th style="text-align:right">Neto</th>
+              <th style="text-align:right">IVA</th>
+              <th style="text-align:right">Total</th>
+              <th>Estado</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (inv of filtered(); track trackById($index, inv)) {
+              <tr [class.row-void]="inv.isVoid" (click)="openEdit(inv)">
+
+                <!-- Indicadores visuales (columna de íconos) -->
+                <td (click)="$event.stopPropagation()">
+                  <div class="row-indicators">
+                    @if (inv.isPaid) {
+                      <span class="row-ind row-ind--paid" title="Pagada">
+                        <svg cIcon name="cilCheckCircle" size="sm"></svg>
+                      </span>
+                    }
+                    @if (inv.isVoid) {
+                      <span class="row-ind row-ind--void" title="Anulada">
+                        <svg cIcon name="cilBan" size="sm"></svg>
+                      </span>
+                    }
+                    @if (inv.isCreditNote) {
+                      <span class="row-ind row-ind--cn" title="Nota de crédito de {{ inv.rectifiedInvoiceNumber }}">
+                        <svg cIcon name="cilReload" size="sm"></svg>
+                      </span>
+                    }
+                    @if (isOverdue(inv)) {
+                      <span class="row-ind row-ind--overdue" title="Vencida">
+                        <svg cIcon name="cilClock" size="sm"></svg>
+                      </span>
+                    }
+                  </div>
+                </td>
+
+                <!-- Número de factura -->
+                <td>
+                  <div class="inv-num">{{ inv.fullNumber }}</div>
+                  @if (inv.isCreditNote && inv.rectifiedInvoiceNumber) {
+                    <div class="inv-sub">N/C → {{ inv.rectifiedInvoiceNumber }}</div>
+                  }
+                  @if (inv.customerReference) {
+                    <div class="inv-sub">Ref: {{ inv.customerReference }}</div>
+                  }
+                </td>
+
+                <!-- Fecha de emisión -->
+                <td>
+                  <div style="font-size:.82rem">{{ formatDate(inv.date) }}</div>
+                </td>
+
+                <!-- Vencimiento con color -->
+                <td>
+                  @if (inv.dueDate) {
+                    <div [class]="dueDateClass(inv)" style="font-size:.82rem">
+                      {{ formatDate(inv.dueDate) }}
+                    </div>
+                  } @else {
+                    <span class="inv-sub">—</span>
+                  }
+                </td>
+
+                <!-- Cliente -->
+                <td>
+                  <div style="font-size:.83rem; font-weight:500">{{ inv.customerName }}</div>
+                  @if (!inv.customerTaxId) {
+                    <span class="badge bg-warning text-dark" style="font-size:.65rem">Sin RUC/CI</span>
+                  }
+                </td>
+
+                <!-- RUC / CI -->
+                <td><div class="inv-sub">{{ inv.customerTaxId || '—' }}</div></td>
+
+                <!-- Observaciones (resumen) -->
+                <td>
+                  @if (inv.notes) {
+                    <div class="notes-cell" [title]="inv.notes">{{ inv.notes }}</div>
+                  } @else {
+                    <span class="inv-sub">—</span>
+                  }
+                </td>
+
+                <!-- Montos -->
+                <td><div class="inv-amt">{{ inv.netAmount | number:'1.2-2' }}</div></td>
+                <td><div class="inv-amt">{{ inv.vatAmount | number:'1.2-2' }}</div></td>
+                <td>
+                  <div class="inv-amt inv-amt--total">{{ inv.total | number:'1.2-2' }}</div>
+                  @if (inv.currency && inv.currency !== 'USD') {
+                    <div class="inv-sub">{{ inv.currency }}</div>
+                  }
+                </td>
+
+                <!-- Estado -->
+                <td>
+                  <c-badge [color]="STATUS_COLORS[inv.status]" shape="rounded-pill">
+                    {{ STATUS_LABELS[inv.status] }}
+                  </c-badge>
+                </td>
+
+                <!-- Acciones rápidas -->
+                <td>
+                  <div class="d-flex gap-1" (click)="$event.stopPropagation()">
+                    @if (inv.status === 'issued') {
+                      <button cButton color="success" variant="ghost" size="sm"
+                              cTooltip="Marcar pagada"
+                              (click)="markPaid(inv, $event)">
+                        <svg cIcon name="cilCheckCircle" size="sm"></svg>
+                      </button>
+                    }
+                    @if (inv.status !== 'void' && inv.status !== 'draft') {
+                      <button cButton color="danger" variant="ghost" size="sm"
+                              cTooltip="Anular"
+                              (click)="markVoid(inv, $event)">
+                        <svg cIcon name="cilBan" size="sm"></svg>
+                      </button>
+                    }
+                    @if (inv.status === 'draft') {
+                      <button cButton color="danger" variant="ghost" size="sm"
+                              cTooltip="Eliminar borrador"
+                              (click)="deleteInvoice(inv, $event)">
+                        <svg cIcon name="cilTrash" size="sm"></svg>
+                      </button>
+                    }
+                  </div>
+                </td>
+
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pie de tabla con totales desglosados -->
+      <div class="table-footer d-flex justify-content-between align-items-center">
+        <span>{{ filtered().length }} factura{{ filtered().length !== 1 ? 's' : '' }}
+          @if (hasActiveFilters() || statusFilter() || searchTerm()) {
+            <span class="ms-1 text-muted">(filtrado)</span>
+          }
+        </span>
+        <div class="table-footer-totals">
+          <span>Neto: <span class="table-footer-total">{{ totalNet() | number:'1.2-2' }} USD</span></span>
+          <span>IVA: <span class="table-footer-total">{{ totalVat() | number:'1.2-2' }} USD</span></span>
+          <span>Total: <span class="table-footer-total" style="color:var(--cui-primary)">{{ totalAmount() | number:'1.2-2' }} USD</span></span>
+        </div>
+      </div>
+    }
+
+  </c-card-body>
+</c-card>
+
+
+<!-- ═══ Modal: Buscar en líneas ══════════════════════════════════════════════ -->
+@if (showLineSearch()) {
+  <div class="modal-backdrop-custom" (click)="showLineSearch.set(false); lineSearchTerm.set('')"></div>
+  <div class="modal-custom" style="width:min(680px,96vw)">
+    <div class="modal-custom__header">
+      <span class="modal-custom__title">
+        <svg cIcon name="cilSearch" size="sm" class="me-2"></svg>
+        Buscar en líneas de facturas
+      </span>
+      <button type="button" class="btn-close" (click)="showLineSearch.set(false); lineSearchTerm.set('')"></button>
+    </div>
+    <div class="modal-custom__body" style="padding-bottom:.5rem">
+      <c-input-group>
+        <span cInputGroupText class="bg-transparent border-end-0">
+          <svg cIcon name="cilSearch" size="sm"></svg>
+        </span>
+        <input cFormControl class="border-start-0 ps-0" autofocus
+               placeholder="Descripción o SKU del producto..."
+               [value]="lineSearchTerm()"
+               (input)="lineSearchTerm.set($any($event.target).value)">
+      </c-input-group>
+    </div>
+
+    <div style="max-height:380px; overflow-y:auto">
+      @if (lineSearchTerm().length >= 2 && lineResults().length === 0) {
+        <div class="text-center py-4 text-muted" style="font-size:.82rem">Sin resultados</div>
+      }
+      @for (match of lineResults(); track match.invoice.id) {
+        <div class="line-result-row" (click)="openEdit(match.invoice); showLineSearch.set(false); lineSearchTerm.set('')">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <span class="line-result-inv">{{ match.invoice.fullNumber }}</span>
+              <span class="ms-2 line-result-detail">{{ match.invoice.customerName }}</span>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              <c-badge [color]="STATUS_COLORS[match.invoice.status]" shape="rounded-pill">
+                {{ STATUS_LABELS[match.invoice.status] }}
+              </c-badge>
+              <span class="line-result-detail">{{ formatDate(match.invoice.date) }}</span>
+            </div>
+          </div>
+          <div class="line-result-detail mt-1">
+            <strong>{{ match.lineDesc }}</strong>
+            @if (match.lineSku) { · SKU: {{ match.lineSku }} }
+          </div>
+        </div>
+      }
+      @if (lineSearchTerm().length < 2) {
+        <div class="text-center py-4 text-muted" style="font-size:.82rem">
+          Ingresa al menos 2 caracteres para buscar
+        </div>
+      }
+    </div>
+
+    @if (lineResults().length > 0) {
+      <div style="padding:.4rem .75rem; font-size:.72rem; color:var(--cui-secondary-color); border-top:1px solid var(--cui-border-color)">
+        {{ lineResults().length }} resultado{{ lineResults().length !== 1 ? 's' : '' }}
+        @if (lineResults().length >= 60) { (máx. 60 mostrados) }
+      </div>
+    }
+  </div>
+}
+
+
+<!-- ═══ Modal: Huecos de numeración ══════════════════════════════════════════ -->
+@if (showGapsModal()) {
+  <div class="modal-backdrop-custom" (click)="showGapsModal.set(false)"></div>
+  <div class="modal-custom" style="width:min(480px,96vw)">
+    <div class="modal-custom__header">
+      <span class="modal-custom__title">
+        <svg cIcon name="cilWarning" size="sm" class="me-2" style="color:var(--cui-warning)"></svg>
+        Huecos en la numeración
+      </span>
+      <button type="button" class="btn-close" (click)="showGapsModal.set(false)"></button>
+    </div>
+    <div class="modal-custom__body" style="padding-bottom:.5rem">
+      <p class="text-muted mb-3" style="font-size:.82rem">
+        Los siguientes números de factura no están registrados. Esto puede indicar facturas eliminadas o un error en la secuencia.
+      </p>
+      <div style="max-height:320px; overflow-y:auto">
+        <table class="inv-table">
+          <thead>
+            <tr>
+              <th>Serie</th>
+              <th style="text-align:right">Número faltante</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (gap of gaps(); track gap.seriesCode + '-' + gap.number) {
+              <tr>
+                <td><span class="inv-sub">{{ gap.seriesCode }}</span></td>
+                <td style="text-align:right"><span class="inv-num">{{ gap.number }}</span></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-custom__footer">
+      <button cButton color="secondary" variant="outline" size="sm" (click)="showGapsModal.set(false)">
+        Cerrar
+      </button>
+    </div>
+  </div>
+}

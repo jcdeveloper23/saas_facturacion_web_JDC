@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import {
-  Firestore, collection, collectionData, doc, docData,
+  Firestore, collection, collectionData, doc, docData, onSnapshot,
   addDoc, updateDoc, deleteDoc, getDocs, setDoc,
   query, where, orderBy, limit, Timestamp, writeBatch, increment
 } from '@angular/fire/firestore';
@@ -17,6 +17,20 @@ export type ProductCreateInput = Omit<Product,
   'id' | 'createdAt' | 'updatedAt' | 'averageCost' |
   'stockQty' | 'stockReserved' | 'stockAvailable'
 >;
+
+/** Payload used when a sale or purchase modifies stock levels. */
+export interface StockTransactionPayload {
+  productId:    string;
+  productSku:   string;
+  productName:  string;
+  warehouseCode: string;
+  warehouseName?: string;
+  qty: number;          // always positive; direction determined by type
+  unitCost?: number;
+  sourceDocId?: string;
+  sourceDocType?: 'invoice' | 'purchase';
+  userId: string;
+}
 export type ProductUpdateInput = Partial<Omit<Product, 'id' | 'createdAt' | 'updatedAt'>>;
 
 @Injectable({ providedIn: 'root' })
@@ -97,8 +111,13 @@ export class ProductsService {
   // ─── Stock subcollection ──────────────────────────────────────────────────
 
   getStocks(productId: string): Observable<ProductStock[]> {
-    const ref = collection(this.firestore, `${this.colPath(productId)}/stocks`);
-    return collectionData(ref) as Observable<ProductStock[]>;
+    return new Observable<ProductStock[]>(observer => {
+      const ref = collection(this.firestore, `${this.colPath(productId)}/stocks`);
+      return onSnapshot(ref, {
+        next:  snap => observer.next(snap.docs.map(d => d.data() as ProductStock)),
+        error: err  => { console.error('[getStocks] error:', err); observer.error(err); }
+      });
+    });
   }
 
   async upsertStock(productId: string, stock: ProductStock): Promise<void> {
@@ -110,43 +129,52 @@ export class ProductsService {
 
   /**
    * Manual stock adjustment — atomically updates in a single batch:
-   *   1. Stock subcollection doc (new qty, location)
-   *   2. Product aggregate fields (stockQty, stockAvailable) via increment()
+   *   1. Stock subcollection doc (new qty, available, location)
+   *   2. Product aggregate fields (stockQty, stockAvailable) as exact values
    *   3. Movement record in stock-movements collection
+   *
+   * stockAvailable is always stored as stockQty - stockReserved (never recalculated in UI).
+   * available per warehouse can be negative to expose real deficit.
    */
   async adjustStock(
-    productId:     string,
-    productSku:    string,
-    productName:   string,
-    stock:         ProductStock,
-    newQty:        number,
-    newLocation:   string,
-    reason:        string,
-    userId:        string
+    productId:       string,
+    productSku:      string,
+    productName:     string,
+    stock:           ProductStock,
+    newQty:          number,
+    newLocation:     string,
+    reason:          string,
+    userId:          string,
+    currentStockQty: number,   // product.stockQty before this adjustment
+    stockReserved:   number    // product.stockReserved (unchanged by this operation)
   ): Promise<void> {
-    const delta = newQty - stock.qty;
+    const delta           = newQty - stock.qty;
+    const newStockQty     = currentStockQty + delta;
+    const newStockAvail   = newStockQty - stockReserved;          // exact formula, stored in DB
+    const newWarehouseAvail = newQty - (stock.reserved ?? 0);     // per-warehouse, can be negative
+
     const batch = writeBatch(this.firestore);
 
-    // 1. Update stock subcollection document
+    // 1. Update stock subcollection document — available can be negative (real deficit)
     const stockRef = doc(this.firestore, `${this.colPath(productId)}/stocks/${stock.warehouseCode}`);
     batch.set(stockRef, {
       ...stock,
       qty:            newQty,
-      available:      Math.max(0, newQty - (stock.reserved ?? 0)),
+      available:      newWarehouseAvail,
       location:       newLocation,
       lastUpdatedAt:  Timestamp.now(),
       lastUpdatedQty: stock.qty
     });
 
-    // 2. Update product aggregate stockQty / stockAvailable atomically
+    // 2. Persist exact aggregate values — never recomputed in the UI
     const productRef = doc(this.firestore, this.colPath(productId));
     batch.update(productRef, {
-      stockQty:       increment(delta),
-      stockAvailable: increment(delta),
+      stockQty:       newStockQty,
+      stockAvailable: newStockAvail,
       updatedAt:      Timestamp.now()
     });
 
-    // 3. Write movement record
+    // 3. Write movement record (admin client write; rules allow isAdmin)
     const movRef = doc(collection(this.firestore, `companies/${this.companyId}/stock-movements`));
     batch.set(movRef, {
       type:           'adjustment' as StockMovementType,
@@ -167,13 +195,158 @@ export class ProductsService {
     await batch.commit();
   }
 
+  /**
+   * Records a stock exit due to a sale (invoice).
+   * Decrements stockQty (stockFis) and stockAvailable atomically.
+   * stockReserved is decremented if items were previously reserved.
+   */
+  async recordSale(payload: StockTransactionPayload, stockReservedWas: boolean = false): Promise<void> {
+    const stockSnap = await getDocs(
+      query(collection(this.firestore, `${this.colPath(payload.productId)}/stocks`),
+        where('warehouseCode', '==', payload.warehouseCode))
+    );
+    const currentWh: ProductStock | null = stockSnap.empty
+      ? null
+      : (stockSnap.docs[0].data() as ProductStock);
+
+    const batch      = writeBatch(this.firestore);
+    const delta      = -payload.qty;   // exit → negative
+    const resDecrement = stockReservedWas ? payload.qty : 0;
+
+    // 1. Update warehouse stock
+    if (currentWh) {
+      const stockRef = doc(this.firestore, `${this.colPath(payload.productId)}/stocks/${payload.warehouseCode}`);
+      batch.update(stockRef, {
+        qty:           increment(delta),
+        available:     increment(delta + resDecrement),  // delta already negative; release reservation
+        reserved:      increment(-resDecrement),
+        lastUpdatedAt: Timestamp.now(),
+        lastUpdatedQty: currentWh.qty
+      });
+    }
+
+    // 2. Update product aggregate — stockAvailable accounts for released reservation
+    const productRef = doc(this.firestore, this.colPath(payload.productId));
+    batch.update(productRef, {
+      stockQty:       increment(delta),
+      stockReserved:  increment(-resDecrement),
+      stockAvailable: increment(delta + resDecrement),
+      updatedAt:      Timestamp.now()
+    });
+
+    // 3. Write movement
+    const movRef = doc(collection(this.firestore, `companies/${this.companyId}/stock-movements`));
+    batch.set(movRef, {
+      type:           'sale' as StockMovementType,
+      productId:      payload.productId,
+      productSku:     payload.productSku,
+      productName:    payload.productName,
+      warehouseCode:  payload.warehouseCode,
+      warehouseName:  payload.warehouseName ?? '',
+      qtyBefore:      currentWh?.qty ?? 0,
+      qtyAfter:       (currentWh?.qty ?? 0) + delta,
+      qtyDelta:       delta,
+      unitCost:       payload.unitCost,
+      sourceDocId:    payload.sourceDocId,
+      sourceDocType:  'invoice',
+      userId:         payload.userId,
+      createdAt:      Timestamp.now()
+    } as Omit<StockMovement, 'id'>);
+
+    await batch.commit();
+  }
+
+  /**
+   * Records a stock entry due to a purchase order receipt.
+   * Increments stockQty (stockFis) and stockAvailable atomically.
+   * Updates averageCost (weighted average) when unitCost is provided.
+   */
+  async recordPurchase(payload: StockTransactionPayload, currentStockQty: number, currentAvgCost: number): Promise<void> {
+    const stockSnap = await getDocs(
+      query(collection(this.firestore, `${this.colPath(payload.productId)}/stocks`),
+        where('warehouseCode', '==', payload.warehouseCode))
+    );
+    const currentWh: ProductStock | null = stockSnap.empty
+      ? null
+      : (stockSnap.docs[0].data() as ProductStock);
+
+    const batch = writeBatch(this.firestore);
+    const delta = payload.qty;   // entry → positive
+
+    // Weighted average cost: (currentQty * currentAvgCost + incomingQty * unitCost) / newTotalQty
+    const newTotalQty = currentStockQty + delta;
+    const newAvgCost  = payload.unitCost != null && newTotalQty > 0
+      ? Math.round(((currentStockQty * currentAvgCost) + (delta * payload.unitCost)) / newTotalQty * 10000) / 10000
+      : currentAvgCost;
+
+    // 1. Update warehouse stock
+    if (currentWh) {
+      const stockRef = doc(this.firestore, `${this.colPath(payload.productId)}/stocks/${payload.warehouseCode}`);
+      batch.update(stockRef, {
+        qty:           increment(delta),
+        available:     increment(delta),
+        lastUpdatedAt: Timestamp.now(),
+        lastUpdatedQty: currentWh.qty
+      });
+    } else {
+      const stockRef = doc(this.firestore, `${this.colPath(payload.productId)}/stocks/${payload.warehouseCode}`);
+      batch.set(stockRef, {
+        warehouseCode:  payload.warehouseCode,
+        warehouseName:  payload.warehouseName ?? '',
+        qty:            delta,
+        available:      delta,
+        reserved:       0,
+        pendingReceive: 0,
+        stockMin:       0,
+        stockMax:       0,
+        lastUpdatedAt:  Timestamp.now(),
+        lastUpdatedQty: 0
+      } as ProductStock);
+    }
+
+    // 2. Update product aggregate + averageCost
+    const productRef = doc(this.firestore, this.colPath(payload.productId));
+    batch.update(productRef, {
+      stockQty:       increment(delta),
+      stockAvailable: increment(delta),
+      averageCost:    newAvgCost,
+      updatedAt:      Timestamp.now()
+    });
+
+    // 3. Write movement
+    const movRef = doc(collection(this.firestore, `companies/${this.companyId}/stock-movements`));
+    batch.set(movRef, {
+      type:           'purchase' as StockMovementType,
+      productId:      payload.productId,
+      productSku:     payload.productSku,
+      productName:    payload.productName,
+      warehouseCode:  payload.warehouseCode,
+      warehouseName:  payload.warehouseName ?? '',
+      qtyBefore:      currentWh?.qty ?? 0,
+      qtyAfter:       (currentWh?.qty ?? 0) + delta,
+      qtyDelta:       delta,
+      unitCost:       payload.unitCost,
+      sourceDocId:    payload.sourceDocId,
+      sourceDocType:  'purchase',
+      userId:         payload.userId,
+      createdAt:      Timestamp.now()
+    } as Omit<StockMovement, 'id'>);
+
+    await batch.commit();
+  }
+
   /** All stock movements for a product, newest first.  Pass warehouseCode to filter by warehouse. */
   getMovements(productId: string, warehouseCode?: string, maxResults = 200): Observable<StockMovement[]> {
-    const ref = collection(this.firestore, `companies/${this.companyId}/stock-movements`);
-    const constraints = warehouseCode
-      ? query(ref, where('productId', '==', productId), where('warehouseCode', '==', warehouseCode), orderBy('createdAt', 'desc'), limit(maxResults))
-      : query(ref, where('productId', '==', productId), orderBy('createdAt', 'desc'), limit(maxResults));
-    return collectionData(constraints, { idField: 'id' }) as Observable<StockMovement[]>;
+    return new Observable<StockMovement[]>(observer => {
+      const ref = collection(this.firestore, `companies/${this.companyId}/stock-movements`);
+      const q = warehouseCode
+        ? query(ref, where('productId', '==', productId), where('warehouseCode', '==', warehouseCode), orderBy('createdAt', 'desc'), limit(maxResults))
+        : query(ref, where('productId', '==', productId), orderBy('createdAt', 'desc'), limit(maxResults));
+      return onSnapshot(q, {
+        next:  snap => observer.next(snap.docs.map(d => ({ id: d.id, ...d.data() }) as StockMovement)),
+        error: err  => { console.error('[getMovements] error:', err); observer.error(err); }
+      });
+    });
   }
 
   // ─── Suppliers subcollection ──────────────────────────────────────────────

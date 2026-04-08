@@ -46,3 +46,350 @@
 .sidebar-footer {
   min-height: 2.5rem !important;
 }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SISTEMA DE DISEÑO — Tipografía minimalista
+// Principio: solo usa peso > 400 cuando la jerarquía lo exige.
+// Cualquier elemento que "grite" sin necesidad se reduce aquí.
+// ══════════════════════════════════════════════════════════════════════════════
+
+// ── Base ──────────────────────────────────────────────────────────────────────
+body {
+  font-weight: 400;
+  font-size: .875rem; // 14px — más compacto que el 16px default
+}
+
+// ── Escala de encabezados ────────────────────────────────────────────────────
+// Bootstrap defaults son demasiado grandes para un admin SaaS denso.
+h1, .h1 { font-size: 1.35rem; font-weight: 600; }
+h2, .h2 { font-size: 1.15rem; font-weight: 500; }
+h3, .h3 { font-size: 1rem;    font-weight: 500; }
+h4, .h4 { font-size: .925rem; font-weight: 500; }
+h5, .h5 { font-size: .855rem; font-weight: 500; }
+h6, .h6 { font-size: .8rem;   font-weight: 400; }
+
+// ── Utilidades Bootstrap — reasignadas ───────────────────────────────────────
+// Evita que fw-semibold y fw-bold sean excesivamente pesados
+.fw-semibold { font-weight: 500 !important; }
+.fw-bold     { font-weight: 600 !important; }
+
+// ── Variables CoreUI — sobrescritura de componentes internos ─────────────────
+// CoreUI usa variables CSS propias para pesos de tabs, nav, buttons, etc.
+// Esto es más robusto que selectores CSS porque actúa en la fuente.
+:root {
+  // Nav / Tabs
+  --cui-nav-link-font-weight:           400;
+  --cui-nav-tabs-link-active-font-weight: 500;
+
+  // Buttons — sin bold
+  --cui-btn-font-weight:                400;
+
+  // Card header
+  --cui-card-cap-font-weight:           500;
+
+  // Sidebar nav
+  --cui-sidebar-nav-link-font-weight:   400;
+  --cui-sidebar-nav-group-indicator-font-weight: 400;
+
+  // Dropdown
+  --cui-dropdown-font-weight:           400;
+  --cui-dropdown-header-font-weight:    500;
+
+  // Modal
+  --cui-modal-title-font-weight:        500;
+
+  // Breadcrumb
+  --cui-breadcrumb-font-weight:         400;
+
+  // Alert
+  --cui-alert-font-weight:              400;
+
+  // Badge
+  --cui-badge-font-weight:              500;
+
+  // Table
+  --cui-table-th-font-weight:           500;
+}
+
+// ── Formularios ───────────────────────────────────────────────────────────────
+.form-label {
+  font-size: .79rem;
+  font-weight: 400;
+  margin-bottom: .2rem;
+  color: var(--cui-secondary-color);
+}
+
+.form-control,
+.form-select {
+  font-size: .855rem;
+  font-weight: 400;
+}
+
+.form-control::placeholder,
+.form-select::placeholder { color: var(--cui-tertiary-color); }
+
+.form-check-label {
+  font-size: .855rem;
+  font-weight: 400;
+}
+
+.form-text {
+  font-size: .7rem;
+  font-weight: 400;
+  color: var(--cui-tertiary-color);
+  line-height: 1.4;
+  margin-top: .2rem;
+}
+
+// Input groups: texto del addon
+.input-group-text { font-size: .855rem; font-weight: 400; }
+
+// ── Tabla ────────────────────────────────────────────────────────────────────
+.table {
+  font-size: .845rem;
+  --cui-table-cell-padding-y: 0.4rem;
+  --cui-table-cell-padding-x: 0.6rem;
+}
+.table th { font-weight: 500; font-size: .76rem; }
+.table td { font-weight: 400; }
+
+// ── Navegación y tabs ────────────────────────────────────────────────────────
+.nav-link {
+  font-size: .845rem;
+  font-weight: 400;
+}
+// Tab activo: sutil énfasis
+.nav-tabs .nav-link.active,
+.nav-pills .nav-link.active {
+  font-weight: 500;
+}
+
+// ── Sidebar ───────────────────────────────────────────────────────────────────
+.sidebar-nav .nav-link      { font-weight: 400; font-size: .845rem; }
+.sidebar-nav .nav-group-toggle { font-weight: 400; }
+
+// ── Card ─────────────────────────────────────────────────────────────────────
+.card-header {
+  font-size: .82rem;
+  font-weight: 500;
+  padding: 0.5rem 0.75rem;
+}
+.card-body { padding: 0.75rem; }
+
+// ── Badges ───────────────────────────────────────────────────────────────────
+.badge { font-size: .7rem; font-weight: 500; }
+
+// ── Botones ───────────────────────────────────────────────────────────────────
+.btn { font-size: .845rem; font-weight: 400; }
+.btn-sm { font-size: .78rem; }
+
+// ── Dropdown ─────────────────────────────────────────────────────────────────
+.dropdown-item  { font-size: .845rem; font-weight: 400; }
+.dropdown-header{ font-size: .72rem;  font-weight: 500; text-transform: uppercase; letter-spacing: .04em; }
+
+// ── Alerts / Callouts ────────────────────────────────────────────────────────
+.alert { font-size: .845rem; font-weight: 400; }
+
+// ── Modals ────────────────────────────────────────────────────────────────────
+.modal-title { font-size: .95rem; font-weight: 500; }
+
+// ── Breadcrumb ───────────────────────────────────────────────────────────────
+.breadcrumb-item { font-size: .8rem; font-weight: 400; }
+
+// ── Invoice — Customer Chip ───────────────────────────────────────────────────
+.customer-chip {
+  display: flex;
+  align-items: flex-start;
+  gap: .6rem;
+  padding: .6rem .75rem;
+  border: 1px solid var(--cui-border-color);
+  border-radius: 6px;
+  background: var(--cui-tertiary-bg);
+
+  &__icon {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--cui-primary-bg-subtle);
+    color: var(--cui-primary);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  &__info { flex: 1; min-width: 0; }
+
+  &__name {
+    font-size: .855rem;
+    font-weight: 500;
+    color: var(--cui-body-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__meta {
+    font-size: .76rem;
+    color: var(--cui-secondary-color);
+    margin-top: .1rem;
+  }
+
+  &__contact {
+    font-size: .74rem;
+    color: var(--cui-tertiary-color);
+    margin-top: .1rem;
+    display: flex;
+    gap: .75rem;
+    flex-wrap: wrap;
+  }
+
+  &__clear {
+    background: none;
+    border: none;
+    padding: .2rem;
+    color: var(--cui-secondary-color);
+    cursor: pointer;
+    border-radius: 4px;
+    flex-shrink: 0;
+    line-height: 1;
+
+    &:hover {
+      background: var(--cui-danger-bg-subtle);
+      color: var(--cui-danger);
+    }
+  }
+}
+
+// ── Invoice — Mobile sticky total bar ────────────────────────────────────────
+.mobile-total-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: var(--cui-body-bg);
+  border-top: 1px solid var(--cui-border-color);
+  padding: .5rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  box-shadow: 0 -2px 8px rgba(0,0,0,.08);
+
+  &__amount {
+    display: flex;
+    flex-direction: column;
+    gap: .1rem;
+  }
+
+  &__label {
+    font-size: .65rem;
+    color: var(--cui-secondary-color);
+    text-transform: uppercase;
+    letter-spacing: .05em;
+  }
+
+  &__value {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--cui-primary);
+    font-family: monospace;
+  }
+}
+
+// Evitar que el contenido quede tapado por la barra en mobile
+@media (max-width: 991.98px) {
+  .invoice-form-page { padding-bottom: 4.5rem; }
+}
+
+// ── Invoice — Quick Customer Modal ───────────────────────────────────────────
+.modal-backdrop-custom {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, .45);
+  z-index: 1050;
+}
+
+.modal-custom {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1055;
+  width: min(480px, 95vw);
+  background: var(--cui-body-bg);
+  border: 1px solid var(--cui-border-color);
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, .18);
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: .75rem 1rem;
+    border-bottom: 1px solid var(--cui-border-color);
+  }
+
+  &__title {
+    font-size: .9rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+  }
+
+  &__body {
+    padding: 1rem;
+  }
+
+  &__footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: .5rem;
+    padding: .75rem 1rem;
+    border-top: 1px solid var(--cui-border-color);
+  }
+}
+
+// Customer item "crear" en dropdown
+.customer-item--create {
+  color: var(--cui-primary);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  border-top: 1px dashed var(--cui-border-color);
+  margin-top: .1rem;
+}
+
+// ── Invoice — Advanced Config details/summary ─────────────────────────────────
+.doc-advanced {
+  border: 1px dashed var(--cui-border-color);
+  border-radius: 6px;
+  padding: .3rem .5rem;
+
+  &__toggle {
+    font-size: .76rem;
+    color: var(--cui-secondary-color);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: .2rem;
+    list-style: none;
+    user-select: none;
+
+    &::-webkit-details-marker { display: none; }
+    &::before {
+      content: '▶';
+      font-size: .6rem;
+      transition: transform .15s;
+    }
+  }
+
+  &[open] &__toggle::before { transform: rotate(90deg); }
+
+  &__values {
+    margin-left: .4rem;
+    font-family: monospace;
+    font-size: .72rem;
+    background: var(--cui-tertiary-bg);
+    padding: .05rem .35rem;
+    border-radius: 3px;
+  }
+}

@@ -39,6 +39,45 @@ const CONTRACT_TYPES: { value: ContractType; label: string }[] = [
   selector: 'app-person-form',
   standalone: true,
   templateUrl: './person-form.component.html',
+  styles: [`
+    /* ── Page header ────────────────────────────────────────────── */
+    .page-header {
+      display:flex; align-items:center; justify-content:space-between;
+      margin-bottom:1rem; gap:1rem;
+    }
+    .page-header-left { display:flex; align-items:center; gap:.75rem; }
+    .page-icon {
+      width:34px; height:34px; border-radius:8px;
+      background:var(--cui-primary-bg-subtle);
+      display:flex; align-items:center; justify-content:center;
+      color:var(--cui-primary); flex-shrink:0;
+    }
+    .page-title  { font-size:.95rem; font-weight:500; margin:0; }
+    .page-sub    { font-size:.75rem; color:var(--cui-secondary-color); margin:0; }
+
+    /* ── Section headings ───────────────────────────────────────── */
+    .section-title {
+      font-size:.68rem; font-weight:500; text-transform:uppercase;
+      letter-spacing:.06em; color:var(--cui-secondary-color);
+      margin:0 0 .75rem; padding-bottom:.35rem;
+      border-bottom:1px solid var(--cui-border-color);
+    }
+
+    /* ── Role toggle buttons ────────────────────────────────────── */
+    .role-toggle {
+      display:inline-flex; align-items:center; gap:.35rem;
+      padding:.3rem .75rem; border-radius:99px; cursor:pointer;
+      font-size:.8rem; font-weight:400;
+      border:1px solid var(--cui-border-color);
+      background:transparent; color:var(--cui-secondary-color);
+      transition:all .12s;
+    }
+    .role-toggle--active-customer { background:var(--cui-primary-bg-subtle); color:var(--cui-primary); border-color:var(--cui-primary-border-subtle); }
+    .role-toggle--active-supplier { background:var(--cui-warning-bg-subtle); color:var(--cui-warning); border-color:var(--cui-warning-border-subtle); }
+    .role-toggle--active-employee { background:var(--cui-success-bg-subtle); color:var(--cui-success); border-color:var(--cui-success-border-subtle); }
+    .role-toggle--active-contact  { background:var(--cui-info-bg-subtle);    color:var(--cui-info);    border-color:var(--cui-info-border-subtle); }
+    .role-toggle--active-other    { background:var(--cui-secondary-bg);      color:var(--cui-body-color); border-color:var(--cui-border-color); }
+  `],
   imports: [
     CommonModule, ReactiveFormsModule, RouterLink,
     CardModule, ButtonModule, GridModule, BadgeModule, SpinnerModule,
@@ -242,7 +281,8 @@ export class PersonFormComponent implements OnInit {
         agentCode:           [''],
         customerGroupCode:   [''],
         documentSeriesCode:  [''],
-        accountingCode:      ['']
+        accountingCode:      [''],
+        vatIncluded:         [false]
       }),
       // ── Supplier role data ───────────────────────────────────────────────
       supplierData: this.fb.group({

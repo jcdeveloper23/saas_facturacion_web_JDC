@@ -134,7 +134,8 @@ service cloud.firestore {
 
       match /stock-movements/{id} {
         allow read: if isAuthenticated() && belongsToCompany(companyId);
-        allow write: if false; // Cloud Functions only
+        allow create: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
+        allow update, delete: if false; // immutable audit trail
       }
 
       // Default rule for all other sub-collections

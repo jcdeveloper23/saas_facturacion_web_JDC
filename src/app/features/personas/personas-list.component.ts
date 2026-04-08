@@ -25,6 +25,55 @@ import { PaymentTerm } from '../settings/models/settings.interfaces';
   selector: 'app-personas-list',
   standalone: true,
   templateUrl: './personas-list.component.html',
+  styles: [`
+    .stat-strip { display:flex; gap:.25rem; flex-wrap:wrap; }
+    .stat-pill {
+      display:inline-flex; align-items:center; gap:.3rem;
+      padding:.2rem .6rem; border-radius:99px; cursor:pointer;
+      font-size:.75rem; font-weight:400;
+      border:1px solid var(--cui-border-color);
+      color:var(--cui-secondary-color);
+      background:transparent; transition:background .12s, color .12s;
+    }
+    .stat-pill:hover { background:var(--cui-tertiary-bg); color:var(--cui-body-color); }
+    .stat-pill--active { background:var(--cui-primary-bg-subtle); color:var(--cui-primary); border-color:var(--cui-primary-border-subtle); }
+    .stat-pill .count { font-weight:600; }
+
+    .role-seg { display:flex; border-bottom:1px solid var(--cui-border-color); }
+    .role-tab {
+      padding:.35rem .9rem; font-size:.8rem; font-weight:400;
+      color:var(--cui-secondary-color); background:transparent;
+      border:none; border-bottom:2px solid transparent;
+      cursor:pointer; white-space:nowrap; transition:color .12s, border-color .12s;
+    }
+    .role-tab:hover { color:var(--cui-body-color); }
+    .role-tab--active { color:var(--cui-primary); border-bottom-color:var(--cui-primary); font-weight:500; }
+
+    .persona-table thead th {
+      font-size:.69rem; font-weight:500; text-transform:uppercase; letter-spacing:.05em;
+      color:var(--cui-tertiary-color); padding:.35rem .75rem;
+      border-bottom:1px solid var(--cui-border-color); background:var(--cui-tertiary-bg);
+    }
+    .persona-table tbody tr { cursor:pointer; }
+    .persona-table tbody tr:hover td { background:var(--cui-tertiary-bg); }
+    .persona-table tbody td { padding:.42rem .75rem; font-size:.82rem; border-bottom:1px solid var(--cui-border-color); vertical-align:middle; }
+    .persona-table tbody tr:last-child td { border-bottom:none; }
+    .persona-table tbody tr.row-inactive td { opacity:.5; }
+
+    .p-name { font-weight:500; font-size:.83rem; }
+    .p-sub  { font-size:.72rem; color:var(--cui-secondary-color); }
+    .p-code { font-family:monospace; font-size:.75rem; color:var(--cui-secondary-color);
+              background:var(--cui-secondary-bg); border:1px solid var(--cui-border-color);
+              border-radius:4px; padding:1px 5px; }
+    .p-tax  { font-family:monospace; font-size:.78rem; }
+    .p-taxtype { font-size:.65rem; color:var(--cui-tertiary-color); }
+    .p-dot  { width:7px; height:7px; border-radius:50%; display:inline-block; }
+    .p-dot--active   { background:var(--cui-success); }
+    .p-dot--inactive { background:var(--cui-secondary-color); opacity:.4; }
+
+    .table-footer { padding:.4rem .75rem; font-size:.75rem; color:var(--cui-secondary-color); border-top:1px solid var(--cui-border-color); }
+    .search-input { max-width:380px; }
+  `],
   imports: [
     CommonModule, RouterLink,
     CardModule, ButtonModule, GridModule, BadgeModule, SpinnerModule,
@@ -94,6 +143,16 @@ export class PersonasListComponent implements OnInit, OnDestroy {
     }
     // Sort client-side by name (avoids Firestore composite index requirement)
     return [...list].sort((a, b) => a.name.localeCompare(b.name, 'es'));
+  });
+
+  countByRole = computed(() => {
+    const all = this.personas().filter(p => p.isActive || this.showInactive());
+    return {
+      total:    all.length,
+      customer: all.filter(p => p.roles.includes('customer')).length,
+      supplier: all.filter(p => p.roles.includes('supplier')).length,
+      employee: all.filter(p => p.roles.includes('employee')).length,
+    };
   });
 
   ngOnInit(): void {

@@ -42,7 +42,7 @@ export class SecureStorageService {
             const decryptedString = bytes.toString(CryptoJS.enc.Utf8);
 
             if (!decryptedString) {
-                return null;
+                return null; 
             }
 
             return JSON.parse(decryptedString) as T;

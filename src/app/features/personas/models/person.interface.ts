@@ -73,6 +73,7 @@ export interface CustomerData {
   customerGroupCode?: string; // codgrupo — grupo de clientes
   documentSeriesCode?: string;// codserie — serie de documento por defecto
   accountingCode?: string;    // codsubcuenta — código contable
+  vatIncluded?: boolean;      // ivaincluido — los precios ya incluyen IVA para este cliente
 }
 
 export interface SupplierData {

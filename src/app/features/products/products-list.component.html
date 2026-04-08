@@ -1,91 +1,342 @@
-<!-- ── Header ─────────────────────────────────────────────────────────────── -->
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <div class="d-flex align-items-center gap-2">
-    <div class="bg-success bg-opacity-10 p-2 rounded">
-      <svg cIcon name="cilTag" size="xl" class="text-success"></svg>
+<!-- ══ PAGE HEADER ══════════════════════════════════════════════════════════ -->
+<div class="products-page-header mb-3">
+
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <div class="d-flex align-items-center gap-2">
+      <div class="page-icon">
+        <svg cIcon name="cilTag" size="lg" class="text-white"></svg>
+      </div>
+      <div>
+        <h4 class="page-title mb-0">Artículos</h4>
+        <span class="page-subtitle">Catálogo de productos y servicios</span>
+      </div>
     </div>
-    <div>
-      <h3 class="mb-0 fw-semibold">Artículos</h3>
-      <p class="text-muted small mb-0">Catálogo de productos y servicios</p>
-    </div>
+    <button cButton color="primary" size="sm" (click)="openNew()"
+            class="d-flex align-items-center gap-1 px-3 shadow-sm">
+      <svg cIcon name="cilPlus" size="sm"></svg>
+      <span>Nuevo Artículo</span>
+    </button>
   </div>
-  <button cButton color="primary" size="sm" (click)="openNew()" class="px-3 shadow-sm">
-    <svg cIcon name="cilPlus" class="me-1"></svg> Nuevo Artículo
-  </button>
-</div>
 
-<!-- ── Stats cards ────────────────────────────────────────────────────────── -->
-@if (!loading()) {
-  <c-row class="g-3 mb-3">
-    <c-col sm="6" md="3">
-      <c-card class="border-0 shadow-sm text-center py-2">
-        <div class="fw-bold fs-4 text-primary">{{ stats().total }}</div>
-        <div class="text-muted small">Artículos activos</div>
-      </c-card>
-    </c-col>
-    <c-col sm="6" md="3">
-      <c-card class="border-0 shadow-sm text-center py-2">
-        <div class="fw-bold fs-4">{{ stats().products }}</div>
-        <div class="text-muted small">Productos</div>
-      </c-card>
-    </c-col>
-    <c-col sm="6" md="3">
-      <c-card class="border-0 shadow-sm text-center py-2">
-        <div class="fw-bold fs-4">{{ stats().services }}</div>
-        <div class="text-muted small">Servicios</div>
-      </c-card>
-    </c-col>
-    <c-col sm="6" md="3">
-      <c-card class="border-0 shadow-sm text-center py-2 {{ stats().lowStock > 0 ? 'border-warning' : '' }}">
-        <div class="fw-bold fs-4 {{ stats().lowStock > 0 ? 'text-warning' : '' }}">{{ stats().lowStock }}</div>
-        <div class="text-muted small">Stock bajo mínimo</div>
-      </c-card>
-    </c-col>
-  </c-row>
-}
-
-<!-- ── Filters tabs ───────────────────────────────────────────────────────── -->
-<c-nav variant="pills" class="mb-3 gap-1">
-  @for (opt of filterOptions; track opt.value) {
-    <c-nav-item>
-      <a cNavLink [active]="typeFilter() === opt.value"
-         (click)="typeFilter.set(opt.value)" role="button"
-         class="px-3 py-1 small fw-semibold">
-        {{ opt.label }}
-        @if (opt.value === 'low_stock' && stats().lowStock > 0) {
-          <c-badge color="warning" shape="rounded-pill" class="ms-1">{{ stats().lowStock }}</c-badge>
-        }
-      </a>
-    </c-nav-item>
-  }
-</c-nav>
-
-<!-- ── Search & family filter ─────────────────────────────────────────────── -->
-<c-card class="mb-3 border-0 shadow-sm">
-  <c-card-body class="py-2">
-    <div class="d-flex gap-3 align-items-center flex-wrap">
-      <c-input-group class="flex-grow-1">
-        <span cInputGroupText class="bg-transparent border-end-0">
-          <svg cIcon name="cilSearch" size="sm"></svg>
-        </span>
-        <input cFormControl class="border-start-0 ps-0"
-               placeholder="Buscar por SKU, nombre, código de barras, proveedor..."
-               [value]="searchTerm()" (input)="searchTerm.set($any($event.target).value)">
-      </c-input-group>
-      @if (families().length > 0) {
-        <select cSelect style="max-width:220px"
-                [value]="familyId()" (change)="familyId.set($any($event.target).value)">
-          <option value="">Todas las familias</option>
-          @for (f of families(); track f.id) {
-            <option [value]="f.id">{{ f.name }}</option>
-          }
-        </select>
+  @if (!loading()) {
+    <div class="stat-strip">
+      <div class="stat-item">
+        <span class="stat-value text-primary">{{ stats().total }}</span>
+        <span class="stat-label">activos</span>
+      </div>
+      <div class="stat-sep"></div>
+      <div class="stat-item">
+        <span class="stat-value">{{ stats().products }}</span>
+        <span class="stat-label">productos</span>
+      </div>
+      <div class="stat-sep"></div>
+      <div class="stat-item">
+        <span class="stat-value">{{ stats().services }}</span>
+        <span class="stat-label">servicios</span>
+      </div>
+      @if (stats().lowStock > 0) {
+        <div class="stat-sep"></div>
+        <div class="stat-item stat-item--warn"
+             (click)="setPrimary('stockStatus','low_stock')" role="button">
+          <svg cIcon name="cilWarning" size="sm" class="me-1 text-warning"></svg>
+          <span class="stat-value text-warning">{{ stats().lowStock }}</span>
+          <span class="stat-label">bajo mínimo</span>
+        </div>
+      }
+      @if (stats().outOfStock > 0) {
+        <div class="stat-sep"></div>
+        <div class="stat-item stat-item--danger"
+             (click)="setPrimary('stockStatus','out_of_stock')" role="button">
+          <svg cIcon name="cilBan" size="sm" class="me-1 text-danger"></svg>
+          <span class="stat-value text-danger">{{ stats().outOfStock }}</span>
+          <span class="stat-label">sin stock</span>
+        </div>
+      }
+      @if (products().length - stats().total > 0) {
+        <div class="stat-sep"></div>
+        <div class="stat-item" (click)="typeFilter.set('inactive')" role="button">
+          <span class="stat-value text-muted">{{ products().length - stats().total }}</span>
+          <span class="stat-label">inactivos</span>
+        </div>
       }
     </div>
-  </c-card-body>
+  }
+</div>
+
+<!-- ══ FILTER PANEL ═════════════════════════════════════════════════════════ -->
+<c-card class="filter-card mb-3 border-0 shadow-sm overflow-hidden">
+
+  <!-- Tabs + clear -->
+  <div class="filter-top px-3 pt-2 pb-0">
+    <div class="d-flex align-items-center gap-3 flex-wrap">
+      <div class="seg-tabs">
+        @for (opt of typeOptions; track opt.value) {
+          <button class="seg-tab" [class.active]="typeFilter() === opt.value"
+                  (click)="typeFilter.set(opt.value)">
+            {{ opt.label }}
+            @if (opt.value === 'inactive' && products().length - stats().total > 0) {
+              <span class="seg-count">{{ products().length - stats().total }}</span>
+            }
+          </button>
+        }
+      </div>
+      <div class="flex-grow-1"></div>
+      @if (totalActiveFilters() > 0) {
+        <button class="filter-clear-btn" (click)="clearAll()">
+          <svg cIcon name="cilX" size="sm"></svg>
+          Limpiar {{ totalActiveFilters() }} filtro{{ totalActiveFilters() !== 1 ? 's' : '' }}
+        </button>
+      }
+    </div>
+    <div class="filter-divider mt-2"></div>
+  </div>
+
+  <!-- Search + dropdowns -->
+  <div class="px-3 py-2">
+    <div class="d-flex gap-2 align-items-center flex-wrap">
+
+      <div class="search-wrap flex-grow-1">
+        <svg cIcon name="cilSearch" size="sm" class="search-icon"></svg>
+        <input class="search-input"
+               placeholder="Referencia, nombre, código de barras..."
+               [value]="searchTerm()"
+               (input)="searchTerm.set($any($event.target).value)">
+        @if (searchTerm()) {
+          <button class="search-clear" (click)="searchTerm.set('')">
+            <svg cIcon name="cilX" size="sm"></svg>
+          </button>
+        }
+      </div>
+
+      @if (families().length > 0) {
+        <div class="filter-select-wrap" [class.active]="!!primary().familyId">
+          <svg cIcon name="cilFolder" size="sm" class="filter-select-icon"></svg>
+          <select class="filter-select"
+                  [value]="primary().familyId"
+                  (change)="setPrimary('familyId', $any($event.target).value)">
+            <option value="">Familia</option>
+            @for (f of families(); track f.id) {
+              <option [value]="f.id">{{ f.name }}</option>
+            }
+          </select>
+          <svg cIcon name="cilChevronBottom" size="sm" class="filter-select-caret"></svg>
+        </div>
+      }
+
+      @if (manufacturers().length > 0) {
+        <div class="filter-select-wrap" [class.active]="!!primary().manufacturerId">
+          <svg cIcon name="cilFactory" size="sm" class="filter-select-icon"></svg>
+          <select class="filter-select"
+                  [value]="primary().manufacturerId"
+                  (change)="setPrimary('manufacturerId', $any($event.target).value)">
+            <option value="">Fabricante</option>
+            @for (m of manufacturers(); track m.id) {
+              <option [value]="m.id">{{ m.name }}</option>
+            }
+          </select>
+          <svg cIcon name="cilChevronBottom" size="sm" class="filter-select-caret"></svg>
+        </div>
+      }
+
+      <button class="more-filters-btn" [class.open]="showMoreFilters()"
+              (click)="showMoreFilters.set(!showMoreFilters())">
+        <svg cIcon name="cilOptions" size="sm"></svg>
+        <span>Más filtros</span>
+        @if (activeSecondaryCount() > 0) {
+          <span class="more-count">{{ activeSecondaryCount() }}</span>
+        }
+        <svg cIcon [name]="showMoreFilters() ? 'cilChevronTop' : 'cilChevronBottom'"
+             size="sm" class="ms-1 opacity-50"></svg>
+      </button>
+
+    </div>
+  </div>
+
+  <!-- Stock pills -->
+  <div class="px-3 pb-2 d-flex align-items-center gap-2 flex-wrap">
+    <span class="filter-group-label">Stock</span>
+    @for (pill of stockPills; track pill.value) {
+      <button class="pill-filter {{ pill.cls }}"
+              [class.active]="primary().stockStatus === pill.value"
+              (click)="setPrimary('stockStatus', pill.value)">
+        {{ pill.label }}
+      </button>
+    }
+  </div>
+
+  <!-- Expandable secondary filters -->
+  @if (showMoreFilters()) {
+    <div class="filter-panel px-3 py-3">
+
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <span class="filter-panel-title">Filtros adicionales</span>
+        @if (activeSecondaryCount() > 0) {
+          <button class="btn-clear-secondary" (click)="clearSecondary()">
+            Limpiar filtros adicionales
+          </button>
+        }
+      </div>
+
+      <c-row class="g-3">
+
+        <c-col sm="12" md="4">
+          <label class="filter-label">Precio P.V.P</label>
+          <div class="d-flex gap-2 align-items-center">
+            <input cFormControl type="number" min="0" placeholder="Desde"
+                   class="filter-input"
+                   [value]="secondary().priceMin"
+                   (input)="setSecondary('priceMin', $any($event.target).value)">
+            <span class="text-muted small">—</span>
+            <input cFormControl type="number" min="0" placeholder="Hasta"
+                   class="filter-input"
+                   [value]="secondary().priceMax"
+                   (input)="setSecondary('priceMax', $any($event.target).value)">
+          </div>
+        </c-col>
+
+        <c-col sm="6" md="2">
+          <label class="filter-label">Impuesto</label>
+          <select cSelect class="filter-select-sm"
+                  [value]="secondary().taxRateCode"
+                  (change)="setSecondary('taxRateCode', $any($event.target).value)">
+            <option value="">Todos</option>
+            @for (t of taxRates(); track t.code) {
+              <option [value]="t.code">{{ t.name }} ({{ t.rate }}%)</option>
+            }
+          </select>
+        </c-col>
+
+        <c-col sm="6" md="2">
+          <label class="filter-label">Visibilidad</label>
+          <select cSelect class="filter-select-sm"
+                  [value]="secondary().isPublic"
+                  (change)="setSecondary('isPublic', $any($event.target).value)">
+            <option value="">Todos</option>
+            <option value="true">Público</option>
+            <option value="false">No público</option>
+          </select>
+        </c-col>
+
+        <c-col sm="6" md="2">
+          <label class="filter-label">Bloqueado</label>
+          <select cSelect class="filter-select-sm"
+                  [value]="secondary().isBlocked"
+                  (change)="setSecondary('isBlocked', $any($event.target).value)">
+            <option value="">Todos</option>
+            <option value="true">Bloqueados</option>
+            <option value="false">No bloqueados</option>
+          </select>
+        </c-col>
+
+        <c-col sm="6" md="2">
+          <label class="filter-label">Venta / Compra</label>
+          <select cSelect class="filter-select-sm"
+                  [value]="secondary().isSold"
+                  (change)="setSecondary('isSold', $any($event.target).value)">
+            <option value="">Venta: todos</option>
+            <option value="true">Se vende</option>
+            <option value="false">No se vende</option>
+          </select>
+        </c-col>
+
+        <c-col sm="6" md="2">
+          <label class="filter-label">&nbsp;</label>
+          <select cSelect class="filter-select-sm"
+                  [value]="secondary().isPurchased"
+                  (change)="setSecondary('isPurchased', $any($event.target).value)">
+            <option value="">Compra: todos</option>
+            <option value="true">Se compra</option>
+            <option value="false">No se compra</option>
+          </select>
+        </c-col>
+
+        <c-col sm="6" md="2">
+          <label class="filter-label">Variantes</label>
+          <select cSelect class="filter-select-sm"
+                  [value]="secondary().hasVariants"
+                  (change)="setSecondary('hasVariants', $any($event.target).value)">
+            <option value="">Todos</option>
+            <option value="true">Con variantes</option>
+            <option value="false">Sin variantes</option>
+          </select>
+        </c-col>
+
+        <c-col sm="6" md="2">
+          <label class="filter-label">Imagen</label>
+          <select cSelect class="filter-select-sm"
+                  [value]="secondary().hasImage"
+                  (change)="setSecondary('hasImage', $any($event.target).value)">
+            <option value="">Todos</option>
+            <option value="true">Con imagen</option>
+            <option value="false">Sin imagen</option>
+          </select>
+        </c-col>
+
+      </c-row>
+
+      <!-- Active chips -->
+      @if (activeSecondaryCount() > 0) {
+        <div class="d-flex flex-wrap gap-2 mt-3 pt-3 border-top">
+          @if (secondary().priceMin || secondary().priceMax) {
+            <span class="active-chip">
+              Precio:
+              @if (secondary().priceMin) { desde ${{ secondary().priceMin }} }
+              @if (secondary().priceMax) { hasta ${{ secondary().priceMax }} }
+              <span class="chip-remove"
+                    (click)="setSecondary('priceMin',''); setSecondary('priceMax','')">×</span>
+            </span>
+          }
+          @if (secondary().taxRateCode) {
+            <span class="active-chip">
+              {{ secondary().taxRateCode }}
+              <span class="chip-remove" (click)="setSecondary('taxRateCode','')">×</span>
+            </span>
+          }
+          @if (secondary().isPublic !== '') {
+            <span class="active-chip">
+              {{ secondary().isPublic === 'true' ? 'Público' : 'No público' }}
+              <span class="chip-remove" (click)="setSecondary('isPublic','')">×</span>
+            </span>
+          }
+          @if (secondary().isBlocked !== '') {
+            <span class="active-chip">
+              {{ secondary().isBlocked === 'true' ? 'Bloqueado' : 'No bloqueado' }}
+              <span class="chip-remove" (click)="setSecondary('isBlocked','')">×</span>
+            </span>
+          }
+          @if (secondary().isSold !== '') {
+            <span class="active-chip">
+              {{ secondary().isSold === 'true' ? 'Se vende' : 'No se vende' }}
+              <span class="chip-remove" (click)="setSecondary('isSold','')">×</span>
+            </span>
+          }
+          @if (secondary().isPurchased !== '') {
+            <span class="active-chip">
+              {{ secondary().isPurchased === 'true' ? 'Se compra' : 'No se compra' }}
+              <span class="chip-remove" (click)="setSecondary('isPurchased','')">×</span>
+            </span>
+          }
+          @if (secondary().hasVariants !== '') {
+            <span class="active-chip">
+              {{ secondary().hasVariants === 'true' ? 'Con variantes' : 'Sin variantes' }}
+              <span class="chip-remove" (click)="setSecondary('hasVariants','')">×</span>
+            </span>
+          }
+          @if (secondary().hasImage !== '') {
+            <span class="active-chip">
+              {{ secondary().hasImage === 'true' ? 'Con imagen' : 'Sin imagen' }}
+              <span class="chip-remove" (click)="setSecondary('hasImage','')">×</span>
+            </span>
+          }
+        </div>
+      }
+
+    </div>
+  }
+
 </c-card>
 
-<!-- ── Table ──────────────────────────────────────────────────────────────── -->
+<!-- ══ TABLE ════════════════════════════════════════════════════════════════ -->
 <c-card class="border-0 shadow-sm overflow-hidden">
   <c-card-body class="p-0">
 
@@ -95,10 +346,14 @@
     } @else if (filtered().length === 0) {
       <div class="text-center py-5 bg-body-secondary">
         <svg cIcon name="cilTag" size="3xl" class="text-muted mb-3 opacity-25 d-block mx-auto"></svg>
-        <p class="text-muted">
-          {{ searchTerm() ? 'Sin resultados para "' + searchTerm() + '"' : 'No hay artículos registrados' }}
+        <p class="text-muted mb-2">
+          {{ totalActiveFilters() > 0 ? 'Sin resultados con los filtros aplicados' : 'No hay artículos registrados' }}
         </p>
-        @if (!searchTerm()) {
+        @if (totalActiveFilters() > 0) {
+          <button cButton color="light" size="sm" class="border" (click)="clearAll()">
+            <svg cIcon name="cilFilterX" size="sm" class="me-1"></svg> Limpiar filtros
+          </button>
+        } @else {
           <button cButton color="primary" size="sm" (click)="openNew()">
             <svg cIcon name="cilPlus" class="me-1"></svg> Nuevo Artículo
           </button>
@@ -107,96 +362,64 @@
 
     } @else {
       <div class="table-responsive">
-        <table cTable hover align="middle" class="mb-0 border-0">
-          <thead class="bg-body-secondary text-uppercase small fw-bold">
+        <table cTable hover align="middle" class="products-table mb-0 border-0">
+          <thead class="bg-body-secondary table-head">
             <tr>
-              <th class="border-0 px-4 py-3">SKU</th>
-              <th class="border-0 py-3">Nombre</th>
-              <th class="border-0 py-3">Familia</th>
-              <th class="border-0 py-3 text-end">P.V.P</th>
-              <th class="border-0 py-3 text-center">Stock</th>
-              <th class="border-0 py-3 text-center">Tipo</th>
-              <th class="border-0 py-3 text-center">Estado</th>
-              <th class="border-0 px-4 py-3 text-end" style="min-width:130px">Acciones</th>
+              <th class="col-img border-0 ps-3 pe-1 py-2"></th>
+              <th class="border-0 py-2">Referencia / Descripción</th>
+              <th class="col-family border-0 py-2">Familia</th>
+              <th class="col-family border-0 py-2">Fabricante</th>
+              <th class="col-price border-0 py-2 text-end">P.V.P</th>
+              <th class="col-price border-0 py-2 text-end">+ IVA</th>
+              <th class="col-stock border-0 py-2 text-center">Stock</th>
             </tr>
           </thead>
           <tbody>
             @for (p of filtered(); track trackById($index, p)) {
-              <tr class="align-middle border-bottom border-body-secondary"
-                  [class.opacity-50]="!p.isActive">
+              <tr class="row-clickable border-bottom border-body-secondary align-middle"
+                  [class.opacity-50]="!p.isActive"
+                  (click)="openEdit(p)">
 
-                <td class="px-4 py-2">
-                  <span class="badge bg-body-secondary text-body font-monospace px-2 py-1">
-                    {{ p.sku }}
-                  </span>
-                  @if (p.barcode) {
-                    <div class="text-muted x-small font-monospace">{{ p.barcode }}</div>
-                  }
-                </td>
-
-                <td class="py-2">
-                  <div class="fw-semibold">{{ p.name }}</div>
-                  @if (p.manufacturerName) {
-                    <div class="text-muted small">{{ p.manufacturerName }}</div>
-                  }
-                  @if (p.hasVariants) {
-                    <c-badge color="info" shape="rounded-pill" class="small px-2">Variantes</c-badge>
-                  }
-                </td>
-
-                <td class="py-2 small text-muted">
-                  {{ p.familyName || '—' }}
-                </td>
-
-                <td class="py-2 text-end fw-semibold">
-                  {{ p.salePrice | currency:'USD':'symbol':'1.2-2' }}
-                  @if (p.taxRateName) {
-                    <div class="text-muted x-small">+ {{ p.taxRateName }}</div>
-                  }
-                </td>
-
-                <td class="py-2 text-center">
-                  @if (p.noStock || p.type === 'service') {
-                    <c-badge color="secondary" shape="rounded-pill" class="small px-2">N/A</c-badge>
-                  } @else if (!p.trackStock) {
-                    <c-badge color="light" class="text-muted small px-2">Sin control</c-badge>
+                <td class="col-img ps-3 pe-1 py-1" (click)="$event.stopPropagation()">
+                  @if (p.imageUrl) {
+                    <span class="img-icon-wrap text-primary"
+                          (mouseenter)="onImageHover(p, $event)"
+                          (mouseleave)="onImageLeave()">
+                      <svg cIcon name="cilImage" size="sm"></svg>
+                    </span>
                   } @else {
-                    <c-badge [color]="stockBadgeColor(p)" shape="rounded-pill" class="small px-2">
-                      {{ p.stockQty | number:'1.0-2' }}
-                      @if (p.stockMin > 0) { / {{ p.stockMin | number:'1.0-0' }} }
+                    <svg cIcon name="cilImage" size="sm" class="text-muted opacity-25"></svg>
+                  }
+                </td>
+
+                <td class="py-1 pe-3">
+                  <div class="d-flex align-items-start gap-2 flex-wrap">
+                    <span class="sku-badge">{{ p.sku }}</span>
+                    <span class="product-name">{{ p.name }}</span>
+                  </div>
+                </td>
+
+                <td class="td-meta py-1">{{ p.familyName || '—' }}</td>
+                <td class="td-meta py-1">{{ p.manufacturerName || '—' }}</td>
+
+                <td class="td-price py-1 text-end">
+                  {{ p.salePrice | currency:'USD':'symbol':'1.2-2' }}
+                </td>
+
+                <td class="py-1 text-end text-muted">
+                  {{ priceWithTax(p) | currency:'USD':'symbol':'1.2-2' }}
+                </td>
+
+                <td class="py-1 text-center">
+                  @if (p.noStock || p.type === 'service') {
+                    <c-badge color="secondary" shape="rounded-pill" class="badge-stock">N/A</c-badge>
+                  } @else if (!p.trackStock) {
+                    <span class="td-meta">—</span>
+                  } @else {
+                    <c-badge [color]="stockBadgeColor(p)" shape="rounded-pill" class="badge-stock">
+                      {{ p.stockQty | number:'1.0-0' }}
                     </c-badge>
                   }
-                </td>
-
-                <td class="py-2 text-center">
-                  <c-badge [color]="p.type === 'product' ? 'primary' : 'info'"
-                           shape="rounded-pill" class="small px-2">
-                    {{ p.type === 'product' ? 'Producto' : 'Servicio' }}
-                  </c-badge>
-                </td>
-
-                <td class="py-2 text-center">
-                  <c-badge [color]="p.isActive ? 'success' : 'secondary'"
-                           shape="rounded-pill" class="px-3">
-                    {{ p.isActive ? 'Activo' : 'Inactivo' }}
-                  </c-badge>
-                </td>
-
-                <td class="px-4 py-2 text-end">
-                  <div class="d-flex gap-2 justify-content-end">
-                    <button cButton color="light" size="sm" (click)="openEdit(p)" cTooltip="Editar">
-                      <svg cIcon name="cilPencil"></svg>
-                    </button>
-                    <button cButton [color]="p.isActive ? 'outline-danger' : 'outline-success'" size="sm"
-                            (click)="toggleActive(p)"
-                            [cTooltip]="p.isActive ? 'Desactivar' : 'Activar'">
-                      <svg cIcon [name]="p.isActive ? 'cilBan' : 'cilCheck'"></svg>
-                    </button>
-                    <button cButton color="light" size="sm" class="text-danger"
-                            (click)="delete(p)" cTooltip="Eliminar">
-                      <svg cIcon name="cilTrash"></svg>
-                    </button>
-                  </div>
                 </td>
 
               </tr>
@@ -205,15 +428,29 @@
         </table>
       </div>
 
-      <div class="bg-body-secondary px-4 py-2 border-top">
+      <div class="bg-body-secondary px-4 py-2 border-top d-flex justify-content-between align-items-center">
         <small class="text-muted">
           {{ filtered().length }} artículo{{ filtered().length !== 1 ? 's' : '' }}
+          @if (filtered().length !== stats().total) {
+            <span class="text-muted"> de {{ stats().total }}</span>
+          }
           @if (stats().outOfStock > 0) {
-            · <span class="text-danger fw-semibold">{{ stats().outOfStock }} sin stock</span>
+            · <span class="text-danger">{{ stats().outOfStock }} sin stock</span>
           }
         </small>
+        <small class="text-muted fst-italic">Clic en una fila para editar</small>
       </div>
     }
 
   </c-card-body>
 </c-card>
+
+<!-- ══ Image hover preview — [style.x] son bindings dinámicos Angular, no inline styles ══ -->
+@if (hoveredProduct() && hoveredProduct()!.imageUrl) {
+  <div class="product-img-preview"
+       [style.top.px]="hoverPos().y"
+       [style.left.px]="hoverPos().x">
+    <img class="preview-img" [src]="hoveredProduct()!.imageUrl" [alt]="hoveredProduct()!.name">
+    <div class="preview-name text-muted mt-1">{{ hoveredProduct()!.name }}</div>
+  </div>
+}

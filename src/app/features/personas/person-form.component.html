@@ -3,30 +3,24 @@
 } @else {
 
 <!-- ── Cabecera ─────────────────────────────────────────────────────────── -->
-<div class="d-flex justify-content-between align-items-center mb-4">
-  <div class="d-flex align-items-center gap-3">
-    <button cButton color="light" size="sm" (click)="cancel()" class="px-2">
+<div class="page-header">
+  <div class="page-header-left">
+    <button cButton color="light" size="sm" variant="ghost" (click)="cancel()">
       <svg cIcon name="cilArrowLeft"></svg>
     </button>
-    <div class="d-flex align-items-center gap-2">
-      <div class="bg-primary bg-opacity-10 p-2 rounded">
-        <svg cIcon [name]="isEditing ? 'cilPencil' : 'cilUserFollow'" size="xl" class="text-primary"></svg>
-      </div>
-      <div>
-        <h3 class="mb-0 fw-semibold">{{ isEditing ? 'Editar Persona' : 'Nueva Persona' }}</h3>
-        <p class="text-muted small mb-0">
-          {{ isEditing ? 'Actualice los datos y roles de la persona' : 'Complete los datos y seleccione los roles' }}
-        </p>
-      </div>
+    <div class="page-icon">
+      <svg cIcon [name]="isEditing ? 'cilPencil' : 'cilUserFollow'"></svg>
+    </div>
+    <div>
+      <p class="page-title">{{ isEditing ? 'Editar persona' : 'Nueva persona' }}</p>
+      <p class="page-sub">{{ isEditing ? 'Actualice datos y roles' : 'Complete los datos y seleccione los roles' }}</p>
     </div>
   </div>
   <div class="d-flex gap-2">
-    <button cButton color="light" (click)="cancel()" [disabled]="saving()" class="px-4">
-      Cancelar
-    </button>
-    <button cButton color="primary" (click)="save()" [disabled]="saving()" class="px-4 shadow-sm">
+    <button cButton color="light" size="sm" (click)="cancel()" [disabled]="saving()">Cancelar</button>
+    <button cButton color="primary" size="sm" (click)="save()" [disabled]="saving()">
       @if (saving()) { <c-spinner size="sm" class="me-1"></c-spinner> }
-      {{ isEditing ? 'Guardar Cambios' : 'Registrar Persona' }}
+      {{ isEditing ? 'Guardar' : 'Registrar' }}
     </button>
   </div>
 </div>
@@ -71,34 +65,35 @@
 
         <!-- ── Selector de roles ─────────────────────────────────────── -->
         <c-col [sm]="12">
-          <h6 class="text-uppercase text-muted fw-bold small border-bottom pb-2 mb-3">
+          <p class="section-title">
             Roles de la Persona
-          </h6>
+          </p>
           <div class="d-flex flex-wrap gap-2">
             @for (role of ALL_ROLES; track role) {
-            <button type="button" class="btn btn-sm px-3 py-2 d-flex align-items-center gap-2 border"
-              [class.fw-semibold]="selectedRoles().includes(role)" [class]="selectedRoles().includes(role)
-                          ? 'btn-' + ROLE_COLORS[role] + ' shadow-sm'
-                          : 'btn-outline-secondary text-muted'" (click)="toggleRole(role)">
-              @if (selectedRoles().includes(role)) {
-              <svg cIcon name="cilCheckCircle" size="sm"></svg>
-              } @else {
-              <svg cIcon name="cilCircle" size="sm"></svg>
-              }
-              {{ ROLE_LABELS[role] }}
-            </button>
+              <button type="button" class="role-toggle"
+                [class.role-toggle--active-customer]="role === 'customer' && selectedRoles().includes(role)"
+                [class.role-toggle--active-supplier]="role === 'supplier' && selectedRoles().includes(role)"
+                [class.role-toggle--active-employee]="role === 'employee' && selectedRoles().includes(role)"
+                [class.role-toggle--active-contact]="role === 'contact'  && selectedRoles().includes(role)"
+                [class.role-toggle--active-other]="role === 'other'    && selectedRoles().includes(role)"
+                (click)="toggleRole(role)">
+                @if (selectedRoles().includes(role)) {
+                  <svg cIcon name="cilCheckCircle" size="sm"></svg>
+                } @else {
+                  <svg cIcon name="cilCircle" size="sm"></svg>
+                }
+                {{ ROLE_LABELS[role] }}
+              </button>
             }
           </div>
-          <small class="text-muted mt-2 d-block">
-            Una persona puede tener múltiples roles simultáneos. Selecciona al menos uno.
-          </small>
+          <p class="form-text">Una persona puede tener múltiples roles simultáneos. Selecciona al menos uno.</p>
         </c-col>
 
         <!-- ── Identificación fiscal ──────────────────────────────────── -->
         <c-col [sm]="12">
-          <h6 class="text-uppercase text-muted fw-bold small border-bottom pb-2 mb-3">
+          <p class="section-title">
             Identificación Fiscal
-          </h6>
+          </p>
           <c-row class="g-3">
             <c-col md="3">
               <label cLabel>{{ fieldLabel('taxIdType') }} <span class="text-danger">*</span></label>
@@ -132,7 +127,7 @@
             <c-col md="3" class="d-flex align-items-end pb-2">
               <c-form-check switch>
                 <input cFormCheckInput id="isActiveCheck" type="checkbox" formControlName="isActive">
-                <label cFormCheckLabel for="isActiveCheck" class="fw-semibold text-primary small">
+                <label cFormCheckLabel for="isActiveCheck" class="text-primary">
                   Persona activa
                 </label>
               </c-form-check>
@@ -142,9 +137,9 @@
 
         <!-- ── Datos de contacto ──────────────────────────────────────── -->
         <c-col [sm]="12">
-          <h6 class="text-uppercase text-muted fw-bold small border-bottom pb-2 mb-3">
+          <p class="section-title">
             Datos de Contacto
-          </h6>
+          </p>
           <c-row class="g-3">
             <!-- name: label adapts to person type -->
             <c-col [md]="isCompanyVal ? 6 : 12">
@@ -228,10 +223,10 @@
         <!-- ── Panel Cliente ──────────────────────────────────────────── -->
         @if (hasCustomerRole()) {
         <c-col [sm]="12" formGroupName="customerData">
-          <h6 class="text-uppercase fw-bold small border-bottom pb-2 mb-3" style="color: var(--cui-primary)">
+          <p class="section-title">
             <svg cIcon name="cilPeople" class="me-1"></svg>
             Condiciones Comerciales (Cliente)
-          </h6>
+          </p>
           <c-row class="g-3">
 
             <!-- Forma de pago — siempre visible -->
@@ -372,6 +367,13 @@
             </c-col>
             }
 
+            <c-col md="3" class="d-flex align-items-end pb-1">
+              <c-form-check switch>
+                <input cFormCheckInput id="vatIncludedCheck" type="checkbox" formControlName="vatIncluded">
+                <label cFormCheckLabel for="vatIncludedCheck">IVA incluido en precio</label>
+              </c-form-check>
+            </c-col>
+
           </c-row>
         </c-col>
         }
@@ -379,10 +381,10 @@
         <!-- ── Panel Proveedor ────────────────────────────────────────── -->
         @if (hasSupplierRole()) {
         <c-col [sm]="12" formGroupName="supplierData">
-          <h6 class="text-uppercase fw-bold small border-bottom pb-2 mb-3 text-warning">
+          <p class="section-title">
             <svg cIcon name="cilTruck" class="me-1"></svg>
             Condiciones de Compra (Proveedor)
-          </h6>
+          </p>
           <c-row class="g-3">
 
             <!-- Cond. de pago — siempre visible -->
@@ -492,10 +494,10 @@
         <!-- ── Panel Empleado ─────────────────────────────────────────── -->
         @if (hasEmployeeRole()) {
         <c-col [sm]="12" formGroupName="employeeData">
-          <h6 class="text-uppercase fw-bold small border-bottom pb-2 mb-3 text-success">
+          <p class="section-title">
             <svg cIcon name="cilBriefcase" class="me-1"></svg>
             Datos de Empleado
-          </h6>
+          </p>
           <c-row class="g-3">
             @if (isVisible('employee.iessNumber')) {
             <c-col md="4">
@@ -585,7 +587,7 @@
     @if (addresses().length > 0) {
     <div class="table-responsive mb-3">
       <table cTable hover align="middle" class="mb-0 border-0">
-        <thead class="bg-body-secondary text-uppercase small fw-bold">
+        <thead class="text-uppercase">
           <tr>
             <th class="border-0 py-2 px-3">Descripción</th>
             <th class="border-0 py-2">Provincia / Ciudad</th>
@@ -597,7 +599,7 @@
         <tbody>
           @for (addr of addresses(); track addr.id; let i = $index) {
           <tr class="border-bottom border-body-secondary">
-            <td class="py-2 px-3 fw-semibold">{{ addr.label }}</td>
+            <td class="py-2 px-3">{{ addr.label }}</td>
             <td class="py-2">
               <div class="small">{{ addr.province }}</div>
               <div class="text-muted x-small">{{ addr.city }}</div>
@@ -632,9 +634,9 @@
 
     @if (showAddressForm()) {
     <div class="border rounded p-3 bg-body-secondary mt-2">
-      <h6 class="fw-semibold mb-3">
+      <p class="section-title">
         {{ editingAddrIdx() !== null ? 'Editar dirección' : 'Nueva dirección' }}
-      </h6>
+      </p>
       <form [formGroup]="addressForm">
         <c-row class="g-2">
           <c-col md="5">
@@ -703,7 +705,7 @@
     @if (bankAccounts().length > 0) {
     <div class="table-responsive mb-3">
       <table cTable hover align="middle" class="mb-0 border-0">
-        <thead class="bg-body-secondary text-uppercase small fw-bold">
+        <thead class="text-uppercase">
           <tr>
             <th class="border-0 py-2 px-3">Descripción</th>
             <th class="border-0 py-2">Banco</th>
@@ -716,7 +718,7 @@
         <tbody>
           @for (acc of bankAccounts(); track acc.id; let i = $index) {
           <tr class="border-bottom border-body-secondary">
-            <td class="py-2 px-3 fw-semibold">{{ acc.label }}</td>
+            <td class="py-2 px-3">{{ acc.label }}</td>
             <td class="py-2 small">{{ acc.bank || '—' }}</td>
             <td class="py-2 font-monospace small">{{ acc.iban || '—' }}</td>
             <td class="py-2 font-monospace small">{{ acc.swift || '—' }}</td>
@@ -748,9 +750,9 @@
 
     @if (showBankForm()) {
     <div class="border rounded p-3 bg-body-secondary mt-2">
-      <h6 class="fw-semibold mb-3">
+      <p class="section-title">
         {{ editingBankIdx() !== null ? 'Editar cuenta' : 'Nueva cuenta bancaria' }}
-      </h6>
+      </p>
       <form [formGroup]="bankForm">
         <c-row class="g-2">
           <c-col md="6">

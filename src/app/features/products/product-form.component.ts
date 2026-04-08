@@ -40,6 +40,276 @@ const BARCODE_TYPES: { value: BarcodeType; label: string }[] = [
   selector: 'app-product-form',
   standalone: true,
   templateUrl: './product-form.component.html',
+  styles: [`
+    /* ── Properties panel ────────────────────────────────────────── */
+    .props-panel {
+      display: flex; flex-direction: column; gap: 0;
+      background: var(--cui-card-bg);
+      border: 1px solid var(--cui-border-color);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .props-section {
+      padding: .75rem 1rem;
+      border-bottom: 1px solid var(--cui-border-color);
+    }
+    .props-section:last-child { border-bottom: none; }
+
+    .props-label {
+      font-size: .68rem; font-weight: 500;
+      text-transform: uppercase; letter-spacing: .06em;
+      color: var(--cui-secondary-color);
+      margin: 0 0 .5rem 0;
+      display: flex; align-items: center;
+    }
+
+    /* Switches list */
+    .props-switches { display: flex; flex-direction: column; gap: 0; }
+
+    .props-switch-row {
+      display: flex; align-items: center;
+      justify-content: space-between; gap: .5rem;
+      padding: .4rem 0;
+      border-bottom: 1px solid var(--cui-border-color);
+    }
+    .props-switch-row:last-child { border-bottom: none; }
+
+    .props-switch-name { font-size: .8rem; font-weight: 400; line-height: 1.2; }
+    .props-switch-desc { font-size: .67rem; color: var(--cui-tertiary-color); line-height: 1.2; }
+
+    /* ── Image zone ──────────────────────────────────────────────── */
+    .img-zone {
+      width: 100%; aspect-ratio: 1;
+      border: 1.5px dashed var(--cui-border-color);
+      border-radius: 8px; overflow: hidden;
+      cursor: pointer; background: var(--cui-tertiary-bg);
+      transition: border-color .15s, background .15s;
+    }
+    .img-zone:hover        { border-color: var(--cui-primary); }
+    .img-zone.drag-over    { border-color: var(--cui-primary); background: var(--cui-primary-bg-subtle); }
+
+    .img-empty {
+      width: 100%; height: 100%;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 3px; text-align: center; padding: .5rem;
+      font-size: .75rem; color: var(--cui-secondary-color);
+    }
+    .img-empty-icon { font-size: 2rem; opacity: .25; margin-bottom: .25rem; }
+    .img-hint       { font-size: .67rem; color: var(--cui-tertiary-color); margin: 0; }
+
+    .img-preview {
+      width: 100%; height: 100%;
+      object-fit: contain; display: block;
+    }
+    .img-overlay {
+      position: absolute; inset: 0;
+      background: rgba(0,0,0,.35);
+      display: flex; align-items: center; justify-content: center; gap: .5rem;
+      opacity: 0; transition: opacity .2s;
+    }
+    .img-zone:hover .img-overlay { opacity: 1; }
+
+    .img-progress { height: 4px; width: 80%; border-radius: 99px; }
+
+    /* ── Stock summary ────────────────────────────────────────────── */
+    .stock-summary { display: flex; flex-direction: column; gap: 0; }
+
+    .stock-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: .3rem 0;
+      border-bottom: 1px solid var(--cui-border-color);
+    }
+    .stock-row:last-child { border-bottom: none; }
+
+    .stock-row-label { font-size: .78rem; color: var(--cui-secondary-color); }
+    .stock-row-value { font-size: .82rem; font-weight: 500; }
+
+    /* ── Image upload zone (existing) ────────────────────────────── */
+    .image-upload-zone { transition: background .2s; }
+    .image-upload-zone.drag-over { background: var(--cui-primary-bg-subtle) !important; }
+    .image-overlay { opacity: 0; transition: opacity .2s; background: rgba(0,0,0,.4); }
+    .image-upload-zone:hover .image-overlay { opacity: 1; }
+
+    /* ── Stock por Almacén ───────────────────────────────────────── */
+    /*  Grid: Almacén | Ubicación | Actual | Nuevo | Motivo | Acción  */
+
+    .wh-table {
+      border: 1px solid var(--cui-border-color);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .wh-header {
+      display: grid;
+      grid-template-columns: 1.8fr 1.2fr 90px 90px 1.6fr 44px;
+      gap: .75rem;
+      padding: .35rem .9rem;
+      background: var(--cui-tertiary-bg);
+      border-bottom: 1px solid var(--cui-border-color);
+      font-size: .68rem; font-weight: 500;
+      text-transform: uppercase; letter-spacing: .05em;
+      color: var(--cui-tertiary-color);
+    }
+
+    .wh-row {
+      display: grid;
+      grid-template-columns: 1.8fr 1.2fr 90px 90px 1.6fr 44px;
+      gap: .75rem;
+      align-items: center;
+      padding: .45rem .9rem;
+      border-bottom: 1px solid var(--cui-border-color);
+      transition: background .12s;
+    }
+    .wh-row:last-of-type { border-bottom: none; }
+    .wh-row:hover        { background: transparent; }
+    .wh-row--saving      { opacity: .5; pointer-events: none; }
+
+    .wh-footer {
+      display: grid;
+      grid-template-columns: 1.8fr 1.2fr 90px 90px 1.6fr 44px;
+      gap: .75rem;
+      align-items: center;
+      padding: .45rem .9rem;
+      border-top: 1px solid var(--cui-border-color);
+      background: var(--cui-secondary-bg);
+    }
+
+    /* Column children */
+    .wh-col-name {
+      display: flex; align-items: center; gap: .4rem;
+      min-width: 0;
+    }
+    .wh-col-loc,
+    .wh-col-qty,
+    .wh-col-new,
+    .wh-col-reason  { min-width: 0; }
+    .wh-col-actions { display: flex; align-items: center; justify-content: flex-end; }
+
+    /* Status dot */
+    .wh-dot {
+      flex-shrink: 0;
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--cui-secondary-color);
+    }
+    .wh-dot--ok   { background: var(--cui-success); }
+    .wh-dot--low  { background: var(--cui-warning); }
+    .wh-dot--zero { background: var(--cui-danger);  }
+
+    .wh-name {
+      font-size: .82rem; font-weight: 400;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .wh-new-hint {
+      font-size: .65rem; color: var(--cui-tertiary-color);
+      white-space: nowrap;
+    }
+
+    /* Current qty — plain colored number, read-only feel */
+    .wh-qty-display {
+      font-size: .84rem; font-weight: 600;
+      color: var(--cui-secondary-color);
+    }
+    .wh-qty--ok    { color: var(--cui-success); }
+    .wh-qty--low   { color: var(--cui-warning); }
+    .wh-qty--zero  { color: var(--cui-danger);  }
+    .wh-qty--total { color: var(--cui-body-color); font-weight: 700; }
+
+    .wh-footer-label {
+      font-size: .75rem; color: var(--cui-secondary-color);
+      display: flex; align-items: center; gap: .3rem;
+    }
+
+    /* ── Historial de movimientos ─────────────────────────────────── */
+    .mov-toggle {
+      display: flex; align-items: center; justify-content: space-between;
+      cursor: pointer; user-select: none;
+    }
+    .mov-toggle-label {
+      display: flex; align-items: center; gap: .25rem;
+      font-size: .78rem; font-weight: 400;
+      color: var(--cui-secondary-color);
+      text-transform: uppercase; letter-spacing: .05em;
+    }
+    .mov-toggle-icon { font-size: .75rem; color: var(--cui-tertiary-color); }
+
+    /* Tab bar */
+    .mov-tabs {
+      display: flex; gap: 0; overflow-x: auto;
+      border-bottom: 1px solid var(--cui-border-color);
+      padding: 0 .75rem;
+    }
+    .mov-tab {
+      flex-shrink: 0;
+      padding: .4rem .75rem;
+      font-size: .78rem; font-weight: 400;
+      color: var(--cui-secondary-color);
+      background: transparent; border: none;
+      border-bottom: 2px solid transparent;
+      cursor: pointer; white-space: nowrap;
+      transition: color .12s, border-color .12s;
+      display: flex; align-items: center; gap: .35rem;
+    }
+    .mov-tab:hover { color: var(--cui-body-color); }
+    .mov-tab--active {
+      color: var(--cui-primary);
+      border-bottom-color: var(--cui-primary);
+      font-weight: 500;
+    }
+    .mov-tab-count {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 16px; height: 16px; padding: 0 4px;
+      font-size: .62rem; font-weight: 500;
+      background: var(--cui-secondary-bg);
+      color: var(--cui-secondary-color);
+      border-radius: 99px;
+      border: 1px solid var(--cui-border-color);
+    }
+    .mov-tab--active .mov-tab-count {
+      background: var(--cui-primary-bg-subtle);
+      color: var(--cui-primary);
+      border-color: var(--cui-primary-border-subtle);
+    }
+
+    /* Empty state */
+    .mov-empty {
+      padding: 1.25rem .9rem;
+      font-size: .8rem; color: var(--cui-tertiary-color);
+      margin: 0; text-align: center;
+    }
+
+    /* Table */
+    .mov-table { font-size: .8rem; }
+    .mov-table thead th {
+      font-size: .68rem; font-weight: 500;
+      text-transform: uppercase; letter-spacing: .04em;
+      color: var(--cui-tertiary-color);
+      border-bottom: 1px solid var(--cui-border-color);
+      padding: .35rem .6rem;
+    }
+    .mov-table tbody td { padding: .35rem .6rem; border-bottom: 1px solid var(--cui-border-color); }
+    .mov-table tbody tr:last-child td { border-bottom: none; }
+
+    .mov-col-num  { width: 80px; }
+    .mov-col-date { width: 130px; }
+
+    .mov-in     { color: var(--cui-success); font-weight: 500; }
+    .mov-out    { color: var(--cui-danger);  font-weight: 500; }
+    .mov-final  { font-weight: 600; color: var(--cui-body-color); }
+    .mov-reason { color: var(--cui-secondary-color); max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .mov-date   { color: var(--cui-tertiary-color); font-size: .75rem; }
+
+    /* Compact inputs inside rows */
+    .wh-row input.form-control,
+    .wh-row select.form-select,
+    .wh-row--new input.form-control,
+    .wh-row--new select.form-select {
+      padding-top: .22rem; padding-bottom: .22rem;
+      font-size: .8rem;
+      height: auto;
+    }
+  `],
   imports: [
     CommonModule, ReactiveFormsModule, RouterLink,
     CardModule, ButtonModule, GridModule, BadgeModule, SpinnerModule,
@@ -88,9 +358,6 @@ export class ProductFormComponent implements OnInit, OnDestroy {
   activeMovTab  = signal<string>('');      // warehouse tab selected in movements section
   showMovements = signal(false);           // collapse movements section
 
-  // New warehouse stock row
-  newWhStock = signal<{ warehouseCode: string; newQty: number; location: string; reason: string } | null>(null);
-
   // Inline form states
   showSupplierForm  = signal(false);
   editingSupplierId = signal<string | null>(null);
@@ -107,10 +374,14 @@ export class ProductFormComponent implements OnInit, OnDestroy {
   isEditing     = computed(() => !!this.productId());
   hasVariantsOn = computed(() => !!this.form?.get('hasVariants')?.value);
 
-  /** Warehouses where this product has no stock record yet */
-  availableWarehouses = computed(() => {
-    const existing = new Set(this.stocks().map(s => s.warehouseCode));
-    return this.warehouses().filter(w => !existing.has(w.code));
+  /** All warehouses merged with existing stock docs — one row per warehouse */
+  allWarehouseRows = computed(() => {
+    const stockMap = new Map(this.stocks().map(s => [s.warehouseCode, s]));
+    return this.warehouses().map(w => ({
+      warehouseCode: w.code,
+      warehouseName: w.name,
+      stock: stockMap.get(w.code) ?? null
+    }));
   });
 
   /** Tax rate % of the currently selected tax code */
@@ -119,9 +390,9 @@ export class ProductFormComponent implements OnInit, OnDestroy {
     return this.taxRates().find(t => t.code === code)?.rate ?? 0;
   });
 
-  totalStock = computed(() =>
-    this.stocks().reduce((sum, s) => sum + (s.qty ?? 0), 0)
-  );
+  // stockQty is always read from the product document aggregate stored in Firestore.
+  // It is never recomputed on the UI from subcollection sums — the source of truth is the DB field.
+  totalStock = computed(() => this.productStockQty());
 
   // ─── Image state ────────────────────────────────────────────────────────
   imageUrl        = signal<string>('');
@@ -329,20 +600,35 @@ export class ProductFormComponent implements OnInit, OnDestroy {
   }
 
   private loadProduct(id: string): void {
-    this.svc.getProduct(id).then(p => {
+    // Subscribe to the product document so stockQty (stockFis) stays in sync
+    // after every adjustment without recalculating in the UI.
+    let firstEmit = true;
+    this.svc.getProduct$(id).pipe(
+      takeUntil(this.destroy$),
+      catchError(err => {
+        console.error('[ProductForm] load error:', err);
+        this.notifications.error('Error cargando artículo');
+        this.loading.set(false);
+        return of(undefined);
+      })
+    ).subscribe(p => {
       if (!p) { this.router.navigate(['/products']); return; }
-      this.patchForm(p);
-      this.loading.set(false);
-    }).catch(err => {
-      console.error('[ProductForm] load error:', err);
-      this.notifications.error('Error cargando artículo');
-      this.loading.set(false);
+      if (firstEmit) {
+        firstEmit = false;
+        this.patchForm(p);
+        this.loading.set(false);
+      } else {
+        // On subsequent Firestore updates only refresh the stock signal —
+        // never overwrite the form while the user is editing.
+        this.productStockQty.set(p.stockQty ?? 0);
+      }
     });
   }
 
   private loadSubcollections(productId: string): void {
     this.svc.getStocks(productId).pipe(
-      catchError(() => of([])), takeUntil(this.destroy$)
+      catchError(err => { console.error('[ProductForm] getStocks error:', err); return of([]); }),
+      takeUntil(this.destroy$)
     ).subscribe(list => {
       this.stocks.set(list);
       // Sync adjustment form state — preserve existing values for warehouses already in map
@@ -500,79 +786,54 @@ export class ProductFormComponent implements OnInit, OnDestroy {
   setAdjust(warehouseCode: string, field: 'newQty' | 'location' | 'reason', value: string | number): void {
     this.stockAdjust.update(map => ({
       ...map,
-      [warehouseCode]: { ...map[warehouseCode], [field]: value }
+      [warehouseCode]: { ...this.getAdjust(warehouseCode), [field]: value }
     }));
   }
 
-  async saveStockAdjust(stock: ProductStock): Promise<void> {
-    const adj     = this.getAdjust(stock.warehouseCode);
+  async saveStockAdjust(warehouseCode: string, stock: ProductStock | null): Promise<void> {
+    const adj     = this.getAdjust(warehouseCode);
     const product = this.productId() ? await this.svc.getProduct(this.productId()!) : null;
     if (!product) return;
 
-    this.stockAdjust.update(m => ({ ...m, [stock.warehouseCode]: { ...adj, saving: true } }));
-    try {
-      await this.svc.adjustStock(
-        this.productId()!,
-        product.sku,
-        product.name,
-        stock,
-        adj.newQty,
-        adj.location,
-        adj.reason,
-        this.authSvc.user()?.uid ?? 'unknown'
-      );
-      this.stockAdjust.update(m => ({ ...m, [stock.warehouseCode]: { ...adj, reason: '', saving: false } }));
-      this.notifications.success(`Stock de ${this.getWarehouseName(stock.warehouseCode)} actualizado`);
-    } catch {
-      this.stockAdjust.update(m => ({ ...m, [stock.warehouseCode]: { ...adj, saving: false } }));
-      this.notifications.error('Error al guardar el ajuste de stock');
+    // Guard: skip if new warehouse with no qty entered
+    if (!stock && adj.newQty === 0) {
+      this.notifications.info('Ingrese una cantidad mayor a 0');
+      return;
     }
-  }
 
-  openNewWarehouseStock(): void {
-    const first = this.availableWarehouses()[0];
-    if (!first) return;
-    this.newWhStock.set({ warehouseCode: first.code, newQty: 0, location: '', reason: '' });
-  }
-
-  setNewWh(field: 'warehouseCode' | 'newQty' | 'location' | 'reason', value: string | number): void {
-    const cur = this.newWhStock();
-    if (cur) this.newWhStock.set({ ...cur, [field]: value });
-  }
-
-  async saveNewWarehouseStock(): Promise<void> {
-    const form    = this.newWhStock();
-    const product = this.productId() ? await this.svc.getProduct(this.productId()!) : null;
-    if (!form || !product) return;
-
-    const wh = this.availableWarehouses().find(w => w.code === form.warehouseCode);
-    const newStock: ProductStock = {
-      warehouseCode:  form.warehouseCode,
-      warehouseName:  wh?.name ?? form.warehouseCode,
-      qty:            form.newQty,
-      available:      form.newQty,
+    // Build stock baseline for virgin warehouses
+    const wh = this.warehouses().find(w => w.code === warehouseCode);
+    const stockBase: ProductStock = stock ?? {
+      warehouseCode,
+      warehouseName: wh?.name ?? warehouseCode,
+      qty:            0,
+      available:      0,
       reserved:       0,
       pendingReceive: 0,
       stockMin:       0,
       stockMax:       0,
-      location:       form.location
+      location:       adj.location
     };
 
+    this.stockAdjust.update(m => ({ ...m, [warehouseCode]: { ...adj, saving: true } }));
     try {
       await this.svc.adjustStock(
         this.productId()!,
         product.sku,
         product.name,
-        { ...newStock, qty: 0 },
-        form.newQty,
-        form.location,
-        form.reason || 'Stock inicial',
-        this.authSvc.user()?.uid ?? 'unknown'
+        stockBase,
+        adj.newQty,
+        adj.location,
+        adj.reason || (stock ? 'Ajuste manual' : 'Stock inicial'),
+        this.authSvc.user()?.uid ?? 'unknown',
+        product.stockQty,
+        product.stockReserved
       );
-      this.newWhStock.set(null);
-      this.notifications.success(`Stock registrado para ${wh?.name ?? form.warehouseCode}`);
+      this.stockAdjust.update(m => ({ ...m, [warehouseCode]: { ...adj, reason: '', saving: false } }));
+      this.notifications.success(`Stock de ${stockBase.warehouseName} actualizado`);
     } catch {
-      this.notifications.error('Error al registrar el stock');
+      this.stockAdjust.update(m => ({ ...m, [warehouseCode]: { ...adj, saving: false } }));
+      this.notifications.error('Error al guardar el ajuste de stock');
     }
   }
 
