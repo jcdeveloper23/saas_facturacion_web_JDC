@@ -54,9 +54,9 @@
             @for (s of series(); track trackById($index, s)) {
               <tr class="align-middle border-bottom border-body-secondary">
                 <td class="px-4 py-3">
-                  <c-badge [color]="s.documentType === 'invoice' ? 'primary' : s.documentType === 'quote' ? 'info' : 'secondary'" 
+                  <c-badge [color]="s.documentType === 'invoice' ? 'primary' : s.documentType === 'debitNote' ? 'warning' : s.documentType === 'retention' ? 'danger' : s.documentType === 'quote' ? 'info' : 'secondary'"
                            variant="outline" class="px-2">
-                    {{ docTypeLabels[s.documentType] }}
+                    {{ docTypeLabels[s.documentType] || s.documentType }}
                   </c-badge>
                 </td>
                 <td>
@@ -115,9 +115,9 @@
         <c-col md="6">
           <label cLabel>Documento Relacionado <span class="text-danger">*</span></label>
           <select cFormSelect formControlName="documentType">
-            <option value="invoice">Factura Electrónica</option>
-            <option value="quote">Presupuesto / Proforma</option>
-            <option value="order">Orden de Pedido</option>
+            @for (opt of docTypeOptions; track opt.value) {
+              <option [value]="opt.value">{{ opt.label }}</option>
+            }
           </select>
         </c-col>
         <c-col md="6">

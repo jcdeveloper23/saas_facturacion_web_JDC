@@ -30,6 +30,18 @@ export const navItems: INavData[] = [
     iconComponent: { name: 'cil-description' },
     attributes: { module: 'invoices', roles: ['admin', 'seller', 'cashier'] }
   },
+  {
+    name: 'Notas de Débito',
+    url: '/debit-notes',
+    iconComponent: { name: 'cil-plus' },
+    attributes: { module: 'debitNotes', roles: ['admin', 'seller'] }
+  },
+  {
+    name: 'Retenciones',
+    url: '/retentions',
+    iconComponent: { name: 'cil-inbox' },
+    attributes: { module: 'retentions', roles: ['admin', 'accountant'] }
+  },
   // {
   //   name: 'Punto de Venta',
   //   url: '/pos',

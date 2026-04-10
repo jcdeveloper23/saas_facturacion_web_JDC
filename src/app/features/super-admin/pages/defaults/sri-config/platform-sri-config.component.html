@@ -1,0 +1,605 @@
+<!-- ── Cabecera ──────────────────────────────────────────────── -->
+<c-row class="mb-4 align-items-center">
+  <c-col>
+    <div class="d-flex align-items-center gap-2">
+      <div class="bg-warning bg-opacity-10 p-2 rounded">
+        <svg cIcon name="cilSettings" size="xl" class="text-warning"></svg>
+      </div>
+      <div>
+        <h3 class="mb-0 fw-semibold">Configuración SRI Ecuador</h3>
+        <p class="text-muted small mb-0">Parámetros técnicos completos según Ficha Técnica v2.32 (oct 2025)</p>
+      </div>
+    </div>
+  </c-col>
+  <c-col xs="auto" class="d-flex gap-2">
+    <a routerLink="/super-admin/defaults" cButton color="outline-secondary" size="sm">
+      <svg cIcon name="cilArrowLeft" class="me-1"></svg> Volver
+    </a>
+    <button cButton color="primary" (click)="onSave()" [disabled]="saving()">
+      @if (saving()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+      <svg cIcon name="cilSave" class="me-1"></svg> Guardar Todo
+    </button>
+  </c-col>
+</c-row>
+
+@if (loading()) {
+  <div class="text-center py-5"><c-spinner color="primary"></c-spinner></div>
+} @else {
+
+  @if (errorMessage()) {
+    <c-alert color="danger" variant="solid" class="mb-4 d-flex align-items-center gap-2">
+      <svg cIcon name="cilXCircle" size="xl"></svg> {{ errorMessage() }}
+    </c-alert>
+  }
+
+  <!-- ══════════════════════════════════════════════════════════════
+       SECCIÓN 1 — Versiones de Schema XML
+       ══════════════════════════════════════════════════════════════ -->
+  <c-card class="border-0 shadow-sm mb-4">
+    <c-card-header><strong>1. Versiones de Schema XML</strong></c-card-header>
+    <c-card-body class="p-4">
+      <c-callout color="info" class="mb-3 p-2">
+        <p class="small mb-0">Versión del XSD que el SRI espera en el atributo <code>version</code> de cada tipo de comprobante.</p>
+      </c-callout>
+      <form [formGroup]="versionsForm">
+        <c-row class="g-3">
+          <c-col md="4">
+            <label cLabel class="fw-semibold small">Versión Factura <span class="text-danger">*</span></label>
+            <input cFormControl formControlName="facturaVersion" placeholder="1.0.0"
+              [class.is-invalid]="hasError(versionsForm, 'facturaVersion')">
+            @if (hasError(versionsForm, 'facturaVersion')) { <div class="invalid-feedback">Requerido</div> }
+          </c-col>
+          <c-col md="4">
+            <label cLabel class="fw-semibold small">Versión Nota de Crédito <span class="text-danger">*</span></label>
+            <input cFormControl formControlName="notaCreditoVersion" placeholder="1.0.0"
+              [class.is-invalid]="hasError(versionsForm, 'notaCreditoVersion')">
+            @if (hasError(versionsForm, 'notaCreditoVersion')) { <div class="invalid-feedback">Requerido</div> }
+          </c-col>
+          <c-col md="4">
+            <label cLabel class="fw-semibold small">Versión Nota de Débito <span class="text-danger">*</span></label>
+            <input cFormControl formControlName="notaDebitoVersion" placeholder="1.0.0"
+              [class.is-invalid]="hasError(versionsForm, 'notaDebitoVersion')">
+            @if (hasError(versionsForm, 'notaDebitoVersion')) { <div class="invalid-feedback">Requerido</div> }
+          </c-col>
+        </c-row>
+      </form>
+    </c-card-body>
+  </c-card>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       SECCIÓN 2 — Endpoints WSDL (secciones 7.2 y 8.2 Ficha Técnica)
+       ══════════════════════════════════════════════════════════════ -->
+  <c-card class="border-0 shadow-sm mb-4">
+    <c-card-header><strong>2. Endpoints WSDL del SRI</strong></c-card-header>
+    <c-card-body class="p-4">
+      <form [formGroup]="endpointsForm">
+
+        <!-- Testing -->
+        <h6 class="text-uppercase text-muted fw-bold small mb-3 border-bottom pb-2">Ambiente Pruebas (celcer.sri.gob.ec)</h6>
+        <c-row class="g-3 mb-4">
+          <c-col md="6">
+            <label cLabel class="fw-semibold small">Recepción <span class="text-danger">*</span></label>
+            <input cFormControl formControlName="testingReceptionUrl"
+              placeholder="https://celcer.sri.gob.ec/...RecepcionComprobantesOffline?wsdl"
+              [class.is-invalid]="hasError(endpointsForm, 'testingReceptionUrl')">
+            @if (hasError(endpointsForm, 'testingReceptionUrl')) { <div class="invalid-feedback">Requerido</div> }
+          </c-col>
+          <c-col md="6">
+            <label cLabel class="fw-semibold small">Autorización <span class="text-danger">*</span></label>
+            <input cFormControl formControlName="testingAuthorizationUrl"
+              placeholder="https://celcer.sri.gob.ec/...AutorizacionComprobantesOffline?wsdl"
+              [class.is-invalid]="hasError(endpointsForm, 'testingAuthorizationUrl')">
+            @if (hasError(endpointsForm, 'testingAuthorizationUrl')) { <div class="invalid-feedback">Requerido</div> }
+          </c-col>
+          <c-col md="6">
+            <label cLabel class="fw-semibold small">Consulta Comprobante <span class="text-danger">*</span></label>
+            <input cFormControl formControlName="testingConsultaComprobanteUrl"
+              placeholder="https://celcer.sri.gob.ec/...ConsultaComprobante?wsdl"
+              [class.is-invalid]="hasError(endpointsForm, 'testingConsultaComprobanteUrl')">
+            @if (hasError(endpointsForm, 'testingConsultaComprobanteUrl')) { <div class="invalid-feedback">Requerido</div> }
+          </c-col>
+          <c-col md="6">
+            <label cLabel class="fw-semibold small">Consulta Factura Comercial Negociable <span class="text-danger">*</span></label>
+            <input cFormControl formControlName="testingConsultaFacturaUrl"
+              placeholder="https://celcer.sri.gob.ec/...ConsultaFactura?wsdl"
+              [class.is-invalid]="hasError(endpointsForm, 'testingConsultaFacturaUrl')">
+            @if (hasError(endpointsForm, 'testingConsultaFacturaUrl')) { <div class="invalid-feedback">Requerido</div> }
+          </c-col>
+        </c-row>
+
+        <!-- Production -->
+        <h6 class="text-uppercase text-muted fw-bold small mb-3 border-bottom pb-2">Ambiente Producción (cel.sri.gob.ec)</h6>
+        <c-row class="g-3">
+          <c-col md="6">
+            <label cLabel class="fw-semibold small">Recepción <span class="text-danger">*</span></label>
+            <input cFormControl formControlName="productionReceptionUrl"
+              placeholder="https://cel.sri.gob.ec/...RecepcionComprobantesOffline?wsdl"
+              [class.is-invalid]="hasError(endpointsForm, 'productionReceptionUrl')">
+            @if (hasError(endpointsForm, 'productionReceptionUrl')) { <div class="invalid-feedback">Requerido</div> }
+          </c-col>
+          <c-col md="6">
+            <label cLabel class="fw-semibold small">Autorización <span class="text-danger">*</span></label>
+            <input cFormControl formControlName="productionAuthorizationUrl"
+              placeholder="https://cel.sri.gob.ec/...AutorizacionComprobantesOffline?wsdl"
+              [class.is-invalid]="hasError(endpointsForm, 'productionAuthorizationUrl')">
+            @if (hasError(endpointsForm, 'productionAuthorizationUrl')) { <div class="invalid-feedback">Requerido</div> }
+          </c-col>
+          <c-col md="6">
+            <label cLabel class="fw-semibold small">Consulta Comprobante <span class="text-danger">*</span></label>
+            <input cFormControl formControlName="productionConsultaComprobanteUrl"
+              placeholder="https://cel.sri.gob.ec/...ConsultaComprobante?wsdl"
+              [class.is-invalid]="hasError(endpointsForm, 'productionConsultaComprobanteUrl')">
+            @if (hasError(endpointsForm, 'productionConsultaComprobanteUrl')) { <div class="invalid-feedback">Requerido</div> }
+          </c-col>
+          <c-col md="6">
+            <label cLabel class="fw-semibold small">Consulta Factura Comercial Negociable <span class="text-danger">*</span></label>
+            <input cFormControl formControlName="productionConsultaFacturaUrl"
+              placeholder="https://cel.sri.gob.ec/...ConsultaFactura?wsdl"
+              [class.is-invalid]="hasError(endpointsForm, 'productionConsultaFacturaUrl')">
+            @if (hasError(endpointsForm, 'productionConsultaFacturaUrl')) { <div class="invalid-feedback">Requerido</div> }
+          </c-col>
+        </c-row>
+
+      </form>
+    </c-card-body>
+  </c-card>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       SECCIÓN 3 — Configuración General (TABLAS 2, 4, consumidor final)
+       ══════════════════════════════════════════════════════════════ -->
+  <c-card class="border-0 shadow-sm mb-4">
+    <c-card-header><strong>3. Configuración General de Emisión</strong></c-card-header>
+    <c-card-body class="p-4">
+      <c-callout color="info" class="mb-3 p-2">
+        <p class="small mb-0">
+          <strong>TABLA 2</strong> — Tipo de emisión: <code>1</code> = Normal (único para método offline).
+          <strong>TABLA 4</strong> — Tipo de ambiente en clave de acceso: <code>1</code>=Pruebas, <code>2</code>=Producción.
+          <strong>Sección 9.10</strong> — Consumidor Final: ID estándar y monto máximo sin identificar.
+        </p>
+      </c-callout>
+      <form [formGroup]="generalForm">
+        <c-row class="g-3">
+          <c-col md="2">
+            <label cLabel class="fw-semibold small">Tipo Emisión <span class="text-danger">*</span></label>
+            <input cFormControl formControlName="emissionType" maxlength="1" class="font-monospace"
+              placeholder="1" [class.is-invalid]="hasError(generalForm, 'emissionType')">
+            <div class="form-text">1 = Normal</div>
+            @if (hasError(generalForm, 'emissionType')) { <div class="invalid-feedback">Requerido</div> }
+          </c-col>
+          <c-col md="2">
+            <label cLabel class="fw-semibold small">Código Pruebas <span class="text-danger">*</span></label>
+            <input cFormControl formControlName="testingEnvironmentCode" maxlength="1" class="font-monospace"
+              placeholder="1" [class.is-invalid]="hasError(generalForm, 'testingEnvironmentCode')">
+            <div class="form-text">Ambiente testing</div>
+            @if (hasError(generalForm, 'testingEnvironmentCode')) { <div class="invalid-feedback">Requerido</div> }
+          </c-col>
+          <c-col md="2">
+            <label cLabel class="fw-semibold small">Código Producción <span class="text-danger">*</span></label>
+            <input cFormControl formControlName="productionEnvironmentCode" maxlength="1" class="font-monospace"
+              placeholder="2" [class.is-invalid]="hasError(generalForm, 'productionEnvironmentCode')">
+            <div class="form-text">Ambiente producción</div>
+            @if (hasError(generalForm, 'productionEnvironmentCode')) { <div class="invalid-feedback">Requerido</div> }
+          </c-col>
+          <c-col md="4">
+            <label cLabel class="fw-semibold small">ID Consumidor Final <span class="text-danger">*</span></label>
+            <input cFormControl formControlName="consumidorFinalId" maxlength="13" class="font-monospace"
+              placeholder="9999999999999" [class.is-invalid]="hasError(generalForm, 'consumidorFinalId')">
+            <div class="form-text">13 nueves — identificación estándar</div>
+            @if (hasError(generalForm, 'consumidorFinalId')) { <div class="invalid-feedback">Requerido</div> }
+          </c-col>
+          <c-col md="2">
+            <label cLabel class="fw-semibold small">Monto máx. s/ID (USD) <span class="text-danger">*</span></label>
+            <input cFormControl type="number" formControlName="consumidorFinalMaxAmountUsd" min="0"
+              placeholder="50" [class.is-invalid]="hasError(generalForm, 'consumidorFinalMaxAmountUsd')">
+            <div class="form-text">Sobre este monto debe identificarse</div>
+            @if (hasError(generalForm, 'consumidorFinalMaxAmountUsd')) { <div class="invalid-feedback">Requerido</div> }
+          </c-col>
+        </c-row>
+      </form>
+    </c-card-body>
+  </c-card>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       SECCIÓN 4 — Códigos de Tipo de Comprobante (TABLA 3)
+       ══════════════════════════════════════════════════════════════ -->
+  <c-card class="border-0 shadow-sm mb-4">
+    <c-card-header><strong>4. Tipos de Comprobante (TABLA 3)</strong></c-card-header>
+    <c-card-body class="p-4">
+      <c-callout color="info" class="mb-3 p-2">
+        <p class="small mb-0">Código que va en <code>&lt;codDoc&gt;</code> de la clave de acceso y del XML.</p>
+      </c-callout>
+      <form [formGroup]="docCodesForm">
+        <c-row class="g-3">
+          <c-col md="4">
+            <label cLabel class="fw-semibold small">Factura <span class="text-danger">*</span></label>
+            <input cFormControl formControlName="invoice" placeholder="01" maxlength="2" class="font-monospace"
+              [class.is-invalid]="hasError(docCodesForm, 'invoice')">
+            @if (hasError(docCodesForm, 'invoice')) { <div class="invalid-feedback">Requerido</div> }
+          </c-col>
+          <c-col md="4">
+            <label cLabel class="fw-semibold small">Liquidación de Compra <span class="text-danger">*</span></label>
+            <input cFormControl formControlName="liquidacion" placeholder="03" maxlength="2" class="font-monospace"
+              [class.is-invalid]="hasError(docCodesForm, 'liquidacion')">
+            @if (hasError(docCodesForm, 'liquidacion')) { <div class="invalid-feedback">Requerido</div> }
+          </c-col>
+          <c-col md="4">
+            <label cLabel class="fw-semibold small">Nota de Crédito <span class="text-danger">*</span></label>
+            <input cFormControl formControlName="creditNote" placeholder="04" maxlength="2" class="font-monospace"
+              [class.is-invalid]="hasError(docCodesForm, 'creditNote')">
+            @if (hasError(docCodesForm, 'creditNote')) { <div class="invalid-feedback">Requerido</div> }
+          </c-col>
+          <c-col md="4">
+            <label cLabel class="fw-semibold small">Nota de Débito <span class="text-danger">*</span></label>
+            <input cFormControl formControlName="debitNote" placeholder="05" maxlength="2" class="font-monospace"
+              [class.is-invalid]="hasError(docCodesForm, 'debitNote')">
+            @if (hasError(docCodesForm, 'debitNote')) { <div class="invalid-feedback">Requerido</div> }
+          </c-col>
+          <c-col md="4">
+            <label cLabel class="fw-semibold small">Guía de Remisión <span class="text-danger">*</span></label>
+            <input cFormControl formControlName="remission" placeholder="06" maxlength="2" class="font-monospace"
+              [class.is-invalid]="hasError(docCodesForm, 'remission')">
+            @if (hasError(docCodesForm, 'remission')) { <div class="invalid-feedback">Requerido</div> }
+          </c-col>
+          <c-col md="4">
+            <label cLabel class="fw-semibold small">Comprobante de Retención <span class="text-danger">*</span></label>
+            <input cFormControl formControlName="retention" placeholder="07" maxlength="2" class="font-monospace"
+              [class.is-invalid]="hasError(docCodesForm, 'retention')">
+            @if (hasError(docCodesForm, 'retention')) { <div class="invalid-feedback">Requerido</div> }
+          </c-col>
+        </c-row>
+      </form>
+    </c-card-body>
+  </c-card>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       SECCIÓN 5 — Códigos de Tipo de Impuesto XML (TABLA 16)
+       ══════════════════════════════════════════════════════════════ -->
+  <c-card class="border-0 shadow-sm mb-4">
+    <c-card-header><strong>5. Tipo de Impuesto para XML (TABLA 16)</strong></c-card-header>
+    <c-card-body class="p-4">
+      <c-callout color="info" class="mb-3 p-2">
+        <p class="small mb-0">Código que va en el campo <code>&lt;codigo&gt;</code> de la sección <code>&lt;impuesto&gt;</code> del XML. Distinto del código de porcentaje.</p>
+      </c-callout>
+      <form [formGroup]="taxTypeCodesForm">
+        <c-row class="g-3">
+          <c-col md="4">
+            <label cLabel class="fw-semibold small">IVA <span class="text-danger">*</span></label>
+            <input cFormControl formControlName="iva" maxlength="2" class="font-monospace"
+              placeholder="2" [class.is-invalid]="hasError(taxTypeCodesForm, 'iva')">
+            <div class="form-text">Impuesto al Valor Agregado</div>
+            @if (hasError(taxTypeCodesForm, 'iva')) { <div class="invalid-feedback">Requerido</div> }
+          </c-col>
+          <c-col md="4">
+            <label cLabel class="fw-semibold small">ICE <span class="text-danger">*</span></label>
+            <input cFormControl formControlName="ice" maxlength="2" class="font-monospace"
+              placeholder="3" [class.is-invalid]="hasError(taxTypeCodesForm, 'ice')">
+            <div class="form-text">Impuesto a los Consumos Especiales</div>
+            @if (hasError(taxTypeCodesForm, 'ice')) { <div class="invalid-feedback">Requerido</div> }
+          </c-col>
+          <c-col md="4">
+            <label cLabel class="fw-semibold small">IRBPNR <span class="text-danger">*</span></label>
+            <input cFormControl formControlName="irbpnr" maxlength="2" class="font-monospace"
+              placeholder="5" [class.is-invalid]="hasError(taxTypeCodesForm, 'irbpnr')">
+            <div class="form-text">Imp. Redimible Botellas Plásticas no Retornables</div>
+            @if (hasError(taxTypeCodesForm, 'irbpnr')) { <div class="invalid-feedback">Requerido</div> }
+          </c-col>
+        </c-row>
+      </form>
+    </c-card-body>
+  </c-card>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       SECCIÓN 6 — Tarifas IVA (TABLA 17)
+       ══════════════════════════════════════════════════════════════ -->
+  <c-card class="border-0 shadow-sm mb-4">
+    <c-card-header class="d-flex justify-content-between align-items-center">
+      <strong>6. Tarifas IVA — &lt;codigoPorcentaje&gt; (TABLA 17)</strong>
+      <button cButton color="outline-primary" size="sm" (click)="addTaxCode()" [disabled]="taxCodesArray.length >= 15">
+        <svg cIcon name="cilPlus" class="me-1"></svg> Agregar
+      </button>
+    </c-card-header>
+    <c-card-body class="p-0">
+      @if (taxCodesArray.length === 0) {
+        <p class="text-muted small text-center py-4 mb-0">Sin filas. Usa "Agregar" para añadir.</p>
+      } @else {
+        <div class="table-responsive">
+          <table cTable hover class="mb-0">
+            <thead>
+              <tr>
+                <th class="ps-4">% IVA</th>
+                <th>Código SRI</th>
+                <th>Nombre</th>
+                <th class="text-center">Exento</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (ctrl of taxCodesArray.controls; track trackByIndex($index)) {
+                <tr [formGroup]="ctrl">
+                  <td class="ps-4" style="width:110px">
+                    <input cFormControl type="number" formControlName="vatPct" min="0" max="100" class="font-monospace">
+                  </td>
+                  <td style="width:130px">
+                    <input cFormControl formControlName="sriCode" maxlength="4" class="font-monospace" placeholder="Ej: 4">
+                  </td>
+                  <td><input cFormControl formControlName="name" placeholder="Ej: IVA 15%"></td>
+                  <td class="text-center" style="width:80px">
+                    <div class="form-check d-flex justify-content-center">
+                      <input class="form-check-input" type="checkbox" formControlName="isExempt">
+                    </div>
+                  </td>
+                  <td class="text-end pe-3" style="width:60px">
+                    <button cButton color="ghost" size="sm" class="text-danger p-1" (click)="removeTaxCode($index)">
+                      <svg cIcon name="cilTrash" size="sm"></svg>
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </c-card-body>
+  </c-card>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       SECCIÓN 7 — Retención por Tipo de Impuesto (TABLA 19)
+       ══════════════════════════════════════════════════════════════ -->
+  <c-card class="border-0 shadow-sm mb-4">
+    <c-card-header class="d-flex justify-content-between align-items-center">
+      <strong>7. Impuestos Sujetos a Retención (TABLA 19)</strong>
+      <button cButton color="outline-primary" size="sm" (click)="addRetentionTaxCode()">
+        <svg cIcon name="cilPlus" class="me-1"></svg> Agregar
+      </button>
+    </c-card-header>
+    <c-card-body class="p-0">
+      <c-callout color="info" class="m-3 p-2">
+        <p class="small mb-0">Código que va en <code>&lt;codigo&gt;</code> del comprobante de retención: RENTA=1, IVA=2, ISD=6.</p>
+      </c-callout>
+      @if (retentionTaxCodesArray.length === 0) {
+        <p class="text-muted small text-center py-4 mb-0">Sin filas.</p>
+      } @else {
+        <div class="table-responsive">
+          <table cTable hover class="mb-0">
+            <thead>
+              <tr>
+                <th class="ps-4" style="width:120px">Código SRI</th>
+                <th style="width:150px">Nombre Corto</th>
+                <th>Etiqueta</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (ctrl of retentionTaxCodesArray.controls; track trackByIndex($index)) {
+                <tr [formGroup]="ctrl">
+                  <td class="ps-4"><input cFormControl formControlName="code" maxlength="4" class="font-monospace" placeholder="1"></td>
+                  <td><input cFormControl formControlName="taxName" placeholder="RENTA"></td>
+                  <td><input cFormControl formControlName="taxLabel" placeholder="Impuesto a la Renta"></td>
+                  <td class="text-end pe-3" style="width:60px">
+                    <button cButton color="ghost" size="sm" class="text-danger p-1" (click)="removeRetentionTaxCode($index)">
+                      <svg cIcon name="cilTrash" size="sm"></svg>
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </c-card-body>
+  </c-card>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       SECCIÓN 8 — Retención IVA (TABLA 20)
+       ══════════════════════════════════════════════════════════════ -->
+  <c-card class="border-0 shadow-sm mb-4">
+    <c-card-header class="d-flex justify-content-between align-items-center">
+      <strong>8. Porcentajes Retención IVA (TABLA 20)</strong>
+      <button cButton color="outline-primary" size="sm" (click)="addIvaRetentionCode()">
+        <svg cIcon name="cilPlus" class="me-1"></svg> Agregar
+      </button>
+    </c-card-header>
+    <c-card-body class="p-0">
+      @if (ivaRetentionCodesArray.length === 0) {
+        <p class="text-muted small text-center py-4 mb-0">Sin filas.</p>
+      } @else {
+        <div class="table-responsive">
+          <table cTable hover class="mb-0">
+            <thead>
+              <tr>
+                <th class="ps-4" style="width:110px">% Retención</th>
+                <th style="width:130px">Código SRI</th>
+                <th>Descripción</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (ctrl of ivaRetentionCodesArray.controls; track trackByIndex($index)) {
+                <tr [formGroup]="ctrl">
+                  <td class="ps-4"><input cFormControl type="number" formControlName="pct" min="0" max="100" class="font-monospace"></td>
+                  <td><input cFormControl formControlName="code" maxlength="4" class="font-monospace" placeholder="9"></td>
+                  <td><input cFormControl formControlName="description" placeholder="Retención IVA 10%"></td>
+                  <td class="text-end pe-3" style="width:60px">
+                    <button cButton color="ghost" size="sm" class="text-danger p-1" (click)="removeIvaRetentionCode($index)">
+                      <svg cIcon name="cilTrash" size="sm"></svg>
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </c-card-body>
+  </c-card>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       SECCIÓN 9 — Formas de Pago (TABLA 24)
+       ══════════════════════════════════════════════════════════════ -->
+  <c-card class="border-0 shadow-sm mb-4">
+    <c-card-header class="d-flex justify-content-between align-items-center">
+      <strong>9. Formas de Pago (TABLA 24)</strong>
+      <button cButton color="outline-primary" size="sm" (click)="addPaymentMethod()">
+        <svg cIcon name="cilPlus" class="me-1"></svg> Agregar
+      </button>
+    </c-card-header>
+    <c-card-body class="p-0">
+      @if (paymentMethodsArray.length === 0) {
+        <p class="text-muted small text-center py-4 mb-0">Sin filas.</p>
+      } @else {
+        <div class="table-responsive">
+          <table cTable hover class="mb-0">
+            <thead>
+              <tr>
+                <th class="ps-4" style="width:140px">Código SRI</th>
+                <th>Descripción</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (ctrl of paymentMethodsArray.controls; track trackByIndex($index)) {
+                <tr [formGroup]="ctrl">
+                  <td class="ps-4"><input cFormControl formControlName="code" maxlength="4" class="font-monospace" placeholder="01"></td>
+                  <td><input cFormControl formControlName="name" placeholder="Sin utilización del sistema financiero"></td>
+                  <td class="text-end pe-3" style="width:60px">
+                    <button cButton color="ghost" size="sm" class="text-danger p-1" (click)="removePaymentMethod($index)">
+                      <svg cIcon name="cilTrash" size="sm"></svg>
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </c-card-body>
+  </c-card>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       SECCIÓN 10 — Tipos de Identificación del Comprador (TABLA 6)
+       ══════════════════════════════════════════════════════════════ -->
+  <c-card class="border-0 shadow-sm mb-4">
+    <c-card-header class="d-flex justify-content-between align-items-center">
+      <strong>10. Tipos de Identificación del Comprador (TABLA 6)</strong>
+      <button cButton color="outline-primary" size="sm" (click)="addIdentificationType()">
+        <svg cIcon name="cilPlus" class="me-1"></svg> Agregar
+      </button>
+    </c-card-header>
+    <c-card-body class="p-0">
+      <c-callout color="info" class="m-3 p-2">
+        <p class="small mb-0">
+          Código para <code>&lt;tipoIdentificacionComprador&gt;</code> del XML.
+          Los flags controlan validaciones: <strong>RUC</strong>=13 dígitos+módulo11,
+          <strong>Cédula</strong>=10 dígitos, <strong>C.Final</strong>=acepta <code>9999999999999</code>.
+          <br>Nota: Liquidación de compra <strong>no puede</strong> usar Consumidor Final.
+        </p>
+      </c-callout>
+      @if (identificationTypesArray.length === 0) {
+        <p class="text-muted small text-center py-4 mb-0">Sin filas.</p>
+      } @else {
+        <div class="table-responsive">
+          <table cTable hover class="mb-0">
+            <thead>
+              <tr>
+                <th class="ps-4" style="width:120px">Código SRI</th>
+                <th>Descripción</th>
+                <th class="text-center" style="width:80px">RUC</th>
+                <th class="text-center" style="width:90px">Cédula</th>
+                <th class="text-center" style="width:100px">C. Final</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (ctrl of identificationTypesArray.controls; track trackByIndex($index)) {
+                <tr [formGroup]="ctrl">
+                  <td class="ps-4"><input cFormControl formControlName="code" maxlength="4" class="font-monospace" placeholder="04"></td>
+                  <td><input cFormControl formControlName="name" placeholder="RUC"></td>
+                  <td class="text-center">
+                    <div class="form-check d-flex justify-content-center">
+                      <input class="form-check-input" type="checkbox" formControlName="isRuc">
+                    </div>
+                  </td>
+                  <td class="text-center">
+                    <div class="form-check d-flex justify-content-center">
+                      <input class="form-check-input" type="checkbox" formControlName="isCedula">
+                    </div>
+                  </td>
+                  <td class="text-center">
+                    <div class="form-check d-flex justify-content-center">
+                      <input class="form-check-input" type="checkbox" formControlName="isFinal">
+                    </div>
+                  </td>
+                  <td class="text-end pe-3" style="width:60px">
+                    <button cButton color="ghost" size="sm" class="text-danger p-1" (click)="removeIdentificationType($index)">
+                      <svg cIcon name="cilTrash" size="sm"></svg>
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </c-card-body>
+  </c-card>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       SECCIÓN 11 — Códigos ICE (TABLA 18)
+       ══════════════════════════════════════════════════════════════ -->
+  <c-card class="border-0 shadow-sm mb-4">
+    <c-card-header class="d-flex justify-content-between align-items-center">
+      <strong>11. Códigos ICE — &lt;codigoPorcentaje&gt; (TABLA 18)</strong>
+      <button cButton color="outline-primary" size="sm" (click)="addIceCode()">
+        <svg cIcon name="cilPlus" class="me-1"></svg> Agregar
+      </button>
+    </c-card-header>
+    <c-card-body class="p-0">
+      <c-callout color="warning" class="m-3 p-2">
+        <p class="small mb-0">
+          Códigos del Impuesto a los Consumos Especiales. El campo <code>&lt;codigo&gt;</code> del impuesto ICE en XML es siempre <strong>3</strong>.
+          Estos códigos van en <code>&lt;codigoPorcentaje&gt;</code>. Verificar tarifas vigentes en la normativa SRI.
+        </p>
+      </c-callout>
+      @if (iceCodesArray.length === 0) {
+        <p class="text-muted small text-center py-4 mb-0">Sin códigos ICE configurados.</p>
+      } @else {
+        <div class="table-responsive">
+          <table cTable hover class="mb-0" style="font-size: 0.8rem;">
+            <thead>
+              <tr>
+                <th class="ps-4" style="width:100px">Código</th>
+                <th>Descripción</th>
+                <th style="width:130px">Ad Valorem %</th>
+                <th style="width:140px">Específica USD</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (ctrl of iceCodesArray.controls; track trackByIndex($index)) {
+                <tr [formGroup]="ctrl">
+                  <td class="ps-4"><input cFormControl formControlName="code" maxlength="6" class="font-monospace" placeholder="3011"></td>
+                  <td><input cFormControl formControlName="description" placeholder="Cigarrillos Rubios"></td>
+                  <td><input cFormControl type="number" formControlName="adValoremPct" min="0" max="1000" step="0.01" placeholder="—"></td>
+                  <td><input cFormControl type="number" formControlName="especificaUsd" min="0" step="0.001" placeholder="—"></td>
+                  <td class="text-end pe-3" style="width:60px">
+                    <button cButton color="ghost" size="sm" class="text-danger p-1" (click)="removeIceCode($index)">
+                      <svg cIcon name="cilTrash" size="sm"></svg>
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </c-card-body>
+  </c-card>
+
+  <!-- ── Botón Guardar (pie) ──────────────────────────────────── -->
+  <div class="d-flex justify-content-end mb-5">
+    <button cButton color="primary" (click)="onSave()" [disabled]="saving()" class="px-4 shadow-sm">
+      @if (saving()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+      <svg cIcon name="cilSave" class="me-1"></svg> Guardar Configuración SRI
+    </button>
+  </div>
+}

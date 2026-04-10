@@ -1,18 +1,24 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, FormArray, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import {
   CardComponent, CardBodyComponent, CardHeaderComponent,
   RowComponent, ColComponent,
   FormLabelDirective, FormControlDirective, FormSelectDirective,
   InputGroupComponent, InputGroupTextDirective,
-  ButtonDirective, SpinnerComponent, AlertComponent, CalloutComponent
+  ButtonDirective, SpinnerComponent, AlertComponent, CalloutComponent,
+  BadgeComponent, TableDirective
 } from '@coreui/angular';
 import { IconDirective, IconSetService } from '@coreui/icons-angular';
+import { Functions, httpsCallable } from '@angular/fire/functions';
+import { take } from 'rxjs';
+import { Timestamp } from '@angular/fire/firestore';
 import { iconSubset } from '../../../../icons/icon-subset';
 import { SettingsService } from '../../services/settings.service';
 import { NotificationService } from '../../../../core/services/notification.service';
+import { TenantService } from '../../../../core/services/tenant.service';
 import { ecuadorRucValidator } from '../../../../shared/validators/ruc.validator';
+import { SriCompanyConfig } from '../../models/settings.interfaces';
 
 @Component({
   selector: 'app-company-settings',
@@ -26,23 +32,40 @@ import { ecuadorRucValidator } from '../../../../shared/validators/ruc.validator
     FormLabelDirective, FormControlDirective, FormSelectDirective,
     InputGroupComponent, InputGroupTextDirective,
     ButtonDirective, SpinnerComponent, AlertComponent, IconDirective,
-    CalloutComponent
+    CalloutComponent, BadgeComponent, TableDirective
   ]
 })
 export class CompanySettingsComponent implements OnInit {
   private svc = inject(SettingsService);
   private notifications = inject(NotificationService);
+  private tenantSvc = inject(TenantService);
+  private functions = inject(Functions);
   private fb = inject(FormBuilder);
   private iconSet = inject(IconSetService);
 
   loading = signal(true);
   saving = signal(false);
   errorMessage = signal('');
+  savingSri = signal(false);
+  sriErrorMessage = signal('');
+  savingSriXml = signal(false);
+  sriXmlErrorMessage = signal('');
+  certificateFileName = signal<string | null>(null);
+  certificateFile = signal<File | null>(null);
+  certPassword = signal('');
+  uploadingCert = signal(false);
+  certUploadError = signal('');
+
+  // Certificate info from Firestore (updated after upload)
+  certThumbprint = signal<string | null>(null);
+  certExpiry = signal<Date | null>(null);
+  readonly today = new Date();
 
   constructor() {
     this.iconSet.icons = { ...iconSubset };
   }
 
+  // ── Formulario principal empresa ────────────────────────────────────────────
   form = this.fb.group({
     companyName:     ['', Validators.required],
     taxId:           ['', [Validators.required, ecuadorRucValidator()]],
@@ -58,6 +81,34 @@ export class CompanySettingsComponent implements OnInit {
     fiscalYear:      [new Date().getFullYear(), Validators.required]
   });
 
+  // ── Formulario configuración SRI (ambiente/certificado) ────────────────────
+  sriForm = this.fb.group({
+    environment:              ['testing', Validators.required],
+    establishment:            ['001', [Validators.required, Validators.pattern(/^\d{3}$/)]],
+    emissionPoint:            ['001', [Validators.required, Validators.pattern(/^\d{3}$/)]],
+    contributorType:          ['natural', Validators.required],
+    accountingRequired:       [false],
+    contribuyenteEspecial:    [''],
+    microempresa:             [false],
+    regimen:                  ['general', Validators.required],
+    representanteLegalName:   [''],
+    representanteLegalTaxId:  [''],
+  });
+
+  // ── Formulario datos XML (infoTributaria) ───────────────────────────────────
+  sriXmlForm = this.fb.group({
+    razonSocial:              ['', Validators.required],
+    nombreComercial:          [''],
+    direccionMatriz:          ['', Validators.required],
+    direccionEstablecimiento: ['', Validators.required],
+    telefono:                 [''],
+    correo:                   ['', Validators.email],
+    obligadoContabilidad:     ['SI', Validators.required],
+    contribuyenteEspecial:    [''],
+  });
+
+  additionalFields = this.fb.array<FormGroup>([]);
+
   ngOnInit(): void {
     this.svc.getCompanySettings().subscribe({
       next: (settings) => {
@@ -71,8 +122,58 @@ export class CompanySettingsComponent implements OnInit {
         this.loading.set(false);
       }
     });
+
+    this.svc.getSriConfig().pipe(take(1)).subscribe({
+      next: (sri) => {
+        if (sri) {
+          this.sriForm.patchValue({
+            environment:             sri.environment ?? 'testing',
+            establishment:           sri.establishment ?? '001',
+            emissionPoint:           sri.emissionPoint ?? '001',
+            contributorType:         sri.contributorType ?? 'natural',
+            accountingRequired:      sri.accountingRequired ?? false,
+            contribuyenteEspecial:   sri.contribuyenteEspecial ?? '',
+            microempresa:            sri.microempresa ?? false,
+            regimen:                 sri.regimen ?? 'general',
+            representanteLegalName:  sri.representanteLegal?.name ?? '',
+            representanteLegalTaxId: sri.representanteLegal?.taxId ?? '',
+          });
+          if ((sri as any).certificateThumbprint) {
+            this.certThumbprint.set((sri as any).certificateThumbprint);
+          }
+          const expiry = (sri as any).certificateExpiry as Timestamp | undefined;
+          if (expiry) {
+            this.certExpiry.set(expiry.toDate());
+          }
+        }
+      }
+    });
+
+    this.svc.getSriCompanyConfig().pipe(take(1)).subscribe({
+      next: (cfg) => {
+        if (cfg) {
+          this.sriXmlForm.patchValue({
+            razonSocial:              cfg.razonSocial ?? '',
+            nombreComercial:          cfg.nombreComercial ?? '',
+            direccionMatriz:          cfg.direccionMatriz ?? '',
+            direccionEstablecimiento: cfg.direccionEstablecimiento ?? '',
+            telefono:                 cfg.telefono ?? '',
+            correo:                   cfg.correo ?? '',
+            obligadoContabilidad:     cfg.obligadoContabilidad ?? 'SI',
+            contribuyenteEspecial:    cfg.contribuyenteEspecial ?? '',
+          });
+
+          // Rebuild additionalFields
+          while (this.additionalFields.length) { this.additionalFields.removeAt(0); }
+          (cfg.additionalInfoFields ?? []).forEach(f =>
+            this.additionalFields.push(this.fb.group({ nombre: [f.nombre], valor: [f.valor] }))
+          );
+        }
+      }
+    });
   }
 
+  // ── Submit empresa ──────────────────────────────────────────────────────────
   async onSubmit(): Promise<void> {
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
     this.saving.set(true);
@@ -88,8 +189,154 @@ export class CompanySettingsComponent implements OnInit {
     }
   }
 
+  // ── Submit SRI ambiente ─────────────────────────────────────────────────────
+  async onSubmitSri(): Promise<void> {
+    if (this.sriForm.invalid) { this.sriForm.markAllAsTouched(); return; }
+    this.savingSri.set(true);
+    this.sriErrorMessage.set('');
+    try {
+      const fv = this.sriForm.getRawValue();
+      const sri: any = {
+        environment:           fv.environment,
+        establishment:         fv.establishment,
+        emissionPoint:         fv.emissionPoint,
+        contributorType:       fv.contributorType,
+        accountingRequired:    fv.accountingRequired ?? false,
+        contribuyenteEspecial: fv.contribuyenteEspecial ?? '',
+        microempresa:          fv.microempresa ?? false,
+        regimen:               fv.regimen,
+      };
+      if (fv.contributorType === 'juridica' && fv.representanteLegalName) {
+        sri.representanteLegal = {
+          name:  fv.representanteLegalName,
+          taxId: fv.representanteLegalTaxId,
+        };
+      } else {
+        sri.representanteLegal = null;
+      }
+      await this.svc.saveSriConfig(sri);
+      this.notifications.success('Configuración SRI guardada correctamente');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error al guardar';
+      this.sriErrorMessage.set(msg);
+    } finally {
+      this.savingSri.set(false);
+    }
+  }
+
+  // ── Submit XML (infoTributaria) ─────────────────────────────────────────────
+  async onSubmitSriXml(): Promise<void> {
+    if (this.sriXmlForm.invalid) { this.sriXmlForm.markAllAsTouched(); return; }
+    this.savingSriXml.set(true);
+    this.sriXmlErrorMessage.set('');
+    try {
+      const fv = this.sriXmlForm.getRawValue();
+      const payload: Partial<SriCompanyConfig> = {
+        razonSocial:              fv.razonSocial!,
+        nombreComercial:          fv.nombreComercial ?? '',
+        direccionMatriz:          fv.direccionMatriz!,
+        direccionEstablecimiento: fv.direccionEstablecimiento!,
+        telefono:                 fv.telefono ?? '',
+        correo:                   fv.correo ?? '',
+        obligadoContabilidad:     (fv.obligadoContabilidad as 'SI' | 'NO') ?? 'NO',
+        contribuyenteEspecial:    fv.contribuyenteEspecial ?? '',
+        additionalInfoFields:     this.additionalFields.getRawValue().map(f => ({
+          nombre: f['nombre'] as string,
+          valor:  f['valor']  as string,
+        })),
+      };
+      await this.svc.saveSriCompanyConfig(payload);
+      this.notifications.success('Datos XML guardados correctamente');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error al guardar';
+      this.sriXmlErrorMessage.set(msg);
+    } finally {
+      this.savingSriXml.set(false);
+    }
+  }
+
+  // ── Additional fields helpers ───────────────────────────────────────────────
+  addAdditionalField(): void {
+    if (this.additionalFields.length >= 15) { return; }
+    this.additionalFields.push(this.fb.group({ nombre: [''], valor: [''] }));
+  }
+
+  removeAdditionalField(i: number): void { this.additionalFields.removeAt(i); }
+
+  // ── Certificate ─────────────────────────────────────────────────────────────
+  onCertificateFileChange(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    this.certificateFile.set(file);
+    this.certificateFileName.set(file?.name ?? null);
+    this.certUploadError.set('');
+  }
+
+  async uploadCertificate(): Promise<void> {
+    const file = this.certificateFile();
+    const password = this.certPassword();
+    if (!file) {
+      this.certUploadError.set('Selecciona un archivo .p12 primero.');
+      return;
+    }
+    if (!password) {
+      this.certUploadError.set('Ingresa la contraseña del certificado.');
+      return;
+    }
+    this.uploadingCert.set(true);
+    this.certUploadError.set('');
+    try {
+      const base64 = await this.fileToBase64(file);
+      const fn = httpsCallable<
+        { companyId: string; certificateBase64: string; password: string },
+        { success: boolean; thumbprint: string; subject: string; expiresAt: string; expiresIn: number }
+      >(this.functions, 'uploadCertificate');
+      const result = await fn({
+        companyId: this.tenantSvc.companyId,
+        certificateBase64: base64,
+        password,
+      });
+      const data = result.data;
+      this.certThumbprint.set(data.thumbprint);
+      this.certExpiry.set(new Date(data.expiresAt));
+      this.certificateFile.set(null);
+      this.certificateFileName.set(null);
+      this.certPassword.set('');
+      this.notifications.success(`Certificado subido. Vence en ${data.expiresIn} días.`);
+    } catch (err: unknown) {
+      const msg = (err as any)?.message ?? 'Error al subir el certificado';
+      this.certUploadError.set(msg);
+    } finally {
+      this.uploadingCert.set(false);
+    }
+  }
+
+  private fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        // result is "data:application/...;base64,<DATA>" — strip the prefix
+        resolve(result.split(',')[1]);
+      };
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // ── Error helpers ───────────────────────────────────────────────────────────
   hasError(field: string): boolean {
     const ctrl = this.form.get(field);
+    return !!(ctrl?.invalid && ctrl?.touched);
+  }
+
+  hasSriError(field: string): boolean {
+    const ctrl = this.sriForm.get(field);
+    return !!(ctrl?.invalid && ctrl?.touched);
+  }
+
+  hasSriXmlError(field: string): boolean {
+    const ctrl = this.sriXmlForm.get(field);
     return !!(ctrl?.invalid && ctrl?.touched);
   }
 
@@ -103,4 +350,6 @@ export class CompanySettingsComponent implements OnInit {
     if (ctrl.errors['max']) return `Valor máximo: ${ctrl.errors['max'].max}`;
     return 'Campo inválido';
   }
+
+  trackByIndex(i: number): number { return i; }
 }

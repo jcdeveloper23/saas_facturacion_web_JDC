@@ -42,10 +42,11 @@ export class PlatformDocumentSeriesComponent implements OnInit, OnDestroy {
 
   readonly documentTypes = [
     { value: 'invoice',       label: 'Factura' },
-    { value: 'quote',         label: 'Presupuesto' },
-    { value: 'order',         label: 'Pedido' },
     { value: 'creditNote',    label: 'Nota de Crédito' },
     { value: 'debitNote',     label: 'Nota de Débito' },
+    { value: 'retention',     label: 'Retención' },
+    { value: 'quote',         label: 'Presupuesto' },
+    { value: 'order',         label: 'Pedido' },
     { value: 'remission',     label: 'Remisión' },
   ];
 

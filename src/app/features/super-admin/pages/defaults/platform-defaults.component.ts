@@ -1,6 +1,7 @@
 import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
 import {
   CardComponent, CardBodyComponent, CardHeaderComponent,
@@ -18,6 +19,7 @@ import { PlatformConfig } from '../../models/platform-defaults.interface';
   standalone: true,
   imports: [
     CommonModule, ReactiveFormsModule,
+    RouterLink,
     CardComponent, CardBodyComponent, CardHeaderComponent,
     ButtonDirective, SpinnerComponent, RowComponent, ColComponent,
     FormLabelDirective, FormControlDirective, IconDirective

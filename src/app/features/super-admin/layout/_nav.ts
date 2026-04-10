@@ -58,5 +58,19 @@ export const superAdminNavItems: INavData[] = [
     name: 'Bodegas',
     url: '/super-admin/defaults/warehouses',
     iconComponent: { name: 'cil-location-pin' }
+  },
+  {
+    title: true,
+    name: 'Facturación Electrónica'
+  },
+  {
+    name: 'Config SRI Ecuador',
+    url: '/super-admin/defaults/sri-config',
+    iconComponent: { name: 'cil-description' }
+  },
+  {
+    name: 'Config SMTP',
+    url: '/super-admin/defaults/smtp-config',
+    iconComponent: { name: 'cil-envelope-closed' }
   }
 ];

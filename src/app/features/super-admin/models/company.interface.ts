@@ -21,14 +21,31 @@ export interface Company {
   subscriptionEnd: Timestamp;
 
   sri: {
+    // ── Identificación ──────────────────────────────────────────────────────
     environment: 'testing' | 'production';
     ruc: string;
     businessName: string;
-    establishment: string;  // '001'
-    emissionPoint: string;  // '001'
+    establishment: string;          // '001'
+    emissionPoint: string;          // '001'
     contributorType: 'natural' | 'juridica';
-    accountingRequired: boolean;
-    certificateExpiry?: Timestamp;
+
+    // ── Obligaciones fiscales ────────────────────────────────────────────────
+    accountingRequired: boolean;    // obligado a llevar contabilidad
+    contribuyenteEspecial?: string; // número de resolución, '' si no aplica
+    microempresa: boolean;          // régimen microempresas
+    regimen: 'general' | 'rimpe_negocio_popular' | 'rimpe_emprendedor';
+
+    // ── Representante legal (requerido si contributorType === 'juridica') ───
+    representanteLegal?: {
+      name: string;
+      taxId: string;                // CI del representante
+    };
+
+    // ── Certificado de firma digital ─────────────────────────────────────────
+    certificatePath?: string;       // gs://bucket/companies/{id}/certificates/signing.p12
+    certificateThumbprint?: string; // SHA1 huella para display
+    certificateSubject?: string;    // Subject del cert para display (nombre empresa en cert)
+    certificateExpiry?: Timestamp;  // Fecha de expiración
   };
 
   // Plugin management — which modules are active for this company

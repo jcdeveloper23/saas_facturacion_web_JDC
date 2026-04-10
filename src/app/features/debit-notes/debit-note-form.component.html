@@ -1,0 +1,217 @@
+<!-- ─── Header ──────────────────────────────────────────────────────────────── -->
+<div class="mb-3 d-flex align-items-center gap-2">
+  <button cButton color="secondary" variant="outline" size="sm" (click)="router.navigate(['/debit-notes'])">
+    <svg cIcon name="cilArrowLeft"></svg>
+  </button>
+  <div>
+    <h5 class="mb-0">{{ pageTitle() }}</h5>
+    @if (!isNew()) {
+    <div class="d-flex gap-1 mt-1">
+      <c-badge [color]="STATUS_COLORS[currentStatus()]">{{ STATUS_LABELS[currentStatus()] }}</c-badge>
+      @if (debitNote()?.sriStatus) {
+      <c-badge [color]="SRI_COLORS[debitNote()!.sriStatus!]" style="font-size:.65rem">
+        {{ SRI_LABELS[debitNote()!.sriStatus!] }}
+      </c-badge>
+      }
+    </div>
+    }
+  </div>
+  @if (!isNew() && debitNote()?.sriError) {
+  <div class="alert alert-danger py-1 px-2 ms-auto mb-0" style="font-size:.78rem">
+    <svg cIcon name="cilWarning" class="me-1"></svg>
+    {{ debitNote()!.sriError }}
+  </div>
+  }
+</div>
+
+@if (loading()) {
+<div class="text-center py-5"><c-spinner color="primary"></c-spinner></div>
+} @else {
+<form [formGroup]="form">
+
+  <!-- ─── Header fields ───────────────────────────────────────────────────── -->
+  <c-card class="mb-3">
+    <c-card-body class="py-2">
+      <p class="section-title">Encabezado</p>
+      <c-row [gutter]="2">
+        <c-col [sm]="2">
+          <label class="inv-label">Serie</label>
+          <select class="form-select inv-ctrl" formControlName="seriesCode">
+            @for (s of seriesList(); track s.code) {
+            <option [value]="s.code">{{ s.code }}</option>
+            }
+          </select>
+        </c-col>
+        <c-col [sm]="2">
+          <label class="inv-label">Año fiscal</label>
+          <input type="number" class="form-control inv-ctrl" formControlName="fiscalYear">
+        </c-col>
+        <c-col [sm]="3">
+          <label class="inv-label">Fecha emisión <span class="text-danger">*</span></label>
+          <input type="date" class="form-control inv-ctrl" formControlName="date">
+        </c-col>
+        <c-col [sm]="2">
+          <label class="inv-label">IVA %</label>
+          <select class="form-select inv-ctrl" formControlName="vatPct">
+            @for (v of vatOptions; track v) {
+            <option [value]="v">{{ v }}%</option>
+            }
+          </select>
+        </c-col>
+      </c-row>
+    </c-card-body>
+  </c-card>
+
+  <!-- ─── Customer ────────────────────────────────────────────────────────── -->
+  <c-card class="mb-3">
+    <c-card-body class="py-2">
+      <p class="section-title">Cliente</p>
+      @if (!selectedCustomer()) {
+      <div style="position:relative;max-width:400px">
+        <input type="text" class="form-control inv-ctrl" placeholder="Buscar cliente por nombre o RUC..."
+          [value]="customerSearch()" (input)="customerSearch.set($any($event.target).value)"
+          (focus)="showCustomerDrop.set(true)" (blur)="blurCustomer()">
+        @if (showCustomerDrop() && customerResults().length > 0) {
+        <div class="position-absolute bg-white border rounded shadow-sm"
+          style="z-index:1050;width:100%;max-height:220px;overflow-y:auto">
+          @for (c of customerResults(); track c.id) {
+          <button type="button" class="d-block w-100 text-start px-2 py-1"
+            style="border:none;background:none;font-size:.82rem" (mousedown)="selectCustomer(c)">
+            <span class="fw-semibold">{{ c.name }}</span>
+            <span class="text-secondary ms-2">{{ c.taxId }}</span>
+          </button>
+          }
+        </div>
+        }
+      </div>
+      } @else {
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <div class="cust-chip">
+          <span class="fw-semibold">{{ selectedCustomer()!.name }}</span>
+          <span class="text-secondary ms-1" style="font-size:.75rem">{{ selectedCustomer()!.taxId }}</span>
+          @if (isEditable()) {
+          <button type="button" class="btn-close ms-1" style="font-size:.6rem" (click)="clearCustomer()"></button>
+          }
+        </div>
+        <div>
+          <label class="inv-label">Tipo ID SRI</label>
+          <select class="form-select inv-ctrl" formControlName="customerTaxIdType" style="width:160px">
+            <option value="04">04 — RUC</option>
+            <option value="05">05 — Cédula</option>
+            <option value="06">06 — Pasaporte</option>
+          </select>
+        </div>
+      </div>
+      }
+    </c-card-body>
+  </c-card>
+
+  <!-- ─── Original invoice reference ─────────────────────────────────────── -->
+  <c-card class="mb-3">
+    <c-card-body class="py-2">
+      <p class="section-title">Factura Original que se Modifica</p>
+      <c-row [gutter]="2">
+        <c-col [sm]="4">
+          <label class="inv-label">Número factura <span class="text-danger">*</span></label>
+          <input type="text" class="form-control inv-ctrl" formControlName="originalInvoiceNumber"
+            placeholder="001-001-000000001">
+        </c-col>
+        <c-col [sm]="3">
+          <label class="inv-label">Fecha factura <span class="text-danger">*</span></label>
+          <input type="date" class="form-control inv-ctrl" formControlName="originalInvoiceDate">
+        </c-col>
+        <c-col [sm]="5">
+          <label class="inv-label">N° Autorización original</label>
+          <input type="text" class="form-control inv-ctrl" formControlName="originalInvoiceAuth"
+            placeholder="49 dígitos">
+        </c-col>
+      </c-row>
+    </c-card-body>
+  </c-card>
+
+  <!-- ─── Motivos ─────────────────────────────────────────────────────────── -->
+  <c-card class="mb-3">
+    <c-card-header class="d-flex align-items-center justify-content-between py-1">
+      <span class="section-title mb-0">Motivos / Cargos</span>
+      @if (isEditable()) {
+      <button cButton color="secondary" variant="outline" size="sm" (click)="addMotivo()">
+        <svg cIcon name="cilPlus" class="me-1"></svg> Agregar
+      </button>
+      }
+    </c-card-header>
+    <c-card-body class="p-0">
+      <table class="table table-sm mb-0" style="font-size:.82rem" formArrayName="motivos">
+        <thead class="table-light">
+          <tr>
+            <th style="width:40px"></th>
+            <th>Razón / Motivo <span class="text-danger">*</span></th>
+            <th style="width:150px" class="text-end">Valor (sin IVA)</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (mCtrl of motivosArray.controls; track mCtrl; let i = $index) {
+          <tr [formGroupName]="i">
+            <td>
+              @if (isEditable() && motivosArray.length > 1) {
+              <button type="button" class="btn btn-link text-danger p-0" (click)="removeMotivo(i)">
+                <svg cIcon name="cilTrash" size="sm"></svg>
+              </button>
+              }
+            </td>
+            <td>
+              <input type="text" class="form-control form-control-sm" formControlName="razon"
+                placeholder="Descripción del cargo...">
+            </td>
+            <td>
+              <input type="number" class="form-control form-control-sm text-end" formControlName="valor" step="0.01"
+                min="0">
+            </td>
+          </tr>
+          }
+        </tbody>
+        <tfoot>
+          <tr class="table-light">
+            <td colspan="2" class="text-end text-secondary pe-2">Subtotal sin IVA:</td>
+            <td class="text-end">$ {{ totals().totalSinImpuestos | number:'1.2-2' }}</td>
+          </tr>
+          <tr class="table-light">
+            <td colspan="2" class="text-end text-secondary pe-2">IVA {{ form.get('vatPct')?.value }}%:</td>
+            <td class="text-end">$ {{ totals().vatAmount | number:'1.2-2' }}</td>
+          </tr>
+          <tr class="table-secondary">
+            <td colspan="2" class="text-end fw-bold pe-2">Total:</td>
+            <td class="text-end fw-bold">$ {{ totals().total | number:'1.2-2' }}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </c-card-body>
+  </c-card>
+
+  <!-- ─── Notes ────────────────────────────────────────────────────────────── -->
+  <c-card class="mb-3">
+    <c-card-body class="py-2">
+      <label class="inv-label">Observaciones</label>
+      <textarea class="form-control inv-ctrl" rows="2" formControlName="notes"></textarea>
+    </c-card-body>
+  </c-card>
+
+  <!-- ─── Actions ─────────────────────────────────────────────────────────── -->
+  @if (isEditable()) {
+  <div class="d-flex gap-2 justify-content-end mb-4">
+    <button cButton color="secondary" variant="outline" (click)="router.navigate(['/debit-notes'])"
+      [disabled]="saving()">
+      Cancelar
+    </button>
+    <button cButton color="secondary" (click)="save(false)" [disabled]="saving()">
+      @if (saving()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+      Guardar borrador
+    </button>
+    <button cButton color="primary" (click)="save(true)" [disabled]="saving()">
+      @if (saving()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+      <svg cIcon name="cilSend" class="me-1"></svg> Emitir
+    </button>
+  </div>
+  }
+
+</form>
+} <!-- end loading else -->

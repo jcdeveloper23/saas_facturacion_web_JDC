@@ -1,5 +1,12 @@
 import { Timestamp } from '@angular/fire/firestore';
 
+// ─── SRI Electronic Document Status ──────────────────────────────────────────
+export type SriDocumentStatus =
+  | 'pending'        // emitida, pendiente de envío a SRI
+  | 'authorized'     // autorizada por SRI, tiene authorizationNumber
+  | 'rejected'       // rechazada por SRI, ver sriError
+  | 'not_required';  // borrador o estado que no requiere SRI
+
 // ─── Status ──────────────────────────────────────────────────────────────────
 
 export type InvoiceStatus = 'draft' | 'issued' | 'paid' | 'void' | 'credit_note';
@@ -20,6 +27,20 @@ export const INVOICE_STATUS_COLORS: Record<InvoiceStatus, string> = {
   credit_note: 'warning'
 };
 
+export const SRI_STATUS_LABELS: Record<SriDocumentStatus, string> = {
+  pending:      'Pendiente SRI',
+  authorized:   'Autorizada',
+  rejected:     'Rechazada SRI',
+  not_required: '—'
+};
+
+export const SRI_STATUS_COLORS: Record<SriDocumentStatus, string> = {
+  pending:      'warning',
+  authorized:   'success',
+  rejected:     'danger',
+  not_required: 'secondary'
+};
+
 // ─── Line ─────────────────────────────────────────────────────────────────────
 
 export interface InvoiceLine {
@@ -36,6 +57,7 @@ export interface InvoiceLine {
   total: number;             // subtotal + vatAmount
   warehouseCode?: string;    // override por línea si es necesario
   notes?: string;
+  sriTaxCode?: string;  // código SRI: '2'=IVA 0%, '3'=IVA 15%, '5'=IVA 5%, '6'=Exento
 }
 
 // ─── VAT summary breakdown ────────────────────────────────────────────────────
@@ -94,6 +116,7 @@ export interface Invoice {
   customerAddress?: string;
   customerCity?: string;
   customerProvince?: string;
+  customerEmail?: string;
 
   // ── Commerce ────────────────────────────────────────────────────────────────
   warehouseCode: string;
@@ -132,6 +155,17 @@ export interface Invoice {
   createdBy: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
+  updatedBy?: string;
+
+  // ── SRI Electronic Document ─────────────────────────────────────────────────
+  sriStatus?: SriDocumentStatus;     // estado en el proceso SRI
+  accessKey?: string;                // clave de acceso 49 dígitos
+  codigoNumerico?: string;           // 8 dígitos aleatorios (parte de accessKey)
+  authorizationNumber?: string;      // número autorización retornado por SRI
+  authorizedAt?: Timestamp;          // fecha/hora de autorización SRI
+  sriError?: string;                 // mensaje de error si sriStatus === 'rejected'
+  xmlUrl?: string;                   // Cloud Storage URL del XML firmado
+  pdfUrl?: string;                   // Cloud Storage URL del PDF (RIDE)
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────

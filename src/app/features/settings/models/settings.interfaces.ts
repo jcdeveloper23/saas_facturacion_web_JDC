@@ -38,7 +38,7 @@ export interface DocumentSeries extends BaseDocument {
   code: string;                     // '001', 'A', 'B'
   name: string;
   description?: string;
-  documentType: 'invoice' | 'quote' | 'order';
+  documentType: 'invoice' | 'creditNote' | 'debitNote' | 'retention' | 'quote' | 'order' | 'remission';
   establishment: string;            // '001'
   emissionPoint: string;            // '001'
   isActive: boolean;
@@ -94,3 +94,28 @@ export interface Country extends BaseDocument {
 }
 
 export type CountryFormData = Pick<Country, 'code2' | 'code3' | 'name' | 'isActive'>;
+
+// /companies/{companyId}/configuration/sri  ← documento único por empresa
+export interface SriCompanyConfig {
+  // Datos tal como deben aparecer en el XML
+  razonSocial:              string;
+  nombreComercial?:         string;
+  direccionMatriz:          string;
+  direccionEstablecimiento: string;
+  telefono?:                string;
+  correo?:                  string;
+
+  // Flags contribuyente para XML
+  obligadoContabilidad:  'SI' | 'NO';
+  contribuyenteEspecial: string;   // número de resolución o '' si no aplica
+
+  // Campos adicionales libres — bloque <infoAdicional> del XML
+  // Soportan templates: ${invoice.field}, ${customer.field}, ${company.field}
+  additionalInfoFields: Array<{
+    nombre: string;
+    valor:  string;
+  }>;
+
+  updatedAt?: Timestamp;
+  updatedBy?: string;
+}

@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { Firestore, doc, setDoc, Timestamp } from '@angular/fire/firestore';
+import { Firestore, doc, setDoc, onSnapshot, updateDoc, Timestamp } from '@angular/fire/firestore';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { FirestoreService } from '../../../core/services/firestore.service';
@@ -7,6 +7,7 @@ import { TenantService } from '../../../core/services/tenant.service';
 import { AuthService } from '../../../core/services/auth.service';
 import {
   CompanySettings,
+  SriCompanyConfig,
   Warehouse, WarehouseFormData,
   DocumentSeries, DocumentSeriesFormData,
   PaymentTerm, PaymentTermFormData,
@@ -14,6 +15,7 @@ import {
   Currency, CurrencyFormData,
   Country, CountryFormData
 } from '../models/settings.interfaces';
+import { Company } from '../../super-admin/models/company.interface';
 
 @Injectable({ providedIn: 'root' })
 export class SettingsService {
@@ -31,6 +33,42 @@ export class SettingsService {
   async saveCompanySettings(data: Partial<CompanySettings>): Promise<void> {
     const companyId = this.tenantService.companyId;
     const ref = doc(this.firestore, `companies/${companyId}/configuration/general`);
+    await setDoc(ref, {
+      ...data,
+      updatedAt: Timestamp.now(),
+      updatedBy: this.authService.user()?.uid ?? ''
+    }, { merge: true });
+  }
+
+  // ── SRI Config (Company root document) ────────────────────────────────────
+  getSriConfig(): Observable<Company['sri'] | null> {
+    return new Observable(observer => {
+      const ref = doc(this.firestore, `companies/${this.tenantService.companyId}`);
+      return onSnapshot(ref, {
+        next: snap => observer.next(snap.exists() ? (snap.data() as any)['sri'] ?? null : null),
+        error: err => observer.error(err)
+      });
+    });
+  }
+
+  async saveSriConfig(sri: Partial<Company['sri']>): Promise<void> {
+    const ref = doc(this.firestore, `companies/${this.tenantService.companyId}`);
+    await updateDoc(ref, { sri: sri, updatedAt: Timestamp.now() });
+  }
+
+  // ── SRI Company Config (datos XML por empresa) ─────────────────────────────
+  getSriCompanyConfig(): Observable<SriCompanyConfig | undefined> {
+    return new Observable(observer => {
+      const ref = doc(this.firestore, `companies/${this.tenantService.companyId}/configuration/sri`);
+      return onSnapshot(ref, {
+        next: snap => observer.next(snap.exists() ? (snap.data() as SriCompanyConfig) : undefined),
+        error: err => observer.error(err)
+      });
+    });
+  }
+
+  async saveSriCompanyConfig(data: Partial<SriCompanyConfig>): Promise<void> {
+    const ref = doc(this.firestore, `companies/${this.tenantService.companyId}/configuration/sri`);
     await setDoc(ref, {
       ...data,
       updatedAt: Timestamp.now(),

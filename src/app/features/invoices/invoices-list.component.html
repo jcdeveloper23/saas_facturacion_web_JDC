@@ -176,6 +176,7 @@
               <th style="text-align:right">IVA</th>
               <th style="text-align:right">Total</th>
               <th>Estado</th>
+              <th>SRI</th>
               <th></th>
             </tr>
           </thead>
@@ -273,6 +274,17 @@
                   </c-badge>
                 </td>
 
+                <!-- Estado SRI -->
+                <td (click)="$event.stopPropagation()">
+                  @if (inv.sriStatus && inv.sriStatus !== 'not_required') {
+                    <c-badge [color]="SRI_STATUS_COLORS[inv.sriStatus]" shape="rounded-pill" style="font-size:.68rem">
+                      {{ SRI_STATUS_LABELS[inv.sriStatus] }}
+                    </c-badge>
+                  } @else {
+                    <span class="text-muted" style="font-size:.75rem">—</span>
+                  }
+                </td>
+
                 <!-- Acciones rápidas -->
                 <td>
                   <div class="d-flex gap-1" (click)="$event.stopPropagation()">
@@ -295,6 +307,56 @@
                               cTooltip="Eliminar borrador"
                               (click)="deleteInvoice(inv, $event)">
                         <svg cIcon name="cilTrash" size="sm"></svg>
+                      </button>
+                    }
+                    <!-- Nota de Crédito (solo facturas emitidas/pagadas, no anuladas, no ya NC) -->
+                    @if ((inv.status === 'issued' || inv.status === 'paid') && !inv.isVoid && !inv.isCreditNote) {
+                      <button cButton color="info" variant="ghost" size="sm"
+                              cTooltip="Crear Nota de Crédito"
+                              (click)="createCreditNote(inv, $event)">
+                        <svg cIcon name="cilReload" size="sm"></svg>
+                      </button>
+                    }
+                    <!-- SRI: Consultar estado (pending o rejected con accessKey) -->
+                    @if ((inv.sriStatus === 'pending' || inv.sriStatus === 'rejected') && inv.accessKey) {
+                      <button cButton color="secondary" variant="ghost" size="sm"
+                              cTooltip="Consultar estado en SRI"
+                              [disabled]="checkStatusLoading() === inv.id"
+                              (click)="checkSriStatus(inv, $event)">
+                        @if (checkStatusLoading() === inv.id) {
+                          <c-spinner size="sm"></c-spinner>
+                        } @else {
+                          <svg cIcon name="cilMagnifyingGlass" size="sm"></svg>
+                        }
+                      </button>
+                    }
+                    <!-- SRI: Reenviar (solo si fue rechazada) -->
+                    @if (inv.sriStatus === 'rejected') {
+                      <button cButton color="warning" variant="ghost" size="sm"
+                              cTooltip="Reenviar al SRI"
+                              [disabled]="reenviarLoading() === inv.id"
+                              (click)="reenviarSri(inv, $event)">
+                        @if (reenviarLoading() === inv.id) {
+                          <c-spinner size="sm"></c-spinner>
+                        } @else {
+                          <svg cIcon name="cilReload" size="sm"></svg>
+                        }
+                      </button>
+                    }
+                    <!-- SRI: Descargar XML firmado -->
+                    @if (inv.xmlUrl) {
+                      <button cButton color="secondary" variant="ghost" size="sm"
+                              cTooltip="Descargar XML"
+                              (click)="downloadXml(inv, $event)">
+                        <svg cIcon name="cilCloudDownload" size="sm"></svg>
+                      </button>
+                    }
+                    <!-- SRI: Descargar PDF/RIDE -->
+                    @if (inv.pdfUrl) {
+                      <button cButton color="secondary" variant="ghost" size="sm"
+                              cTooltip="Descargar PDF (RIDE)"
+                              (click)="downloadPdf(inv, $event)">
+                        <svg cIcon name="cilFile" size="sm"></svg>
                       </button>
                     }
                   </div>

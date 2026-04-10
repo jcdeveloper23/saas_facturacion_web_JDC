@@ -97,8 +97,9 @@ export class InvoicesService {
 
   async updateInvoice(id: string, changes: Partial<Omit<Invoice, 'id' | 'createdAt' | 'createdBy'>>): Promise<void> {
     // If lines or globalDiscountPct changed, recalculate totals
+    const userId = this.authService.user()?.uid ?? 'unknown';
     const ref = doc(this.firestore, `${this.colPath}/${id}`);
-    const payload: any = { ...changes, updatedAt: Timestamp.now() };
+    const payload: any = { ...changes, updatedAt: Timestamp.now(), updatedBy: userId };
 
     if (changes.lines !== undefined || changes.globalDiscountPct !== undefined) {
       const snap = await (await import('@angular/fire/firestore')).getDoc(ref);

@@ -47,8 +47,16 @@ export class DocumentSeriesComponent implements OnInit {
   }
 
   readonly docTypeLabels: Record<string, string> = {
-    invoice: 'Factura', quote: 'Presupuesto', order: 'Pedido'
+    invoice:    'Factura',
+    debitNote:  'Nota de Débito',
+    retention:  'Retención',
+    creditNote: 'Nota de Crédito',
+    quote:      'Presupuesto',
+    order:      'Pedido',
+    remission:  'Remisión',
   };
+
+  readonly docTypeOptions = Object.entries(this.docTypeLabels).map(([value, label]) => ({ value, label }));
 
   form = this.fb.group({
     code:           ['001', [Validators.required, Validators.pattern(/^\w{1,10}$/)]],

@@ -165,18 +165,44 @@
 
           </div>
 
-          <!-- Fila 3: Método SRI · Ref. cliente · Vendedor · Serie (colapsable) -->
-          <div class="d-flex gap-2 flex-wrap align-items-end">
-
-            <div class="inv-field" style="flex:1; min-width:140px">
-              <label class="inv-label">Método pago SRI<span class="req">*</span></label>
-              <select cSelect class="inv-ctrl" formControlName="paymentMethodCode"
-                [attr.disabled]="!isEditable() ? true : null">
-                @for (m of sriPaymentMethods; track m.code) {
-                <option [value]="m.code">{{ m.code }} — {{ m.name }}</option>
-                }
-              </select>
+          <!-- Fila 3: Métodos de pago SRI -->
+          <div class="mb-1" formArrayName="paymentMethods">
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <span class="inv-label">Formas de pago SRI</span>
+              @if (isEditable()) {
+                <button type="button" class="line-search-btn" cTooltip="Añadir forma de pago"
+                        (click)="addPaymentMethod()">
+                  <svg cIcon name="cilPlus" size="sm"></svg>
+                </button>
+              }
             </div>
+            <div class="d-flex flex-wrap gap-2">
+              @for (pm of paymentMethodsArray.controls; track $index; let i = $index) {
+                <div [formGroupName]="i" class="d-flex gap-1 align-items-center"
+                     style="background:var(--cui-tertiary-bg);border:1px solid var(--cui-border-color);border-radius:6px;padding:.22rem .4rem">
+                  <select cSelect class="inv-ctrl" formControlName="code" style="min-width:170px"
+                          [attr.disabled]="!isEditable() ? true : null">
+                    @for (m of sriPaymentMethods; track m.code) {
+                      <option [value]="m.code">{{ m.code }} — {{ m.name }}</option>
+                    }
+                  </select>
+                  <span class="inv-label" style="white-space:nowrap">$</span>
+                  <input cFormControl class="inv-ctrl cell-num" formControlName="amount"
+                         type="number" step="0.01" min="0" style="width:80px"
+                         [readonly]="!isEditable()">
+                  @if (isEditable() && paymentMethodsArray.length > 1) {
+                    <button type="button" class="line-search-btn"
+                            (click)="removePaymentMethod(i)">
+                      <svg cIcon name="cilX" size="sm"></svg>
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- Fila 4: Ref. cliente · Vendedor · Serie (colapsable) -->
+          <div class="d-flex gap-2 flex-wrap align-items-end">
 
             <div class="inv-field" style="flex:1; min-width:120px">
               <label class="inv-label">Ref. cliente</label>
@@ -260,27 +286,27 @@
               </tr>
             </thead>
             <tbody formArrayName="lines">
-              @for (lineGroup of linesArray.controls; track $index) {
-              <tr [formGroupName]="$index">
+              @for (lineGroup of linesArray.controls; track lineGroup; let i = $index) {
+              <tr [formGroupName]="i">
 
                 <!-- # Número de línea -->
                 <td style="text-align:center; font-size:.72rem; color:var(--cui-tertiary-color); padding:.25rem .2rem">
-                  {{ $index + 1 }}
+                  {{ i + 1 }}
                 </td>
 
                 <!-- SKU / Referencia — buscador inline con soporte lector de códigos -->
                 <td>
                   <input cFormControl formControlName="productSku" placeholder="SKU / cód. barras..."
                     [readonly]="!isEditable()" style="font-family:monospace; font-size:.76rem; min-width:0"
-                    (input)="onSkuInput($index, $any($event.target).value, $any($event.target))"
-                    (keydown)="onSkuKeydown($index, $event)" (blur)="blurSkuDrop($index)">
+                    (input)="onSkuInput(i, $any($event.target).value, $any($event.target))"
+                    (keydown)="onSkuKeydown(i, $event)" (blur)="blurSkuDrop(i)">
                 </td>
 
                 <!-- Descripción con botón de búsqueda -->
                 <td>
                   <div class="line-desc-wrap">
                     @if (isEditable()) {
-                    <button type="button" class="line-search-btn" (click)="openProductSearch($index, $any($event))"
+                    <button type="button" class="line-search-btn" (click)="openProductSearch(i, $any($event))"
                       title="Buscar producto">
                       <svg cIcon name="cilSearch" size="sm"></svg>
                     </button>
@@ -295,7 +321,7 @@
                 <!-- Cantidad -->
                 <td class="cell-num">
                   <input cFormControl type="number" formControlName="quantity" min="0.001" step="1"
-                    [readonly]="!isEditable()" (keydown.enter)="onQuantityEnterKey($index, $any($event))">
+                    [readonly]="!isEditable()" (keydown.enter)="onQuantityEnterKey(i, $any($event))">
                 </td>
 
                 <!-- Precio unitario -->
@@ -307,16 +333,16 @@
                 <!-- Descuento % -->
                 <td class="cell-num">
                   <input cFormControl type="number" formControlName="discountPct" min="0" max="100" step="0.01"
-                    [readonly]="!isEditable()" (keydown.tab)="onDiscountTabKey($index, $any($event))">
+                    [readonly]="!isEditable()" (keydown.tab)="onDiscountTabKey(i, $any($event))">
                 </td>
 
                 <!-- CAMBIO 2: Subtotal eliminado de aquí -->
 
                 <!-- IVA % — badge si es 15%, select si difiere o está expandido (F2.2) -->
                 <td class="cell-num cell-vat">
-                  @if (lineCtrl($index, 'vatPct').value === 15 && vatExpandedIdx() !== $index) {
+                  @if (lineCtrl(i, 'vatPct').value === 15 && vatExpandedIdx() !== i) {
                   <span class="vat-badge" [class.vat-badge--clickable]="isEditable()"
-                    (click)="isEditable() && toggleVatExpand($index)">
+                    (click)="isEditable() && toggleVatExpand(i)">
                     15%
                   </span>
                   } @else {
@@ -342,7 +368,7 @@
                 @if (isEditable()) {
                 <td>
                   <button type="button" cButton color="danger" variant="ghost" size="sm"
-                    [disabled]="linesArray.length === 1" (click)="removeLine($index)">
+                    [disabled]="linesArray.length === 1" (click)="removeLine(i)">
                     <svg cIcon name="cilTrash" size="sm"></svg>
                   </button>
                 </td>

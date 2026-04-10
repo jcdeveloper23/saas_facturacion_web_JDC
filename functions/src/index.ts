@@ -8,3 +8,25 @@ export { setupFirstAdmin } from './auth/setup-first-admin'; // TODO: remove afte
 
 // Tenants
 export { setupCompany } from './tenants/setup-company';
+
+// Invoices / SRI
+export { uploadCertificate }  from './invoices/upload-certificate';
+export { generateInvoiceXml } from './invoices/generate-invoice-xml';
+export { signXml }            from './invoices/sign-xml';
+export { sendToSri }          from './invoices/send-to-sri';
+export { checkSriStatus }     from './invoices/check-sri-status';
+export { generatePdf }        from './invoices/generate-pdf';
+export { sendInvoiceEmail }   from './invoices/send-invoice-email';
+export { onInvoiceEmit }      from './invoices/on-invoice-emit';
+
+// Retentions / SRI
+export { generateRetentionXml } from './retentions/generate-retention-xml';
+export { generateRetentionPdf } from './retentions/generate-retention-pdf';
+export { sendRetentionEmail }   from './retentions/send-retention-email';
+export { onRetentionEmit }      from './retentions/on-retention-emit';
+
+// Debit Notes / SRI
+export { generateDebitNoteXml }  from './debit-notes/generate-debit-note-xml';
+export { generateDebitNotePdf }  from './debit-notes/generate-debit-note-pdf';
+export { sendDebitNoteEmail }    from './debit-notes/send-debit-note-email';
+export { onDebitNoteEmit }       from './debit-notes/on-debit-note-emit';

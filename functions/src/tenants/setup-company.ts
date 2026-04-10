@@ -47,6 +47,9 @@ export const setupCompany = onCall(async (request) => {
       emissionPoint: string;
       contributorType: string;
       accountingRequired: boolean;
+      contribuyenteEspecial?: string;    // NUEVO
+      microempresa?: boolean;            // NUEVO
+      regimen?: string;                  // NUEVO
     };
   };
 
@@ -63,7 +66,8 @@ export const setupCompany = onCall(async (request) => {
   const [
     configSnap,
     taxRatesSnap, paymentTermsSnap, seriesSnap, warehousesSnap,
-    currenciesSnap, countriesSnap
+    currenciesSnap, countriesSnap,
+    sriConfigSnap
   ] = await Promise.all([
     db.doc('platform/defaults').get(),
     db.collection('platform/defaults/taxRates').get(),
@@ -72,12 +76,14 @@ export const setupCompany = onCall(async (request) => {
     db.collection('platform/defaults/warehouses').get(),
     db.collection('platform/defaults/currencies').get(),
     db.collection('platform/defaults/countries').get(),
+    db.doc('platform/defaults/sriConfig/data').get(),
   ]);
 
   console.log('[setupCompany] platform/defaults doc exists:', configSnap.exists, '| data:', JSON.stringify(configSnap.data() ?? null));
   console.log('[setupCompany] taxRates:', taxRatesSnap.size, '| paymentTerms:', paymentTermsSnap.size,
     '| documentSeries:', seriesSnap.size, '| warehouses:', warehousesSnap.size,
-    '| currencies:', currenciesSnap.size, '| countries:', countriesSnap.size);
+    '| currencies:', currenciesSnap.size, '| countries:', countriesSnap.size,
+    '| sriConfig:', sriConfigSnap.exists ? 'found' : 'not found');
 
   const platformConfig = configSnap.exists ? (configSnap.data() as Record<string, any>) : {};
   const country: string         = platformConfig['country']         ?? 'Ecuador';
@@ -107,9 +113,11 @@ export const setupCompany = onCall(async (request) => {
   const documentSeries = !seriesSnap.empty
     ? (console.log('[setupCompany] documentSeries: Firestore'), seriesSnap.docs.map(d => d.data() as Record<string, any>).filter(d => d['isActive'] !== false))
     : (console.log('[setupCompany] documentSeries: HARDCODED fallback'), [
-        { code: '001', name: 'Serie Facturas',     documentType: 'invoice' },
-        { code: '001', name: 'Serie Presupuestos', documentType: 'quote'   },
-        { code: '001', name: 'Serie Pedidos',      documentType: 'order'   },
+        { code: '001', name: 'Serie Facturas',        documentType: 'invoice'   },
+        { code: '001', name: 'Serie Notas de Débito', documentType: 'debitNote' },
+        { code: '001', name: 'Serie Retenciones',     documentType: 'retention' },
+        { code: '001', name: 'Serie Presupuestos',    documentType: 'quote'     },
+        { code: '001', name: 'Serie Pedidos',         documentType: 'order'     },
       ]);
 
   const warehouses = !warehousesSnap.empty
@@ -167,6 +175,22 @@ export const setupCompany = onCall(async (request) => {
       : Timestamp.fromMillis(Date.now() + 30 * 24 * 60 * 60 * 1000),
     createdAt: now,
     updatedAt: now
+  });
+
+  // ── configuration/sri ─────────────────────────────────────────────────────
+  const sriConfigRef = db.doc(`companies/${companyId}/configuration/sri`);
+  batch.set(sriConfigRef, {
+    razonSocial:              data.sri?.businessName || data.name,
+    nombreComercial:          '',
+    direccionMatriz:          data.fiscalAddress || '',
+    direccionEstablecimiento: data.fiscalAddress || '',
+    telefono:                 data.phone || '',
+    correo:                   data.email || '',
+    obligadoContabilidad:     data.sri?.accountingRequired ? 'SI' : 'NO',
+    contribuyenteEspecial:    data.sri?.contribuyenteEspecial || '',
+    additionalInfoFields:     [],
+    updatedAt:                now,
+    updatedBy:                request.auth.uid
   });
 
   // ── configuration/general ──────────────────────────────────────────────────

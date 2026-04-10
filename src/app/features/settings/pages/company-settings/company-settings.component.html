@@ -158,4 +158,413 @@
     </button>
   </div>
 </form>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     SECCIÓN SRI — Facturación Electrónica
+     ════════════════════════════════════════════════════════════════════ -->
+<div class="d-flex justify-content-between align-items-center mb-1 mt-5">
+  <div class="d-flex align-items-center gap-2">
+    <div class="bg-warning bg-opacity-10 p-2 rounded">
+      <svg cIcon name="cilShieldAlt" size="xl" class="text-warning"></svg>
+    </div>
+    <div>
+      <h3 class="mb-0 fw-semibold">Facturación Electrónica SRI</h3>
+      <p class="text-muted small mb-0">Configuración para emisión de comprobantes electrónicos</p>
+    </div>
+  </div>
+  <button cButton color="warning" type="submit" form="sriForm" [disabled]="savingSri()" class="px-4 shadow-sm">
+    @if (savingSri()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+    Guardar Config. SRI
+  </button>
+</div>
+
+<c-callout color="warning" class="bg-body border-start-4 shadow-sm mb-4">
+  <div class="d-flex gap-3 align-items-start">
+    <svg cIcon name="cilWarning" size="lg" class="text-warning mt-1"></svg>
+    <div>
+      <p class="mb-1 fw-bold">Ambiente de pruebas activado por defecto</p>
+      <p class="mb-0 text-muted small">
+        Configura y prueba en <strong>Ambiente de Pruebas</strong> antes de cambiar a Producción.
+        El cambio a Producción afectará facturas reales validadas por el SRI.
+      </p>
+    </div>
+  </div>
+</c-callout>
+
+@if (sriErrorMessage()) {
+<c-alert color="danger" variant="solid" class="mb-4 d-flex align-items-center gap-2 shadow-sm">
+  <svg cIcon name="cilXCircle" size="xl"></svg> {{ sriErrorMessage() }}
+</c-alert>
+}
+
+<form id="sriForm" [formGroup]="sriForm" (ngSubmit)="onSubmitSri()">
+  <c-row class="g-4">
+
+    <!-- Columna principal: Datos SRI -->
+    <c-col lg="8">
+
+      <!-- Ambiente y Emisión -->
+      <c-card class="border-0 shadow-sm overflow-hidden mb-4">
+        <c-card-body class="p-4">
+          <h6 class="text-uppercase text-muted fw-bold small mb-4 border-bottom pb-2">Ambiente y Punto de Emisión</h6>
+          <c-row class="g-3">
+            <c-col md="6">
+              <label cLabel class="fw-semibold small">Ambiente SRI <span class="text-danger">*</span></label>
+              <select cFormSelect formControlName="environment"
+                [class.is-invalid]="hasSriError('environment')">
+                <option value="testing">Pruebas (certificación)</option>
+                <option value="production">Producción</option>
+              </select>
+              @if (hasSriError('environment')) {
+                <div class="invalid-feedback">Seleccione un ambiente</div>
+              }
+            </c-col>
+            <c-col md="3">
+              <label cLabel class="fw-semibold small">Establecimiento <span class="text-danger">*</span></label>
+              <input cFormControl formControlName="establishment" maxlength="3" placeholder="001"
+                class="font-monospace" [class.is-invalid]="hasSriError('establishment')">
+              @if (hasSriError('establishment')) {
+                <div class="invalid-feedback">3 dígitos</div>
+              }
+            </c-col>
+            <c-col md="3">
+              <label cLabel class="fw-semibold small">Punto Emisión <span class="text-danger">*</span></label>
+              <input cFormControl formControlName="emissionPoint" maxlength="3" placeholder="001"
+                class="font-monospace" [class.is-invalid]="hasSriError('emissionPoint')">
+              @if (hasSriError('emissionPoint')) {
+                <div class="invalid-feedback">3 dígitos</div>
+              }
+            </c-col>
+          </c-row>
+        </c-card-body>
+      </c-card>
+
+      <!-- Tipo de Contribuyente y Obligaciones -->
+      <c-card class="border-0 shadow-sm overflow-hidden">
+        <c-card-body class="p-4">
+          <h6 class="text-uppercase text-muted fw-bold small mb-4 border-bottom pb-2">Tipo de Contribuyente</h6>
+          <c-row class="g-3">
+            <c-col md="6">
+              <label cLabel class="fw-semibold small">Tipo Contribuyente <span class="text-danger">*</span></label>
+              <select cFormSelect formControlName="contributorType">
+                <option value="natural">Persona Natural</option>
+                <option value="juridica">Persona Jurídica / Sociedad</option>
+              </select>
+            </c-col>
+            <c-col md="6">
+              <label cLabel class="fw-semibold small">Régimen <span class="text-danger">*</span></label>
+              <select cFormSelect formControlName="regimen">
+                <option value="general">General</option>
+                <option value="rimpe_emprendedor">RIMPE — Emprendedor</option>
+                <option value="rimpe_negocio_popular">RIMPE — Negocio Popular</option>
+              </select>
+            </c-col>
+            <c-col md="6">
+              <label cLabel class="fw-semibold small">N° Contribuyente Especial</label>
+              <input cFormControl formControlName="contribuyenteEspecial"
+                placeholder="Dejar vacío si no aplica">
+              <div class="form-text">Solo si el SRI lo designó contribuyente especial</div>
+            </c-col>
+            <c-col md="3" class="d-flex align-items-center pt-4">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" formControlName="accountingRequired" id="accountingReq">
+                <label class="form-check-label fw-semibold small" for="accountingReq">Obligado Contabilidad</label>
+              </div>
+            </c-col>
+            <c-col md="3" class="d-flex align-items-center pt-4">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" formControlName="microempresa" id="microempresa">
+                <label class="form-check-label fw-semibold small" for="microempresa">Microempresa</label>
+              </div>
+            </c-col>
+
+            <!-- Representante legal — solo visible si contributorType === 'juridica' -->
+            @if (sriForm.get('contributorType')?.value === 'juridica') {
+            <c-col md="12">
+              <hr class="my-1">
+              <p class="small fw-semibold text-muted mb-2 mt-2">Representante Legal</p>
+            </c-col>
+            <c-col md="8">
+              <label cLabel class="fw-semibold small">Nombre Completo <span class="text-danger">*</span></label>
+              <input cFormControl formControlName="representanteLegalName" placeholder="Nombre del representante">
+            </c-col>
+            <c-col md="4">
+              <label cLabel class="fw-semibold small">Cédula <span class="text-danger">*</span></label>
+              <input cFormControl formControlName="representanteLegalTaxId" maxlength="10"
+                placeholder="0000000000" class="font-monospace">
+            </c-col>
+            }
+          </c-row>
+        </c-card-body>
+      </c-card>
+
+    </c-col>
+
+    <!-- Columna lateral: Certificado digital -->
+    <c-col lg="4">
+      <c-card class="border-0 shadow-sm overflow-hidden">
+        <c-card-body class="p-4">
+          <h6 class="text-uppercase text-muted fw-bold small mb-4 border-bottom pb-2">Certificado Digital</h6>
+
+          <c-callout color="info" class="mb-3 p-2">
+            <p class="small mb-0">El certificado <strong>.p12</strong> es emitido por el <strong>BCE</strong> o
+              entidades autorizadas por el SRI. Es necesario para firmar electrónicamente los comprobantes.</p>
+          </c-callout>
+
+          <!-- Zona de carga -->
+          <div class="mb-3">
+            <label cLabel class="fw-semibold small d-block mb-2">Archivo de Certificado (.p12)</label>
+            <input type="file" accept=".p12,.pfx" class="form-control form-control-sm"
+              (change)="onCertificateFileChange($event)">
+            @if (certificateFileName()) {
+              <div class="mt-2 d-flex align-items-center gap-2 text-success small">
+                <svg cIcon name="cilCheckCircle" size="sm"></svg>
+                {{ certificateFileName() }}
+              </div>
+            }
+          </div>
+
+          <!-- Contraseña del certificado -->
+          <div class="mb-3">
+            <label cLabel class="fw-semibold small d-block mb-2">Contraseña del Certificado</label>
+            <input cFormControl type="password" size="sm" autocomplete="new-password"
+                   placeholder="Contraseña del .p12"
+                   [value]="certPassword()"
+                   (input)="certPassword.set($any($event.target).value)">
+          </div>
+
+          @if (certUploadError()) {
+            <c-alert color="danger" class="py-2 px-3 mb-2 small">
+              <svg cIcon name="cilWarning" size="sm" class="me-1"></svg>
+              {{ certUploadError() }}
+            </c-alert>
+          }
+
+          <button cButton color="primary" size="sm" class="w-100" type="button"
+            [disabled]="uploadingCert() || !certificateFile()"
+            (click)="uploadCertificate()">
+            @if (uploadingCert()) {
+              <c-spinner size="sm" class="me-1"></c-spinner>
+              Subiendo...
+            } @else {
+              <svg cIcon name="cilCloudUpload" size="sm" class="me-1"></svg>
+              Subir Certificado
+            }
+          </button>
+
+          <!-- Estado actual del certificado -->
+          <hr class="my-3">
+          <p class="small fw-semibold text-muted mb-2">Estado Actual</p>
+          <div class="d-flex flex-column gap-1">
+            <div class="d-flex justify-content-between small">
+              <span class="text-muted">Estado:</span>
+              @if (certThumbprint()) {
+                <c-badge color="success">Configurado</c-badge>
+              } @else {
+                <c-badge color="secondary">Sin configurar</c-badge>
+              }
+            </div>
+            @if (certThumbprint()) {
+              <div class="d-flex justify-content-between small">
+                <span class="text-muted">Huella (SHA1):</span>
+                <span class="font-monospace text-truncate ms-2" style="max-width:120px" [title]="certThumbprint()!">
+                  {{ certThumbprint()!.substring(0, 12) }}…
+                </span>
+              </div>
+            }
+            <div class="d-flex justify-content-between small">
+              <span class="text-muted">Vencimiento:</span>
+              @if (certExpiry()) {
+                <span [class]="certExpiry()! < today ? 'text-danger fw-bold' : 'text-success'">
+                  {{ certExpiry()! | date:'dd/MM/yyyy' }}
+                </span>
+              } @else {
+                <span class="font-monospace">—</span>
+              }
+            </div>
+          </div>
+        </c-card-body>
+      </c-card>
+    </c-col>
+
+  </c-row>
+
+  <!-- Pie mobile -->
+  <div class="d-flex justify-content-end mt-4 mb-5 d-lg-none">
+    <button cButton color="warning" type="submit" [disabled]="savingSri()" class="w-100 py-2 shadow-sm">
+      @if (savingSri()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+      Guardar Config. SRI
+    </button>
+  </div>
+</form>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     SECCIÓN XML — Datos para el XML de Factura (infoTributaria)
+     ════════════════════════════════════════════════════════════════════ -->
+<div class="d-flex justify-content-between align-items-center mb-1 mt-5">
+  <div class="d-flex align-items-center gap-2">
+    <div class="bg-info bg-opacity-10 p-2 rounded">
+      <svg cIcon name="cilDescription" size="xl" class="text-info"></svg>
+    </div>
+    <div>
+      <h3 class="mb-0 fw-semibold">Datos XML de Factura</h3>
+      <p class="text-muted small mb-0">Información que se incluye en el XML de cada comprobante electrónico</p>
+    </div>
+  </div>
+  <button cButton color="info" type="submit" form="sriXmlForm" [disabled]="savingSriXml()" class="px-4 shadow-sm text-white">
+    @if (savingSriXml()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+    Guardar Datos XML
+  </button>
+</div>
+
+<c-callout color="info" class="bg-body border-start-4 shadow-sm mb-4">
+  <div class="d-flex gap-3 align-items-start">
+    <svg cIcon name="cilInfo" size="lg" class="text-info mt-1"></svg>
+    <div>
+      <p class="mb-1 fw-bold">Datos infoTributaria del XML</p>
+      <p class="mb-0 text-muted small">
+        Estos datos se insertan directamente en el XML de los comprobantes electrónicos que se envían al SRI.
+        La <strong>Razón Social</strong> y las <strong>Direcciones</strong> deben coincidir con los registros del SRI.
+      </p>
+    </div>
+  </div>
+</c-callout>
+
+@if (sriXmlErrorMessage()) {
+<c-alert color="danger" variant="solid" class="mb-4 d-flex align-items-center gap-2 shadow-sm">
+  <svg cIcon name="cilXCircle" size="xl"></svg> {{ sriXmlErrorMessage() }}
+</c-alert>
+}
+
+<form id="sriXmlForm" [formGroup]="sriXmlForm" (ngSubmit)="onSubmitSriXml()">
+  <!-- Card: Datos infoTributaria -->
+  <c-card class="border-0 shadow-sm overflow-hidden mb-4">
+    <c-card-body class="p-4">
+      <h6 class="text-uppercase text-muted fw-bold small mb-4 border-bottom pb-2">Datos para infoTributaria</h6>
+      <c-row class="g-3">
+        <c-col md="8">
+          <label cLabel class="fw-semibold small">Razón Social <span class="text-danger">*</span></label>
+          <input cFormControl formControlName="razonSocial"
+            placeholder="EJ: CORPORACION EJEMPLO C.A."
+            [class.is-invalid]="hasSriXmlError('razonSocial')">
+          @if (hasSriXmlError('razonSocial')) {
+            <div class="invalid-feedback">Campo requerido</div>
+          }
+        </c-col>
+        <c-col md="4">
+          <label cLabel class="fw-semibold small">Nombre Comercial</label>
+          <input cFormControl formControlName="nombreComercial" placeholder="Nombre comercial (opcional)">
+        </c-col>
+        <c-col md="12">
+          <label cLabel class="fw-semibold small">Dirección Matriz <span class="text-danger">*</span></label>
+          <input cFormControl formControlName="direccionMatriz"
+            placeholder="Av. Ejemplo N00-000 y Calle Ejemplo"
+            [class.is-invalid]="hasSriXmlError('direccionMatriz')">
+          @if (hasSriXmlError('direccionMatriz')) {
+            <div class="invalid-feedback">Campo requerido</div>
+          }
+        </c-col>
+        <c-col md="12">
+          <label cLabel class="fw-semibold small">Dirección Establecimiento <span class="text-danger">*</span></label>
+          <input cFormControl formControlName="direccionEstablecimiento"
+            placeholder="Av. Ejemplo N00-000 y Calle Ejemplo"
+            [class.is-invalid]="hasSriXmlError('direccionEstablecimiento')">
+          @if (hasSriXmlError('direccionEstablecimiento')) {
+            <div class="invalid-feedback">Campo requerido</div>
+          }
+        </c-col>
+        <c-col md="6">
+          <label cLabel class="fw-semibold small">Teléfono</label>
+          <input cFormControl formControlName="telefono" placeholder="Ej: 02 200 0000">
+        </c-col>
+        <c-col md="6">
+          <label cLabel class="fw-semibold small">Correo Electrónico</label>
+          <input cFormControl type="email" formControlName="correo"
+            placeholder="facturacion@empresa.com"
+            [class.is-invalid]="hasSriXmlError('correo')">
+          @if (hasSriXmlError('correo')) {
+            <div class="invalid-feedback">Email inválido</div>
+          }
+        </c-col>
+        <c-col md="6">
+          <label cLabel class="fw-semibold small">Obligado a llevar Contabilidad <span class="text-danger">*</span></label>
+          <select cFormSelect formControlName="obligadoContabilidad">
+            <option value="SI">SI</option>
+            <option value="NO">NO</option>
+          </select>
+        </c-col>
+        <c-col md="6">
+          <label cLabel class="fw-semibold small">N° Contribuyente Especial</label>
+          <input cFormControl formControlName="contribuyenteEspecial" placeholder="Vacío si no aplica">
+          <div class="form-text">Solo si el SRI lo designó contribuyente especial</div>
+        </c-col>
+      </c-row>
+    </c-card-body>
+  </c-card>
+
+  <!-- Card: Información Adicional -->
+  <c-card class="border-0 shadow-sm overflow-hidden mb-4">
+    <c-card-header class="d-flex justify-content-between align-items-center p-4">
+      <div>
+        <strong>Información Adicional (infoAdicional)</strong>
+        <p class="text-muted small mb-0 mt-1">Campos adicionales que se incluyen al final de cada comprobante electrónico</p>
+      </div>
+      <button cButton color="outline-info" size="sm" type="button"
+        (click)="addAdditionalField()" [disabled]="additionalFields.length >= 15">
+        <svg cIcon name="cilPlus" class="me-1"></svg> Agregar campo
+      </button>
+    </c-card-header>
+    <c-card-body class="p-4">
+      <c-callout color="warning" class="mb-3 p-2">
+        <p class="small mb-0">
+          Variables disponibles en el campo "Valor":
+          <code>&#36;&#123;invoice.*&#125;</code>, <code>&#36;&#123;customer.*&#125;</code>, <code>&#36;&#123;company.*&#125;</code>
+          — se resuelven al generar el XML.
+        </p>
+      </c-callout>
+
+      @if (additionalFields.length === 0) {
+        <p class="text-muted small text-center py-3 mb-0">Sin campos adicionales. Usa "Agregar campo" para añadir uno.</p>
+      } @else {
+        <div class="table-responsive">
+          <table cTable hover class="mb-3">
+            <thead>
+              <tr>
+                <th>Nombre (nombre)</th>
+                <th>Valor (valor)</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (ctrl of additionalFields.controls; track trackByIndex($index)) {
+                <tr [formGroup]="ctrl">
+                  <td style="width:40%">
+                    <input cFormControl formControlName="nombre" placeholder="Ej: Vendedor">
+                  </td>
+                  <td>
+                    <input cFormControl formControlName="valor" placeholder="Ej: ${company.sellerName}">
+                  </td>
+                  <td class="text-end" style="width:60px">
+                    <button cButton color="ghost" size="sm" class="text-danger p-1" type="button"
+                      (click)="removeAdditionalField($index)" title="Eliminar">
+                      <svg cIcon name="cilTrash" size="sm"></svg>
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </c-card-body>
+  </c-card>
+
+  <!-- Pie mobile -->
+  <div class="d-flex justify-content-end mt-4 mb-5 d-lg-none">
+    <button cButton color="info" type="submit" [disabled]="savingSriXml()" class="w-100 py-2 shadow-sm text-white">
+      @if (savingSriXml()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+      Guardar Datos XML
+    </button>
+  </div>
+</form>
 }

@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard, loginGuard, roleGuard } from './core/guards';
+import { authGuard, loginGuard, roleGuard, moduleGuard } from './core/guards';
 
 export const routes: Routes = [
   // ─── Public ──────────────────────────────────────────────────────────────
@@ -71,6 +71,22 @@ export const routes: Routes = [
         canActivate: [roleGuard],
         data: { roles: ['admin', 'seller'], title: 'Facturas de Venta' },
         loadChildren: () => import('./features/invoices/invoices.routes').then(m => m.INVOICES_ROUTES)
+      },
+
+      // ── Retentions ─────────────────────────────────────────────────────
+      {
+        path: 'retentions',
+        canActivate: [roleGuard, moduleGuard],
+        data: { roles: ['admin', 'accountant'], module: 'retentions', title: 'Retenciones' },
+        loadChildren: () => import('./features/retentions/retentions.routes').then(m => m.RETENTIONS_ROUTES)
+      },
+
+      // ── Debit Notes ────────────────────────────────────────────────────
+      {
+        path: 'debit-notes',
+        canActivate: [roleGuard, moduleGuard],
+        data: { roles: ['admin', 'seller'], module: 'debitNotes', title: 'Notas de Débito' },
+        loadChildren: () => import('./features/debit-notes/debit-notes.routes').then(m => m.DEBIT_NOTES_ROUTES)
       },
 
       // ── Quotes ─────────────────────────────────────────────────────────

@@ -28,7 +28,7 @@ import {
   SriPaymentMethod, SRI_PAYMENT_METHODS,
   calcLine, calcInvoiceTotals, buildFullNumber
 } from './models/invoice.interface';
-import { Person } from '../personas/models/person.interface';
+import { Person, TaxIdType } from '../personas/models/person.interface';
 import { Product } from '../products/models/product.interface';
 import { PaymentTerm, Warehouse, DocumentSeries } from '../settings/models/settings.interfaces';
 
@@ -295,7 +295,8 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
   // ── Form ──────────────────────────────────────────────────────────────────
   form!: FormGroup;
 
-  get linesArray(): FormArray { return this.form.get('lines') as FormArray; }
+  get linesArray(): FormArray         { return this.form.get('lines')          as FormArray; }
+  get paymentMethodsArray(): FormArray { return this.form.get('paymentMethods') as FormArray; }
 
   // ── Totals (signal, updated via form.valueChanges) ───────────────────────
   totals = signal(calcInvoiceTotals([], 0));
@@ -342,6 +343,15 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
 
   // ─── Form builder ──────────────────────────────────────────────────────────
 
+  private buildPaymentMethodGroup = (pm?: Partial<SriPaymentMethod>): FormGroup => {
+    return this.fb.group({
+      code:     [pm?.code ?? '01', Validators.required],
+      amount:   [pm?.amount ?? 0, [Validators.required, Validators.min(0)]],
+      deadline: [pm?.deadline ?? 0],
+      timeUnit: [pm?.timeUnit ?? 'dias'],
+    });
+  };
+
   private buildForm(): void {
     const today = this.toDateInput(new Date());
     this.form = this.fb.group({
@@ -357,7 +367,7 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
       globalDiscountPct:  [0, [Validators.min(0), Validators.max(100)]],
       customerReference:  [''],
       notes:              [''],
-      paymentMethodCode:  ['01'],
+      paymentMethods:     this.fb.array([this.buildPaymentMethodGroup()]),
       lines:              this.fb.array([])
     });
 
@@ -442,11 +452,44 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
       globalDiscountPct:  inv.globalDiscountPct,
       customerReference:  inv.customerReference ?? '',
       notes:              inv.notes ?? '',
-      paymentMethodCode:  inv.paymentMethods?.[0]?.code ?? '01'
     });
 
-    // Set customer display
+    // Restore payment methods FormArray
+    const pma = this.paymentMethodsArray;
+    while (pma.length) pma.removeAt(0);
+    const methods = inv.paymentMethods?.length ? inv.paymentMethods : [{ code: '01', name: 'Efectivo', amount: inv.total }];
+    for (const pm of methods) {
+      pma.push(this.buildPaymentMethodGroup(pm));
+    }
+
+    // Set customer display and restore selectedCustomer from invoice snapshot
+    // so the chip shows correctly and validation passes when re-emitting a draft
     this.customerSearch.set(inv.customerName);
+    const existingCustomer = this.customers().find(c => c.id === inv.customerId);
+    if (existingCustomer) {
+      this.selectedCustomer.set(existingCustomer);
+    } else {
+      // Customers not yet loaded — build a minimal Person from the invoice snapshot
+      this.selectedCustomer.set({
+        id:           inv.customerId,
+        roles:        ['customer'],
+        taxId:        inv.customerTaxId,
+        taxIdType:    inv.customerTaxIdType as TaxIdType,
+        isCompany:    inv.customerTaxIdType === 'RUC',
+        name:         inv.customerName,
+        legalName:    inv.customerName,
+        addresses:    inv.customerAddress ? [{
+          id: '', label: '', country: 'Ecuador', isShipping: false, isBilling: true,
+          province: inv.customerProvince ?? '', city: inv.customerCity ?? '', address: inv.customerAddress
+        }] : [],
+        bankAccounts: [],
+        customerData: {
+          code: inv.customerCode, currency: inv.currency,
+          paymentTermCode: inv.paymentTermCode, vatRegime: 'General'
+        },
+        isActive: true,
+      } as unknown as Person);
+    }
 
     // Patch lines
     const fa = this.linesArray;
@@ -498,6 +541,19 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
 
   // ─── Lines ─────────────────────────────────────────────────────────────────
 
+  addPaymentMethod(): void {
+    this.paymentMethodsArray.push(this.buildPaymentMethodGroup());
+  }
+
+  removePaymentMethod(i: number): void {
+    if (this.paymentMethodsArray.length > 1) this.paymentMethodsArray.removeAt(i);
+  }
+
+  /** Returns the label for a payment method code */
+  paymentMethodName(code: string): string {
+    return this.sriPaymentMethods.find(m => m.code === code)?.name ?? code;
+  }
+
   private buildLineGroup(line?: Partial<InvoiceLine>): FormGroup {
     const g = this.fb.group({
       id:           [line?.id ?? crypto.randomUUID()],
@@ -508,7 +564,7 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
       unitPrice:    [line?.unitPrice ?? 0, [Validators.required, Validators.min(0)]],
       discountPct:  [line?.discountPct ?? 0, [Validators.min(0), Validators.max(100)]],
       subtotal:     [line?.subtotal ?? 0],
-      vatPct:       [line?.vatPct ?? 15, Validators.required],
+      vatPct:       [line?.vatPct ?? 15, [Validators.min(0), Validators.max(100)]],
       vatAmount:    [line?.vatAmount ?? 0],
       total:        [line?.total ?? 0],
       warehouseCode:[line?.warehouseCode ?? ''],
@@ -587,7 +643,7 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
       productSku:  p.sku ?? '',
       description: p.name,
       unitPrice:   p.salePrice ?? 0,
-      vatPct:      (p as any).vatPct ?? 15
+      vatPct:      p.taxRate ?? 15
     });
     this.recalcLine(g);
     this.showProductDrop.set(false);
@@ -604,7 +660,7 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
 
   async save(emitAfter = false): Promise<void> {
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
-    if (!this.selectedCustomer() && this.isNew()) {
+    if (!this.selectedCustomer()) {
       this.notifications.error('Seleccione un cliente'); return;
     }
 
@@ -616,6 +672,15 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
 
       const lines: InvoiceLine[] = this.linesArray.controls.map(c => c.value as InvoiceLine);
       const totals = calcInvoiceTotals(lines, fv.globalDiscountPct ?? 0);
+
+      // Build payment methods from FormArray — ensure amounts sum to total
+      const paymentMethods: SriPaymentMethod[] = this.paymentMethodsArray.controls.map(c => ({
+        code:     c.get('code')?.value ?? '01',
+        name:     this.paymentMethodName(c.get('code')?.value ?? '01'),
+        amount:   parseFloat(c.get('amount')?.value) || 0,
+        deadline: c.get('deadline')?.value || undefined,
+        timeUnit: c.get('timeUnit')?.value || undefined,
+      }));
 
       if (this.isNew()) {
         const c = customer as Person;
@@ -634,6 +699,7 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
           customerAddress:       c.addresses?.[0]?.address ?? '',
           customerCity:          c.addresses?.[0]?.city ?? '',
           customerProvince:      c.addresses?.[0]?.province ?? '',
+          customerEmail:         c.email ?? '',
           warehouseCode:         fv.warehouseCode,
           paymentTermCode:       fv.paymentTermCode,
           currency:              fv.currency ?? 'USD',
@@ -647,11 +713,7 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
           isVoid:                false,
           isCreditNote:          false,
           notes:                 fv.notes ?? '',
-          paymentMethods: [{
-            code:   fv.paymentMethodCode ?? '01',
-            name:   this.sriPaymentMethods.find(m => m.code === (fv.paymentMethodCode ?? '01'))?.name ?? 'Efectivo',
-            amount: totals.total
-          }],
+          paymentMethods,
           ...totals
         };
         const id = await this.svc.createInvoice(input);
@@ -673,11 +735,7 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
           customerReference:fv.customerReference || '',
           lines,
           notes:            fv.notes ?? '',
-          paymentMethods: [{
-            code:   fv.paymentMethodCode ?? '01',
-            name:   this.sriPaymentMethods.find(m => m.code === (fv.paymentMethodCode ?? '01'))?.name ?? 'Efectivo',
-            amount: totals.total
-          }],
+          paymentMethods,
           ...(emitAfter ? { status: 'issued' as InvoiceStatus } : {}),
           ...totals
         });
@@ -760,7 +818,7 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
       productSku:  p.sku ?? '',
       description: p.name,
       unitPrice:   p.salePrice ?? 0,
-      vatPct:      (p as any).vatPct ?? 15
+      vatPct:      p.taxRate ?? 15
     });
     this.recalcLine(g);
     this.skuDropOpenIdx.set(null);

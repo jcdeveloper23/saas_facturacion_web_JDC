@@ -233,6 +233,28 @@ export const MODULES_SEED: ModuleSeed[] = [
   // ─── SRI / FACTURACIÓN ELECTRÓNICA ───────────────────────────────────────
 
   {
+    code: 'debitNotes',
+    name: 'Notas de Débito',
+    description: 'Notas de débito SRI Ecuador (codDoc=05) — ajustes por aumento de valor o intereses',
+    dependencies: ['invoices'],
+    url: '/debit-notes',
+    icon: 'cil-plus',
+    isTitle: false, parent_id: null,
+    showInMenu: true, order: 18, state: true,
+    fs_folder: 'ventas', fs_name: 'ventas_notas_debito'
+  },
+  {
+    code: 'retentions',
+    name: 'Retenciones',
+    description: 'Comprobantes de retención SRI Ecuador (codDoc=07) — IR e IVA en compras',
+    dependencies: ['invoices', 'personas'],
+    url: '/retentions',
+    icon: 'cil-inbox',
+    isTitle: false, parent_id: null,
+    showInMenu: true, order: 19, state: true,
+    fs_folder: 'compras', fs_name: 'compras_retenciones'
+  },
+  {
     code: 'sri',
     name: 'Fact. Electrónica',
     description: 'Emisión y autorización de comprobantes electrónicos ante el SRI (Ecuador)',

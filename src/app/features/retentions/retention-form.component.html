@@ -1,0 +1,273 @@
+<!-- ─── Header ──────────────────────────────────────────────────────────────── -->
+<div class="page-header mb-3 d-flex align-items-center gap-2">
+  <button cButton color="secondary" variant="outline" size="sm"
+          (click)="router.navigate(['/retentions'])">
+    <svg cIcon name="cilArrowLeft"></svg>
+  </button>
+  <div>
+    <h5 class="mb-0">{{ pageTitle() }}</h5>
+    @if (!isNew()) {
+      <div class="d-flex gap-1 mt-1">
+        <c-badge [color]="STATUS_COLORS[currentStatus()]">{{ STATUS_LABELS[currentStatus()] }}</c-badge>
+        @if (retention()?.sriStatus) {
+          <c-badge [color]="SRI_COLORS[retention()!.sriStatus!]" style="font-size:.65rem">
+            {{ SRI_LABELS[retention()!.sriStatus!] }}
+          </c-badge>
+        }
+      </div>
+    }
+  </div>
+  @if (!isNew() && retention()?.sriError) {
+    <div class="alert alert-danger py-1 px-2 ms-auto mb-0" style="font-size:.78rem">
+      <svg cIcon name="cilWarning" class="me-1"></svg>
+      {{ retention()!.sriError }}
+    </div>
+  }
+</div>
+
+@if (loading()) {
+  <div class="text-center py-5"><c-spinner color="primary"></c-spinner></div>
+} @else {
+<form [formGroup]="form">
+
+  <!-- ─── Row 1: Header fields ────────────────────────────────────────────── -->
+  <c-card class="mb-3">
+    <c-card-body class="py-2">
+      <p class="section-title">Encabezado</p>
+      <c-row [gutter]="2">
+        <!-- Series -->
+        <c-col [sm]="2">
+          <label class="inv-label">Serie</label>
+          <select class="form-select inv-ctrl" formControlName="seriesCode">
+            @for (s of seriesList(); track s.code) {
+              <option [value]="s.code">{{ s.code }}</option>
+            }
+          </select>
+        </c-col>
+        <!-- Fiscal Year -->
+        <c-col [sm]="2">
+          <label class="inv-label">Año fiscal</label>
+          <input type="number" class="form-control inv-ctrl" formControlName="fiscalYear">
+        </c-col>
+        <!-- Date -->
+        <c-col [sm]="3">
+          <label class="inv-label">Fecha emisión <span class="text-danger">*</span></label>
+          <input type="date" class="form-control inv-ctrl" formControlName="date">
+        </c-col>
+        <!-- Periodo fiscal -->
+        <c-col [sm]="3">
+          <label class="inv-label">Periodo fiscal (MM/AAAA) <span class="text-danger">*</span></label>
+          <input type="text" class="form-control inv-ctrl" formControlName="periodoFiscal"
+                 placeholder="01/2026">
+        </c-col>
+      </c-row>
+    </c-card-body>
+  </c-card>
+
+  <!-- ─── Row 2: Supplier ─────────────────────────────────────────────────── -->
+  <c-card class="mb-3">
+    <c-card-body class="py-2">
+      <p class="section-title">Sujeto Retenido (Proveedor)</p>
+
+      @if (!selectedSupplier()) {
+        <!-- search box -->
+        <div style="position:relative; max-width:400px">
+          <input type="text" class="form-control inv-ctrl"
+                 placeholder="Buscar proveedor por nombre o RUC..."
+                 [value]="supplierSearch()"
+                 (input)="supplierSearch.set($any($event.target).value)"
+                 (focus)="showSupplierDrop.set(true)"
+                 (blur)="blurSupplier()">
+          @if (showSupplierDrop() && supplierResults().length > 0) {
+            <div class="position-absolute bg-white border rounded shadow-sm"
+                 style="z-index:1050;width:100%;max-height:220px;overflow-y:auto">
+              @for (s of supplierResults(); track s.id) {
+                <button type="button"
+                        class="d-block w-100 text-start px-2 py-1"
+                        style="border:none;background:none;font-size:.82rem"
+                        (mousedown)="selectSupplier(s)">
+                  <span class="fw-semibold">{{ s.name }}</span>
+                  <span class="text-secondary ms-2">{{ s.taxId }}</span>
+                </button>
+              }
+            </div>
+          }
+        </div>
+      } @else {
+        <!-- chip -->
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <div class="sup-chip">
+            <span class="fw-semibold">{{ selectedSupplier()!.name }}</span>
+            <span class="text-secondary ms-1" style="font-size:.75rem">
+              {{ selectedSupplier()!.taxId }}
+            </span>
+            @if (isEditable()) {
+              <button type="button" class="btn-close btn-close ms-1" style="font-size:.6rem"
+                      (click)="clearSupplier()"></button>
+            }
+          </div>
+          <!-- Tipo identificación -->
+          <div>
+            <label class="inv-label">Tipo ID SRI</label>
+            <select class="form-select inv-ctrl" formControlName="supplierTaxIdType"
+                    style="width:160px">
+              <option value="04">04 — RUC</option>
+              <option value="05">05 — Cédula</option>
+              <option value="06">06 — Pasaporte</option>
+              <option value="07">07 — Cons. Final</option>
+              <option value="08">08 — ID Exterior</option>
+            </select>
+          </div>
+        </div>
+      }
+    </c-card-body>
+  </c-card>
+
+  <!-- ─── Row 3: Support document ─────────────────────────────────────────── -->
+  <c-card class="mb-3">
+    <c-card-body class="py-2">
+      <p class="section-title">Documento Sustento</p>
+      <c-row [gutter]="2">
+        <c-col [sm]="3">
+          <label class="inv-label">Tipo doc. <span class="text-danger">*</span></label>
+          <select class="form-select inv-ctrl" formControlName="supportDocType">
+            @for (dt of supportDocTypes; track dt.code) {
+              <option [value]="dt.code">{{ dt.code }} — {{ dt.name }}</option>
+            }
+          </select>
+        </c-col>
+        <c-col [sm]="3">
+          <label class="inv-label">Número doc. <span class="text-danger">*</span></label>
+          <input type="text" class="form-control inv-ctrl" formControlName="supportDocNumber"
+                 placeholder="001-001-000000001">
+        </c-col>
+        <c-col [sm]="2">
+          <label class="inv-label">Fecha emisión doc. <span class="text-danger">*</span></label>
+          <input type="date" class="form-control inv-ctrl" formControlName="supportDocDate">
+        </c-col>
+        <c-col [sm]="2">
+          <label class="inv-label">N° Autorización</label>
+          <input type="text" class="form-control inv-ctrl" formControlName="supportDocAuth"
+                 placeholder="49 dígitos">
+        </c-col>
+        <c-col [sm]="2">
+          <label class="inv-label">Importe total doc.</label>
+          <input type="number" class="form-control inv-ctrl text-end"
+                 formControlName="supportDocTotal" step="0.01">
+        </c-col>
+      </c-row>
+    </c-card-body>
+  </c-card>
+
+  <!-- ─── Row 4: Retention taxes ──────────────────────────────────────────── -->
+  <c-card class="mb-3">
+    <c-card-header class="d-flex align-items-center justify-content-between py-1">
+      <span class="section-title mb-0">Impuestos Retenidos</span>
+      @if (isEditable()) {
+        <button cButton color="secondary" variant="outline" size="sm" (click)="addTax()">
+          <svg cIcon name="cilPlus" class="me-1"></svg> Agregar
+        </button>
+      }
+    </c-card-header>
+    <c-card-body class="p-0">
+      <div class="table-responsive">
+        <table class="table table-sm mb-0" style="font-size:.82rem" formArrayName="taxes">
+          <thead class="table-light">
+            <tr>
+              <th style="width:40px"></th>
+              <th>Código retención</th>
+              <th style="width:80px" class="text-center">Tipo</th>
+              <th style="width:90px" class="text-end">Tasa %</th>
+              <th style="width:130px" class="text-end">Base imponible</th>
+              <th style="width:120px" class="text-end">Valor retenido</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (taxCtrl of taxesArray.controls; track taxCtrl; let i = $index) {
+              <tr [formGroupName]="i">
+                <td>
+                  @if (isEditable() && taxesArray.length > 1) {
+                    <button type="button" class="btn btn-link text-danger p-0"
+                            (click)="removeTax(i)">
+                      <svg cIcon name="cilTrash" size="sm"></svg>
+                    </button>
+                  }
+                </td>
+                <td>
+                  <select class="form-select form-select-sm"
+                          formControlName="pctCode"
+                          (change)="onPctCodeChange(i)"
+                          [attr.disabled]="isEditable() ? null : true">
+                    <optgroup label="Impuesto a la Renta (IR)">
+                      @for (c of allCodes | slice:0:12; track c.pctCode) {
+                        <option [value]="c.pctCode">{{ c.pctCode }} — {{ c.pctName }}</option>
+                      }
+                    </optgroup>
+                    <optgroup label="IVA">
+                      @for (c of allCodes | slice:12; track c.pctCode) {
+                        <option [value]="c.pctCode">{{ c.pctCode }} — {{ c.pctName }}</option>
+                      }
+                    </optgroup>
+                  </select>
+                </td>
+                <td class="text-center">
+                  <c-badge [color]="taxCtrl.get('taxCode')?.value === '1' ? 'info' : 'warning'">
+                    {{ taxCtrl.get('taxCodeName')?.value }}
+                  </c-badge>
+                </td>
+                <td class="text-end">
+                  <input type="number" class="form-control form-control-sm text-end"
+                         formControlName="rate" step="0.01" min="0"
+                         (change)="recalcTax(i)"
+                         [attr.readonly]="isEditable() ? null : true">
+                </td>
+                <td class="text-end">
+                  <input type="number" class="form-control form-control-sm text-end"
+                         formControlName="taxableBase" step="0.01" min="0"
+                         (input)="recalcTax(i)"
+                         [attr.readonly]="isEditable() ? null : true">
+                </td>
+                <td class="text-end fw-semibold">
+                  $ {{ taxCtrl.get('retainedAmount')?.value | number:'1.2-2' }}
+                </td>
+              </tr>
+            }
+          </tbody>
+          <tfoot>
+            <tr class="table-secondary">
+              <td colspan="5" class="text-end fw-bold pe-2">Total retenido:</td>
+              <td class="text-end fw-bold">$ {{ totalRetained() | number:'1.2-2' }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </c-card-body>
+  </c-card>
+
+  <!-- ─── Notes ────────────────────────────────────────────────────────────── -->
+  <c-card class="mb-3">
+    <c-card-body class="py-2">
+      <label class="inv-label">Observaciones</label>
+      <textarea class="form-control inv-ctrl" rows="2" formControlName="notes"></textarea>
+    </c-card-body>
+  </c-card>
+
+  <!-- ─── Action bar ───────────────────────────────────────────────────────── -->
+  @if (isEditable()) {
+    <div class="d-flex gap-2 justify-content-end mb-4">
+      <button cButton color="secondary" variant="outline"
+              (click)="router.navigate(['/retentions'])" [disabled]="saving()">
+        Cancelar
+      </button>
+      <button cButton color="secondary" (click)="save(false)" [disabled]="saving()">
+        @if (saving()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+        Guardar borrador
+      </button>
+      <button cButton color="primary" (click)="save(true)" [disabled]="saving()">
+        @if (saving()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+        <svg cIcon name="cilSend" class="me-1"></svg> Emitir
+      </button>
+    </div>
+  }
+</form>
+} <!-- end loading else -->

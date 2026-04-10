@@ -90,6 +90,18 @@ export const SUPER_ADMIN_ROUTES: Routes = [
         loadComponent: () =>
           import('./pages/defaults/countries/platform-countries.component').then(m => m.PlatformCountriesComponent),
         data: { title: 'Países por Defecto' }
+      },
+      {
+        path: 'defaults/sri-config',
+        loadComponent: () =>
+          import('./pages/defaults/sri-config/platform-sri-config.component').then(m => m.PlatformSriConfigComponent),
+        data: { title: 'Configuración SRI Ecuador' }
+      },
+      {
+        path: 'defaults/smtp-config',
+        loadComponent: () =>
+          import('./pages/defaults/smtp-config/platform-smtp-config.component').then(m => m.PlatformSmtpConfigComponent),
+        data: { title: 'Configuración SMTP' }
       }
     ]
   }

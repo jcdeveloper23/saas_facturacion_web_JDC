@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.setupCompany = exports.setupFirstAdmin = exports.setUserCustomClaims = void 0;
+exports.uploadCertificate = exports.setupCompany = exports.setupFirstAdmin = exports.setUserCustomClaims = void 0;
 const admin = require("firebase-admin");
 admin.initializeApp();
 // Auth
@@ -11,4 +11,7 @@ Object.defineProperty(exports, "setupFirstAdmin", { enumerable: true, get: funct
 // Tenants
 var setup_company_1 = require("./tenants/setup-company");
 Object.defineProperty(exports, "setupCompany", { enumerable: true, get: function () { return setup_company_1.setupCompany; } });
+// Invoices / SRI
+var upload_certificate_1 = require("./invoices/upload-certificate");
+Object.defineProperty(exports, "uploadCertificate", { enumerable: true, get: function () { return upload_certificate_1.uploadCertificate; } });
 //# sourceMappingURL=index.js.map
