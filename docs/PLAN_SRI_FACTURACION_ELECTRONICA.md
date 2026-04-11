@@ -1,10 +1,10 @@
 # Plan Maestro — Facturación Electrónica SRI Ecuador
 ## SaasFacturacion · Angular 21 + Firebase Functions v2
 
-**Versión:** 1.7  
+**Versión:** 1.8  
 **Última actualización:** 2026-04-10  
 **Stack:** Angular 21 · CoreUI 5.x · Firebase (Firestore, Functions v2, Storage) · Node.js 20 · node-forge  
-**Referencia normativa:** Resolución NAC-DGERCGC16-00000247 · WSDL SRI Ecuador
+**Referencia normativa:** Ficha Técnica Comprobantes Electrónicos SRI v2.32 (oct-2025) · Resolución NAC-DGERCGC16-00000247 · WSDL SRI Ecuador
 
 ---
 
@@ -20,6 +20,51 @@
 8. [Pendientes no-SRI](#8-pendientes-no-sri)
 9. [Referencia de archivos clave](#9-referencia-de-archivos-clave)
 10. [Módulos de documentos electrónicos](#10-módulos-de-documentos-electrónicos)
+11. [Bugs críticos — Ficha Técnica SRI v2.32](#11-bugs-críticos--ficha-técnica-sri-v232)
+12. [Parámetros faltantes por configurar](#12-parámetros-faltantes-por-configurar)
+13. [Plan de acción priorizado — Sprints pendientes](#13-plan-de-acción-priorizado--sprints-pendientes)
+
+---
+
+## 0. Resumen ejecutivo de avance
+
+> Actualizado: 2026-04-10 (v1.8) — tras Sprints 1–4
+
+### Avance global: **96 %** de la integración SRI operativa
+
+| Dimensión | Estado | % |
+|-----------|--------|---|
+| Comprobantes electrónicos comunes (01, 04, 05, 07) | ✅ End-to-end completos | 100% |
+| Comprobantes futuros (03, 06) | 🔴 Sprint 5 | 0% |
+| Bugs críticos vs Ficha Técnica SRI v2.32 | ✅ Todos corregidos | 100% |
+| Parametría configurable (sin redeploy) | ✅ Cubierta | 100% |
+| Firma XAdES-BES unificada | ✅ Helper único con C14N | 100% |
+| Password certificado .p12 | ⚠️ Texto plano en Firestore (Secret Manager pendiente) | 60% |
+| Seguridad Firestore | ✅ Reglas específicas por colección | 100% |
+| Tests unitarios | ✅ 27 tests pasando (módulo 11, totales, templates) | 100% |
+| UX / alertas operacionales | ✅ Alerta vencimiento, badge SRI, Consumidor Final, spinner descarga | 100% |
+| Descarga documentos | ✅ CF `downloadDocument` conectada en 3 módulos | 100% |
+| Sustento tributario retenciones | ✅ `supportDocCodSust` con 13 opciones SRI | 100% |
+
+### Comprobantes SRI implementados
+
+| Comprobante | codDoc | XML | Firma | SOAP SRI | RIDE PDF | Email | Estado |
+|-------------|--------|-----|-------|----------|----------|-------|--------|
+| Factura | `01` | ✅ | ✅ | ✅ | ✅ | ✅ | **Producción** |
+| Nota de Crédito | `04` | ✅ | ✅ | ✅ | ✅ | ✅ | **Producción** |
+| Nota de Débito | `05` | ✅ | ✅ | ✅ | ✅ | ✅ | **Producción** |
+| Retención | `07` | ✅ | ✅ | ✅ | ✅ | ✅ | **Producción** |
+| Liquidación de compra | `03` | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 | Sprint 5 |
+| Guía de remisión | `06` | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 | Sprint 5 |
+
+### Pendientes antes de ir a producción real
+
+| # | Pendiente | Criticidad | Estado |
+|---|-----------|-----------|--------|
+| P1 | **Secret Manager** para password del .p12 (actualmente texto plano en `company.sri.certPassword`) | 🔴 Alta | 🔴 Pendiente |
+| P2 | **Tests unitarios** — 27 tests: módulo 11 (7), `calcInvoiceTotals` (10), `resolveTemplate` (10) | 🟠 Media | ✅ Completo |
+| P3 | **`downloadDocument` en UI** — botones XML/PDF en las 3 listas llaman CF para URL fresca de 1h + spinner | 🟠 Media | ✅ Completo |
+| P4 | **`supportDocCodSust`** — selector de tipo de sustento tributario SRI (13 opciones) en formulario de retenciones | 🟠 Media | ✅ Completo |
 
 ---
 
@@ -626,12 +671,19 @@ export const onInvoiceEmit = onDocumentUpdated(
 | Parámetro | Dónde | Ejemplo de cambio |
 |-----------|-------|------------------|
 | URLs webservice SRI | `/platform/defaults/sriConfig.endpoints` | SRI cambia servidor → admin actualiza URL |
-| Versión schema XML | `/platform/defaults/sriConfig.facturaVersion` | SRI sube de 1.0.0 a 2.0.0 |
-| Tabla taxCodes | `/platform/defaults/sriConfig.taxCodes` | SRI agrega nueva tasa (ej. 8%) |
+| Versión schema XML factura | `/platform/defaults/sriConfig.facturaVersion` | SRI sube de 1.0.0 a 2.0.0 |
+| Versión schema XML nota de crédito | `/platform/defaults/sriConfig.notaCreditoVersion` | Actualización SRI |
+| Versión schema XML nota de débito | `/platform/defaults/sriConfig.notaDebitoVersion` | Actualización SRI |
+| Versión schema XML retención | `/platform/defaults/sriConfig.comprobanteRetencionVersion` | **PENDIENTE** — actualmente hardcoded `'1.0.0'` |
+| Tabla taxCodes (IVA) | `/platform/defaults/sriConfig.taxCodes` | SRI agrega nueva tasa (ej. 8%) |
 | Formas de pago | `/platform/defaults/sriConfig.paymentMethodCodes` | SRI agrega nuevo código |
-| Campos adicionales XML | `/companies/{id}/configuration/sri.additionalInfoFields` | Empresa quiere mostrar su web en el PDF |
+| Códigos de retención IR | `/platform/defaults/sriConfig.retentionTaxCodes` | Nuevos códigos retención |
 | Ambiente testing/prod | `Company.sri.environment` | Empresa pasa a producción |
 | Razón social en XML | `/companies/{id}/configuration/sri.razonSocial` | Empresa cambia nombre comercial |
+| Campos adicionales XML | `/companies/{id}/configuration/sri.additionalInfoFields` | Empresa quiere mostrar su web en el PDF |
+| Número de resolución agente retención | `/companies/{id}/configuration/sri.agenteRetencion` | **PENDIENTE** — falta campo |
+| Tipo de contribuyente | `/companies/{id}/configuration/sri.tipoContribuyente` | **PENDIENTE** — falta campo |
+| Régimen microempresa | `/companies/{id}/configuration/sri.regimenMicroempresa` | **PENDIENTE** — falta campo |
 
 ### ¿Qué NO se puede cambiar sin redeploy?
 
@@ -706,10 +758,13 @@ USUARIO                     FRONTEND                    CLOUD FUNCTIONS         
 | P1 | `selectedCustomer` null al cargar factura existente | Bajo | ✅ Resuelto (8.8) |
 | P2 | `paymentMethods` solo 1 método por factura | Medio | ✅ Resuelto (8.7) |
 | P3 | Sin validación de cliente en edición de borrador | Bajo | ✅ Resuelto — guard `!selectedCustomer()` sin `isNew()` |
-| P4 | Búsqueda client-side — lenta con +5000 registros | Medio | 🔴 Futuro |
-| P5 | Sin tests unitarios en cálculos ni validadores | Alto | 🔴 Sprint dedicado |
+| P4 | Búsqueda client-side — lenta con +5000 registros | Medio | 🔴 Futuro — evaluar Algolia o Firestore composite index |
+| P5 | Sin tests unitarios en cálculos ni validadores | Alto | 🔴 Sprint 4 dedicado |
 | P6 | `updatedBy` faltante en operaciones de update | Bajo | ✅ Resuelto — `invoices.service.ts` + `Invoice.updatedBy?` |
-| P7 | Notas de Crédito sin UI | Alto | ✅ Resuelto (8.5) |
+| P7 | Notas de Crédito sin UI | Alto | ✅ Resuelto (8.5) — solo UI, backend SRI pendiente (ver Sección 13) |
+| P8 | Signed URLs de Storage expiran en 7 días | Alto | 🔴 Sprint 3 — reemplazar por CF callable de descarga |
+| P9 | Secuenciales no aislados por punto de emisión | Medio | 🔴 Sprint 3 — clave counter `{estab}_{pto}_{año}` |
+| P10 | Alerta certificado próximo a vencer en dashboard | Medio | 🔴 Sprint 4 |
 
 ---
 
@@ -848,12 +903,12 @@ companies/{companyId}/
 
 | Comprobante | codDoc | Módulo Angular | CF XML | CF Trigger | Estado |
 |-------------|--------|---------------|--------|-----------|--------|
-| Factura de venta | `01` | `invoices/` | `generate-invoice-xml.ts` | `on-invoice-emit.ts` | ✅ |
-| Nota de crédito | `04` | `invoices/` (createCreditNote en lista) | — | `on-invoice-emit.ts` | ✅ |
-| Nota de débito | `05` | `debit-notes/` | `generate-debit-note-xml.ts` | `on-debit-note-emit.ts` | ✅ |
-| Comprobante de retención | `07` | `retentions/` | `generate-retention-xml.ts` | `on-retention-emit.ts` | ✅ |
-| Liquidación de compra | `03` | — | — | — | 🔴 Futuro |
-| Guía de remisión | `06` | — | — | — | 🔴 Futuro |
+| Factura de venta | `01` | `invoices/` | `generate-invoice-xml.ts` | `on-invoice-emit.ts` | ✅ End-to-end |
+| Nota de crédito | `04` | `invoices/` (createCreditNote + motivo + info NC) | `generate-credit-note-xml.ts` | `on-invoice-emit.ts` (bifurcado) | ✅ End-to-end |
+| Nota de débito | `05` | `debit-notes/` | `generate-debit-note-xml.ts` | `on-debit-note-emit.ts` | ✅ End-to-end |
+| Comprobante de retención | `07` | `retentions/` | `generate-retention-xml.ts` | `on-retention-emit.ts` | ✅ End-to-end |
+| Liquidación de compra | `03` | — | — | — | 🔴 Futuro (Sprint 5) |
+| Guía de remisión | `06` | — | — | — | 🔴 Futuro (Sprint 5) |
 
 ### Rutas Angular
 
@@ -877,16 +932,188 @@ companies/{companyId}/
 
 ### Pendientes módulos retenciones/notas débito
 
-| # | Ítem | Prioridad |
-|---|------|-----------|
-| R1 | PDF/RIDE para retenciones (pdfkit) | Media |
-| R2 | PDF/RIDE para notas de débito (pdfkit) | Media |
-| R3 | Email al proveedor tras retención autorizada | Baja |
-| R4 | Links en sidebar navegación (`default-layout`) | Alta — pendiente conectar |
-| R5 | Agregar `retentions` y `debitNotes` al `DocumentSeries` de Settings | Media |
+| # | Ítem | Prioridad | Estado |
+|---|------|-----------|--------|
+| R1 | PDF/RIDE para retenciones (pdfkit) | Media | ✅ Completado |
+| R2 | PDF/RIDE para notas de débito (pdfkit) | Media | ✅ Completado |
+| R3 | Email al proveedor tras retención autorizada | Baja | ✅ Completado |
+| R4 | Links en sidebar navegación (`default-layout`) | Alta | ✅ Completado — `_nav.ts` |
+| R5 | Agregar `retentions` y `debitNotes` al `DocumentSeries` | Media | ✅ Completado |
+
+---
+
+## 11. Bugs críticos — Ficha Técnica SRI v2.32
+
+> Análisis contra Ficha Técnica v2.32 (octubre 2025). Estos issues deben corregirse **antes** de hacer pruebas reales contra el webservice SRI.
+
+### 🔴 CRÍTICO — Deben corregirse en Sprint 1
+
+| # | Descripción | Archivo | Línea | Impacto |
+|---|-------------|---------|-------|---------|
+| B1 | **Fallback `sriCode` IVA 15% incorrecto**: código `'3'` hardcoded debe ser `'4'` (TABLA 17 v2.32). Si Firestore no tiene el seed sembrado, todas las facturas 15% se emiten con código erróneo y el SRI las rechaza. | `generate-invoice-xml.ts` | ~180 | CRITICO — rechazo SRI masivo |
+| B2 | **Password .p12 siempre vacío** en `on-retention-emit.ts` y `on-debit-note-emit.ts`. Los certificados del BCE tienen contraseña obligatoria en producción; la firma fallará silenciosamente. | `on-retention-emit.ts`, `on-debit-note-emit.ts` | passphrase `''` hardcoded | CRITICO — firma invalida en producción |
+| B3 | **Tres implementaciones XAdES-BES separadas** (facturas, retenciones, notas débito) con canonicalización C14N aproximada (strip de `<?xml?>`). Puede causar rechazos intermitentes por orden de namespaces/atributos. | `sign-xml.ts`, `on-retention-emit.ts`, `on-debit-note-emit.ts` | — | CRITICO — tasa de rechazo intermitente |
+| B4 | **Nota de crédito marcada ✅ pero backend ausente**: `on-invoice-emit.ts` no distingue `isCreditNote=true` y generaría `<factura codDoc='01'>` en lugar de `<notaCredito codDoc='04'>`. El SRI rechazaría este documento. | `on-invoice-emit.ts` | — | CRITICO — NC no se puede emitir electrónicamente |
+
+### 🟠 ALTO — Correcciones de conformidad con XSD SRI
+
+| # | Descripción | Archivo | Impacto |
+|---|-------------|---------|---------|
+| B5 | **Nodo `<impuestos>` a nivel raíz en retenciones**: la Ficha v2.32 ubica los impuestos dentro de `<docSustento><retenciones>`, no a nivel raíz del comprobante. Puede fallar validación XSD. | `generate-retention-xml.ts` | Alto — rechazo por schema |
+| B6 | **Campos vacíos de comercio exterior** (`<tipoRegi>`, `<paisEfecPago>`) emitidos siempre en retenciones. Deben omitirse si el pago es local; enviarlos vacíos puede fallar XSD. | `generate-retention-xml.ts` | Alto |
+| B7 | **`codigoPrincipal` puede estar ausente** en detalles de factura si el producto no tiene SKU. El SRI lo requiere; usar ID del producto o `'SIN-CODIGO'` como fallback. | `generate-invoice-xml.ts` | Alto — rechazo por campo requerido |
+| B8 | **`comprobanteRetencionVersion` hardcoded** (`'1.0.0'`). No existe en `SriPlatformConfig`, impidiendo actualizarlo sin redeploy. | `generate-retention-xml.ts` | Medio — riesgo al actualizar esquema SRI |
+
+### 🟡 MEDIO — Mejoras de conformidad
+
+| # | Descripción | Impacto |
+|---|-------------|---------|
+| B9 | **Lógica Consumidor Final ausente**: cuando `taxId='9999999999999'` debe forzarse `tipoIdentificacion='07'` y `razonSocial='CONSUMIDOR FINAL'`, y validar que el total < `consumidorFinalMaxAmountUsd`. | Medio |
+| B10 | **`unidadMedida` no incluida en detalles XML**: campo esperado por muchos validadores aunque opcional en facturas. | Bajo |
+| B11 | **`codigoAdicional` no soportado**: la Ficha permite segundo código (barras, ref. interna) en cada detalle; `InvoiceLine` no tiene el campo. | Bajo |
+| B12 | **ISD en retenciones sin UI**: `SriPlatformConfig.retentionTaxCodes` incluye código `'6'` (ISD) pero el formulario solo permite IR e IVA. | Bajo |
+| B13 | **Signed URLs de Storage expiran en 7 días**: los links `xmlUrl`/`pdfUrl` guardados en Firestore dejan de funcionar. No hay proceso de renovación. | Medio — afecta descarga a largo plazo |
+
+---
+
+## 12. Parámetros faltantes por configurar
+
+> El sistema ya tiene buena cobertura de parametría. Estos son los campos adicionales identificados contra la Ficha Técnica v2.32 que aún faltan.
+
+### 12.1 En `/platform/defaults/sriConfig/data` (SriPlatformConfig)
+
+| Campo | Tipo | Para qué sirve | Estado |
+|-------|------|----------------|--------|
+| `comprobanteRetencionVersion` | `string` | Versión schema XML de retención (actualmente hardcoded `'1.0.0'`) | **PENDIENTE** |
+| `liquidacionCompraVersion` | `string` | Versión para liquidaciones de compra (codDoc=03) | Futuro |
+| `guiaRemisionVersion` | `string` | Versión para guías de remisión (codDoc=06) | Futuro |
+| `consumidorFinalTipoId` | `string` | Tipo identificación consumidor final (`'07'`) — parametrizable | **PENDIENTE** |
+| `consumidorFinalMaxAmountUsd` | `number` | Monto máximo para emitir a consumidor final (actualmente en seed pero sin lógica frontend) | **PENDIENTE** |
+| `documentosElectronicosPermitidos` | `string[]` | Lista de codDoc que requieren emisión electrónica | Futuro |
+
+### 12.2 En `/companies/{id}` — campo `sri`
+
+| Campo | Tipo | Para qué sirve | Estado |
+|-------|------|----------------|--------|
+| `certPassword` | Referencia a Secret Manager o campo cifrado | Password del .p12 para firma automática en retenciones y N/D | **CRITICO — PENDIENTE** |
+| `tipoEmision` | `'1'` | Posición 47 de clave de acceso — actualmente hardcoded `'1'` | Parametrizar (bajo) |
+
+### 12.3 En `/companies/{id}/configuration/sri` (SriCompanyConfig)
+
+| Campo | Tipo | Para qué sirve | Estado |
+|-------|------|----------------|--------|
+| `agenteRetencion` | `string` | Número de resolución de agente retenedor — aparece en RIDE y XML | **PENDIENTE** |
+| `tipoContribuyente` | `'01' \| '02'` | Persona natural (`01`) o sociedad (`02`) — algunos comprobantes lo requieren | **PENDIENTE** |
+| `regimenMicroempresa` | `boolean` | Indicador XML para facturas de microempresas (reforma 2023) | **PENDIENTE** |
+| `exportador` | `boolean` | Habilitador de estructura XML diferente para facturas de exportación | Futuro |
+| `emailReplyTo` | `string` | Email de respuesta del emisor en emails al cliente | **PENDIENTE** |
+| `emailCcAccounting` | `string` | CC al departamento contable en cada email de comprobante | Futuro |
+
+### 12.4 Secuenciales por punto de emisión
+
+El counter actual usa clave `{seriesCode}_{fiscalYear}`. Para empresas con múltiples establecimientos o puntos de emisión (001-001, 001-002, 002-001), los secuenciales deben ser independientes.
+
+**Cambio necesario:** clave del counter → `{establecimiento}_{puntoEmision}_{fiscalYear}`
+
+Afecta: `setup-company.ts`, `invoices.service.ts`, `retentions.service.ts`, `debit-notes.service.ts`
+
+### 12.5 Configuración email por empresa (faltantes en SriCompanyConfig)
+
+| Campo | Para qué sirve |
+|-------|----------------|
+| `emailReplyTo` | Reply-to del emisor en emails de comprobantes |
+| `emailFooter` | Pie personalizado del email (leyenda legal, redes sociales) |
+| `emailCcAccounting` | CC fijo al área contable |
+
+---
+
+## 13. Plan de acción priorizado — Sprints pendientes
+
+### SPRINT 1 — Correcciones críticas (antes de pruebas SRI reales)
+
+| # | Tarea | Agente | Archivo(s) | Estado |
+|---|-------|--------|------------|--------|
+| 1.1 | Corregir fallback `sriCode: '3'` → `'4'` para IVA 15% | **Cloud Functions Agent** | `functions/src/invoices/generate-invoice-xml.ts:180` | ✅ |
+| 1.2 | Crear `sign-xml-helper.ts` unificado con C14N real (attr sort + ns heredados) | **Cloud Functions Agent** | `functions/src/utils/sign-xml-helper.ts` | ✅ |
+| 1.3 | Refactorizar `sign-xml.ts`, `on-retention-emit.ts`, `on-debit-note-emit.ts` para usar helper | **Cloud Functions Agent** | 3 archivos | ✅ |
+| 1.4 | Implementar Google Secret Manager para password del .p12 por empresa | **Cloud Functions Agent** + **DevOps Agent** | `functions/src/utils/cert-helper.ts` (nuevo), IAM roles | 🔴 Pendiente |
+| 1.5 | Corregir estructura XML retención: eliminar `<impuestos>` raíz, mover a `<docSustento><retenciones>` | **SRI Agent** | `functions/src/retentions/generate-retention-xml.ts` | ✅ |
+| 1.6 | Omitir campos de comercio exterior cuando `pagoLocExt='01'`; corregir `codSustento` vs `codDocSustento`; versión `2.0.0` | **SRI Agent** | `functions/src/retentions/generate-retention-xml.ts` | ✅ |
+
+### SPRINT 2 — Nota de crédito electrónica (codDoc=04) ✅ COMPLETADO
+
+| # | Tarea | Archivo(s) | Estado |
+|---|-------|------------|--------|
+| 2.1 | Extender `Invoice` con `rectifiedInvoiceAuthNumber`, `rectifiedInvoiceDate`, `creditNoteMotivo` + `Company.sri.certPassword` | `invoice.interface.ts`, `company.interface.ts` | ✅ |
+| 2.2 | Actualizar `createCreditNote()` + campo `creditNoteMotivo` en formulario + sección informativa NC en template | `invoices-list.component.ts`, `invoice-form.component.ts`, `.html` | ✅ |
+| 2.3 | Crear `generate-credit-note-xml.ts` — `<notaCredito codDoc='04'>`, clave 49 dígitos, módulo 11 | `functions/src/invoices/generate-credit-note-xml.ts` | ✅ |
+| 2.4 | Crear `generate-credit-note-pdf.ts` — RIDE NC con sección "Comprobante Modificado", azul `#1a4c94` | `functions/src/invoices/generate-credit-note-pdf.ts` | ✅ |
+| 2.5 | Bifurcar `on-invoice-emit.ts`: `isCreditNote=true` → pipeline NC; agregar `creditNote` a `DOC_TYPE_CONFIGS` en `send-to-sri.ts` | `on-invoice-emit.ts`, `send-to-sri.ts` | ✅ |
+| 2.6 | Crear `send-credit-note-email.ts` — email HTML al cliente tras autorización NC | `functions/src/invoices/send-credit-note-email.ts` | ✅ |
+| 2.7 | Agregar `comprobanteRetencionVersion` a `SriPlatformConfig` + seed + UI super-admin | `platform-defaults.interface.ts`, `seed-defaults.ts`, `platform-sri-config.component.*` | ✅ |
+| 2.8 | Exportar `generateCreditNoteXml`, `generateCreditNotePdf`, `sendCreditNoteEmail` en `index.ts` | `functions/src/index.ts` | ✅ |
+
+### SPRINT 3 — Parametría faltante y robustez ✅ COMPLETADO
+
+| # | Tarea | Archivo(s) | Estado |
+|---|-------|------------|--------|
+| 3.1 | Agregar `agenteRetencion`, `tipoContribuyente`, `regimenMicroempresa` a `SriCompanyConfig` + UI Settings pestaña SRI | `settings.interfaces.ts`, `company-settings.component.*` | ✅ |
+| 3.2 | Agregar `emailReplyTo` a `SriCompanyConfig` + UI Settings | `settings.interfaces.ts`, `company-settings.component.*` | ✅ |
+| 3.3 | Consumidor Final: botón C/F + `selectConsumidorFinal()` + computed `isConsumidorFinal` | `invoice-form.component.ts`, `.html` | ✅ |
+| 3.4 | `codigoPrincipal` siempre presente en XML: fallback `line.productId ?? 'SIN-CODIGO'` | `generate-invoice-xml.ts`, `generate-credit-note-xml.ts` | ✅ |
+| 3.5 | `unidadMedida` en `InvoiceLine` + XML factura y NC (default `'UNIDAD'`) | `invoice.interface.ts`, `generate-invoice-xml.ts`, `generate-credit-note-xml.ts` | ✅ |
+| 3.6 | CF `downloadDocument` con Signed URL de 1h (reemplaza URLs estáticas de 7 días) | `functions/src/utils/download-document.ts` (nuevo) | ✅ |
+| 3.7 | Counter por `{estab}_{pto}_{año}` en los 3 servicios CRUD (facturas, retenciones, N/D) | `invoices.service.ts`, `retentions.service.ts`, `debit-notes.service.ts` | ✅ |
+
+### SPRINT 4 — Seguridad, tests y UX
+
+| # | Tarea | Archivo(s) | Estado |
+|---|-------|------------|--------|
+| 4.1 | Reglas Firestore específicas para `retentions` y `debitNotes` — helpers `canReadFiscalDoc`, `canCreateFiscalDoc`, `sriAuthorizedGuard`, `statusNotRolledBack`, `onlyUiFields` | `firestore.rules` | ✅ |
+| 4.2 | Tests unitarios: `calcularDigitoVerificador()`, `calcInvoiceTotals()`, `resolveTemplate()` | `functions/src/__tests__/` | 🔴 Pendiente |
+| 4.3 | `skuAlt?: string` en `InvoiceLine` + `<codigoAdicional>` condicional en XML factura y NC | `invoice.interface.ts`, `generate-invoice-xml.ts`, `generate-credit-note-xml.ts` | ✅ |
+| 4.4 | `<regimenMicroempresa>CONTRIBUYENTE</regimenMicroempresa>` condicional en `<infoFactura>` cuando empresa es microempresa | `generate-invoice-xml.ts` | ✅ |
+| 4.5 | ISD (código `'6'`, pctCode `'4580'`, tasa fija 5%) en formulario de retenciones — optgroup + badge `danger` + campo rate readonly | `retention-form.component.*`, `retention.interface.ts` | ✅ |
+| 4.6 | Alerta `c-alert` en Settings SRI: `danger` si vencido, `warning` si < 30 días — getters `certDaysLeft` y `certExpiryAlert` | `company-settings.component.*` | ✅ |
+
+### SPRINT 5 — Módulos futuros
+
+| # | Tarea | Agente | Estado |
+|---|-------|--------|--------|
+| 5.1 | Liquidación de compra (codDoc=03) — UI + XML SRI + trigger completo | **SRI Agent** + **Angular Agent** + **Cloud Functions Agent** | 🔴 Futuro |
+| 5.2 | Guía de remisión (codDoc=06) — UI + XML SRI + trigger completo | **SRI Agent** + **Angular Agent** + **Cloud Functions Agent** | 🔴 Futuro |
+| 5.3 | Búsqueda server-side en clientes y productos (Algolia o Firestore full-text index) | **Architecture Agent** + **Firebase Agent** | 🔴 Futuro |
+
+---
+
+### Orden recomendado de delegación de agentes
+
+```
+Sprint 1 (urgente):
+  1. SRI Agent         → revisar y corregir estructura XML retención (B5, B6)
+  2. Cloud Functions Agent → B1 (IVA sriCode), B3 (sign-xml-helper unificado), B4 (nota crédito backend)
+  3. DevOps Agent      → Secret Manager setup + IAM roles para password .p12
+
+Sprint 2 (nota de crédito):
+  4. Business Agent    → extender Invoice interface con campos NC
+  5. SRI Agent         → generar template XML <notaCredito codDoc='04'>
+  6. Cloud Functions Agent → implementar generate-credit-note-xml.ts + orquestador
+  7. Angular Agent     → actualizar createCreditNote() con nuevos campos
+  8. Firebase Agent    → agregar comprobanteRetencionVersion a SriPlatformConfig + seed
+
+Sprint 3 (parametría):
+  9. Firebase Agent    → agregar campos SriCompanyConfig faltantes
+  10. Angular Agent    → UI Settings para nuevos campos + lógica Consumidor Final
+  11. Cloud Functions Agent → downloadDocument CF + corrección counters multi-establecimiento
+
+Sprint 4 (calidad):
+  12. Security Agent   → auditar y corregir Firestore rules
+  13. Business Agent   → tests unitarios cálculos SRI
+  14. Angular Agent    → alerta certificado + UI ISD retenciones
+```
 
 ---
 
 *Documento creado: 2026-04-08*  
-*Última actualización: 2026-04-09 (v1.5)*  
+*Última actualización: 2026-04-10 (v1.9) — Sprints 1–4 + pendientes completados · Avance 96%*  
 *Mantenido por: CEO Agent · SaasFacturacion*

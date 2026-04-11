@@ -69,7 +69,7 @@ export class RetentionsService {
 
   async createRetention(input: RetentionCreateInput): Promise<string> {
     const userId = this.authService.user()?.uid ?? 'unknown';
-    const number = await this.nextNumber(input.seriesCode, input.fiscalYear);
+    const number = await this.nextNumber(input.seriesEstablishment, input.seriesEmissionPoint, input.fiscalYear);
     const fullNumber = buildRetentionFullNumber(
       input.seriesEstablishment, input.seriesEmissionPoint, number
     );
@@ -124,8 +124,8 @@ export class RetentionsService {
 
   // ─── Auto-increment counter (atomic) ─────────────────────────────────────
 
-  private async nextNumber(seriesCode: string, fiscalYear: string): Promise<number> {
-    const key        = `${seriesCode}_${fiscalYear}`;
+  private async nextNumber(estab: string, pto: string, fiscalYear: string): Promise<number> {
+    const key        = `${estab}_${pto}_${fiscalYear}`;
     const counterRef = doc(this.firestore, `companies/${this.companyId}/counters/retentions`);
 
     return runTransaction(this.firestore, async tx => {

@@ -138,8 +138,13 @@ import { SRI_STATUS_LABELS, SRI_STATUS_COLORS } from '../invoices/models/invoice
                   @if (dn.xmlUrl) {
                     <button cButton color="info" variant="outline" size="sm"
                             class="ms-1" title="Descargar XML"
-                            (click)="window.open(dn.xmlUrl, '_blank')">
-                      <svg cIcon name="cilCloudDownload"></svg>
+                            [disabled]="downloadingDoc() === dn.id + '-xml'"
+                            (click)="downloadDoc(dn.id, 'xml', 'debitNote')">
+                      @if (downloadingDoc() === dn.id + '-xml') {
+                        <c-spinner size="sm"></c-spinner>
+                      } @else {
+                        <svg cIcon name="cilCloudDownload"></svg>
+                      }
                     </button>
                   }
                   @if (dn.sriStatus === 'authorized' && !dn.pdfUrl) {
@@ -154,8 +159,13 @@ import { SRI_STATUS_LABELS, SRI_STATUS_COLORS } from '../invoices/models/invoice
                   @if (dn.pdfUrl) {
                     <button cButton color="success" variant="outline" size="sm"
                             class="ms-1" title="Descargar PDF/RIDE"
-                            (click)="window.open(dn.pdfUrl, '_blank')">
-                      <svg cIcon name="cilFile"></svg>
+                            [disabled]="downloadingDoc() === dn.id + '-pdf'"
+                            (click)="downloadDoc(dn.id, 'pdf', 'debitNote')">
+                      @if (downloadingDoc() === dn.id + '-pdf') {
+                        <c-spinner size="sm"></c-spinner>
+                      } @else {
+                        <svg cIcon name="cilFile"></svg>
+                      }
                     </button>
                   }
                 </td>
@@ -187,6 +197,7 @@ export class DebitNotesListComponent implements OnInit, OnDestroy {
   loading         = signal(true);
   reenviarLoading = signal(false);
   pdfLoading      = signal<string | null>(null);
+  downloadingDoc  = signal<string | null>(null);
   all             = signal<DebitNote[]>([]);
   yearFilter      = String(new Date().getFullYear());
   statusFilter    = '';
@@ -260,6 +271,21 @@ export class DebitNotesListComponent implements OnInit, OnDestroy {
       this.notifications.error('Error al reenviar: ' + (err?.message ?? err));
     } finally {
       this.reenviarLoading.set(false);
+    }
+  }
+
+  async downloadDoc(docId: string, fileType: 'xml' | 'pdf', documentType: string): Promise<void> {
+    const key = `${docId}-${fileType}`;
+    if (this.downloadingDoc() === key) return;
+    this.downloadingDoc.set(key);
+    try {
+      const fn = httpsCallable<object, { url: string }>(this.functions, 'downloadDocument');
+      const result = await fn({ documentId: docId, companyId: this.tenant.companyId, fileType, documentType });
+      window.open(result.data.url, '_blank');
+    } catch {
+      this.notifications.error('No se pudo obtener el archivo. Verifique que el documento fue procesado.');
+    } finally {
+      this.downloadingDoc.set(null);
     }
   }
 }

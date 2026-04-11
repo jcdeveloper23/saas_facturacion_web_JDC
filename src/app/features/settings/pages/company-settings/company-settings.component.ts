@@ -105,6 +105,10 @@ export class CompanySettingsComponent implements OnInit {
     correo:                   ['', Validators.email],
     obligadoContabilidad:     ['SI', Validators.required],
     contribuyenteEspecial:    [''],
+    tipoContribuyente:        ['02'],
+    agenteRetencion:          [''],
+    regimenMicroempresa:      [false],
+    emailReplyTo:             ['', Validators.email],
   });
 
   additionalFields = this.fb.array<FormGroup>([]);
@@ -161,6 +165,10 @@ export class CompanySettingsComponent implements OnInit {
             correo:                   cfg.correo ?? '',
             obligadoContabilidad:     cfg.obligadoContabilidad ?? 'SI',
             contribuyenteEspecial:    cfg.contribuyenteEspecial ?? '',
+            tipoContribuyente:        cfg.tipoContribuyente ?? '02',
+            agenteRetencion:          cfg.agenteRetencion ?? '',
+            regimenMicroempresa:      cfg.regimenMicroempresa ?? false,
+            emailReplyTo:             cfg.emailReplyTo ?? '',
           });
 
           // Rebuild additionalFields
@@ -240,6 +248,10 @@ export class CompanySettingsComponent implements OnInit {
         correo:                   fv.correo ?? '',
         obligadoContabilidad:     (fv.obligadoContabilidad as 'SI' | 'NO') ?? 'NO',
         contribuyenteEspecial:    fv.contribuyenteEspecial ?? '',
+        tipoContribuyente:        (fv.tipoContribuyente as '01' | '02') ?? '02',
+        agenteRetencion:          fv.agenteRetencion ?? '',
+        regimenMicroempresa:      fv.regimenMicroempresa ?? false,
+        emailReplyTo:             fv.emailReplyTo ?? '',
         additionalInfoFields:     this.additionalFields.getRawValue().map(f => ({
           nombre: f['nombre'] as string,
           valor:  f['valor']  as string,
@@ -322,6 +334,23 @@ export class CompanySettingsComponent implements OnInit {
       reader.onerror = () => reject(reader.error);
       reader.readAsDataURL(file);
     });
+  }
+
+  // ── Certificate expiry helpers ──────────────────────────────────────────────
+
+  get certDaysLeft(): number {
+    const expiry = this.certExpiry();
+    if (!expiry) return 999;
+    return Math.ceil((expiry.getTime() - Date.now()) / 86_400_000);
+  }
+
+  get certExpiryAlert(): 'danger' | 'warning' | null {
+    const expiry = this.certExpiry();
+    if (!expiry) return null;
+    const days = this.certDaysLeft;
+    if (days <= 0)  return 'danger';
+    if (days <= 30) return 'warning';
+    return null;
   }
 
   // ── Error helpers ───────────────────────────────────────────────────────────

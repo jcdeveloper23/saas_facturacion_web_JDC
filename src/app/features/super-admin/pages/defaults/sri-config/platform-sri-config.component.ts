@@ -50,9 +50,10 @@ export class PlatformSriConfigComponent implements OnInit, OnDestroy {
 
   // ── Sección 1: Versiones ────────────────────────────────────────────────────
   versionsForm = this.fb.group({
-    facturaVersion:     ['', Validators.required],
-    notaCreditoVersion: ['', Validators.required],
-    notaDebitoVersion:  ['', Validators.required],
+    facturaVersion:              ['', Validators.required],
+    notaCreditoVersion:          ['', Validators.required],
+    notaDebitoVersion:           ['', Validators.required],
+    comprobanteRetencionVersion: ['', Validators.required],
   });
 
   // ── Sección 2: Endpoints WSDL ───────────────────────────────────────────────
@@ -118,9 +119,10 @@ export class PlatformSriConfigComponent implements OnInit, OnDestroy {
           if (cfg) {
             // Versiones
             this.versionsForm.patchValue({
-              facturaVersion:     cfg.facturaVersion,
-              notaCreditoVersion: cfg.notaCreditoVersion,
-              notaDebitoVersion:  cfg.notaDebitoVersion,
+              facturaVersion:              cfg.facturaVersion,
+              notaCreditoVersion:          cfg.notaCreditoVersion,
+              notaDebitoVersion:           cfg.notaDebitoVersion,
+              comprobanteRetencionVersion: cfg.comprobanteRetencionVersion ?? '1.0.0',
             });
 
             // Endpoints
@@ -302,9 +304,10 @@ export class PlatformSriConfigComponent implements OnInit, OnDestroy {
 
       await this.svc.saveSriPlatformConfig(
         {
-          facturaVersion:     vv.facturaVersion!,
-          notaCreditoVersion: vv.notaCreditoVersion!,
-          notaDebitoVersion:  vv.notaDebitoVersion!,
+          facturaVersion:              vv.facturaVersion!,
+          notaCreditoVersion:          vv.notaCreditoVersion!,
+          notaDebitoVersion:           vv.notaDebitoVersion!,
+          comprobanteRetencionVersion: vv.comprobanteRetencionVersion!,
 
           endpoints: {
             testing: {

@@ -51,10 +51,33 @@ export const SRI_IVA_RETENTION_CODES: SriRetentionCode[] = [
   { taxCode: '2', taxCodeName: 'IVA', pctCode: '1',  pctName: 'Retención IVA 100% — no domiciliados', rate: 100 },
 ];
 
+export const SRI_ISD_RETENTION_CODES: SriRetentionCode[] = [
+  { taxCode: '6', taxCodeName: 'ISD', pctCode: '4580', pctName: 'ISD — Impuesto a la Salida de Divisas', rate: 5 },
+];
+
 export const ALL_RETENTION_CODES: SriRetentionCode[] = [
   ...SRI_IR_RETENTION_CODES,
   ...SRI_IVA_RETENTION_CODES,
+  ...SRI_ISD_RETENTION_CODES,
 ];
+
+// ─── Sustento tributario SRI ──────────────────────────────────────────────────
+
+export const SRI_SUSTENTO_CODES = [
+  { code: '01', name: 'Compras' },
+  { code: '02', name: 'Servicios' },
+  { code: '03', name: 'Honorarios Profesionales' },
+  { code: '04', name: 'Liquidación de Compras' },
+  { code: '05', name: 'Rendimientos Financieros' },
+  { code: '06', name: 'Dividendos' },
+  { code: '07', name: 'Arriendo de bienes inmuebles' },
+  { code: '08', name: 'Comisiones' },
+  { code: '09', name: 'Loterías, rifas y similares' },
+  { code: '10', name: 'Regalías' },
+  { code: '11', name: 'Seguros' },
+  { code: '12', name: 'Fletes Internacionales' },
+  { code: '20', name: 'Anticipo de dividendos' },
+] as const;
 
 // ─── Support document types ────────────────────────────────────────────────────
 
@@ -74,7 +97,7 @@ export const SUPPORT_DOC_TYPES: { code: string; name: string }[] = [
 
 export interface RetentionTax {
   id:             string;
-  taxCode:        string;   // '1'=IR, '2'=IVA
+  taxCode:        string;   // '1'=IR, '2'=IVA, '6'=ISD
   taxCodeName:    string;
   pctCode:        string;   // '303', '4', etc.
   pctName:        string;
@@ -108,11 +131,12 @@ export interface Retention {
   supplierTaxIdType:  string;    // '04'=RUC, '05'=CI, '06'=PASAPORTE
 
   // ── Support document ────────────────────────────────────────────────────────
-  supportDocType:   string;      // '01'=factura, '02'=nota débito, etc.
-  supportDocNumber: string;      // '001-001-000000001'
-  supportDocDate:   Timestamp;
-  supportDocAuth?:  string;      // authorization number of support doc
-  supportDocTotal:  number;      // importeTotal del doc sustento
+  supportDocType:    string;      // '01'=factura, '02'=nota débito, etc.
+  supportDocNumber:  string;      // '001-001-000000001'
+  supportDocDate:    Timestamp;
+  supportDocAuth?:   string;      // authorization number of support doc
+  supportDocTotal:   number;      // importeTotal del doc sustento
+  supportDocCodSust: string;      // código de sustento tributario SRI (ej: '01'=Compras)
 
   // ── Retention taxes ─────────────────────────────────────────────────────────
   taxes:         RetentionTax[];

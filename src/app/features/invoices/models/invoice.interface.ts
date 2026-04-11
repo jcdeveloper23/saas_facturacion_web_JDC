@@ -58,6 +58,8 @@ export interface InvoiceLine {
   warehouseCode?: string;    // override por línea si es necesario
   notes?: string;
   sriTaxCode?: string;  // código SRI: '2'=IVA 0%, '3'=IVA 15%, '5'=IVA 5%, '6'=Exento
+  unit?: string;        // unidad de medida (ej: 'UNIDAD', 'KG', 'LT', 'CAJA') — default 'UNIDAD'
+  skuAlt?: string;      // código adicional (código de barras, referencia del proveedor, etc.)
 }
 
 // ─── VAT summary breakdown ────────────────────────────────────────────────────
@@ -149,6 +151,9 @@ export interface Invoice {
   isCreditNote: boolean;
   rectifiedInvoiceId?: string;
   rectifiedInvoiceNumber?: string;
+  rectifiedInvoiceAuthNumber?: string;  // numAutDocSustento — N° autorización SRI de la factura original
+  rectifiedInvoiceDate?: Timestamp | string; // fechaEmisionDocSustento — fecha de la factura original
+  creditNoteMotivo?: string;            // motivo de la nota de crédito (texto libre, máx 300 chars)
 
   // ── Notes & audit ───────────────────────────────────────────────────────────
   notes?: string;

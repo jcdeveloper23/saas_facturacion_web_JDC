@@ -109,6 +109,12 @@ export interface SriCompanyConfig {
   obligadoContabilidad:  'SI' | 'NO';
   contribuyenteEspecial: string;   // número de resolución o '' si no aplica
 
+  // Datos tributarios adicionales
+  agenteRetencion?:     string;          // Número de resolución de agente retenedor (ej: '1234567890')
+  tipoContribuyente?:   '01' | '02';    // '01' = persona natural, '02' = sociedad
+  regimenMicroempresa?: boolean;         // true si la empresa está en régimen de microempresas
+  emailReplyTo?:        string;          // Email reply-to para los correos de comprobantes
+
   // Campos adicionales libres — bloque <infoAdicional> del XML
   // Soportan templates: ${invoice.field}, ${customer.field}, ${company.field}
   additionalInfoFields: Array<{

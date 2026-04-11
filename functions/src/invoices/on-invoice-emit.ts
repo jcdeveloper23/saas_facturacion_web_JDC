@@ -1,11 +1,14 @@
 import { onDocumentUpdated } from 'firebase-functions/v2/firestore';
 import * as admin from 'firebase-admin';
 
-import { generateInvoiceXmlInternal } from './generate-invoice-xml';
-import { signXmlInternal }            from './sign-xml';
-import { sendToSriInternal }          from './send-to-sri';
-import { generatePdfInternal }        from './generate-pdf';
-import { sendInvoiceEmailInternal }   from './send-invoice-email';
+import { generateInvoiceXmlInternal }    from './generate-invoice-xml';
+import { generateCreditNoteXmlInternal } from './generate-credit-note-xml';
+import { signXmlInternal }               from './sign-xml';
+import { sendToSriInternal }             from './send-to-sri';
+import { generatePdfInternal }           from './generate-pdf';
+import { generateCreditNotePdfInternal } from './generate-credit-note-pdf';
+import { sendInvoiceEmailInternal }      from './send-invoice-email';
+import { sendCreditNoteEmailInternal }   from './send-credit-note-email';
 
 /**
  * onInvoiceEmit
@@ -60,58 +63,114 @@ export const onInvoiceEmit = onDocumentUpdated(
       return;
     }
 
+    const isCreditNote = !!after['isCreditNote'];
+    const docLabel     = isCreditNote ? 'Nota de Crédito' : 'Factura';
+
     try {
-      // ── Step 1: Generate XML ──────────────────────────────────────────────
-      console.log('[onInvoiceEmit] Paso 1/4 — Generando XML...');
-      await generateInvoiceXmlInternal(invoiceId, companyId);
-      console.log('[onInvoiceEmit] XML generado OK.');
+      if (isCreditNote) {
+        // ════════════════════════════════════════════════════════════════════
+        // PIPELINE NOTA DE CRÉDITO (codDoc=04)
+        // ════════════════════════════════════════════════════════════════════
 
-      // ── Step 2: Sign XML ──────────────────────────────────────────────────
-      console.log('[onInvoiceEmit] Paso 2/4 — Firmando XML...');
-      await signXmlInternal(invoiceId, companyId);
-      console.log('[onInvoiceEmit] XML firmado OK.');
+        // ── Step 1: Generate credit note XML ─────────────────────────────
+        console.log(`[onInvoiceEmit] [NC] Paso 1/4 — Generando XML <notaCredito>...`);
+        await generateCreditNoteXmlInternal(invoiceId, companyId);
+        console.log('[onInvoiceEmit] [NC] XML generado OK.');
 
-      // ── Step 3: Send to SRI ───────────────────────────────────────────────
-      console.log('[onInvoiceEmit] Paso 3/4 — Enviando al SRI...');
-      const sriResult = await sendToSriInternal(invoiceId, companyId);
-      console.log('[onInvoiceEmit] SRI resultado:', sriResult.sriStatus);
+        // ── Step 2: Sign XML — xmlFilename = cn-{id}.xml ─────────────────
+        console.log('[onInvoiceEmit] [NC] Paso 2/4 — Firmando XML...');
+        await signXmlInternal(invoiceId, companyId, undefined, `cn-${invoiceId}.xml`);
+        console.log('[onInvoiceEmit] [NC] XML firmado OK.');
 
-      // ── Step 4: Generate PDF (always, even if SRI rejected) ───────────────
-      console.log('[onInvoiceEmit] Paso 4/4 — Generando PDF...');
-      try {
-        await generatePdfInternal(invoiceId, companyId);
-        console.log('[onInvoiceEmit] PDF generado OK.');
-      } catch (pdfErr) {
-        // PDF generation failure is non-critical — log but don't fail the pipeline
-        console.error('[onInvoiceEmit] Error generando PDF (no crítico):', pdfErr);
-        await db.doc(`companies/${companyId}/invoices/${invoiceId}`).update({
-          pdfError: pdfErr instanceof Error ? pdfErr.message : 'Error generando PDF',
-          updatedAt: admin.firestore.Timestamp.now(),
-        });
-      }
+        // ── Step 3: Send to SRI as creditNote ────────────────────────────
+        console.log('[onInvoiceEmit] [NC] Paso 3/4 — Enviando al SRI...');
+        const sriResult = await sendToSriInternal(invoiceId, companyId, 'creditNote');
+        console.log('[onInvoiceEmit] [NC] SRI resultado:', sriResult.sriStatus);
 
-      // ── Step 5: Send email (only if authorized) ───────────────────────────
-      if (sriResult.sriStatus === 'authorized') {
+        // ── Step 4: Generate credit note PDF ─────────────────────────────
+        console.log('[onInvoiceEmit] [NC] Paso 4/4 — Generando PDF RIDE...');
         try {
-          const emailResult = await sendInvoiceEmailInternal(invoiceId, companyId);
-          if (emailResult.sent) {
-            console.log('[onInvoiceEmit] Email enviado a:', emailResult.to);
-          } else {
-            console.log('[onInvoiceEmit] Email omitido (sin email de cliente).');
-          }
-        } catch (emailErr) {
-          // Email failure is non-critical — log but don't fail the pipeline
-          console.error('[onInvoiceEmit] Error enviando email (no crítico):', emailErr);
+          await generateCreditNotePdfInternal(invoiceId, companyId);
+          console.log('[onInvoiceEmit] [NC] PDF generado OK.');
+        } catch (pdfErr) {
+          console.error('[onInvoiceEmit] [NC] Error generando PDF (no crítico):', pdfErr);
+          await db.doc(`companies/${companyId}/invoices/${invoiceId}`).update({
+            pdfError: pdfErr instanceof Error ? pdfErr.message : 'Error generando PDF de NC',
+            updatedAt: admin.firestore.Timestamp.now(),
+          });
         }
-      }
 
-      console.log('[onInvoiceEmit] Pipeline completado:', { companyId, invoiceId, sriStatus: sriResult.sriStatus });
+        // ── Step 5: Send email (only if authorized) ───────────────────────
+        if (sriResult.sriStatus === 'authorized') {
+          try {
+            const emailResult = await sendCreditNoteEmailInternal(invoiceId, companyId);
+            if (emailResult.sent) {
+              console.log('[onInvoiceEmit] [NC] Email enviado a:', emailResult.to);
+            } else {
+              console.log('[onInvoiceEmit] [NC] Email omitido (sin email de cliente).');
+            }
+          } catch (emailErr) {
+            console.error('[onInvoiceEmit] [NC] Error enviando email (no crítico):', emailErr);
+          }
+        }
+
+        console.log('[onInvoiceEmit] [NC] Pipeline completado:', { companyId, invoiceId, sriStatus: sriResult.sriStatus });
+
+      } else {
+        // ════════════════════════════════════════════════════════════════════
+        // PIPELINE FACTURA (codDoc=01)
+        // ════════════════════════════════════════════════════════════════════
+
+        // ── Step 1: Generate XML ────────────────────────────────────────
+        console.log('[onInvoiceEmit] Paso 1/4 — Generando XML...');
+        await generateInvoiceXmlInternal(invoiceId, companyId);
+        console.log('[onInvoiceEmit] XML generado OK.');
+
+        // ── Step 2: Sign XML ────────────────────────────────────────────
+        console.log('[onInvoiceEmit] Paso 2/4 — Firmando XML...');
+        await signXmlInternal(invoiceId, companyId);
+        console.log('[onInvoiceEmit] XML firmado OK.');
+
+        // ── Step 3: Send to SRI ─────────────────────────────────────────
+        console.log('[onInvoiceEmit] Paso 3/4 — Enviando al SRI...');
+        const sriResult = await sendToSriInternal(invoiceId, companyId);
+        console.log('[onInvoiceEmit] SRI resultado:', sriResult.sriStatus);
+
+        // ── Step 4: Generate PDF (always, even if SRI rejected) ─────────
+        console.log('[onInvoiceEmit] Paso 4/4 — Generando PDF...');
+        try {
+          await generatePdfInternal(invoiceId, companyId);
+          console.log('[onInvoiceEmit] PDF generado OK.');
+        } catch (pdfErr) {
+          console.error('[onInvoiceEmit] Error generando PDF (no crítico):', pdfErr);
+          await db.doc(`companies/${companyId}/invoices/${invoiceId}`).update({
+            pdfError: pdfErr instanceof Error ? pdfErr.message : 'Error generando PDF',
+            updatedAt: admin.firestore.Timestamp.now(),
+          });
+        }
+
+        // ── Step 5: Send email (only if authorized) ─────────────────────
+        if (sriResult.sriStatus === 'authorized') {
+          try {
+            const emailResult = await sendInvoiceEmailInternal(invoiceId, companyId);
+            if (emailResult.sent) {
+              console.log('[onInvoiceEmit] Email enviado a:', emailResult.to);
+            } else {
+              console.log('[onInvoiceEmit] Email omitido (sin email de cliente).');
+            }
+          } catch (emailErr) {
+            console.error('[onInvoiceEmit] Error enviando email (no crítico):', emailErr);
+          }
+        }
+
+        console.log('[onInvoiceEmit] Pipeline completado:', { companyId, invoiceId, sriStatus: sriResult.sriStatus });
+      }
 
     } catch (err) {
       // Pipeline error — update invoice with error info but do NOT re-throw
       // (re-throwing would cause Firestore to retry indefinitely)
       const errorMessage = err instanceof Error ? err.message : 'Error inesperado en emisión';
-      console.error('[onInvoiceEmit] Error en pipeline de emisión:', { companyId, invoiceId, err });
+      console.error(`[onInvoiceEmit] Error en pipeline ${docLabel}:`, { companyId, invoiceId, err });
 
       try {
         await db.doc(`companies/${companyId}/invoices/${invoiceId}`).update({

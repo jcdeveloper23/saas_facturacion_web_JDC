@@ -36,7 +36,7 @@ exports.setupCompany = (0, https_1.onCall)(async (request) => {
     const now = firestore_1.Timestamp.now();
     // ── Load platform defaults ─────────────────────────────────────────────────
     console.log('[setupCompany] Loading platform defaults from Firestore...');
-    const [configSnap, taxRatesSnap, paymentTermsSnap, seriesSnap, warehousesSnap, currenciesSnap, countriesSnap] = await Promise.all([
+    const [configSnap, taxRatesSnap, paymentTermsSnap, seriesSnap, warehousesSnap, currenciesSnap, countriesSnap, sriConfigSnap] = await Promise.all([
         db.doc('platform/defaults').get(),
         db.collection('platform/defaults/taxRates').get(),
         db.collection('platform/defaults/paymentTerms').get(),
@@ -44,9 +44,10 @@ exports.setupCompany = (0, https_1.onCall)(async (request) => {
         db.collection('platform/defaults/warehouses').get(),
         db.collection('platform/defaults/currencies').get(),
         db.collection('platform/defaults/countries').get(),
+        db.doc('platform/defaults/sriConfig/data').get(),
     ]);
     console.log('[setupCompany] platform/defaults doc exists:', configSnap.exists, '| data:', JSON.stringify(configSnap.data() ?? null));
-    console.log('[setupCompany] taxRates:', taxRatesSnap.size, '| paymentTerms:', paymentTermsSnap.size, '| documentSeries:', seriesSnap.size, '| warehouses:', warehousesSnap.size, '| currencies:', currenciesSnap.size, '| countries:', countriesSnap.size);
+    console.log('[setupCompany] taxRates:', taxRatesSnap.size, '| paymentTerms:', paymentTermsSnap.size, '| documentSeries:', seriesSnap.size, '| warehouses:', warehousesSnap.size, '| currencies:', currenciesSnap.size, '| countries:', countriesSnap.size, '| sriConfig:', sriConfigSnap.exists ? 'found' : 'not found');
     const platformConfig = configSnap.exists ? configSnap.data() : {};
     const country = platformConfig['country'] ?? 'Ecuador';
     const defaultCurrency = platformConfig['defaultCurrency'] ?? 'USD';
@@ -72,6 +73,8 @@ exports.setupCompany = (0, https_1.onCall)(async (request) => {
         ? (console.log('[setupCompany] documentSeries: Firestore'), seriesSnap.docs.map(d => d.data()).filter(d => d['isActive'] !== false))
         : (console.log('[setupCompany] documentSeries: HARDCODED fallback'), [
             { code: '001', name: 'Serie Facturas', documentType: 'invoice' },
+            { code: '001', name: 'Serie Notas de Débito', documentType: 'debitNote' },
+            { code: '001', name: 'Serie Retenciones', documentType: 'retention' },
             { code: '001', name: 'Serie Presupuestos', documentType: 'quote' },
             { code: '001', name: 'Serie Pedidos', documentType: 'order' },
         ]);
@@ -125,6 +128,21 @@ exports.setupCompany = (0, https_1.onCall)(async (request) => {
             : firestore_1.Timestamp.fromMillis(Date.now() + 30 * 24 * 60 * 60 * 1000),
         createdAt: now,
         updatedAt: now
+    });
+    // ── configuration/sri ─────────────────────────────────────────────────────
+    const sriConfigRef = db.doc(`companies/${companyId}/configuration/sri`);
+    batch.set(sriConfigRef, {
+        razonSocial: data.sri?.businessName || data.name,
+        nombreComercial: '',
+        direccionMatriz: data.fiscalAddress || '',
+        direccionEstablecimiento: data.fiscalAddress || '',
+        telefono: data.phone || '',
+        correo: data.email || '',
+        obligadoContabilidad: data.sri?.accountingRequired ? 'SI' : 'NO',
+        contribuyenteEspecial: data.sri?.contribuyenteEspecial || '',
+        additionalInfoFields: [],
+        updatedAt: now,
+        updatedBy: request.auth.uid
     });
     // ── configuration/general ──────────────────────────────────────────────────
     const configRef = db.doc(`companies/${companyId}/configuration/general`);

@@ -99,6 +99,7 @@ const sriConfig = {
   facturaVersion: '1.0.0',
   notaCreditoVersion: '1.0.0',
   notaDebitoVersion: '1.0.0',
+  comprobanteRetencionVersion: '1.0.0',
 
   // Endpoints WSDL (secciones 7.2 y 8.2)
   endpoints: {

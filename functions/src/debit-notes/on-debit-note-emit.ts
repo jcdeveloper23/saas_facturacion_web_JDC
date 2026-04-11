@@ -1,12 +1,12 @@
 import { onDocumentUpdated } from 'firebase-functions/v2/firestore';
 import * as admin from 'firebase-admin';
-import * as forge from 'node-forge';
 import { getStorage } from 'firebase-admin/storage';
 import axios from 'axios';
 
 import { generateDebitNoteXmlInternal }  from './generate-debit-note-xml';
 import { generateDebitNotePdfInternal }  from './generate-debit-note-pdf';
 import { sendDebitNoteEmailInternal }    from './send-debit-note-email';
+import { signXmlContent }                from '../utils/sign-xml-helper';
 
 // ─── SRI defaults ─────────────────────────────────────────────────────────────
 
@@ -28,6 +28,7 @@ async function signDebitNoteXml(debitNoteId: string, companyId: string): Promise
   const bucket = getStorage().bucket();
   const now    = admin.firestore.Timestamp.now();
 
+  // Download unsigned XML
   const xmlPath = `companies/${companyId}/xml/dn-${debitNoteId}.xml`;
   let xmlBuffer: Buffer;
   try {
@@ -37,6 +38,7 @@ async function signDebitNoteXml(debitNoteId: string, companyId: string): Promise
   }
   const xmlContent = xmlBuffer.toString('utf8');
 
+  // Download .p12 certificate
   const certPath = `companies/${companyId}/certificates/signing.p12`;
   let certBuffer: Buffer;
   try {
@@ -45,46 +47,18 @@ async function signDebitNoteXml(debitNoteId: string, companyId: string): Promise
     throw new Error('Certificado .p12 no encontrado en Storage.');
   }
 
-  let certificate: forge.pki.Certificate;
-  let privateKey:  forge.pki.rsa.PrivateKey;
-  try {
-    const p12Asn1  = forge.asn1.fromDer(certBuffer.toString('binary'));
-    const p12      = forge.pkcs12.pkcs12FromAsn1(p12Asn1, '');
-    const certBags = p12.getBags({ bagType: forge.pki.oids.certBag });
-    const keyBags  = p12.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag });
-    certificate = (certBags[forge.pki.oids.certBag]?.[0]?.cert) as forge.pki.Certificate;
-    privateKey  = (keyBags[forge.pki.oids.pkcs8ShroudedKeyBag]?.[0]?.key) as forge.pki.rsa.PrivateKey;
-  } catch {
-    throw new Error('No se pudo leer el certificado .p12.');
+  // Resolve cert password from company sri config (Secret Manager is a future task)
+  const companySnap = await db.doc(`companies/${companyId}`).get();
+  const certPassword: string = (companySnap.data() as any)?.['sri']?.['certPassword'] ?? '';
+  if (!certPassword) {
+    console.warn('[on-debit-note-emit] certPassword no configurado en company.sri — se intenta con contraseña vacía.');
   }
 
-  const xmlStripped = xmlContent.replace(/<\?xml[^?]*\?>\s*/i, '').trim();
-  const certDer     = forge.util.encode64(forge.asn1.toDer(forge.pki.certificateToAsn1(certificate)).bytes());
-  const signingTime = new Date().toISOString();
+  // Sign using unified XAdES-BES helper
+  const signedXml = signXmlContent(xmlContent, certBuffer, certPassword);
+  console.log('[on-debit-note-emit] XML firmado, longitud:', signedXml.length);
 
-  function sha1b64(data: string): string {
-    const md = forge.md.sha1.create();
-    md.update(forge.util.encodeUtf8(data));
-    return forge.util.encode64(md.digest().bytes());
-  }
-
-  const spId  = 'dn-signed-props';
-  const kiId  = 'dn-key-info';
-  const spXml = `<xades:SignedProperties xmlns:xades="http://uri.etsi.org/01903/v1.3.2#" Id="${spId}"><xades:SignedSignatureProperties><xades:SigningTime>${signingTime}</xades:SigningTime><xades:SigningCertificate><xades:Cert><xades:CertDigest><ds:DigestMethod xmlns:ds="http://www.w3.org/2000/09/xmldsig#" Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"/><ds:DigestValue xmlns:ds="http://www.w3.org/2000/09/xmldsig#">${sha1b64(certDer)}</ds:DigestValue></xades:CertDigest></xades:Cert></xades:SigningCertificate></xades:SignedSignatureProperties></xades:SignedProperties>`;
-  const kiXml = `<ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#" Id="${kiId}"><ds:X509Data><ds:X509Certificate>${certDer}</ds:X509Certificate></ds:X509Data></ds:KeyInfo>`;
-  const siXml = `<ds:SignedInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#"><ds:CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/><ds:SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1"/><ds:Reference URI="#comprobante"><ds:Transforms><ds:Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"/></ds:Transforms><ds:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"/><ds:DigestValue>${sha1b64(xmlStripped)}</ds:DigestValue></ds:Reference><ds:Reference URI="#${kiId}"><ds:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"/><ds:DigestValue>${sha1b64(kiXml)}</ds:DigestValue></ds:Reference><ds:Reference Type="http://uri.etsi.org/01903#SignedProperties" URI="#${spId}"><ds:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"/><ds:DigestValue>${sha1b64(spXml)}</ds:DigestValue></ds:Reference></ds:SignedInfo>`;
-
-  const md = forge.md.sha1.create();
-  md.update(forge.util.encodeUtf8(siXml));
-  const sigVal = forge.util.encode64((privateKey as any).sign(md));
-
-  const sigBlock = `<ds:Signature xmlns:ds="http://www.w3.org/2000/09/xmldsig#" Id="dn-signature">${siXml}<ds:SignatureValue>${sigVal}</ds:SignatureValue>${kiXml}<ds:Object><xades:QualifyingProperties xmlns:xades="http://uri.etsi.org/01903/v1.3.2#" Target="dn-signature">${spXml}</xades:QualifyingProperties></ds:Object></ds:Signature>`;
-
-  const closingMatch = xmlStripped.match(/<\/(\w+)>\s*$/);
-  const closingTag   = closingMatch ? closingMatch[0] : '';
-  const signedXml    = `<?xml version="1.0" encoding="UTF-8"?>\n` +
-    xmlStripped.slice(0, xmlStripped.length - closingTag.length) + sigBlock + closingTag;
-
+  // Upload signed XML and update Firestore
   const signedPath = `companies/${companyId}/xml/dn-${debitNoteId}-signed.xml`;
   await bucket.file(signedPath).save(Buffer.from(signedXml, 'utf8'), {
     metadata: { contentType: 'application/xml' },

@@ -92,9 +92,17 @@
             </div>
             } @else {
             <div class="customer-wrap">
-              <input cFormControl class="inv-ctrl" placeholder="Buscar por nombre, RUC o código..."
-                [value]="customerSearch()" [disabled]="!isNew()" (input)="onCustomerInput($any($event.target).value)"
-                (focus)="showCustomerDrop.set(true)" (blur)="blurCustomer()" (keydown)="onCustomerKeydown($event)">
+              <div class="d-flex gap-1 align-items-center">
+                <input cFormControl class="inv-ctrl flex-grow-1" placeholder="Buscar por nombre, RUC o código..."
+                  [value]="customerSearch()" [disabled]="!isNew()" (input)="onCustomerInput($any($event.target).value)"
+                  (focus)="showCustomerDrop.set(true)" (blur)="blurCustomer()" (keydown)="onCustomerKeydown($event)">
+                @if (isNew()) {
+                <button type="button" class="btn btn-outline-secondary btn-sm text-nowrap"
+                  (click)="selectConsumidorFinal()" title="Emitir a Consumidor Final (SRI: 9999999999999)">
+                  C/F
+                </button>
+                }
+              </div>
               @if (showCustomerDrop() && (customerResults().length > 0 || customerSearch().length >= 2)) {
               <div class="customer-result">
                 @for (c of customerResults(); track c.id; let ci = $index) {
@@ -170,33 +178,31 @@
             <div class="d-flex align-items-center gap-2 mb-1">
               <span class="inv-label">Formas de pago SRI</span>
               @if (isEditable()) {
-                <button type="button" class="line-search-btn" cTooltip="Añadir forma de pago"
-                        (click)="addPaymentMethod()">
-                  <svg cIcon name="cilPlus" size="sm"></svg>
-                </button>
+              <button type="button" class="line-search-btn" cTooltip="Añadir forma de pago"
+                (click)="addPaymentMethod()">
+                <svg cIcon name="cilPlus" size="sm"></svg>
+              </button>
               }
             </div>
             <div class="d-flex flex-wrap gap-2">
               @for (pm of paymentMethodsArray.controls; track $index; let i = $index) {
-                <div [formGroupName]="i" class="d-flex gap-1 align-items-center"
-                     style="background:var(--cui-tertiary-bg);border:1px solid var(--cui-border-color);border-radius:6px;padding:.22rem .4rem">
-                  <select cSelect class="inv-ctrl" formControlName="code" style="min-width:170px"
-                          [attr.disabled]="!isEditable() ? true : null">
-                    @for (m of sriPaymentMethods; track m.code) {
-                      <option [value]="m.code">{{ m.code }} — {{ m.name }}</option>
-                    }
-                  </select>
-                  <span class="inv-label" style="white-space:nowrap">$</span>
-                  <input cFormControl class="inv-ctrl cell-num" formControlName="amount"
-                         type="number" step="0.01" min="0" style="width:80px"
-                         [readonly]="!isEditable()">
-                  @if (isEditable() && paymentMethodsArray.length > 1) {
-                    <button type="button" class="line-search-btn"
-                            (click)="removePaymentMethod(i)">
-                      <svg cIcon name="cilX" size="sm"></svg>
-                    </button>
+              <div [formGroupName]="i" class="d-flex gap-1 align-items-center"
+                style="background:var(--cui-tertiary-bg);border:1px solid var(--cui-border-color);border-radius:6px;padding:.22rem .4rem">
+                <select cSelect class="inv-ctrl" formControlName="code" style="min-width:170px"
+                  [attr.disabled]="!isEditable() ? true : null">
+                  @for (m of sriPaymentMethods; track m.code) {
+                  <option [value]="m.code">{{ m.code }} — {{ m.name }}</option>
                   }
-                </div>
+                </select>
+                <span class="inv-label" style="white-space:nowrap">$</span>
+                <input cFormControl class="inv-ctrl cell-num" formControlName="amount" type="number" step="0.01" min="0"
+                  style="width:80px" [readonly]="!isEditable()">
+                @if (isEditable() && paymentMethodsArray.length > 1) {
+                <button type="button" class="line-search-btn" (click)="removePaymentMethod(i)">
+                  <svg cIcon name="cilX" size="sm"></svg>
+                </button>
+                }
+              </div>
               }
             </div>
           </div>
@@ -380,6 +386,44 @@
           </table>
         </c-card-body>
       </c-card>
+
+      <!-- ── Nota de Crédito — info del comprobante modificado ───────────── -->
+      @if (invoice()?.isCreditNote) {
+      <c-card class="border border-primary-subtle shadow-none">
+        <c-card-body>
+          <p class="section-title" style="color:#1a4c94">Nota de Crédito — Comprobante Modificado</p>
+
+          <!-- Datos de la factura original (solo lectura) -->
+          <c-alert color="info" class="mb-3 py-2">
+            <div class="row g-2 small">
+              <div class="col-sm-4">
+                <span class="text-muted">Factura original:</span><br>
+                <strong>{{ invoice()!.rectifiedInvoiceNumber }}</strong>
+              </div>
+              <div class="col-sm-4">
+                <span class="text-muted">Fecha factura:</span><br>
+                <strong>{{ resolveDate(invoice()!.rectifiedInvoiceDate) | date:'dd/MM/yyyy' }}</strong>
+              </div>
+              <div class="col-sm-4">
+                <span class="text-muted">N° Autorización SRI:</span><br>
+                <strong class="text-break" style="font-size:.75rem">{{ invoice()!.rectifiedInvoiceAuthNumber || '—'
+                  }}</strong>
+              </div>
+            </div>
+          </c-alert>
+
+          <!-- Motivo (editable) -->
+          <label class="form-label fw-semibold">
+            Motivo de la Nota de Crédito <span class="text-danger">*</span>
+          </label>
+          <input cFormControl formControlName="creditNoteMotivo" type="text" maxlength="300"
+            placeholder="Ej: Devolución de mercadería, error en precio, etc." [readonly]="!isEditable()"
+            [class.is-invalid]="form.get('creditNoteMotivo')?.invalid && form.get('creditNoteMotivo')?.touched">
+          <div class="invalid-feedback">El motivo es requerido (máx. 300 caracteres).</div>
+          <div class="form-text">Este texto aparece en el XML y en el RIDE de la nota de crédito.</div>
+        </c-card-body>
+      </c-card>
+      }
 
       <!-- ── Observaciones ─────────────────────────────────────────────── -->
       <c-card class="border shadow-none">
@@ -568,17 +612,17 @@
         <label class="form-label">Nombre <span class="text-danger">*</span></label>
         <input cFormControl formControlName="name" placeholder="Juan Pérez / Empresa ABC">
         @if (newCustomerForm.get('name')?.invalid && newCustomerForm.get('name')?.touched) {
-          <div class="text-danger" style="font-size:.75rem">El nombre es requerido.</div>
+        <div class="text-danger" style="font-size:.75rem">El nombre es requerido.</div>
         }
       </div>
       @if (newCustomerForm.get('taxIdType')?.value === 'RUC') {
-        <div class="col-12">
-          <label class="form-label">Razón social <span class="text-danger">*</span></label>
-          <input cFormControl formControlName="legalName" placeholder="Empresa ABC S.A.">
-          @if (newCustomerForm.get('legalName')?.invalid && newCustomerForm.get('legalName')?.touched) {
-            <div class="text-danger" style="font-size:.75rem">La razón social es requerida.</div>
-          }
-        </div>
+      <div class="col-12">
+        <label class="form-label">Razón social <span class="text-danger">*</span></label>
+        <input cFormControl formControlName="legalName" placeholder="Empresa ABC S.A.">
+        @if (newCustomerForm.get('legalName')?.invalid && newCustomerForm.get('legalName')?.touched) {
+        <div class="text-danger" style="font-size:.75rem">La razón social es requerida.</div>
+        }
+      </div>
       }
       <div class="col-5">
         <label class="form-label">Tipo ID <span class="text-danger">*</span></label>
@@ -593,13 +637,13 @@
         <label class="form-label">RUC / Cédula <span class="text-danger">*</span></label>
         <input cFormControl formControlName="taxId" placeholder="1791234567001">
         @if (newCustomerForm.get('taxId')?.invalid && newCustomerForm.get('taxId')?.touched) {
-          @if (newCustomerForm.get('taxId')?.hasError('required')) {
-            <div class="text-danger" style="font-size:.75rem">El número de identificación es requerido.</div>
-          } @else if (newCustomerForm.get('taxId')?.hasError('invalidCedula')) {
-            <div class="text-danger" style="font-size:.75rem">Cédula inválida (10 dígitos, módulo 10).</div>
-          } @else if (newCustomerForm.get('taxId')?.hasError('invalidRuc')) {
-            <div class="text-danger" style="font-size:.75rem">RUC inválido (13 dígitos, algoritmo SRI).</div>
-          }
+        @if (newCustomerForm.get('taxId')?.hasError('required')) {
+        <div class="text-danger" style="font-size:.75rem">El número de identificación es requerido.</div>
+        } @else if (newCustomerForm.get('taxId')?.hasError('invalidCedula')) {
+        <div class="text-danger" style="font-size:.75rem">Cédula inválida (10 dígitos, módulo 10).</div>
+        } @else if (newCustomerForm.get('taxId')?.hasError('invalidRuc')) {
+        <div class="text-danger" style="font-size:.75rem">RUC inválido (13 dígitos, algoritmo SRI).</div>
+        }
         }
       </div>
       <div class="col-6">

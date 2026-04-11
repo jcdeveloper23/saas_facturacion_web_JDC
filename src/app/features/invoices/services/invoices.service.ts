@@ -74,7 +74,7 @@ export class InvoicesService {
 
   async createInvoice(input: InvoiceCreateInput): Promise<string> {
     const userId = this.authService.user()?.uid ?? 'unknown';
-    const number = await this.nextNumber(input.seriesCode, input.fiscalYear);
+    const number = await this.nextNumber(input.seriesEstablishment, input.seriesEmissionPoint, input.fiscalYear);
     const fullNumber = buildFullNumber(input.seriesEstablishment, input.seriesEmissionPoint, number);
     const totals = calcInvoiceTotals(input.lines, input.globalDiscountPct);
     const now = Timestamp.now();
@@ -132,14 +132,16 @@ export class InvoicesService {
     await deleteDoc(doc(this.firestore, `${this.colPath}/${id}`));
   }
 
-  // ─── Auto-increment number per series+year (atomic via transaction) ────────
+  // ─── Auto-increment number per establishment+emissionPoint+year (atomic) ────
   //
   // Uses a counter document at companies/{companyId}/counters/invoices
-  // with one field per series+year key, e.g. { "A_2025": 12, "B_2025": 3 }.
+  // with one field per estab_pto_year key, e.g. { "001_001_2025": 12 }.
+  // Key includes establishment and emission point to support multi-establishment
+  // companies where each point of sale has an independent sequential counter.
   // runTransaction ensures no two concurrent creates can read the same value.
 
-  private async nextNumber(seriesCode: string, fiscalYear: string): Promise<number> {
-    const key        = `${seriesCode}_${fiscalYear}`;
+  private async nextNumber(estab: string, pto: string, fiscalYear: string): Promise<number> {
+    const key        = `${estab}_${pto}_${fiscalYear}`;
     const counterRef = doc(this.firestore, `companies/${this.companyId}/counters/invoices`);
 
     return runTransaction(this.firestore, async tx => {

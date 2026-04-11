@@ -146,7 +146,7 @@ async function withRetry<T>(
 
 // ─── Document-type config ─────────────────────────────────────────────────────
 
-type SriDocType = 'invoice' | 'retention' | 'debitNote';
+type SriDocType = 'invoice' | 'retention' | 'debitNote' | 'creditNote';
 
 interface DocTypeConfig {
   collection: string;
@@ -169,6 +169,11 @@ const DOC_TYPE_CONFIGS: Record<SriDocType, DocTypeConfig> = {
     collection: 'debitNotes',
     signedXmlPath: (id, cid) => `companies/${cid}/xml/dn-${id}-signed.xml`,
     docLabel: 'Nota de Débito',
+  },
+  creditNote: {
+    collection: 'invoices',                                              // NC viven en la misma colección que facturas
+    signedXmlPath: (id, cid) => `companies/${cid}/xml/${id}-signed.xml`, // sign-xml.ts guarda con {invoiceId}-signed.xml
+    docLabel: 'Nota de Crédito',
   },
 };
 

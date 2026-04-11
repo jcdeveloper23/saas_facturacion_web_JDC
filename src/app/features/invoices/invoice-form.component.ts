@@ -9,7 +9,7 @@ import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { Timestamp } from '@angular/fire/firestore';
 import {
   CardModule, ButtonModule, GridModule, BadgeModule,
-  SpinnerModule, FormModule, TooltipModule,
+  SpinnerModule, FormModule, TooltipModule, AlertModule,
   InputGroupComponent, InputGroupTextDirective,
   ModalModule
 } from '@coreui/angular';
@@ -196,7 +196,7 @@ import { PaymentTerm, Warehouse, DocumentSeries } from '../settings/models/setti
   imports: [
     CommonModule, ReactiveFormsModule,
     CardModule, ButtonModule, GridModule, BadgeModule, SpinnerModule,
-    FormModule, TooltipModule, IconModule,
+    FormModule, TooltipModule, AlertModule, IconModule,
     InputGroupComponent, InputGroupTextDirective,
     ModalModule
   ]
@@ -231,6 +231,7 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
   customerSearch       = signal('');
   showCustomerDrop     = signal(false);
   selectedCustomer     = signal<Person | null>(null);
+  isConsumidorFinal    = computed(() => this.selectedCustomer()?.taxId === '9999999999999');
   customerHighlightIdx = signal(0);
 
   customerResults = computed(() => {
@@ -367,6 +368,7 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
       globalDiscountPct:  [0, [Validators.min(0), Validators.max(100)]],
       customerReference:  [''],
       notes:              [''],
+      creditNoteMotivo:   ['', Validators.maxLength(300)],
       paymentMethods:     this.fb.array([this.buildPaymentMethodGroup()]),
       lines:              this.fb.array([])
     });
@@ -452,6 +454,7 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
       globalDiscountPct:  inv.globalDiscountPct,
       customerReference:  inv.customerReference ?? '',
       notes:              inv.notes ?? '',
+      creditNoteMotivo:   inv.creditNoteMotivo ?? '',
     });
 
     // Restore payment methods FormArray
@@ -537,6 +540,26 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
     this.selectedCustomer.set(null);
     this.customerSearch.set('');
     this.showCustomerDrop.set(false);
+  }
+
+  /** Selecciona "Consumidor Final" como comprador (SRI: tipoId=07, RUC=9999999999999) */
+  selectConsumidorFinal(): void {
+    // Objeto virtual — no se persiste en Firestore, solo se usa para rellenar el formulario
+    const cf = {
+      id:          'consumidor-final',
+      roles:       ['customer'] as any,
+      taxId:       '9999999999999',
+      taxIdType:   '07' as any,
+      isCompany:   false,
+      name:        'CONSUMIDOR FINAL',
+      legalName:   'CONSUMIDOR FINAL',
+      isActive:    true,
+      addresses:   [],
+      bankAccounts:[],
+      createdAt:   null as any,
+      updatedAt:   null as any,
+    } as unknown as Person;
+    this.selectCustomer(cf, false);
   }
 
   // ─── Lines ─────────────────────────────────────────────────────────────────
@@ -735,6 +758,7 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
           customerReference:fv.customerReference || '',
           lines,
           notes:            fv.notes ?? '',
+          creditNoteMotivo: fv['creditNoteMotivo'] ?? '',
           paymentMethods,
           ...(emitAfter ? { status: 'issued' as InvoiceStatus } : {}),
           ...totals
@@ -901,6 +925,12 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
     if (!ts) return this.toDateInput(new Date());
     const d = ts?.toDate ? ts.toDate() : new Date(ts);
     return this.toDateInput(d);
+  }
+
+  /** Convierte Timestamp | string | null a Date para usar con el pipe date en el template */
+  resolveDate(val: any): Date | null {
+    if (!val) return null;
+    return val?.toDate ? val.toDate() : new Date(val);
   }
 
   isEditable(): boolean {

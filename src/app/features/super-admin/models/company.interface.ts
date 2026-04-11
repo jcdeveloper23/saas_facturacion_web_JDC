@@ -46,6 +46,7 @@ export interface Company {
     certificateThumbprint?: string; // SHA1 huella para display
     certificateSubject?: string;    // Subject del cert para display (nombre empresa en cert)
     certificateExpiry?: Timestamp;  // Fecha de expiración
+    certPassword?: string;          // Password del .p12 para firma (producción: usar Secret Manager)
   };
 
   // Plugin management — which modules are active for this company

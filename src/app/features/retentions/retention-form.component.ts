@@ -19,7 +19,8 @@ import { NotificationService } from '../../core/services/notification.service';
 import {
   Retention, RetentionStatus, RetentionTax,
   RETENTION_STATUS_LABELS, RETENTION_STATUS_COLORS,
-  ALL_RETENTION_CODES, SUPPORT_DOC_TYPES,
+  ALL_RETENTION_CODES, SRI_ISD_RETENTION_CODES, SUPPORT_DOC_TYPES,
+  SRI_SUSTENTO_CODES,
   buildRetentionFullNumber, calcRetentionTax,
 } from './models/retention.interface';
 import { SRI_STATUS_LABELS as SriLbls, SRI_STATUS_COLORS as SriClrs } from '../invoices/models/invoice.interface';
@@ -85,8 +86,10 @@ export class RetentionFormComponent implements OnInit, OnDestroy {
   });
 
   // ── Lookup tables ────────────────────────────────────────────────────────────
-  readonly allCodes      = ALL_RETENTION_CODES;
+  readonly allCodes        = ALL_RETENTION_CODES;
+  readonly isdCodes        = SRI_ISD_RETENTION_CODES;
   readonly supportDocTypes = SUPPORT_DOC_TYPES;
+  readonly sustentosCodes  = SRI_SUSTENTO_CODES;
   readonly STATUS_LABELS = RETENTION_STATUS_LABELS;
   readonly STATUS_COLORS = RETENTION_STATUS_COLORS;
   readonly SRI_LABELS    = SriLbls;
@@ -158,11 +161,12 @@ export class RetentionFormComponent implements OnInit, OnDestroy {
       // supplier fields (filled from selectedSupplier)
       supplierTaxIdType: ['04'],
       // support doc
-      supportDocType:   ['01', Validators.required],
-      supportDocNumber: ['',   Validators.required],
-      supportDocDate:   [today, Validators.required],
-      supportDocAuth:   [''],
-      supportDocTotal:  [0, [Validators.required, Validators.min(0)]],
+      supportDocType:    ['01', Validators.required],
+      supportDocNumber:  ['',   Validators.required],
+      supportDocDate:    [today, Validators.required],
+      supportDocAuth:    [''],
+      supportDocTotal:   [0, [Validators.required, Validators.min(0)]],
+      supportDocCodSust: ['01', Validators.required],
       notes:            [''],
       taxes: this.fb.array([]),
     });
@@ -208,9 +212,10 @@ export class RetentionFormComponent implements OnInit, OnDestroy {
       supportDocType:   r.supportDocType,
       supportDocNumber: r.supportDocNumber,
       supportDocDate:   this.tsToDateInput(r.supportDocDate),
-      supportDocAuth:   r.supportDocAuth ?? '',
-      supportDocTotal:  r.supportDocTotal,
-      notes:            r.notes ?? '',
+      supportDocAuth:    r.supportDocAuth ?? '',
+      supportDocTotal:   r.supportDocTotal,
+      supportDocCodSust: r.supportDocCodSust ?? '01',
+      notes:             r.notes ?? '',
     });
 
     this.supplierSearch.set(r.supplierName);
@@ -282,6 +287,11 @@ export class RetentionFormComponent implements OnInit, OnDestroy {
     }
   }
 
+  /** Returns true when the tax line at idx is ISD (taxCode === '6'). */
+  isIsdLine(idx: number): boolean {
+    return (this.taxesArray.at(idx) as FormGroup).get('taxCode')?.value === '6';
+  }
+
   recalcTax(idx: number): void {
     const g    = this.taxesArray.at(idx) as FormGroup;
     const base = parseFloat(g.get('taxableBase')?.value) || 0;
@@ -333,6 +343,7 @@ export class RetentionFormComponent implements OnInit, OnDestroy {
         supportDocDate:      Timestamp.fromDate(new Date(fv.supportDocDate + 'T00:00:00')),
         supportDocAuth:      fv.supportDocAuth || '',
         supportDocTotal:     parseFloat(fv.supportDocTotal) || 0,
+        supportDocCodSust:   fv.supportDocCodSust ?? '01',
         taxes,
         totalRetained,
         status:              emitAfter ? 'issued' as RetentionStatus : 'draft' as RetentionStatus,

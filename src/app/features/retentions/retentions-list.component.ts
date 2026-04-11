@@ -142,8 +142,13 @@ import { SRI_STATUS_LABELS, SRI_STATUS_COLORS } from '../invoices/models/invoice
                   @if (r.xmlUrl) {
                     <button cButton color="info" variant="outline" size="sm"
                             class="ms-1" title="Descargar XML"
-                            (click)="window.open(r.xmlUrl, '_blank')">
-                      <svg cIcon name="cilCloudDownload"></svg>
+                            [disabled]="downloadingDoc() === r.id + '-xml'"
+                            (click)="downloadDoc(r.id, 'xml', 'retention')">
+                      @if (downloadingDoc() === r.id + '-xml') {
+                        <c-spinner size="sm"></c-spinner>
+                      } @else {
+                        <svg cIcon name="cilCloudDownload"></svg>
+                      }
                     </button>
                   }
                   <!-- PDF/RIDE -->
@@ -159,8 +164,13 @@ import { SRI_STATUS_LABELS, SRI_STATUS_COLORS } from '../invoices/models/invoice
                   @if (r.pdfUrl) {
                     <button cButton color="success" variant="outline" size="sm"
                             class="ms-1" title="Descargar PDF/RIDE"
-                            (click)="window.open(r.pdfUrl, '_blank')">
-                      <svg cIcon name="cilFile"></svg>
+                            [disabled]="downloadingDoc() === r.id + '-pdf'"
+                            (click)="downloadDoc(r.id, 'pdf', 'retention')">
+                      @if (downloadingDoc() === r.id + '-pdf') {
+                        <c-spinner size="sm"></c-spinner>
+                      } @else {
+                        <svg cIcon name="cilFile"></svg>
+                      }
                     </button>
                   }
                 </td>
@@ -189,9 +199,10 @@ export class RetentionsListComponent implements OnInit, OnDestroy {
   readonly SRI_LABELS    = SRI_STATUS_LABELS;
   readonly SRI_COLORS    = SRI_STATUS_COLORS;
 
-  loading       = signal(true);
+  loading         = signal(true);
   reenviarLoading = signal(false);
   pdfLoading      = signal<string | null>(null);
+  downloadingDoc  = signal<string | null>(null);
   all           = signal<Retention[]>([]);
   yearFilter    = String(new Date().getFullYear());
   statusFilter  = '';
@@ -267,6 +278,21 @@ export class RetentionsListComponent implements OnInit, OnDestroy {
       this.notifications.error('Error al reenviar: ' + (err?.message ?? err));
     } finally {
       this.reenviarLoading.set(false);
+    }
+  }
+
+  async downloadDoc(docId: string, fileType: 'xml' | 'pdf', documentType: string): Promise<void> {
+    const key = `${docId}-${fileType}`;
+    if (this.downloadingDoc() === key) return;
+    this.downloadingDoc.set(key);
+    try {
+      const fn = httpsCallable<object, { url: string }>(this.functions, 'downloadDocument');
+      const result = await fn({ documentId: docId, companyId: this.tenant.companyId, fileType, documentType });
+      window.open(result.data.url, '_blank');
+    } catch {
+      this.notifications.error('No se pudo obtener el archivo. Verifique que el documento fue procesado.');
+    } finally {
+      this.downloadingDoc.set(null);
     }
   }
 }

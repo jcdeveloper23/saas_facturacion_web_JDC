@@ -61,6 +61,13 @@
               [class.is-invalid]="hasError(versionsForm, 'notaDebitoVersion')">
             @if (hasError(versionsForm, 'notaDebitoVersion')) { <div class="invalid-feedback">Requerido</div> }
           </c-col>
+          <c-col md="4">
+            <label cLabel class="fw-semibold small">Versión Comprobante de Retención <span class="text-danger">*</span></label>
+            <input cFormControl formControlName="comprobanteRetencionVersion" placeholder="1.0.0"
+              [class.is-invalid]="hasError(versionsForm, 'comprobanteRetencionVersion')">
+            @if (hasError(versionsForm, 'comprobanteRetencionVersion')) { <div class="invalid-feedback">Requerido</div> }
+            <div class="form-text text-muted small">Schema XML retención — SRI Ficha Técnica v2.32</div>
+          </c-col>
         </c-row>
       </form>
     </c-card-body>

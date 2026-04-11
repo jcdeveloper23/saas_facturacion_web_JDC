@@ -347,16 +347,26 @@
                     @if (inv.xmlUrl) {
                       <button cButton color="secondary" variant="ghost" size="sm"
                               cTooltip="Descargar XML"
-                              (click)="downloadXml(inv, $event)">
-                        <svg cIcon name="cilCloudDownload" size="sm"></svg>
+                              [disabled]="downloadingDoc() === inv.id + '-xml'"
+                              (click)="downloadDoc(inv.id, 'xml', inv.isCreditNote ? 'creditNote' : 'invoice', $event)">
+                        @if (downloadingDoc() === inv.id + '-xml') {
+                          <c-spinner size="sm"></c-spinner>
+                        } @else {
+                          <svg cIcon name="cilCloudDownload" size="sm"></svg>
+                        }
                       </button>
                     }
                     <!-- SRI: Descargar PDF/RIDE -->
                     @if (inv.pdfUrl) {
                       <button cButton color="secondary" variant="ghost" size="sm"
                               cTooltip="Descargar PDF (RIDE)"
-                              (click)="downloadPdf(inv, $event)">
-                        <svg cIcon name="cilFile" size="sm"></svg>
+                              [disabled]="downloadingDoc() === inv.id + '-pdf'"
+                              (click)="downloadDoc(inv.id, 'pdf', inv.isCreditNote ? 'creditNote' : 'invoice', $event)">
+                        @if (downloadingDoc() === inv.id + '-pdf') {
+                          <c-spinner size="sm"></c-spinner>
+                        } @else {
+                          <svg cIcon name="cilFile" size="sm"></svg>
+                        }
                       </button>
                     }
                   </div>

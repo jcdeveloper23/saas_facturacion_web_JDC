@@ -146,6 +146,7 @@ export class InvoicesListComponent implements OnInit, OnDestroy {
   // ── SRI actions state ──────────────────────────────────────────────────────
   reenviarLoading     = signal<string | null>(null); // invoiceId being retried
   checkStatusLoading  = signal<string | null>(null);
+  downloadingDoc      = signal<string | null>(null); // '{docId}-{fileType}' mientras descarga
 
   // ── Static lookups ─────────────────────────────────────────────────────────
   readonly STATUS_LABELS      = INVOICE_STATUS_LABELS;
@@ -380,10 +381,13 @@ export class InvoicesListComponent implements OnInit, OnDestroy {
         status:                'draft',
         isPaid:                false,
         isVoid:                false,
-        isCreditNote:          true,
-        rectifiedInvoiceId:    inv.id,
-        rectifiedInvoiceNumber: inv.fullNumber,
-        notes:                 `Nota de crédito de ${inv.fullNumber}`,
+        isCreditNote:               true,
+        rectifiedInvoiceId:         inv.id,
+        rectifiedInvoiceNumber:     inv.fullNumber,
+        rectifiedInvoiceAuthNumber: inv.authorizationNumber ?? '',
+        rectifiedInvoiceDate:       inv.date,
+        creditNoteMotivo:           '',
+        notes:                      `Nota de crédito de ${inv.fullNumber}`,
         paymentMethods:        inv.paymentMethods ?? [{ code: '01', name: 'Efectivo', amount: totals.total }],
         ...totals,
       };
@@ -438,14 +442,20 @@ export class InvoicesListComponent implements OnInit, OnDestroy {
     }
   }
 
-  downloadXml(inv: Invoice, event: Event): void {
-    event.stopPropagation();
-    if (inv.xmlUrl) { window.open(inv.xmlUrl, '_blank', 'noopener'); }
-  }
-
-  downloadPdf(inv: Invoice, event: Event): void {
-    event.stopPropagation();
-    if (inv.pdfUrl) { window.open(inv.pdfUrl, '_blank', 'noopener'); }
+  async downloadDoc(docId: string, fileType: 'xml' | 'pdf', documentType: string, event?: Event): Promise<void> {
+    event?.stopPropagation();
+    const key = `${docId}-${fileType}`;
+    if (this.downloadingDoc() === key) return;
+    this.downloadingDoc.set(key);
+    try {
+      const fn = httpsCallable<object, { url: string }>(this.functions, 'downloadDocument');
+      const result = await fn({ documentId: docId, companyId: this.tenantSvc.companyId, fileType, documentType });
+      window.open(result.data.url, '_blank');
+    } catch {
+      this.notifications.error('No se pudo obtener el archivo. Verifique que el documento fue procesado.');
+    } finally {
+      this.downloadingDoc.set(null);
+    }
   }
 
   // ── Formatters ────────────────────────────────────────────────────────────

@@ -5,7 +5,7 @@ import { getStorage } from 'firebase-admin/storage';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface InvoiceLine {
+interface CreditNoteLine {
   productId?: string;
   sku?: string;
   description: string;
@@ -20,29 +20,40 @@ interface InvoiceLine {
   skuAlt?: string;   // código adicional (código de barras, referencia del proveedor, etc.)
 }
 
-interface Invoice {
-  number: string;
+interface CreditNote {
+  // Numbering
+  fullNumber?: string;
   date: admin.firestore.Timestamp;
-  status: string;
-  sriStatus?: string;
-  accessKey?: string;
-  codigoNumerico?: string;
-  customerId: string;
+
+  // Customer
   customerName: string;
   customerTaxId: string;
   customerIdentificationType?: string;
   customerEmail?: string;
   customerAddress?: string;
   customerReference?: string;
+
+  // Document sustento (factura original)
+  isCreditNote: boolean;
+  rectifiedInvoiceId?: string;
+  rectifiedInvoiceNumber?: string;        // e.g. '001-001-000000123'
+  rectifiedInvoiceAuthNumber?: string;    // numAutDocSustento (49 dígitos)
+  rectifiedInvoiceDate?: admin.firestore.Timestamp | string;
+  creditNoteMotivo?: string;              // motivo de la nota de crédito
+
+  // Totals
   subtotal: number;
   discount: number;
   taxableBase: number;
   vatAmount: number;
   total: number;
-  lines: InvoiceLine[];
-  paymentMethod?: string;
-  paymentDays?: number;
-  notes?: string;
+
+  // Lines
+  lines: CreditNoteLine[];
+
+  // SRI internal
+  codigoNumerico?: string;
+  accessKey?: string;
 }
 
 interface CompanySri {
@@ -68,18 +79,17 @@ interface SriCompanyConfig {
   direccionEstablecimiento: string;
   obligadoContabilidad: 'SI' | 'NO';
   contribuyenteEspecial: string;
-  regimenMicroempresa?: boolean;  // true si la empresa está en régimen de microempresas (Sprint 3)
   additionalInfoFields: Array<{ nombre: string; valor: string }>;
 }
 
 interface SriPlatformConfig {
-  facturaVersion: string;
+  notaCreditoVersion?: string;
   taxCodes: Array<{ vatPct: number; sriCode: string; isExempt?: boolean }>;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-export function calcularDigitoVerificador(clave48: string): number {
+function calcularDigitoVerificador(clave48: string): number {
   const factores = [2, 3, 4, 5, 6, 7];
   let suma = 0;
   for (let i = clave48.length - 1, f = 0; i >= 0; i--, f++) {
@@ -109,9 +119,9 @@ function formatFechaClaveAcceso(date: Date): string {
   return `${dd}${mm}${yyyy}`;
 }
 
-/** Extract numeric-only secuencial (last segment of "001-001-000000001") */
-function extractSecuencial(invoiceNumber: string): string {
-  const parts = invoiceNumber.split('-');
+/** Extract numeric-only secuencial from "001-001-000000001" → "000000001" */
+function extractSecuencial(fullNumber: string): string {
+  const parts = fullNumber.split('-');
   const raw = parts[parts.length - 1] ?? '000000001';
   return raw.replace(/\D/g, '').padStart(9, '0');
 }
@@ -124,14 +134,14 @@ function deriveSriTaxCode(
   const match = taxCodes.find(tc => tc.vatPct === taxRate);
   if (match) return match.sriCode;
   // Fallback map — SRI Ficha Técnica v2.32 TABLA 17
-  if (taxRate === 15) return '4'; // IVA 15% → código 4 (antes era '3' para IVA 12%)
+  if (taxRate === 15) return '4'; // IVA 15% → código 4
   if (taxRate === 5)  return '5';
   if (taxRate === 0)  return '2';
   return '2';
 }
 
 /** Resolve ${invoice.field} / ${customer.field} / ${company.field} templates */
-export function resolveTemplate(
+function resolveTemplate(
   template: string,
   ctx: { invoice: Record<string, any>; customer: Record<string, any>; company: Record<string, any> }
 ): string {
@@ -141,23 +151,38 @@ export function resolveTemplate(
   );
 }
 
+/** Resolve rectifiedInvoiceDate to a JS Date regardless of whether it's a
+ *  Firestore Timestamp or an ISO string stored as a plain string. */
+function resolveRectifiedDate(
+  raw: admin.firestore.Timestamp | string | undefined
+): Date {
+  if (!raw) return new Date();
+  if (typeof raw === 'string') return new Date(raw);
+  // Firestore Timestamp — has .toDate()
+  return (raw as admin.firestore.Timestamp).toDate();
+}
+
 // ─── Core logic (exported for internal use by orchestrator) ───────────────────
 
-export async function generateInvoiceXmlInternal(
-  invoiceId: string,
+export async function generateCreditNoteXmlInternal(
+  creditNoteId: string,
   companyId: string
 ): Promise<{ accessKey: string; xmlUrl: string }> {
   const db = admin.firestore();
   const now = admin.firestore.Timestamp.now();
 
-  console.log('[generate-invoice-xml] Inicio:', { invoiceId, companyId });
+  console.log('[generate-credit-note-xml] Inicio:', { creditNoteId, companyId });
 
-  // 1. Read Invoice
-  const invoiceSnap = await db.doc(`companies/${companyId}/invoices/${invoiceId}`).get();
+  // 1. Read Invoice (credit note is stored as an Invoice document)
+  const invoiceSnap = await db.doc(`companies/${companyId}/invoices/${creditNoteId}`).get();
   if (!invoiceSnap.exists) {
-    throw new Error(`Factura no encontrada: ${invoiceId}`);
+    throw new Error(`Nota de crédito no encontrada: ${creditNoteId}`);
   }
-  const invoice = invoiceSnap.data() as Invoice;
+  const cn = invoiceSnap.data() as CreditNote;
+
+  if (!cn.isCreditNote) {
+    throw new Error(`El documento ${creditNoteId} no está marcado como nota de crédito (isCreditNote=false)`);
+  }
 
   // 2. Read Company
   const companySnap = await db.doc(`companies/${companyId}`).get();
@@ -178,7 +203,7 @@ export async function generateInvoiceXmlInternal(
   const platformConfig: SriPlatformConfig = platformConfigSnap.exists
     ? (platformConfigSnap.data() as SriPlatformConfig)
     : {
-        facturaVersion: '1.0.0',
+        notaCreditoVersion: '1.0.0',
         taxCodes: [
           { vatPct: 15, sriCode: '4' }, // SRI TABLA 17 v2.32: IVA 15% → código 4
           { vatPct: 5,  sriCode: '5' },
@@ -186,17 +211,17 @@ export async function generateInvoiceXmlInternal(
         ],
       };
 
-  console.log('[generate-invoice-xml] Datos leídos. Construyendo clave de acceso...');
+  console.log('[generate-credit-note-xml] Datos leídos. Construyendo clave de acceso...');
 
-  // 5. Build access key (49 digits)
-  const invoiceDate: Date = invoice.date.toDate();
-  const fechaStr = formatFechaClaveAcceso(invoiceDate);
-  const tipoComprobante = '01'; // Factura
+  // 5. Build access key (49 digits) — codDoc = '04' (Nota de Crédito)
+  const cnDate: Date = cn.date.toDate();
+  const fechaStr = formatFechaClaveAcceso(cnDate);
+  const tipoComprobante = '04'; // Nota de Crédito
   const ruc = company.sri.ruc;
   const ambiente = company.sri.environment === 'production' ? '2' : '1';
   const serie = `${company.sri.establishment}${company.sri.emissionPoint}`;
-  const secuencial = extractSecuencial(invoice.number);
-  const codigoNumerico = invoice.codigoNumerico ?? generarCodigoNumerico();
+  const secuencial = extractSecuencial(cn.fullNumber ?? '001-001-000000001');
+  const codigoNumerico = cn.codigoNumerico ?? generarCodigoNumerico();
   const tipoEmision = '1'; // Normal
 
   const clave48 =
@@ -209,11 +234,11 @@ export async function generateInvoiceXmlInternal(
   const digitoVerificador = calcularDigitoVerificador(clave48);
   const accessKey = clave48 + String(digitoVerificador);
 
-  console.log('[generate-invoice-xml] Clave de acceso:', accessKey, '| longitud:', accessKey.length);
+  console.log('[generate-credit-note-xml] Clave de acceso:', accessKey, '| longitud:', accessKey.length);
 
   // 6. Group lines by SRI tax code for totalConImpuestos
   const taxGroups: Map<string, { base: number; tax: number }> = new Map();
-  for (const line of invoice.lines) {
+  for (const line of cn.lines) {
     const sriTaxCode = line.sriTaxCode ?? deriveSriTaxCode(line.taxRate, platformConfig.taxCodes);
     const existing = taxGroups.get(sriTaxCode) ?? { base: 0, tax: 0 };
     taxGroups.set(sriTaxCode, {
@@ -223,11 +248,12 @@ export async function generateInvoiceXmlInternal(
   }
 
   // 7. Build XML using xmlbuilder2
-  const totalSinImpuestos = invoice.subtotal - invoice.discount;
-  const version = platformConfig.facturaVersion ?? '1.0.0';
+  const totalSinImpuestos = cn.subtotal - cn.discount;
+  const valorModificacion = cn.total; // importe total con IVA de la NC
+  const version = platformConfig.notaCreditoVersion ?? '1.0.0';
 
   const root = create({ version: '1.0', encoding: 'UTF-8' })
-    .ele('factura', { id: 'comprobante', version });
+    .ele('notaCredito', { id: 'comprobante', version });
 
   // <infoTributaria>
   const infoTrib = root.ele('infoTributaria');
@@ -239,37 +265,46 @@ export async function generateInvoiceXmlInternal(
   }
   infoTrib.ele('ruc').txt(ruc);
   infoTrib.ele('claveAcceso').txt(accessKey);
-  infoTrib.ele('codDoc').txt('01');
+  infoTrib.ele('codDoc').txt('04');
   infoTrib.ele('estab').txt(company.sri.establishment);
   infoTrib.ele('ptoEmi').txt(company.sri.emissionPoint);
   infoTrib.ele('secuencial').txt(secuencial);
   infoTrib.ele('dirMatriz').txt(sriConfig.direccionMatriz);
 
-  // <infoFactura>
-  const infoFactura = root.ele('infoFactura');
-  infoFactura.ele('fechaEmision').txt(formatFechaEmision(invoiceDate));
-  infoFactura.ele('dirEstablecimiento').txt(sriConfig.direccionEstablecimiento);
+  // <infoNotaCredito>
+  const infoNC = root.ele('infoNotaCredito');
+  infoNC.ele('fechaEmision').txt(formatFechaEmision(cnDate));
+  infoNC.ele('dirEstablecimiento').txt(sriConfig.direccionEstablecimiento);
+
+  const tipoIdComprador = cn.customerIdentificationType ?? '04'; // RUC default
+  infoNC.ele('tipoIdentificacionComprador').txt(tipoIdComprador);
+  infoNC.ele('razonSocialComprador').txt(cn.customerName);
+  infoNC.ele('identificacionComprador').txt(cn.customerTaxId);
 
   if (company.sri.contribuyenteEspecial) {
-    infoFactura.ele('contribuyenteEspecial').txt(company.sri.contribuyenteEspecial);
+    infoNC.ele('contribuyenteEspecial').txt(company.sri.contribuyenteEspecial);
   }
+
   const obligadoContabilidad =
     sriConfig.obligadoContabilidad ?? (company.sri.accountingRequired ? 'SI' : 'NO');
-  infoFactura.ele('obligadoContabilidad').txt(obligadoContabilidad);
+  infoNC.ele('obligadoContabilidad').txt(obligadoContabilidad);
 
-  // Solo si la empresa es microempresa (campo agregado en Sprint 3)
-  if (sriConfig.regimenMicroempresa === true) {
-    infoFactura.ele('regimenMicroempresa').txt('CONTRIBUYENTE');
+  // Documento sustento (factura original)
+  infoNC.ele('codDocModificado').txt('01'); // siempre factura
+  infoNC.ele('numDocModificado').txt(cn.rectifiedInvoiceNumber ?? '');
+
+  const rectifiedDate = resolveRectifiedDate(cn.rectifiedInvoiceDate);
+  infoNC.ele('fechaEmisionDocSustento').txt(formatFechaEmision(rectifiedDate));
+
+  if (cn.rectifiedInvoiceAuthNumber) {
+    infoNC.ele('numAutDocSustento').txt(cn.rectifiedInvoiceAuthNumber);
   }
 
-  const tipoIdComprador = invoice.customerIdentificationType ?? '04'; // RUC default
-  infoFactura.ele('tipoIdentificacionComprador').txt(tipoIdComprador);
-  infoFactura.ele('razonSocialComprador').txt(invoice.customerName);
-  infoFactura.ele('identificacionComprador').txt(invoice.customerTaxId);
-  infoFactura.ele('totalSinImpuestos').txt(totalSinImpuestos.toFixed(2));
-  infoFactura.ele('totalDescuento').txt(invoice.discount.toFixed(2));
+  infoNC.ele('totalSinImpuestos').txt(totalSinImpuestos.toFixed(2));
+  infoNC.ele('valorModificacion').txt(valorModificacion.toFixed(2));
+  infoNC.ele('moneda').txt('DOLAR');
 
-  const totalConImpuestos = infoFactura.ele('totalConImpuestos');
+  const totalConImpuestos = infoNC.ele('totalConImpuestos');
   for (const [sriTaxCode, { base, tax }] of taxGroups) {
     const ti = totalConImpuestos.ele('totalImpuesto');
     ti.ele('codigo').txt('2'); // IVA
@@ -278,20 +313,11 @@ export async function generateInvoiceXmlInternal(
     ti.ele('valor').txt(tax.toFixed(2));
   }
 
-  infoFactura.ele('propina').txt('0.00');
-  infoFactura.ele('importeTotal').txt(invoice.total.toFixed(2));
-  infoFactura.ele('moneda').txt('DOLAR');
-
-  const pagos = infoFactura.ele('pagos');
-  const pago = pagos.ele('pago');
-  pago.ele('formaPago').txt(invoice.paymentMethod ?? '01');
-  pago.ele('total').txt(invoice.total.toFixed(2));
-  pago.ele('plazo').txt(String(invoice.paymentDays ?? 0));
-  pago.ele('unidadTiempo').txt('dias');
+  infoNC.ele('motivo').txt(cn.creditNoteMotivo ?? 'Anulación de factura');
 
   // <detalles>
   const detalles = root.ele('detalles');
-  for (const line of invoice.lines) {
+  for (const line of cn.lines) {
     const sriTaxCode = line.sriTaxCode ?? deriveSriTaxCode(line.taxRate, platformConfig.taxCodes);
     const detalle = detalles.ele('detalle');
     const codigoPrincipal = line.sku || line.productId || 'SIN-CODIGO';
@@ -317,11 +343,11 @@ export async function generateInvoiceXmlInternal(
 
   // <infoAdicional>
   const customerCtx = {
-    name: invoice.customerName,
-    taxId: invoice.customerTaxId,
-    email: invoice.customerEmail ?? '',
-    address: invoice.customerAddress ?? '',
-    reference: invoice.customerReference ?? '',
+    name: cn.customerName,
+    taxId: cn.customerTaxId,
+    email: cn.customerEmail ?? '',
+    address: cn.customerAddress ?? '',
+    reference: cn.customerReference ?? '',
   };
   const companyCtx = { name: company.name, ruc };
 
@@ -329,7 +355,7 @@ export async function generateInvoiceXmlInternal(
     const infoAdicional = root.ele('infoAdicional');
     for (const field of sriConfig.additionalInfoFields) {
       const valorResuelto = resolveTemplate(field.valor, {
-        invoice: invoice as any,
+        invoice: cn as any,
         customer: customerCtx,
         company: companyCtx,
       });
@@ -339,59 +365,58 @@ export async function generateInvoiceXmlInternal(
 
   // 8. Serialize XML
   const xmlString = root.end({ prettyPrint: true });
-  console.log('[generate-invoice-xml] XML generado, longitud:', xmlString.length);
+  console.log('[generate-credit-note-xml] XML generado, longitud:', xmlString.length);
 
-  // 9. Upload to Storage
+  // 9. Upload to Storage — prefix "cn-" to distinguish from plain invoices
   const bucket = getStorage().bucket();
-  const xmlPath = `companies/${companyId}/xml/${invoiceId}.xml`;
+  const xmlPath = `companies/${companyId}/xml/cn-${creditNoteId}.xml`;
   const xmlFile = bucket.file(xmlPath);
 
   try {
     await xmlFile.save(Buffer.from(xmlString, 'utf8'), {
       metadata: { contentType: 'application/xml' },
     });
-    console.log('[generate-invoice-xml] XML subido a Storage:', xmlPath);
+    console.log('[generate-credit-note-xml] XML subido a Storage:', xmlPath);
   } catch (err) {
-    console.error('[generate-invoice-xml] Error subiendo XML a Storage:', err);
+    console.error('[generate-credit-note-xml] Error subiendo XML a Storage:', err);
     throw new Error('Error al guardar XML en Storage');
   }
 
-  // Signed URL valid for 7 days (enough for SRI flow)
-  const [xmlSignedUrl] = await xmlFile.getSignedUrl({
+  const [xmlUrl] = await xmlFile.getSignedUrl({
     action: 'read',
     expires: Date.now() + 7 * 24 * 60 * 60 * 1000,
   });
 
-  // 10. Update Invoice in Firestore
-  await db.doc(`companies/${companyId}/invoices/${invoiceId}`).update({
+  // 10. Update Invoice document in Firestore
+  await db.doc(`companies/${companyId}/invoices/${creditNoteId}`).update({
     codigoNumerico,
     accessKey,
-    xmlUrl: xmlSignedUrl,
+    xmlUrl,
     sriStatus: 'xml_generated',
     updatedAt: now,
   });
 
-  console.log('[generate-invoice-xml] Factura actualizada en Firestore');
-  return { accessKey, xmlUrl: xmlSignedUrl };
+  console.log('[generate-credit-note-xml] Documento actualizado en Firestore');
+  return { accessKey, xmlUrl };
 }
 
 // ─── Callable function ────────────────────────────────────────────────────────
 
-export const generateInvoiceXml = onCall(async (request) => {
+export const generateCreditNoteXml = onCall(async (request) => {
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'Debe estar autenticado.');
   }
 
-  const { invoiceId, companyId } = request.data as { invoiceId: string; companyId: string };
+  const { creditNoteId, companyId } = request.data as { creditNoteId: string; companyId: string };
 
-  if (!invoiceId || typeof invoiceId !== 'string') {
-    throw new HttpsError('invalid-argument', 'invoiceId es requerido.');
+  if (!creditNoteId || typeof creditNoteId !== 'string') {
+    throw new HttpsError('invalid-argument', 'creditNoteId es requerido.');
   }
   if (!companyId || typeof companyId !== 'string') {
     throw new HttpsError('invalid-argument', 'companyId es requerido.');
   }
 
-  const callerRole = request.auth.token['role'] as string | undefined;
+  const callerRole      = request.auth.token['role']      as string | undefined;
   const callerCompanyId = request.auth.token['companyId'] as string | undefined;
 
   if (callerRole !== 'super_admin' && callerCompanyId !== companyId) {
@@ -399,10 +424,10 @@ export const generateInvoiceXml = onCall(async (request) => {
   }
 
   try {
-    return await generateInvoiceXmlInternal(invoiceId, companyId);
+    return await generateCreditNoteXmlInternal(creditNoteId, companyId);
   } catch (err) {
-    console.error('[generate-invoice-xml] Error:', err);
-    const message = err instanceof Error ? err.message : 'Error generando XML';
+    console.error('[generate-credit-note-xml] Error:', err);
+    const message = err instanceof Error ? err.message : 'Error generando XML de nota de crédito';
     throw new HttpsError('internal', message);
   }
 });

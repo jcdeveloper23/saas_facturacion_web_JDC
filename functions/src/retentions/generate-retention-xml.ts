@@ -6,9 +6,9 @@ import { getStorage } from 'firebase-admin/storage';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface RetentionTax {
-  taxCode:        string;   // '1'=IR, '2'=IVA
-  pctCode:        string;   // '303', '4', etc.
-  rate:           number;
+  taxCode:        string;   // '1'=IR, '2'=IVA, '6'=ISD
+  pctCode:        string;   // '303', '4', etc. — maps to codigoRetencion
+  rate:           number;   // porcentaje de retención
   taxableBase:    number;
   retainedAmount: number;
 }
@@ -21,11 +21,18 @@ interface Retention {
   supplierName: string;
   supplierTaxId: string;
   supplierTaxIdType: string;
-  supportDocType: string;
+  // codSustento: tipo de sustento SRI (01=compras, 02=servicios, etc.)
+  // codDocSustento: tipo de comprobante (01=factura, 04=nota crédito, etc.)
+  supportDocType:     string;   // codDocSustento — tipo del comprobante de sustento
+  supportDocCodSust?: string;   // codSustento — código de sustento tributario (ej. '01')
   supportDocNumber: string;
   supportDocDate: admin.firestore.Timestamp;
   supportDocAuth?: string;
   supportDocTotal: number;
+  // pagoLocExt: '01'=local, '02'=exterior
+  pagoLocExt?: string;
+  tipoRegi?: string;
+  paisEfecPago?: string;
   taxes: RetentionTax[];
   totalRetained: number;
   codigoNumerico?: string;
@@ -134,7 +141,7 @@ export async function generateRetentionXmlInternal(
 
   // Build XML
   const root = create({ version: '1.0', encoding: 'UTF-8' })
-    .ele('comprobanteRetencion', { id: 'comprobante', version: '1.0.0' });
+    .ele('comprobanteRetencion', { id: 'comprobante', version: '2.0.0' });
 
   // <infoTributaria>
   const infoTrib = root.ele('infoTributaria');
@@ -164,42 +171,45 @@ export async function generateRetentionXmlInternal(
   infoComp.ele('identificacionSujetoRetenido').txt(retention.supplierTaxId);
   infoComp.ele('periodoFiscal').txt(retention.periodoFiscal);
 
-  // <impuestos>
-  const impuestos = root.ele('impuestos');
-  for (const tax of retention.taxes) {
-    const imp = impuestos.ele('impuesto');
-    imp.ele('codigo').txt(tax.taxCode);
-    imp.ele('codigoPorcentaje').txt(tax.pctCode);
-    imp.ele('tarifa').txt(tax.rate.toFixed(2));
-    imp.ele('baseImponible').txt(tax.taxableBase.toFixed(2));
-    imp.ele('valorRetenido').txt(tax.retainedAmount.toFixed(2));
-  }
-
-  // <docsSustento>
+  // <docsSustento> — Ficha Técnica v2.32: impuestos van DENTRO de <docSustento><retenciones>
+  // El nodo <impuestos> a nivel raíz fue eliminado (era de versiones anteriores al v2.0.0)
   const docsSustento = root.ele('docsSustento');
   const docSustento  = docsSustento.ele('docSustento');
-  docSustento.ele('codSustento').txt(retention.supportDocType);
+
+  // codSustento: código de sustento tributario (tipo de gasto/compra).
+  // Si el dato no viene en supportDocCodSust, se usa '01' (compras) como fallback.
+  docSustento.ele('codSustento').txt(retention.supportDocCodSust ?? '01');
+
+  // codDocSustento: tipo de comprobante (01=factura, 04=nota crédito, etc.)
+  docSustento.ele('codDocSustento').txt(retention.supportDocType);
+
   docSustento.ele('numDocSustento').txt(retention.supportDocNumber);
   docSustento.ele('fechaEmisionDocSustento').txt(formatFechaEmision(retention.supportDocDate.toDate()));
   if (retention.supportDocAuth) {
     docSustento.ele('numAutDocSustento').txt(retention.supportDocAuth);
   }
-  docSustento.ele('pagoLocExtranjero').txt('01'); // local payment
-  docSustento.ele('tipoRegi').txt('');
-  docSustento.ele('paisEfecPago').txt('');
-  docSustento.ele('aplicConvDobTrib').txt('NO');
-  docSustento.ele('pagExtSujRetNorLeg').txt('NO');
-  docSustento.ele('pagoRegFis').txt('NO');
+
+  // pagoLocExt: '01'=local (Ecuador), '02'=exterior. Default '01'.
+  const pagoLocExt = retention.pagoLocExt ?? '01';
+  docSustento.ele('pagoLocExt').txt(pagoLocExt);
+
+  // tipoRegi y paisEfecPago SOLO cuando pagoLocExt='02' (pago al exterior)
+  if (pagoLocExt === '02') {
+    docSustento.ele('tipoRegi').txt(retention.tipoRegi ?? '');
+    docSustento.ele('paisEfecPago').txt(retention.paisEfecPago ?? '');
+  }
+
   docSustento.ele('totalSinImpuestos').txt(retention.supportDocTotal.toFixed(2));
   docSustento.ele('importeTotal').txt(retention.supportDocTotal.toFixed(2));
 
+  // <retenciones> — estructura correcta según Ficha Técnica v2.32
   const retenciones = docSustento.ele('retenciones');
   for (const tax of retention.taxes) {
     const ret = retenciones.ele('retencion');
-    ret.ele('codigo').txt(tax.taxCode);
-    ret.ele('codigoPorcentaje').txt(tax.pctCode);
-    ret.ele('tarifa').txt(tax.rate.toFixed(2));
+    ret.ele('codigo').txt(tax.taxCode);                          // tipo impuesto: 1=IR, 2=IVA, 6=ISD
+    ret.ele('codigoRetencion').txt(tax.pctCode);                 // código de retención SRI (303, 4, etc.)
     ret.ele('baseImponible').txt(tax.taxableBase.toFixed(2));
+    ret.ele('porcentajeRetener').txt(tax.rate.toFixed(2));       // porcentaje (no tarifa)
     ret.ele('valorRetenido').txt(tax.retainedAmount.toFixed(2));
   }
 

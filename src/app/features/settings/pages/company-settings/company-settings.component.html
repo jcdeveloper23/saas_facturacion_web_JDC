@@ -352,6 +352,18 @@
             }
           </button>
 
+          <!-- Alerta de vencimiento del certificado -->
+          @if (certExpiryAlert) {
+            <c-alert [color]="certExpiryAlert" class="mb-3 py-2 px-3 small mt-3">
+              <strong>Certificado de firma electrónica</strong>
+              @if (certDaysLeft <= 0) {
+                — <strong>VENCIDO</strong>. Renueve el certificado en el Banco Central del Ecuador.
+              } @else {
+                — Vence en <strong>{{ certDaysLeft }} días</strong>. Renueve antes de que expire para evitar interrupciones.
+              }
+            </c-alert>
+          }
+
           <!-- Estado actual del certificado -->
           <hr class="my-3">
           <p class="small fw-semibold text-muted mb-2">Estado Actual</p>
@@ -497,6 +509,44 @@
           <label cLabel class="fw-semibold small">N° Contribuyente Especial</label>
           <input cFormControl formControlName="contribuyenteEspecial" placeholder="Vacío si no aplica">
           <div class="form-text">Solo si el SRI lo designó contribuyente especial</div>
+        </c-col>
+
+        <!-- ── Datos Tributarios Adicionales ─────────────────────────────── -->
+        <c-col md="12">
+          <hr class="my-1 mt-2">
+          <h6 class="text-uppercase text-muted fw-bold small mb-0 mt-3 border-bottom pb-2">Datos Tributarios Adicionales</h6>
+        </c-col>
+
+        <c-col md="6">
+          <label cLabel class="fw-semibold small">Tipo de Contribuyente</label>
+          <select cFormSelect formControlName="tipoContribuyente">
+            <option value="01">01 — Persona Natural</option>
+            <option value="02">02 — Sociedad</option>
+          </select>
+        </c-col>
+
+        <c-col md="6">
+          <label cLabel class="fw-semibold small">Agente Retenedor (N° resolución)</label>
+          <input cFormControl formControlName="agenteRetencion" placeholder="Ej: 1234567890">
+          <div class="form-text">Solo si tiene resolución de agente de retención del SRI</div>
+        </c-col>
+
+        <c-col md="6">
+          <label cLabel class="fw-semibold small">Email Reply-To</label>
+          <input cFormControl type="email" formControlName="emailReplyTo"
+            placeholder="ventas@miempresa.com"
+            [class.is-invalid]="hasSriXmlError('emailReplyTo')">
+          @if (hasSriXmlError('emailReplyTo')) {
+            <div class="invalid-feedback">Email inválido</div>
+          }
+          <div class="form-text">Email de respuesta en correos de comprobantes electrónicos</div>
+        </c-col>
+
+        <c-col md="6" class="d-flex align-items-center pt-4">
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" formControlName="regimenMicroempresa" id="regimenMicroempresaXml">
+            <label class="form-check-label fw-semibold small" for="regimenMicroempresaXml">Contribuyente en régimen de microempresas</label>
+          </div>
         </c-col>
       </c-row>
     </c-card-body>

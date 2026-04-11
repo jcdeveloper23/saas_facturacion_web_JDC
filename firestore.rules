@@ -26,6 +26,52 @@ service cloud.firestore {
       return request.auth.token.role in ['admin', 'seller', 'cashier'];
     }
 
+    function isAccountant() {
+      return hasRole('accountant');
+    }
+
+    // Returns true if the caller belongs to the company AND has at least
+    // one of the roles allowed to read fiscal documents (retentions, debitNotes).
+    function canReadFiscalDoc(companyId) {
+      return isAuthenticated()
+        && (isSuperAdmin() || belongsToCompany(companyId))
+        && request.auth.token.role in ['admin', 'accountant', 'seller', 'super_admin'];
+    }
+
+    // Returns true if the caller can create/issue fiscal documents.
+    // Minimum role: seller (same as invoices).
+    function canCreateFiscalDoc(companyId) {
+      return isAuthenticated()
+        && belongsToCompany(companyId)
+        && request.auth.token.role in ['admin', 'accountant', 'seller'];
+    }
+
+    // Returns true for the restricted set of UI-only fields that a Cloud
+    // Function trigger writes after SRI processing.  The rule allows a client
+    // update ONLY when every changed key is in this allow-list.
+    // Note: Cloud Functions use Admin SDK and bypass these rules entirely.
+    function onlyUiFields() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['pdfUrl', 'xmlUrl', 'sriError', 'updatedAt', 'updatedBy', 'notes']);
+    }
+
+    // A document whose sriStatus is 'authorized' is legally immutable from
+    // the client: only the UI-level fields above may change.
+    function sriAuthorizedGuard() {
+      return resource.data.get('sriStatus', '') != 'authorized' || onlyUiFields();
+    }
+
+    // Once a document is 'issued' or 'void' the client cannot revert it to
+    // 'draft'.  The status field must either stay the same or move forward.
+    function statusNotRolledBack() {
+      let oldStatus = resource.data.status;
+      let newStatus = request.resource.data.status;
+      // draft → issued/void  : ok
+      // issued → void         : ok (annulment)
+      // anything → draft      : NOT ok
+      return newStatus != 'draft' || oldStatus == 'draft';
+    }
+
     // ─── Companies (tenants) ──────────────────────────────────────────────
     match /companies/{companyId} {
       allow read: if isAuthenticated() && (isSuperAdmin() || belongsToCompany(companyId));
@@ -136,6 +182,68 @@ service cloud.firestore {
         allow read: if isAuthenticated() && belongsToCompany(companyId);
         allow create: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
         allow update, delete: if false; // immutable audit trail
+      }
+
+      // ─── Retentions ──────────────────────────────────────────────────────
+      // /companies/{companyId}/retentions/{docId}
+      //
+      // Retenciones are fiscal documents issued by the company to its
+      // suppliers.  They are electronically sent to SRI after creation.
+      match /retentions/{docId} {
+        // READ — any authenticated member of the company with a fiscal role.
+        allow read: if canReadFiscalDoc(companyId);
+
+        // CREATE — only from 'draft' status, companyId must match the token,
+        // and the new document's companyId field must equal the path segment.
+        // This prevents a user from crafting a document that claims to belong
+        // to a different company.
+        allow create: if canCreateFiscalDoc(companyId)
+          && request.resource.data.status == 'draft'
+          && request.resource.data.companyId == companyId;
+
+        // UPDATE — three independent guards must ALL pass:
+        //   1. Caller must have fiscal-doc access to this company.
+        //   2. A document already authorized by SRI can only have UI fields
+        //      changed (the SRI-set fields are immutable from the client).
+        //   3. status cannot be rolled back to 'draft' once past that stage.
+        allow update: if canCreateFiscalDoc(companyId)
+          && sriAuthorizedGuard()
+          && statusNotRolledBack();
+
+        // DELETE — only borradores (draft); only admin or accountant.
+        // Issued or void retentions are legal records and must not be deleted.
+        allow delete: if isAuthenticated()
+          && belongsToCompany(companyId)
+          && (isAdmin() || isAccountant())
+          && resource.data.status == 'draft';
+      }
+
+      // ─── Debit Notes ──────────────────────────────────────────────────────
+      // /companies/{companyId}/debitNotes/{docId}
+      //
+      // Same security model as retentions.  Minimum role to create: seller
+      // (identical to invoices, since a debit note corrects or supplements
+      // an invoice and follows the same commercial workflow).
+      match /debitNotes/{docId} {
+        // READ — same audience as retentions.
+        allow read: if canReadFiscalDoc(companyId);
+
+        // CREATE — only in draft status; companyId in the document body must
+        // match the path.
+        allow create: if canCreateFiscalDoc(companyId)
+          && request.resource.data.status == 'draft'
+          && request.resource.data.companyId == companyId;
+
+        // UPDATE — same three-guard pattern as retentions.
+        allow update: if canCreateFiscalDoc(companyId)
+          && sriAuthorizedGuard()
+          && statusNotRolledBack();
+
+        // DELETE — only borradores; only admin or accountant.
+        allow delete: if isAuthenticated()
+          && belongsToCompany(companyId)
+          && (isAdmin() || isAccountant())
+          && resource.data.status == 'draft';
       }
 
       // Default rule for all other sub-collections
