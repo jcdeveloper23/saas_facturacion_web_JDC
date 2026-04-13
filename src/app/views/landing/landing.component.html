@@ -1,0 +1,432 @@
+<div class="lp">
+
+  <!-- ═══ NAVBAR ══════════════════════════════════════════════════════════ -->
+  <nav class="lp-nav" [class.scrolled]="scrolled">
+    <div class="lp-nav__inner">
+      <a class="lp-nav__logo" routerLink="/">
+        <div class="logo-mark">F</div>
+        <span>FacturaSec</span>
+      </a>
+
+      <ul class="lp-nav__links">
+        <li *ngFor="let link of navLinks">
+          <button (click)="scrollToSection(link.id)">{{ link.label }}</button>
+        </li>
+      </ul>
+
+      <div class="lp-nav__actions">
+        <a routerLink="/login" class="btn-outline">Iniciar sesión</a>
+        <a routerLink="/login" class="btn-solid">Prueba gratis</a>
+      </div>
+
+      <button class="hamburger" (click)="toggleMobileMenu()" [class.is-open]="mobileMenuOpen">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+
+    <!-- Mobile panel -->
+    <div class="mobile-menu" [class.is-open]="mobileMenuOpen">
+      <div class="mobile-overlay" (click)="toggleMobileMenu()"></div>
+      <div class="mobile-panel">
+        <ul>
+          <li *ngFor="let link of navLinks">
+            <button (click)="scrollToSection(link.id)">{{ link.label }}</button>
+          </li>
+        </ul>
+        <div class="mobile-ctas">
+          <a routerLink="/login" (click)="mobileMenuOpen=false">Iniciar sesión</a>
+          <a routerLink="/login" class="solid" (click)="mobileMenuOpen=false">Prueba gratis — 30 días</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ═══ HERO ════════════════════════════════════════════════════════════ -->
+  <section class="lp-hero">
+    <div class="hero-blob b1"></div>
+    <div class="hero-blob b2"></div>
+    <div class="hero-blob b3"></div>
+    <div class="hero-dots"></div>
+
+    <div class="hero-inner">
+      <!-- Texto -->
+      <div class="hero-text">
+        <span class="hero-pill">🇪🇨 Homologado SRI Ecuador · 2025</span>
+        <h1>
+          El ERP inteligente para
+          <span class="grad">gestionar tu empresa</span>
+          sin límites
+        </h1>
+        <p class="hero-sub">
+          Facturación electrónica, inventarios multi-empresa, compras, ventas,
+          contabilidad y nómina en una sola plataforma 100% en la nube.
+          Cumple con el SRI sin esfuerzo.
+        </p>
+        <div class="hero-btns">
+          <a routerLink="/login" class="btn-hero-cta">🚀 Comenzar gratis — sin tarjeta</a>
+          <button class="btn-hero-ghost" (click)="scrollToSection('modules')">▶ Ver módulos</button>
+        </div>
+        <div class="hero-trust">
+          <span>✅ Sin instalación</span>
+          <span>✅ 30 días gratis</span>
+          <span>✅ Soporte 24/7</span>
+        </div>
+      </div>
+
+      <!-- Visual mockup -->
+      <div class="hero-visual">
+        <div class="dash-preview">
+          <div class="dash-bar">
+            <div class="dash-dots"><span></span><span></span><span></span></div>
+            <span class="dash-title">Mi ERP — Dashboard</span>
+          </div>
+          <div class="dash-body">
+            <div class="dash-sidebar">
+              <div class="sico active">📄</div>
+              <div class="sico">📦</div>
+              <div class="sico">💼</div>
+              <div class="sico">💰</div>
+              <div class="sico">📊</div>
+              <div class="sico">👥</div>
+            </div>
+            <div class="dash-content">
+              <div class="kpi-row">
+                <div class="kpi green"><div class="kl">Ventas mes</div><div class="kv">$48.250</div></div>
+                <div class="kpi blue"><div class="kl">Facturas</div><div class="kv">342</div></div>
+                <div class="kpi amber"><div class="kl">Stock alerta</div><div class="kv">5 items</div></div>
+              </div>
+              <div class="dash-chart">
+                <div class="bar" style="height:45%"></div>
+                <div class="bar" style="height:60%"></div>
+                <div class="bar" style="height:38%"></div>
+                <div class="bar" style="height:72%"></div>
+                <div class="bar" style="height:55%"></div>
+                <div class="bar" style="height:80%"></div>
+                <div class="bar hi" style="height:95%"></div>
+              </div>
+              <div class="dash-table">
+                <div class="dtr"><span>Empresa Principal</span><span>128 facs.</span><em>OK</em></div>
+                <div class="dtr"><span>Distribuidora Norte</span><span>95 facs.</span><em>OK</em></div>
+                <div class="dtr"><span>Importadora XYZ</span><span>119 facs.</span><em>OK</em></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="fc fc-green">✅ Factura #000342 Autorizada por SRI</div>
+        <div class="fc fc-blue">🏢 3 empresas activas · 12 usuarios</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ TRUST BAR ════════════════════════════════════════════════════════ -->
+  <section class="lp-trust">
+    <div class="trust-inner">
+      <p class="trust-label">Tecnología respaldada por</p>
+      <div class="trust-logos">
+        <div class="trust-item"><span>🔥</span> Firebase</div>
+        <div class="trust-sep"></div>
+        <div class="trust-item"><span>☁️</span> Google Cloud</div>
+        <div class="trust-sep"></div>
+        <div class="trust-item"><span>🅰️</span> Angular 17+</div>
+        <div class="trust-sep"></div>
+        <div class="trust-item"><span>🔒</span> SRI Ecuador</div>
+        <div class="trust-sep"></div>
+        <div class="trust-item"><span>📱</span> PWA Ready</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ STATS ════════════════════════════════════════════════════════════ -->
+  <section class="lp-stats" id="stats-section">
+    <div class="stats-inner">
+      <div class="stat-card fade-in" *ngFor="let stat of stats">
+        <div class="stat-icon">{{ stat.icon }}</div>
+        <div class="stat-num">{{ stat.display }}{{ stat.suffix }}</div>
+        <div class="stat-lbl">{{ stat.label }}</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ MÓDULOS ══════════════════════════════════════════════════════════ -->
+  <section class="lp-modules" id="modules">
+    <div class="lp-container">
+      <div class="sec-head fade-in">
+        <span class="sec-tag">Módulos completos</span>
+        <h2>Todo lo que tu empresa necesita</h2>
+        <p>Cada módulo está diseñado para las normativas ecuatorianas e integrado con los demás.</p>
+      </div>
+
+      <div class="modules-grid">
+        <div class="mod-card fade-in" *ngFor="let mod of modules">
+          <div class="mod-icon" [ngClass]="'c-' + mod.color">{{ mod.icon }}</div>
+          <div class="mod-body">
+            <div class="mod-head">
+              <h3>{{ mod.title }}</h3>
+              <span class="mod-badge" *ngIf="mod.badge">{{ mod.badge }}</span>
+            </div>
+            <p>{{ mod.description }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ FEATURE — SRI ════════════════════════════════════════════════════ -->
+  <section class="lp-feature">
+    <div class="lp-container feat-grid">
+      <div class="feat-visual fade-in">
+        <div class="feat-mock sri-mock">
+          <div class="sm-head">
+            <div class="sri-badge">SRI</div>
+            <span class="sm-authorized">● AUTORIZADO</span>
+          </div>
+          <div class="sm-rows">
+            <div class="sm-row"><span>Clave acceso</span><code>230120240117900...</code></div>
+            <div class="sm-row"><span>N° Autorización</span><code>23012024179001...</code></div>
+            <div class="sm-row"><span>Fecha</span><code>2025-01-23 14:32:01</code></div>
+            <div class="sm-row"><span>Emisor</span><code>Empresa Principal S.A.</code></div>
+            <div class="sm-row ok"><span>Estado</span><strong>AUTORIZADO ✓</strong></div>
+          </div>
+          <div class="sm-actions">
+            <button>📄 Ver RIDE</button>
+            <button>📧 Enviar XML</button>
+          </div>
+        </div>
+      </div>
+      <div class="feat-text fade-in">
+        <span class="sec-tag">Facturación SRI</span>
+        <h2>Autorización automática en segundos</h2>
+        <p>Firma digital con tu certificado .p12, envío al webservice SRI y descarga de la autorización — todo sin intervención manual.</p>
+        <ul class="feat-list">
+          <li>✅ Firma electrónica con certificado .p12</li>
+          <li>✅ Envío en ambiente producción y pruebas</li>
+          <li>✅ Descarga de RIDE en PDF</li>
+          <li>✅ Envío automático al cliente por email</li>
+          <li>✅ Reintentos automáticos ante errores SRI</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ FEATURE — MULTI-EMPRESA ══════════════════════════════════════════ -->
+  <section class="lp-feature alt">
+    <div class="lp-container feat-grid reverse">
+      <div class="feat-text fade-in">
+        <span class="sec-tag">Multi-Empresa</span>
+        <h2>Una cuenta, empresas ilimitadas</h2>
+        <p>Gestiona todas tus empresas desde un panel centralizado. Datos completamente aislados, reportes consolidados y cambio de empresa en un clic.</p>
+        <ul class="feat-list">
+          <li>✅ Empresas ilimitadas por cuenta</li>
+          <li>✅ Usuarios y permisos por empresa</li>
+          <li>✅ Reportes consolidados del grupo</li>
+          <li>✅ Auditoría completa de acciones</li>
+          <li>✅ Configuración independiente por empresa</li>
+        </ul>
+      </div>
+      <div class="feat-visual fade-in">
+        <div class="feat-mock multi-mock">
+          <div class="mm-head">
+            <span>🏢 Mis Empresas</span>
+            <em>3 activas</em>
+          </div>
+          <div class="mm-list">
+            <div class="mm-item active">
+              <div class="mm-av">EP</div>
+              <div class="mm-info"><strong>Empresa Principal S.A.</strong><small>RUC: 1792XXXXXXXX001</small></div>
+              <span class="mm-status">Activa</span>
+            </div>
+            <div class="mm-item">
+              <div class="mm-av">DN</div>
+              <div class="mm-info"><strong>Distribuidora Norte Cía.</strong><small>RUC: 0990XXXXXXXX001</small></div>
+              <span class="mm-status">Activa</span>
+            </div>
+            <div class="mm-item">
+              <div class="mm-av">IX</div>
+              <div class="mm-info"><strong>Importadora XYZ S.A.</strong><small>RUC: 1791XXXXXXXX001</small></div>
+              <span class="mm-status">Activa</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ PRECIOS ══════════════════════════════════════════════════════════ -->
+  <section class="lp-pricing" id="pricing">
+    <div class="lp-container">
+      <div class="sec-head fade-in">
+        <span class="sec-tag">Precios</span>
+        <h2>Planes transparentes, sin sorpresas</h2>
+        <p>Todos los planes incluyen 30 días de prueba gratuita. Sin tarjeta de crédito.</p>
+      </div>
+
+      <div class="pricing-grid">
+        <div class="price-card fade-in" *ngFor="let plan of pricingPlans" [class.featured]="plan.highlighted">
+          <div class="pc-badge" *ngIf="plan.badge">{{ plan.badge }}</div>
+          <div class="pc-name">{{ plan.name }}</div>
+          <div class="pc-price">
+            <sup>$</sup><span>{{ plan.price }}</span><sub>{{ plan.period }}</sub>
+          </div>
+          <p class="pc-desc">{{ plan.description }}</p>
+          <ul class="pc-features">
+            <li *ngFor="let f of plan.features"><span>✓</span> {{ f }}</li>
+          </ul>
+          <a routerLink="/login" class="pc-cta" [class.pc-cta-white]="plan.highlighted">
+            {{ plan.ctaText }}
+          </a>
+        </div>
+      </div>
+
+      <p class="pricing-note fade-in">
+        💡 ¿Necesitas integración personalizada o más de 10 empresas?
+        <button class="txt-link" (click)="scrollToSection('contact')">Habla con nosotros</button>
+      </p>
+    </div>
+  </section>
+
+  <!-- ═══ TESTIMONIOS ══════════════════════════════════════════════════════ -->
+  <section class="lp-testimonials" id="testimonials">
+    <div class="lp-container">
+      <div class="sec-head fade-in">
+        <span class="sec-tag">Testimonios</span>
+        <h2>Lo que dicen nuestros clientes</h2>
+        <p>Más de 2.500 empresas ecuatorianas confían en FacturaSec.</p>
+      </div>
+
+      <div class="testi-grid">
+        <div class="testi-card fade-in" *ngFor="let t of testimonials">
+          <div class="testi-stars">
+            <span *ngFor="let s of getStarArray(t.rating)">★</span>
+          </div>
+          <p>"{{ t.text }}"</p>
+          <div class="testi-author">
+            <div class="testi-av">{{ t.avatar }}</div>
+            <div>
+              <strong>{{ t.name }}</strong>
+              <small>{{ t.role }} · {{ t.company }}</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ FAQ ══════════════════════════════════════════════════════════════ -->
+  <section class="lp-faq" id="faq">
+    <div class="lp-container faq-wrap">
+      <div class="sec-head fade-in">
+        <span class="sec-tag">FAQ</span>
+        <h2>Preguntas frecuentes</h2>
+        <p>Resolvemos tus dudas más comunes.</p>
+      </div>
+      <div class="faq-list">
+        <div class="faq-item fade-in" *ngFor="let item of faqItems" [class.open]="item.open">
+          <button class="faq-q" (click)="toggleFaq(item)">
+            {{ item.question }}
+            <span class="faq-arr" [class.rot]="item.open">›</span>
+          </button>
+          <div class="faq-a" [class.open]="item.open">
+            <p>{{ item.answer }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ CONTACTO ═════════════════════════════════════════════════════════ -->
+  <section class="lp-contact" id="contact">
+    <div class="lp-container contact-grid">
+      <div class="contact-left fade-in">
+        <span class="sec-tag light">¿Listo para empezar?</span>
+        <h2>Comienza a facturar electrónicamente hoy</h2>
+        <p>Únete a más de 2.500 empresas que simplificaron su gestión con FacturaSec. Setup en menos de 10 minutos.</p>
+        <div class="contact-items">
+          <div class="ci"><span>⚡</span><div><strong>Setup en 10 minutos</strong><small>Configura tu empresa y emite tu primera factura hoy</small></div></div>
+          <div class="ci"><span>🔒</span><div><strong>Datos 100% seguros</strong><small>Cifrado TLS 1.3 + backups automáticos en Google Cloud</small></div></div>
+          <div class="ci"><span>🤝</span><div><strong>Onboarding gratuito</strong><small>Nuestro equipo te acompaña en los primeros pasos</small></div></div>
+        </div>
+      </div>
+
+      <div class="contact-right fade-in">
+        <div class="contact-form" *ngIf="!formSubmitted">
+          <h3>Solicita una demo gratuita</h3>
+          <p>Te contactamos en menos de 24 horas</p>
+          <form (ngSubmit)="onSubmitContact()" #cf="ngForm">
+            <div class="fg"><label>Nombre completo</label>
+              <input type="text" placeholder="Juan Pérez" [(ngModel)]="contactForm.name" name="name" required /></div>
+            <div class="fg"><label>Correo electrónico</label>
+              <input type="email" placeholder="juan@empresa.com" [(ngModel)]="contactForm.email" name="email" required /></div>
+            <div class="fg"><label>Empresa</label>
+              <input type="text" placeholder="Mi Empresa S.A." [(ngModel)]="contactForm.company" name="company" /></div>
+            <div class="fg"><label>¿En qué podemos ayudarte?</label>
+              <textarea rows="3" placeholder="Cuéntanos sobre tu empresa..." [(ngModel)]="contactForm.message" name="message"></textarea></div>
+            <button type="submit" [class.loading]="formSubmitting">
+              <span *ngIf="!formSubmitting">Solicitar demo gratuita →</span>
+              <span *ngIf="formSubmitting">Enviando...</span>
+            </button>
+          </form>
+        </div>
+        <div class="form-ok" *ngIf="formSubmitted">
+          <div>✅</div>
+          <h3>¡Mensaje enviado!</h3>
+          <p>Te contactaremos en menos de 24 horas para coordinar tu demo.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ FOOTER ═══════════════════════════════════════════════════════════ -->
+  <footer class="lp-footer">
+    <div class="lp-container">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <div class="fb-logo">
+            <div class="logo-mark sm">F</div>
+            <span>FacturaSec</span>
+          </div>
+          <p>El ERP inteligente para empresas ecuatorianas. Facturación electrónica y más en la nube.</p>
+          <div class="fb-social">
+            <a href="#" aria-label="LinkedIn">in</a>
+            <a href="#" aria-label="Twitter">𝕏</a>
+            <a href="#" aria-label="Facebook">f</a>
+          </div>
+        </div>
+
+        <div class="footer-col">
+          <h4>Producto</h4>
+          <ul>
+            <li><button (click)="scrollToSection('modules')">Módulos</button></li>
+            <li><button (click)="scrollToSection('pricing')">Precios</button></li>
+            <li><a routerLink="/login">Iniciar sesión</a></li>
+            <li><a routerLink="/login">Registrarse</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>Legal</h4>
+          <ul>
+            <li><a href="#">Términos de uso</a></li>
+            <li><a href="#">Privacidad</a></li>
+            <li><a href="#">Aviso legal</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>Contacto</h4>
+          <ul>
+            <li><a href="mailto:info@facturasec.com">info&#64;facturasec.com</a></li>
+            <li><span>Quito, Ecuador</span></li>
+            <li><button (click)="scrollToSection('contact')">Solicitar demo</button></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <p>© 2025 FacturaSec. Todos los derechos reservados.</p>
+        <p>🇪🇨 Homologado SRI · Resolución NAC-DGERCGC16-00000092</p>
+      </div>
+    </div>
+  </footer>
+
+</div><!-- /.lp -->

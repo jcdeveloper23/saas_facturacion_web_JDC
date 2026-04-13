@@ -266,8 +266,15 @@ export class InvoicesListComponent implements OnInit, OnDestroy {
       }),
       takeUntil(this.destroy$)
     ).subscribe({
-      next: list => { this.invoices.set(list); this.loading.set(false); }
-    });
+      next: list => {
+        this.invoices.set(list);
+        this.loading.set(false);
+        console.log(`*** this.invoices ${JSON.stringify(this.invoices(), null, 3)} ***`);
+      }
+    }); 
+
+    
+
   }
 
   changeYear(year: string): void {

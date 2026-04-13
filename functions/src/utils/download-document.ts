@@ -86,10 +86,7 @@ export const downloadDocument = onCall(async (request) => {
       );
     }
 
-    const [url] = await file.getSignedUrl({
-      action:  'read',
-      expires: Date.now() + 60 * 60 * 1000, // 1 hora — suficiente para la descarga inmediata
-    });
+    const url = `https://storage.googleapis.com/${file.bucket.name}/${file.name}`;
 
     console.log('[download-document] URL generada correctamente para:', storagePath);
     return { url };

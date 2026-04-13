@@ -139,9 +139,6 @@ describe('calcularDigitoVerificador — módulo 11 SRI', () => {
   test('clave válida — residuo genera dígito entre 0 y 9', () => {
     // fecha:10042026  tipo:01  ruc:1792146739001  ambiente:1
     // serie:001001  secuencial:000000001  codigo:12345678  emision:1
-    const clave48 = '1004202601179214673900110010010000000011234567 81'
-      .replace(/\s/g, '')
-      .slice(0, 48);
     // Usamos una clave bien estructurada de 48 dígitos
     const c = '100420260117921467390011001001000000001123456781';
     expect(c.length).toBe(48);

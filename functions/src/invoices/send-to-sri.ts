@@ -75,14 +75,15 @@ async function callSriAuthorization(wsdlUrl: string, accessKey: string): Promise
 
 // ─── Response parsers ─────────────────────────────────────────────────────────
 
-function parseReceptionState(soapResponse: string): { state: string; mensaje: string } {
-  const estadoMatch = soapResponse.match(/<estado>([^<]+)<\/estado>/i);
-  const mensajeMatch = soapResponse.match(/<mensaje>([^<]+)<\/mensaje>/i);
+function parseReceptionState(soapResponse: string): { state: string; mensaje: string; detalle: string } {
+  const estadoMatch      = soapResponse.match(/<estado>([^<]+)<\/estado>/i);
+  const mensajeMatch     = soapResponse.match(/<mensaje>([^<]+)<\/mensaje>/i);
   const informacionMatch = soapResponse.match(/<informacionAdicional>([^<]+)<\/informacionAdicional>/i);
 
-  const state = estadoMatch?.[1]?.trim().toUpperCase() ?? 'DESCONOCIDO';
-  const mensaje = mensajeMatch?.[1]?.trim() ?? informacionMatch?.[1]?.trim() ?? 'Sin detalle';
-  return { state, mensaje };
+  const state   = estadoMatch?.[1]?.trim().toUpperCase() ?? 'DESCONOCIDO';
+  const mensaje = mensajeMatch?.[1]?.trim() ?? 'Sin detalle';
+  const detalle = informacionMatch?.[1]?.trim() ?? '';
+  return { state, mensaje, detalle };
 }
 
 function parseAuthorizationResponse(soapResponse: string): {
@@ -187,7 +188,7 @@ export async function sendToSriInternal(
   documentId: string,
   companyId: string,
   docType: SriDocType = 'invoice'
-): Promise<{ sriStatus: string; authorizationNumber?: string; authorizedAt?: Date; sriError?: string }> {
+): Promise<{ documentId: string; companyId: string; sriStatus: string; authorizationNumber?: string; authorizedAt?: Date; estado?: string; mensaje?: string; detalle?: string; sriError?: string; nextStep?: string }> {
   const db = admin.firestore();
   const bucket = getStorage().bucket();
   const now = admin.firestore.Timestamp.now();
@@ -233,8 +234,19 @@ export async function sendToSriInternal(
     throw new Error('No se encontró el XML firmado en Storage. Ejecute signXml primero.');
   }
 
-  // 5. Convert to base64
-  const xmlBase64 = xmlBuffer.toString('base64');
+  // 5. Convert to base64 and log XML preview for diagnosis
+  const xmlText = xmlBuffer.toString('utf8');
+  console.log('[send-to-sri] === XML FIRMADO — primeros 3000 chars ===');
+  console.log(xmlText.substring(0, 3000));
+  console.log('[send-to-sri] === FIN PREVIEW — total chars:', xmlText.length, '===');
+
+  // Quick structural checks
+  const hasSignature    = xmlText.includes('<ds:Signature');
+  const hasFactura      = xmlText.includes('<factura ') || xmlText.includes('<factura>');
+  const hasFirmaOK      = xmlText.includes('</ds:Signature>');
+  console.log('[send-to-sri] Checks — hasFactura:', hasFactura, '| hasSignature:', hasSignature, '| firmaCompleta:', hasFirmaOK);
+
+  const xmlBase64 = Buffer.from(xmlText, 'utf8').toString('base64');
 
   // 6. Send to SRI reception (retry 3 times: 1s, 2s, 4s backoff)
   let receptionResponse: string;
@@ -251,17 +263,24 @@ export async function sendToSriInternal(
       sriError: `Error de red: ${err instanceof Error ? err.message : String(err)}`,
       updatedAt: now,
     });
-    return { sriStatus: 'rejected', sriError: `Error de red: ${err instanceof Error ? err.message : String(err)}` };
+    const sriError = `Error de red: ${err instanceof Error ? err.message : String(err)}`;
+    return { documentId, companyId, sriStatus: 'rejected', sriError };
   }
 
-  // 7. Parse reception state
-  const { state: receptionState, mensaje: receptionMensaje } = parseReceptionState(receptionResponse);
-  console.log('[send-to-sri] Estado recepción:', receptionState, '|', receptionMensaje);
+  // 7. Parse reception state — log full SOAP response for diagnosis
+  console.log('[send-to-sri] === SOAP RESPUESTA RECEPCIÓN (primeros 2000 chars) ===');
+  console.log(receptionResponse.substring(0, 2000));
+  console.log('[send-to-sri] === FIN RESPUESTA ===');
+
+  const { state: receptionState, mensaje: receptionMensaje, detalle: receptionDetalle } = parseReceptionState(receptionResponse);
+  console.log('[send-to-sri] Estado recepción:', receptionState, '|', receptionMensaje, '| Detalle:', receptionDetalle);
 
   if (receptionState !== 'RECIBIDA') {
-    const sriError = `Rechazado en recepción: ${receptionMensaje}`;
+    const sriError = receptionDetalle
+      ? `${receptionMensaje}: ${receptionDetalle}`
+      : receptionMensaje;
     await db.doc(docPath).update({ sriStatus: 'rejected', sriError, updatedAt: now });
-    return { sriStatus: 'rejected', sriError };
+    return { documentId, companyId, sriStatus: 'rejected', estado: receptionState, mensaje: receptionMensaje, detalle: receptionDetalle, sriError };
   }
 
   // 8. Query authorization
@@ -276,12 +295,9 @@ export async function sendToSriInternal(
     );
   } catch (err) {
     console.error('[send-to-sri] Error consultando autorización:', err);
-    await db.doc(docPath).update({
-      sriStatus: 'pending',
-      sriError: `Comprobante recibido, error al consultar autorización: ${err instanceof Error ? err.message : String(err)}`,
-      updatedAt: now,
-    });
-    return { sriStatus: 'pending', sriError: `Error autorización: ${err instanceof Error ? err.message : String(err)}` };
+    const sriError = `Comprobante recibido, error al consultar autorización: ${err instanceof Error ? err.message : String(err)}`;
+    await db.doc(docPath).update({ sriStatus: 'pending', sriError, updatedAt: now });
+    return { documentId, companyId, sriStatus: 'pending', sriError };
   }
 
   // 9. Parse authorization response
@@ -297,13 +313,22 @@ export async function sendToSriInternal(
       updatedAt: now,
     });
     console.log('[send-to-sri]', cfg.docLabel, 'AUTORIZADA:', authorizationNumber);
-    return { sriStatus: 'authorized', authorizationNumber, authorizedAt: authorizedAt ?? new Date() };
+    return {
+      documentId,
+      companyId,
+      sriStatus: 'authorized',
+      authorizationNumber,
+      authorizedAt: authorizedAt ?? new Date(),
+      estado,
+      mensaje,
+      nextStep: 'generatePdf',
+    };
   }
 
   const sriError = mensaje || `Estado de autorización: ${estado}`;
   await db.doc(docPath).update({ sriStatus: 'rejected', sriError, updatedAt: now });
   console.warn('[send-to-sri]', cfg.docLabel, 'NO autorizada:', sriError);
-  return { sriStatus: 'rejected', sriError };
+  return { documentId, companyId, sriStatus: 'rejected', estado, mensaje, sriError };
 }
 
 // ─── Callable function (unified for all document types) ───────────────────────

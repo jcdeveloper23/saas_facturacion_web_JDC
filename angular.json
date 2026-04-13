@@ -6,7 +6,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "trackcore": {
+    "facturasEC": {
       "projectType": "application",
       "schematics": {
         "@schematics/angular:component": {
@@ -23,7 +23,7 @@
         "build": {
           "builder": "@angular/build:application",
           "options": {
-            "outputPath": "dist/trackcore",
+            "outputPath": "dist/facturasEC",
             "index": "src/index.html",
             "browser": "src/main.ts",
             "polyfills": [
@@ -83,10 +83,10 @@
           "builder": "@angular/build:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "trackcore:build:production"
+              "buildTarget": "facturasEC:build:production"
             },
             "development": {
-              "buildTarget": "trackcore:build:development"
+              "buildTarget": "facturasEC:build:development"
             }
           },
           "defaultConfiguration": "development"
@@ -94,7 +94,7 @@
         "extract-i18n": {
           "builder": "@angular/build:extract-i18n",
           "options": {
-            "buildTarget": "trackcore:build"
+            "buildTarget": "facturasEC:build"
           }
         },
         "test": {

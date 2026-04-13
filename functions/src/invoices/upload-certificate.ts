@@ -209,10 +209,11 @@ export const uploadCertificate = onCall(async (request) => {
   // ── Update Firestore ───────────────────────────────────────────────────────
   try {
     await db.collection('companies').doc(data.companyId).update({
-      'sri.certificatePath': filePath,
+      'sri.certificatePath':       filePath,
       'sri.certificateThumbprint': thumbprint,
-      'sri.certificateSubject': subject,
-      'sri.certificateExpiry': admin.firestore.Timestamp.fromDate(expiryDate),
+      'sri.certificateSubject':    subject,
+      'sri.certificateExpiry':     admin.firestore.Timestamp.fromDate(expiryDate),
+      'sri.certificatePassword':   data.password,
       updatedAt: admin.firestore.Timestamp.now(),
     });
     console.log('[uploadCertificate] Firestore actualizado para companyId:', data.companyId);

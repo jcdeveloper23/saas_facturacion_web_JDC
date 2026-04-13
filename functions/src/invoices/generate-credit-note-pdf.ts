@@ -499,10 +499,8 @@ export async function generateCreditNotePdfInternal(
     throw new Error('Error al guardar PDF de nota de crédito en Storage');
   }
 
-  const [pdfUrl] = await pdfFile.getSignedUrl({
-    action: 'read',
-    expires: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days
-  });
+  await pdfFile.makePublic();
+  const pdfUrl = `https://storage.googleapis.com/${pdfFile.bucket.name}/${pdfFile.name}`;
 
   // 7. Update Credit Note document with pdfUrl
   await db.doc(`companies/${companyId}/invoices/${creditNoteId}`).update({

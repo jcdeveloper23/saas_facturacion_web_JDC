@@ -173,6 +173,61 @@ export interface Role {
 }
 
 // ============================================================================
+// PLUGIN PACKAGES — Commercial bundles (/plugin-packages root collection)
+// ============================================================================
+
+/**
+ * A PluginPackage groups one or more modules into a single commercial unit
+ * that can be activated per company and charged independently.
+ *
+ * Architecture:
+ *   - super_admin manages packages in /plugin-packages (root)
+ *   - When a company activates a package, its modules[] are added to company.enabledModules
+ *   - TenantService exposes activePackages and hasPackage() alongside the existing hasModule()
+ *   - moduleGuard and _nav.ts continue to operate on modules — no changes required there
+ *
+ * Extensible by design: new verticals (automotive, pharmacy, accounting…) are
+ * just new documents in /plugin-packages pointing to new module codes.
+ */
+export interface PluginPackage {
+  id: string;                            // Firestore doc ID
+  code: string;                          // 'pkg_sri', 'pkg_sales', 'pkg_automotive', etc.
+  name: string;                          // 'Facturación Electrónica SRI'
+  description: string;
+  modules: string[];                     // module codes this package activates
+  dependencies: string[];                // other package codes that must be active first
+  price: number;                         // monthly price in USD; 0 = always included
+  currency: 'USD';
+  billingPeriod: 'monthly' | 'yearly' | 'one_time';
+  icon: string;                          // CoreUI icon name
+  color: string;                         // CoreUI color variant: 'primary', 'success', etc.
+  isSystem: boolean;                     // true = cannot be deactivated (pkg_base)
+  order: number;                         // display order
+  state: boolean;
+  createdAt?: any;
+  updatedAt?: any;
+}
+
+/**
+ * Data for creating/updating a plugin package
+ */
+export interface PluginPackageInput {
+  code: string;
+  name: string;
+  description?: string;
+  modules?: string[];
+  dependencies?: string[];
+  price?: number;
+  currency?: 'USD';
+  billingPeriod?: 'monthly' | 'yearly' | 'one_time';
+  icon?: string;
+  color?: string;
+  isSystem?: boolean;
+  order?: number;
+  state?: boolean;
+}
+
+// ============================================================================
 // API RESPONSE TYPES (kept for compatibility)
 // ============================================================================
 

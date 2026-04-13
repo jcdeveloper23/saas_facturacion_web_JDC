@@ -49,10 +49,11 @@ export interface Company {
     certPassword?: string;          // Password del .p12 para firma (producción: usar Secret Manager)
   };
 
-  // Plugin management — which modules are active for this company
-  // Equivalent to FacturaScripts enabled_plugins.list per installation
-  enabledModules: string[];     // module.code[] activated for this company (union of plan + manual)
-  disabledModules: string[];    // module codes manually disabled (override from plan)
+  // Plugin Package management — commercial bundles assigned to this company
+  enabledPackages: string[];    // package.code[] active for this company (e.g. ['pkg_base','pkg_sri'])
+  // Module management — derived from enabledPackages + manual overrides
+  enabledModules: string[];     // module.code[] computed when packages change
+  disabledModules: string[];    // module codes manually overridden off
 
   createdAt: Timestamp;
   updatedAt: Timestamp;

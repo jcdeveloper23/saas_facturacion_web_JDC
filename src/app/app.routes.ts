@@ -2,6 +2,15 @@ import { Routes } from '@angular/router';
 import { authGuard, loginGuard, roleGuard, moduleGuard } from './core/guards';
 
 export const routes: Routes = [
+  // ─── Landing Page (public root) ─────────────────────────────────────────
+  {
+    path: '',
+    pathMatch: 'full',
+    loadComponent: () =>
+      import('./views/landing/landing.component').then(m => m.LandingComponent),
+    data: { title: 'FacturaSec — ERP para Ecuador' }
+  },
+
   // ─── Public ──────────────────────────────────────────────────────────────
   {
     path: 'login',

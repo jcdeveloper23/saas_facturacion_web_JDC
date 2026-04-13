@@ -208,9 +208,9 @@ export async function generateDebitNoteXmlInternal(
     metadata: { contentType: 'application/xml' },
   });
 
-  const [xmlUrl] = await bucket.file(xmlPath).getSignedUrl({
-    action: 'read', expires: Date.now() + 7 * 24 * 60 * 60 * 1000,
-  });
+  const xmlFile = bucket.file(xmlPath);
+  await xmlFile.makePublic();
+  const xmlUrl = `https://storage.googleapis.com/${bucket.name}/${xmlPath}`;
 
   await db.doc(`companies/${companyId}/debitNotes/${debitNoteId}`).update({
     codigoNumerico: codNum, accessKey, xmlUrl, sriStatus: 'xml_generated', updatedAt: now,

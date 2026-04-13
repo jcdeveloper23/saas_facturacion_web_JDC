@@ -1,9 +1,9 @@
 {
-  "name": "trackcore",
+  "name": "facturasEC",
   "version": "1.0.0",
   "description": "GPS Tracking Platform - Sistema de rastreo GPS empresarial multi-tenant",
   "license": "MIT",
-  "author": "TrackCore Team",
+  "author": "facturasEC Team",
   "homepage": "",
   "config": {
     "theme": "default",

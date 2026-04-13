@@ -48,10 +48,12 @@ export class PlansComponent implements OnInit {
     name: ['', [Validators.required, Validators.minLength(2)]],
     price: [0, [Validators.required, Validators.min(0)]],
     isActive: [true],
-    'limits.users': [5, [Validators.required, Validators.min(1)]],
-    'limits.invoicesPerMonth': [100, [Validators.required, Validators.min(1)]],
-    'limits.warehouses': [1, [Validators.required, Validators.min(1)]],
-    'limits.storageGb': [1, [Validators.required, Validators.min(1)]]
+    limits: this.fb.group({
+      users:            [5,   [Validators.required, Validators.min(1)]],
+      invoicesPerMonth: [100, [Validators.required, Validators.min(1)]],
+      warehouses:       [1,   [Validators.required, Validators.min(1)]],
+      storageGb:        [1,   [Validators.required, Validators.min(1)]]
+    })
   });
 
   ngOnInit(): void {
@@ -69,8 +71,7 @@ export class PlansComponent implements OnInit {
     this.editingId.set(null);
     this.form.reset({
       price: 0, isActive: true,
-      'limits.users': 5, 'limits.invoicesPerMonth': 100,
-      'limits.warehouses': 1, 'limits.storageGb': 1
+      limits: { users: 5, invoicesPerMonth: 100, warehouses: 1, storageGb: 1 }
     });
     this.errorMessage.set('');
     this.showModal.set(true);
@@ -80,10 +81,12 @@ export class PlansComponent implements OnInit {
     this.editingId.set(plan.id);
     this.form.patchValue({
       name: plan.name, price: plan.price, isActive: plan.isActive,
-      'limits.users': plan.limits.users,
-      'limits.invoicesPerMonth': plan.limits.invoicesPerMonth,
-      'limits.warehouses': plan.limits.warehouses,
-      'limits.storageGb': plan.limits.storageGb
+      limits: {
+        users:            plan.limits.users,
+        invoicesPerMonth: plan.limits.invoicesPerMonth,
+        warehouses:       plan.limits.warehouses,
+        storageGb:        plan.limits.storageGb
+      }
     });
     this.errorMessage.set('');
     this.showModal.set(true);
@@ -105,10 +108,10 @@ export class PlansComponent implements OnInit {
         isActive: v.isActive!,
         features: [],
         limits: {
-          users: Number(v['limits.users']),
-          invoicesPerMonth: Number(v['limits.invoicesPerMonth']),
-          warehouses: Number(v['limits.warehouses']),
-          storageGb: Number(v['limits.storageGb'])
+          users:            Number(v.limits!.users),
+          invoicesPerMonth: Number(v.limits!.invoicesPerMonth),
+          warehouses:       Number(v.limits!.warehouses),
+          storageGb:        Number(v.limits!.storageGb)
         }
       };
       const id = this.editingId();

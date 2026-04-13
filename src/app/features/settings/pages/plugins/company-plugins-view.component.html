@@ -1,0 +1,117 @@
+<c-container fluid>
+
+  <c-row class="mb-4">
+    <c-col xs="12">
+      <h4 class="mb-0">
+        <svg cIcon name="cil-layers" class="me-2 text-primary"></svg>
+        Mis Plugins
+      </h4>
+      <small class="text-muted">
+        Módulos activos en tu empresa. Contacta con soporte para activar paquetes adicionales.
+      </small>
+    </c-col>
+  </c-row>
+
+  @if (isLoading()) {
+  <div class="text-center p-5">
+    <c-spinner color="primary"></c-spinner>
+  </div>
+  } @else {
+
+  <!-- Active packages -->
+  @if (activePackages().length) {
+  <c-row class="mb-2">
+    <c-col>
+      <p class="fw-semibold text-uppercase small text-muted border-bottom pb-1 mb-3">
+        Paquetes activos ({{ activePackages().length }})
+      </p>
+    </c-col>
+  </c-row>
+  <c-row class="g-3 mb-5">
+    @for (pkg of activePackages(); track pkg.code) {
+    <c-col xs="12" sm="6" xl="4">
+      <c-card class="h-100 border-success">
+        <c-card-body class="p-3">
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <svg cIcon [name]="pkg.icon || 'cil-puzzle'"
+              class="text-success" style="width:20px;height:20px"></svg>
+            <div>
+              <span class="fw-semibold d-block">{{ pkg.name }}</span>
+              <c-badge color="success" shape="rounded-pill" style="font-size:.68rem">Activo</c-badge>
+            </div>
+          </div>
+          <p class="text-muted mb-3" style="font-size:.8rem">{{ pkg.description }}</p>
+          <div>
+            <small class="text-muted d-block mb-1">Módulos incluidos</small>
+            <div class="d-flex flex-wrap gap-1">
+              @for (mod of pkg.modules; track mod) {
+              <c-badge color="success" variant="outline" shape="rounded-pill"
+                style="font-size:.68rem">{{ mod }}</c-badge>
+              }
+            </div>
+          </div>
+        </c-card-body>
+      </c-card>
+    </c-col>
+    }
+  </c-row>
+  } @else {
+  <c-alert color="warning" class="mb-4">
+    No tienes paquetes activos. Contacta con soporte para comenzar.
+  </c-alert>
+  }
+
+  <!-- Available packages -->
+  @if (availablePackages().length) {
+  <c-row class="mb-2">
+    <c-col>
+      <p class="fw-semibold text-uppercase small text-muted border-bottom pb-1 mb-3">
+        Paquetes disponibles
+      </p>
+    </c-col>
+  </c-row>
+  <c-row class="g-3">
+    @for (pkg of availablePackages(); track pkg.code) {
+    <c-col xs="12" sm="6" xl="4">
+      <c-card class="h-100 opacity-75">
+        <c-card-body class="p-3">
+          <div class="d-flex align-items-start justify-content-between mb-2">
+            <div class="d-flex align-items-center gap-2">
+              <svg cIcon [name]="pkg.icon || 'cil-puzzle'"
+                class="text-muted" style="width:20px;height:20px"></svg>
+              <div>
+                <span class="fw-semibold d-block">{{ pkg.name }}</span>
+                @if (pkg.price === 0) {
+                <c-badge color="secondary" shape="rounded-pill" style="font-size:.68rem">Incluido</c-badge>
+                } @else {
+                <small class="text-muted" style="font-size:.75rem">
+                  ${{ pkg.price }} USD/mes
+                </small>
+                }
+              </div>
+            </div>
+          </div>
+          <p class="text-muted mb-3" style="font-size:.8rem">{{ pkg.description }}</p>
+          <div class="mb-3">
+            <small class="text-muted d-block mb-1">Módulos incluidos</small>
+            <div class="d-flex flex-wrap gap-1">
+              @for (mod of pkg.modules; track mod) {
+              <c-badge color="secondary" variant="outline" shape="rounded-pill"
+                style="font-size:.68rem">{{ mod }}</c-badge>
+              }
+            </div>
+          </div>
+          <button cButton color="primary" variant="outline" size="sm" class="w-100" disabled>
+            <svg cIcon name="cil-envelope-closed" class="me-1" style="width:14px;height:14px"></svg>
+            Solicitar activación
+          </button>
+        </c-card-body>
+      </c-card>
+    </c-col>
+    }
+  </c-row>
+  }
+
+  }<!-- end @else loading -->
+
+</c-container>

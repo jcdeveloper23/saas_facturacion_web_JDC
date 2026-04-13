@@ -47,9 +47,9 @@ async function signRetentionXml(retentionId: string, companyId: string): Promise
 
   // Resolve cert password from company sri config (Secret Manager is a future task)
   const companySnap = await db.doc(`companies/${companyId}`).get();
-  const certPassword: string = (companySnap.data() as any)?.['sri']?.['certPassword'] ?? '';
+  const certPassword: string = (companySnap.data() as any)?.['sri']?.['certificatePassword'] ?? '';
   if (!certPassword) {
-    console.warn('[on-retention-emit] certPassword no configurado en company.sri — se intenta con contraseña vacía.');
+    console.warn('[on-retention-emit] certificatePassword no configurado en company.sri — se intenta con contraseña vacía.');
   }
 
   // Sign using unified XAdES-BES helper
@@ -62,10 +62,9 @@ async function signRetentionXml(retentionId: string, companyId: string): Promise
     metadata: { contentType: 'application/xml' },
   });
 
-  const [signedUrl] = await bucket.file(signedPath).getSignedUrl({
-    action:  'read',
-    expires: Date.now() + 7 * 24 * 60 * 60 * 1000,
-  });
+  const signedFile = bucket.file(signedPath);
+  await signedFile.makePublic();
+  const signedUrl = `https://storage.googleapis.com/${bucket.name}/${signedPath}`;
 
   await db.doc(`companies/${companyId}/retentions/${retentionId}`).update({
     xmlUrl:    signedUrl,

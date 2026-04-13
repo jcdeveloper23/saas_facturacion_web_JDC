@@ -156,6 +156,10 @@ function buildSignedXml(ctx: SigningContext): string {
     .map((a: forge.pki.CertificateField) => `${a.shortName ?? a.name}=${a.value}`)
     .join(',');
 
+  // ── Serial number: node-forge returns hex; XAdES/XMLDSig requires xs:integer (decimal) ─
+  const serialHex = certificate.serialNumber || '0';
+  const serialDecimal = BigInt('0x' + serialHex).toString();
+
   // ── ds:KeyInfo element ────────────────────────────────────────────────────
   const keyInfoXml =
     `<ds:KeyInfo Id="${KEY_INFO_ID}" xmlns:ds="http://www.w3.org/2000/09/xmldsig#">` +
@@ -179,7 +183,7 @@ function buildSignedXml(ctx: SigningContext): string {
             `</xades:CertDigest>` +
             `<xades:IssuerSerial>` +
               `<ds:X509IssuerName xmlns:ds="http://www.w3.org/2000/09/xmldsig#">${issuerName}</ds:X509IssuerName>` +
-              `<ds:X509SerialNumber xmlns:ds="http://www.w3.org/2000/09/xmldsig#">${certificate.serialNumber}</ds:X509SerialNumber>` +
+              `<ds:X509SerialNumber xmlns:ds="http://www.w3.org/2000/09/xmldsig#">${serialDecimal}</ds:X509SerialNumber>` +
             `</xades:IssuerSerial>` +
           `</xades:Cert>` +
         `</xades:SigningCertificate>` +

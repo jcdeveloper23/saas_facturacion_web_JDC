@@ -421,7 +421,7 @@ export async function generatePdfInternal(
         margin: 1,
         errorCorrectionLevel: 'M',
       });
-      console.log('[generate-pdf] QR generado, bytes:', qrBuffer.length);
+      console.log('[generate-pdf] QR generado, bytes:', qrBuffer!.length);
     } catch (err) {
       console.warn('[generate-pdf] No se pudo generar QR:', err);
     }
@@ -453,10 +453,8 @@ export async function generatePdfInternal(
     throw new Error('Error al guardar PDF en Storage');
   }
 
-  const [pdfUrl] = await pdfFile.getSignedUrl({
-    action: 'read',
-    expires: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days
-  });
+  await pdfFile.makePublic();
+  const pdfUrl = `https://storage.googleapis.com/${pdfFile.bucket.name}/${pdfFile.name}`;
 
   // 7. Update Invoice
   await db.doc(`companies/${companyId}/invoices/${invoiceId}`).update({

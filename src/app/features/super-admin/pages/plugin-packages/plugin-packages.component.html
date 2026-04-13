@@ -1,0 +1,820 @@
+<c-container fluid>
+
+  <!-- ─── Header ──────────────────────────────────────────────────────────── -->
+  <c-row class="mb-3 align-items-center">
+    <c-col xs="12" md="7">
+      <h4 class="mb-0">
+        <svg cIcon name="cil-layers" class="me-2 text-primary"></svg>
+        Paquetes de Plugins
+      </h4>
+      <small class="text-muted">
+        Agrupaciones comerciales de módulos activables por empresa.
+        @if (outdatedCount() > 0) {
+          <c-badge color="warning" shape="rounded-pill" class="ms-2">
+            {{ outdatedCount() }} desactualizado{{ outdatedCount() > 1 ? 's' : '' }}
+          </c-badge>
+        }
+      </small>
+    </c-col>
+    <c-col xs="12" md="5" class="d-flex gap-2 justify-content-end flex-wrap mt-2 mt-md-0">
+      <button cButton color="warning" variant="outline" size="sm"
+        (click)="syncPackages()" [disabled]="seeding()"
+        cTooltip="Actualiza los paquetes con los datos del seed">
+        @if (seeding()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+        @else { <svg cIcon name="cil-loop-circular" class="me-1"></svg> }
+        Sincronizar
+        @if (outdatedCount() > 0) {
+          <c-badge color="warning" class="ms-1">{{ outdatedCount() }}</c-badge>
+        }
+      </button>
+      <button cButton color="secondary" variant="outline" size="sm"
+        (click)="seedDefaults()" [disabled]="seeding()"
+        cTooltip="Crea solo los paquetes del seed que no existen en Firestore">
+        @if (seeding()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+        @else { <svg cIcon name="cil-cloud-download" class="me-1"></svg> }
+        Registrar faltantes
+      </button>
+      <button cButton color="primary" size="sm" (click)="openModal()"
+        [disabled]="showPanel() && !editingPackage()">
+        <svg cIcon name="cil-plus" class="me-1"></svg> Nuevo paquete
+      </button>
+    </c-col>
+  </c-row>
+
+  <!-- ─── Notifications ───────────────────────────────────────────────────── -->
+  @for (notif of notifications(); track notif.id) {
+  <c-alert [color]="notif.type" [dismissible]="true" (visibleChange)="dismissNotification(notif.id)"
+    class="mb-2 py-2 px-3 d-flex align-items-center gap-2" style="font-size:.85rem">
+    @switch (notif.type) {
+      @case ('success') { <svg cIcon name="cil-check-circle" style="flex-shrink:0"></svg> }
+      @case ('danger')  { <svg cIcon name="cil-x-circle" style="flex-shrink:0"></svg> }
+      @case ('warning') { <svg cIcon name="cil-warning" style="flex-shrink:0"></svg> }
+      @default          { <svg cIcon name="cil-info" style="flex-shrink:0"></svg> }
+    }
+    {{ notif.message }}
+  </c-alert>
+  }
+
+  <!-- ─── Info guide ──────────────────────────────────────────────────────── -->
+  @if (showGuide() && !showPanel()) {
+  <c-card class="mb-4 bg-body-tertiary border-0">
+    <c-card-body class="py-3 px-4">
+      <div class="d-flex align-items-start justify-content-between mb-3">
+        <div>
+          <h6 class="mb-1 fw-semibold">
+            <svg cIcon name="cil-info" class="me-2 text-primary" style="width:15px"></svg>
+            ¿Cómo funciona el sistema de paquetes?
+          </h6>
+          <p class="text-muted mb-0" style="font-size:.82rem">
+            Define qué módulos puede usar cada empresa y cómo se agrupan comercialmente.
+          </p>
+        </div>
+        <button cButton color="ghost" size="sm" class="p-1 text-muted flex-shrink-0 ms-3"
+          cTooltip="Ocultar" (click)="showGuide.set(false)">
+          <svg cIcon name="cil-x" style="width:14px"></svg>
+        </button>
+      </div>
+
+      <c-row class="g-3 mb-3">
+        <c-col xs="12" sm="4">
+          <div class="d-flex gap-3 align-items-start">
+            <div class="step-circle">1</div>
+            <div>
+              <p class="fw-semibold mb-1" style="font-size:.83rem">Crea los paquetes</p>
+              <p class="text-muted mb-0" style="font-size:.78rem">
+                Cada paquete agrupa módulos en una unidad comercial con precio y período de facturación.
+              </p>
+            </div>
+          </div>
+        </c-col>
+        <c-col xs="12" sm="4">
+          <div class="d-flex gap-3 align-items-start">
+            <div class="step-circle">2</div>
+            <div>
+              <p class="fw-semibold mb-1" style="font-size:.83rem">Define dependencias</p>
+              <p class="text-muted mb-0" style="font-size:.78rem">
+                Un paquete puede requerir otro. Activar "SRI" activa automáticamente "Facturación Base".
+              </p>
+            </div>
+          </div>
+        </c-col>
+        <c-col xs="12" sm="4">
+          <div class="d-flex gap-3 align-items-start">
+            <div class="step-circle">3</div>
+            <div>
+              <p class="fw-semibold mb-1" style="font-size:.83rem">Asigna a empresas</p>
+              <p class="text-muted mb-0" style="font-size:.78rem">
+                Desde <strong>Empresas → Plugins</strong>, activa paquetes por cliente. Los módulos se derivan solos.
+              </p>
+            </div>
+          </div>
+        </c-col>
+      </c-row>
+
+      <div class="d-flex flex-wrap gap-2 pt-2" style="border-top:1px dashed var(--cui-border-color)">
+        <span class="guide-pill">
+          <c-badge color="secondary" shape="rounded-pill" style="font-size:.68rem">sistema</c-badge>
+          No puede eliminarse
+        </span>
+        <span class="guide-pill">
+          <c-badge color="warning" shape="rounded-pill" style="font-size:.68rem">desactualizado</c-badge>
+          Difiere del seed — usa Sincronizar
+        </span>
+        <span class="guide-pill">
+          <svg cIcon name="cil-building" class="text-muted" style="width:12px"></svg>
+          Empresas activas = impacto si modificas el paquete
+        </span>
+      </div>
+
+    </c-card-body>
+  </c-card>
+  }
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       MAIN LAYOUT: lista (siempre) + panel de edición (cuando está activo)
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <c-row class="g-3 align-items-start">
+
+    <!-- ─── COLUMNA LISTA ──────────────────────────────────────────────────── -->
+    <c-col xs="12" [lg]="showPanel() ? 5 : 12">
+
+      <!-- Dependency tree (solo cuando panel cerrado) -->
+      @if (!showPanel() && !isLoading() && packages().length > 0) {
+      <c-card class="mb-3 bg-body-tertiary border-0">
+        <c-card-body class="py-2 px-3">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <span class="section-label mb-0" style="border:none;padding:0">
+              <svg cIcon name="cil-share" class="me-1" style="width:12px"></svg>
+              Árbol de dependencias
+            </span>
+            <button cButton color="ghost" size="sm" class="p-0 px-1 text-muted"
+              (click)="showDepsTree.set(!showDepsTree())">
+              <svg cIcon [name]="showDepsTree() ? 'cil-chevron-top' : 'cil-chevron-bottom'" style="width:12px"></svg>
+            </button>
+          </div>
+          @if (showDepsTree()) {
+          <div class="d-flex align-items-start gap-0 overflow-auto pb-1">
+            @for (level of dependencyLevels(); track $index) {
+            <div class="d-flex flex-column gap-2 align-items-center" style="min-width:130px">
+              @for (pkg of level; track pkg.code) {
+              <div class="dep-node" [cTooltip]="pkg.modules.join(', ')">
+                <svg cIcon [name]="pkg.icon || 'cil-puzzle'" class="text-{{ pkg.color }}" style="width:12px;flex-shrink:0"></svg>
+                <span class="text-truncate" style="max-width:90px">{{ pkg.name }}</span>
+              </div>
+              }
+            </div>
+            @if (!$last) {
+            <div class="d-flex align-items-center px-1 text-muted" style="padding-top:8px">
+              <svg cIcon name="cil-arrow-right" style="width:14px"></svg>
+            </div>
+            }
+            }
+          </div>
+          <p class="text-muted mb-0 mt-1" style="font-size:.72rem">Los paquetes de la derecha requieren los de la izquierda.</p>
+          }
+        </c-card-body>
+      </c-card>
+      }
+
+      <!-- Loading -->
+      @if (isLoading()) {
+      <div class="text-center p-5">
+        <c-spinner color="primary"></c-spinner>
+        <p class="mt-2 text-muted">Cargando paquetes...</p>
+      </div>
+      } @else {
+
+      <!-- Package cards -->
+      <c-row class="g-2">
+        @for (pkg of packages(); track pkg.id) {
+        <c-col xs="12" [sm]="showPanel() ? 12 : 6" [xl]="showPanel() ? 12 : 4">
+          <c-card class="h-100 position-relative pkg-card"
+            [class.pkg-card--editing]="editingPackage()?.id === pkg.id"
+            [class.border-secondary]="!pkg.state"
+            [class.opacity-75]="!pkg.state">
+
+            @if (syncStatusMap().get(pkg.code)?.status === 'outdated') {
+            <div class="position-absolute top-0 end-0 m-2" style="z-index:1">
+              <c-badge color="warning" shape="rounded-pill" style="font-size:.65rem"
+                [cTooltip]="'Difiere en: ' + (syncStatusMap().get(pkg.code)?.diffs?.join(', ') ?? '')">
+                <svg cIcon name="cil-warning" style="width:9px;margin-right:2px"></svg>desactualizado
+              </c-badge>
+            </div>
+            }
+            @if (syncStatusMap().get(pkg.code)?.status === 'custom') {
+            <div class="position-absolute top-0 end-0 m-2" style="z-index:1">
+              <c-badge color="secondary" shape="rounded-pill" style="font-size:.65rem">personalizado</c-badge>
+            </div>
+            }
+
+            <c-card-header class="d-flex align-items-center justify-content-between py-2">
+              <div class="d-flex align-items-center gap-2 overflow-hidden">
+                <svg cIcon [name]="pkg.icon || 'cil-puzzle'" class="text-{{ pkg.color }}" style="width:16px;flex-shrink:0"></svg>
+                <span class="fw-semibold text-truncate" style="font-size:.88rem">{{ pkg.name }}</span>
+                @if (pkg.isSystem) { <c-badge color="secondary" shape="rounded-pill" style="font-size:.63rem">sistema</c-badge> }
+                @if (!pkg.state)   { <c-badge color="danger"    shape="rounded-pill" style="font-size:.63rem">inactivo</c-badge> }
+              </div>
+              <div class="d-flex gap-1 ms-1 flex-shrink-0">
+                <button cButton color="ghost" size="sm" class="p-1" cTooltip="Editar" (click)="openModal(pkg)">
+                  <svg cIcon name="cil-pencil" style="width:13px"></svg>
+                </button>
+                @if (!pkg.isSystem) {
+                <button cButton color="ghost" size="sm" class="p-1 text-danger" cTooltip="Eliminar" (click)="deletePackage(pkg)">
+                  <svg cIcon name="cil-trash" style="width:13px"></svg>
+                </button>
+                }
+              </div>
+            </c-card-header>
+
+            <c-card-body class="py-2">
+              <p class="text-muted mb-2" style="font-size:.78rem;min-height:2.4rem;line-height:1.4">{{ pkg.description }}</p>
+
+              <div class="d-flex align-items-center justify-content-between mb-2 gap-2">
+                <div class="d-flex align-items-center gap-1">
+                  @if (pkg.price === 0) {
+                  <c-badge color="secondary" shape="rounded-pill" style="font-size:.7rem">Incluido</c-badge>
+                  } @else {
+                  <strong class="text-{{ pkg.color }}" style="font-size:.88rem">${{ pkg.price }}</strong>
+                  <span class="text-muted" style="font-size:.75rem">USD{{ billingLabel(pkg.billingPeriod) }}</span>
+                  }
+                </div>
+                <div class="d-flex align-items-center gap-1 text-muted" style="font-size:.75rem">
+                  @if (usageLoading()) { <c-spinner size="sm"></c-spinner> }
+                  @else if ((companyUsage().get(pkg.code) ?? 0) > 0) {
+                    <svg cIcon name="cil-building" style="width:11px"></svg>
+                    <span class="fw-semibold text-{{ pkg.color }}">{{ getUsageLabel(pkg.code) }}</span>
+                  } @else {
+                    <span class="text-muted">Sin uso</span>
+                  }
+                </div>
+              </div>
+
+              <div class="d-flex flex-wrap gap-1 mb-1">
+                @for (mod of pkg.modules; track mod) {
+                <c-badge color="{{ pkg.color }}" variant="outline" shape="rounded-pill" style="font-size:.65rem">{{ mod }}</c-badge>
+                }
+              </div>
+
+              @if (pkg.dependencies.length) {
+              <div class="mt-2 pt-1" style="border-top:1px dashed var(--cui-border-color)">
+                <div class="d-flex flex-wrap gap-1">
+                  @for (dep of pkg.dependencies; track dep) {
+                  <c-badge color="secondary" shape="rounded-pill" style="font-size:.65rem" [cTooltip]="dep">
+                    <svg cIcon name="cil-link" style="width:8px;margin-right:2px"></svg>
+                    {{ packagesByCode().get(dep)?.name ?? dep }}
+                  </c-badge>
+                  }
+                </div>
+              </div>
+              }
+            </c-card-body>
+
+            <c-card-footer class="py-1 d-flex align-items-center justify-content-between">
+              <small class="text-muted"><code style="font-size:.68rem">{{ pkg.code }}</code> · orden {{ pkg.order }}</small>
+              @if (syncStatusMap().get(pkg.code)?.status === 'ok') {
+              <svg cIcon name="cil-check-circle" class="text-success" style="width:12px" cTooltip="Sincronizado"></svg>
+              }
+            </c-card-footer>
+          </c-card>
+        </c-col>
+        }
+
+        <!-- Paquetes del seed sin crear -->
+        @for (seed of (seedByCode() | keyvalue); track seed.key) {
+        @if (!packagesByCode().has(seed.key)) {
+        <c-col xs="12" [sm]="showPanel() ? 12 : 6" [xl]="showPanel() ? 12 : 4">
+          <c-card class="h-100" style="border:2px dashed var(--cui-border-color);opacity:.6">
+            <c-card-header class="py-2 d-flex align-items-center gap-2">
+              <svg cIcon [name]="seed.value.icon || 'cil-puzzle'" class="text-{{ seed.value.color }}" style="width:16px"></svg>
+              <span class="fw-semibold text-muted" style="font-size:.88rem">{{ seed.value.name }}</span>
+              <c-badge color="info" shape="rounded-pill" style="font-size:.63rem" class="ms-auto">solo en semilla</c-badge>
+            </c-card-header>
+            <c-card-body class="py-2">
+              <p class="text-muted mb-2" style="font-size:.78rem">{{ seed.value.description }}</p>
+              <button cButton color="info" variant="outline" size="sm" class="w-100" (click)="seedDefaults()" [disabled]="seeding()">
+                <svg cIcon name="cil-cloud-download" class="me-1"></svg>Crear en Firestore
+              </button>
+            </c-card-body>
+          </c-card>
+        </c-col>
+        }
+        }
+      </c-row>
+
+      @if (packages().length === 0) {
+      <c-row>
+        <c-col class="text-center py-5 text-muted">
+          <svg cIcon name="cil-layers" style="width:48px;height:48px;opacity:.3"></svg>
+          <p class="mt-3 mb-1">No hay paquetes en Firestore.</p>
+          <p class="small mb-4">El seed define {{ seedByCode().size }} paquetes listos para registrar.</p>
+          <button cButton color="primary" variant="outline" (click)="seedDefaults()" [disabled]="seeding()">
+            <svg cIcon name="cil-cloud-download" class="me-2"></svg>Registrar paquetes por defecto
+          </button>
+        </c-col>
+      </c-row>
+      }
+
+      } <!-- end loading -->
+    </c-col>
+
+    <!-- ─── PANEL DE EDICIÓN / CREACIÓN (sticky, inline) ─────────────────── -->
+    @if (showPanel()) {
+    <c-col xs="12" lg="7">
+      <div class="position-sticky" style="top:4.5rem">
+        <c-card style="max-height:calc(100vh - 5.5rem);overflow-y:auto">
+
+          <!-- Panel header -->
+          <c-card-header class="d-flex align-items-start justify-content-between py-2 px-3">
+            <div>
+              <h6 class="mb-0 fw-semibold">
+                @if (editingPackage()) {
+                  <svg cIcon name="cil-pencil" class="me-2 text-primary" style="width:15px"></svg>
+                  Editar — <code style="font-size:.82em">{{ editingPackage()!.code }}</code>
+                } @else {
+                  <svg cIcon name="cil-layers" class="me-2 text-primary" style="width:15px"></svg>
+                  Nuevo paquete
+                }
+              </h6>
+              @if (companiesUsingEditing() > 0) {
+              <small class="text-warning d-flex align-items-center gap-1 mt-1">
+                <svg cIcon name="cil-warning" style="width:11px"></svg>
+                {{ companiesUsingEditing() }} empresa{{ companiesUsingEditing() > 1 ? 's activas' : ' activa' }} con este paquete
+              </small>
+              }
+            </div>
+            <button cButton color="ghost" size="sm" class="p-1 text-muted" cTooltip="Cerrar" (click)="closeModal()">
+              <svg cIcon name="cil-x" style="width:16px"></svg>
+            </button>
+          </c-card-header>
+
+          <c-card-body class="py-3 px-3">
+
+            <!-- Impact warning -->
+            @if (editingPackage() && companiesUsingEditing() > 0) {
+            <c-alert color="warning" class="mb-3 py-2 px-3 d-flex gap-2 align-items-start" style="font-size:.8rem">
+              <svg cIcon name="cil-warning" style="flex-shrink:0;margin-top:2px"></svg>
+              <span>
+                Cambios en módulos afectarán el acceso de
+                <strong>{{ companiesUsingEditing() }} empresa{{ companiesUsingEditing() > 1 ? 's' : '' }}</strong>.
+                Re-sincroniza sus módulos desde la pantalla de empresas después de guardar.
+              </span>
+            </c-alert>
+            }
+
+            <form [formGroup]="form">
+              <c-row class="g-0">
+
+                <!-- ── IZQUIERDA: Identidad + Comercial + Preview ─────────── -->
+                <c-col xs="12" lg="5" class="pe-lg-3" style="border-right:1px solid var(--cui-border-color)">
+
+                  <p class="section-label mb-2">Identidad</p>
+
+                  <div class="mb-2">
+                    <label cLabel for="pkg-code" class="small fw-semibold mb-1">
+                      Código <span class="text-danger">*</span>
+                      @if (editingPackage()) { <c-badge color="secondary" class="ms-1" style="font-size:.62rem">bloqueado</c-badge> }
+                    </label>
+                    <div class="input-group input-group-sm">
+                      <span class="input-group-text"><svg cIcon name="cil-code" style="width:12px"></svg></span>
+                      <input cFormControl id="pkg-code" formControlName="code" placeholder="pkg_mi_paquete"
+                        style="font-family:monospace;font-size:.82rem"
+                        [class.is-invalid]="form.get('code')?.invalid && form.get('code')?.touched" />
+                    </div>
+                    @if (form.get('code')?.invalid && form.get('code')?.touched) {
+                    <div class="text-danger mt-1" style="font-size:.75rem">Formato: <code>pkg_nombre_minusculas</code></div>
+                    }
+                  </div>
+
+                  <div class="mb-2">
+                    <label cLabel for="pkg-name" class="small fw-semibold mb-1">Nombre visible <span class="text-danger">*</span></label>
+                    <input cFormControl id="pkg-name" formControlName="name" placeholder="Ej: Facturación Electrónica"
+                      [class.is-invalid]="form.get('name')?.invalid && form.get('name')?.touched" />
+                  </div>
+
+                  <div class="mb-3">
+                    <label cLabel for="pkg-desc" class="small fw-semibold mb-1">Descripción</label>
+                    <textarea cFormControl id="pkg-desc" formControlName="description" rows="2"
+                      placeholder="Qué incluye y a quién va dirigido…"
+                      style="font-size:.82rem;resize:none"></textarea>
+                  </div>
+
+                  <p class="section-label mb-2 mt-2">Apariencia</p>
+
+                  <div class="mb-2">
+                    <label class="small fw-semibold d-block mb-2">Color</label>
+                    <div class="d-flex gap-2 flex-wrap">
+                      @for (c of colors; track c) {
+                      <button type="button" class="color-swatch"
+                        [class.selected]="formPreview().color === c"
+                        [style.background]="'var(--cui-' + c + ')'"
+                        [cTooltip]="c" (click)="setColor(c)">
+                        @if (formPreview().color === c) {
+                        <svg cIcon name="cil-check" style="width:10px;color:#fff"></svg>
+                        }
+                      </button>
+                      }
+                    </div>
+                  </div>
+
+                  <div class="mb-3">
+                    <label cLabel for="pkg-icon" class="small fw-semibold mb-1">Ícono CoreUI</label>
+                    <div class="input-group input-group-sm">
+                      <span class="input-group-text" style="min-width:34px;justify-content:center">
+                        <svg cIcon [name]="formPreview().icon || 'cil-puzzle'"
+                          class="text-{{ formPreview().color }}" style="width:15px"></svg>
+                      </span>
+                      <input cFormControl id="pkg-icon" formControlName="icon" placeholder="cil-puzzle" style="font-size:.82rem" />
+                    </div>
+                  </div>
+
+                  <p class="section-label mb-2 mt-2">Comercial</p>
+
+                  <c-row class="g-2 mb-2">
+                    <c-col xs="5">
+                      <label cLabel for="pkg-price" class="small fw-semibold mb-1">Precio (USD)</label>
+                      <input cFormControl type="number" id="pkg-price" formControlName="price" min="0" />
+                    </c-col>
+                    <c-col xs="4">
+                      <label cLabel for="pkg-billing" class="small fw-semibold mb-1">Período</label>
+                      <select cFormSelect class="form-select-sm" id="pkg-billing" formControlName="billingPeriod">
+                        <option value="monthly">Mensual</option>
+                        <option value="yearly">Anual</option>
+                        <option value="one_time">Único</option>
+                      </select>
+                    </c-col>
+                    <c-col xs="3">
+                      <label cLabel for="pkg-order" class="small fw-semibold mb-1">Orden</label>
+                      <input cFormControl type="number" id="pkg-order" formControlName="order" min="1" />
+                    </c-col>
+                  </c-row>
+
+                  <div class="d-flex gap-3 mb-3">
+                    <div class="form-check form-switch">
+                      <input class="form-check-input" type="checkbox" id="pkg-system" formControlName="isSystem" />
+                      <label class="form-check-label small" for="pkg-system">Es del sistema</label>
+                    </div>
+                    <div class="form-check form-switch">
+                      <input class="form-check-input" type="checkbox" id="pkg-state" formControlName="state" />
+                      <label class="form-check-label small" for="pkg-state">Activo</label>
+                    </div>
+                  </div>
+
+                  <!-- Preview mini card -->
+                  <p class="section-label mb-2 mt-2">Vista previa</p>
+                  <div class="rounded overflow-hidden" style="border:1px solid var(--cui-border-color)">
+                    <div class="d-flex align-items-center gap-2 px-3 py-2"
+                      style="background:var(--cui-card-cap-bg,var(--cui-body-bg));border-bottom:1px solid var(--cui-border-color)">
+                      <svg cIcon [name]="formPreview().icon || 'cil-puzzle'"
+                        class="text-{{ formPreview().color }}" style="width:16px;flex-shrink:0"></svg>
+                      <span class="fw-semibold" style="font-size:.85rem">{{ formPreview().name || 'Nombre del paquete' }}</span>
+                      @if (formPreview().isSystem) { <c-badge color="secondary" shape="rounded-pill" style="font-size:.62rem">sistema</c-badge> }
+                      @if (!formPreview().state)   { <c-badge color="danger"    shape="rounded-pill" style="font-size:.62rem">inactivo</c-badge> }
+                    </div>
+                    <div class="px-3 py-2" style="font-size:.78rem">
+                      <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                          @if ((formPreview().price ?? 0) === 0) {
+                          <c-badge color="secondary" shape="rounded-pill" style="font-size:.68rem">Incluido</c-badge>
+                          } @else {
+                          <strong class="text-{{ formPreview().color }}">${{ formPreview().price }}</strong>
+                          <span class="text-muted"> USD{{ billingLabel(formPreview().billingPeriod) }}</span>
+                          }
+                        </div>
+                        <span class="text-muted" style="font-size:.72rem">
+                          {{ resolvedPreview().own.length + resolvedPreview().fromDeps.length }} módulos
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                </c-col>
+
+                <!-- ── DERECHA: Dependencias + Módulos + Resumen ─────────── -->
+                <c-col xs="12" lg="7" class="ps-lg-3 mt-3 mt-lg-0">
+
+                  <p class="section-label mb-2">Requiere estos paquetes</p>
+
+                  <!-- Dep cards: grid compacto 2 columnas -->
+                  <div class="dep-grid mb-3">
+                    @if (availableDependencies().length === 0) {
+                    <p class="text-muted small mb-0">Sin otros paquetes disponibles.</p>
+                    }
+                    @for (dep of availableDependencies(); track dep.code) {
+                    <div class="dep-tile"
+                      [class.dep-tile--selected]="isDependencySelected(dep.code)"
+                      [style.--dep-color]="'var(--cui-' + dep.color + ')'"
+                      (click)="toggleDependency(dep.code)">
+
+                      <!-- Indicador de selección: esquina superior derecha -->
+                      <div class="dep-tile__check"
+                        [class.dep-tile__check--on]="isDependencySelected(dep.code)">
+                        @if (isDependencySelected(dep.code)) {
+                          <svg cIcon name="cil-check" style="width:8px;color:#fff"></svg>
+                        }
+                      </div>
+
+                      <div class="d-flex align-items-center gap-2 mb-1">
+                        <svg cIcon [name]="dep.icon || 'cil-puzzle'"
+                          class="text-{{ dep.color }}" style="width:14px;flex-shrink:0"></svg>
+                        <span class="fw-semibold text-truncate" style="font-size:.82rem">{{ dep.name }}</span>
+                      </div>
+                      <div class="text-muted" style="font-size:.72rem">
+                        {{ dep.modules.length }} módulo{{ dep.modules.length !== 1 ? 's' : '' }}
+                      </div>
+                      @if (isDependencySelected(dep.code)) {
+                      <div class="d-flex flex-wrap gap-1 mt-1">
+                        @for (mod of dep.modules.slice(0,2); track mod) {
+                        <c-badge color="{{ dep.color }}" variant="outline" shape="rounded-pill"
+                          style="font-size:.6rem;max-width:70px;overflow:hidden;text-overflow:ellipsis">{{ mod }}</c-badge>
+                        }
+                        @if (dep.modules.length > 2) {
+                        <c-badge color="secondary" shape="rounded-pill" style="font-size:.6rem">
+                          +{{ dep.modules.length - 2 }}
+                        </c-badge>
+                        }
+                      </div>
+                      }
+                    </div>
+                    }
+                  </div>
+
+                  <!-- Módulos: encabezado + contador total seleccionados -->
+                  <div class="d-flex align-items-center justify-content-between mb-2">
+                    <p class="section-label mb-0" style="border:none;padding:0">Módulos que activa directamente</p>
+                    @if (formModules().length > 0) {
+                    <span class="text-muted" style="font-size:.72rem;white-space:nowrap">
+                      <svg cIcon name="cil-check-circle" class="text-success me-1" style="width:11px"></svg>
+                      {{ formModules().length }} seleccionado{{ formModules().length !== 1 ? 's' : '' }}
+                    </span>
+                    }
+                  </div>
+                  <div style="border-bottom:1px solid var(--cui-border-color)" class="mb-2"></div>
+
+                  <div class="mb-3">
+                    @for (group of moduleGroups(); track group.label) {
+                    <div class="module-group mb-3">
+                      <!-- Cabecera del grupo -->
+                      <div class="d-flex align-items-center justify-content-between mb-1 px-1">
+                        <div class="d-flex align-items-center gap-1">
+                          <svg cIcon [name]="group.icon" style="width:11px;color:var(--cui-text-muted)"></svg>
+                          <span class="module-group__label">{{ group.label }}</span>
+                          <span class="module-group__count"
+                            [class.module-group__count--active]="groupSelectedCount(group.modules) > 0">
+                            {{ groupSelectedCount(group.modules) }}/{{ group.modules.length }}
+                          </span>
+                        </div>
+                        <button type="button" class="module-group__toggle-all"
+                          [class.module-group__toggle-all--active]="isGroupAllSelected(group.modules)"
+                          (click)="toggleGroupAll(group.modules)">
+                          @if (isGroupAllSelected(group.modules)) {
+                            <svg cIcon name="cil-x" style="width:8px;margin-right:2px"></svg>Ninguno
+                          } @else {
+                            <svg cIcon name="cil-check-alt" style="width:8px;margin-right:2px"></svg>Todos
+                          }
+                        </button>
+                      </div>
+
+                      <!-- Chips del grupo -->
+                      <div class="d-flex flex-wrap gap-1 ps-1">
+                        @for (mod of group.modules; track mod.code) {
+                        <button type="button" class="module-chip"
+                          [class.module-chip--selected]="isModuleSelected(mod.code)"
+                          [cTooltip]="mod.description || mod.name"
+                          (click)="toggleModule(mod.code)">
+                          @if (isModuleSelected(mod.code)) {
+                          <svg cIcon name="cil-check" style="width:9px;margin-right:2px"></svg>
+                          }
+                          {{ mod.name }}
+                          <span class="module-chip__code">({{ mod.code }})</span>
+                        </button>
+                        }
+                      </div>
+                    </div>
+                    }
+                  </div>
+
+                  <!-- Resumen de activación -->
+                  @if ((resolvedPreview().own.length + resolvedPreview().fromDeps.length) > 0) {
+                  <div class="bg-body-tertiary rounded-2 p-2" style="border:1px solid var(--cui-border-color)">
+                    <!-- Título del resumen -->
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                      <svg cIcon name="cil-check-circle" class="text-success flex-shrink-0" style="width:13px"></svg>
+                      <span class="fw-semibold" style="font-size:.78rem">
+                        Se activarán
+                        <strong class="text-{{ formPreview().color }}">
+                          {{ resolvedPreview().own.length + resolvedPreview().fromDeps.length }}
+                        </strong>
+                        módulos al asignar este paquete
+                      </span>
+                    </div>
+
+                    <!-- Propios -->
+                    @if (resolvedPreview().own.length) {
+                    <div class="mb-1">
+                      <span class="text-muted d-block mb-1" style="font-size:.68rem;text-transform:uppercase;letter-spacing:.04em;font-weight:600">
+                        Directos ({{ resolvedPreview().own.length }})
+                      </span>
+                      <div class="d-flex flex-wrap gap-1">
+                        @for (mod of resolvedPreview().own; track mod) {
+                        <c-badge color="{{ formPreview().color }}" shape="rounded-pill" style="font-size:.67rem">{{ mod }}</c-badge>
+                        }
+                      </div>
+                    </div>
+                    }
+
+                    <!-- Heredados -->
+                    @if (resolvedPreview().fromDeps.length) {
+                    <div class="pt-1" style="border-top:1px dashed var(--cui-border-color)">
+                      <span class="text-muted d-block mb-1" style="font-size:.68rem;text-transform:uppercase;letter-spacing:.04em;font-weight:600">
+                        Heredados de dependencias ({{ resolvedPreview().fromDeps.length }})
+                      </span>
+                      <div class="d-flex flex-wrap gap-1">
+                        @for (mod of resolvedPreview().fromDeps; track mod) {
+                        <c-badge color="secondary" variant="outline" shape="rounded-pill" style="font-size:.67rem">{{ mod }}</c-badge>
+                        }
+                      </div>
+                    </div>
+                    }
+                  </div>
+                  } @else {
+                  <div class="bg-body-tertiary rounded-2 text-center py-3"
+                    style="font-size:.8rem;border:1px dashed var(--cui-border-color)">
+                    <svg cIcon name="cil-puzzle" style="width:18px;opacity:.3;display:block;margin:0 auto 5px"></svg>
+                    <span class="text-muted">Selecciona módulos o dependencias</span>
+                  </div>
+                  }
+
+                </c-col>
+              </c-row>
+            </form>
+          </c-card-body>
+
+          <!-- Panel footer -->
+          <c-card-footer class="d-flex justify-content-between align-items-center py-2 px-3">
+            <small class="text-muted">
+              @if (form.invalid && form.touched) {
+                <svg cIcon name="cil-warning" class="text-danger me-1" style="width:12px"></svg>
+                Completa los campos requeridos
+              }
+            </small>
+            <div class="d-flex gap-2">
+              <button cButton color="secondary" variant="ghost" size="sm" (click)="closeModal()">Cancelar</button>
+              <button cButton color="primary" size="sm" (click)="save()" [disabled]="form.invalid">
+                @if (editingPackage()) {
+                  <svg cIcon name="cil-check" class="me-1"></svg> Guardar cambios
+                } @else {
+                  <svg cIcon name="cil-plus" class="me-1"></svg> Crear paquete
+                }
+              </button>
+            </div>
+          </c-card-footer>
+
+        </c-card>
+      </div>
+    </c-col>
+    }
+
+  </c-row>
+
+</c-container>
+
+<style>
+  /* ── Labels de sección ───────────────────────────────── */
+  .section-label {
+    font-size: .7rem;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--cui-text-muted);
+    font-weight: 700;
+    border-bottom: 1px solid var(--cui-border-color);
+    padding-bottom: 4px;
+    display: block;
+  }
+
+  /* ── Guía informativa ────────────────────────────────── */
+  .step-circle {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--cui-primary); color: #fff;
+    font-size: .82rem; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .guide-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 3px 10px; border-radius: 20px;
+    background: var(--cui-body-bg);
+    border: 1px solid var(--cui-border-color);
+    font-size: .77rem; color: var(--cui-text-muted);
+  }
+
+  /* ── Nodo del árbol de dependencias ──────────────────── */
+  .dep-node {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 8px; border-radius: 4px;
+    background: var(--cui-card-bg, var(--cui-body-bg));
+    border: 1px solid var(--cui-border-color);
+    font-size: .73rem; font-weight: 600; white-space: nowrap;
+    cursor: default;
+  }
+
+  /* ── Package card destacada al editar ────────────────── */
+  .pkg-card { transition: box-shadow .2s; }
+  .pkg-card--editing { box-shadow: 0 0 0 2px var(--cui-primary) !important; }
+
+  /* ── Color swatches ──────────────────────────────────── */
+  .color-swatch {
+    width: 24px; height: 24px; border-radius: 50%;
+    border: 2px solid transparent; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: transform .15s, border-color .15s;
+  }
+  .color-swatch:hover    { transform: scale(1.18); }
+  .color-swatch.selected { border-color: var(--cui-body-color); transform: scale(1.1); }
+
+  /* ── Module group ────────────────────────────────────── */
+  .module-group__label {
+    font-size: .7rem; text-transform: uppercase; letter-spacing: .05em;
+    color: var(--cui-text-muted); font-weight: 600;
+  }
+  .module-group__count {
+    font-size: .68rem; padding: 1px 6px; border-radius: 10px;
+    background: var(--cui-border-color); color: var(--cui-text-muted);
+    font-weight: 600; transition: background .15s, color .15s;
+  }
+  .module-group__count--active {
+    background: color-mix(in srgb, var(--cui-primary) 15%, transparent);
+    color: var(--cui-primary);
+  }
+  .module-group__toggle-all {
+    display: inline-flex; align-items: center;
+    font-size: .67rem; padding: 1px 7px; border-radius: 10px;
+    border: 1px solid var(--cui-border-color);
+    background: transparent; color: var(--cui-text-muted);
+    cursor: pointer; transition: all .12s; white-space: nowrap;
+  }
+  .module-group__toggle-all:hover { border-color: var(--cui-primary); color: var(--cui-primary); }
+  .module-group__toggle-all--active {
+    border-color: var(--cui-danger); color: var(--cui-danger);
+  }
+
+  /* ── Module chips ────────────────────────────────────── */
+  .module-chip {
+    display: inline-flex; align-items: center;
+    padding: 3px 10px; border-radius: 20px;
+    border: 1.5px solid var(--cui-border-color);
+    background: transparent; font-size: .73rem; cursor: pointer;
+    color: var(--cui-body-color);
+    transition: background .12s, border-color .12s, color .12s;
+    white-space: nowrap;
+  }
+  .module-chip:hover { border-color: var(--cui-primary); color: var(--cui-primary); background: color-mix(in srgb, var(--cui-primary) 6%, transparent); }
+  .module-chip.module-chip--selected {
+    background: var(--cui-primary); border-color: var(--cui-primary); color: #fff;
+  }
+  .module-chip__code { opacity: .6; font-size: .67rem; margin-left: 3px; }
+  .module-chip--selected .module-chip__code { opacity: .85; }
+
+  /* ── Dependency tiles (grid 2 columnas) ─────────────── */
+  .dep-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .dep-tile {
+    position: relative;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1.5px solid var(--cui-border-color);
+    background: var(--cui-body-bg);
+    cursor: pointer;
+    transition: border-color .15s;
+    overflow: hidden;
+  }
+  .dep-tile:hover { border-color: var(--cui-border-color-translucent); filter: brightness(1.03); }
+
+  /* Cuando está seleccionada: borde izquierdo de color + borde completo más definido */
+  .dep-tile--selected {
+    border-color: var(--dep-color, var(--cui-primary)) !important;
+    border-left-width: 3px;
+  }
+
+  /* Indicador circular en esquina superior derecha */
+  .dep-tile__check {
+    position: absolute; top: 7px; right: 8px;
+    width: 16px; height: 16px; border-radius: 50%;
+    border: 1.5px solid var(--cui-border-color);
+    background: transparent;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .15s, border-color .15s;
+  }
+  .dep-tile__check--on {
+    background: var(--dep-color, var(--cui-primary));
+    border-color: var(--dep-color, var(--cui-primary));
+  }
+
+  /* ── Responsive border ───────────────────────────────── */
+  @media (max-width: 991px) {
+    [style*="border-right"] { border-right: none !important; border-bottom: 1px solid var(--cui-border-color); padding-bottom: 1rem; margin-bottom: .75rem; }
+  }
+</style>

@@ -98,22 +98,24 @@
           <label cLabel for="planPrice">Precio USD/mes *</label>
           <input cFormControl id="planPrice" type="number" formControlName="price" min="0">
         </c-col>
-        <c-col md="3">
-          <label cLabel>Usuarios *</label>
-          <input cFormControl type="number" formControlName="limits.users" min="1">
-        </c-col>
-        <c-col md="3">
-          <label cLabel>Facturas/mes *</label>
-          <input cFormControl type="number" formControlName="limits.invoicesPerMonth" min="1">
-        </c-col>
-        <c-col md="3">
-          <label cLabel>Almacenes *</label>
-          <input cFormControl type="number" formControlName="limits.warehouses" min="1">
-        </c-col>
-        <c-col md="3">
-          <label cLabel>Storage GB *</label>
-          <input cFormControl type="number" formControlName="limits.storageGb" min="1">
-        </c-col>
+        <ng-container formGroupName="limits">
+          <c-col md="3">
+            <label cLabel>Usuarios *</label>
+            <input cFormControl type="number" formControlName="users" min="1">
+          </c-col>
+          <c-col md="3">
+            <label cLabel>Facturas/mes *</label>
+            <input cFormControl type="number" formControlName="invoicesPerMonth" min="1">
+          </c-col>
+          <c-col md="3">
+            <label cLabel>Almacenes *</label>
+            <input cFormControl type="number" formControlName="warehouses" min="1">
+          </c-col>
+          <c-col md="3">
+            <label cLabel>Storage GB *</label>
+            <input cFormControl type="number" formControlName="storageGb" min="1">
+          </c-col>
+        </ng-container>
       </c-row>
     </form>
   </c-modal-body>

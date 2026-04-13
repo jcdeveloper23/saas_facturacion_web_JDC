@@ -1,0 +1,816 @@
+{
+  "info": {
+    "name": "FacturaSec — Cloud Functions",
+    "description": "Colección completa para validar todas las Cloud Functions de facturación electrónica SRI Ecuador.\n\n**Setup:**\n1. Configura las variables de entorno en el Environment adjunto.\n2. Ejecuta primero '0. Auth > Get ID Token' para obtener el token.\n3. Sigue el orden numérico de las carpetas para cada flujo.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "https://us-central1-facturasproec.cloudfunctions.net", "type": "string" },
+    { "key": "firebaseApiKey", "value": "AIza...", "description": "Web API Key del proyecto Firebase (Firebase Console > Project Settings)", "type": "string" },
+    { "key": "idToken", "value": "", "description": "Se llena automáticamente al ejecutar 'Get ID Token'", "type": "string" },
+    { "key": "companyId", "value": "COMPANY_ID_AQUI", "type": "string" },
+    { "key": "invoiceId", "value": "", "type": "string" },
+    { "key": "creditNoteId", "value": "", "type": "string" },
+    { "key": "debitNoteId", "value": "", "type": "string" },
+    { "key": "retentionId", "value": "", "type": "string" },
+    { "key": "testEmail", "value": "tucorreo@email.com", "type": "string" },
+    { "key": "testRuc", "value": "1713175071001", "description": "RUC de empresa de prueba", "type": "string" },
+    { "key": "certBase64", "value": "", "description": "Certificado .p12 en Base64", "type": "string" },
+    { "key": "certPassword", "value": "", "description": "Contraseña del certificado .p12", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "0. Auth",
+      "description": "Autenticación Firebase. Ejecutar primero para obtener idToken.",
+      "item": [
+        {
+          "name": "Get ID Token (email + password)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.idToken) {",
+                  "  pm.collectionVariables.set('idToken', res.idToken);",
+                  "  pm.test('Token obtenido OK', () => pm.response.to.have.status(200));",
+                  "  console.log('Token expira en:', res.expiresIn, 'segundos');",
+                  "} else {",
+                  "  pm.test('ERROR: no se obtuvo token', () => false);",
+                  "  console.log(JSON.stringify(res));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={{firebaseApiKey}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@tuempresa.com\",\n  \"password\": \"tu_password\",\n  \"returnSecureToken\": true\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Setup",
+      "description": "Creación de empresa y subida de certificado. Requiere rol super_admin.",
+      "item": [
+        {
+          "name": "setupCompany",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Tiene companyId', () => pm.expect(res.result.companyId).to.be.a('string'));",
+                  "if (res.result.companyId) {",
+                  "  pm.collectionVariables.set('companyId', res.result.companyId);",
+                  "  console.log('companyId guardado:', res.result.companyId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{idToken}}" }
+            ],
+            "url": "{{baseUrl}}/setupCompany",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"name\": \"Empresa Prueba SRI\",\n    \"taxId\": \"{{testRuc}}\",\n    \"fiscalAddress\": \"Av. Principal 123, Quito\",\n    \"city\": \"Quito\",\n    \"phone\": \"0999999999\",\n    \"email\": \"{{testEmail}}\",\n    \"sri\": {\n      \"ruc\": \"{{testRuc}}\",\n      \"environment\": \"1\",\n      \"businessName\": \"Empresa Prueba SRI\",\n      \"establishment\": \"001\",\n      \"emissionPoint\": \"001\",\n      \"contributorType\": \"PERSONA_NATURAL\",\n      \"accountingRequired\": false\n    },\n    \"planId\": \"basic\",\n    \"planName\": \"Plan Básico\",\n    \"status\": \"active\",\n    \"subscriptionEnd\": \"2027-12-31T00:00:00Z\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "uploadCertificate",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Tiene thumbprint', () => pm.expect(res.result.thumbprint).to.be.a('string'));",
+                  "pm.test('Tiene expiresAt', () => pm.expect(res.result.expiresAt).to.exist);",
+                  "console.log('Certificado:', JSON.stringify(res.result, null, 2));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{idToken}}" }
+            ],
+            "url": "{{baseUrl}}/uploadCertificate",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"companyId\": \"{{companyId}}\",\n    \"certificateBase64\": \"{{certBase64}}\",\n    \"password\": \"{{certPassword}}\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "uploadCertificate — ERROR contraseña incorrecta",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Debe retornar error', () => pm.response.to.have.status(400));",
+                  "const res = pm.response.json();",
+                  "pm.test('Mensaje de error presente', () => pm.expect(res.error.message).to.be.a('string'));",
+                  "console.log('Error esperado:', res.error.message);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{idToken}}" }
+            ],
+            "url": "{{baseUrl}}/uploadCertificate",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"companyId\": \"{{companyId}}\",\n    \"certificateBase64\": \"{{certBase64}}\",\n    \"password\": \"PASSWORD_INCORRECTA_12345\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "setUserCustomClaims",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const res = pm.response.json();",
+                  "pm.test('Operación exitosa', () => pm.expect(res.result.success).to.be.true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{idToken}}" }
+            ],
+            "url": "{{baseUrl}}/setUserCustomClaims",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"uid\": \"UID_DEL_USUARIO\",\n    \"role\": \"admin\",\n    \"companyId\": \"{{companyId}}\"\n  }\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Factura Electrónica",
+      "description": "Flujo completo: XML → Firma → SRI → PDF → Email",
+      "item": [
+        {
+          "name": "2.1 generateInvoiceXml",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Tiene accessKey', () => pm.expect(res.result.accessKey).to.be.a('string'));",
+                  "pm.test('accessKey tiene 49 dígitos', () => pm.expect(res.result.accessKey.length).to.equal(49));",
+                  "pm.test('Tiene xmlUrl', () => pm.expect(res.result.xmlUrl).to.be.a('string'));",
+                  "",
+                  "// Validar módulo 11 del dígito verificador",
+                  "const key = res.result.accessKey;",
+                  "const digits = key.split('').map(Number);",
+                  "const weights = [2,3,4,5,6,7];",
+                  "let sum = 0;",
+                  "for (let i = 0; i < 48; i++) {",
+                  "  sum += digits[i] * weights[i % 6];",
+                  "}",
+                  "const remainder = sum % 11;",
+                  "const verifier = remainder === 0 ? 0 : remainder === 1 ? 1 : 11 - remainder;",
+                  "pm.test('Dígito verificador módulo 11 correcto', () => pm.expect(digits[48]).to.equal(verifier));",
+                  "",
+                  "console.log('accessKey:', key);",
+                  "console.log('xmlUrl:', res.result.xmlUrl);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{idToken}}" }
+            ],
+            "url": "{{baseUrl}}/generateInvoiceXml",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"invoiceId\": \"{{invoiceId}}\",\n    \"companyId\": \"{{companyId}}\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "2.2 signXml (factura)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Tiene signedXmlUrl', () => pm.expect(res.result.signedXmlUrl).to.be.a('string'));",
+                  "console.log('signedXmlUrl:', res.result.signedXmlUrl);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{idToken}}" }
+            ],
+            "url": "{{baseUrl}}/signXml",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"invoiceId\": \"{{invoiceId}}\",\n    \"companyId\": \"{{companyId}}\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "2.3 sendToSri (factura)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Tiene sriStatus', () => pm.expect(res.result.sriStatus).to.be.a('string'));",
+                  "",
+                  "const status = res.result.sriStatus;",
+                  "console.log('sriStatus:', status);",
+                  "",
+                  "if (status === 'authorized') {",
+                  "  pm.test('AUTORIZADO: tiene authorizationNumber', () => pm.expect(res.result.authorizationNumber).to.be.a('string'));",
+                  "  pm.test('AUTORIZADO: tiene authorizedAt', () => pm.expect(res.result.authorizedAt).to.exist);",
+                  "  pm.test('authorizationNumber tiene 49 dígitos', () => pm.expect(res.result.authorizationNumber.length).to.equal(49));",
+                  "  console.log('Número autorización:', res.result.authorizationNumber);",
+                  "} else if (status === 'rejected') {",
+                  "  console.log('RECHAZADO - Error SRI:', res.result.sriError);",
+                  "  pm.test('RECHAZADO: tiene sriError', () => pm.expect(res.result.sriError).to.be.a('string'));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{idToken}}" }
+            ],
+            "url": "{{baseUrl}}/sendToSri",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"invoiceId\": \"{{invoiceId}}\",\n    \"companyId\": \"{{companyId}}\",\n    \"documentType\": \"invoice\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "2.4 checkSriStatus (factura)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Tiene sriStatus', () => pm.expect(res.result.sriStatus).to.be.a('string'));",
+                  "console.log('Estado SRI:', res.result.sriStatus, '|', res.result.estado, '-', res.result.mensaje);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{idToken}}" }
+            ],
+            "url": "{{baseUrl}}/checkSriStatus",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"invoiceId\": \"{{invoiceId}}\",\n    \"companyId\": \"{{companyId}}\",\n    \"documentType\": \"invoice\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "2.5 generatePdf (factura)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Tiene pdfUrl', () => pm.expect(res.result.pdfUrl).to.be.a('string'));",
+                  "pm.test('pdfUrl es HTTPS', () => pm.expect(res.result.pdfUrl).to.include('https://'));",
+                  "console.log('pdfUrl:', res.result.pdfUrl);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{idToken}}" }
+            ],
+            "url": "{{baseUrl}}/generatePdf",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"invoiceId\": \"{{invoiceId}}\",\n    \"companyId\": \"{{companyId}}\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "2.6 sendInvoiceEmail",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('sent = true', () => pm.expect(res.result.sent).to.be.true);",
+                  "pm.test('Tiene destinatario', () => pm.expect(res.result.to).to.be.a('string'));",
+                  "console.log('Email enviado a:', res.result.to);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{idToken}}" }
+            ],
+            "url": "{{baseUrl}}/sendInvoiceEmail",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"invoiceId\": \"{{invoiceId}}\",\n    \"companyId\": \"{{companyId}}\"\n  }\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Nota de Crédito",
+      "description": "Flujo completo nota de crédito (Tipo 04). Requiere factura autorizada.",
+      "item": [
+        {
+          "name": "3.1 generateCreditNoteXml",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Tiene accessKey', () => pm.expect(res.result.accessKey).to.be.a('string'));",
+                  "pm.test('accessKey tiene 49 dígitos', () => pm.expect(res.result.accessKey.length).to.equal(49));",
+                  "// Validar codDoc = 04 (posición 8-9 del accessKey)",
+                  "pm.test('codDoc es 04 (Nota de Crédito)', () => pm.expect(res.result.accessKey.substring(8,10)).to.equal('04'));",
+                  "console.log('accessKey NC:', res.result.accessKey);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{idToken}}" }
+            ],
+            "url": "{{baseUrl}}/generateCreditNoteXml",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"creditNoteId\": \"{{creditNoteId}}\",\n    \"companyId\": \"{{companyId}}\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "3.2 signXml (nota de crédito)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{idToken}}" }
+            ],
+            "url": "{{baseUrl}}/signXml",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"creditNoteId\": \"{{creditNoteId}}\",\n    \"companyId\": \"{{companyId}}\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "3.3 sendToSri (nota de crédito)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Tiene sriStatus', () => pm.expect(res.result.sriStatus).to.exist);",
+                  "console.log('NC sriStatus:', res.result.sriStatus);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{idToken}}" }
+            ],
+            "url": "{{baseUrl}}/sendToSri",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"documentId\": \"{{creditNoteId}}\",\n    \"companyId\": \"{{companyId}}\",\n    \"documentType\": \"creditNote\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "3.4 generateCreditNotePdf",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{idToken}}" }
+            ],
+            "url": "{{baseUrl}}/generateCreditNotePdf",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"creditNoteId\": \"{{creditNoteId}}\",\n    \"companyId\": \"{{companyId}}\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "3.5 sendCreditNoteEmail",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{idToken}}" }
+            ],
+            "url": "{{baseUrl}}/sendCreditNoteEmail",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"creditNoteId\": \"{{creditNoteId}}\",\n    \"companyId\": \"{{companyId}}\"\n  }\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Nota de Débito",
+      "description": "Flujo completo nota de débito (Tipo 05).",
+      "item": [
+        {
+          "name": "4.1 generateDebitNoteXml",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Tiene accessKey', () => pm.expect(res.result.accessKey).to.be.a('string'));",
+                  "pm.test('accessKey tiene 49 dígitos', () => pm.expect(res.result.accessKey.length).to.equal(49));",
+                  "pm.test('codDoc es 05 (Nota de Débito)', () => pm.expect(res.result.accessKey.substring(8,10)).to.equal('05'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{idToken}}" }
+            ],
+            "url": "{{baseUrl}}/generateDebitNoteXml",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"debitNoteId\": \"{{debitNoteId}}\",\n    \"companyId\": \"{{companyId}}\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "4.2 signXml (nota de débito)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{idToken}}" }
+            ],
+            "url": "{{baseUrl}}/signXml",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"debitNoteId\": \"{{debitNoteId}}\",\n    \"companyId\": \"{{companyId}}\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "4.3 sendToSri (nota de débito)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{idToken}}" }
+            ],
+            "url": "{{baseUrl}}/sendToSri",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"documentId\": \"{{debitNoteId}}\",\n    \"companyId\": \"{{companyId}}\",\n    \"documentType\": \"debitNote\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "4.4 generateDebitNotePdf",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{idToken}}" }
+            ],
+            "url": "{{baseUrl}}/generateDebitNotePdf",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"debitNoteId\": \"{{debitNoteId}}\",\n    \"companyId\": \"{{companyId}}\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "4.5 sendDebitNoteEmail",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{idToken}}" }
+            ],
+            "url": "{{baseUrl}}/sendDebitNoteEmail",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"debitNoteId\": \"{{debitNoteId}}\",\n    \"companyId\": \"{{companyId}}\"\n  }\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Retención",
+      "description": "Flujo completo retención (Tipo 07).",
+      "item": [
+        {
+          "name": "5.1 generateRetentionXml",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Tiene accessKey', () => pm.expect(res.result.accessKey).to.be.a('string'));",
+                  "pm.test('accessKey tiene 49 dígitos', () => pm.expect(res.result.accessKey.length).to.equal(49));",
+                  "pm.test('codDoc es 07 (Retención)', () => pm.expect(res.result.accessKey.substring(8,10)).to.equal('07'));",
+                  "console.log('accessKey Retención:', res.result.accessKey);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{idToken}}" }
+            ],
+            "url": "{{baseUrl}}/generateRetentionXml",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"retentionId\": \"{{retentionId}}\",\n    \"companyId\": \"{{companyId}}\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "5.2 signXml (retención)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{idToken}}" }
+            ],
+            "url": "{{baseUrl}}/signXml",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"retentionId\": \"{{retentionId}}\",\n    \"companyId\": \"{{companyId}}\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "5.3 sendToSri (retención)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{idToken}}" }
+            ],
+            "url": "{{baseUrl}}/sendToSri",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"documentId\": \"{{retentionId}}\",\n    \"companyId\": \"{{companyId}}\",\n    \"documentType\": \"retention\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "5.4 generateRetentionPdf",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{idToken}}" }
+            ],
+            "url": "{{baseUrl}}/generateRetentionPdf",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"retentionId\": \"{{retentionId}}\",\n    \"companyId\": \"{{companyId}}\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "5.5 sendRetentionEmail",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{idToken}}" }
+            ],
+            "url": "{{baseUrl}}/sendRetentionEmail",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"retentionId\": \"{{retentionId}}\",\n    \"companyId\": \"{{companyId}}\"\n  }\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Utilidades",
+      "item": [
+        {
+          "name": "downloadDocument (XML)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const res = pm.response.json();",
+                  "pm.test('Tiene URL de descarga', () => pm.expect(res.result).to.exist);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{idToken}}" }
+            ],
+            "url": "{{baseUrl}}/downloadDocument",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"documentPath\": \"companies/{{companyId}}/xml/{{invoiceId}}-signed.xml\",\n    \"companyId\": \"{{companyId}}\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "downloadDocument (PDF)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{idToken}}" }
+            ],
+            "url": "{{baseUrl}}/downloadDocument",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"documentPath\": \"companies/{{companyId}}/pdf/{{invoiceId}}.pdf\",\n    \"companyId\": \"{{companyId}}\"\n  }\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Seguridad — Casos de Error",
+      "description": "Verificar que las funciones rechazan accesos no autorizados correctamente.",
+      "item": [
+        {
+          "name": "Sin token → unauthenticated",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Debe retornar 401', () => pm.response.to.have.status(401));",
+                  "const res = pm.response.json();",
+                  "pm.test('Error unauthenticated', () => pm.expect(res.error.status).to.equal('UNAUTHENTICATED'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/generateInvoiceXml",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"invoiceId\": \"{{invoiceId}}\",\n    \"companyId\": \"{{companyId}}\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "companyId diferente → permission-denied",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Debe retornar 403', () => pm.response.to.have.status(403));",
+                  "const res = pm.response.json();",
+                  "pm.test('Error permission-denied', () => pm.expect(res.error.status).to.equal('PERMISSION_DENIED'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{idToken}}" }
+            ],
+            "url": "{{baseUrl}}/generateInvoiceXml",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"invoiceId\": \"{{invoiceId}}\",\n    \"companyId\": \"OTRO_COMPANY_ID_QUE_NO_ES_EL_TUYO\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "invoiceId inexistente → not-found",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Debe retornar 404', () => pm.response.to.have.status(404));",
+                  "const res = pm.response.json();",
+                  "pm.test('Error not-found', () => pm.expect(res.error.status).to.equal('NOT_FOUND'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{idToken}}" }
+            ],
+            "url": "{{baseUrl}}/generateInvoiceXml",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"invoiceId\": \"ID_QUE_NO_EXISTE_XXXXXXXX\",\n    \"companyId\": \"{{companyId}}\"\n  }\n}"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

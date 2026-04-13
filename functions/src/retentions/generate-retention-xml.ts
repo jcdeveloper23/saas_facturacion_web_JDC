@@ -232,10 +232,8 @@ export async function generateRetentionXmlInternal(
     metadata: { contentType: 'application/xml' },
   });
 
-  const [xmlSignedUrl] = await xmlFile.getSignedUrl({
-    action:  'read',
-    expires: Date.now() + 7 * 24 * 60 * 60 * 1000,
-  });
+  await xmlFile.makePublic();
+  const xmlSignedUrl = `https://storage.googleapis.com/${xmlFile.bucket.name}/${xmlFile.name}`;
 
   await db.doc(`companies/${companyId}/retentions/${retentionId}`).update({
     codigoNumerico,

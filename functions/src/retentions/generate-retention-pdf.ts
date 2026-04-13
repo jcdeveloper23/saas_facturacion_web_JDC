@@ -344,10 +344,8 @@ export async function generateRetentionPdfInternal(
   const pdfFile = bucket.file(pdfPath);
   await pdfFile.save(pdfBuffer, { metadata: { contentType: 'application/pdf' } });
 
-  const [pdfUrl] = await pdfFile.getSignedUrl({
-    action: 'read',
-    expires: Date.now() + 30 * 24 * 60 * 60 * 1000,
-  });
+  await pdfFile.makePublic();
+  const pdfUrl = `https://storage.googleapis.com/${pdfFile.bucket.name}/${pdfFile.name}`;
 
   await db.doc(`companies/${companyId}/retentions/${retentionId}`).update({
     pdfUrl, updatedAt: now,

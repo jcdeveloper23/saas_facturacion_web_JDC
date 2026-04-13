@@ -38,9 +38,8 @@ import { signXmlContent } from '../utils/sign-xml-helper';
 export async function signXmlInternal(
   invoiceId: string,
   companyId: string,
-  certPassword?: string,
   xmlFilename?: string
-): Promise<{ signedXmlUrl: string }> {
+): Promise<{ signedXmlUrl: string; accessKey: string; sriStatus: string; invoiceId: string; nextStep: string }> {
   const db = admin.firestore();
   const bucket = getStorage().bucket();
   const now = admin.firestore.Timestamp.now();
@@ -78,11 +77,13 @@ export async function signXmlInternal(
     throw new Error('No se encontró el certificado de firma en Storage. Cargue el certificado .p12 primero.');
   }
 
-  // 4. Resolve cert password
-  const password = certPassword ?? '';
+  // 4. Read cert password from Firestore (never from request)
+  const companySnap = await db.doc(`companies/${companyId}`).get();
+  const password: string = (companySnap.data() as any)?.sri?.certificatePassword ?? '';
   if (!password) {
-    console.warn('[sign-xml] certPassword no proporcionado. Se intentará con contraseña vacía.');
+    throw new Error('No se encontró la contraseña del certificado. Vuelva a subir el certificado .p12 desde la configuración.');
   }
+  console.log('[sign-xml] Contraseña del certificado leída desde Firestore.');
 
   // 5. Sign XML using unified helper (parses .p12 and applies XAdES-BES internally)
   let signedXml: string;
@@ -107,12 +108,13 @@ export async function signXmlInternal(
     throw new Error('Error al guardar XML firmado en Storage');
   }
 
-  const [signedXmlUrl] = await signedXmlFile.getSignedUrl({
-    action: 'read',
-    expires: Date.now() + 7 * 24 * 60 * 60 * 1000,
-  });
+  await signedXmlFile.makePublic();
+  const signedXmlUrl = `https://storage.googleapis.com/${signedXmlFile.bucket.name}/${signedXmlFile.name}`;
 
   // 8. Update Invoice
+  const invoiceData = invoiceSnap.data() as any;
+  const accessKey: string = invoiceData?.accessKey ?? '';
+
   await db.doc(`companies/${companyId}/invoices/${invoiceId}`).update({
     xmlUrl: signedXmlUrl,
     sriStatus: 'signed',
@@ -120,7 +122,13 @@ export async function signXmlInternal(
   });
 
   console.log('[sign-xml] Factura actualizada — sriStatus: signed');
-  return { signedXmlUrl };
+  return {
+    invoiceId,
+    accessKey,
+    sriStatus:     'signed',
+    signedXmlUrl,
+    nextStep:      'sendToSri',
+  };
 }
 
 // ─── Callable function ────────────────────────────────────────────────────────
@@ -130,10 +138,9 @@ export const signXml = onCall(async (request) => {
     throw new HttpsError('unauthenticated', 'Debe estar autenticado.');
   }
 
-  const { invoiceId, companyId, certPassword } = request.data as {
+  const { invoiceId, companyId } = request.data as {
     invoiceId: string;
     companyId: string;
-    certPassword?: string;
   };
 
   if (!invoiceId || typeof invoiceId !== 'string') {
@@ -151,7 +158,7 @@ export const signXml = onCall(async (request) => {
   }
 
   try {
-    return await signXmlInternal(invoiceId, companyId, certPassword);
+    return await signXmlInternal(invoiceId, companyId);
   } catch (err) {
     console.error('[sign-xml] Error callable:', err);
     const message = err instanceof Error ? err.message : 'Error firmando XML';

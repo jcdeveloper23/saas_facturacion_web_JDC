@@ -297,10 +297,8 @@ export async function generateDebitNotePdfInternal(
   const pdfFile = bucket.file(pdfPath);
   await pdfFile.save(pdfBuffer, { metadata: { contentType: 'application/pdf' } });
 
-  const [pdfUrl] = await pdfFile.getSignedUrl({
-    action: 'read',
-    expires: Date.now() + 30 * 24 * 60 * 60 * 1000,
-  });
+  await pdfFile.makePublic();
+  const pdfUrl = `https://storage.googleapis.com/${pdfFile.bucket.name}/${pdfFile.name}`;
 
   await db.doc(`companies/${companyId}/debitNotes/${debitNoteId}`).update({
     pdfUrl, updatedAt: now,

@@ -41,7 +41,13 @@ export const SUPER_ADMIN_ROUTES: Routes = [
         path: 'catalog',
         loadComponent: () =>
           import('../../features/permissions/permissions.component').then(m => m.PermissionsComponent),
-        data: { title: 'Catálogo de Plugins' }
+        data: { title: 'Catálogo de Módulos' }
+      },
+      {
+        path: 'plugin-packages',
+        loadComponent: () =>
+          import('./pages/plugin-packages/plugin-packages.component').then(m => m.PluginPackagesComponent),
+        data: { title: 'Paquetes de Plugins' }
       },
       {
         path: 'plans',

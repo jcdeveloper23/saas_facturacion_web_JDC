@@ -16,9 +16,14 @@ export const superAdminNavItems: INavData[] = [
     iconComponent: { name: 'cil-credit-card' }
   },
   {
-    name: 'Catálogo de Plugins',
+    name: 'Catálogo de Módulos',
     url: '/super-admin/catalog',
     iconComponent: { name: 'cil-puzzle' }
+  },
+  {
+    name: 'Paquetes de Plugins',
+    url: '/super-admin/plugin-packages',
+    iconComponent: { name: 'cil-layers' }
   },
   {
     title: true,

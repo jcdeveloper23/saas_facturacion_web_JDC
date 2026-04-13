@@ -382,10 +382,8 @@ export async function generateCreditNoteXmlInternal(
     throw new Error('Error al guardar XML en Storage');
   }
 
-  const [xmlUrl] = await xmlFile.getSignedUrl({
-    action: 'read',
-    expires: Date.now() + 7 * 24 * 60 * 60 * 1000,
-  });
+  await xmlFile.makePublic();
+  const xmlUrl = `https://storage.googleapis.com/${xmlFile.bucket.name}/${xmlFile.name}`;
 
   // 10. Update Invoice document in Firestore
   await db.doc(`companies/${companyId}/invoices/${creditNoteId}`).update({

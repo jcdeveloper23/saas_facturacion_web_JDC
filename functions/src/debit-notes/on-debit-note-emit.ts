@@ -63,9 +63,9 @@ async function signDebitNoteXml(debitNoteId: string, companyId: string): Promise
   await bucket.file(signedPath).save(Buffer.from(signedXml, 'utf8'), {
     metadata: { contentType: 'application/xml' },
   });
-  const [url] = await bucket.file(signedPath).getSignedUrl({
-    action: 'read', expires: Date.now() + 7 * 24 * 60 * 60 * 1000,
-  });
+  const signedFile = bucket.file(signedPath);
+  await signedFile.makePublic();
+  const url = `https://storage.googleapis.com/${bucket.name}/${signedPath}`;
   await db.doc(`companies/${companyId}/debitNotes/${debitNoteId}`).update({
     xmlUrl: url, sriStatus: 'signed', updatedAt: now,
   });

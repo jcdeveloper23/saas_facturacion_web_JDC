@@ -79,7 +79,7 @@ export const onInvoiceEmit = onDocumentUpdated(
 
         // ── Step 2: Sign XML — xmlFilename = cn-{id}.xml ─────────────────
         console.log('[onInvoiceEmit] [NC] Paso 2/4 — Firmando XML...');
-        await signXmlInternal(invoiceId, companyId, undefined, `cn-${invoiceId}.xml`);
+        await signXmlInternal(invoiceId, companyId, `cn-${invoiceId}.xml`);
         console.log('[onInvoiceEmit] [NC] XML firmado OK.');
 
         // ── Step 3: Send to SRI as creditNote ────────────────────────────

@@ -1,79 +1,88 @@
-# GPS Tracking Platform - Frontend
+# FacturaSec — Frontend
 
-Sistema de rastreo GPS empresarial multi-tenant desarrollado con Angular 21 y CoreUI.
+SaaS de facturación electrónica para Ecuador. Multi-tenant, integración con SRI, firma digital y emisión de documentos electrónicos. Desarrollado con Angular 21 y CoreUI 5.
+
+## Stack Tecnológico
+
+| Tecnología | Versión | Propósito |
+|------------|---------|-----------|
+| Angular | 21.1.x | Framework principal (standalone components) |
+| TypeScript | 5.9.x | Tipado estático |
+| CoreUI Angular | 5.6.x | UI Components / Layout |
+| Firebase / AngularFire | 12.x / 20.x | Auth, Firestore, Hosting |
+| RxJS | 7.8.x | Programación reactiva |
+| Chart.js | 4.5.x | Gráficas y reportes |
+| Leaflet | 1.9.x | Mapas |
+| CryptoJS | 4.2.x | Encriptación en localStorage |
 
 ## Requisitos Previos
 
-- Node.js >= 18.x
-- npm >= 9.x
-- Angular CLI >= 21.x
+- Node.js `^20.19.0 || ^22.12.0 || ^24.0.0`
+- npm `>= 10`
+- Angular CLI `>= 21.x`
+- Firebase CLI (`npm install -g firebase-tools`)
 
-## Instalacion
+## Instalación
 
 ```bash
-# Clonar el repositorio
 git clone <repository-url>
-cd coreui-gps-front-web
-
-# Instalar dependencias
+cd coreui-facturasec-front-web
 npm install
 ```
 
-## Configuracion
+## Configuración
 
-### Variables de Entorno
+Los entornos se encuentran en `src/environments/`:
 
-Los archivos de configuracion se encuentran en `src/environments/`:
+- `environment.ts` — desarrollo local
+- `environment.prod.ts` — producción
 
-- `environment.ts` - Configuracion de desarrollo
-- `environment.prod.ts` - Configuracion de produccion
+Incluyen la configuración de Firebase (apiKey, projectId, etc.) y URLs de Cloud Functions.
 
-```typescript
-export const environment = {
-  production: false,
-  apiGpsUrl: 'http://localhost:3020',  // URL del backend
-  // ... otras configuraciones
-};
-```
-
-## Comandos Disponibles
+## Comandos
 
 ### Desarrollo
 
 ```bash
-# Iniciar servidor de desarrollo
 npm start
-# o
-ng serve
-
-# El servidor estara disponible en http://localhost:4200
+# Disponible en http://localhost:4200
 ```
 
-### Produccion
+### Compilar para Producción
 
 ```bash
-# Compilar para produccion
-npm run build
-# o
-ng build
-
-# Los archivos se generan en: dist/coreui-free-angular-admin-template/
+ng build --configuration production
 ```
 
-### Otros Comandos
+Output generado en: `dist/facturasEC/browser/`
+
+### Desplegar en Firebase Hosting
 
 ```bash
-# Ejecutar tests unitarios
+# Build + deploy en un solo paso
+ng build --configuration production && firebase deploy --only hosting
+
+# Solo deploy (si ya compilaste)
+firebase deploy --only hosting
+```
+
+### Cloud Functions
+
+```bash
+# Deploy de funciones
+firebase deploy --only functions
+
+# Deploy de indexs
+firebase deploy --only firestore:indexes
+
+# Deploy completo (hosting + functions + rules)
+firebase deploy
+```
+
+### Tests
+
+```bash
 npm test
-
-# Ejecutar linter
-npm run lint
-
-# Generar componente
-ng generate component nombre-componente
-
-# Generar servicio
-ng generate service nombre-servicio
 ```
 
 ## Estructura del Proyecto
@@ -81,113 +90,103 @@ ng generate service nombre-servicio
 ```
 src/
 ├── app/
-│   ├── core/                 # Servicios, guards, interceptors, interfaces
-│   │   ├── guards/           # Auth y permission guards
-│   │   ├── interceptors/     # HTTP interceptors
-│   │   ├── interfaces/       # TypeScript interfaces
-│   │   └── services/         # Servicios globales
-│   ├── features/             # Modulos de funcionalidad (lazy-loaded)
-│   │   ├── devices/          # Gestion de dispositivos
-│   │   ├── users/            # Gestion de usuarios
-│   │   ├── organizations/    # Gestion de organizaciones
-│   │   ├── monitor/          # Monitoreo en tiempo real
-│   │   ├── routes/           # Historial de rutas
-│   │   ├── geofences/        # Geocercas
-│   │   └── alerts/           # Alertas
-│   ├── layout/               # Layout principal con sidebar
-│   ├── shared/               # Componentes compartidos
-│   └── views/                # Vistas demo de CoreUI
-├── assets/                   # Recursos estaticos
-└── environments/             # Configuracion por ambiente
+│   ├── core/                   # Guards, interceptors, interfaces, servicios globales
+│   │   ├── guards/             # AuthGuard, RoleGuard
+│   │   ├── interceptors/       # HTTP interceptors
+│   │   ├── interfaces/         # TypeScript interfaces globales
+│   │   └── services/           # Servicios compartidos (auth, config)
+│   ├── features/               # Módulos de funcionalidad (lazy-loaded)
+│   │   ├── invoices/           # Facturas electrónicas
+│   │   ├── debit-notes/        # Notas de débito
+│   │   ├── retentions/         # Retenciones
+│   │   ├── customers/          # Clientes
+│   │   ├── products/           # Productos / servicios
+│   │   ├── personas/           # Personas naturales
+│   │   ├── settings/           # Configuración de empresa y SRI
+│   │   ├── super-admin/        # Gestión de tenants y plataforma
+│   │   ├── users/              # Usuarios y roles
+│   │   ├── plans/              # Planes de suscripción
+│   │   ├── alerts/             # Alertas del sistema
+│   │   └── ...                 # Otros módulos
+│   ├── layout/                 # Layout principal con sidebar CoreUI
+│   └── shared/                 # Componentes y pipes reutilizables
+├── assets/                     # Recursos estáticos
+└── environments/               # Configuración por ambiente
+functions/                      # Cloud Functions (Node.js 20)
+firestore.rules                 # Reglas de seguridad Firestore
+storage.rules                   # Reglas de seguridad Storage
+firebase.json                   # Configuración Firebase
 ```
 
-## Despliegue en Produccion
+## Módulos Principales
 
-### 1. Compilar el proyecto
+| Módulo | Descripción |
+|--------|-------------|
+| `invoices` | Generación, firma y envío de facturas al SRI |
+| `debit-notes` | Notas de débito electrónicas |
+| `retentions` | Comprobantes de retención |
+| `customers` | CRUD de clientes con validación RUC/CI |
+| `products` | Catálogo de productos y servicios |
+| `settings` | Configuración SMTP, certificado .p12, datos SRI |
+| `super-admin` | Administración de empresas y defaults de plataforma |
+
+## Autenticación y Roles
+
+El sistema usa Firebase Auth con custom claims para RBAC multi-tenant:
+
+| Rol | Descripción |
+|-----|-------------|
+| `super_admin` | Acceso total a la plataforma |
+| `admin` | Administrador de empresa (tenant) |
+| `contador` | Emisión y consulta de documentos |
+| `viewer` | Solo lectura |
+
+## Multi-Tenant
+
+Cada empresa (tenant) opera bajo su propio `companyId`. Los datos en Firestore siguen la estructura:
+
+```
+/companies/{companyId}/...      # Datos del tenant
+/platform/defaults/...          # Configuración base de la plataforma
+```
+
+Las Cloud Functions validan el `companyId` del custom claim en cada request.
+
+## Firebase Project
+
+- **Proyecto:** `facturasProEc` (`facturasproec`)
+- **Hosting output:** `dist/facturasEC/browser`
+- **Functions runtime:** Node.js 20
+
+## Configuración GCP — Permisos requeridos
+
+### Signed URLs para Cloud Storage
+
+Las Cloud Functions generan Signed URLs temporales para que el frontend pueda descargar XMLs y PDFs de facturas desde Storage privado. Esto requiere el permiso `iam.serviceAccounts.signBlob` en el service account.
+
+**Pasos (GCP Console):**
+
+1. Ve a [console.cloud.google.com](https://console.cloud.google.com)
+2. Selecciona el proyecto `facturasproec`
+3. Menú izquierdo → **IAM & Admin → IAM**
+4. Busca el service account: `facturasproec@appspot.gserviceaccount.com`
+5. Haz clic en el icono de lápiz (editar)
+6. Clic en **+ Add another role**
+7. Busca y selecciona: **Service Account Token Creator**
+8. Clic en **Save**
+
+**O desde terminal:**
 
 ```bash
-npm run build
+gcloud projects add-iam-policy-binding facturasproec \
+  --member="serviceAccount:facturasproec@appspot.gserviceaccount.com" \
+  --role="roles/iam.serviceAccountTokenCreator"
 ```
 
-### 2. Archivos generados
-
-Los archivos de produccion se encuentran en:
-```
-dist/coreui-free-angular-admin-template/
-├── browser/
-│   ├── index.html
-│   ├── main-*.js
-│   ├── polyfills-*.js
-│   ├── styles-*.css
-│   └── assets/
-```
-
-### 3. Desplegar en servidor web
-
-Copiar el contenido de `dist/coreui-free-angular-admin-template/browser/` a tu servidor web (Nginx, Apache, S3, etc.)
-
-#### Configuracion Nginx (ejemplo)
-
-```nginx
-server {
-    listen 80;
-    server_name tu-dominio.com;
-    root /var/www/gps-frontend/browser;
-    index index.html;
-
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-
-    # Cache para archivos estaticos
-    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2)$ {
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-    }
-}
-```
-
-#### Configuracion Apache (.htaccess)
-
-```apache
-<IfModule mod_rewrite.c>
-    RewriteEngine On
-    RewriteBase /
-    RewriteRule ^index\.html$ - [L]
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteRule . /index.html [L]
-</IfModule>
-```
-
-## Tecnologias Utilizadas
-
-| Tecnologia | Version | Proposito |
-|------------|---------|-----------|
-| Angular | 21.1.0 | Framework principal |
-| TypeScript | 5.9.3 | Tipado estatico |
-| CoreUI Angular | 5.6.7 | UI Components |
-| RxJS | 7.8.2 | Programacion reactiva |
-| Leaflet | 1.9.4 | Mapas interactivos |
-| CryptoJS | 4.2.0 | Encriptacion localStorage |
-
-## Autenticacion y Permisos
-
-El sistema implementa RBAC (Role-Based Access Control) con los siguientes roles:
-
-| Rol | Nivel | Descripcion |
-|-----|-------|-------------|
-| super_admin | 0 | Acceso total al sistema |
-| org_admin | 1 | Admin de organizacion |
-| org_manager | 2 | Gestor de organizacion |
-| operator | 3 | Operador |
-| viewer | 4 | Solo lectura |
-| driver | 5 | Conductor |
-
-## Soporte
-
-Para reportar problemas o solicitar funcionalidades, crear un issue en el repositorio.
+> Este permiso es necesario una sola vez por proyecto. No requiere redesplegar las funciones.
 
 ---
 
-*Ultima actualizacion: Febrero 2026*
+*Última actualización: Abril 2026*
+
+

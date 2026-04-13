@@ -54,6 +54,12 @@ export const SETTINGS_ROUTES: Routes = [
         loadComponent: () =>
           import('./pages/form-config/settings-form-config.component').then(m => m.SettingsFormConfigComponent),
         data: { title: 'Opciones de Formularios' }
+      },
+      {
+        path: 'plugins',
+        loadComponent: () =>
+          import('./pages/plugins/company-plugins-view.component').then(m => m.CompanyPluginsViewComponent),
+        data: { title: 'Mis Plugins' }
       }
     ]
   }

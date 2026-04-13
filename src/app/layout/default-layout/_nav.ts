@@ -170,7 +170,8 @@ export const navItems: INavData[] = [
       { name: 'Tasas de Impuestos',  url: '/settings/tax-rates',      icon: 'nav-icon-bullet' },
       { name: 'Divisas',             url: '/settings/currencies',     icon: 'nav-icon-bullet' },
       { name: 'Países',              url: '/settings/countries',      icon: 'nav-icon-bullet' },
-      { name: 'Formularios',         url: '/settings/form-config',    icon: 'nav-icon-bullet' }
+      { name: 'Formularios',         url: '/settings/form-config',    icon: 'nav-icon-bullet' },
+      { name: 'Mis Plugins',         url: '/settings/plugins',        icon: 'nav-icon-bullet' }
     ]
   },
   // {
@@ -181,25 +182,25 @@ export const navItems: INavData[] = [
   // },
 
   // ─── CoreUI reference (remove after development) ─────────────────────────
-  {
-    title: true,
-    name: 'UI Components'
-  },
-  {
-    name: 'Components',
-    url: '/base',
-    iconComponent: { name: 'cil-puzzle' },
-    children: [
-      { name: 'Cards',  url: '/base/cards',       icon: 'nav-icon-bullet' },
-      { name: 'Tables', url: '/base/tables',      icon: 'nav-icon-bullet' },
-      { name: 'Forms',  url: '/forms/validation', icon: 'nav-icon-bullet' }
-    ]
-  },
-  {
-    name: 'Charts',
-    url: '/charts',
-    iconComponent: { name: 'cil-chart-pie' }
-  }
+  // {
+  //   title: true,
+  //   name: 'UI Components'
+  // },
+  // {
+  //   name: 'Components',
+  //   url: '/base',
+  //   iconComponent: { name: 'cil-puzzle' },
+  //   children: [
+  //     { name: 'Cards',  url: '/base/cards',       icon: 'nav-icon-bullet' },
+  //     { name: 'Tables', url: '/base/tables',      icon: 'nav-icon-bullet' },
+  //     { name: 'Forms',  url: '/forms/validation', icon: 'nav-icon-bullet' }
+  //   ]
+  // },
+  // {
+  //   name: 'Charts',
+  //   url: '/charts',
+  //   iconComponent: { name: 'cil-chart-pie' }
+  // }
 ];
 
 /**
@@ -207,8 +208,8 @@ export const navItems: INavData[] = [
  *
  * Rules:
  *   - item.attributes.roles   → user role must be in the list
- *   - item.attributes.module  → module code must be in activeModules
- *     (skipped when activeModules is empty — graceful bypass for unconfigured companies)
+ *   - item.attributes.module  → module code must be in activeModules;
+ *                               items without a module code are always visible
  *   - Title separators are removed when all items in their section are filtered out
  *
  * Equivalent to FacturaScripts: $GLOBALS['plugins'] check before rendering menu items.
@@ -218,8 +219,6 @@ export function filterNav(
   userRole: string | null,
   activeModules: string[]
 ): INavData[] {
-  const useModuleFilter = activeModules.length > 0;
-
   const filtered: INavData[] = [];
 
   for (const item of items) {
@@ -229,7 +228,7 @@ export function filterNav(
 
     // ── Module check ────────────────────────────────────────────────────────
     const moduleCode = item.attributes?.['module'] as string | undefined;
-    if (useModuleFilter && moduleCode && !activeModules.includes(moduleCode)) continue;
+    if (moduleCode && !activeModules.includes(moduleCode)) continue;
 
     // ── Children (parent with sub-items) ───────────────────────────────────
     if (item.children?.length) {

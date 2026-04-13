@@ -230,6 +230,20 @@ export const MODULES_SEED: ModuleSeed[] = [
     fs_folder: 'TPV', fs_name: 'tpv_recambios'
   },
 
+  // ─── MARKETPLACE ─────────────────────────────────────────────────────────
+
+  {
+    code: 'marketplace',
+    name: 'Catálogo Público',
+    description: 'Catálogo de productos público accesible sin login desde /{slug}',
+    dependencies: ['products'],
+    url: '/marketplace',
+    icon: 'cil-cart',
+    isTitle: false, parent_id: null,
+    showInMenu: true, order: 21, state: true,
+    fs_folder: 'ventas', fs_name: 'marketplace'
+  },
+
   // ─── SRI / FACTURACIÓN ELECTRÓNICA ───────────────────────────────────────
 
   {
