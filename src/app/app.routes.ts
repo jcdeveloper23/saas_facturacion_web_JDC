@@ -120,6 +120,14 @@ export const routes: Routes = [
         loadChildren: () => import('./features/stock/stock.routes').then(m => m.STOCK_ROUTES)
       },
 
+      // ── Purchases ──────────────────────────────────────────────────────
+      {
+        path: 'purchases',
+        canActivate: [authGuard, roleGuard, moduleGuard],
+        data: { roles: ['admin'], module: 'purchases', title: 'Compras' },
+        loadChildren: () => import('./features/purchases/purchases.routes').then(m => m.PURCHASES_ROUTES)
+      },
+
       // ── POS ────────────────────────────────────────────────────────────
       // {
       //   path: 'pos',

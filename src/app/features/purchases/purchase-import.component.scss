@@ -1,0 +1,19 @@
+.drop-zone {
+  border: 2px dashed var(--cui-border-color);
+  border-radius: 0.5rem;
+  padding: 3rem 2rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+  user-select: none;
+
+  &:hover,
+  &.drag-over {
+    border-color: var(--cui-primary);
+    background: color-mix(in srgb, var(--cui-primary) 5%, transparent);
+  }
+
+  &.drag-over {
+    transform: scale(1.01);
+  }
+}

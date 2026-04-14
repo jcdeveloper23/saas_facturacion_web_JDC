@@ -1,0 +1,273 @@
+<!-- ── Header ──────────────────────────────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div class="d-flex align-items-center gap-2">
+    <div class="bg-primary bg-opacity-10 p-2 rounded">
+      <svg cIcon name="cilCloudDownload" size="xl" class="text-primary"></svg>
+    </div>
+    <div>
+      <h3 class="mb-0 fw-semibold">Importar Compras SRI</h3>
+      <p class="text-muted small mb-0">Sube archivos XML o Excel descargados del portal SRI en Línea</p>
+    </div>
+  </div>
+  <button cButton color="secondary" variant="outline" size="sm" (click)="goToList()">
+    <svg cIcon name="cilArrowLeft" class="me-1"></svg> Volver a Compras
+  </button>
+</div>
+
+<!-- ────────────────────────── STEP: upload ─────────────────────────────── -->
+@if (step() === 'upload') {
+  <c-card>
+    <c-card-body class="p-4">
+
+      <!-- Drop zone -->
+      <div class="drop-zone"
+           [class.drag-over]="dragOver()"
+           (dragover)="onDragOver($event)"
+           (dragleave)="onDragLeave($event)"
+           (drop)="onDrop($event)"
+           (click)="openFilePicker()">
+        <svg cIcon name="cilCloudDownload" size="3xl" class="text-muted mb-2"></svg>
+        <p class="mb-1 fw-semibold">Arrastra archivos aquí o haz clic para seleccionar</p>
+        <p class="text-muted small mb-0">
+          Formatos aceptados: <strong>XML</strong> (comprobante individual) y
+          <strong>Excel (.xlsx / .xls)</strong> (reporte masivo SRI)
+        </p>
+      </div>
+
+      <input #fileInput type="file" class="d-none" multiple
+             accept=".xml,.xlsx,.xls"
+             (change)="onFileInputChange($event)">
+
+      <!-- File chips -->
+      @if (files().length) {
+        <div class="mt-3">
+          <p class="text-muted small mb-2">
+            <strong>{{ files().length }}</strong> archivo(s) seleccionado(s):
+          </p>
+          <div class="d-flex flex-wrap gap-2">
+            @for (f of files(); track f.name) {
+              <div class="d-flex align-items-center gap-1 px-2 py-1 border rounded bg-body"
+                   style="font-size:.8rem">
+                <svg cIcon [name]="f.name.toLowerCase().endsWith('.xml') ? 'cilCode' : 'cilFile'"
+                     size="sm" class="text-secondary"></svg>
+                <span>{{ f.name }}</span>
+                <button type="button" class="btn-close ms-1" style="font-size:.55rem"
+                        (click)="removeFile(f.name, $event)"></button>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Action -->
+      <div class="mt-4 d-flex justify-content-end">
+        <button cButton color="primary" [disabled]="!files().length || parsing()"
+                (click)="parseFiles()">
+          @if (parsing()) {
+            <c-spinner size="sm" class="me-1"></c-spinner> Analizando...
+          } @else {
+            <svg cIcon name="cilSearch" class="me-1"></svg> Analizar archivos
+          }
+        </button>
+      </div>
+
+    </c-card-body>
+  </c-card>
+
+  <!-- Info box -->
+  <div class="alert alert-info mt-3 d-flex gap-2 align-items-start" style="font-size:.82rem">
+    <svg cIcon name="cilInfo" class="flex-shrink-0 mt-1"></svg>
+    <div>
+      <strong>¿Cómo descargar los archivos del portal SRI?</strong><br>
+      Ingresa a <strong>SRI en Línea → Facturación Electrónica → Comprobantes Electrónicos Recibidos</strong>.<br>
+      Puedes descargar <strong>XMLs individuales</strong> por comprobante o el
+      <strong>reporte Excel masivo</strong> por período. Los XMLs contienen el detalle
+      completo de productos; el Excel contiene solo los totales.
+    </div>
+  </div>
+}
+
+<!-- ────────────────────────── STEP: preview ────────────────────────────── -->
+@if (step() === 'preview') {
+  <c-card class="mb-0">
+
+    <!-- Summary strip + actions -->
+    <div class="px-3 pt-3 pb-2 border-bottom d-flex gap-3 flex-wrap align-items-center">
+      <span class="fw-semibold small">{{ records().length }} comprobante(s) analizados</span>
+
+      @if (okCount() > 0) {
+        <span class="text-success small d-flex align-items-center gap-1">
+          <svg cIcon name="cilCheckCircle" size="sm"></svg> {{ okCount() }} para importar
+        </span>
+      }
+      @if (duplicateCount() > 0) {
+        <span class="text-warning small d-flex align-items-center gap-1">
+          <svg cIcon name="cilWarning" size="sm"></svg> {{ duplicateCount() }} duplicados (ya existen)
+        </span>
+      }
+      @if (errorCount() > 0) {
+        <span class="text-danger small d-flex align-items-center gap-1">
+          <svg cIcon name="cilBan" size="sm"></svg> {{ errorCount() }} con error
+        </span>
+      }
+
+      <div class="ms-auto d-flex gap-2">
+        <button cButton color="secondary" variant="outline" size="sm" (click)="goBack()">
+          <svg cIcon name="cilArrowLeft" class="me-1"></svg> Volver
+        </button>
+        <button cButton color="primary" size="sm" [disabled]="!hasOk()"
+                (click)="confirmImport()">
+          <svg cIcon name="cilCloudDownload" class="me-1"></svg>
+          Importar {{ okCount() }} factura(s)
+        </button>
+      </div>
+    </div>
+
+    <!-- Preview table -->
+    <div class="table-responsive">
+      <table class="table table-hover table-sm mb-0" style="font-size:.82rem">
+        <thead class="table-light">
+          <tr>
+            <th>Archivo</th>
+            <th>RUC</th>
+            <th>Proveedor</th>
+            <th>N° Factura</th>
+            <th class="text-center">Fecha</th>
+            <th class="text-center">Líneas</th>
+            <th class="text-end">Total</th>
+            <th class="text-center">Estado</th>
+            <th class="text-center">Quitar</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (r of records(); track $index) {
+            <tr [class.table-warning]="r.status === 'duplicate'"
+                [class.table-danger]="r.status === 'error'">
+              <td style="max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">
+                <svg cIcon [name]="r.format === 'xml' ? 'cilCode' : 'cilFile'"
+                     size="sm" class="text-secondary me-1"></svg>
+                <span>{{ r.sourceFile }}</span>
+              </td>
+              <td class="font-monospace" style="font-size:.78rem">{{ r.supplierRuc || '—' }}</td>
+              <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap"
+                  [title]="r.supplierName">
+                {{ r.supplierName || '—' }}
+              </td>
+              <td class="text-nowrap">{{ r.supplierInvoiceNumber || '—' }}</td>
+              <td class="text-center text-nowrap">
+                {{ r.supplierInvoiceDate | date:'dd/MM/yyyy' }}
+              </td>
+              <td class="text-center">{{ r.lines.length }}</td>
+              <td class="text-end font-monospace">$ {{ r.total | number:'1.2-2' }}</td>
+              <td class="text-center">
+                @if (r.status === 'ok') {
+                  <c-badge color="success">OK</c-badge>
+                } @else if (r.status === 'duplicate') {
+                  <c-badge color="warning" title="Este comprobante ya fue importado">
+                    Duplicado
+                  </c-badge>
+                } @else {
+                  <c-badge color="danger" [title]="r.errorMsg ?? 'Error'">
+                    Error
+                  </c-badge>
+                }
+              </td>
+              <td class="text-center">
+                <button cButton color="danger" variant="outline" size="sm"
+                        title="Quitar de la lista"
+                        (click)="removeRecord($index)">
+                  <svg cIcon name="cilTrash"></svg>
+                </button>
+              </td>
+            </tr>
+
+            <!-- Error detail row -->
+            @if (r.status === 'error' && r.errorMsg) {
+              <tr class="table-danger">
+                <td colspan="9" class="py-1 ps-4 pe-3" style="font-size:.75rem; color:#842029">
+                  <svg cIcon name="cilWarning" size="sm" class="me-1"></svg>{{ r.errorMsg }}
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+
+  </c-card>
+}
+
+<!-- ────────────────────────── STEP: importing ──────────────────────────── -->
+@if (step() === 'importing') {
+  <c-card>
+    <c-card-body class="text-center py-5">
+      <c-spinner color="primary" class="mb-3"></c-spinner>
+      <h5 class="mb-1">Importando facturas...</h5>
+      <p class="text-muted small mb-3">
+        Procesando {{ current() }} de {{ total() }}
+      </p>
+      <div style="max-width:400px; margin: 0 auto">
+        <div class="progress" style="height:8px">
+          <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary"
+               [style.width.%]="progress()"></div>
+        </div>
+        <p class="text-muted small mt-2">{{ progress() }}%</p>
+      </div>
+      <p class="text-muted small mt-2">
+        Creando proveedores y productos nuevos automáticamente...
+      </p>
+    </c-card-body>
+  </c-card>
+}
+
+<!-- ────────────────────────── STEP: done ───────────────────────────────── -->
+@if (step() === 'done') {
+  <c-card>
+    <c-card-body class="py-5">
+
+      <div class="text-center mb-4">
+        <div class="bg-success bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center"
+             style="width:72px; height:72px">
+          <svg cIcon name="cilCheckCircle" size="3xl" class="text-success"></svg>
+        </div>
+        <h4 class="fw-semibold mt-3 mb-0">Importación completada</h4>
+      </div>
+
+      @if (summary(); as s) {
+        <div class="d-flex gap-3 justify-content-center flex-wrap mb-4">
+          <div class="text-center border rounded px-4 py-3" style="min-width:110px">
+            <div class="fs-2 fw-bold text-success">{{ s.imported }}</div>
+            <div class="text-muted small">Importadas</div>
+          </div>
+          <div class="text-center border rounded px-4 py-3" style="min-width:110px">
+            <div class="fs-2 fw-bold text-warning">{{ s.duplicates }}</div>
+            <div class="text-muted small">Duplicadas</div>
+          </div>
+          @if (s.errors > 0) {
+            <div class="text-center border rounded px-4 py-3" style="min-width:110px">
+              <div class="fs-2 fw-bold text-danger">{{ s.errors }}</div>
+              <div class="text-muted small">Errores</div>
+            </div>
+          }
+        </div>
+
+        @if (s.imported > 0) {
+          <p class="text-center text-muted small mb-4">
+            Las facturas importadas están en estado <strong>Borrador</strong>.
+            Revísalas y cámbialas a <em>Enviada</em> o <em>Recibida</em> cuando corresponda.
+          </p>
+        }
+      }
+
+      <div class="d-flex gap-2 justify-content-center">
+        <button cButton color="secondary" variant="outline" (click)="resetAndImportMore()">
+          <svg cIcon name="cilCloudDownload" class="me-1"></svg> Importar más
+        </button>
+        <button cButton color="primary" (click)="goToList()">
+          <svg cIcon name="cilBasket" class="me-1"></svg> Ver compras importadas
+        </button>
+      </div>
+
+    </c-card-body>
+  </c-card>
+}

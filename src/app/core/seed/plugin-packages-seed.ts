@@ -110,11 +110,8 @@ export const PLUGIN_PACKAGES_SEED: PackageSeed[] = [
   {
     code:          'pkg_purchases',
     name:          'Módulo Compras',
-    description:   'Facturas de compra recibidas de proveedores, pedidos de compra y proformas de compra con seguimiento de recepción.',
-    // 'suppliers' must be included: purchase_invoices/orders/proformas all declare
-    // dependencies: ['suppliers', 'products'] in modules-seed. Without it,
-    // those modules would fail the dependency check even with pkg_purchases active.
-    modules:       ['suppliers', 'purchase_invoices', 'purchase_orders', 'purchase_proformas'],
+    description:   'Órdenes de compra a proveedores con recepción de mercancía, control de costos y actualización automática de inventario.',
+    modules:       ['purchases'],
     dependencies:  ['pkg_sales'],
     price:         19,
     currency:      'USD',

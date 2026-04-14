@@ -124,6 +124,16 @@ export const navItems: INavData[] = [
       { name: 'Movimientos',         url: '/stock/movements',  icon: 'nav-icon-bullet' }
     ]
   },
+  {
+    name: 'Compras',
+    url: '/purchases',
+    iconComponent: { name: 'cil-basket' },
+    attributes: { module: 'purchases', roles: ['admin'] },
+    children: [
+      { name: 'Órdenes de Compra', url: '/purchases',     icon: 'nav-icon-bullet' },
+      { name: 'Nueva Compra',      url: '/purchases/new', icon: 'nav-icon-bullet' }
+    ]
+  },
 
   // ─── Reports ─────────────────────────────────────────────────────────────
   // {

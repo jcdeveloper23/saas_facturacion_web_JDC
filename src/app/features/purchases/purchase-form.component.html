@@ -1,0 +1,443 @@
+<!-- ── Page header ──────────────────────────────────────────────────────────── -->
+<div class="page-header">
+  <div class="page-icon">
+    <svg cIcon name="cilBasket" size="lg"></svg>
+  </div>
+  <div class="flex-grow-1">
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+      <h4 class="mb-0 fw-semibold">{{ pageTitle() }}</h4>
+      @if (!isNew()) {
+        <c-badge [color]="STATUS_COLORS[currentStatus()]">
+          {{ STATUS_LABELS[currentStatus()] }}
+        </c-badge>
+      }
+      @if (isReadOnly()) {
+        <c-badge color="warning">Solo lectura</c-badge>
+      }
+    </div>
+    <p class="text-muted small mb-0">
+      @if (isNew()) { Registre la factura de compra del proveedor }
+      @else { Detalle de la compra · almacén {{ purchase()?.warehouseName }} }
+    </p>
+  </div>
+  <div class="d-flex gap-2 align-items-center">
+    @if (currentStatus() === 'received' && !purchase()?.retentionId) {
+      <button cButton color="warning" variant="outline" size="sm" (click)="generateRetention()">
+        <svg cIcon name="cilInbox" class="me-1"></svg> Generar Retención
+      </button>
+    }
+    @if (purchase()?.retentionId) {
+      <a cButton color="warning" variant="ghost" size="sm"
+         [routerLink]="['/retentions', purchase()?.retentionId]">
+        <svg cIcon name="cilInbox" class="me-1"></svg> Ver Retención
+      </a>
+    }
+    <button cButton color="secondary" variant="outline" size="sm" (click)="goBack()">
+      <svg cIcon name="cilArrowLeft" class="me-1"></svg> Volver
+    </button>
+  </div>
+</div>
+
+@if (loading()) {
+  <div class="text-center py-5">
+    <c-spinner color="primary"></c-spinner>
+  </div>
+} @else {
+<form [formGroup]="form">
+
+  <!-- ── Cabecera: 2 columnas ──────────────────────────────────────────────── -->
+  <c-row class="g-3 mb-3">
+
+    <!-- Columna izquierda -->
+    <c-col md="8">
+      <c-card>
+        <c-card-body>
+          <p class="section-title">Datos de la factura del proveedor</p>
+
+          <!-- Fila 1: N° Factura · Fecha Factura · Almacén -->
+          <div class="d-flex gap-3 flex-wrap mb-2">
+            <div class="inv-field" style="flex:2; min-width:140px">
+              <label class="inv-label">N° Factura Proveedor<span class="req">*</span></label>
+              <input class="form-control inv-ctrl" formControlName="supplierInvoiceNumber"
+                     placeholder="001-001-000000001"
+                     [class.is-invalid]="form.get('supplierInvoiceNumber')?.invalid && form.get('supplierInvoiceNumber')?.touched">
+            </div>
+            <div class="inv-field" style="flex:1; min-width:130px">
+              <label class="inv-label">Fecha Factura<span class="req">*</span></label>
+              <input type="date" class="form-control inv-ctrl" formControlName="supplierInvoiceDate">
+            </div>
+            <div class="inv-field" style="flex:1.5; min-width:140px">
+              <label class="inv-label">Almacén<span class="req">*</span></label>
+              <select class="form-select inv-ctrl" formControlName="warehouseCode"
+                      [class.is-invalid]="form.get('warehouseCode')?.invalid && form.get('warehouseCode')?.touched">
+                <option value="">— Seleccione —</option>
+                @for (w of warehouses(); track w.code) {
+                  <option [value]="w.code">{{ w.name }}</option>
+                }
+              </select>
+            </div>
+          </div>
+
+          <!-- Fila 2: Fecha orden interna · Fecha esperada -->
+          <div class="d-flex gap-3 flex-wrap mb-2">
+            <div class="inv-field" style="flex:1; min-width:130px">
+              <label class="inv-label">Fecha Orden Interna<span class="req">*</span></label>
+              <input type="date" class="form-control inv-ctrl" formControlName="date">
+            </div>
+            <div class="inv-field" style="flex:1; min-width:130px">
+              <label class="inv-label">Fecha Esperada</label>
+              <input type="date" class="form-control inv-ctrl" formControlName="expectedDate">
+            </div>
+            <div class="inv-field" style="flex:2; min-width:200px">
+              <label class="inv-label">Clave Acceso SRI (49 dígitos, opcional)</label>
+              <input class="form-control inv-ctrl" formControlName="supplierAccessKey"
+                     placeholder="0000000000000000000000000000000000000000000000000"
+                     maxlength="49"
+                     [class.is-invalid]="form.get('supplierAccessKey')?.invalid && form.get('supplierAccessKey')?.touched">
+            </div>
+          </div>
+
+          <!-- Fila 3: Notas -->
+          <div class="inv-field">
+            <label class="inv-label">Notas</label>
+            <textarea class="form-control inv-ctrl" formControlName="notes" rows="2"
+                      placeholder="Observaciones internas sobre esta compra..."></textarea>
+          </div>
+        </c-card-body>
+      </c-card>
+    </c-col>
+
+    <!-- Columna derecha: Proveedor -->
+    <c-col md="4">
+      <c-card class="h-100">
+        <c-card-body>
+          <p class="section-title">Proveedor<span style="color:var(--cui-danger)">*</span></p>
+
+          @if (selectedSupplier()) {
+            <div class="supp-chip">
+              <div class="flex-grow-1 min-width-0">
+                <div class="supp-chip__name">{{ selectedSupplier()!.name }}</div>
+                <div class="supp-chip__meta">{{ selectedSupplier()!.taxId }}</div>
+              </div>
+              @if (!isReadOnly()) {
+                <button class="supp-chip__btn" type="button" (click)="clearSupplier()" title="Cambiar proveedor">
+                  <svg cIcon name="cilX" size="sm"></svg>
+                </button>
+              }
+            </div>
+            <!-- Retenciones del proveedor -->
+            <div class="mt-2 p-2 rounded" style="background:var(--cui-tertiary-bg); font-size:.77rem">
+              <div class="d-flex justify-content-between">
+                <span class="text-muted">Ret. IR:</span>
+                <span class="fw-semibold">{{ selectedSupplier()!.supplierData?.irRetentionPct ?? 0 }}%</span>
+              </div>
+              <div class="d-flex justify-content-between">
+                <span class="text-muted">Ret. IVA:</span>
+                <span class="fw-semibold">{{ selectedSupplier()!.supplierData?.vatRetentionPct ?? 0 }}%</span>
+              </div>
+            </div>
+          } @else {
+            <!-- Search box -->
+            <div class="supp-wrap">
+              <input class="form-control form-control-sm"
+                     [value]="supplierSearch()"
+                     (input)="onSupplierInput($any($event.target).value)"
+                     (blur)="blurSupplier()"
+                     (focus)="showSupplierDrop.set(supplierSearch().length >= 2)"
+                     placeholder="Buscar por nombre o RUC..."
+                     [disabled]="isReadOnly()">
+              @if (showSupplierDrop() && supplierResults().length > 0) {
+                <div class="supp-result">
+                  @for (s of supplierResults(); track s.id) {
+                    <div class="supp-item" (mousedown)="selectSupplier(s)">
+                      <div>{{ s.name }}</div>
+                      <div class="supp-item--sub">{{ s.taxId }} · {{ s.taxIdType }}</div>
+                    </div>
+                  }
+                </div>
+              }
+              @if (showSupplierDrop() && supplierSearch().length >= 2 && supplierResults().length === 0) {
+                <div class="supp-result">
+                  <div class="supp-item text-muted">Sin resultados</div>
+                </div>
+              }
+            </div>
+          }
+        </c-card-body>
+      </c-card>
+    </c-col>
+  </c-row>
+
+  <!-- ── Líneas ─────────────────────────────────────────────────────────────── -->
+  <c-card class="mb-3">
+    <c-card-body class="p-2">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <p class="section-title mb-0">Líneas de compra</p>
+        @if (!isReadOnly()) {
+          <button cButton color="primary" variant="outline" size="sm" type="button" (click)="addLine()">
+            <svg cIcon name="cilPlus" class="me-1"></svg> Agregar línea
+          </button>
+        }
+      </div>
+
+      <div class="table-responsive">
+        <table class="lines-table" formArrayName="lines">
+          <thead>
+            <tr>
+              <th style="width:32%">Producto</th>
+              <th style="width:14%">Descripción</th>
+              <th class="text-end" style="width:7%">Cant.</th>
+              <th class="text-end" style="width:9%">P.Costo</th>
+              <th class="text-end" style="width:7%">Dto%</th>
+              <th class="text-center" style="width:7%">IVA%</th>
+              <th class="text-end" style="width:10%">Subtotal</th>
+              <th class="text-end" style="width:10%">Total</th>
+              @if (!isReadOnly()) {
+                <th style="width:4%"></th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (ctrl of linesArray.controls; track $index) {
+              <tr [formGroupName]="$index">
+                <!-- Producto: nombre + botón búsqueda -->
+                <td>
+                  <div class="line-desc-wrap">
+                    <div class="line-desc-field">
+                      <input class="form-control" formControlName="productName"
+                             placeholder="Nombre del producto"
+                             [class.is-invalid]="ctrl.get('productName')?.invalid && ctrl.get('productName')?.touched">
+                      <div style="font-size:.65rem; color:var(--cui-secondary-color); margin-top:1px">
+                        {{ ctrl.get('productSku')?.value }}
+                      </div>
+                    </div>
+                    @if (!isReadOnly()) {
+                      <button class="line-search-btn" type="button"
+                              title="Buscar producto"
+                              (click)="openProductSearch($index, $event)">
+                        <svg cIcon name="cilSearch" size="sm"></svg>
+                      </button>
+                    }
+                  </div>
+                </td>
+                <!-- Descripción -->
+                <td>
+                  <input class="form-control" formControlName="description"
+                         placeholder="Detalle...">
+                </td>
+                <!-- Cantidad -->
+                <td class="cell-num">
+                  <input type="number" class="form-control" formControlName="qty"
+                         min="0.001" step="1">
+                </td>
+                <!-- Precio costo -->
+                <td class="cell-num">
+                  <input type="number" class="form-control" formControlName="unitCost"
+                         min="0" step="0.01">
+                </td>
+                <!-- Descuento % -->
+                <td class="cell-num">
+                  <input type="number" class="form-control" formControlName="discount"
+                         min="0" max="100" step="0.01">
+                </td>
+                <!-- IVA % -->
+                <td class="text-center">
+                  <select class="form-select" formControlName="taxRate">
+                    @for (v of vatOptions; track v) {
+                      <option [value]="v">{{ v }}%</option>
+                    }
+                  </select>
+                </td>
+                <!-- Subtotal -->
+                <td class="text-end font-monospace" style="font-size:.79rem; white-space:nowrap">
+                  {{ ctrl.get('subtotal')?.value | number:'1.2-2' }}
+                </td>
+                <!-- Total -->
+                <td class="text-end font-monospace fw-semibold" style="font-size:.79rem; white-space:nowrap">
+                  {{ ctrl.get('total')?.value | number:'1.2-2' }}
+                </td>
+                @if (!isReadOnly()) {
+                  <td class="text-center">
+                    <button type="button" class="btn btn-sm btn-outline-danger p-0"
+                            style="width:22px; height:22px; display:flex; align-items:center; justify-content:center"
+                            [disabled]="linesArray.length === 1"
+                            (click)="removeLine($index)">
+                      <svg cIcon name="cilX" size="sm"></svg>
+                    </button>
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Product search dropdown (position:fixed) -->
+      @if (showProductDrop()) {
+        <div class="product-drop-fixed"
+             [style.top.px]="productDropPos().top"
+             [style.left.px]="productDropPos().left">
+          <input class="form-control form-control-sm mb-1"
+                 placeholder="Buscar por nombre o SKU..."
+                 [value]="productSearch()"
+                 (input)="onProductInput($any($event.target).value)"
+                 (blur)="closeProductDrop()">
+          @if (productResults().length > 0) {
+            @for (p of productResults(); track p.id) {
+              <div class="d-flex align-items-center gap-2 px-2 py-1 rounded"
+                   style="cursor:pointer; font-size:.8rem"
+                   (mousedown)="selectProduct(p, productSearchIdx()!)">
+                <div>
+                  <div>{{ p.name }}</div>
+                  <div style="font-size:.7rem; color:var(--cui-secondary-color)">
+                    {{ p.sku }} · Costo: ${{ p.costPrice | number:'1.2-2' }}
+                  </div>
+                </div>
+              </div>
+            }
+          } @else if (productSearch().length >= 2) {
+            <div class="px-2 py-1 text-muted" style="font-size:.8rem">Sin resultados</div>
+          } @else {
+            <div class="px-2 py-1 text-muted" style="font-size:.8rem">Escriba para buscar...</div>
+          }
+        </div>
+      }
+    </c-card-body>
+  </c-card>
+
+  <!-- ── Totales + Acciones ─────────────────────────────────────────────────── -->
+  <c-row class="g-3">
+    <!-- Acciones -->
+    <c-col md="8">
+      @if (!isReadOnly()) {
+        <c-card>
+          <c-card-body>
+            <p class="section-title">Acciones</p>
+            <div class="d-flex gap-2 flex-wrap">
+              <button cButton color="secondary" variant="outline" size="sm" type="button"
+                      [disabled]="saving()"
+                      (click)="saveDraft()">
+                @if (saving()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+                @else { <svg cIcon name="cilSave" class="me-1"></svg> }
+                Guardar Borrador
+              </button>
+              <button cButton color="info" size="sm" type="button"
+                      [disabled]="saving()"
+                      (click)="saveAndSend()">
+                @if (saving()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+                @else { <svg cIcon name="cilPaperPlane" class="me-1"></svg> }
+                Guardar y marcar Enviada
+              </button>
+              @if (!isNew() && (currentStatus() === 'draft' || currentStatus() === 'sent')) {
+                <button cButton color="success" size="sm" type="button"
+                        [disabled]="saving()"
+                        (click)="confirmReceive()">
+                  <svg cIcon name="cilCheck" class="me-1"></svg> Marcar como Recibida
+                </button>
+              }
+            </div>
+            @if (!isNew()) {
+              <div class="mt-2" style="font-size:.75rem; color:var(--cui-secondary-color)">
+                Creada el {{ purchase()?.createdAt?.toDate() | date:'dd/MM/yyyy HH:mm' }}
+                @if (purchase()?.updatedBy) { · Actualizada por {{ purchase()?.updatedBy }} }
+              </div>
+            }
+          </c-card-body>
+        </c-card>
+      } @else {
+        <c-card>
+          <c-card-body>
+            <c-alert color="info" class="mb-0">
+              <svg cIcon name="cilInfo" class="me-1"></svg>
+              Esta compra está en estado <strong>{{ STATUS_LABELS[currentStatus()] }}</strong> y no puede modificarse.
+              @if (currentStatus() === 'received') {
+                El stock fue procesado en almacén <strong>{{ purchase()?.warehouseName }}</strong>.
+              }
+            </c-alert>
+          </c-card-body>
+        </c-card>
+      }
+    </c-col>
+
+    <!-- Totales -->
+    <c-col md="4">
+      <c-card>
+        <c-card-body>
+          <p class="section-title">Resumen de totales</p>
+          <div class="totals-panel">
+            <div class="totals-row">
+              <span class="totals-label">Subtotal</span>
+              <span class="totals-value">$ {{ totals().subtotal | number:'1.2-2' }}</span>
+            </div>
+            @if (totals().totalDiscount > 0) {
+              <div class="totals-row">
+                <span class="totals-label">Descuento</span>
+                <span class="totals-value text-danger">- $ {{ totals().totalDiscount | number:'1.2-2' }}</span>
+              </div>
+            }
+            <div class="totals-row">
+              <span class="totals-label">IVA 15%</span>
+              <span class="totals-value">$ {{ totals().totalTax | number:'1.2-2' }}</span>
+            </div>
+            @if (totals().totalIrRetention > 0) {
+              <div class="totals-row">
+                <span class="totals-label">
+                  Ret. IR ({{ selectedSupplier()?.supplierData?.irRetentionPct ?? 0 }}%)
+                </span>
+                <span class="totals-value text-danger">- $ {{ totals().totalIrRetention | number:'1.2-2' }}</span>
+              </div>
+            }
+            @if (totals().totalVatRetention > 0) {
+              <div class="totals-row">
+                <span class="totals-label">
+                  Ret. IVA ({{ selectedSupplier()?.supplierData?.vatRetentionPct ?? 0 }}%)
+                </span>
+                <span class="totals-value text-danger">- $ {{ totals().totalVatRetention | number:'1.2-2' }}</span>
+              </div>
+            }
+            <div class="totals-row totals-row--total">
+              <span>TOTAL A PAGAR</span>
+              <span class="totals-value">$ {{ totals().total | number:'1.2-2' }}</span>
+            </div>
+          </div>
+          @if (totals().totalIrRetention > 0 || totals().totalVatRetention > 0) {
+            <div class="mt-2 p-2 rounded" style="background:var(--cui-warning-bg-subtle); font-size:.72rem; color:#7a5100">
+              <svg cIcon name="cilInfo" size="sm" class="me-1"></svg>
+              Las retenciones son informativas. Emita el comprobante desde el módulo de Retenciones.
+            </div>
+          }
+        </c-card-body>
+      </c-card>
+    </c-col>
+  </c-row>
+
+</form>
+}
+
+<!-- ── Modal confirmar recepción ──────────────────────────────────────────────── -->
+<c-modal [visible]="showReceiveModal()" (visibleChange)="showReceiveModal.set($event)">
+  <c-modal-header>
+    <h5 cModalTitle>Confirmar recepción de compra</h5>
+    <button cButtonClose (click)="showReceiveModal.set(false)"></button>
+  </c-modal-header>
+  <c-modal-body>
+    <p>Al marcar esta compra como <strong>Recibida</strong>:</p>
+    <ul>
+      <li>Se actualizará el stock del almacén <strong>{{ purchase()?.warehouseName ?? form.get('warehouseCode')?.value }}</strong></li>
+      <li>Se actualizará el costo promedio de los productos</li>
+      <li>No podrá modificarse posteriormente</li>
+    </ul>
+    <p class="mb-0 text-muted" style="font-size:.82rem">
+      Si necesita emitir una retención, hágalo desde el módulo de Retenciones usando el número de esta compra como documento sustento.
+    </p>
+  </c-modal-body>
+  <c-modal-footer>
+    <button cButton color="secondary" variant="outline" (click)="showReceiveModal.set(false)">
+      Cancelar
+    </button>
+    <button cButton color="success" [disabled]="saving()" (click)="markReceived()">
+      @if (saving()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+      Confirmar Recepción
+    </button>
+  </c-modal-footer>
+</c-modal>

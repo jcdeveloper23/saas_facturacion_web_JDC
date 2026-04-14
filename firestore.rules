@@ -180,7 +180,10 @@ service cloud.firestore {
       }
 
       match /counters/{id} {
-        allow read, write: if false; // Cloud Functions only
+        // Written atomically via runTransaction from Angular services
+        // (invoices, retentions, purchases sequential numbering).
+        allow read:  if isAuthenticated() && belongsToCompany(companyId);
+        allow write: if isAuthenticated() && belongsToCompany(companyId) && canWrite();
       }
 
       match /stock-movements/{id} {
@@ -249,6 +252,16 @@ service cloud.firestore {
           && belongsToCompany(companyId)
           && (isAdmin() || isAccountant())
           && resource.data.status == 'draft';
+      }
+
+      // ─── Purchases ────────────────────────────────────────────────────────────
+      match /purchases/{purchaseId} {
+        allow read:   if isAuthenticated() && belongsToCompany(companyId);
+        allow create: if isAuthenticated() && belongsToCompany(companyId) && canWrite();
+        allow update: if isAuthenticated() && belongsToCompany(companyId) && canWrite()
+                      && resource.data.status != 'received';
+        allow delete: if isAuthenticated() && belongsToCompany(companyId) && isAdmin()
+                      && resource.data.status == 'draft';
       }
 
       // Default rule for all other sub-collections

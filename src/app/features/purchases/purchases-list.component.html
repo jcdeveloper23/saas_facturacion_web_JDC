@@ -1,0 +1,186 @@
+<!-- ── Cabecera ──────────────────────────────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div class="d-flex align-items-center gap-2">
+    <div class="bg-primary bg-opacity-10 p-2 rounded">
+      <svg cIcon name="cilBasket" size="xl" class="text-primary"></svg>
+    </div>
+    <div>
+      <h3 class="mb-0 fw-semibold">Compras</h3>
+      <p class="text-muted small mb-0">Registro de facturas de compra a proveedores</p>
+    </div>
+  </div>
+  <div class="d-flex gap-2">
+    <button cButton color="secondary" variant="outline" size="sm"
+            (click)="router.navigate(['/purchases/import'])">
+      <svg cIcon name="cilCloudDownload" class="me-1"></svg> Importar SRI
+    </button>
+    <button cButton color="primary" size="sm" (click)="router.navigate(['/purchases/new'])">
+      <svg cIcon name="cilPlus" class="me-1"></svg> Nueva Compra
+    </button>
+  </div>
+</div>
+
+<!-- ── Stats strip ──────────────────────────────────────────────────────────── -->
+@if (!loading()) {
+  <div class="d-flex gap-2 mb-3 flex-wrap">
+    <div class="border rounded px-3 py-2 d-flex align-items-center gap-2 bg-body"
+         style="cursor:pointer"
+         [class.border-primary]="statusFilter() === ''"
+         (click)="setStatusFilter('')">
+      <svg cIcon name="cilBasket" class="text-muted" size="sm"></svg>
+      <span class="fw-semibold">{{ stats().total }}</span>
+      <span class="text-muted small">Total</span>
+    </div>
+    <div class="border rounded px-3 py-2 d-flex align-items-center gap-2 bg-body"
+         style="cursor:pointer"
+         [class.border-secondary]="statusFilter() === 'draft'"
+         (click)="setStatusFilter('draft')">
+      <svg cIcon name="cilNotes" class="text-secondary" size="sm"></svg>
+      <span class="fw-semibold text-secondary">{{ stats().draft }}</span>
+      <span class="text-muted small">Borrador</span>
+    </div>
+    <div class="border rounded px-3 py-2 d-flex align-items-center gap-2 bg-body"
+         style="cursor:pointer"
+         [class.border-info]="statusFilter() === 'sent'"
+         (click)="setStatusFilter('sent')">
+      <svg cIcon name="cilPaperPlane" class="text-info" size="sm"></svg>
+      <span class="fw-semibold text-info">{{ stats().sent }}</span>
+      <span class="text-muted small">Enviada</span>
+    </div>
+    <div class="border rounded px-3 py-2 d-flex align-items-center gap-2 bg-body"
+         style="cursor:pointer"
+         [class.border-success]="statusFilter() === 'received'"
+         (click)="setStatusFilter('received')">
+      <svg cIcon name="cilCheckCircle" class="text-success" size="sm"></svg>
+      <span class="fw-semibold text-success">{{ stats().received }}</span>
+      <span class="text-muted small">Recibida</span>
+    </div>
+    <div class="border rounded px-3 py-2 d-flex align-items-center gap-2 bg-body"
+         style="cursor:pointer"
+         [class.border-danger]="statusFilter() === 'cancelled'"
+         (click)="setStatusFilter('cancelled')">
+      <svg cIcon name="cilBan" class="text-danger" size="sm"></svg>
+      <span class="fw-semibold text-danger">{{ stats().cancelled }}</span>
+      <span class="text-muted small">Cancelada</span>
+    </div>
+  </div>
+}
+
+<!-- ── Filtros ──────────────────────────────────────────────────────────────── -->
+<c-card class="mb-0">
+  <div class="px-3 pt-2 pb-1 d-flex gap-2 flex-wrap align-items-center border-bottom">
+    <div class="position-relative" style="flex:1; min-width:200px; max-width:340px">
+      <svg cIcon name="cilSearch" size="sm"
+           style="position:absolute; left:.6rem; top:50%; transform:translateY(-50%); color:var(--cui-secondary-color)">
+      </svg>
+      <input class="form-control form-control-sm" style="padding-left:2rem"
+             placeholder="Buscar por número, proveedor, RUC..."
+             [(ngModel)]="searchTerm">
+    </div>
+    <select class="form-select form-select-sm" style="width:160px"
+            [ngModel]="statusFilter()"
+            (ngModelChange)="setStatusFilter($event)">
+      <option value="">Todos los estados</option>
+      <option value="draft">Borrador</option>
+      <option value="sent">Enviada</option>
+      <option value="received">Recibida</option>
+      <option value="cancelled">Cancelada</option>
+    </select>
+    <span class="ms-auto text-secondary" style="font-size:.75rem">
+      {{ filtered().length }} compra(s)
+    </span>
+  </div>
+
+  <!-- ── Tabla ─────────────────────────────────────────────────────────────── -->
+  <c-card-body class="p-0">
+    @if (loading()) {
+      <div class="text-center py-4">
+        <c-spinner color="primary" size="sm"></c-spinner>
+      </div>
+    } @else if (filtered().length === 0) {
+      <div class="text-center py-5 text-secondary">
+        <svg cIcon name="cilBasket" size="xl" class="mb-2 text-muted"></svg>
+        <p class="mb-1">No hay compras registradas</p>
+        <button cButton color="primary" variant="outline" size="sm"
+                (click)="router.navigate(['/purchases/new'])">
+          Registrar primera compra
+        </button>
+      </div>
+    } @else {
+      <div class="table-responsive">
+        <table class="table table-hover table-sm mb-0" style="font-size:.82rem">
+          <thead class="table-light">
+            <tr>
+              <th>Número</th>
+              <th>Fact. Proveedor</th>
+              <th>Proveedor</th>
+              <th>Almacén</th>
+              <th class="text-center">Fecha</th>
+              <th class="text-center">Líneas</th>
+              <th class="text-end">Total</th>
+              <th class="text-center">Estado</th>
+              <th class="text-center">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (p of filtered(); track trackById($index, p)) {
+              <tr>
+                <td class="fw-semibold text-nowrap">{{ p.fullNumber }}</td>
+                <td class="text-nowrap">{{ p.supplierInvoiceNumber }}</td>
+                <td>
+                  <div class="fw-medium" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:180px">
+                    {{ p.supplierName }}
+                  </div>
+                  <div style="font-size:.71rem; color:var(--cui-secondary-color)">{{ p.supplierRuc }}</div>
+                </td>
+                <td class="text-nowrap" style="font-size:.78rem">{{ p.warehouseName }}</td>
+                <td class="text-center text-nowrap">{{ p.date.toDate() | date:'dd/MM/yyyy' }}</td>
+                <td class="text-center">{{ p.lines.length }}</td>
+                <td class="text-end font-monospace">$ {{ p.total | number:'1.2-2' }}</td>
+                <td class="text-center">
+                  <c-badge [color]="STATUS_COLORS[p.status]">
+                    {{ STATUS_LABELS[p.status] }}
+                  </c-badge>
+                </td>
+                <td class="text-center text-nowrap">
+                  <!-- Ver / Editar -->
+                  @if (canEdit(p)) {
+                    <button cButton color="secondary" variant="outline" size="sm"
+                            title="Editar"
+                            (click)="router.navigate(['/purchases', p.id])">
+                      <svg cIcon name="cilPencil"></svg>
+                    </button>
+                  } @else {
+                    <button cButton color="secondary" variant="outline" size="sm"
+                            title="Ver"
+                            (click)="router.navigate(['/purchases', p.id])">
+                      <svg cIcon name="cilSearch"></svg>
+                    </button>
+                  }
+
+                  <!-- Recibir (draft o sent) -->
+                  @if (p.status === 'draft' || p.status === 'sent') {
+                    <button cButton color="success" variant="outline" size="sm"
+                            class="ms-1" title="Marcar como recibida"
+                            (click)="receiveOrder(p)">
+                      <svg cIcon name="cilCheck"></svg>
+                    </button>
+                  }
+
+                  <!-- Cancelar -->
+                  @if (p.status !== 'received' && p.status !== 'cancelled') {
+                    <button cButton color="danger" variant="outline" size="sm"
+                            class="ms-1" title="Cancelar"
+                            (click)="cancelOrder(p)">
+                      <svg cIcon name="cilBan"></svg>
+                    </button>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </c-card-body>
+</c-card>

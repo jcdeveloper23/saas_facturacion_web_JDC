@@ -158,6 +158,17 @@ export const MODULES_SEED: ModuleSeed[] = [
   // ─── COMPRAS ──────────────────────────────────────────────────────────────
 
   {
+    code: 'purchases',
+    name: 'Compras',
+    description: 'Órdenes de compra a proveedores con recepción de mercancía, control de costos y actualización automática de inventario',
+    dependencies: ['personas', 'products', 'stock'],
+    url: '/purchases',
+    icon: 'cil-basket',
+    isTitle: false, parent_id: null,
+    showInMenu: true, order: 31, state: true,
+    fs_folder: 'compras', fs_name: 'compras_ordenes'
+  },
+  {
     code: 'suppliers',
     name: 'Proveedores',
     description: 'Gestión de proveedores y acreedores (integrado en módulo Personas)',
@@ -165,40 +176,40 @@ export const MODULES_SEED: ModuleSeed[] = [
     url: '/personas?role=supplier',
     icon: 'cil-truck',
     isTitle: false, parent_id: null,
-    showInMenu: true, order: 31, state: true,
+    showInMenu: false, order: 35, state: true,
     fs_folder: 'compras', fs_name: 'compras_proveedores'
   },
   {
     code: 'purchase_invoices',
     name: 'Facturas de Compra',
-    description: 'Facturas recibidas de proveedores',
+    description: 'Facturas recibidas de proveedores (reemplazado por módulo purchases)',
     dependencies: ['suppliers', 'products'],
     url: '/purchase-invoices',
     icon: 'cil-inbox',
     isTitle: false, parent_id: null,
-    showInMenu: true, order: 32, state: true,
+    showInMenu: false, order: 36, state: false,
     fs_folder: 'compras', fs_name: 'compras_facturas'
   },
   {
     code: 'purchase_orders',
     name: 'Pedidos de Compra',
-    description: 'Órdenes de compra a proveedores',
+    description: 'Órdenes de compra a proveedores (reemplazado por módulo purchases)',
     dependencies: ['suppliers', 'products'],
     url: '/purchase-orders',
     icon: 'cil-cart',
     isTitle: false, parent_id: null,
-    showInMenu: true, order: 33, state: true,
+    showInMenu: false, order: 37, state: false,
     fs_folder: 'compras', fs_name: 'compras_pedidos'
   },
   {
     code: 'purchase_proformas',
     name: 'Proformas de Compra',
-    description: 'Notas de entrega / albaranes de proveedor',
+    description: 'Notas de entrega / albaranes de proveedor (reemplazado por módulo purchases)',
     dependencies: ['suppliers', 'products'],
     url: '/purchase-proformas',
     icon: 'cil-note',
     isTitle: false, parent_id: null,
-    showInMenu: true, order: 34, state: true,
+    showInMenu: false, order: 38, state: false,
     fs_folder: 'compras', fs_name: 'compras_albaranes'
   },
 
