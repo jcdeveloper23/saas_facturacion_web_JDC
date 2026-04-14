@@ -4,7 +4,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormGroup, FormArray, Validators, ReactiveFormsModule, AbstractControl } from '@angular/forms';
-import { Subject, takeUntil, take } from 'rxjs';
+import { Subject, takeUntil, take, firstValueFrom } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { Timestamp } from '@angular/fire/firestore';
 import {
@@ -22,8 +22,9 @@ import { ecuadorTaxIdValidator } from '../../core/validators/ecuador.validators'
 import { ProductsService }  from '../products/services/products.service';
 import { SettingsService }  from '../settings/services/settings.service';
 import { NotificationService } from '../../core/services/notification.service';
+import { TenantService }    from '../../core/services/tenant.service';
 import {
-  Invoice, InvoiceLine, InvoiceStatus,
+  Invoice, InvoiceLine, InvoiceStatus, SriDocumentStatus,
   INVOICE_STATUS_LABELS, INVOICE_STATUS_COLORS,
   SriPaymentMethod, SRI_PAYMENT_METHODS,
   calcLine, calcInvoiceTotals, buildFullNumber
@@ -184,6 +185,23 @@ import { PaymentTerm, Warehouse, DocumentSeries } from '../settings/models/setti
     .customer-item--sub { font-size:.71rem; color:var(--cui-secondary-color); }
     .customer-wrap { position:relative; }
 
+    /* ── Stock availability hint (below qty input) ─────────────────────────── */
+    .stock-hint {
+      font-size:.62rem; line-height:1; text-align:center; margin-top:2px; white-space:nowrap;
+    }
+    .stock-hint--ok   { color:var(--cui-success); }
+    .stock-hint--warn { color:var(--cui-warning-emphasis); }
+    .stock-hint--out  { color:var(--cui-danger); font-weight:500; }
+
+    /* ── Stock issues warning callout ───────────────────────────────────────── */
+    .stock-warn-callout {
+      background:var(--cui-warning-bg-subtle);
+      border:1px solid var(--cui-warning-border-subtle);
+      color:var(--cui-warning-emphasis);
+      font-size:.75rem; border-radius:6px;
+      padding:.4rem .7rem; margin-top:.5rem;
+    }
+
     /* ── Autosave indicator ─────────────────────────────────────────────────── */
     .autosave-indicator {
       font-size:.67rem; font-weight:400; padding:.1rem .38rem;
@@ -207,10 +225,14 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
   private productsSvc   = inject(ProductsService);
   private settingsSvc   = inject(SettingsService);
   private notifications = inject(NotificationService);
+  private tenantSvc     = inject(TenantService);
   private router        = inject(Router);
   private route         = inject(ActivatedRoute);
   private fb            = inject(FormBuilder);
   private destroy$      = new Subject<void>();
+
+  /** True when the company has the 'sri' module — enables the SRI electronic pipeline. */
+  readonly isSriEnabled = computed(() => this.tenantSvc.isSriEnabled());
 
   // ── State ─────────────────────────────────────────────────────────────────
   invoiceId   = signal<string | null>(null);
@@ -267,6 +289,21 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
 
   // ── VAT expand per row (F2.2) ─────────────────────────────────────────────
   vatExpandedIdx    = signal<number | null>(null);
+
+  // ── Stock availability per line (Fase B) ─────────────────────────────────
+  // Key = line index, value = { available, trackStock }
+  lineStocks = signal<Record<number, { available: number; trackStock: boolean }>>({});
+
+  /** True when any line has qty > available stock. Used to warn/block emit. */
+  hasStockIssues = computed(() => {
+    const stocks = this.lineStocks();
+    return this.linesArray.controls.some((ctrl, idx) => {
+      const s = stocks[idx];
+      if (!s?.trackStock) return false;
+      const qty = parseFloat(ctrl.get('quantity')?.value) || 0;
+      return qty > s.available;
+    });
+  });
 
   productResults = computed(() => {
     const term = this.productSearch().toLowerCase().trim();
@@ -377,6 +414,17 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
     this.form.valueChanges
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => this.refreshTotals());
+
+    // Reload stock availability when warehouse changes
+    this.form.get('warehouseCode')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.lineStocks.set({});
+        this.linesArray.controls.forEach((ctrl, idx) => {
+          const productId = ctrl.get('productId')?.value as string | undefined;
+          if (productId) void this.loadLineStock(productId, idx);
+        });
+      });
   }
 
   private refreshTotals(): void {
@@ -669,6 +717,7 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
       vatPct:      p.taxRate ?? 15
     });
     this.recalcLine(g);
+    void this.loadLineStock(p.id, idx);
     this.showProductDrop.set(false);
     this.productSearchIdx.set(null);
     this.productSearch.set('');
@@ -732,6 +781,9 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
           customerReference:     fv.customerReference || '',
           lines,
           status:                emitAfter ? 'issued' as InvoiceStatus : 'draft' as InvoiceStatus,
+          // Non-SRI companies: mark immediately so onInvoiceEmit skips the SRI pipeline.
+          // SRI companies: leave undefined so onInvoiceEmit picks it up.
+          ...(emitAfter && !this.isSriEnabled() ? { sriStatus: 'not_required' as SriDocumentStatus } : {}),
           isPaid:                false,
           isVoid:                false,
           isCreditNote:          false,
@@ -760,7 +812,11 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
           notes:            fv.notes ?? '',
           creditNoteMotivo: fv['creditNoteMotivo'] ?? '',
           paymentMethods,
-          ...(emitAfter ? { status: 'issued' as InvoiceStatus } : {}),
+          ...(emitAfter ? {
+            status: 'issued' as InvoiceStatus,
+            // Non-SRI companies: mark immediately so onInvoiceEmit skips the SRI pipeline.
+            ...(!this.isSriEnabled() ? { sriStatus: 'not_required' as SriDocumentStatus } : {})
+          } : {}),
           ...totals
         });
         if (emitAfter) {
@@ -845,6 +901,7 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
       vatPct:      p.taxRate ?? 15
     });
     this.recalcLine(g);
+    void this.loadLineStock(p.id, idx);
     this.skuDropOpenIdx.set(null);
     this.skuSearch.set('');
     setTimeout(() => this.focusLineField(idx, 'quantity'), 30);
@@ -1076,6 +1133,46 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
     } finally {
       this.savingNewCustomer.set(false);
     }
+  }
+
+  // ─── Fase B — Stock availability ──────────────────────────────────────────
+
+  /**
+   * Loads the available stock for `productId` in the invoice's current warehouse
+   * and stores it in `lineStocks[lineIdx]`. Best-effort: silently ignored on error.
+   */
+  private async loadLineStock(productId: string, lineIdx: number): Promise<void> {
+    if (!productId) return;
+    const product = this.products().find(p => p.id === productId);
+    if (!product?.trackStock || (product as any).noStock || (product as any).type === 'service') return;
+
+    const warehouseCode = this.form.get('warehouseCode')?.value as string;
+    if (!warehouseCode) return;
+
+    try {
+      const stocks = await firstValueFrom(this.productsSvc.getStocks(productId).pipe(take(1)));
+      const ws = stocks.find(s => s.warehouseCode === warehouseCode);
+      this.lineStocks.update(m => ({
+        ...m,
+        [lineIdx]: { available: ws?.available ?? 0, trackStock: true }
+      }));
+    } catch { /* stock check is best-effort */ }
+  }
+
+  /** Returns '' | 'ok' | 'warn' | 'out' for the stock badge in line i. */
+  stockAlert(idx: number): '' | 'ok' | 'warn' | 'out' {
+    const s = this.lineStocks()[idx];
+    if (!s?.trackStock) return '';
+    if (s.available <= 0) return 'out';
+    const qty = parseFloat(this.linesArray.at(idx).get('quantity')?.value) || 0;
+    if (qty > s.available) return 'warn';
+    return 'ok';
+  }
+
+  /** Returns the available qty for a line, or null if not tracked. */
+  stockAvail(idx: number): number | null {
+    const s = this.lineStocks()[idx];
+    return s?.trackStock ? s.available : null;
   }
 
   // ─── F3.5 — Duplicate invoice ─────────────────────────────────────────────

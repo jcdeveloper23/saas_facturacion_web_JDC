@@ -24,11 +24,11 @@ export const ROLE_PLURAL_LABELS: Record<PersonRole, string> = {
 };
 
 export const ROLE_COLORS: Record<PersonRole, string> = {
-  customer: 'primary',
+  customer: 'info',
   supplier: 'warning',
   employee: 'success',
-  contact:  'info',
-  other:    'secondary'
+  contact:  'secondary',
+  other:    'dark'
 };
 
 export const ALL_ROLES: PersonRole[] = ['customer', 'supplier', 'employee', 'contact', 'other'];

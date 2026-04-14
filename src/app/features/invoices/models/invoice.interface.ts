@@ -171,6 +171,13 @@ export interface Invoice {
   sriError?: string;                 // mensaje de error si sriStatus === 'rejected'
   xmlUrl?: string;                   // Cloud Storage URL del XML firmado
   pdfUrl?: string;                   // Cloud Storage URL del PDF (RIDE)
+
+  // ── Stock (maintained by onInvoiceStock Cloud Function) ─────────────────────
+  stockProcessed?:   boolean;    // true = CF descontó stock al emitir
+  stockProcessedAt?: Timestamp;
+  stockRestored?:    boolean;    // true = CF restauró stock al anular
+  stockRestoredAt?:  Timestamp;
+  stockError?:       string;     // mensaje si onInvoiceStock falló
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────

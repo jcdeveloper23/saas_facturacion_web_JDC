@@ -110,6 +110,39 @@
       ]
     },
     {
+      "collectionGroup": "stock-movements",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "type",      "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "stock-movements",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "type",          "order": "ASCENDING" },
+        { "fieldPath": "warehouseCode", "order": "ASCENDING" },
+        { "fieldPath": "createdAt",     "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "stock-movements",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "sourceDocId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt",   "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "purchases",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status",    "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "products",
       "queryScope": "COLLECTION",
       "fields": [

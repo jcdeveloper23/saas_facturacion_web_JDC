@@ -34,6 +34,9 @@ export { generateDebitNotePdf }  from './debit-notes/generate-debit-note-pdf';
 export { sendDebitNoteEmail }    from './debit-notes/send-debit-note-email';
 export { onDebitNoteEmit }       from './debit-notes/on-debit-note-emit';
 
+// Stock
+export { onInvoiceStock } from './stock/on-invoice-stock';
+
 // Marketplace
 export { onMarketplaceSettingsChange } from './marketplace/on-marketplace-settings-change';
 export { onProductPublicSync }         from './marketplace/on-product-public-sync';

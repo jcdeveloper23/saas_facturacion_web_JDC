@@ -1,147 +1,269 @@
-<!-- ── Cabecera ─────────────────────────────────────────────────────────── -->
-<div class="d-flex justify-content-between align-items-start mb-3">
-  <div>
-    <h4 class="mb-1">{{ pageTitle() }}</h4>
-    <div class="stat-strip">
-      <button class="stat-pill" [class.stat-pill--active]="roleFilter() === null"
-              (click)="switchRole(null)">
-        Todos <span class="count">{{ countByRole().total }}</span>
-      </button>
-      <button class="stat-pill" [class.stat-pill--active]="roleFilter() === 'customer'"
-              (click)="switchRole('customer')">
-        Clientes <span class="count">{{ countByRole().customer }}</span>
-      </button>
-      <button class="stat-pill" [class.stat-pill--active]="roleFilter() === 'supplier'"
-              (click)="switchRole('supplier')">
-        Proveedores <span class="count">{{ countByRole().supplier }}</span>
-      </button>
-      <button class="stat-pill" [class.stat-pill--active]="roleFilter() === 'employee'"
-              (click)="switchRole('employee')">
-        Empleados <span class="count">{{ countByRole().employee }}</span>
-      </button>
+<!-- ══ PAGE HEADER ══════════════════════════════════════════════════════════ -->
+<div class="personas-page-header mb-3">
+
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <div class="d-flex align-items-center gap-2">
+      <div class="page-icon">
+        <svg cIcon name="cilPeople" size="lg" class="text-white"></svg>
+      </div>
+      <div>
+        <h4 class="page-title mb-0">Personas</h4>
+        <span class="page-subtitle">Clientes, proveedores, empleados y contactos</span>
+      </div>
     </div>
+    <button cButton color="primary" size="sm" (click)="openNew()"
+            class="d-flex align-items-center gap-1 px-3 shadow-sm">
+      <svg cIcon name="cilPlus" size="sm"></svg>
+      <span>Nueva Persona</span>
+    </button>
   </div>
-  <button cButton color="primary" size="sm" (click)="openNew()">
-    <svg cIcon name="cilPlus" class="me-1"></svg>
-    Nuevo {{ roleFilter() ? ROLE_LABELS[roleFilter()!] : 'Persona' }}
-  </button>
+
+  @if (!loading()) {
+    <div class="stat-strip">
+      <div class="stat-item" (click)="typeFilter.set('all')" role="button">
+        <span class="stat-value text-info">{{ stats().total }}</span>
+        <span class="stat-label">activos</span>
+      </div>
+      <div class="stat-sep"></div>
+      <div class="stat-item" (click)="typeFilter.set('customer')" role="button">
+        <span class="stat-value">{{ stats().customer }}</span>
+        <span class="stat-label">clientes</span>
+      </div>
+      <div class="stat-sep"></div>
+      <div class="stat-item" (click)="typeFilter.set('supplier')" role="button">
+        <span class="stat-value">{{ stats().supplier }}</span>
+        <span class="stat-label">proveedores</span>
+      </div>
+      <div class="stat-sep"></div>
+      <div class="stat-item" (click)="typeFilter.set('employee')" role="button">
+        <span class="stat-value">{{ stats().employee }}</span>
+        <span class="stat-label">empleados</span>
+      </div>
+      @if (stats().inactive > 0) {
+        <div class="stat-sep"></div>
+        <div class="stat-item" (click)="typeFilter.set('inactive')" role="button">
+          <span class="stat-value text-muted">{{ stats().inactive }}</span>
+          <span class="stat-label">inactivos</span>
+        </div>
+      }
+    </div>
+  }
 </div>
 
-<!-- ── Filtros ────────────────────────────────────────────────────────────── -->
-<c-card class="border shadow-none mb-3">
-  <c-card-body class="py-2 px-3">
-    <div class="d-flex gap-2 align-items-center flex-wrap">
-      <c-input-group class="search-input flex-grow-1">
-        <span cInputGroupText class="bg-transparent border-end-0">
-          <svg cIcon name="cilSearch" size="sm"></svg>
-        </span>
-        <input cFormControl class="border-start-0 ps-0"
-               placeholder="Nombre, RUC/CI, teléfono, código..."
-               [value]="searchTerm()"
-               (input)="searchTerm.set($any($event.target).value)">
-      </c-input-group>
-      <c-form-check switch class="text-nowrap ms-auto">
-        <input cFormCheckInput id="showInactiveToggle" type="checkbox"
-               [checked]="showInactive()"
-               (change)="showInactive.set($any($event.target).checked)">
-        <label cFormCheckLabel for="showInactiveToggle">Ver inactivos</label>
-      </c-form-check>
+<!-- ══ FILTER PANEL ═════════════════════════════════════════════════════════ -->
+<c-card class="filter-card mb-3 border-0 shadow-sm overflow-hidden">
+
+  <!-- Tabs + clear -->
+  <div class="filter-top px-3 pt-2 pb-0">
+    <div class="d-flex align-items-center gap-3 flex-wrap">
+      <div class="seg-tabs">
+        @for (opt of typeOptions; track opt.value) {
+          <button class="seg-tab" [class.active]="typeFilter() === opt.value"
+                  (click)="typeFilter.set(opt.value)">
+            {{ opt.label }}
+          </button>
+        }
+      </div>
+      <div class="flex-grow-1"></div>
+      @if (totalActiveFilters() > 0) {
+        <button class="filter-clear-btn" (click)="clearAll()">
+          <svg cIcon name="cilX" size="sm"></svg>
+          Limpiar {{ totalActiveFilters() }} filtro{{ totalActiveFilters() !== 1 ? 's' : '' }}
+        </button>
+      }
     </div>
-  </c-card-body>
-</c-card>
-
-<!-- ── Tabla ──────────────────────────────────────────────────────────────── -->
-<c-card class="border shadow-none overflow-hidden">
-
-  <!-- Tab de roles dentro de la card -->
-  <div class="role-seg px-3 pt-2">
-    @for (opt of roleOptions; track opt.role) {
-      <button class="role-tab" [class.role-tab--active]="roleFilter() === opt.role"
-              (click)="switchRole(opt.role)">
-        {{ opt.label }}
-      </button>
-    }
+    <div class="filter-divider mt-2"></div>
   </div>
 
+  <!-- Search + dropdowns -->
+  <div class="px-3 py-2">
+    <div class="d-flex gap-2 align-items-center flex-wrap">
+
+      <div class="search-wrap flex-grow-1">
+        <svg cIcon name="cilSearch" size="sm" class="search-icon"></svg>
+        <input class="search-input"
+               placeholder="Nombre, RUC/CI, teléfono, correo..."
+               [value]="searchTerm()"
+               (input)="searchTerm.set($any($event.target).value)">
+        @if (searchTerm()) {
+          <button class="search-clear" (click)="searchTerm.set('')">
+            <svg cIcon name="cilX" size="sm"></svg>
+          </button>
+        }
+      </div>
+
+      <div class="filter-select-wrap" [class.active]="!!primary().taxIdType">
+        <svg cIcon name="cilFeaturedPlaylist" size="sm" class="filter-select-icon"></svg>
+        <select class="filter-select"
+                [value]="primary().taxIdType"
+                (change)="setPrimary('taxIdType', $any($event.target).value)">
+          @for (opt of taxIdOptions; track opt.value) {
+            <option [value]="opt.value">{{ opt.label }}</option>
+          }
+        </select>
+        <svg cIcon name="cilChevronBottom" size="sm" class="filter-select-caret"></svg>
+      </div>
+
+      <button class="more-filters-btn" [class.open]="showMoreFilters()"
+              (click)="showMoreFilters.set(!showMoreFilters())">
+        <svg cIcon name="cilOptions" size="sm"></svg>
+        <span>Más filtros</span>
+        @if (activeSecondaryCount() > 0) {
+          <span class="more-count">{{ activeSecondaryCount() }}</span>
+        }
+        <svg cIcon [name]="showMoreFilters() ? 'cilChevronTop' : 'cilChevronBottom'"
+             size="sm" class="ms-1 opacity-50"></svg>
+      </button>
+
+    </div>
+  </div>
+
+  <!-- Expandable secondary filters -->
+  @if (showMoreFilters()) {
+    <div class="filter-panel px-3 py-3">
+
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <span class="filter-panel-title">Filtros adicionales</span>
+        @if (activeSecondaryCount() > 0) {
+          <button class="btn-clear-secondary" (click)="clearSecondary()">
+            Limpiar filtros adicionales
+          </button>
+        }
+      </div>
+
+      <c-row class="g-3">
+
+        <c-col sm="6" md="3">
+          <label class="filter-label">Tipo de persona</label>
+          <select cSelect class="filter-select-sm"
+                  [value]="secondary().isCompany"
+                  (change)="setSecondary('isCompany', $any($event.target).value)">
+            <option value="">Todos</option>
+            <option value="true">Empresa / RUC</option>
+            <option value="false">Persona natural</option>
+          </select>
+        </c-col>
+
+        <c-col sm="6" md="3">
+          <label class="filter-label">Correo electrónico</label>
+          <select cSelect class="filter-select-sm"
+                  [value]="secondary().hasEmail"
+                  (change)="setSecondary('hasEmail', $any($event.target).value)">
+            <option value="">Todos</option>
+            <option value="true">Con correo</option>
+            <option value="false">Sin correo</option>
+          </select>
+        </c-col>
+
+        <c-col sm="6" md="3">
+          <label class="filter-label">Teléfono</label>
+          <select cSelect class="filter-select-sm"
+                  [value]="secondary().hasPhone"
+                  (change)="setSecondary('hasPhone', $any($event.target).value)">
+            <option value="">Todos</option>
+            <option value="true">Con teléfono</option>
+            <option value="false">Sin teléfono</option>
+          </select>
+        </c-col>
+
+      </c-row>
+
+      <!-- Active chips -->
+      @if (activeSecondaryCount() > 0) {
+        <div class="d-flex flex-wrap gap-2 mt-3 pt-3 border-top">
+          @if (secondary().isCompany !== '') {
+            <span class="active-chip">
+              {{ secondary().isCompany === 'true' ? 'Empresa / RUC' : 'Persona natural' }}
+              <span class="chip-remove" (click)="setSecondary('isCompany','')">×</span>
+            </span>
+          }
+          @if (secondary().hasEmail !== '') {
+            <span class="active-chip">
+              {{ secondary().hasEmail === 'true' ? 'Con correo' : 'Sin correo' }}
+              <span class="chip-remove" (click)="setSecondary('hasEmail','')">×</span>
+            </span>
+          }
+          @if (secondary().hasPhone !== '') {
+            <span class="active-chip">
+              {{ secondary().hasPhone === 'true' ? 'Con teléfono' : 'Sin teléfono' }}
+              <span class="chip-remove" (click)="setSecondary('hasPhone','')">×</span>
+            </span>
+          }
+        </div>
+      }
+
+    </div>
+  }
+
+</c-card>
+
+<!-- ══ TABLE ════════════════════════════════════════════════════════════════ -->
+<c-card class="border-0 shadow-sm overflow-hidden">
   <c-card-body class="p-0">
 
     @if (loading()) {
       <div class="text-center py-5"><c-spinner color="primary"></c-spinner></div>
 
     } @else if (filtered().length === 0) {
-      <div class="text-center py-5">
-        <svg cIcon name="cilPeople" size="3xl" class="text-muted mb-3 opacity-25"></svg>
+      <div class="text-center py-5 bg-body-secondary">
+        <svg cIcon name="cilPeople" size="3xl" class="text-muted mb-3 opacity-25 d-block mx-auto"></svg>
         <p class="text-muted mb-2">
-          {{ searchTerm()
-              ? 'Sin resultados para "' + searchTerm() + '"'
-              : 'No hay ' + pageTitle().toLowerCase() + ' registrados' }}
+          {{ totalActiveFilters() > 0 ? 'Sin resultados con los filtros aplicados' : 'No hay personas registradas' }}
         </p>
-        @if (!searchTerm()) {
+        @if (totalActiveFilters() > 0) {
+          <button cButton color="light" size="sm" class="border" (click)="clearAll()">
+            <svg cIcon name="cilFilterX" size="sm" class="me-1"></svg> Limpiar filtros
+          </button>
+        } @else {
           <button cButton color="primary" size="sm" (click)="openNew()">
-            <svg cIcon name="cilPlus" class="me-1"></svg>
-            Registrar {{ roleFilter() ? ROLE_LABELS[roleFilter()!] : 'Persona' }}
+            <svg cIcon name="cilPlus" class="me-1"></svg> Nueva Persona
           </button>
         }
       </div>
 
     } @else {
       <div class="table-responsive">
-        <table class="persona-table w-100">
-          <thead>
+        <table cTable hover align="middle" class="persona-table mb-0 border-0">
+          <thead class="bg-body-secondary table-head">
             <tr>
-              @if (showCodeColumn()) {
-                <th>Código</th>
-              }
-              <th>Nombre / Razón social</th>
-              <th>RUC / CI</th>
-              <th>Teléfono</th>
-              <th>Email</th>
-              @if (showPaymentColumn()) {
-                <th>Forma pago</th>
-              }
-              @if (showPositionColumn()) {
-                <th>Cargo</th>
-              }
-              <th>Roles</th>
-              <th></th>
+              <th class="border-0 ps-3 py-2">Nombre / Razón social</th>
+              <th class="border-0 py-2">RUC / CI</th>
+              <th class="border-0 py-2">Teléfono</th>
+              <th class="border-0 py-2">Correo</th>
+              <th class="border-0 py-2">Roles</th>
+              <th class="border-0 py-2"></th>
             </tr>
           </thead>
           <tbody>
             @for (p of filtered(); track trackById($index, p)) {
-              <tr [class.row-inactive]="!p.isActive" (click)="openEdit(p)">
+              <tr class="row-clickable border-bottom border-body-secondary align-middle"
+                  [class.opacity-50]="!p.isActive"
+                  (click)="openEdit(p)">
 
-                @if (showCodeColumn()) {
-                  <td><span class="p-code">{{ getCode(p) }}</span></td>
-                }
-
-                <td>
-                  <div class="p-name">{{ p.name }}</div>
-                  @if (p.legalName && p.legalName !== p.name) {
-                    <div class="p-sub">{{ p.legalName }}</div>
-                  }
+                <td class="ps-3 py-1">
+                  <div class="d-flex align-items-start gap-2 flex-wrap">
+                    @if (getCode(p) !== '—') {
+                      <span class="p-code">{{ getCode(p) }}</span>
+                    }
+                    <div>
+                      <div class="p-name">{{ p.name }}</div>
+                      @if (p.legalName && p.legalName !== p.name) {
+                        <div class="p-sub">{{ p.legalName }}</div>
+                      }
+                    </div>
+                  </div>
                 </td>
 
-                <td>
+                <td class="py-1">
                   <div class="p-tax">{{ p.taxId }}</div>
                   <div class="p-taxtype">{{ p.taxIdType }}</div>
                 </td>
 
-                <td>
-                  <div class="p-sub">{{ p.phone1 || '—' }}</div>
-                  @if (p.phone2) { <div class="p-sub">{{ p.phone2 }}</div> }
-                </td>
+                <td class="td-meta py-1">{{ p.phone1 || '—' }}</td>
 
-                <td><div class="p-sub">{{ p.email || '—' }}</div></td>
+                <td class="td-meta py-1">{{ p.email || '—' }}</td>
 
-                @if (showPaymentColumn()) {
-                  <td><div class="p-sub">{{ getPaymentTerm(p) }}</div></td>
-                }
-
-                @if (showPositionColumn()) {
-                  <td><div class="p-sub">{{ p.employeeData?.position || '—' }}</div></td>
-                }
-
-                <td>
+                <td class="py-1">
                   <div class="d-flex gap-1 flex-wrap">
                     @for (role of p.roles; track role) {
                       <c-badge [color]="ROLE_COLORS[role]" shape="rounded-pill">
@@ -151,8 +273,9 @@
                   </div>
                 </td>
 
-                <td>
-                  <span class="p-dot" [class.p-dot--active]="p.isActive"
+                <td class="py-1 text-center">
+                  <span class="p-dot"
+                        [class.p-dot--active]="p.isActive"
                         [class.p-dot--inactive]="!p.isActive"></span>
                 </td>
 
@@ -162,9 +285,14 @@
         </table>
       </div>
 
-      <div class="table-footer">
-        {{ filtered().length }} {{ filtered().length !== 1 ? pageTitle().toLowerCase() : (roleFilter() ? ROLE_LABELS[roleFilter()!].toLowerCase() : 'persona') }}
-        @if (!showInactive()) { · activos }
+      <div class="bg-body-secondary px-4 py-2 border-top d-flex justify-content-between align-items-center">
+        <small class="text-muted">
+          {{ filtered().length }} persona{{ filtered().length !== 1 ? 's' : '' }}
+          @if (filtered().length !== stats().total && typeFilter() !== 'inactive') {
+            <span class="text-muted"> de {{ stats().total }}</span>
+          }
+        </small>
+        <small class="text-muted fst-italic">Clic en una fila para editar</small>
       </div>
     }
 

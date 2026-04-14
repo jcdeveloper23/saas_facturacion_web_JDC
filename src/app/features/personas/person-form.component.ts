@@ -48,9 +48,9 @@ const CONTRACT_TYPES: { value: ContractType; label: string }[] = [
     .page-header-left { display:flex; align-items:center; gap:.75rem; }
     .page-icon {
       width:34px; height:34px; border-radius:8px;
-      background:var(--cui-primary-bg-subtle);
+      background:var(--cui-info-bg-subtle);
       display:flex; align-items:center; justify-content:center;
-      color:var(--cui-primary); flex-shrink:0;
+      color:var(--cui-info); flex-shrink:0;
     }
     .page-title  { font-size:.95rem; font-weight:500; margin:0; }
     .page-sub    { font-size:.75rem; color:var(--cui-secondary-color); margin:0; }
@@ -72,7 +72,7 @@ const CONTRACT_TYPES: { value: ContractType; label: string }[] = [
       background:transparent; color:var(--cui-secondary-color);
       transition:all .12s;
     }
-    .role-toggle--active-customer { background:var(--cui-primary-bg-subtle); color:var(--cui-primary); border-color:var(--cui-primary-border-subtle); }
+    .role-toggle--active-customer { background:var(--cui-info-bg-subtle); color:var(--cui-info); border-color:var(--cui-info-border-subtle); }
     .role-toggle--active-supplier { background:var(--cui-warning-bg-subtle); color:var(--cui-warning); border-color:var(--cui-warning-border-subtle); }
     .role-toggle--active-employee { background:var(--cui-success-bg-subtle); color:var(--cui-success); border-color:var(--cui-success-border-subtle); }
     .role-toggle--active-contact  { background:var(--cui-info-bg-subtle);    color:var(--cui-info);    border-color:var(--cui-info-border-subtle); }

@@ -88,6 +88,13 @@ export class TenantService {
   );
 
   /**
+   * True when the company has the 'sri' module enabled (electronic invoicing).
+   * When false, invoices are emitted as basic/non-electronic and sriStatus
+   * must be set to 'not_required' so onInvoiceEmit does not trigger the SRI pipeline.
+   */
+  readonly isSriEnabled = computed(() => this.hasModule('sri'));
+
+  /**
    * Check if a module (plugin) is active for the current company.
    * Equivalent to: in_array($moduleCode, $GLOBALS['plugins'])
    *

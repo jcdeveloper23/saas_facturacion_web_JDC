@@ -328,6 +328,13 @@
                 <td class="cell-num">
                   <input cFormControl type="number" formControlName="quantity" min="0.001" step="1"
                     [readonly]="!isEditable()" (keydown.enter)="onQuantityEnterKey(i, $any($event))">
+                  @if (stockAlert(i)) {
+                    <div class="stock-hint stock-hint--{{ stockAlert(i) }}"
+                         [title]="'Disponible: ' + stockAvail(i) + ' uds en almacén'">
+                      @if (stockAlert(i) === 'out') { Sin stock
+                      } @else { disp: {{ stockAvail(i) }} }
+                    </div>
+                  }
                 </td>
 
                 <!-- Precio unitario -->
@@ -487,7 +494,13 @@
           </div>
 
           @if (isEditable()) {
-          <div class="mt-3 d-grid gap-2">
+          @if (hasStockIssues()) {
+          <div class="stock-warn-callout">
+            <svg cIcon name="cilWarning" size="sm" class="me-1"></svg>
+            Hay líneas con stock insuficiente.
+          </div>
+          }
+          <div class="mt-2 d-grid gap-2">
             <button type="button" cButton color="primary" [disabled]="saving()" (click)="save(true)">
               @if (saving()) { <c-spinner size="sm" class="me-1"></c-spinner> }
               Emitir factura

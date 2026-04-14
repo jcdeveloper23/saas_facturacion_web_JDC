@@ -82,14 +82,7 @@ export const navItems: INavData[] = [
     name: 'Personas',
     url: '/personas',
     iconComponent: { name: 'cil-people' },
-    attributes: { module: 'personas', roles: ['admin', 'seller'] },
-    children: [
-      { name: 'Todos',        url: '/personas',                  icon: 'nav-icon-bullet' },
-      { name: 'Clientes',     url: '/personas?role=customer',    icon: 'nav-icon-bullet' },
-      { name: 'Proveedores',  url: '/personas?role=supplier',    icon: 'nav-icon-bullet' },
-      { name: 'Empleados',    url: '/personas?role=employee',    icon: 'nav-icon-bullet', attributes: { roles: ['admin'] } },
-      { name: 'Contactos',    url: '/personas?role=contact',     icon: 'nav-icon-bullet' }
-    ]
+    attributes: { module: 'personas', roles: ['admin', 'seller'] }
   },
   {
     name: 'Artículos',
