@@ -210,9 +210,7 @@ export class StockOverviewComponent implements OnInit, OnDestroy {
         newQty,
         newLocation,
         reason,
-        userId,
-        product.stockQty,
-        product.stockReserved
+        userId
       );
       this.notifications.success('Stock ajustado correctamente');
       this.showAdjustModal.set(false);

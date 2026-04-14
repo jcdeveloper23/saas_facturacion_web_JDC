@@ -190,14 +190,14 @@ import { PaymentTerm, Warehouse, DocumentSeries } from '../settings/models/setti
       font-size:.62rem; line-height:1; text-align:center; margin-top:2px; white-space:nowrap;
     }
     .stock-hint--ok   { color:var(--cui-success); }
-    .stock-hint--warn { color:var(--cui-warning-emphasis); }
+    .stock-hint--warn { color:#f0a500; }
     .stock-hint--out  { color:var(--cui-danger); font-weight:500; }
 
     /* ── Stock issues warning callout ───────────────────────────────────────── */
     .stock-warn-callout {
       background:var(--cui-warning-bg-subtle);
       border:1px solid var(--cui-warning-border-subtle);
-      color:var(--cui-warning-emphasis);
+      color:#7a5100;
       font-size:.75rem; border-radius:6px;
       padding:.4rem .7rem; margin-top:.5rem;
     }
@@ -233,6 +233,9 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
 
   /** True when the company has the 'sri' module — enables the SRI electronic pipeline. */
   readonly isSriEnabled = computed(() => this.tenantSvc.isSriEnabled());
+
+  /** Loaded from configuration/general → stock.blockSaleOnInsufficient */
+  blockSaleOnInsufficient = signal(false);
 
   // ── State ─────────────────────────────────────────────────────────────────
   invoiceId   = signal<string | null>(null);
@@ -291,17 +294,26 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
   vatExpandedIdx    = signal<number | null>(null);
 
   // ── Stock availability per line (Fase B) ─────────────────────────────────
-  // Key = line index, value = { available, trackStock }
-  lineStocks = signal<Record<number, { available: number; trackStock: boolean }>>({});
+  // Key = line index, value = { qty, trackStock }
+  // Uses qty (physical stock), not available, since reservations are not yet implemented.
+  lineStocks = signal<Record<number, { qty: number; trackStock: boolean }>>({});
 
-  /** True when any line has qty > available stock. Used to warn/block emit. */
+  /** True when any line has qty > available stock AND blockSaleOnInsufficient=true. */
+  emitBlocked = computed(() =>
+    this.blockSaleOnInsufficient() && this.hasStockIssues()
+  );
+
+  /** True when any line has qty > available stock. Used to warn/block emit.
+   *  Depends on lineStocks (updated when product is selected) AND totals
+   *  (updated on every form change) so quantity edits are reflected immediately. */
   hasStockIssues = computed(() => {
     const stocks = this.lineStocks();
+    this.totals(); // track: re-evaluate when any quantity/price changes
     return this.linesArray.controls.some((ctrl, idx) => {
       const s = stocks[idx];
       if (!s?.trackStock) return false;
       const qty = parseFloat(ctrl.get('quantity')?.value) || 0;
-      return qty > s.available;
+      return qty > s.qty;
     });
   });
 
@@ -434,6 +446,10 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
   }
 
   private loadReferenceData(): void {
+    this.settingsSvc.getStockConfig().pipe(take(1)).subscribe({
+      next: cfg => this.blockSaleOnInsufficient.set(cfg?.blockSaleOnInsufficient ?? false)
+    });
+
     this.personasSvc.getPersonas('customer').pipe(take(1)).subscribe({
       next: list => this.customers.set(list.filter(p => p.isActive).sort((a, b) => a.name.localeCompare(b.name, 'es')))
     });
@@ -547,6 +563,13 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
     while (fa.length) fa.removeAt(0);
     for (const line of inv.lines) {
       fa.push(this.buildLineGroup(line));
+    }
+
+    // Load stock for each line (needed for availability indicators and emit block)
+    if (inv.status === 'draft') {
+      inv.lines.forEach((line, idx) => {
+        if (line.productId) void this.loadLineStock(line.productId, idx);
+      });
     }
 
     // Lock editing for non-draft
@@ -1154,7 +1177,7 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
       const ws = stocks.find(s => s.warehouseCode === warehouseCode);
       this.lineStocks.update(m => ({
         ...m,
-        [lineIdx]: { available: ws?.available ?? 0, trackStock: true }
+        [lineIdx]: { qty: ws?.qty ?? 0, trackStock: true }
       }));
     } catch { /* stock check is best-effort */ }
   }
@@ -1163,16 +1186,16 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
   stockAlert(idx: number): '' | 'ok' | 'warn' | 'out' {
     const s = this.lineStocks()[idx];
     if (!s?.trackStock) return '';
-    if (s.available <= 0) return 'out';
+    if (s.qty <= 0) return 'out';
     const qty = parseFloat(this.linesArray.at(idx).get('quantity')?.value) || 0;
-    if (qty > s.available) return 'warn';
+    if (qty > s.qty) return 'warn';
     return 'ok';
   }
 
-  /** Returns the available qty for a line, or null if not tracked. */
+  /** Returns the stock qty for a line, or null if not tracked. */
   stockAvail(idx: number): number | null {
     const s = this.lineStocks()[idx];
-    return s?.trackStock ? s.available : null;
+    return s?.trackStock ? s.qty : null;
   }
 
   // ─── F3.5 — Duplicate invoice ─────────────────────────────────────────────

@@ -1,4 +1,4 @@
-import { onDocumentUpdated } from 'firebase-functions/v2/firestore';
+import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import * as admin from 'firebase-admin';
 import { logger } from 'firebase-functions/v2';
 
@@ -31,25 +31,31 @@ import { logger } from 'firebase-functions/v2';
  * Errors: never re-thrown (would cause infinite Firestore retries).
  * On failure: sets invoice.stockError so the UI can surface it.
  */
-export const onInvoiceStock = onDocumentUpdated(
+export const onInvoiceStock = onDocumentWritten(
   'companies/{companyId}/invoices/{invoiceId}',
   async (event) => {
-    const before = event.data?.before.data() as Record<string, any> | undefined;
-    const after  = event.data?.after.data()  as Record<string, any> | undefined;
+    // after.exists = false means deletion → ignore
+    if (!event.data?.after.exists) return;
 
-    if (!before || !after) return;
+    // before may not exist when the document is created directly with status='issued'
+    const before = event.data.before.exists
+      ? event.data.before.data() as Record<string, any>
+      : undefined;
+    const after  = event.data.after.data() as Record<string, any>;
 
     const { companyId, invoiceId } = event.params;
 
     // ── Determine which event this is ─────────────────────────────────────────
+    // before is undefined when the doc is created directly with status='issued'
+    // (no draft step). In that case before?.['status'] is undefined → !== 'issued' → ✓
     const isNewIssuance =
-      before['status'] !== 'issued' &&
-      after['status']  === 'issued' &&
+      before?.['status'] !== 'issued' &&
+      after['status']    === 'issued' &&
       !after['stockProcessed'];
 
     const isVoiding =
-      before['status'] !== 'void' &&
-      after['status']  === 'void'  &&
+      before?.['status'] !== 'void' &&
+      after['status']    === 'void'  &&
       after['stockProcessed'] === true &&
       !after['stockRestored'];
 
@@ -71,8 +77,8 @@ export const onInvoiceStock = onDocumentUpdated(
     // ── Resolve default warehouse from company config (outside transaction) ────
     let defaultWarehouseCode: string | undefined;
     try {
-      const configSnap = await db.doc(`companies/${companyId}/configuration/main`).get();
-      defaultWarehouseCode = configSnap.data()?.['defaultWarehouseCode'] as string | undefined;
+      const configSnap = await db.doc(`companies/${companyId}/configuration/general`).get();
+      defaultWarehouseCode = configSnap.data()?.['stock']?.['defaultWarehouseCode'] as string | undefined;
     } catch {
       // Config doc may not exist — cascade will fall through to undefined
     }

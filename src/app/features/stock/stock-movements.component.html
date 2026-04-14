@@ -1,5 +1,5 @@
 <!-- ── Cabecera ──────────────────────────────────────────────────────────── -->
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex justify-content-between align-items-center mb-1">
   <div class="d-flex align-items-center gap-2">
     <div class="bg-primary bg-opacity-10 p-2 rounded">
       <svg cIcon name="cilList" size="xl" class="text-primary"></svg>
@@ -14,85 +14,216 @@
   </a>
 </div>
 
+<!-- ── Stats strip ──────────────────────────────────────────────────────── -->
+@if (!loading()) {
+  <div class="d-flex gap-3 mb-3 flex-wrap">
+    <div class="border rounded px-3 py-2 d-flex align-items-center gap-2 bg-body">
+      <svg cIcon name="cilList" class="text-muted" size="sm"></svg>
+      <span class="fw-semibold">{{ stats().total }}</span>
+      <span class="text-muted small">movimientos</span>
+    </div>
+    <div class="border rounded px-3 py-2 d-flex align-items-center gap-2 bg-body">
+      <svg cIcon name="cilArrowTop" class="text-success" size="sm"></svg>
+      <span class="fw-semibold text-success">+{{ stats().entries | number:'1.0-2' }}</span>
+      <span class="text-muted small">entradas</span>
+    </div>
+    <div class="border rounded px-3 py-2 d-flex align-items-center gap-2 bg-body">
+      <svg cIcon name="cilArrowBottom" class="text-danger" size="sm"></svg>
+      <span class="fw-semibold text-danger">{{ stats().exits | number:'1.0-2' }}</span>
+      <span class="text-muted small">salidas</span>
+    </div>
+    <div class="border rounded px-3 py-2 d-flex align-items-center gap-2 bg-body">
+      <svg cIcon name="cilSync" class="text-warning" size="sm"></svg>
+      <span class="fw-semibold text-warning">{{ stats().adjustments }}</span>
+      <span class="text-muted small">ajustes</span>
+    </div>
+    <div class="border rounded px-3 py-2 d-flex align-items-center gap-2 bg-body ms-auto">
+      <svg cIcon name="cilChart" class="text-primary" size="sm"></svg>
+      <span class="fw-semibold"
+            [class.text-success]="(stats().entries + stats().exits) >= 0"
+            [class.text-danger]="(stats().entries + stats().exits) < 0">
+        {{ (stats().entries + stats().exits) >= 0 ? '+' : '' }}{{ (stats().entries + stats().exits) | number:'1.0-2' }}
+      </span>
+      <span class="text-muted small">neto</span>
+    </div>
+  </div>
+}
+
 <!-- ── Filtros ──────────────────────────────────────────────────────────── -->
-<c-row class="g-2 mb-3">
-  <c-col md="7">
-    <c-input-group>
-      <span cInputGroupText><svg cIcon name="cilSearch" size="sm"></svg></span>
-      <input cFormControl placeholder="Buscar producto, SKU o motivo…"
-             [value]="search()" (input)="search.set($any($event.target).value)">
-    </c-input-group>
-  </c-col>
-  <c-col md="5">
-    <select cFormSelect [value]="filterType()"
+<div class="d-flex gap-2 align-items-center flex-wrap mb-3">
+
+  <!-- Búsqueda -->
+  <div class="search-wrap">
+    <svg cIcon name="cilSearch" size="sm" class="search-icon"></svg>
+    <input class="search-input" placeholder="Producto, SKU, motivo, documento…"
+           [value]="search()" (input)="search.set($any($event.target).value)">
+    @if (search()) {
+      <button class="search-clear" (click)="search.set('')">
+        <svg cIcon name="cilX" size="sm"></svg>
+      </button>
+    }
+  </div>
+
+  <!-- Tipo -->
+  <div class="filter-select-wrap" [class.active]="!!filterType()">
+    <svg cIcon name="cilTags" size="sm" class="filter-select-icon"></svg>
+    <select class="filter-select"
+            [value]="filterType()"
             (change)="filterType.set($any($event.target).value)">
-      <option value="">— Todos los tipos —</option>
+      <option value="">Tipo</option>
       @for (opt of typeOptions; track opt.value) {
         <option [value]="opt.value">{{ opt.label }}</option>
       }
     </select>
-  </c-col>
-</c-row>
+    <svg cIcon name="cilChevronBottom" size="sm" class="filter-select-caret"></svg>
+  </div>
+
+  <!-- Almacén -->
+  <div class="filter-select-wrap" [class.active]="!!filterWarehouse()">
+    <svg cIcon name="cilStorage" size="sm" class="filter-select-icon"></svg>
+    <select class="filter-select"
+            [value]="filterWarehouse()"
+            (change)="filterWarehouse.set($any($event.target).value)">
+      <option value="">Almacén</option>
+      @for (w of warehouses(); track w.code) {
+        <option [value]="w.code">{{ w.name }}</option>
+      }
+    </select>
+    <svg cIcon name="cilChevronBottom" size="sm" class="filter-select-caret"></svg>
+  </div>
+
+  <!-- Desde -->
+  <div class="filter-select-wrap" [class.active]="!!filterDateFrom()">
+    <svg cIcon name="cilCalendar" size="sm" class="filter-select-icon"></svg>
+    <input type="date" class="filter-date" title="Desde"
+           [value]="filterDateFrom()"
+           (change)="filterDateFrom.set($any($event.target).value)">
+  </div>
+
+  <!-- Hasta -->
+  <div class="filter-select-wrap" [class.active]="!!filterDateTo()">
+    <svg cIcon name="cilCalendar" size="sm" class="filter-select-icon"></svg>
+    <input type="date" class="filter-date" title="Hasta"
+           [value]="filterDateTo()"
+           (change)="filterDateTo.set($any($event.target).value)">
+  </div>
+
+  <!-- Limpiar -->
+  @if (activeFiltersCount() > 0 || search()) {
+    <button class="d-flex align-items-center gap-1 px-3 py-1 rounded border text-danger bg-body"
+            style="font-size:.82rem;cursor:pointer;border-color:var(--cui-danger-border-subtle)!important"
+            (click)="clearFilters()">
+      <svg cIcon name="cilX" size="sm"></svg>
+      Limpiar
+      <span class="ms-1 badge text-bg-danger" style="font-size:.65rem">
+        {{ activeFiltersCount() + (search() ? 1 : 0) }}
+      </span>
+    </button>
+  }
+
+</div>
 
 <!-- ── Tabla ────────────────────────────────────────────────────────────── -->
 <c-card class="border-0 shadow-sm overflow-hidden">
   <c-card-body class="p-0">
     @if (loading()) {
-      <div class="text-center py-5"><c-spinner color="primary"></c-spinner></div>
+      <div class="text-center py-5">
+        <c-spinner color="primary"></c-spinner>
+        <p class="text-muted mt-3 small">Cargando movimientos…</p>
+      </div>
     } @else if (filtered().length === 0) {
       <div class="text-center py-5 bg-body-secondary">
         <svg cIcon name="cilList" size="3xl" class="text-muted mb-3 opacity-25"></svg>
-        <p class="text-muted">No hay movimientos registrados</p>
+        <p class="text-muted mb-1">No hay movimientos que coincidan</p>
+        @if (activeFiltersCount() > 0 || search()) {
+          <button cButton color="link" size="sm" class="text-primary text-decoration-none"
+                  (click)="clearFilters()">Limpiar filtros</button>
+        }
       </div>
     } @else {
       <div class="table-responsive">
         <table cTable hover align="middle" class="mb-0 border-0 small">
           <thead class="bg-body-secondary text-uppercase small fw-bold">
             <tr>
-              <th class="border-0 px-4 py-3">Fecha</th>
+              <th class="border-0 px-4 py-3 text-nowrap">Fecha</th>
               <th class="border-0 py-3">Producto</th>
-              <th class="border-0 py-3">Almacén</th>
+              <th class="border-0 py-3 text-nowrap">Almacén</th>
               <th class="border-0 py-3 text-center">Tipo</th>
               <th class="border-0 py-3 text-end">Antes</th>
-              <th class="border-0 py-3 text-end">Delta</th>
+              <th class="border-0 py-3 text-end">Movimiento</th>
               <th class="border-0 py-3 text-end">Después</th>
-              <th class="border-0 px-4 py-3">Motivo / Documento</th>
+              <th class="border-0 px-4 py-3">Referencia</th>
             </tr>
           </thead>
           <tbody>
             @for (m of filtered(); track trackById($index, m)) {
-              <tr class="align-middle border-bottom border-body-secondary">
-                <td class="px-4 py-2 text-muted small text-nowrap">
-                  {{ m.createdAt?.toDate() | date:'dd/MM/yy HH:mm' }}
+              <tr class="border-bottom border-body-secondary">
+
+                <!-- Fecha -->
+                <td class="px-4 py-2 text-nowrap">
+                  <div class="text-body-secondary small">{{ m.createdAt?.toDate() | date:'dd/MM/yyyy' }}</div>
+                  <div class="text-muted" style="font-size:.7rem">{{ m.createdAt?.toDate() | date:'HH:mm' }}</div>
                 </td>
+
+                <!-- Producto -->
+                <td class="py-2" style="max-width:200px">
+                  <div class="fw-semibold text-truncate" [title]="m.productName">{{ m.productName }}</div>
+                  <div class="font-monospace text-muted" style="font-size:.68rem">{{ m.productSku }}</div>
+                </td>
+
+                <!-- Almacén -->
                 <td class="py-2">
-                  <div class="fw-semibold">{{ m.productName }}</div>
-                  <div class="font-monospace text-muted" style="font-size: 0.7rem">{{ m.productSku }}</div>
+                  <span class="text-body-secondary small text-nowrap">{{ m.warehouseName || m.warehouseCode }}</span>
                 </td>
-                <td class="py-2 text-muted">{{ m.warehouseName || m.warehouseCode }}</td>
+
+                <!-- Tipo -->
                 <td class="py-2 text-center">
-                  <c-badge [color]="typeColor(m.type)" shape="rounded-pill" class="px-2" style="font-size: 0.65rem">
+                  <c-badge [color]="typeColor(m.type)" shape="rounded-pill"
+                           class="px-2" style="font-size:.63rem;white-space:nowrap">
                     {{ typeLabel(m.type) }}
                   </c-badge>
                 </td>
-                <td class="py-2 text-end font-monospace">{{ m.qtyBefore | number:'1.0-2' }}</td>
-                <td class="py-2 text-end font-monospace" [ngClass]="deltaClass(m.qtyDelta)">
-                  {{ m.qtyDelta | number:'+1.0-2' }}
+
+                <!-- Antes -->
+                <td class="py-2 text-end font-monospace text-muted" style="font-size:.78rem">
+                  {{ m.qtyBefore | number:'1.0-2' }}
                 </td>
-                <td class="py-2 text-end font-monospace fw-semibold">{{ m.qtyAfter | number:'1.0-2' }}</td>
-                <td class="px-4 py-2 text-muted small">
-                  @if (m.reason) { <span>{{ m.reason }}</span> }
+
+                <!-- Delta -->
+                <td class="py-2 text-end font-monospace fw-bold" [ngClass]="deltaClass(m.qtyDelta)"
+                    style="font-size:.85rem">
+                  {{ m.qtyDelta > 0 ? '+' : '' }}{{ m.qtyDelta | number:'1.0-2' }}
+                </td>
+
+                <!-- Después -->
+                <td class="py-2 text-end font-monospace fw-semibold" style="font-size:.85rem">
+                  {{ m.qtyAfter | number:'1.0-2' }}
+                </td>
+
+                <!-- Referencia -->
+                <td class="px-4 py-2" style="max-width:180px">
+                  @if (m.reason) {
+                    <div class="text-muted small text-truncate" [title]="m.reason">{{ m.reason }}</div>
+                  }
                   @if (m.sourceDocId) {
-                    <span class="font-monospace ms-1 text-primary">· {{ m.sourceDocId }}</span>
+                    <div class="font-monospace text-primary" style="font-size:.68rem">
+                      {{ sourceDocLabel(m) }}
+                    </div>
+                  }
+                  @if (!m.reason && !m.sourceDocId) {
+                    <span class="text-muted">—</span>
                   }
                 </td>
+
               </tr>
             }
           </tbody>
         </table>
       </div>
+
+      <!-- Pie -->
       <div class="px-4 py-2 border-top text-muted small bg-body-secondary">
-        Mostrando {{ filtered().length }} de {{ movements().length }} movimientos
+        Mostrando <strong>{{ filtered().length }}</strong> de <strong>{{ movements().length }}</strong> movimientos
       </div>
     }
   </c-card-body>

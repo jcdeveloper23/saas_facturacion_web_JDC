@@ -617,4 +617,53 @@
     </button>
   </div>
 </form>
+
+<!-- ══ CONFIGURACIÓN DE INVENTARIO ══════════════════════════════════════════ -->
+<form [formGroup]="stockForm" (ngSubmit)="onSubmitStock()" class="mt-4 mb-5">
+  <c-card class="shadow-sm border-0">
+    <c-card-header class="d-flex justify-content-between align-items-center">
+      <strong>Configuración de Inventario</strong>
+      <button cButton color="success" type="submit" size="sm" [disabled]="savingStock()">
+        @if (savingStock()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+        Guardar inventario
+      </button>
+    </c-card-header>
+    <c-card-body>
+      <c-row class="g-3">
+
+        <c-col sm="12" md="6">
+          <label cLabel class="fw-semibold mb-1">Almacén por defecto</label>
+          <select cSelect formControlName="defaultWarehouseCode">
+            <option value="">— Sin almacén por defecto —</option>
+            @for (wh of warehouses(); track wh.id) {
+              <option [value]="wh.code">{{ wh.name }}</option>
+            }
+          </select>
+          <small class="text-muted">Se usará en facturas cuando no se especifique almacén en la línea.</small>
+        </c-col>
+
+        <c-col sm="12" md="6" class="d-flex align-items-center">
+          <div class="form-check form-switch mt-3">
+            <input class="form-check-input" type="checkbox" role="switch"
+                   id="blockSaleCheck" formControlName="blockSaleOnInsufficient">
+            <label class="form-check-label fw-semibold" for="blockSaleCheck">
+              Bloquear venta si no hay stock suficiente
+            </label>
+          </div>
+        </c-col>
+
+        <c-col sm="12">
+          <c-callout color="info" class="py-2 mb-0">
+            <small>
+              <strong>Sin bloqueo:</strong> El sistema advierte con un indicador en la factura pero permite emitir.<br>
+              <strong>Con bloqueo:</strong> El botón "Emitir factura" se deshabilita si alguna línea tiene stock insuficiente.
+              Solo aplica a productos con <em>Control de stock</em> activado.
+            </small>
+          </c-callout>
+        </c-col>
+
+      </c-row>
+    </c-card-body>
+  </c-card>
+</form>
 }

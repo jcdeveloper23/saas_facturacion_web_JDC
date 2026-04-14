@@ -30,6 +30,11 @@ export class SettingsService {
     return this.fs.getDocument<CompanySettings>('configuration', 'general');
   }
 
+  /** Streams only the stock sub-config from configuration/general. */
+  getStockConfig(): Observable<CompanySettings['stock']> {
+    return this.getCompanySettings().pipe(map(s => s?.stock));
+  }
+
   async saveCompanySettings(data: Partial<CompanySettings>): Promise<void> {
     const companyId = this.tenantService.companyId;
     const ref = doc(this.firestore, `companies/${companyId}/configuration/general`);

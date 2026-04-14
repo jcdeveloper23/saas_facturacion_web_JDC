@@ -19,6 +19,11 @@ export interface CompanySettings {
   fiscalYear: number;
   updatedAt: Timestamp;
   updatedBy: string;
+  // ── Inventario ────────────────────────────────────────────────────────────
+  stock?: {
+    defaultWarehouseCode: string;       // almacén por defecto en facturas
+    blockSaleOnInsufficient: boolean;   // true = bloquear Emitir si stock < qty
+  };
 }
 
 // /companies/{companyId}/warehouses/{warehouseId}

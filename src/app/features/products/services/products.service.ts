@@ -114,7 +114,7 @@ export class ProductsService {
     return new Observable<ProductStock[]>(observer => {
       const ref = collection(this.firestore, `${this.colPath(productId)}/stocks`);
       return onSnapshot(ref, {
-        next:  snap => observer.next(snap.docs.map(d => d.data() as ProductStock)),
+        next:  snap => observer.next(snap.docs.map(d => ({ warehouseCode: d.id, ...d.data() }) as ProductStock)),
         error: err  => { console.error('[getStocks] error:', err); observer.error(err); }
       });
     });
@@ -137,20 +137,16 @@ export class ProductsService {
    * available per warehouse can be negative to expose real deficit.
    */
   async adjustStock(
-    productId:       string,
-    productSku:      string,
-    productName:     string,
-    stock:           ProductStock,
-    newQty:          number,
-    newLocation:     string,
-    reason:          string,
-    userId:          string,
-    currentStockQty: number,   // product.stockQty before this adjustment
-    stockReserved:   number    // product.stockReserved (unchanged by this operation)
+    productId:   string,
+    productSku:  string,
+    productName: string,
+    stock:       ProductStock,
+    newQty:      number,
+    newLocation: string,
+    reason:      string,
+    userId:      string
   ): Promise<void> {
-    const delta           = newQty - stock.qty;
-    const newStockQty     = currentStockQty + delta;
-    const newStockAvail   = newStockQty - stockReserved;          // exact formula, stored in DB
+    const delta             = newQty - stock.qty;
     const newWarehouseAvail = newQty - (stock.reserved ?? 0);     // per-warehouse, can be negative
 
     const batch = writeBatch(this.firestore);
@@ -166,11 +162,11 @@ export class ProductsService {
       lastUpdatedQty: stock.qty
     });
 
-    // 2. Persist exact aggregate values — never recomputed in the UI
+    // 2. Atomic increment on aggregate — avoids race conditions with concurrent transactions
     const productRef = doc(this.firestore, this.colPath(productId));
     batch.update(productRef, {
-      stockQty:       newStockQty,
-      stockAvailable: newStockAvail,
+      stockQty:       increment(delta),
+      stockAvailable: increment(delta),
       updatedAt:      Timestamp.now()
     });
 

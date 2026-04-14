@@ -17,6 +17,7 @@ import { iconSubset } from '../../../../icons/icon-subset';
 import { SettingsService } from '../../services/settings.service';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { TenantService } from '../../../../core/services/tenant.service';
+import { Warehouse } from '../../models/settings.interfaces';
 import { ecuadorRucValidator } from '../../../../shared/validators/ruc.validator';
 import { SriCompanyConfig } from '../../models/settings.interfaces';
 
@@ -45,6 +46,8 @@ export class CompanySettingsComponent implements OnInit {
 
   loading = signal(true);
   saving = signal(false);
+  savingStock = signal(false);
+  warehouses = signal<Warehouse[]>([]);
   errorMessage = signal('');
   savingSri = signal(false);
   sriErrorMessage = signal('');
@@ -113,11 +116,27 @@ export class CompanySettingsComponent implements OnInit {
 
   additionalFields = this.fb.array<FormGroup>([]);
 
+  // ── Formulario configuración de inventario ──────────────────────────────────
+  stockForm = this.fb.group({
+    defaultWarehouseCode:     [''],
+    blockSaleOnInsufficient:  [false]
+  });
+
   ngOnInit(): void {
+    this.svc.getWarehouses().pipe(take(1)).subscribe({
+      next: whs => this.warehouses.set(whs.filter(w => w.isActive))
+    });
+
     this.svc.getCompanySettings().subscribe({
       next: (settings) => {
         if (settings) {
           this.form.patchValue(settings as any);
+          if (settings.stock) {
+            this.stockForm.patchValue({
+              defaultWarehouseCode:    settings.stock.defaultWarehouseCode ?? '',
+              blockSaleOnInsufficient: settings.stock.blockSaleOnInsufficient ?? false
+            });
+          }
         }
         this.loading.set(false);
       },
@@ -179,6 +198,25 @@ export class CompanySettingsComponent implements OnInit {
         }
       }
     });
+  }
+
+  // ── Submit inventario ───────────────────────────────────────────────────────
+  async onSubmitStock(): Promise<void> {
+    this.savingStock.set(true);
+    try {
+      const fv = this.stockForm.getRawValue();
+      await this.svc.saveCompanySettings({
+        stock: {
+          defaultWarehouseCode:    fv.defaultWarehouseCode ?? '',
+          blockSaleOnInsufficient: fv.blockSaleOnInsufficient ?? false
+        }
+      });
+      this.notifications.success('Configuración de inventario guardada');
+    } catch (err: unknown) {
+      this.notifications.error('Error al guardar: ' + (err instanceof Error ? err.message : err));
+    } finally {
+      this.savingStock.set(false);
+    }
   }
 
   // ── Submit empresa ──────────────────────────────────────────────────────────

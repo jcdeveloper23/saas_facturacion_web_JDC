@@ -179,7 +179,7 @@ export const onMarketplaceSettingsChange = onDocumentWritten(
       // Write/update /public-catalogs/{slug}
       const catalogRef = db.doc(`public-catalogs/${slug}`);
       await catalogRef.set({
-        companyId,
+        companyId, 
         companyName:      afterData?.['name']    ?? '',
         logoUrl:          afterData?.['logoUrl'] ?? null,
         primaryColor:     afterMarketplace['primaryColor']     ?? null,

@@ -29,7 +29,7 @@
 
 > **`recordSale()` y `recordPurchase()` existen y son correctos pero NUNCA se llaman desde ningún flujo de negocio.**
 >
-> `onInvoiceEmit` (`functions/src/invoices/on-invoice-emit.ts`) ejecuta el pipeline SRI completo (XML → firma → SRI → PDF → email) pero **no tiene ninguna línea de lógica de stock**. Se puede facturar sin límite y el inventario no se mueve.
+> `onInvoiceEmit` (`functions/src/invoices/on-invoice-emit.ts`) ejecuta el pipeline SRI completo (XML → firma → SRI → PDF → email) pero **no tiene ninguna línea de lógica de stock**. Se puede facturar sin límite y el inventario no se mueve. 
 
 ### Problema adicional — Los tres modos de facturación
 

@@ -835,9 +835,7 @@ export class ProductFormComponent implements OnInit, OnDestroy {
         adj.newQty,
         adj.location,
         adj.reason || (stock ? 'Ajuste manual' : 'Stock inicial'),
-        this.authSvc.user()?.uid ?? 'unknown',
-        product.stockQty,
-        product.stockReserved
+        this.authSvc.user()?.uid ?? 'unknown'
       );
       this.stockAdjust.update(m => ({ ...m, [warehouseCode]: { ...adj, reason: '', saving: false } }));
       this.notifications.success(`Stock de ${stockBase.warehouseName} actualizado`);
