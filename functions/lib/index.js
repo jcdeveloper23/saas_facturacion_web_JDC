@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.downloadDocument = exports.onDebitNoteEmit = exports.sendDebitNoteEmail = exports.generateDebitNotePdf = exports.generateDebitNoteXml = exports.onRetentionEmit = exports.sendRetentionEmail = exports.generateRetentionPdf = exports.generateRetentionXml = exports.onInvoiceEmit = exports.sendCreditNoteEmail = exports.generateCreditNotePdf = exports.sendInvoiceEmail = exports.generatePdf = exports.checkSriStatus = exports.sendToSri = exports.signXml = exports.generateCreditNoteXml = exports.generateInvoiceXml = exports.uploadCertificate = exports.setupCompany = exports.setupFirstAdmin = exports.setUserCustomClaims = void 0;
+exports.downloadDocument = exports.onProductPublicSync = exports.onMarketplaceSettingsChange = exports.onDebitNoteEmit = exports.sendDebitNoteEmail = exports.generateDebitNotePdf = exports.generateDebitNoteXml = exports.onRetentionEmit = exports.sendRetentionEmail = exports.generateRetentionPdf = exports.generateRetentionXml = exports.onInvoiceEmit = exports.sendCreditNoteEmail = exports.generateCreditNotePdf = exports.sendInvoiceEmail = exports.generatePdf = exports.checkSriStatus = exports.sendToSri = exports.signXml = exports.generateCreditNoteXml = exports.generateInvoiceXml = exports.uploadCertificate = exports.setupCompany = exports.setupFirstAdmin = exports.setUserCustomClaims = void 0;
 const admin = __importStar(require("firebase-admin"));
 admin.initializeApp();
 // Auth
@@ -85,6 +85,11 @@ var send_debit_note_email_1 = require("./debit-notes/send-debit-note-email");
 Object.defineProperty(exports, "sendDebitNoteEmail", { enumerable: true, get: function () { return send_debit_note_email_1.sendDebitNoteEmail; } });
 var on_debit_note_emit_1 = require("./debit-notes/on-debit-note-emit");
 Object.defineProperty(exports, "onDebitNoteEmit", { enumerable: true, get: function () { return on_debit_note_emit_1.onDebitNoteEmit; } });
+// Marketplace
+var on_marketplace_settings_change_1 = require("./marketplace/on-marketplace-settings-change");
+Object.defineProperty(exports, "onMarketplaceSettingsChange", { enumerable: true, get: function () { return on_marketplace_settings_change_1.onMarketplaceSettingsChange; } });
+var on_product_public_sync_1 = require("./marketplace/on-product-public-sync");
+Object.defineProperty(exports, "onProductPublicSync", { enumerable: true, get: function () { return on_product_public_sync_1.onProductPublicSync; } });
 // Utils
 var download_document_1 = require("./utils/download-document");
 Object.defineProperty(exports, "downloadDocument", { enumerable: true, get: function () { return download_document_1.downloadDocument; } });

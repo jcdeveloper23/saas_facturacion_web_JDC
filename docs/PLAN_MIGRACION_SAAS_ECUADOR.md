@@ -143,7 +143,7 @@ Una nueva ruta `/settings/plugins` (o `/plugins`) visible para el admin de empre
 | 16 | Purchase Orders | F6b | ⬜ Pendiente | pkg_purchases | `/purchase-orders` |
 | 17 | Dashboard | F7 | ⬜ Pendiente | pkg_base | `/dashboard` |
 | 18 | Plugin Packages UI (empresa) | F2b | ✅ Completo | pkg_base | `/settings/plugins` |
-| 19 | Marketplace / Catálogo Público | F8 | ⬜ Pendiente | pkg_marketplace | `/{slug}` (público) + `/settings/marketplace` |
+| 19 | Marketplace / Catálogo Público | F8 | ✅ Completo | pkg_marketplace | `/{slug}` (público) + `/settings/marketplace` |
 
 ---
 
@@ -244,15 +244,18 @@ Una nueva ruta `/settings/plugins` (o `/plugins`) visible para el admin de empre
 ---
 
 ### Fase 6 — Módulos Avanzados
-> Estado: **0%**
+> Estado: **15%** (Stock Management completo)
 > **Prerequisito:** F3 + F4 + F5 completas ✅
 
-#### Stock Management ⬜
-- [ ] `features/stock/` — consulta por producto / por almacén
-- [ ] Ajustes de inventario con autorización
-- [ ] Transferencias entre almacenes
-- [ ] Log de movimientos (read-only)
-- [ ] Activar ruta `/stock` con `moduleGuard: 'stock'`
+#### Stock Management ✅
+- [x] `features/stock/stock.service.ts` — `getAllMovements()` company-wide
+- [x] `features/stock/stock.routes.ts` — rutas lazy-loaded
+- [x] `features/stock/stock-overview.component` — tabla con stats strip, badges de estado, ajuste inline por almacén
+- [x] `features/stock/stock-movements.component` — log read-only con filtros tipo/búsqueda
+- [x] Modal de ajuste de inventario con log de auditoría (usa `ProductsService.adjustStock()`)
+- [x] Activar ruta `/stock` con `moduleGuard: 'stock'` + `roleGuard: ['admin']`
+- [x] Nav sidebar "Almacén" con subitems Stock / Movimientos
+- [ ] Transferencias entre almacenes (F6b — puede ir en siguiente iteración)
 
 #### Quotes (Presupuestos) ⬜
 - [ ] `features/quotes/` — list, form, conversión a order/invoice
@@ -303,8 +306,8 @@ Una nueva ruta `/settings/plugins` (o `/plugins`) visible para el admin de empre
 ---
 
 ### Fase 8 — Marketplace / Catálogo Público (`pkg_marketplace`)
-> Estado: **0%**
-> **Prerequisito:** F3 completa (Products + Families) ✅ — puede arrancar inmediatamente
+> Estado: **100% completo** — pendiente deploy + smoke test
+> **Prerequisito:** F3 completa (Products + Families) ✅
 
 #### Descripción del módulo
 
@@ -599,23 +602,23 @@ Agregar en `src/app/core/seed/modules-seed.ts`:
 
 | Tarea | Agente | Estado |
 |-------|--------|--------|
-| 8.1 Seed `pkg_marketplace` + módulo `marketplace` | Firebase Agent | ⬜ |
-| 8.2 Extender `Company` interface con `marketplace?` | Firebase Agent | ⬜ |
-| 8.2 Interfaces `PublicCatalog`, `PublicProduct` | Firebase Agent | ⬜ |
-| 8.3 Reglas Firestore `public-catalogs` | Security Agent | ⬜ |
-| 8.3 Índice compuesto `public-catalogs/products` | Security Agent | ⬜ |
-| 8.4 CF `onMarketplaceSettingsChange` | Cloud Functions Agent | ⬜ |
-| 8.4 CF `onProductPublicSync` | Cloud Functions Agent | ⬜ |
-| 8.5 `features/marketplace/` — estructura completa | Angular Agent | ⬜ |
-| 8.5 `PublicCatalogService` | Angular Agent | ⬜ |
-| 8.5 `CatalogShellComponent` — layout público | Angular Agent | ⬜ |
-| 8.5 `CatalogListComponent` — grid + filtros | Angular Agent | ⬜ |
-| 8.5 `CatalogDetailComponent` — detalle producto | Angular Agent | ⬜ |
-| 8.5 Ruta pública `catalogo/:slug` en `app.routes.ts` | Angular Agent | ⬜ |
-| 8.6 `MarketplaceSettingsComponent` | Angular Agent | ⬜ |
-| 8.6 Ruta `/settings/marketplace` | Angular Agent | ⬜ |
-| 8.6 Entrada sidebar `_nav.ts` | Angular Agent | ⬜ |
-| 8.7 Módulo `marketplace` en `modules-seed.ts` | Architecture Agent | ⬜ |
+| 8.1 Seed `pkg_marketplace` + módulo `marketplace` | Firebase Agent | ✅ |
+| 8.2 Extender `Company` interface con `marketplace?` | Firebase Agent | ✅ |
+| 8.2 Interfaces `PublicCatalog`, `PublicProduct` | Firebase Agent | ✅ |
+| 8.3 Reglas Firestore `public-catalogs` | Security Agent | ✅ |
+| 8.3 Índice compuesto `public-catalogs/products` | Security Agent | ✅ |
+| 8.4 CF `onMarketplaceSettingsChange` | Cloud Functions Agent | ✅ |
+| 8.4 CF `onProductPublicSync` | Cloud Functions Agent | ✅ |
+| 8.5 `features/marketplace/` — estructura completa | Angular Agent | ✅ |
+| 8.5 `PublicCatalogService` | Angular Agent | ✅ |
+| 8.5 `CatalogShellComponent` — layout público | Angular Agent | ✅ |
+| 8.5 `CatalogListComponent` — grid + filtros | Angular Agent | ✅ |
+| 8.5 `CatalogDetailComponent` — detalle producto | Angular Agent | ✅ |
+| 8.5 Ruta pública `/:slug` en `app.routes.ts` | Angular Agent | ✅ |
+| 8.6 `MarketplaceSettingsComponent` | Angular Agent | ✅ |
+| 8.6 Ruta `/settings/marketplace` | Angular Agent | ✅ |
+| 8.6 Entrada sidebar `_nav.ts` | Angular Agent | ✅ |
+| 8.7 Módulo `marketplace` en `modules-seed.ts` | Architecture Agent | ✅ |
 | 8.8 Deploy indexes + rules + functions + hosting | DevOps Agent | ⬜ |
 
 #### Archivos a crear
@@ -659,7 +662,7 @@ F5 SRI Electrónico    ███████████████ 100% ✅
 F6 Avanzado           ░░░░░░░░░░░░░░░   0%
 F6b Compras           ░░░░░░░░░░░░░░░   0%
 F7 Dashboard          ░░░░░░░░░░░░░░░   0%
-F8 Marketplace        ░░░░░░░░░░░░░░░   0%
+F8 Marketplace        ██████████████░  98% ✅ (pendiente deploy)
 ```
 
 ---

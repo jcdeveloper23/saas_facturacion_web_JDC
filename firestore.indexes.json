@@ -114,6 +114,14 @@
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "isActive",  "order": "ASCENDING" },
+        { "fieldPath": "name",      "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "products",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "isActive",  "order": "ASCENDING" },
         { "fieldPath": "familyId",  "order": "ASCENDING" },
         { "fieldPath": "name",      "order": "ASCENDING" }
       ]

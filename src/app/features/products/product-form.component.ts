@@ -394,12 +394,15 @@ export class ProductFormComponent implements OnInit, OnDestroy {
   // It is never recomputed on the UI from subcollection sums — the source of truth is the DB field.
   totalStock = computed(() => this.productStockQty());
 
-  // ─── Image state ────────────────────────────────────────────────────────
-  imageUrl        = signal<string>('');
-  imageUploading  = signal(false);
-  imageProgress   = signal(0);
+  // ─── Image state (multi-slot: 0=principal, 1-3=adicionales) ────────────
+  imageUrls       = signal<(string | null)[]>([null, null, null, null]);
+  uploadingSlot   = signal<number | null>(null);   // qué slot está subiendo
+  uploadProgress  = signal(0);
   imageError      = signal('');
-  imageDragOver   = signal(false);
+  imageDragOver   = signal<number | null>(null);   // slot sobre el que se arrastra
+
+  // backward-compat: imageUrl siempre = slot 0
+  imageUrl = this.imageUrls;  // alias para referencias legacy en el template
 
   // Inline forms
   supplierForm!: FormGroup;
@@ -661,7 +664,14 @@ export class ProductFormComponent implements OnInit, OnDestroy {
 
   private patchForm(p: Product): void {
     this.productStockQty.set(p.stockQty ?? 0);
-    if (p.imageUrl) this.imageUrl.set(p.imageUrl);
+    // Populate imageUrls: prefer imageUrls array; fallback to single imageUrl in slot 0
+    const urls: (string | null)[] = [null, null, null, null];
+    if (p.imageUrls?.length) {
+      p.imageUrls.slice(0, 4).forEach((u, i) => { if (u) urls[i] = u; });
+    } else if (p.imageUrl) {
+      urls[0] = p.imageUrl;
+    }
+    this.imageUrls.set(urls);
     if (p.priceUpdatedAt) {
       this.priceUpdatedAt.set((p.priceUpdatedAt as any).toDate?.() ?? null);
     }
@@ -855,92 +865,103 @@ export class ProductFormComponent implements OnInit, OnDestroy {
     return (m.createdAt as any).toDate?.()?.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' }) ?? '';
   }
 
-  // ─── Image handling ──────────────────────────────────────────────────────
+  // ─── Image handling (multi-slot) ─────────────────────────────────────────
 
-  onImageDragOver(e: DragEvent): void {
+  // activeUploadSlot tracks which file input should receive the file
+  private _pendingSlot = 0;
+
+  onImageDragOver(e: DragEvent, slot: number): void {
     e.preventDefault();
-    this.imageDragOver.set(true);
+    this.imageDragOver.set(slot);
   }
 
   onImageDragLeave(): void {
-    this.imageDragOver.set(false);
+    this.imageDragOver.set(null);
   }
 
-  onImageDrop(e: DragEvent): void {
+  onImageDrop(e: DragEvent, slot: number): void {
     e.preventDefault();
-    this.imageDragOver.set(false);
+    this.imageDragOver.set(null);
     const file = e.dataTransfer?.files?.[0];
-    if (file) this.uploadImage(file);
+    if (file) this.uploadImageAt(slot, file);
   }
 
-  onImageFileSelected(e: Event): void {
+  onImageFileSelected(e: Event, slot: number): void {
     const file = (e.target as HTMLInputElement).files?.[0];
-    console.log('[ProductForm] file selected:', file?.name, file?.type, file?.size);
-    if (file) this.uploadImage(file);
+    if (file) this.uploadImageAt(slot, file);
     (e.target as HTMLInputElement).value = '';
   }
 
-  private async uploadImage(file: File): Promise<void> {
-    console.log('[ProductForm] uploadImage called', { name: file.name, type: file.type, size: file.size });
+  triggerFileInput(slot: number, inputEl: HTMLInputElement): void {
+    this._pendingSlot = slot;
+    inputEl.click();
+  }
 
+  private async uploadImageAt(slot: number, file: File): Promise<void> {
     const validationError = this.imageSvc.validate(file);
-    if (validationError) {
-      console.warn('[ProductForm] validation error:', validationError);
-      this.imageError.set(validationError);
-      return;
-    }
+    if (validationError) { this.imageError.set(validationError); return; }
 
     const productId = this.productId();
-    console.log('[ProductForm] productId:', productId);
     if (!productId) {
       this.notifications.warning('Guarde el artículo primero para poder subir la imagen.');
       return;
     }
 
-    // ── Show local preview immediately (don't wait for Firebase) ────────────
+    // Show local preview immediately
     const localUrl = URL.createObjectURL(file);
-    console.log('[ProductForm] local preview URL:', localUrl);
-    this.imageUrl.set(localUrl);
+    this.updateSlot(slot, localUrl);
     this.imageError.set('');
-    this.imageUploading.set(true);
-    this.imageProgress.set(0);
+    this.uploadingSlot.set(slot);
+    this.uploadProgress.set(0);
 
     try {
-      console.log('[ProductForm] calling imageSvc.upload...');
-      const firebaseUrl = await this.imageSvc.upload(productId, file, pct => {
-        console.log('[ProductForm] progress callback:', pct);
-        this.imageProgress.set(pct);
+      const firebaseUrl = await this.imageSvc.uploadAt(productId, slot, file, pct => {
+        this.uploadProgress.set(pct);
       });
-      console.log('[ProductForm] upload success, firebaseUrl:', firebaseUrl);
       URL.revokeObjectURL(localUrl);
-      this.imageUrl.set(firebaseUrl);
-      await this.svc.updateProduct(productId, { imageUrl: firebaseUrl });
-      this.notifications.success('Imagen guardada');
+      this.updateSlot(slot, firebaseUrl);
+      await this.persistImages(productId);
+      this.notifications.success(`Imagen ${slot + 1} guardada`);
     } catch (err: any) {
-      console.error('[ProductForm] upload failed:', err?.code, err?.message, err);
       URL.revokeObjectURL(localUrl);
-      this.imageUrl.set('');
+      this.updateSlot(slot, null);
       const code = err?.code ? `[${err.code}] ` : '';
       this.imageError.set(code + (err?.message ?? 'Error al subir imagen'));
     } finally {
-      this.imageUploading.set(false);
+      this.uploadingSlot.set(null);
     }
   }
 
-  async removeImage(): Promise<void> {
-    if (!confirm('¿Eliminar la imagen del artículo?')) return;
+  async removeImageAt(slot: number): Promise<void> {
+    if (!confirm(`¿Eliminar la imagen ${slot + 1}?`)) return;
     const productId = this.productId();
-    const url       = this.imageUrl();
-    if (!productId || !url) { this.imageUrl.set(''); return; }
+    const url       = this.imageUrls()[slot];
+    if (!productId || !url) { this.updateSlot(slot, null); return; }
     try {
       await this.imageSvc.delete(url);
-      await this.svc.updateProduct(productId, { imageUrl: '' } as any);
-      this.imageUrl.set('');
+      this.updateSlot(slot, null);
+      await this.persistImages(productId);
       this.notifications.success('Imagen eliminada');
     } catch (err: any) {
       this.notifications.error(err?.message ?? 'Error al eliminar imagen');
     }
   }
+
+  private updateSlot(slot: number, url: string | null): void {
+    const current = [...this.imageUrls()];
+    current[slot] = url;
+    this.imageUrls.set(current);
+  }
+
+  private async persistImages(productId: string): Promise<void> {
+    const urls = this.imageUrls().filter((u): u is string => !!u);
+    const imageUrl = urls[0] ?? '';
+    await this.svc.updateProduct(productId, { imageUrl, imageUrls: urls } as any);
+  }
+
+  // Legacy: kept so existing template bindings still compile during migration
+  onImageDragOver_legacy = (e: DragEvent) => this.onImageDragOver(e, 0);
+  removeImage = () => this.removeImageAt(0);
 
   // ─── Suppliers inline CRUD ───────────────────────────────────────────────
 

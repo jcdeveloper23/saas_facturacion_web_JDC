@@ -1,0 +1,251 @@
+<div class="cl-root">
+
+  <!-- ── Search bar ────────────────────────────────────────────────────── -->
+  <div class="cl-search-wrap">
+    <div class="cl-search">
+      <svg class="cl-search__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11zM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9z" clip-rule="evenodd"/>
+      </svg>
+      <input
+        class="cl-search__input"
+        type="text"
+        placeholder="Buscar en el catálogo…"
+        [ngModel]="searchQuery()"
+        (ngModelChange)="searchQuery.set($event)"
+      />
+      @if (searchQuery()) {
+        <button class="cl-search__clear" (click)="searchQuery.set('')">✕</button>
+      }
+    </div>
+  </div>
+
+  <!-- ── Body: sidebar + products ────────────────────────────────────────── -->
+  <div class="cl-body">
+
+    <!-- Sidebar -->
+    <aside class="cl-sidebar">
+
+      <!-- Categories -->
+      <div class="cl-sidebar__section">
+        <h3 class="cl-sidebar__title">Categorías</h3>
+        <ul class="cl-category-list">
+          <li>
+            <button
+              class="cl-category-item"
+              [class.active]="selectedFamilyId() === null"
+              (click)="selectedFamilyId.set(null)">
+              <span>Todos los productos</span>
+              <span class="cl-category-item__count">{{ allProducts().length }}</span>
+            </button>
+          </li>
+          @for (f of families(); track f.id) {
+            <li>
+              <button
+                class="cl-category-item"
+                [class.active]="selectedFamilyId() === f.id"
+                (click)="selectedFamilyId.set(f.id)">
+                <span>{{ f.name }}</span>
+                <span class="cl-category-item__count">{{ f.count }}</span>
+              </button>
+            </li>
+          }
+        </ul>
+      </div>
+
+      <!-- Stock filter -->
+      <div class="cl-sidebar__section">
+        <h3 class="cl-sidebar__title">Disponibilidad</h3>
+        <label class="cl-toggle-row">
+          <input type="checkbox" [ngModel]="onlyInStock()" (ngModelChange)="onlyInStock.set($event)" />
+          <span class="cl-toggle-row__label">Solo disponibles</span>
+        </label>
+      </div>
+
+    </aside>
+
+    <!-- Main -->
+    <section class="cl-main">
+
+      <!-- Toolbar -->
+      <div class="cl-toolbar">
+        <p class="cl-toolbar__count">
+          @if (loading()) {
+            Cargando…
+          } @else {
+            <strong>{{ filteredProducts().length }}</strong>
+            producto{{ filteredProducts().length !== 1 ? 's' : '' }}
+            @if (selectedFamilyId()) { en <em>{{ selectedFamilyName() }}</em> }
+            @if (searchQuery()) { · "<em>{{ searchQuery() }}</em>" }
+          }
+        </p>
+        <div class="cl-toolbar__right">
+          <select class="cl-sort-select" [ngModel]="sortKey()" (ngModelChange)="sortKey.set($event)">
+            <option value="name_asc">Nombre A–Z</option>
+            <option value="name_desc">Nombre Z–A</option>
+            <option value="price_asc">Precio: menor a mayor</option>
+            <option value="price_desc">Precio: mayor a menor</option>
+          </select>
+          <div class="cl-view-toggle">
+            <button [class.active]="viewMode() === 'grid'" (click)="viewMode.set('grid')" title="Cuadrícula">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                <path fill-rule="evenodd" d="M4.25 2A2.25 2.25 0 0 0 2 4.25v2.5A2.25 2.25 0 0 0 4.25 9h2.5A2.25 2.25 0 0 0 9 6.75v-2.5A2.25 2.25 0 0 0 6.75 2h-2.5zm0 9A2.25 2.25 0 0 0 2 13.25v2.5A2.25 2.25 0 0 0 4.25 18h2.5A2.25 2.25 0 0 0 9 15.75v-2.5A2.25 2.25 0 0 0 6.75 11h-2.5zm9-9A2.25 2.25 0 0 0 11 4.25v2.5A2.25 2.25 0 0 0 13.25 9h2.5A2.25 2.25 0 0 0 18 6.75v-2.5A2.25 2.25 0 0 0 15.75 2h-2.5zm0 9A2.25 2.25 0 0 0 11 13.25v2.5A2.25 2.25 0 0 0 13.25 18h2.5A2.25 2.25 0 0 0 18 15.75v-2.5A2.25 2.25 0 0 0 15.75 11h-2.5z" clip-rule="evenodd"/>
+              </svg>
+            </button>
+            <button [class.active]="viewMode() === 'list'" (click)="viewMode.set('list')" title="Lista">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                <path fill-rule="evenodd" d="M2 4.75A.75.75 0 0 1 2.75 4h14.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 4.75zm0 10.5a.75.75 0 0 1 .75-.75h14.5a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1-.75-.75zM2 10a.75.75 0 0 1 .75-.75h14.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 10z" clip-rule="evenodd"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Loading -->
+      @if (loading()) {
+        <div class="cl-skeleton-grid">
+          @for (n of [1,2,3,4,5,6,7,8]; track n) {
+            <div class="cl-skeleton-card">
+              <div class="cl-skeleton-img"></div>
+              <div class="cl-skeleton-line" style="width:80%"></div>
+              <div class="cl-skeleton-line" style="width:50%"></div>
+            </div>
+          }
+        </div>
+
+      <!-- Empty -->
+      } @else if (filteredProducts().length === 0) {
+        <div class="cl-empty">
+          <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="none" viewBox="0 0 24 24" stroke="#d1d5db" stroke-width="1.2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607z" />
+          </svg>
+          <h3>Sin resultados</h3>
+          <p>No encontramos productos con esos criterios.</p>
+          <button class="cl-empty__reset" (click)="resetFilters()">Limpiar filtros</button>
+        </div>
+
+      <!-- GRID mode -->
+      } @else if (viewMode() === 'grid') {
+        <div class="cl-grid">
+          @for (p of filteredProducts(); track p.id) {
+            @let images = getCardImages(p);
+            <article class="cl-card" (click)="openProduct(p.id)">
+              <div class="cl-card__img-wrap">
+
+                @if (images.length > 0) {
+                  <img
+                    class="cl-card__img"
+                    [src]="images[getCardIdx(p.id)]"
+                    [alt]="p.name"
+                    loading="lazy"
+                  />
+                  @if (images.length > 1) {
+                    <button class="cl-card__arrow cl-card__arrow--prev"
+                            (click)="prevCardImage($event, p)" aria-label="Imagen anterior">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M11.78 5.22a.75.75 0 0 1 0 1.06L8.06 10l3.72 3.72a.75.75 0 1 1-1.06 1.06l-4.25-4.25a.75.75 0 0 1 0-1.06l4.25-4.25a.75.75 0 0 1 1.06 0z" clip-rule="evenodd"/>
+                      </svg>
+                    </button>
+                    <button class="cl-card__arrow cl-card__arrow--next"
+                            (click)="nextCardImage($event, p)" aria-label="Imagen siguiente">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M8.22 5.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L11.94 10 8.22 6.28a.75.75 0 0 1 0-1.06z" clip-rule="evenodd"/>
+                      </svg>
+                    </button>
+                    <div class="cl-card__dots">
+                      @for (_ of images; track $index) {
+                        <span class="cl-card__dot" [class.active]="getCardIdx(p.id) === $index"></span>
+                      }
+                    </div>
+                  }
+                } @else {
+                  <div class="cl-card__img-ph">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" fill="none" viewBox="0 0 24 24" stroke="#d1d5db" stroke-width="1.2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0z" />
+                    </svg>
+                  </div>
+                }
+
+                @if (p.stockAvailable === 0 && !p.noStock) {
+                  <span class="cl-badge cl-badge--out">Agotado</span>
+                } @else if (!p.noStock && p.stockAvailable <= 5 && p.stockAvailable > 0) {
+                  <span class="cl-badge cl-badge--low">Últimas unidades</span>
+                }
+                <div class="cl-card__overlay">
+                  <span class="cl-card__cta">Ver detalle →</span>
+                </div>
+              </div>
+              <div class="cl-card__body">
+                @if (p.familyName) {
+                  <span class="cl-card__family">{{ p.familyName }}</span>
+                }
+                <h4 class="cl-card__name">{{ p.name }}</h4>
+                @if (catalog()?.showNotes && p.notes) {
+                  <p class="cl-card__notes">{{ p.notes }}</p>
+                }
+                @if (catalog()?.showPrices) {
+                  <div class="cl-card__price">
+                    {{ p.salePrice * (1 + (p.taxRate ?? 0) / 100) | currency:'USD':'symbol':'1.2-2' }}
+                  </div>
+                }
+                <div class="cl-card__stock-row">
+                  @if (p.noStock) {
+                    <span class="cl-stock cl-stock--service">Servicio</span>
+                  } @else if (p.stockAvailable > 0) {
+                    <span class="cl-stock cl-stock--in">● Disponible</span>
+                  } @else {
+                    <span class="cl-stock cl-stock--out">● Agotado</span>
+                  }
+                </div>
+              </div>
+            </article>
+          }
+        </div>
+
+      <!-- LIST mode -->
+      } @else {
+        <div class="cl-list">
+          @for (p of filteredProducts(); track p.id) {
+            <article class="cl-list-item" (click)="openProduct(p.id)">
+              <div class="cl-list-item__img-wrap">
+                @if (p.imageUrl) {
+                  <img class="cl-list-item__img" [src]="p.imageUrl" [alt]="p.name" loading="lazy" />
+                } @else {
+                  <div class="cl-list-item__img-ph">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="#d1d5db" stroke-width="1.2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0z" />
+                    </svg>
+                  </div>
+                }
+              </div>
+              <div class="cl-list-item__body">
+                @if (p.familyName) {
+                  <span class="cl-card__family">{{ p.familyName }}</span>
+                }
+                <h4 class="cl-list-item__name">{{ p.name }}</h4>
+                @if (catalog()?.showNotes && p.notes) {
+                  <p class="cl-list-item__notes">{{ p.notes }}</p>
+                }
+                <div class="cl-list-item__footer">
+                  @if (catalog()?.showPrices) {
+                    <span class="cl-list-item__price">{{ p.salePrice * (1 + (p.taxRate ?? 0) / 100) | currency:'USD':'symbol':'1.2-2' }}</span>
+                  }
+                  @if (p.noStock) {
+                    <span class="cl-stock cl-stock--service">Servicio</span>
+                  } @else if (p.stockAvailable > 0) {
+                    <span class="cl-stock cl-stock--in">● Disponible</span>
+                  } @else {
+                    <span class="cl-stock cl-stock--out">● Agotado</span>
+                  }
+                </div>
+              </div>
+              <div class="cl-list-item__action">
+                <button class="cl-btn-detail">Ver detalle</button>
+              </div>
+            </article>
+          }
+        </div>
+      }
+
+    </section>
+  </div>
+</div>

@@ -38,6 +38,12 @@ export const SETTINGS_ROUTES: Routes = [
         data: { title: 'Tax Rates' }
       },
       {
+        path: 'families',
+        loadComponent: () =>
+          import('./pages/families/families.component').then(m => m.FamiliesComponent),
+        data: { title: 'Familias de Productos' }
+      },
+      {
         path: 'currencies',
         loadComponent: () =>
           import('./pages/currencies/currencies.component').then(m => m.CurrenciesComponent),
@@ -60,6 +66,12 @@ export const SETTINGS_ROUTES: Routes = [
         loadComponent: () =>
           import('./pages/plugins/company-plugins-view.component').then(m => m.CompanyPluginsViewComponent),
         data: { title: 'Mis Plugins' }
+      },
+      {
+        path: 'marketplace',
+        loadComponent: () =>
+          import('./pages/marketplace/marketplace-settings.component').then(m => m.MarketplaceSettingsComponent),
+        data: { title: 'Catálogo Público' }
       }
     ]
   }

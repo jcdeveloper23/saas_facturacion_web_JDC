@@ -113,11 +113,12 @@ export const routes: Routes = [
       // },
 
       // ── Stock ──────────────────────────────────────────────────────────
-      // {
-      //   path: 'stock',
-      //   loadChildren: () => import('./features/stock/stock.routes').then(m => m.STOCK_ROUTES),
-      //   data: { title: 'Stock' }
-      // },
+      {
+        path: 'stock',
+        canActivate: [roleGuard, moduleGuard],
+        data: { roles: ['admin'], module: 'stock', title: 'Inventario' },
+        loadChildren: () => import('./features/stock/stock.routes').then(m => m.STOCK_ROUTES)
+      },
 
       // ── POS ────────────────────────────────────────────────────────────
       // {
@@ -170,6 +171,14 @@ export const routes: Routes = [
         loadChildren: () => import('./views/widgets/routes').then(m => m.routes)
       }
     ]
+  },
+
+  // ─── Public catalog (must be last before wildcard) ───────────────────────
+  {
+    path: ':slug',
+    loadChildren: () =>
+      import('./features/marketplace/marketplace.routes')
+        .then(m => m.MARKETPLACE_ROUTES)
   },
 
   { path: '**', redirectTo: 'dashboard' }

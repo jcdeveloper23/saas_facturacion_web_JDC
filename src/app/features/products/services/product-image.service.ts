@@ -23,9 +23,35 @@ export class ProductImageService {
     return this.tenantService.companyId;
   }
 
+  /**
+   * Uploads the image for a specific slot (0–3).
+   * Slot 0 = imagen principal (backward-compat path: main.ext).
+   * Slots 1-3 use img1.ext, img2.ext, img3.ext.
+   */
+  uploadAt(
+    productId: string,
+    slot: number,
+    file: File,
+    onProgress: (pct: number) => void
+  ): Promise<string> {
+    const ext      = file.name.split('.').pop()?.toLowerCase() ?? 'jpg';
+    const filename = slot === 0 ? `main.${ext}` : `img${slot}.${ext}`;
+    return this._upload(productId, filename, file, onProgress);
+  }
+
   /** Validates and uploads a product image. Returns a Promise<string> (download URL). */
   upload(
     productId: string,
+    file: File,
+    onProgress: (pct: number) => void
+  ): Promise<string> {
+    const ext  = file.name.split('.').pop()?.toLowerCase() ?? 'jpg';
+    return this._upload(productId, `main.${ext}`, file, onProgress);
+  }
+
+  private _upload(
+    productId: string,
+    filename: string,
     file: File,
     onProgress: (pct: number) => void
   ): Promise<string> {
@@ -38,8 +64,7 @@ export class ProductImageService {
       }
 
       const companyId  = this.companyId;
-      const ext        = file.name.split('.').pop()?.toLowerCase() ?? 'jpg';
-      const path       = `companies/${companyId}/products/${productId}/main.${ext}`;
+      const path       = `companies/${companyId}/products/${productId}/${filename}`;
 
       console.log('[ImageService] upload start', {
         companyId, productId, path,

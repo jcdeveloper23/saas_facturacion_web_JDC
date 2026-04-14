@@ -1,0 +1,99 @@
+<!-- ── Cabecera ──────────────────────────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div class="d-flex align-items-center gap-2">
+    <div class="bg-primary bg-opacity-10 p-2 rounded">
+      <svg cIcon name="cilList" size="xl" class="text-primary"></svg>
+    </div>
+    <div>
+      <h3 class="mb-0 fw-semibold">Movimientos de Stock</h3>
+      <p class="text-muted small mb-0">Historial de entradas, salidas y ajustes de inventario</p>
+    </div>
+  </div>
+  <a cButton color="outline-secondary" size="sm" routerLink=".." class="px-3">
+    <svg cIcon name="cilStorage" class="me-1"></svg> Volver al Inventario
+  </a>
+</div>
+
+<!-- ── Filtros ──────────────────────────────────────────────────────────── -->
+<c-row class="g-2 mb-3">
+  <c-col md="7">
+    <c-input-group>
+      <span cInputGroupText><svg cIcon name="cilSearch" size="sm"></svg></span>
+      <input cFormControl placeholder="Buscar producto, SKU o motivo…"
+             [value]="search()" (input)="search.set($any($event.target).value)">
+    </c-input-group>
+  </c-col>
+  <c-col md="5">
+    <select cFormSelect [value]="filterType()"
+            (change)="filterType.set($any($event.target).value)">
+      <option value="">— Todos los tipos —</option>
+      @for (opt of typeOptions; track opt.value) {
+        <option [value]="opt.value">{{ opt.label }}</option>
+      }
+    </select>
+  </c-col>
+</c-row>
+
+<!-- ── Tabla ────────────────────────────────────────────────────────────── -->
+<c-card class="border-0 shadow-sm overflow-hidden">
+  <c-card-body class="p-0">
+    @if (loading()) {
+      <div class="text-center py-5"><c-spinner color="primary"></c-spinner></div>
+    } @else if (filtered().length === 0) {
+      <div class="text-center py-5 bg-body-secondary">
+        <svg cIcon name="cilList" size="3xl" class="text-muted mb-3 opacity-25"></svg>
+        <p class="text-muted">No hay movimientos registrados</p>
+      </div>
+    } @else {
+      <div class="table-responsive">
+        <table cTable hover align="middle" class="mb-0 border-0 small">
+          <thead class="bg-body-secondary text-uppercase small fw-bold">
+            <tr>
+              <th class="border-0 px-4 py-3">Fecha</th>
+              <th class="border-0 py-3">Producto</th>
+              <th class="border-0 py-3">Almacén</th>
+              <th class="border-0 py-3 text-center">Tipo</th>
+              <th class="border-0 py-3 text-end">Antes</th>
+              <th class="border-0 py-3 text-end">Delta</th>
+              <th class="border-0 py-3 text-end">Después</th>
+              <th class="border-0 px-4 py-3">Motivo / Documento</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (m of filtered(); track trackById($index, m)) {
+              <tr class="align-middle border-bottom border-body-secondary">
+                <td class="px-4 py-2 text-muted small text-nowrap">
+                  {{ m.createdAt?.toDate() | date:'dd/MM/yy HH:mm' }}
+                </td>
+                <td class="py-2">
+                  <div class="fw-semibold">{{ m.productName }}</div>
+                  <div class="font-monospace text-muted" style="font-size: 0.7rem">{{ m.productSku }}</div>
+                </td>
+                <td class="py-2 text-muted">{{ m.warehouseName || m.warehouseCode }}</td>
+                <td class="py-2 text-center">
+                  <c-badge [color]="typeColor(m.type)" shape="rounded-pill" class="px-2" style="font-size: 0.65rem">
+                    {{ typeLabel(m.type) }}
+                  </c-badge>
+                </td>
+                <td class="py-2 text-end font-monospace">{{ m.qtyBefore | number:'1.0-2' }}</td>
+                <td class="py-2 text-end font-monospace" [ngClass]="deltaClass(m.qtyDelta)">
+                  {{ m.qtyDelta | number:'+1.0-2' }}
+                </td>
+                <td class="py-2 text-end font-monospace fw-semibold">{{ m.qtyAfter | number:'1.0-2' }}</td>
+                <td class="px-4 py-2 text-muted small">
+                  @if (m.reason) { <span>{{ m.reason }}</span> }
+                  @if (m.sourceDocId) {
+                    <span class="font-monospace ms-1 text-primary">· {{ m.sourceDocId }}</span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <div class="px-4 py-2 border-top text-muted small bg-body-secondary">
+        Mostrando {{ filtered().length }} de {{ movements().length }} movimientos
+      </div>
+    }
+  </c-card-body>
+</c-card>

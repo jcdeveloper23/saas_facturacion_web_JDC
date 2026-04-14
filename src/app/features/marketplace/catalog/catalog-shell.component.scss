@@ -1,0 +1,90 @@
+/* ── tokens ──────────────────────────────────────────────── */
+:host {
+  --cp: var(--catalog-primary, #e47911);
+  --cp-dark: color-mix(in srgb, var(--cp) 75%, #000);
+  --cp-light: color-mix(in srgb, var(--cp) 12%, #fff);
+  --radius: 10px;
+  display: block;
+  min-height: 100vh;
+  background: #f3f4f6;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  color: #1a1a2e;
+}
+
+/* ── splash / error ──────────────────────────────────────── */
+.cs-splash, .cs-error {
+  min-height: 100vh;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 1rem; text-align: center; padding: 2rem;
+}
+.cs-splash__ring {
+  width: 48px; height: 48px;
+  border: 4px solid #e5e7eb;
+  border-top-color: var(--cp);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+.cs-splash__label { font-size: .9rem; color: #6b7280; }
+.cs-error__code   { font-size: 5rem; font-weight: 800; color: #e5e7eb; line-height: 1; }
+.cs-error__title  { font-size: 1.5rem; font-weight: 700; margin: 0; }
+.cs-error__sub    { color: #6b7280; margin: 0; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── header ──────────────────────────────────────────────── */
+.cs-header {
+  background: var(--cp);
+  color: #fff;
+  position: sticky; top: 0; z-index: 100;
+  box-shadow: 0 2px 8px rgba(0,0,0,.18);
+}
+.cs-header__inner {
+  max-width: 1400px; margin: 0 auto;
+  padding: .85rem 1.5rem;
+  display: flex; align-items: center; gap: 1.5rem;
+}
+.cs-brand {
+  display: flex; align-items: center; gap: .75rem;
+  text-decoration: none; color: #fff; flex-shrink: 0;
+}
+.cs-brand__logo {
+  height: 40px; width: 40px; border-radius: 8px;
+  object-fit: cover; background: rgba(255,255,255,.2);
+}
+.cs-brand__placeholder {
+  height: 40px; width: 40px; border-radius: 8px;
+  background: rgba(255,255,255,.25);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.2rem; font-weight: 700;
+}
+.cs-brand__name {
+  font-size: 1.1rem; font-weight: 700;
+  white-space: nowrap;
+}
+.cs-header__tagline {
+  margin: 0; font-size: .82rem;
+  opacity: .88; flex: 1;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cs-header__powered {
+  font-size: .75rem; opacity: .75;
+  white-space: nowrap; flex-shrink: 0; margin-left: auto;
+}
+
+/* ── main ────────────────────────────────────────────────── */
+.cs-main { max-width: 1400px; margin: 0 auto; padding: 0 1rem; }
+
+/* ── footer ──────────────────────────────────────────────── */
+.cs-footer {
+  margin-top: 3rem;
+  background: #1a1a2e;
+  color: #9ca3af;
+  font-size: .8rem;
+}
+.cs-footer__inner {
+  max-width: 1400px; margin: 0 auto;
+  padding: 1.25rem 1.5rem;
+  display: flex; align-items: center; gap: .5rem; flex-wrap: wrap;
+}
+.cs-footer__brand { color: #fff; font-weight: 600; }
+.cs-footer__sep   { opacity: .4; }

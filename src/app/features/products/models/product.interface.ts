@@ -31,7 +31,8 @@ export interface Product {
   name: string;              // descripcion (required)
   shortName?: string;        // nombre corto para tickets/POS
   notes?: string;            // observaciones
-  imageUrl?: string;         // imagen → Firebase Storage URL
+  imageUrl?: string;         // imagen principal → Firebase Storage URL (backward compat = imageUrls[0])
+  imageUrls?: string[];      // hasta 4 imágenes; índice 0 = principal
 
   // ── Type & flags ────────────────────────────────────────────────────────────
   type: ProductType;         // 'product' | 'service'

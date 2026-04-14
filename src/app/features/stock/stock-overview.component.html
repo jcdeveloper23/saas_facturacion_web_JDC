@@ -1,0 +1,236 @@
+<!-- ── Cabecera ──────────────────────────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-center mb-1">
+  <div class="d-flex align-items-center gap-2">
+    <div class="bg-primary bg-opacity-10 p-2 rounded">
+      <svg cIcon name="cilStorage" size="xl" class="text-primary"></svg>
+    </div>
+    <div>
+      <h3 class="mb-0 fw-semibold">Inventario</h3>
+      <p class="text-muted small mb-0">Control de stock por producto y almacén</p>
+    </div>
+  </div>
+  <a cButton color="outline-secondary" size="sm" routerLink="movements" class="px-3">
+    <svg cIcon name="cilList" class="me-1"></svg> Movimientos
+  </a>
+</div>
+
+<!-- ── Stats strip ──────────────────────────────────────────────────────── -->
+@if (!loading()) {
+  <div class="d-flex gap-3 mb-3 flex-wrap">
+    <div class="border rounded px-3 py-2 d-flex align-items-center gap-2 bg-body cursor-pointer"
+         [class.border-primary]="filterStatus() === ''"
+         (click)="filterStatus.set('')">
+      <svg cIcon name="cilStorage" class="text-muted" size="sm"></svg>
+      <span class="fw-semibold">{{ stats().total }}</span>
+      <span class="text-muted small">Total</span>
+    </div>
+    <div class="border rounded px-3 py-2 d-flex align-items-center gap-2 bg-body cursor-pointer"
+         [class.border-success]="filterStatus() === 'ok'"
+         (click)="filterStatus.set('ok')">
+      <svg cIcon name="cilCheckCircle" class="text-success" size="sm"></svg>
+      <span class="fw-semibold text-success">{{ stats().ok }}</span>
+      <span class="text-muted small">En stock</span>
+    </div>
+    <div class="border rounded px-3 py-2 d-flex align-items-center gap-2 bg-body cursor-pointer"
+         [class.border-warning]="filterStatus() === 'low'"
+         (click)="filterStatus.set('low')">
+      <svg cIcon name="cilWarning" class="text-warning" size="sm"></svg>
+      <span class="fw-semibold text-warning">{{ stats().low }}</span>
+      <span class="text-muted small">Stock bajo</span>
+    </div>
+    <div class="border rounded px-3 py-2 d-flex align-items-center gap-2 bg-body cursor-pointer"
+         [class.border-danger]="filterStatus() === 'out'"
+         (click)="filterStatus.set('out')">
+      <svg cIcon name="cilBan" class="text-danger" size="sm"></svg>
+      <span class="fw-semibold text-danger">{{ stats().out }}</span>
+      <span class="text-muted small">Agotados</span>
+    </div>
+  </div>
+}
+
+<!-- ── Buscador ─────────────────────────────────────────────────────────── -->
+<div class="mb-3">
+  <c-input-group>
+    <span cInputGroupText><svg cIcon name="cilSearch" size="sm"></svg></span>
+    <input cFormControl placeholder="Buscar por nombre o SKU…"
+           [value]="search()" (input)="search.set($any($event.target).value)">
+  </c-input-group>
+</div>
+
+<!-- ── Tabla ────────────────────────────────────────────────────────────── -->
+<c-card class="border-0 shadow-sm overflow-hidden">
+  <c-card-body class="p-0">
+    @if (loading()) {
+      <div class="text-center py-5"><c-spinner color="primary"></c-spinner></div>
+    } @else if (filtered().length === 0) {
+      <div class="text-center py-5 bg-body-secondary">
+        <svg cIcon name="cilStorage" size="3xl" class="text-muted mb-3 opacity-25"></svg>
+        <p class="text-muted">No hay productos con control de stock</p>
+      </div>
+    } @else {
+      <div class="table-responsive">
+        <table cTable hover align="middle" class="mb-0 border-0">
+          <thead class="bg-body-secondary text-uppercase small fw-bold">
+            <tr>
+              <th class="border-0 px-4 py-3">SKU</th>
+              <th class="border-0 py-3">Producto</th>
+              <th class="border-0 py-3 text-end">Stock Total</th>
+              <th class="border-0 py-3 text-end">Disponible</th>
+              <th class="border-0 py-3 text-end">Reservado</th>
+              <th class="border-0 py-3 text-center">Mín.</th>
+              <th class="border-0 py-3 text-center">Estado</th>
+              <th class="border-0 px-4 py-3 text-end">Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (p of filtered(); track trackById($index, p)) {
+              <tr class="align-middle border-bottom border-body-secondary">
+                <td class="px-4 py-3">
+                  <span class="badge bg-secondary bg-opacity-10 text-secondary px-2 py-1 font-monospace fw-bold">
+                    {{ p.sku }}
+                  </span>
+                </td>
+                <td>
+                  <div class="fw-semibold">{{ p.name }}</div>
+                  @if (p.familyName) {
+                    <div class="text-muted small">{{ p.familyName }}</div>
+                  }
+                </td>
+                <td class="text-end fw-bold fs-6">
+                  <span [class.text-danger]="p.stockQty <= 0" [class.text-warning]="p.stockQty > 0 && isLowStock(p)">
+                    {{ p.stockQty | number:'1.0-2' }}
+                  </span>
+                </td>
+                <td class="text-end">{{ p.stockAvailable | number:'1.0-2' }}</td>
+                <td class="text-end text-muted">{{ p.stockReserved | number:'1.0-2' }}</td>
+                <td class="text-center text-muted small">{{ p.stockMin }}</td>
+                <td class="text-center">
+                  <c-badge [color]="stockBadge(p).color" shape="rounded-pill" class="px-3">
+                    {{ stockBadge(p).label }}
+                  </c-badge>
+                </td>
+                <td class="px-4 text-end">
+                  <button cButton color="primary" variant="outline" size="sm" (click)="openAdjust(p)">
+                    <svg cIcon name="cilTransfer" class="me-1" size="sm"></svg> Ajustar
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </c-card-body>
+</c-card>
+
+<!-- ── Modal Ajuste de Stock ───────────────────────────────────────────── -->
+<c-modal [visible]="showAdjustModal()" (visibleChange)="showAdjustModal.set($event)"
+         alignment="center" backdrop="static" size="lg">
+  <c-modal-header class="bg-body-secondary border-bottom-0 pb-0">
+    <h5 cModalTitle class="fw-semibold">
+      <svg cIcon name="cilTransfer" class="me-2"></svg>
+      Ajuste de Inventario
+    </h5>
+    <button cButtonClose (click)="showAdjustModal.set(false)"></button>
+  </c-modal-header>
+
+  <c-modal-body class="pt-3">
+    @if (adjustProduct(); as p) {
+      <!-- Producto header -->
+      <div class="d-flex align-items-center gap-3 mb-4 p-3 bg-body-secondary rounded">
+        <div>
+          <div class="fw-bold">{{ p.name }}</div>
+          <div class="text-muted small font-monospace">{{ p.sku }}</div>
+        </div>
+        <div class="ms-auto text-end">
+          <div class="text-muted small">Stock actual</div>
+          <div class="fw-bold fs-5">{{ p.stockQty | number:'1.0-2' }}</div>
+        </div>
+      </div>
+
+      @if (adjustError()) {
+        <c-alert color="danger" variant="solid" class="mb-3 d-flex align-items-center gap-2">
+          <svg cIcon name="cilXCircle" size="xl"></svg> {{ adjustError() }}
+        </c-alert>
+      }
+
+      @if (loadingStocks()) {
+        <div class="text-center py-3"><c-spinner color="primary" size="sm"></c-spinner></div>
+      } @else {
+        <!-- Stocks por almacén (lectura) -->
+        @if (adjustStocks().length > 0) {
+          <div class="mb-3">
+            <p class="small fw-semibold text-muted mb-2">STOCK ACTUAL POR ALMACÉN</p>
+            <div class="d-flex flex-wrap gap-2">
+              @for (s of adjustStocks(); track s.warehouseCode) {
+                <div class="border rounded px-3 py-2 small">
+                  <div class="fw-semibold">{{ warehouseName(s.warehouseCode) }}</div>
+                  <div class="text-muted">{{ s.qty }} uds · disponible {{ s.available }}</div>
+                  @if (s.location) { <div class="text-primary font-monospace">{{ s.location }}</div> }
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- Formulario de ajuste -->
+        <form [formGroup]="adjustForm">
+          <c-row class="g-3">
+            <!-- Almacén -->
+            <c-col md="12">
+              <label cLabel>Almacén <span class="text-danger">*</span></label>
+              <select cFormSelect formControlName="warehouseCode" (change)="onWarehouseChange()">
+                <option value="">— Selecciona almacén —</option>
+                @for (w of warehouses(); track w.id) {
+                  <option [value]="w.code">{{ w.name }}</option>
+                }
+              </select>
+            </c-col>
+
+            <!-- Nueva cantidad -->
+            <c-col md="6">
+              <label cLabel>Nueva Cantidad <span class="text-danger">*</span></label>
+              <c-input-group>
+                <input cFormControl type="number" formControlName="newQty" min="0" step="1">
+                <span cInputGroupText>uds</span>
+              </c-input-group>
+              @if (selectedStock()) {
+                <div class="form-text">
+                  Actual: {{ selectedStock()!.qty }} · Delta:
+                  <strong [class.text-success]="(adjustForm.value.newQty ?? 0) - selectedStock()!.qty > 0"
+                          [class.text-danger]="(adjustForm.value.newQty ?? 0) - selectedStock()!.qty < 0">
+                    {{ (adjustForm.value.newQty ?? 0) - selectedStock()!.qty | number:'+1.0-2' }}
+                  </strong>
+                </div>
+              }
+            </c-col>
+
+            <!-- Ubicación -->
+            <c-col md="6">
+              <label cLabel>Ubicación en almacén</label>
+              <input cFormControl formControlName="newLocation" placeholder="Ej: A3-Estante2">
+            </c-col>
+
+            <!-- Razón (obligatoria para auditoría) -->
+            <c-col md="12">
+              <label cLabel>Motivo del ajuste <span class="text-danger">*</span></label>
+              <input cFormControl formControlName="reason"
+                     placeholder="Ej: Conteo físico, devolución, merma…">
+              <div class="form-text text-muted">Requerido para el log de auditoría.</div>
+            </c-col>
+          </c-row>
+        </form>
+      }
+    }
+  </c-modal-body>
+
+  <c-modal-footer class="border-top-0 pt-0 pb-4">
+    <button cButton color="light" (click)="showAdjustModal.set(false)" [disabled]="adjusting()" class="px-4">
+      Cancelar
+    </button>
+    <button cButton color="primary" (click)="saveAdjustment()" [disabled]="adjusting() || loadingStocks()" class="px-4 shadow-sm">
+      @if (adjusting()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+      Confirmar Ajuste
+    </button>
+  </c-modal-footer>
+</c-modal>

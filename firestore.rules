@@ -76,6 +76,11 @@ service cloud.firestore {
     match /companies/{companyId} {
       allow read: if isAuthenticated() && (isSuperAdmin() || belongsToCompany(companyId));
       allow write: if isSuperAdmin();
+      // Company admin can update only the marketplace config field (catalog settings)
+      allow update: if isAuthenticated()
+                    && belongsToCompany(companyId)
+                    && isAdmin()
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['marketplace']);
 
       // ─── All tenant sub-collections ─────────────────────────────────
       match /personas/{id} {

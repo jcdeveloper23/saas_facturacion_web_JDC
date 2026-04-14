@@ -1,0 +1,187 @@
+<!-- ── Cabecera ──────────────────────────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-center mb-1">
+  <div class="d-flex align-items-center gap-2">
+    <div class="bg-primary bg-opacity-10 p-2 rounded">
+      <svg cIcon name="cilLayers" size="xl" class="text-primary"></svg>
+    </div>
+    <div>
+      <h3 class="mb-0 fw-semibold">Familias de Productos</h3>
+      <p class="text-muted small mb-0">Categorías y subcategorías para clasificar el catálogo de artículos</p>
+    </div>
+  </div>
+  <button cButton color="primary" size="sm" (click)="openNew()" class="px-3 shadow-sm">
+    <svg cIcon name="cilPlus" class="me-1"></svg> Nueva Familia
+  </button>
+</div>
+
+<!-- ── Info Callout ─────────────────────────────────────────────────────── -->
+<c-callout color="primary" class="bg-body border-start-4 shadow-sm mb-4">
+  <div class="d-flex gap-3 align-items-start">
+    <svg cIcon name="cilInfo" size="lg" class="text-primary mt-1"></svg>
+    <div>
+      <p class="mb-1 fw-bold">Estructura Jerárquica</p>
+      <p class="mb-0 text-muted small">
+        Las <strong>Familias</strong> son categorías raíz. Las <strong>Subfamilias</strong> se
+        vinculan a una familia padre para agrupar artículos con mayor precisión. Al crear un
+        producto podrás asignarle la familia correspondiente.
+      </p>
+    </div>
+  </div>
+</c-callout>
+
+<!-- ── Listado ──────────────────────────────────────────────────────────── -->
+<c-card class="border-0 shadow-sm overflow-hidden">
+  <c-card-body class="p-0">
+    @if (loading()) {
+      <div class="text-center py-5"><c-spinner color="primary"></c-spinner></div>
+    } @else if (familiesTree().length === 0) {
+      <div class="text-center py-5 bg-body-secondary">
+        <svg cIcon name="cilLayers" size="3xl" class="text-muted mb-3 opacity-25"></svg>
+        <p class="text-muted">No hay familias configuradas aún</p>
+      </div>
+    } @else {
+      <div class="table-responsive">
+        <table cTable hover align="middle" class="mb-0 border-0">
+          <thead class="bg-body-secondary text-uppercase small fw-bold">
+            <tr>
+              <th class="border-0 px-4 py-3">Código</th>
+              <th class="border-0 py-3">Descripción</th>
+              <th class="border-0 py-3">Tipo</th>
+              <th class="border-0 py-3">Cta. Contable</th>
+              <th class="border-0 py-3 text-center">Estado</th>
+              <th class="border-0 px-4 py-3 text-end" style="min-width: 130px">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (f of familiesTree(); track trackById($index, f)) {
+              <tr class="align-middle border-bottom border-body-secondary">
+                <td class="px-4 py-3">
+                  <span class="badge bg-secondary bg-opacity-10 text-secondary px-2 py-1 font-monospace fw-bold">
+                    {{ f.code }}
+                  </span>
+                </td>
+                <td>
+                  <div class="d-flex align-items-center"
+                       [style.padding-left.px]="f.depth * 20">
+                    @if (f.depth > 0) {
+                      <span class="text-muted me-2" style="font-size: 0.75rem">↳</span>
+                    }
+                    <span [class.fw-bold]="f.depth === 0" [class.text-muted]="f.depth > 0">
+                      {{ f.name }}
+                    </span>
+                  </div>
+                </td>
+                <td>
+                  @if (f.depth === 0) {
+                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2">Familia</span>
+                  } @else {
+                    <span class="badge bg-body-secondary text-body border px-2">Subfamilia</span>
+                  }
+                </td>
+                <td class="font-monospace text-muted small">
+                  {{ f.accountingCode || '—' }}
+                </td>
+                <td class="text-center">
+                  <c-badge [color]="f.isActive ? 'success' : 'secondary'" shape="rounded-pill" class="px-3">
+                    {{ f.isActive ? 'Activa' : 'Inactiva' }}
+                  </c-badge>
+                </td>
+                <td class="px-4 py-3 text-end">
+                  <div class="d-flex gap-2 justify-content-end">
+                    <button cButton color="light" size="sm" (click)="openEdit(f)" title="Editar">
+                      <svg cIcon name="cilPencil"></svg>
+                    </button>
+                    <button cButton [color]="f.isActive ? 'outline-danger' : 'outline-success'" size="sm"
+                            (click)="toggleActive(f)" [title]="f.isActive ? 'Desactivar' : 'Activar'">
+                      <svg cIcon [name]="f.isActive ? 'cilBan' : 'cilCheck'"></svg>
+                    </button>
+                    <button cButton color="light" size="sm" (click)="delete(f)"
+                            class="text-danger" title="Eliminar">
+                      <svg cIcon name="cilTrash"></svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </c-card-body>
+</c-card>
+
+<!-- ── Modal Edición ───────────────────────────────────────────────────── -->
+<c-modal [visible]="showModal()" (visibleChange)="showModal.set($event)" alignment="center" backdrop="static">
+  <c-modal-header class="bg-body-secondary border-bottom-0 pb-0">
+    <h5 cModalTitle class="fw-semibold">
+      <svg cIcon [name]="editingId() ? 'cilPencil' : 'cilPlus'" class="me-2"></svg>
+      {{ editingId() ? 'Editar Familia' : 'Nueva Familia' }}
+    </h5>
+    <button cButtonClose (click)="showModal.set(false)"></button>
+  </c-modal-header>
+
+  <c-modal-body class="pt-3">
+    @if (errorMessage()) {
+      <c-alert color="danger" variant="solid" class="mb-3 d-flex align-items-center gap-2">
+        <svg cIcon name="cilXCircle" size="xl"></svg> {{ errorMessage() }}
+      </c-alert>
+    }
+
+    <form [formGroup]="form">
+      <c-row class="g-3">
+        <!-- Código -->
+        <c-col md="4">
+          <label cLabel>Código <span class="text-danger">*</span></label>
+          <input cFormControl formControlName="code" placeholder="Ej: ELEC"
+                 maxlength="8" style="text-transform: uppercase"
+                 [class.is-invalid]="hasError('code')">
+          <div class="invalid-feedback">Requerido (máx. 8 caracteres)</div>
+        </c-col>
+
+        <!-- Nombre -->
+        <c-col md="8">
+          <label cLabel>Descripción <span class="text-danger">*</span></label>
+          <input cFormControl formControlName="name" placeholder="Ej: Electrónicos"
+                 [class.is-invalid]="hasError('name')">
+          <div class="invalid-feedback">La descripción es requerida</div>
+        </c-col>
+
+        <!-- Familia padre -->
+        <c-col md="12">
+          <label cLabel>Familia Padre</label>
+          <select cFormSelect formControlName="parentId">
+            <option [value]="null">— Sin padre (Familia raíz) —</option>
+            @for (root of rootFamilies; track root.id) {
+              <option [value]="root.id">{{ root.code }} — {{ root.name }}</option>
+            }
+          </select>
+          <div class="form-text text-muted">Selecciona una familia padre para crear una subfamilia.</div>
+        </c-col>
+
+        <!-- Cuenta contable -->
+        <c-col md="6">
+          <label cLabel>Cuenta Contable</label>
+          <input cFormControl formControlName="accountingCode" placeholder="Ej: 1.1.01">
+        </c-col>
+
+        <!-- Estado -->
+        <c-col md="6" class="d-flex align-items-end pb-1">
+          <c-form-check switch>
+            <input cFormCheckInput id="familyIsActive" type="checkbox" formControlName="isActive">
+            <label cFormCheckLabel for="familyIsActive" class="fw-semibold text-primary">Activa</label>
+          </c-form-check>
+        </c-col>
+      </c-row>
+    </form>
+  </c-modal-body>
+
+  <c-modal-footer class="border-top-0 pt-0 pb-4">
+    <button cButton color="light" (click)="showModal.set(false)" [disabled]="saving()" class="px-4">
+      Cancelar
+    </button>
+    <button cButton color="primary" (click)="save()" [disabled]="saving()" class="px-4 shadow-sm">
+      @if (saving()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+      {{ editingId() ? 'Guardar Cambios' : 'Crear Familia' }}
+    </button>
+  </c-modal-footer>
+</c-modal>

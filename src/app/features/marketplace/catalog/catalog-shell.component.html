@@ -1,0 +1,53 @@
+@if (loading()) {
+  <div class="cs-splash">
+    <div class="cs-splash__ring"></div>
+    <span class="cs-splash__label">Cargando catálogo…</span>
+  </div>
+} @else if (!catalog()) {
+  <div class="cs-error">
+    <div class="cs-error__code">404</div>
+    <h2 class="cs-error__title">Catálogo no encontrado</h2>
+    <p class="cs-error__sub">Este enlace no existe o fue desactivado.</p>
+  </div>
+} @else {
+
+  <!-- ── Top bar ──────────────────────────────────────────────────────── -->
+  <header class="cs-header">
+    <div class="cs-header__inner">
+
+      <!-- Brand -->
+      <a class="cs-brand" href="#">
+        @if (catalog()!.logoUrl) {
+          <img class="cs-brand__logo" [src]="catalog()!.logoUrl" [alt]="catalog()!.companyName" />
+        } @else {
+          <div class="cs-brand__placeholder">
+            {{ catalog()!.companyName.charAt(0).toUpperCase() }}
+          </div>
+        }
+        <span class="cs-brand__name">{{ catalog()!.companyName }}</span>
+      </a>
+
+      <!-- Tagline -->
+      @if (catalog()!.welcomeMessage) {
+        <p class="cs-header__tagline">{{ catalog()!.welcomeMessage }}</p>
+      }
+
+      <!-- Powered -->
+      <span class="cs-header__powered">Powered by <strong>FacturaSec</strong></span>
+    </div>
+  </header>
+
+  <!-- ── Main content ─────────────────────────────────────────────────── -->
+  <main class="cs-main">
+    <router-outlet />
+  </main>
+
+  <!-- ── Footer ──────────────────────────────────────────────────────── -->
+  <footer class="cs-footer">
+    <div class="cs-footer__inner">
+      <span class="cs-footer__brand">{{ catalog()!.companyName }}</span>
+      <span class="cs-footer__sep">·</span>
+      <span>Catálogo digital powered by <strong>FacturaSec</strong></span>
+    </div>
+  </footer>
+}

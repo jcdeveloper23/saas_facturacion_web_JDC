@@ -117,16 +117,20 @@ export const navItems: INavData[] = [
   // },
 
   // ─── Inventory ───────────────────────────────────────────────────────────
-  // {
-  //   title: true,
-  //   name: 'Almacén'
-  // },
-  // {
-  //   name: 'Inventario',
-  //   url: '/stock',
-  //   iconComponent: { name: 'cil-storage' },
-  //   attributes: { module: 'stock', roles: ['admin', 'seller'] }
-  // },
+  {
+    title: true,
+    name: 'Almacén'
+  },
+  {
+    name: 'Inventario',
+    url: '/stock',
+    iconComponent: { name: 'cil-storage' },
+    attributes: { module: 'stock', roles: ['admin'] },
+    children: [
+      { name: 'Stock por Producto',  url: '/stock',            icon: 'nav-icon-bullet' },
+      { name: 'Movimientos',         url: '/stock/movements',  icon: 'nav-icon-bullet' }
+    ]
+  },
 
   // ─── Reports ─────────────────────────────────────────────────────────────
   // {
@@ -165,13 +169,15 @@ export const navItems: INavData[] = [
     children: [
       { name: 'Mi Empresa',          url: '/settings/company',        icon: 'nav-icon-bullet' },
       { name: 'Almacenes',           url: '/settings/warehouses',     icon: 'nav-icon-bullet' },
+      { name: 'Familias',            url: '/settings/families',       icon: 'nav-icon-bullet' },
       { name: 'Series de Documentos',url: '/settings/document-series',icon: 'nav-icon-bullet' },
       { name: 'Métodos de Pago',     url: '/settings/payment-terms',  icon: 'nav-icon-bullet' },
       { name: 'Tasas de Impuestos',  url: '/settings/tax-rates',      icon: 'nav-icon-bullet' },
       { name: 'Divisas',             url: '/settings/currencies',     icon: 'nav-icon-bullet' },
       { name: 'Países',              url: '/settings/countries',      icon: 'nav-icon-bullet' },
       { name: 'Formularios',         url: '/settings/form-config',    icon: 'nav-icon-bullet' },
-      { name: 'Mis Plugins',         url: '/settings/plugins',        icon: 'nav-icon-bullet' }
+      { name: 'Mis Plugins',         url: '/settings/plugins',        icon: 'nav-icon-bullet' },
+      { name: 'Catálogo Público',    url: '/settings/marketplace',    icon: 'nav-icon-bullet', attributes: { module: 'marketplace' } }
     ]
   },
   // {

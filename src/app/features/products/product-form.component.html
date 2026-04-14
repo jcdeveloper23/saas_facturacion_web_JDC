@@ -180,7 +180,12 @@
                             </option>
                           }
                         </select>
-                        <div class="form-text">Agrupe sus artículos por categoría para facilitar reportes y búsquedas. Adminístrelas en <strong>Configuración → Familias</strong>.</div>
+                        <div class="form-text">
+                          Agrupe sus artículos por categoría.
+                          <a routerLink="/settings/families" class="text-primary fw-semibold">
+                            Gestionar familias ↗
+                          </a>
+                        </div>
                       </c-col>
                       <c-col md="3">
                         <label cLabel>Fabricante / Marca</label>
@@ -302,51 +307,84 @@
           <c-col lg="3">
             <div class="props-panel">
 
-              <!-- ── Imagen compacta ────────────────────────────────────── -->
+              <!-- ── Imágenes (hasta 4) ─────────────────────────────────── -->
               <div class="props-section">
                 <p class="props-label">
-                  <svg cIcon name="cilImage" size="sm" class="me-1"></svg>Imagen
+                  <svg cIcon name="cilImage" size="sm" class="me-1"></svg>
+                  Imágenes
+                  <span class="text-muted fw-normal" style="font-size:.67rem"> (máx. 4)</span>
                 </p>
-                <div class="img-zone position-relative"
-                     [class.drag-over]="imageDragOver()"
-                     (dragover)="onImageDragOver($event)"
-                     (dragleave)="onImageDragLeave()"
-                     (drop)="onImageDrop($event)"
-                     (click)="!imageUrl() && imageFileInput.click()">
 
-                  @if (!imageUrl() && !imageUploading()) {
-                    <div class="img-empty">
-                      <svg cIcon name="cilImage" class="img-empty-icon"></svg>
-                      <span>Arrastra o haz clic</span>
-                      <span class="img-hint">JPG · PNG · WEBP · 2 MB</span>
-                    </div>
-                  }
-                  @if (imageUploading()) {
-                    <div class="img-empty">
-                      <c-spinner color="primary" size="sm" class="mb-2"></c-spinner>
-                      <div class="progress img-progress">
-                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary"
-                             [style.width]="imageProgress() + '%'"></div>
-                      </div>
-                      <span class="img-hint">{{ imageProgress() }}%</span>
-                    </div>
-                  }
-                  @if (imageUrl() && !imageUploading()) {
-                    <img [src]="imageUrl()" alt="Imagen" class="img-preview">
-                    <div class="img-overlay">
-                      <button type="button" cButton color="light" size="sm"
-                              class="rounded-circle p-2"
-                              (click)="$event.stopPropagation(); imageFileInput.click()">
-                        <svg cIcon name="cilPencil" size="sm"></svg>
-                      </button>
-                      <button type="button" cButton color="danger" size="sm"
-                              class="rounded-circle p-2"
-                              (click)="$event.stopPropagation(); removeImage()">
-                        <svg cIcon name="cilTrash" size="sm"></svg>
-                      </button>
+                <!-- File inputs ocultos por slot -->
+                <input #imgInput0 type="file" accept="image/jpeg,image/png,image/webp" hidden
+                       (change)="onImageFileSelected($event, 0)">
+                <input #imgInput1 type="file" accept="image/jpeg,image/png,image/webp" hidden
+                       (change)="onImageFileSelected($event, 1)">
+                <input #imgInput2 type="file" accept="image/jpeg,image/png,image/webp" hidden
+                       (change)="onImageFileSelected($event, 2)">
+                <input #imgInput3 type="file" accept="image/jpeg,image/png,image/webp" hidden
+                       (change)="onImageFileSelected($event, 3)">
+
+                <!-- Cuadrícula 2×2 de slots -->
+                <div class="img-grid">
+
+                  @for (slot of [0, 1, 2, 3]; track slot) {
+                    @let slotInputs = [imgInput0, imgInput1, imgInput2, imgInput3];
+                    @let url = imageUrls()[slot];
+                    @let isUploading = uploadingSlot() === slot;
+
+                    <div class="img-zone position-relative"
+                         [class.drag-over]="imageDragOver() === slot"
+                         [class.img-zone--main]="slot === 0"
+                         (dragover)="onImageDragOver($event, slot)"
+                         (dragleave)="onImageDragLeave()"
+                         (drop)="onImageDrop($event, slot)"
+                         (click)="!url && !isUploading && isEditing() && triggerFileInput(slot, slotInputs[slot])">
+
+                      <!-- Badge principal -->
+                      @if (slot === 0) {
+                        <span class="img-badge">Principal</span>
+                      }
+
+                      <!-- Vacío -->
+                      @if (!url && !isUploading) {
+                        <div class="img-empty">
+                          <svg cIcon name="cilPlus" class="img-empty-icon" style="opacity:.2"></svg>
+                          <span class="img-hint">{{ isEditing() ? 'Agregar' : '—' }}</span>
+                        </div>
+                      }
+
+                      <!-- Subiendo -->
+                      @if (isUploading) {
+                        <div class="img-empty">
+                          <c-spinner color="primary" size="sm" class="mb-1"></c-spinner>
+                          <div class="progress img-progress">
+                            <div class="progress-bar bg-primary" [style.width]="uploadProgress() + '%'"></div>
+                          </div>
+                          <span class="img-hint">{{ uploadProgress() }}%</span>
+                        </div>
+                      }
+
+                      <!-- Preview -->
+                      @if (url && !isUploading) {
+                        <img [src]="url" alt="Imagen {{ slot + 1 }}" class="img-preview">
+                        <div class="img-overlay">
+                          <button type="button" cButton color="light" size="sm"
+                                  class="rounded-circle p-2"
+                                  (click)="$event.stopPropagation(); triggerFileInput(slot, slotInputs[slot])">
+                            <svg cIcon name="cilPencil" size="sm"></svg>
+                          </button>
+                          <button type="button" cButton color="danger" size="sm"
+                                  class="rounded-circle p-2"
+                                  (click)="$event.stopPropagation(); removeImageAt(slot)">
+                            <svg cIcon name="cilTrash" size="sm"></svg>
+                          </button>
+                        </div>
+                      }
                     </div>
                   }
                 </div>
+
                 @if (imageError()) {
                   <p class="text-danger img-hint mt-1">
                     <svg cIcon name="cilWarning" size="sm" class="me-1"></svg>{{ imageError() }}
@@ -354,7 +392,7 @@
                 }
                 @if (!isEditing()) {
                   <p class="img-hint mt-1 text-muted">
-                    <svg cIcon name="cilInfo" size="sm" class="me-1"></svg>Guarda primero para subir imagen
+                    <svg cIcon name="cilInfo" size="sm" class="me-1"></svg>Guarda primero para subir imágenes
                   </p>
                 }
               </div>
@@ -469,8 +507,6 @@
               }
 
             </div>
-            <input #imageFileInput type="file" accept="image/jpeg,image/png,image/webp"
-                   class="d-none" (change)="onImageFileSelected($event)">
           </c-col>
 
         </c-row>
@@ -1354,6 +1390,23 @@
 } <!-- end @if (!loading()) -->
 
 <style>
+/* ── Multi-image grid ──────────────────────────────────────── */
+.img-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.img-badge {
+  position: absolute; top: 4px; left: 4px;
+  font-size: .58rem; font-weight: 700;
+  background: var(--cui-primary); color: #fff;
+  padding: 1px 6px; border-radius: 8px;
+  text-transform: uppercase; letter-spacing: .04em;
+  z-index: 2;
+}
+.img-zone--main { border-color: var(--cui-primary-bg-subtle); }
+
+/* ── Legacy image upload zone ──────────────────────────────── */
 .image-upload-zone {
   background: var(--cui-tertiary-bg, #f8f9fa);
   transition: background 0.2s, border-color 0.2s;

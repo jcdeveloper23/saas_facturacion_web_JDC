@@ -32,7 +32,9 @@ export interface CompanyConfig {
     slug: string;                    // URL-safe único: 'optica-vision'
     welcomeMessage?: string;
     primaryColor?: string;           // hex: '#1a73e8'
+    whatsapp?: string;               // número con código de país: '+593987654321'
     showPrices: boolean;
+    showNotes: boolean;
     showOutOfStock: boolean;
     allowedFamilyIds?: string[];     // vacío = todas las familias
     updatedAt?: any;                 // Firestore Timestamp
