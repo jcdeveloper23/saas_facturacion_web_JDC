@@ -151,10 +151,10 @@ export class PurchaseImportComponent {
   private addFiles(newFiles: File[]): void {
     const accepted = newFiles.filter(f => {
       const ext = f.name.split('.').pop()?.toLowerCase();
-      return ext === 'xml' || ext === 'xlsx' || ext === 'xls';
+      return ext === 'xml' || ext === 'txt';
     });
     if (!accepted.length) {
-      this.notifications.warning('Solo se aceptan archivos XML (.xml) y Excel (.xlsx, .xls)');
+      this.notifications.warning('Solo se aceptan archivos TXT (.txt) y XML (.xml)');
       return;
     }
     const existing = new Set(this.files().map(f => f.name));

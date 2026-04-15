@@ -2,7 +2,6 @@ import { Injectable, inject } from '@angular/core';
 import {
   Firestore, collection, query, where, getDocs, Timestamp
 } from '@angular/fire/firestore';
-import * as XLSX from 'xlsx';
 
 import { TenantService }    from '../../../core/services/tenant.service';
 import { PersonasService }  from '../../personas/services/personas.service';
@@ -29,7 +28,7 @@ export interface SriImportLine {
 
 export interface SriImportRecord {
   sourceFile:            string;
-  format:                'xml' | 'excel';
+  format:                'xml' | 'txt';
   supplierRuc:           string;
   supplierName:          string;
   supplierInvoiceNumber: string;
@@ -72,8 +71,8 @@ export class PurchaseImporterService {
       const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
       if (ext === 'xml') {
         all.push(...await this.parseXmlFile(file));
-      } else if (ext === 'xlsx' || ext === 'xls') {
-        all.push(...await this.parseExcelFile(file));
+      } else if (ext === 'txt') {
+        all.push(...await this.parseTxtFile(file));
       }
     }
     return this.checkDuplicates(all);
@@ -213,75 +212,79 @@ export class PurchaseImporterService {
     };
   }
 
-  // ─── Excel parsing ─────────────────────────────────────────────────────────
+  // ─── TXT parsing (reporte masivo SRI) ─────────────────────────────────────
+  // Formato: columnas separadas por tabulaciones
+  // Columnas: RUC_EMISOR  RAZON_SOCIAL_EMISOR  TIPO_COMPROBANTE  SERIE_COMPROBANTE
+  //           CLAVE_ACCESO  FECHA_AUTORIZACION  FECHA_EMISION  IDENTIFICACION_RECEPTOR
+  //           VALOR_SIN_IMPUESTOS  IVA  IMPORTE_TOTAL  NUMERO_DOCUMENTO_MODIFICADO
 
-  private async parseExcelFile(file: File): Promise<SriImportRecord[]> {
-    const buffer   = await file.arrayBuffer();
-    const workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
-    const sheet    = workbook.Sheets[workbook.SheetNames[0]];
-    const rows: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+  private async parseTxtFile(file: File): Promise<SriImportRecord[]> {
+    let text: string;
+    try { text = await file.text(); }
+    catch { return [this.txtErrorRecord(file.name, 'No se pudo leer el archivo')]; }
 
-    if (rows.length < 2) return [];
+    const rawLines = text.split(/\r?\n/);
+    const lines    = rawLines.filter(l => l.trim());
+    if (lines.length < 2) return [];
 
-    // Find header row (first with 'ruc' in any cell, up to row 10)
-    let hi = 0;
-    for (let i = 0; i < Math.min(rows.length, 10); i++) {
-      if (rows[i].join('|').toLowerCase().includes('ruc')) { hi = i; break; }
-    }
-    const headers = (rows[hi] as any[]).map(h => String(h).toLowerCase().trim());
+    // Detect separator: prefer tab; fallback to 4+ spaces
+    const isTab       = lines[0].includes('\t');
+    const splitRow    = (l: string) =>
+      isTab ? l.split('\t').map(c => c.trim())
+            : l.split(/\t|\s{4,}/).map(c => c.trim());
+
+    const headers = splitRow(lines[0]).map(h => h.toLowerCase().replace(/_/g, ' '));
 
     const col = (...kws: string[]): number => {
       for (const kw of kws) {
-        const idx = headers.findIndex(h => h.includes(kw));
+        const idx = headers.findIndex(h => h === kw || h.includes(kw));
         if (idx >= 0) return idx;
       }
       return -1;
     };
 
-    const cRuc      = col('ruc emisor', 'ruc del emisor', 'ruc');
-    const cName     = col('razón social', 'razon social', 'emisor');
-    const cTipo     = col('tipo de comprobante', 'tipo comprobante', 'tipo');
-    const cNumber   = col('número de comprobante', 'numero de comprobante', 'número comprobante', 'numero comprobante');
-    const cKey      = col('clave de acceso', 'clave acceso', 'clave');
-    const cFecha    = col('fecha de emisión', 'fecha emisión', 'fecha emision', 'fecha de emision');
-    const cSubtotal = col('subtotal sin impuestos', 'subtotal sin', 'base imponible iva', 'base imponible', 'subtotal');
-    const cIva      = col('iva 15%', 'iva 12%', 'valor iva', 'total iva', 'iva');
+    const cRuc      = col('ruc emisor', 'ruc');
+    const cName     = col('razon social emisor', 'razon social', 'emisor');
+    const cTipo     = col('tipo comprobante', 'tipo');
+    const cSerie    = col('serie comprobante', 'serie', 'numero comprobante', 'numero');
+    const cKey      = col('clave acceso');
+    const cFechaEm  = col('fecha emision');
+    const cSubtotal = col('valor sin impuestos', 'subtotal sin impuestos', 'subtotal');
+    const cIva      = col('iva');
     const cTotal    = col('importe total', 'total');
 
     const records: SriImportRecord[] = [];
 
-    for (let i = hi + 1; i < rows.length; i++) {
-      const row = rows[i] as any[];
-      if (!row || row.every(c => c === '' || c == null)) continue;
+    for (let i = 1; i < lines.length; i++) {
+      const row = splitRow(lines[i]);
+      if (!row || row.every(c => c === '')) continue;
 
-      // Skip non-factura rows when type column is present
-      const tipo = cTipo >= 0 ? String(row[cTipo]).toUpperCase().trim() : '';
+      const tipo = cTipo >= 0 ? (row[cTipo] ?? '').toUpperCase().trim() : '';
       if (tipo && !tipo.includes('FACTURA')) continue;
 
-      const ruc      = String(row[cRuc]    ?? '').trim();
-      const name     = String(row[cName]   ?? '').trim();
-      const number   = String(row[cNumber] ?? '').trim();
-      const key      = cKey >= 0 ? String(row[cKey] ?? '').trim() : '';
-      const subtotal = parseFloat(String(row[cSubtotal] ?? '0').replace(',', '.')) || 0;
-      const iva      = parseFloat(String(row[cIva]      ?? '0').replace(',', '.')) || 0;
-      const total    = parseFloat(String(row[cTotal]    ?? '0').replace(',', '.')) || 0;
+      const ruc      = (row[cRuc]    ?? '').trim();
+      const name     = (row[cName]   ?? '').trim();
+      const serie    = (row[cSerie]  ?? '').trim();
+      const key      = cKey >= 0 ? (row[cKey] ?? '').trim() : '';
+      const subtotal = parseFloat((row[cSubtotal] ?? '0').replace(',', '.')) || 0;
+      const iva      = parseFloat((row[cIva]      ?? '0').replace(',', '.')) || 0;
+      const total    = parseFloat((row[cTotal]    ?? '0').replace(',', '.')) || 0;
 
-      if (!ruc || !number) continue;
+      if (!ruc || !serie) continue;
 
-      const fechaRaw    = row[cFecha];
-      const invoiceDate = fechaRaw instanceof Date ? fechaRaw : this.parseSriDate(String(fechaRaw ?? ''));
+      const invoiceDate = this.parseSriDate((row[cFechaEm] ?? '').trim());
       const taxRate     = iva > 0 ? 15 : 0;
 
       records.push({
         sourceFile:            file.name,
-        format:                'excel',
+        format:                'txt',
         supplierRuc:           ruc,
         supplierName:          name,
-        supplierInvoiceNumber: number,
+        supplierInvoiceNumber: serie,
         supplierInvoiceDate:   invoiceDate,
         supplierAccessKey:     key.length === 49 ? key : undefined,
         lines: [{
-          sku: '', description: `Importado desde SRI - ${number}`,
+          sku: '', description: `Importado desde SRI - ${serie}`,
           qty: 1, unitCost: subtotal, discount: 0, taxRate,
         }],
         subtotal,
@@ -292,6 +295,16 @@ export class PurchaseImporterService {
     }
 
     return records;
+  }
+
+  private txtErrorRecord(fileName: string, msg: string): SriImportRecord {
+    return {
+      sourceFile: fileName, format: 'txt',
+      supplierRuc: '', supplierName: '', supplierInvoiceNumber: '',
+      supplierInvoiceDate: new Date(), lines: [],
+      subtotal: 0, totalTax: 0, total: 0,
+      status: 'error', errorMsg: msg,
+    };
   }
 
   // ─── Duplicate check ───────────────────────────────────────────────────────

@@ -6,7 +6,7 @@
     </div>
     <div>
       <h3 class="mb-0 fw-semibold">Importar Compras SRI</h3>
-      <p class="text-muted small mb-0">Sube archivos XML o Excel descargados del portal SRI en Línea</p>
+      <p class="text-muted small mb-0">Sube el archivo TXT descargado del portal SRI en Línea</p>
     </div>
   </div>
   <button cButton color="secondary" variant="outline" size="sm" (click)="goToList()">
@@ -29,13 +29,13 @@
         <svg cIcon name="cilCloudDownload" size="3xl" class="text-muted mb-2"></svg>
         <p class="mb-1 fw-semibold">Arrastra archivos aquí o haz clic para seleccionar</p>
         <p class="text-muted small mb-0">
-          Formatos aceptados: <strong>XML</strong> (comprobante individual) y
-          <strong>Excel (.xlsx / .xls)</strong> (reporte masivo SRI)
+          Formatos aceptados: <strong>TXT</strong> (reporte masivo SRI) y
+          <strong>XML</strong> (comprobante individual)
         </p>
       </div>
 
       <input #fileInput type="file" class="d-none" multiple
-             accept=".xml,.xlsx,.xls"
+             accept=".xml,.txt"
              (change)="onFileInputChange($event)">
 
       <!-- File chips -->
@@ -48,7 +48,7 @@
             @for (f of files(); track f.name) {
               <div class="d-flex align-items-center gap-1 px-2 py-1 border rounded bg-body"
                    style="font-size:.8rem">
-                <svg cIcon [name]="f.name.toLowerCase().endsWith('.xml') ? 'cilCode' : 'cilFile'"
+                <svg cIcon [name]="f.name.toLowerCase().endsWith('.xml') ? 'cilCode' : 'cilDescription'"
                      size="sm" class="text-secondary"></svg>
                 <span>{{ f.name }}</span>
                 <button type="button" class="btn-close ms-1" style="font-size:.55rem"
@@ -78,11 +78,11 @@
   <div class="alert alert-info mt-3 d-flex gap-2 align-items-start" style="font-size:.82rem">
     <svg cIcon name="cilInfo" class="flex-shrink-0 mt-1"></svg>
     <div>
-      <strong>¿Cómo descargar los archivos del portal SRI?</strong><br>
+      <strong>¿Cómo descargar el archivo del portal SRI?</strong><br>
       Ingresa a <strong>SRI en Línea → Facturación Electrónica → Comprobantes Electrónicos Recibidos</strong>.<br>
-      Puedes descargar <strong>XMLs individuales</strong> por comprobante o el
-      <strong>reporte Excel masivo</strong> por período. Los XMLs contienen el detalle
-      completo de productos; el Excel contiene solo los totales.
+      Selecciona el período y descarga el <strong>reporte TXT masivo</strong>; el sistema procesará
+      todas las facturas del archivo. También puedes subir <strong>XMLs individuales</strong>
+      por comprobante para importar el detalle completo de productos.
     </div>
   </div>
 }
@@ -144,7 +144,7 @@
             <tr [class.table-warning]="r.status === 'duplicate'"
                 [class.table-danger]="r.status === 'error'">
               <td style="max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">
-                <svg cIcon [name]="r.format === 'xml' ? 'cilCode' : 'cilFile'"
+                <svg cIcon [name]="r.format === 'xml' ? 'cilCode' : 'cilDescription'"
                      size="sm" class="text-secondary me-1"></svg>
                 <span>{{ r.sourceFile }}</span>
               </td>
