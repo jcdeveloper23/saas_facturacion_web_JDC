@@ -213,6 +213,12 @@ export const navItems: INavData[] = [
     iconComponent: { name: 'cil-chart-line' },
     attributes: { module: 'teamManagement', roles: ['admin'] }
   },
+  {
+    name: 'Catálogos',
+    url: '/team-management/catalogs',
+    iconComponent: { name: 'cil-tag' },
+    attributes: { module: 'teamManagement', roles: ['admin'] }
+  },
 
   // ─── Administration ──────────────────────────────────────────────────────
   {

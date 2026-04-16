@@ -45,6 +45,8 @@ export interface TeamMember extends BaseDocument {
   avatarUrl?: string;
   phone?: string;
   hireDate?: Timestamp;
+  position?: string;              // cargo/título — referencia al catálogo tm-positions
+  personaId?: string;             // referencia al documento /personas/{id}
 }
 
 export type TeamMemberCreateInput = Omit<TeamMember,

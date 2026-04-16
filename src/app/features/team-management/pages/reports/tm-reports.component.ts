@@ -46,7 +46,20 @@ export class TmReportsComponent implements OnInit, OnDestroy {
   members    = signal<TeamMember[]>([]);
 
   // ── Computed ────────────────────────────────────────────────────────────────
+  periodLabel = computed(() => {
+    const start = this.getStartDate(this.period());
+    const end   = new Date();
+    const fmt   = (d: Date) =>
+      `${d.getDate()} ${d.toLocaleString('es', { month: 'short' })}`;
+    return `${fmt(start)} – ${fmt(end)}`;
+  });
+
   reportRows = computed((): ReportRow[] => {
+    const startDate = this.getStartDate(this.period());
+    const filtered  = this.timesheets().filter(t =>
+      t.date && t.date.toDate() >= startDate
+    );
+
     const grouped: Record<string, {
       userName: string;
       hours: number;
@@ -54,7 +67,7 @@ export class TmReportsComponent implements OnInit, OnDestroy {
       taskIds: Set<string>;
     }> = {};
 
-    this.timesheets().forEach(t => {
+    filtered.forEach(t => {
       if (!grouped[t.userId]) {
         grouped[t.userId] = { userName: t.userName, hours: 0, overtime: 0, taskIds: new Set() };
       }
@@ -71,12 +84,12 @@ export class TmReportsComponent implements OnInit, OnDestroy {
         const capacityPct = Math.round((s.hours / capacity) * 100);
         return {
           userId,
-          userName:     s.userName,
-          totalHours:   s.hours,
+          userName:      s.userName,
+          totalHours:    s.hours,
           overtimeHours: s.overtime,
-          regularHours: s.hours - s.overtime,
-          taskCount:    s.taskIds.size,
-          isOvertime:   s.hours > 40,
+          regularHours:  s.hours - s.overtime,
+          taskCount:     s.taskIds.size,
+          isOvertime:    s.hours > 40,
           capacityPct,
         };
       })
@@ -115,6 +128,19 @@ export class TmReportsComponent implements OnInit, OnDestroy {
   }
 
   // ── Interactions ─────────────────────────────────────────────────────────────
+  private getStartDate(period: 'week' | 'month'): Date {
+    const now = new Date();
+    if (period === 'week') {
+      const day = now.getDay();
+      now.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
+      now.setHours(0, 0, 0, 0);
+    } else {
+      now.setDate(1);
+      now.setHours(0, 0, 0, 0);
+    }
+    return now;
+  }
+
   setPeriod(p: 'week' | 'month'): void {
     this.period.set(p);
   }

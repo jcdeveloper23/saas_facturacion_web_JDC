@@ -21,7 +21,7 @@
 | **5** | Firestore: reglas e índices | ✅ Completada |
 | **6** | Cloud Functions | ✅ Completada |
 | **7** | Activación como paquete SaaS (seed) | ✅ Completada |
-| **8** | Bugs críticos — datos incorrectos | ⏳ Pendiente |
+| **8** | Bugs críticos — datos incorrectos | ✅ Completada |
 | **9** | UX daily flow — flujos rotos y gaps de navegación | ⏳ Pendiente |
 | **10** | Features de diferenciación (subtareas, timer, health score) | ⏳ Pendiente |
 | **11** | Competitividad Jira/ClickUp (epics, lead time, gráficas) | ⏳ Pendiente |
@@ -100,7 +100,7 @@ src/app/
 └── shared/
     └── components/
 ```
-
+ 
 ### Cómo funciona el multi-tenant
 
 1. Firebase Auth tiene custom claims: `{ companyId: string, role: UserRole }`

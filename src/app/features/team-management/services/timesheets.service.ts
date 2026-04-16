@@ -78,6 +78,23 @@ export class TimesheetsService {
     });
   }
 
+  getAllByDateRange(start: Timestamp, end: Timestamp): Observable<TimesheetEntry[]> {
+    return new Observable<TimesheetEntry[]>(observer => {
+      const ref = collection(this.firestore, this.colPath);
+      return onSnapshot(
+        query(
+          ref,
+          where('date', '>=', start),
+          where('date', '<=', end),
+          orderBy('date', 'desc')
+        ), {
+          next:  snap => observer.next(snap.docs.map(d => ({ id: d.id, ...d.data() }) as TimesheetEntry)),
+          error: err  => observer.error(err),
+        }
+      );
+    });
+  }
+
   // ─── Create ────────────────────────────────────────────────────────────────
 
   async create(input: TimesheetCreateInput): Promise<string> {

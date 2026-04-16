@@ -297,6 +297,16 @@ service cloud.firestore {
         allow write: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
       }
 
+      match /tm-specialties/{id} {
+        allow read:  if isAuthenticated() && belongsToCompany(companyId);
+        allow write: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
+      }
+
+      match /tm-positions/{id} {
+        allow read:  if isAuthenticated() && belongsToCompany(companyId);
+        allow write: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
+      }
+
       // Default rule for all other sub-collections
       match /{collection}/{id} {
         allow read: if isAuthenticated() && belongsToCompany(companyId);

@@ -145,24 +145,15 @@
               </div>
             }
 
-            <!-- Proyectos activos -->
-            <div class="d-flex justify-content-between align-items-center mb-1"
-                 style="font-size:.78rem">
-              <span class="text-muted">Proyectos activos</span>
-              <span class="fw-semibold" [class.text-danger]="m.isOverloaded">
-                {{ m.activeProjectIds.length }}
-                @if (m.isOverloaded) {
-                  <svg cIcon name="cilWarning" size="sm" class="text-danger ms-1"></svg>
-                }
-              </span>
-            </div>
-
-            <!-- Barra de carga -->
+            <!-- Horas esta semana -->
             <div>
               <div class="d-flex justify-content-between mb-1" style="font-size:.72rem">
-                <span class="text-muted">Carga de trabajo</span>
+                <span class="text-muted">Horas esta semana</span>
                 <span [class.text-danger]="m.isOverloaded" [class.fw-semibold]="m.isOverloaded">
-                  {{ m.loadPct }}%
+                  {{ m.hoursThisWeek }}h / {{ m.weeklyCapacityHours }}h
+                  @if (m.isOverloaded) {
+                    <svg cIcon name="cilWarning" size="sm" class="text-danger ms-1"></svg>
+                  }
                 </span>
               </div>
               <c-progress

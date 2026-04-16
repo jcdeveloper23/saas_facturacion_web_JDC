@@ -9,15 +9,18 @@ import {
 } from '@coreui/angular';
 import { IconModule } from '@coreui/icons-angular';
 
-import { ProjectsService }    from '../../services/projects.service';
+import { Timestamp }            from '@angular/fire/firestore';
+import { ProjectsService }     from '../../services/projects.service';
 import { TasksService }        from '../../services/tasks.service';
 import { TeamMembersService }  from '../../services/team-members.service';
+import { TimesheetsService }   from '../../services/timesheets.service';
 
 import { Project, PROJECT_PRIORITY_LABELS, PROJECT_PRIORITY_COLORS } from '../../models/project.interface';
 import { Task, TASK_STATUS_LABELS, TASK_STATUS_COLORS }               from '../../models/task.interface';
 import {
   TeamMember, MEMBER_ROLE_LABELS, MEMBER_ROLE_COLORS
 } from '../../models/team-member.interface';
+import { TimesheetEntry } from '../../models/timesheet.interface';
 
 @Component({
   selector: 'app-tm-dashboard',
@@ -30,10 +33,11 @@ import {
   ],
 })
 export class TmDashboardComponent implements OnInit, OnDestroy {
-  private projectsSvc = inject(ProjectsService);
-  private tasksSvc    = inject(TasksService);
-  private membersSvc  = inject(TeamMembersService);
-  private destroy$    = new Subject<void>();
+  private projectsSvc   = inject(ProjectsService);
+  private tasksSvc      = inject(TasksService);
+  private membersSvc    = inject(TeamMembersService);
+  private timesheetsSvc = inject(TimesheetsService);
+  private destroy$      = new Subject<void>();
 
   // ── Labels / Colors ──────────────────────────────────────────────────────────
   readonly PRIORITY_LABELS = PROJECT_PRIORITY_LABELS;
@@ -44,10 +48,11 @@ export class TmDashboardComponent implements OnInit, OnDestroy {
   readonly ROLE_COLORS     = MEMBER_ROLE_COLORS;
 
   // ── State ────────────────────────────────────────────────────────────────────
-  loading  = signal(true);
-  projects = signal<Project[]>([]);
-  tasks    = signal<Task[]>([]);
-  members  = signal<TeamMember[]>([]);
+  loading    = signal(true);
+  projects   = signal<Project[]>([]);
+  tasks      = signal<Task[]>([]);
+  members    = signal<TeamMember[]>([]);
+  timesheets = signal<TimesheetEntry[]>([]);
 
   // ── Computed KPIs ────────────────────────────────────────────────────────────
   activeProjects = computed(() => this.projects().filter(p => p.status === 'active'));
@@ -73,11 +78,21 @@ export class TmDashboardComponent implements OnInit, OnDestroy {
   memberWorkload = computed(() =>
     this.members()
       .filter(m => m.status === 'active')
-      .map(m => ({
-        ...m,
-        pct: Math.min(100, Math.round((m.activeProjectIds.length / Math.max(1, 3)) * 100)),
-      }))
+      .map(m => {
+        const hoursThisWeek = this.timesheets()
+          .filter(t => t.userId === m.userId)
+          .reduce((sum, t) => sum + t.hours, 0);
+        const pct = Math.round((hoursThisWeek / Math.max(1, m.weeklyCapacityHours)) * 100);
+        return {
+          ...m,
+          hoursThisWeek,
+          pct:          Math.min(120, pct),
+          isOverloaded: pct > 100,
+        };
+      })
   );
+
+  membersMap = computed(() => new Map(this.members().map(m => [m.userId, m.displayName])));
 
   // Tareas problemáticas (bloqueadas + vencidas), sin duplicados
   problemTasks = computed(() => {
@@ -91,7 +106,7 @@ export class TmDashboardComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     let loaded = 0;
-    const checkDone = () => { loaded++; if (loaded >= 3) this.loading.set(false); };
+    const checkDone = () => { loaded++; if (loaded >= 4) this.loading.set(false); };
 
     this.projectsSvc.getAll()
       .pipe(takeUntil(this.destroy$))
@@ -104,6 +119,12 @@ export class TmDashboardComponent implements OnInit, OnDestroy {
     this.membersSvc.getAll()
       .pipe(takeUntil(this.destroy$))
       .subscribe({ next: list => { this.members.set(list); checkDone(); }, error: () => checkDone() });
+
+    const weekStart = Timestamp.fromDate(this.getWeekStart());
+    const weekEnd   = Timestamp.fromMillis(Date.now());
+    this.timesheetsSvc.getAllByDateRange(weekStart, weekEnd)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({ next: list => { this.timesheets.set(list); checkDone(); }, error: () => checkDone() });
   }
 
   ngOnDestroy(): void {
@@ -113,14 +134,27 @@ export class TmDashboardComponent implements OnInit, OnDestroy {
 
   // ── Helpers ──────────────────────────────────────────────────────────────────
 
+  private getWeekStart(): Date {
+    const d   = new Date();
+    const day = d.getDay();
+    d.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
+
   daysOverdue(task: Task): number {
     if (!task.dueDate) return 0;
     const diff = new Date().getTime() - task.dueDate.toDate().getTime();
     return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
   }
 
-  assigneeInitials(assigneeIds: string[]): string[] {
-    return assigneeIds.slice(0, 3).map(id => id.substring(0, 2).toUpperCase());
+  getInitials(userId: string): string {
+    const name = this.membersMap().get(userId) ?? userId;
+    return name.split(' ').slice(0, 2).map((w: string) => w.charAt(0).toUpperCase()).join('');
+  }
+
+  getMemberName(userId: string): string {
+    return this.membersMap().get(userId) ?? 'Desconocido';
   }
 
   trackById(_: number, item: { id: string }): string { return item.id; }

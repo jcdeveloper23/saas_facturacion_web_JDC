@@ -187,9 +187,11 @@
                         <div style="font-size:.71rem; color:var(--cui-secondary-color)">{{ t.projectName }}</div>
                         @if (t.assigneeIds.length > 0) {
                           <div class="d-flex gap-1 mt-1">
-                            @for (initials of assigneeInitials(t.assigneeIds); track $index) {
-                              <span class="badge bg-secondary rounded-circle" style="width:20px; height:20px; font-size:.6rem; display:inline-flex; align-items:center; justify-content:center">
-                                {{ initials }}
+                            @for (uid of t.assigneeIds.slice(0, 3); track uid) {
+                              <span class="badge bg-secondary rounded-circle"
+                                    [title]="getMemberName(uid)"
+                                    style="width:20px; height:20px; font-size:.6rem; display:inline-flex; align-items:center; justify-content:center">
+                                {{ getInitials(uid) }}
                               </span>
                             }
                           </div>
@@ -253,7 +255,7 @@
               </div>
               <div class="d-flex justify-content-between align-items-center mb-1">
                 <span class="text-muted" style="font-size:.75rem">
-                  {{ m.activeProjectIds.length }} proyecto(s)
+                  {{ m.hoursThisWeek }}h / {{ m.weeklyCapacityHours }}h
                 </span>
                 <span class="fw-semibold" style="font-size:.78rem"
                       [class.text-success]="m.pct < 60"

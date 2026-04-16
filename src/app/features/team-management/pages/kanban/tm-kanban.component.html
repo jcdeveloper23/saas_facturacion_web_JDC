@@ -115,10 +115,11 @@
               <!-- Asignados (iniciales) -->
               @if (task.assigneeIds.length > 0) {
                 <div class="d-flex gap-1 mt-1 flex-wrap">
-                  @for (initials of assigneeInitials(task.assigneeIds); track $index) {
+                  @for (uid of task.assigneeIds.slice(0, 3); track uid) {
                     <span class="badge bg-secondary rounded-circle"
+                          [title]="getMemberName(uid)"
                           style="width:22px; height:22px; font-size:.62rem; display:inline-flex; align-items:center; justify-content:center">
-                      {{ initials }}
+                      {{ getInitials(uid) }}
                     </span>
                   }
                   @if (task.assigneeIds.length > 3) {

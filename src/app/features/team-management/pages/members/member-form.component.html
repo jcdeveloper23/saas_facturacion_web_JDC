@@ -1,0 +1,444 @@
+<!-- ── Breadcrumb ──────────────────────────────────────────────────────────────── -->
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb mb-0" style="font-size:.82rem">
+    <li class="breadcrumb-item">
+      <a routerLink="/team-management/members" class="text-decoration-none">Equipo</a>
+    </li>
+    <li class="breadcrumb-item active">{{ pageTitle() }}</li>
+  </ol>
+</nav>
+
+<!-- ── Cabecera ──────────────────────────────────────────────────────────────── -->
+<div class="d-flex align-items-center gap-2 mb-4">
+  <div class="bg-primary bg-opacity-10 p-2 rounded">
+    <svg cIcon name="cilUser" size="lg" class="text-primary"></svg>
+  </div>
+  <div class="flex-grow-1">
+    <h4 class="mb-0 fw-semibold">{{ pageTitle() }}</h4>
+    <p class="text-muted small mb-0">
+      @if (!isEditing()) {
+        Selecciona un empleado registrado en el sistema para vincularlo al equipo
+      } @else {
+        Modifica los datos del miembro del equipo
+      }
+    </p>
+  </div>
+  <button cButton color="secondary" variant="outline" size="sm" type="button" (click)="cancel()">
+    <svg cIcon name="cilArrowLeft" class="me-1"></svg> Volver
+  </button>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════════════
+     PASO 1 — BUSCADOR DE EMPLEADOS (solo en creación)
+═══════════════════════════════════════════════════════════════════════════════ -->
+@if (!isEditing() && step() === 'search') {
+
+  @if (loadingList()) {
+    <div class="text-center py-5">
+      <c-spinner color="primary"></c-spinner>
+      <p class="text-muted mt-2 small">Cargando empleados...</p>
+    </div>
+  } @else {
+
+    <!-- Buscador -->
+    <c-card class="mb-3">
+      <c-card-body>
+        <div class="d-flex align-items-center gap-3 mb-1">
+          <svg cIcon name="cilSearch" class="text-muted flex-shrink-0"></svg>
+          <input class="form-control"
+                 type="text"
+                 placeholder="Buscar por nombre, email, cargo o departamento..."
+                 [ngModel]="searchQuery()"
+                 (ngModelChange)="searchQuery.set($event)">
+        </div>
+        <div class="text-muted" style="font-size:.78rem; padding-left:1.75rem">
+          {{ filteredEmployees().length }} empleado(s) encontrado(s)
+        </div>
+      </c-card-body>
+    </c-card>
+
+    <!-- Lista de empleados -->
+    @if (filteredEmployees().length === 0) {
+      <div class="text-center py-5 text-muted">
+        <svg cIcon name="cilUser" size="xl" class="mb-2 text-muted"></svg>
+        <p class="mb-1">No se encontraron empleados</p>
+        <p class="small">Verifica que existan personas con rol <strong>Empleado</strong> en el sistema</p>
+      </div>
+    } @else {
+      <div class="d-flex flex-column gap-2 mb-3">
+        @for (p of filteredEmployees(); track p.id) {
+          <div class="card border shadow-sm"
+               [class.opacity-50]="isAlreadyLinked(p.id)"
+               style="transition: box-shadow .15s">
+            <div class="card-body py-3 px-4">
+              <div class="d-flex align-items-center gap-3">
+
+                <!-- Avatar con iniciales -->
+                <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 fw-bold"
+                     style="width:44px; height:44px; background:var(--cui-primary-bg-subtle); color:var(--cui-primary); font-size:.85rem">
+                  {{ getPersonInitials(p.name) }}
+                </div>
+
+                <!-- Info principal -->
+                <div class="flex-grow-1 min-width-0">
+                  <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <span class="fw-semibold text-truncate" style="font-size:.92rem">{{ p.name }}</span>
+                    @if (isAlreadyLinked(p.id)) {
+                      <span class="badge bg-success-subtle text-success border border-success-subtle"
+                            style="font-size:.68rem">
+                        Ya en el equipo
+                      </span>
+                    }
+                  </div>
+                  <div class="d-flex flex-wrap gap-3 mt-1" style="font-size:.78rem; color:var(--cui-secondary-color)">
+                    @if (p.employeeData?.position) {
+                      <span>
+                        <svg cIcon name="cilBriefcase" size="sm" class="me-1"></svg>{{ p.employeeData!.position }}
+                      </span>
+                    }
+                    @if (p.employeeData?.department) {
+                      <span>
+                        <svg cIcon name="cilBuilding" size="sm" class="me-1"></svg>{{ p.employeeData!.department }}
+                      </span>
+                    }
+                    @if (p.email) {
+                      <span>
+                        <svg cIcon name="cilEnvelopeClosed" size="sm" class="me-1"></svg>{{ p.email }}
+                      </span>
+                    }
+                    @if (p.phone1) {
+                      <span>
+                        <svg cIcon name="cilPhone" size="sm" class="me-1"></svg>{{ p.phone1 }}
+                      </span>
+                    }
+                  </div>
+                </div>
+
+                <!-- Acción -->
+                <div class="flex-shrink-0">
+                  @if (isAlreadyLinked(p.id)) {
+                    <span class="text-muted small">Vinculado</span>
+                  } @else {
+                    <button cButton color="primary" size="sm" type="button"
+                            (click)="selectPerson(p)">
+                      Seleccionar
+                      <svg cIcon name="cilArrowRight" class="ms-1"></svg>
+                    </button>
+                  }
+                </div>
+
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- Opción manual -->
+    <div class="text-center py-2">
+      <div class="d-flex align-items-center gap-3 justify-content-center">
+        <hr class="flex-grow-1" style="max-width:140px">
+        <span class="text-muted small">o</span>
+        <hr class="flex-grow-1" style="max-width:140px">
+      </div>
+      <button cButton color="secondary" variant="ghost" size="sm" type="button"
+              (click)="skipSearch()">
+        Ingresar datos manualmente
+      </button>
+    </div>
+
+  }
+}
+
+<!-- ════════════════════════════════════════════════════════════════════════════
+     PASO 2 — FORMULARIO
+═══════════════════════════════════════════════════════════════════════════════ -->
+@if (isEditing() || step() === 'form') {
+
+  @if (loading()) {
+    <div class="text-center py-5">
+      <c-spinner color="primary"></c-spinner>
+      <p class="text-muted mt-2 small">Cargando miembro...</p>
+    </div>
+  } @else {
+
+    <!-- Banner persona seleccionada -->
+    @if (selectedPerson()) {
+      <div class="d-flex align-items-center gap-3 rounded p-3 mb-3 border border-success-subtle"
+           style="background:var(--cui-success-bg-subtle)">
+        <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 fw-bold bg-success text-white"
+             style="width:36px; height:36px; font-size:.78rem">
+          {{ getPersonInitials(selectedPerson()!.name) }}
+        </div>
+        <div class="flex-grow-1 min-width-0">
+          <div class="fw-semibold text-success" style="font-size:.88rem">
+            <svg cIcon name="cilCheckCircle" size="sm" class="me-1"></svg>
+            Empleado vinculado: {{ selectedPerson()!.name }}
+          </div>
+          <div class="text-muted" style="font-size:.76rem">
+            @if (selectedPerson()!.employeeData?.position) {
+              {{ selectedPerson()!.employeeData!.position }}
+              @if (selectedPerson()!.employeeData?.department) { · {{ selectedPerson()!.employeeData!.department }} }
+            }
+            @if (selectedPerson()!.email) { · {{ selectedPerson()!.email }} }
+          </div>
+        </div>
+        @if (!isEditing()) {
+          <button cButton color="secondary" variant="ghost" size="sm" type="button"
+                  (click)="clearPerson()"
+                  title="Cambiar selección">
+            <svg cIcon name="cilX"></svg>
+          </button>
+        }
+      </div>
+    }
+
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <c-row class="g-3">
+
+        <!-- ════════════════ COLUMNA PRINCIPAL (8) ════════════════ -->
+        <c-col md="8">
+
+          <!-- Identidad -->
+          <c-card class="mb-3">
+            <c-card-body>
+              <p class="text-uppercase fw-semibold mb-3"
+                 style="font-size:.68rem; letter-spacing:.07em; color:var(--cui-tertiary-color)">
+                Identidad
+              </p>
+
+              <c-row class="g-3">
+
+                <!-- Firebase UID -->
+                <c-col xs="12">
+                  <label cLabel for="userId" class="fw-medium">
+                    Firebase Auth UID <span class="text-danger">*</span>
+                  </label>
+                  <input cFormControl id="userId" formControlName="userId"
+                         placeholder="Ej: wQ3kPx9fGhJ2mZoN..."
+                         [class.is-invalid]="hasError('userId')">
+                  @if (hasError('userId')) {
+                    <div class="invalid-feedback">El UID de Firebase Auth es requerido</div>
+                  } @else {
+                    <div class="form-text">
+                      UID del usuario en Firebase Authentication —
+                      encuéntralo en la consola Firebase › Authentication › Users.
+                      @if (isEditing()) { <span class="text-muted fw-medium">(no editable)</span> }
+                    </div>
+                  }
+                </c-col>
+
+                <!-- Nombre completo -->
+                <c-col xs="12" sm="6">
+                  <label cLabel for="displayName" class="fw-medium">
+                    Nombre completo <span class="text-danger">*</span>
+                  </label>
+                  <input cFormControl id="displayName" formControlName="displayName"
+                         placeholder="Ej: Juan García"
+                         [class.is-invalid]="hasError('displayName')">
+                  @if (hasError('displayName')) {
+                    <div class="invalid-feedback">
+                      @if (form.get('displayName')?.errors?.['required']) { El nombre es obligatorio. }
+                      @else if (form.get('displayName')?.errors?.['minlength']) { Mínimo 2 caracteres. }
+                    </div>
+                  }
+                </c-col>
+
+                <!-- Email -->
+                <c-col xs="12" sm="6">
+                  <label cLabel for="email" class="fw-medium">
+                    Email <span class="text-danger">*</span>
+                  </label>
+                  <input cFormControl id="email" type="email" formControlName="email"
+                         placeholder="nombre@empresa.com"
+                         [class.is-invalid]="hasError('email')">
+                  @if (hasError('email')) {
+                    <div class="invalid-feedback">Ingrese un email válido</div>
+                  }
+                </c-col>
+
+                <!-- Teléfono -->
+                <c-col xs="12" sm="6">
+                  <label cLabel for="phone" class="fw-medium">Teléfono</label>
+                  <input cFormControl id="phone" formControlName="phone"
+                         placeholder="+593 99 999 9999">
+                </c-col>
+
+                <!-- Fecha de ingreso -->
+                <c-col xs="12" sm="6">
+                  <label cLabel for="hireDate" class="fw-medium">Fecha de ingreso</label>
+                  <input cFormControl id="hireDate" type="date" formControlName="hireDate">
+                </c-col>
+
+              </c-row>
+            </c-card-body>
+          </c-card>
+
+          <!-- Perfil del equipo -->
+          <c-card>
+            <c-card-body>
+              <p class="text-uppercase fw-semibold mb-3"
+                 style="font-size:.68rem; letter-spacing:.07em; color:var(--cui-tertiary-color)">
+                Perfil en el equipo
+              </p>
+
+              <c-row class="g-3">
+
+                <!-- Cargo / Posición -->
+                <c-col xs="12">
+                  <label cLabel for="position" class="fw-medium">Cargo</label>
+                  <input cFormControl id="position" formControlName="position"
+                         list="positionsList"
+                         placeholder="Ej: Desarrollador Senior, QA Lead...">
+                  <datalist id="positionsList">
+                    @for (pos of positionNames(); track pos) {
+                      <option [value]="pos"></option>
+                    }
+                  </datalist>
+                  <div class="form-text">Selecciona del catálogo o escribe un cargo libre.</div>
+                </c-col>
+
+                <!-- Especialidades -->
+                <c-col xs="12">
+                  <label cLabel class="fw-medium d-block mb-2">Especialidades / Tecnologías</label>
+
+                  @if (catalogSpecialties().length === 0) {
+                    <div class="text-muted small fst-italic">
+                      No hay especialidades configuradas.
+                      <a routerLink="/team-management/catalogs" class="text-decoration-none">Agregar en Catálogos</a>
+                    </div>
+                  } @else {
+                    <div class="d-flex flex-wrap gap-2">
+                      @for (s of catalogSpecialties(); track s.id) {
+                        <button type="button"
+                                class="badge rounded-pill border px-3 py-2"
+                                [class.bg-primary]="isSpecialtySelected(s.name)"
+                                [class.text-white]="isSpecialtySelected(s.name)"
+                                [class.bg-body-tertiary]="!isSpecialtySelected(s.name)"
+                                [class.text-body]="!isSpecialtySelected(s.name)"
+                                style="font-size:.78rem; cursor:pointer; transition:all .15s"
+                                (click)="toggleSpecialty(s.name)">
+                          @if (isSpecialtySelected(s.name)) {
+                            <svg cIcon name="cilCheckAlt" size="sm" class="me-1"></svg>
+                          }
+                          {{ s.name }}
+                        </button>
+                      }
+                    </div>
+                    @if (selectedSpecialties().length > 0) {
+                      <div class="text-muted mt-2" style="font-size:.76rem">
+                        {{ selectedSpecialties().length }} seleccionada(s):
+                        {{ selectedSpecialties().join(', ') }}
+                      </div>
+                    }
+                  }
+                </c-col>
+
+                <!-- Avatar URL -->
+                <c-col xs="12">
+                  <label cLabel for="avatarUrl" class="fw-medium">URL de avatar</label>
+                  <input cFormControl id="avatarUrl" type="url" formControlName="avatarUrl"
+                         placeholder="https://...">
+                  <div class="form-text">Imagen de perfil pública (opcional).</div>
+                </c-col>
+
+              </c-row>
+            </c-card-body>
+          </c-card>
+
+        </c-col>
+
+        <!-- ════════════════ COLUMNA LATERAL (4) ════════════════ -->
+        <c-col md="4">
+
+          <!-- Configuración del rol -->
+          <c-card class="mb-3">
+            <c-card-body>
+              <p class="text-uppercase fw-semibold mb-3"
+                 style="font-size:.68rem; letter-spacing:.07em; color:var(--cui-tertiary-color)">
+                Configuración
+              </p>
+
+              <!-- Rol -->
+              <div class="mb-3">
+                <label cLabel for="role" class="fw-medium">
+                  Rol en el equipo <span class="text-danger">*</span>
+                </label>
+                <select cSelect id="role" formControlName="role"
+                        [class.is-invalid]="hasError('role')">
+                  @for (r of roleOptions; track r) {
+                    <option [value]="r">{{ ROLE_LABELS[r] }}</option>
+                  }
+                </select>
+                @if (hasError('role')) {
+                  <div class="invalid-feedback">Seleccione un rol.</div>
+                }
+              </div>
+
+              <!-- Estado -->
+              <div class="mb-3">
+                <label cLabel for="status" class="fw-medium">
+                  Estado <span class="text-danger">*</span>
+                </label>
+                <select cSelect id="status" formControlName="status"
+                        [class.is-invalid]="hasError('status')">
+                  @for (s of statusOptions; track s) {
+                    <option [value]="s">{{ STATUS_LABELS[s] }}</option>
+                  }
+                </select>
+                @if (hasError('status')) {
+                  <div class="invalid-feedback">Seleccione un estado.</div>
+                }
+              </div>
+
+              <!-- Capacidad semanal -->
+              <div class="mb-0">
+                <label cLabel for="weeklyCapacityHours" class="fw-medium">
+                  Capacidad semanal (h) <span class="text-danger">*</span>
+                </label>
+                <input cFormControl id="weeklyCapacityHours" type="number"
+                       formControlName="weeklyCapacityHours"
+                       min="1" max="168"
+                       [class.is-invalid]="hasError('weeklyCapacityHours')">
+                <div class="form-text">Horas disponibles por semana (default: 40).</div>
+                @if (hasError('weeklyCapacityHours')) {
+                  <div class="invalid-feedback">Valor entre 1 y 168 horas.</div>
+                }
+              </div>
+
+            </c-card-body>
+          </c-card>
+
+          <!-- Acciones -->
+          <c-card>
+            <c-card-body>
+              <div class="d-grid gap-2">
+                <button cButton color="primary" type="submit" [disabled]="saving()">
+                  @if (saving()) {
+                    <c-spinner size="sm" class="me-1"></c-spinner>
+                  } @else {
+                    <svg cIcon name="cilSave" class="me-1"></svg>
+                  }
+                  {{ isEditing() ? 'Guardar cambios' : 'Agregar al equipo' }}
+                </button>
+                @if (!isEditing() && !selectedPerson()) {
+                  <button cButton color="secondary" variant="outline" size="sm" type="button"
+                          (click)="step.set('search')">
+                    <svg cIcon name="cilArrowLeft" class="me-1"></svg>
+                    Volver al buscador
+                  </button>
+                }
+                <button cButton color="secondary" variant="outline" type="button"
+                        [disabled]="saving()"
+                        (click)="cancel()">
+                  Cancelar
+                </button>
+              </div>
+            </c-card-body>
+          </c-card>
+
+        </c-col>
+      </c-row>
+    </form>
+  }
+}

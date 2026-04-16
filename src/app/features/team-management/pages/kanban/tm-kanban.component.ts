@@ -12,8 +12,9 @@ import {
 } from '@coreui/angular';
 import { IconModule } from '@coreui/icons-angular';
 
-import { ProjectsService } from '../../services/projects.service';
-import { TasksService }     from '../../services/tasks.service';
+import { ProjectsService }    from '../../services/projects.service';
+import { TasksService }       from '../../services/tasks.service';
+import { TeamMembersService } from '../../services/team-members.service';
 import { NotificationService } from '../../../../core/services/notification.service';
 
 import {
@@ -22,7 +23,8 @@ import {
   TASK_PRIORITY_LABELS, TASK_PRIORITY_COLORS,
   TASK_TYPE_LABELS
 } from '../../models/task.interface';
-import { Project } from '../../models/project.interface';
+import { Project }    from '../../models/project.interface';
+import { TeamMember } from '../../models/team-member.interface';
 
 @Component({
   selector: 'app-tm-kanban',
@@ -38,6 +40,7 @@ import { Project } from '../../models/project.interface';
 export class TmKanbanComponent implements OnInit, OnDestroy {
   private projectsSvc   = inject(ProjectsService);
   private tasksSvc      = inject(TasksService);
+  private membersSvc    = inject(TeamMembersService);
   private notifications = inject(NotificationService);
   private destroy$      = new Subject<void>();
 
@@ -53,6 +56,7 @@ export class TmKanbanComponent implements OnInit, OnDestroy {
   loading           = signal(true);
   projects          = signal<Project[]>([]);
   tasks             = signal<Task[]>([]);
+  members           = signal<TeamMember[]>([]);
   selectedProjectId = signal<string>('all');
 
   // ── Computed ─────────────────────────────────────────────────────────────────
@@ -70,12 +74,13 @@ export class TmKanbanComponent implements OnInit, OnDestroy {
   });
 
   connectedLists = computed(() => TASK_KANBAN_COLUMNS.map(c => 'list-' + c));
+  membersMap     = computed(() => new Map(this.members().map(m => [m.userId, m.displayName])));
 
   // ── Lifecycle ────────────────────────────────────────────────────────────────
 
   ngOnInit(): void {
     let loaded = 0;
-    const checkDone = () => { loaded++; if (loaded >= 2) this.loading.set(false); };
+    const checkDone = () => { loaded++; if (loaded >= 3) this.loading.set(false); };
 
     this.projectsSvc.getAll()
       .pipe(takeUntil(this.destroy$))
@@ -84,6 +89,10 @@ export class TmKanbanComponent implements OnInit, OnDestroy {
     this.tasksSvc.getAll()
       .pipe(takeUntil(this.destroy$))
       .subscribe({ next: list => { this.tasks.set(list); checkDone(); }, error: () => checkDone() });
+
+    this.membersSvc.getAll()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({ next: list => { this.members.set(list); checkDone(); }, error: () => checkDone() });
   }
 
   ngOnDestroy(): void {
@@ -125,8 +134,13 @@ export class TmKanbanComponent implements OnInit, OnDestroy {
 
   // ── Helpers ──────────────────────────────────────────────────────────────────
 
-  assigneeInitials(assigneeIds: string[]): string[] {
-    return assigneeIds.slice(0, 3).map(id => id.substring(0, 2).toUpperCase());
+  getInitials(userId: string): string {
+    const name = this.membersMap().get(userId) ?? userId;
+    return name.split(' ').slice(0, 2).map((w: string) => w.charAt(0).toUpperCase()).join('');
+  }
+
+  getMemberName(userId: string): string {
+    return this.membersMap().get(userId) ?? 'Desconocido';
   }
 
   isOverdue(task: Task): boolean {

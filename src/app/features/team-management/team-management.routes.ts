@@ -85,9 +85,27 @@ export const TEAM_MANAGEMENT_ROUTES: Routes = [
     data: { title: 'Equipo' }
   },
   {
+    path: 'members/new',
+    loadComponent: () =>
+      import('./pages/members/member-form.component').then(m => m.MemberFormComponent),
+    data: { title: 'Nuevo Miembro' }
+  },
+  {
+    path: 'members/:id/edit',
+    loadComponent: () =>
+      import('./pages/members/member-form.component').then(m => m.MemberFormComponent),
+    data: { title: 'Editar Miembro' }
+  },
+  {
     path: 'reports',
     loadComponent: () =>
       import('./pages/reports/tm-reports.component').then(m => m.TmReportsComponent),
     data: { title: 'Reportes de Rendimiento' }
-  }
+  },
+  {
+    path: 'catalogs',
+    loadComponent: () =>
+      import('./pages/catalogs/tm-catalogs.component').then(m => m.TmCatalogsComponent),
+    data: { title: 'Catálogos del Equipo' }
+  },
 ];
