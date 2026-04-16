@@ -2,7 +2,7 @@ import {
   Component, OnInit, OnDestroy, inject, signal, computed
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
 import {
@@ -22,13 +22,14 @@ import {
   standalone: true,
   templateUrl: './purchases-list.component.html',
   imports: [
-    CommonModule, FormsModule,
+    CommonModule, FormsModule, RouterLink,
     CardModule, ButtonModule, GridModule, BadgeModule, SpinnerModule,
     IconModule,
   ],
 })
 export class PurchasesListComponent implements OnInit, OnDestroy {
   readonly router       = inject(Router);
+  private route         = inject(ActivatedRoute);
   private svc           = inject(PurchasesService);
   private notifications = inject(NotificationService);
   private destroy$      = new Subject<void>();
@@ -37,29 +38,36 @@ export class PurchasesListComponent implements OnInit, OnDestroy {
   readonly STATUS_COLORS = PURCHASE_STATUS_COLORS;
 
   // ── State ───────────────────────────────────────────────────────────────────
-  loading      = signal(true);
-  all          = signal<Purchase[]>([]);
-  statusFilter = signal<PurchaseStatus | ''>('');
-  searchTerm   = '';
+  loading        = signal(true);
+  all            = signal<Purchase[]>([]);
+  statusFilter   = signal<PurchaseStatus | ''>('');
+  searchTerm     = '';
+  supplierFilter = signal<{ id: string; name: string } | null>(null);
+  showNoRetentionOnly = signal(false);
 
   // ── Stats ───────────────────────────────────────────────────────────────────
   stats = computed(() => {
     const all = this.all();
     return {
-      total:     all.length,
-      draft:     all.filter(p => p.status === 'draft').length,
-      sent:      all.filter(p => p.status === 'sent').length,
-      received:  all.filter(p => p.status === 'received').length,
-      cancelled: all.filter(p => p.status === 'cancelled').length,
+      total:        all.length,
+      draft:        all.filter(p => p.status === 'draft').length,
+      sent:         all.filter(p => p.status === 'sent').length,
+      received:     all.filter(p => p.status === 'received').length,
+      cancelled:    all.filter(p => p.status === 'cancelled').length,
+      noRetention:  all.filter(p => p.status === 'received' && !p.retentionId).length,
     };
   });
 
   // ── Filtered list ────────────────────────────────────────────────────────────
   filtered = computed(() => {
-    const term   = this.searchTerm.toLowerCase().trim();
-    const status = this.statusFilter();
+    const term     = this.searchTerm.toLowerCase().trim();
+    const status   = this.statusFilter();
+    const supplier = this.supplierFilter();
+    const noRet    = this.showNoRetentionOnly();
     return this.all().filter(p => {
       if (status && p.status !== status) return false;
+      if (supplier && p.supplierId !== supplier.id) return false;
+      if (noRet && !(p.status === 'received' && !p.retentionId)) return false;
       if (!term) return true;
       return (
         p.fullNumber.toLowerCase().includes(term) ||
@@ -73,6 +81,12 @@ export class PurchasesListComponent implements OnInit, OnDestroy {
   // ─── Lifecycle ──────────────────────────────────────────────────────────────
 
   ngOnInit(): void {
+    // B3: pre-filtro por supplierId desde queryParams (deep-link desde ficha proveedor)
+    const qSupplierId   = this.route.snapshot.queryParamMap.get('supplierId');
+    const qSupplierName = this.route.snapshot.queryParamMap.get('supplierName');
+    if (qSupplierId && qSupplierName) {
+      this.supplierFilter.set({ id: qSupplierId, name: qSupplierName });
+    }
     this.loadAll();
   }
 
@@ -95,6 +109,17 @@ export class PurchasesListComponent implements OnInit, OnDestroy {
 
   setStatusFilter(status: PurchaseStatus | ''): void {
     this.statusFilter.set(status);
+  }
+
+  clearSupplierFilter(): void {
+    this.supplierFilter.set(null);
+  }
+
+  toggleNoRetention(): void {
+    this.showNoRetentionOnly.update(v => !v);
+    if (this.showNoRetentionOnly()) {
+      this.statusFilter.set('received');
+    }
   }
 
   canEdit(p: Purchase): boolean {

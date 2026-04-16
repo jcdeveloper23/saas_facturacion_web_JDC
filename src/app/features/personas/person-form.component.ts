@@ -25,8 +25,9 @@ import {
 import { PaymentTerm, Currency, DocumentSeries } from '../settings/models/settings.interfaces';
 import { EntityFormConfig } from '../../core/interfaces/form-config.interface';
 import { ecuadorTaxIdValidator } from '../../core/validators/ecuador.validators';
+import { SupplierPurchasesTabComponent } from './supplier-purchases-tab.component';
 
-type FormTab = 'general' | 'addresses' | 'banks';
+type FormTab = 'general' | 'addresses' | 'banks' | 'purchases';
 
 const CONTRACT_TYPES: { value: ContractType; label: string }[] = [
   { value: 'indefinido',  label: 'Indefinido' },
@@ -83,7 +84,8 @@ const CONTRACT_TYPES: { value: ContractType; label: string }[] = [
     CardModule, ButtonModule, GridModule, BadgeModule, SpinnerModule,
     TableModule, FormModule, TooltipModule, AlertModule,
     NavModule, TabsModule, IconModule,
-    InputGroupComponent, InputGroupTextDirective, CalloutComponent
+    InputGroupComponent, InputGroupTextDirective, CalloutComponent,
+    SupplierPurchasesTabComponent,
   ]
 })
 export class PersonFormComponent implements OnInit {

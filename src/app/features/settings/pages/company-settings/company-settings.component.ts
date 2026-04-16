@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, FormArray, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import {
@@ -11,14 +11,15 @@ import {
 } from '@coreui/angular';
 import { IconDirective, IconSetService } from '@coreui/icons-angular';
 import { Functions, httpsCallable } from '@angular/fire/functions';
-import { take } from 'rxjs';
+import { take, takeUntil } from 'rxjs';
+import { Subject } from 'rxjs';
 import { Timestamp } from '@angular/fire/firestore';
 import { iconSubset } from '../../../../icons/icon-subset';
 import { SettingsService } from '../../services/settings.service';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { TenantService } from '../../../../core/services/tenant.service';
 import { Warehouse } from '../../models/settings.interfaces';
-import { ecuadorRucValidator } from '../../../../shared/validators/ruc.validator';
+import { ecuadorTaxIdValidator } from '../../../../shared/validators/ruc.validator';
 import { SriCompanyConfig } from '../../models/settings.interfaces';
 
 @Component({
@@ -36,7 +37,7 @@ import { SriCompanyConfig } from '../../models/settings.interfaces';
     CalloutComponent, BadgeComponent, TableDirective
   ]
 })
-export class CompanySettingsComponent implements OnInit {
+export class CompanySettingsComponent implements OnInit, OnDestroy {
   private svc = inject(SettingsService);
   private notifications = inject(NotificationService);
   private tenantSvc = inject(TenantService);
@@ -63,6 +64,7 @@ export class CompanySettingsComponent implements OnInit {
   certThumbprint = signal<string | null>(null);
   certExpiry = signal<Date | null>(null);
   readonly today = new Date();
+  private destroy$ = new Subject<void>();
 
   constructor() {
     this.iconSet.icons = { ...iconSubset };
@@ -71,7 +73,8 @@ export class CompanySettingsComponent implements OnInit {
   // ── Formulario principal empresa ────────────────────────────────────────────
   form = this.fb.group({
     companyName:     ['', Validators.required],
-    taxId:           ['', [Validators.required, ecuadorRucValidator()]],
+    taxIdType:       ['ruc' as 'ruc' | 'cedula', Validators.required],
+    taxId:           ['', [Validators.required, ecuadorTaxIdValidator()]],
     fiscalAddress:   ['', Validators.required],
     city:            ['', Validators.required],
     province:        [''],
@@ -123,6 +126,26 @@ export class CompanySettingsComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    // Re-run taxId validation whenever taxIdType switches (ruc ↔ cedula)
+    this.form.get('taxIdType')!.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.form.get('taxId')!.updateValueAndValidity();
+      });
+
+    // Auto-switch type as the user types: 10 digits → cedula, 13 → ruc
+    this.form.get('taxId')!.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(val => {
+        const len = (val as string)?.replace(/\D/g, '').length ?? 0;
+        const current = this.form.get('taxIdType')!.value;
+        if (len === 10 && current !== 'cedula') {
+          this.form.get('taxIdType')!.setValue('cedula', { emitEvent: false });
+        } else if (len === 13 && current !== 'ruc') {
+          this.form.get('taxIdType')!.setValue('ruc', { emitEvent: false });
+        }
+      });
+
     this.svc.getWarehouses().pipe(take(1)).subscribe({
       next: whs => this.warehouses.set(whs.filter(w => w.isActive))
     });
@@ -130,7 +153,15 @@ export class CompanySettingsComponent implements OnInit {
     this.svc.getCompanySettings().subscribe({
       next: (settings) => {
         if (settings) {
-          this.form.patchValue(settings as any);
+          // Auto-detect type for existing records that don't have taxIdType saved yet:
+          // if taxId is exactly 10 digits it must be a cédula.
+          const detectedType: 'ruc' | 'cedula' =
+            settings.taxIdType ?? (settings.taxId?.trim().length === 10 ? 'cedula' : 'ruc');
+
+          this.form.patchValue({
+            ...settings as any,
+            taxIdType: detectedType,
+          });
           if (settings.stock) {
             this.stockForm.patchValue({
               defaultWarehouseCode:    settings.stock.defaultWarehouseCode ?? '',
@@ -419,4 +450,9 @@ export class CompanySettingsComponent implements OnInit {
   }
 
   trackByIndex(i: number): number { return i; }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
 }

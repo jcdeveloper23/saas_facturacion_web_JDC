@@ -33,7 +33,7 @@ SaasFacturacion/
 
 ---
 
-## Agentes Disponibles (9)
+## Agentes Disponibles (13)
 
 | Agente | Archivo | Especialidad |
 |--------|---------|-------------|
@@ -46,6 +46,19 @@ SaasFacturacion/
 | **Security** | `security_agent.md` | Firestore rules, auth guards, custom claims, inputs validation |
 | **Cloud Functions** | `cloud_functions_agent.md` | Node.js 20, setup-company, triggers, admin SDK |
 | **DevOps** | `devops_agent.md` | Firebase deploy, environments, build Angular, emulators |
+| **TM Architect** | `team_management_agent.md` | Arquitecto del módulo `pkg_team_mgmt` — implementación técnica completa + roadmap |
+| **TM Product** | `tm_product_agent.md` | Diseña features del módulo: epics, subtareas, sprints, timer, bug reports |
+| **TM Workflow** | `tm_workflow_agent.md` | Define flujos de estado, automatizaciones, notificaciones y roles del módulo |
+| **TM Metrics** | `tm_metrics_agent.md` | KPIs, lead time, velocity, workload, reportes ejecutivos y alertas del módulo |
+
+### Sub-sistema Team Management (pkg_team_mgmt)
+
+```
+TM Architect ← punto de entrada para cualquier tarea del módulo
+   ├── TM Product   → diseño de nuevas funcionalidades
+   ├── TM Workflow  → flujos de trabajo y automatizaciones
+   └── TM Metrics   → métricas, reportes y alertas
+```
 
 ---
 
@@ -127,6 +140,16 @@ Nueva funcionalidad super-admin   → Architecture → Angular → Firebase
 Nuevos defaults de plataforma     → Firebase + Cloud Functions Agents
 Setup de nueva empresa            → Cloud Functions + Firebase Agents
 Gestión de planes                 → Business + Angular + Firebase Agents
+```
+
+### Team Management (pkg_team_mgmt)
+```
+Bug técnico (loggedHours, completionPct, CF) → TM Architect
+Nueva feature (epics, sprints, timer…)       → TM Product Agent
+Flujo de estados, automatizaciones           → TM Workflow Agent
+KPIs, lead time, velocity, reportes          → TM Metrics Agent
+Implementar feature ya especificada          → TM Architect → Angular/Firebase/CF Agents
+Auditoría de reglas Firestore tm-*           → TM Architect + Security Agent
 ```
 
 ### Infraestructura / DevOps

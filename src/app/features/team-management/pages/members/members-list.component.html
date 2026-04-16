@@ -1,0 +1,180 @@
+<!-- ── Cabecera ──────────────────────────────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div class="d-flex align-items-center gap-2">
+    <div class="bg-primary bg-opacity-10 p-2 rounded">
+      <svg cIcon name="cilPeople" size="xl" class="text-primary"></svg>
+    </div>
+    <div>
+      <h3 class="mb-0 fw-semibold">Equipo</h3>
+      <p class="text-muted small mb-0">Gestión de miembros del equipo de trabajo</p>
+    </div>
+  </div>
+  <button cButton color="primary" size="sm"
+          (click)="router.navigate(['/team-management/members/new'])">
+    <svg cIcon name="cilPlus" class="me-1"></svg> Agregar Miembro
+  </button>
+</div>
+
+<!-- ── KPI Cards ─────────────────────────────────────────────────────────────── -->
+@if (!loading()) {
+  <c-row class="g-2 mb-3">
+    <c-col xs="6" md="3">
+      <c-card class="border-0 shadow-sm h-100">
+        <c-card-body class="py-2 px-3">
+          <div class="text-muted small">Total activos</div>
+          <div class="fw-bold fs-4">{{ activeCount() }}</div>
+        </c-card-body>
+      </c-card>
+    </c-col>
+    <c-col xs="6" md="3">
+      <c-card class="border-0 shadow-sm h-100">
+        <c-card-body class="py-2 px-3">
+          <div class="text-muted small">Desarrolladores</div>
+          <div class="fw-bold fs-4 text-primary">{{ devCount() }}</div>
+        </c-card-body>
+      </c-card>
+    </c-col>
+    <c-col xs="6" md="3">
+      <c-card class="border-0 shadow-sm h-100">
+        <c-card-body class="py-2 px-3">
+          <div class="text-muted small">QA / Testing</div>
+          <div class="fw-bold fs-4 text-info">{{ qaCount() }}</div>
+        </c-card-body>
+      </c-card>
+    </c-col>
+    <c-col xs="6" md="3">
+      <c-card class="border-0 shadow-sm h-100">
+        <c-card-body class="py-2 px-3">
+          <div class="text-muted small">Soporte</div>
+          <div class="fw-bold fs-4 text-success">{{ supportCount() }}</div>
+        </c-card-body>
+      </c-card>
+    </c-col>
+  </c-row>
+}
+
+<!-- ── Filtros ──────────────────────────────────────────────────────────────── -->
+<div class="d-flex gap-2 flex-wrap align-items-center mb-3">
+  <!-- Filtro rol -->
+  <select class="form-select form-select-sm" style="width:180px"
+          [ngModel]="roleFilter()"
+          (ngModelChange)="roleFilter.set($event)">
+    <option value="all">Todos los roles</option>
+    <option value="developer">Desarrollador</option>
+    <option value="qa">QA / Testing</option>
+    <option value="support">Soporte</option>
+    <option value="designer">Diseñador</option>
+    <option value="devops">DevOps</option>
+    <option value="pm">Project Manager</option>
+    <option value="analyst">Analista</option>
+  </select>
+
+  <!-- Filtro estado -->
+  <select class="form-select form-select-sm" style="width:160px"
+          [ngModel]="statusFilter()"
+          (ngModelChange)="statusFilter.set($event)">
+    <option value="all">Todos los estados</option>
+    <option value="active">Activo</option>
+    <option value="on_leave">Con Permiso</option>
+    <option value="inactive">Inactivo</option>
+  </select>
+
+  <span class="ms-auto text-secondary" style="font-size:.75rem">
+    {{ membersWithLoad().length }} miembro(s)
+  </span>
+</div>
+
+<!-- ── Grid de cards ─────────────────────────────────────────────────────────── -->
+@if (loading()) {
+  <div class="text-center py-5">
+    <c-spinner color="primary"></c-spinner>
+  </div>
+} @else if (membersWithLoad().length === 0) {
+  <div class="text-center py-5 text-secondary">
+    <svg cIcon name="cilPeople" size="xl" class="mb-2 text-muted"></svg>
+    <p class="mb-1">No hay miembros registrados</p>
+    <button cButton color="primary" variant="outline" size="sm"
+            (click)="router.navigate(['/team-management/members/new'])">
+      Agregar primer miembro
+    </button>
+  </div>
+} @else {
+  <c-row class="g-3">
+    @for (m of membersWithLoad(); track trackById($index, m)) {
+      <c-col xs="12" md="6" xl="4">
+        <c-card class="h-100 shadow-sm" [class.border-danger]="m.isOverloaded">
+          <c-card-body>
+
+            <!-- Avatar + nombre -->
+            <div class="d-flex align-items-start gap-3 mb-3">
+              <!-- Círculo con iniciales -->
+              <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 fw-bold"
+                   style="width:44px; height:44px; background:var(--cui-primary-bg-subtle); color:var(--cui-primary); font-size:.9rem">
+                {{ getInitials(m.displayName) }}
+              </div>
+
+              <!-- Info -->
+              <div class="flex-fill min-width-0">
+                <div class="fw-semibold text-truncate">{{ m.displayName }}</div>
+                <div class="text-muted small text-truncate">{{ m.email }}</div>
+              </div>
+
+              <!-- Botón editar -->
+              <button cButton color="secondary" variant="ghost" size="sm" class="flex-shrink-0"
+                      title="Editar miembro"
+                      (click)="router.navigate(['/team-management/members', m.id, 'edit'])">
+                <svg cIcon name="cilPencil"></svg>
+              </button>
+            </div>
+
+            <!-- Rol + estado -->
+            <div class="d-flex gap-2 flex-wrap mb-2">
+              <c-badge [color]="ROLE_COLORS[m.role]">{{ ROLE_LABELS[m.role] }}</c-badge>
+              <c-badge [color]="m.status === 'active' ? 'success' : m.status === 'on_leave' ? 'warning' : 'secondary'"
+                       variant="outline">
+                {{ STATUS_LABELS[m.status] }}
+              </c-badge>
+            </div>
+
+            <!-- Especialidades -->
+            @if ((m.specialties?.length ?? 0) > 0) {
+              <div class="d-flex flex-wrap gap-1 mb-2">
+                @for (s of m.specialties; track $index) {
+                  <c-badge color="secondary" style="font-size:.65rem; font-weight:400">{{ s }}</c-badge>
+                }
+              </div>
+            }
+
+            <!-- Proyectos activos -->
+            <div class="d-flex justify-content-between align-items-center mb-1"
+                 style="font-size:.78rem">
+              <span class="text-muted">Proyectos activos</span>
+              <span class="fw-semibold" [class.text-danger]="m.isOverloaded">
+                {{ m.activeProjectIds.length }}
+                @if (m.isOverloaded) {
+                  <svg cIcon name="cilWarning" size="sm" class="text-danger ms-1"></svg>
+                }
+              </span>
+            </div>
+
+            <!-- Barra de carga -->
+            <div>
+              <div class="d-flex justify-content-between mb-1" style="font-size:.72rem">
+                <span class="text-muted">Carga de trabajo</span>
+                <span [class.text-danger]="m.isOverloaded" [class.fw-semibold]="m.isOverloaded">
+                  {{ m.loadPct }}%
+                </span>
+              </div>
+              <c-progress
+                [value]="m.loadPct"
+                [color]="getProgressColor(m.isOverloaded)"
+                thin>
+              </c-progress>
+            </div>
+
+          </c-card-body>
+        </c-card>
+      </c-col>
+    }
+  </c-row>
+}

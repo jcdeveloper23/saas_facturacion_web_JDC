@@ -42,5 +42,12 @@ export { onPurchaseReceive } from './stock/on-purchase-receive';
 export { onMarketplaceSettingsChange } from './marketplace/on-marketplace-settings-change';
 export { onProductPublicSync }         from './marketplace/on-product-public-sync';
 
+// Team Management
+export { onTimesheetCreated }          from './team-management/on-timesheet-created';
+export { onTimesheetDeleted }          from './team-management/on-timesheet-deleted';
+export { onTaskStatusChanged }         from './team-management/on-task-status-changed';
+export { detectOverdueTasksScheduled } from './team-management/detect-overdue-tasks-scheduled';
+export { generateWeeklyReport }        from './team-management/generate-weekly-report';
+
 // Utils
 export { downloadDocument } from './utils/download-document';

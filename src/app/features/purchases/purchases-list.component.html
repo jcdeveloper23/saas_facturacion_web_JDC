@@ -5,11 +5,28 @@
       <svg cIcon name="cilBasket" size="xl" class="text-primary"></svg>
     </div>
     <div>
-      <h3 class="mb-0 fw-semibold">Compras</h3>
+      <h3 class="mb-0 fw-semibold">
+        Compras
+        @if (supplierFilter()) {
+          <span class="ms-2 badge bg-warning text-dark" style="font-size:.7rem; font-weight:500">
+            {{ supplierFilter()!.name }}
+            <button class="btn-close btn-close-sm ms-1" style="font-size:.55rem" (click)="clearSupplierFilter()"></button>
+          </span>
+        }
+      </h3>
       <p class="text-muted small mb-0">Registro de facturas de compra a proveedores</p>
     </div>
   </div>
-  <div class="d-flex gap-2">
+  <div class="d-flex gap-2 align-items-center">
+    @if (stats().noRetention > 0) {
+      <button cButton color="warning" variant="outline" size="sm"
+              [class.active]="showNoRetentionOnly()"
+              (click)="toggleNoRetention()"
+              title="Compras recibidas sin retención emitida">
+        <svg cIcon name="cilWarning" class="me-1"></svg>
+        {{ stats().noRetention }} sin retención
+      </button>
+    }
     <button cButton color="secondary" variant="outline" size="sm"
             (click)="router.navigate(['/purchases/import'])">
       <svg cIcon name="cilCloudDownload" class="me-1"></svg> Importar SRI
@@ -86,6 +103,12 @@
       <option value="received">Recibida</option>
       <option value="cancelled">Cancelada</option>
     </select>
+    @if (showNoRetentionOnly()) {
+      <button cButton color="warning" variant="ghost" size="sm"
+              (click)="toggleNoRetention()" title="Quitar filtro">
+        <svg cIcon name="cilX" size="sm" class="me-1"></svg> Sin retención
+      </button>
+    }
     <span class="ms-auto text-secondary" style="font-size:.75rem">
       {{ filtered().length }} compra(s)
     </span>
@@ -141,6 +164,16 @@
                   <c-badge [color]="STATUS_COLORS[p.status]">
                     {{ STATUS_LABELS[p.status] }}
                   </c-badge>
+                  @if (p.status === 'received' && !p.retentionId) {
+                    <c-badge color="warning" class="ms-1" title="Sin retención emitida">
+                      <svg cIcon name="cilWarning" size="sm"></svg>
+                    </c-badge>
+                  }
+                  @if (p.status === 'received' && p.retentionId) {
+                    <c-badge color="success" variant="outline" class="ms-1" title="Retención emitida">
+                      <svg cIcon name="cilCheck" size="sm"></svg>
+                    </c-badge>
+                  }
                 </td>
                 <td class="text-center text-nowrap">
                   <!-- Ver / Editar -->

@@ -1,0 +1,238 @@
+<!-- ── Page header ──────────────────────────────────────────────────────────── -->
+<div class="d-flex align-items-center gap-2 mb-3">
+  <div class="bg-primary bg-opacity-10 p-2 rounded">
+    <svg cIcon name="cilFolder" size="lg" class="text-primary"></svg>
+  </div>
+  <div class="flex-grow-1">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" style="font-size:.8rem">
+      <ol class="breadcrumb mb-0">
+        <li class="breadcrumb-item">
+          <a routerLink="/team-management/projects" class="text-decoration-none">Proyectos</a>
+        </li>
+        <li class="breadcrumb-item active">{{ pageTitle() }}</li>
+      </ol>
+    </nav>
+    <h4 class="mb-0 fw-semibold">{{ pageTitle() }}</h4>
+  </div>
+  <button cButton color="secondary" variant="outline" size="sm" type="button" (click)="cancel()">
+    <svg cIcon name="cilArrowLeft" class="me-1"></svg> Volver
+  </button>
+</div>
+
+@if (loading()) {
+  <div class="text-center py-5">
+    <c-spinner color="primary"></c-spinner>
+    <p class="text-muted mt-2 small">Cargando proyecto...</p>
+  </div>
+} @else {
+  <form [formGroup]="form" (ngSubmit)="submit()">
+    <c-row class="g-3">
+
+      <!-- ── Columna principal ─────────────────────────────────────────────── -->
+      <c-col md="8">
+
+        <!-- Información general -->
+        <c-card class="mb-3">
+          <c-card-body>
+            <p class="text-uppercase fw-semibold mb-3"
+               style="font-size:.68rem; letter-spacing:.07em; color:var(--cui-tertiary-color)">
+              Información general
+            </p>
+
+            <!-- Nombre -->
+            <div class="mb-3">
+              <label cLabel for="name" class="fw-medium">
+                Nombre del proyecto <span class="text-danger">*</span>
+              </label>
+              <input cFormControl id="name" formControlName="name"
+                     placeholder="Ej: Portal de clientes v2.0"
+                     [class.is-invalid]="hasError('name')">
+              @if (hasError('name')) {
+                <div class="invalid-feedback">
+                  @if (form.get('name')?.errors?.['required']) { El nombre es obligatorio. }
+                  @else if (form.get('name')?.errors?.['minlength']) { Mínimo 3 caracteres. }
+                </div>
+              }
+            </div>
+
+            <!-- Descripción -->
+            <div class="mb-3">
+              <label cLabel for="description" class="fw-medium">Descripción</label>
+              <textarea cFormControl id="description" formControlName="description"
+                        rows="3"
+                        placeholder="Describe el alcance y objetivos del proyecto..."></textarea>
+            </div>
+
+            <!-- Tags -->
+            <div class="mb-0">
+              <label cLabel for="tags" class="fw-medium">Tags</label>
+              <input cFormControl id="tags" formControlName="tags"
+                     placeholder="Angular, Firebase, API (separados por comas)">
+              <div class="form-text">Separe las etiquetas con comas.</div>
+            </div>
+          </c-card-body>
+        </c-card>
+
+        <!-- Fechas y estimación -->
+        <c-card class="mb-3">
+          <c-card-body>
+            <p class="text-uppercase fw-semibold mb-3"
+               style="font-size:.68rem; letter-spacing:.07em; color:var(--cui-tertiary-color)">
+              Fechas y estimación
+            </p>
+
+            <c-row class="g-3">
+              <c-col sm="6">
+                <label cLabel for="startDate" class="fw-medium">
+                  Fecha de inicio <span class="text-danger">*</span>
+                </label>
+                <input cFormControl type="date" id="startDate" formControlName="startDate"
+                       [class.is-invalid]="hasError('startDate')">
+                @if (hasError('startDate')) {
+                  <div class="invalid-feedback">La fecha de inicio es obligatoria.</div>
+                }
+              </c-col>
+              <c-col sm="6">
+                <label cLabel for="dueDate" class="fw-medium">
+                  Fecha límite <span class="text-danger">*</span>
+                </label>
+                <input cFormControl type="date" id="dueDate" formControlName="dueDate"
+                       [class.is-invalid]="hasError('dueDate')">
+                @if (hasError('dueDate')) {
+                  <div class="invalid-feedback">La fecha límite es obligatoria.</div>
+                }
+              </c-col>
+              <c-col sm="6">
+                <label cLabel for="estimatedHours" class="fw-medium">
+                  Horas estimadas <span class="text-danger">*</span>
+                </label>
+                <input cFormControl type="number" id="estimatedHours"
+                       formControlName="estimatedHours"
+                       min="0" step="1"
+                       [class.is-invalid]="hasError('estimatedHours')">
+                @if (hasError('estimatedHours')) {
+                  <div class="invalid-feedback">
+                    @if (form.get('estimatedHours')?.errors?.['required']) { Campo obligatorio. }
+                    @else { El valor debe ser mayor o igual a 0. }
+                  </div>
+                }
+              </c-col>
+            </c-row>
+          </c-card-body>
+        </c-card>
+
+        <!-- Equipo -->
+        <c-card>
+          <c-card-body>
+            <p class="text-uppercase fw-semibold mb-3"
+               style="font-size:.68rem; letter-spacing:.07em; color:var(--cui-tertiary-color)">
+              Equipo
+            </p>
+
+            <c-row class="g-3">
+              <c-col sm="6">
+                <label cLabel for="leadId" class="fw-medium">UID del responsable (Lead)</label>
+                <input cFormControl id="leadId" formControlName="leadId"
+                       placeholder="UID de Firebase Auth del lead">
+                <div class="form-text">Identificador único del usuario responsable.</div>
+              </c-col>
+            </c-row>
+          </c-card-body>
+        </c-card>
+
+      </c-col>
+
+      <!-- ── Columna lateral ───────────────────────────────────────────────── -->
+      <c-col md="4">
+
+        <!-- Configuración -->
+        <c-card class="mb-3">
+          <c-card-body>
+            <p class="text-uppercase fw-semibold mb-3"
+               style="font-size:.68rem; letter-spacing:.07em; color:var(--cui-tertiary-color)">
+              Configuración
+            </p>
+
+            <!-- Prioridad -->
+            <div class="mb-3">
+              <label cLabel for="priority" class="fw-medium">
+                Prioridad <span class="text-danger">*</span>
+              </label>
+              <select cSelect id="priority" formControlName="priority"
+                      [class.is-invalid]="hasError('priority')">
+                @for (opt of priorityOptions; track opt) {
+                  <option [value]="opt">{{ PRIORITY_LABELS[opt] }}</option>
+                }
+              </select>
+              @if (hasError('priority')) {
+                <div class="invalid-feedback">Seleccione una prioridad.</div>
+              }
+            </div>
+
+            <!-- Estado -->
+            <div class="mb-0">
+              <label cLabel for="status" class="fw-medium">
+                Estado <span class="text-danger">*</span>
+              </label>
+              <select cSelect id="status" formControlName="status"
+                      [class.is-invalid]="hasError('status')">
+                @for (opt of statusOptions; track opt) {
+                  <option [value]="opt">{{ STATUS_LABELS[opt] }}</option>
+                }
+              </select>
+              @if (hasError('status')) {
+                <div class="invalid-feedback">Seleccione un estado.</div>
+              }
+            </div>
+          </c-card-body>
+        </c-card>
+
+        <!-- Cliente (opcional) -->
+        <c-card class="mb-3">
+          <c-card-body>
+            <p class="text-uppercase fw-semibold mb-3"
+               style="font-size:.68rem; letter-spacing:.07em; color:var(--cui-tertiary-color)">
+              Cliente (opcional)
+            </p>
+
+            <div class="mb-3">
+              <label cLabel for="clientName" class="fw-medium">Nombre del cliente</label>
+              <input cFormControl id="clientName" formControlName="clientName"
+                     placeholder="Nombre de la empresa o persona">
+            </div>
+            <div class="mb-0">
+              <label cLabel for="clientId" class="fw-medium">ID del cliente</label>
+              <input cFormControl id="clientId" formControlName="clientId"
+                     placeholder="ID del documento en Firestore">
+              <div class="form-text">Referencia al documento en /personas.</div>
+            </div>
+          </c-card-body>
+        </c-card>
+
+        <!-- Acciones -->
+        <c-card>
+          <c-card-body>
+            <div class="d-grid gap-2">
+              <button cButton color="primary" type="submit" [disabled]="saving()">
+                @if (saving()) {
+                  <c-spinner size="sm" class="me-1"></c-spinner>
+                } @else {
+                  <svg cIcon name="cilSave" class="me-1"></svg>
+                }
+                {{ isEditing() ? 'Guardar cambios' : 'Crear proyecto' }}
+              </button>
+              <button cButton color="secondary" variant="outline" type="button"
+                      [disabled]="saving()"
+                      (click)="cancel()">
+                <svg cIcon name="cilArrowLeft" class="me-1"></svg>
+                Cancelar
+              </button>
+            </div>
+          </c-card-body>
+        </c-card>
+
+      </c-col>
+    </c-row>
+  </form>
+}

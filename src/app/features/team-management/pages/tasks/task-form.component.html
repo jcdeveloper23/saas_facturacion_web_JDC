@@ -1,0 +1,307 @@
+<!-- ── Breadcrumb ──────────────────────────────────────────────────────────── -->
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb mb-0" style="font-size:.82rem">
+    <li class="breadcrumb-item">
+      <a routerLink="/team-management/tasks" class="text-decoration-none">Tareas</a>
+    </li>
+    <li class="breadcrumb-item active">
+      {{ isEditing() ? 'Editar Tarea' : 'Nueva Tarea' }}
+    </li>
+  </ol>
+</nav>
+
+<!-- ── Cabecera ──────────────────────────────────────────────────────────────── -->
+<div class="d-flex align-items-center gap-2 mb-3">
+  <div class="bg-primary bg-opacity-10 p-2 rounded">
+    <svg cIcon name="cilTask" size="xl" class="text-primary"></svg>
+  </div>
+  <div>
+    <h3 class="mb-0 fw-semibold">{{ isEditing() ? 'Editar Tarea' : 'Nueva Tarea' }}</h3>
+    @if (isEditing() && task()) {
+      <p class="text-muted small mb-0">{{ task()!.title }}</p>
+    }
+  </div>
+</div>
+
+@if (loading()) {
+  <div class="text-center py-5">
+    <c-spinner color="primary"></c-spinner>
+  </div>
+} @else {
+  <form [formGroup]="form" (ngSubmit)="save()">
+    <c-row>
+      <!-- ── Columna principal ─────────────────────────────────────────────── -->
+      <c-col xs="12" lg="8">
+        <c-card class="mb-3">
+          <c-card-body>
+            <p class="text-uppercase text-muted fw-semibold mb-3"
+               style="font-size:.68rem; letter-spacing:.08em">
+              Información general
+            </p>
+
+            <!-- Proyecto -->
+            <div class="mb-3">
+              <label cLabel for="projectId" class="fw-medium">
+                Proyecto <span class="text-danger">*</span>
+              </label>
+              <select id="projectId" class="form-select form-select-sm"
+                      [class.is-invalid]="hasError('projectId')"
+                      formControlName="projectId">
+                <option value="">Seleccionar proyecto...</option>
+                @for (p of projects(); track p.id) {
+                  <option [value]="p.id">{{ p.name }}</option>
+                }
+              </select>
+              @if (hasError('projectId')) {
+                <div class="invalid-feedback">Seleccione un proyecto</div>
+              }
+            </div>
+
+            <!-- Título -->
+            <div class="mb-3">
+              <label cLabel for="title" class="fw-medium">
+                Título <span class="text-danger">*</span>
+              </label>
+              <input id="title" type="text" cFormControl formControlName="title"
+                     [class.is-invalid]="hasError('title')"
+                     placeholder="Título descriptivo de la tarea (mín. 5 caracteres)">
+              @if (hasError('title')) {
+                <div class="invalid-feedback">
+                  El título es requerido y debe tener al menos 5 caracteres
+                </div>
+              }
+            </div>
+
+            <!-- Descripción -->
+            <div class="mb-3">
+              <label cLabel for="description" class="fw-medium">Descripción</label>
+              <textarea id="description" cFormControl formControlName="description"
+                        rows="4"
+                        placeholder="Describe los criterios de aceptación, detalles técnicos, etc.">
+              </textarea>
+            </div>
+
+            <!-- Tipo y Prioridad -->
+            <c-row class="mb-3">
+              <c-col xs="12" sm="6">
+                <label cLabel for="type" class="fw-medium">
+                  Tipo <span class="text-danger">*</span>
+                </label>
+                <select id="type" class="form-select form-select-sm"
+                        formControlName="type">
+                  <option value="feature">Funcionalidad</option>
+                  <option value="bug">Bug</option>
+                  <option value="improvement">Mejora</option>
+                  <option value="research">Investigación</option>
+                  <option value="maintenance">Mantenimiento</option>
+                </select>
+              </c-col>
+              <c-col xs="12" sm="6">
+                <label cLabel for="priority" class="fw-medium">
+                  Prioridad <span class="text-danger">*</span>
+                </label>
+                <select id="priority" class="form-select form-select-sm"
+                        formControlName="priority">
+                  <option value="low">Baja</option>
+                  <option value="medium">Media</option>
+                  <option value="high">Alta</option>
+                  <option value="critical">Crítica</option>
+                </select>
+              </c-col>
+            </c-row>
+
+            <!-- Estado y Fecha límite -->
+            <c-row class="mb-3">
+              <c-col xs="12" sm="6">
+                <label cLabel for="status" class="fw-medium">
+                  Estado <span class="text-danger">*</span>
+                </label>
+                <select id="status" class="form-select form-select-sm"
+                        formControlName="status">
+                  <option value="backlog">Backlog</option>
+                  <option value="pending">Pendiente</option>
+                  <option value="in_progress">En Desarrollo</option>
+                  <option value="in_qa">En QA</option>
+                  <option value="blocked">Bloqueado</option>
+                  <option value="done">Finalizado</option>
+                </select>
+              </c-col>
+              <c-col xs="12" sm="6">
+                <label cLabel for="estimatedHours" class="fw-medium">
+                  Horas estimadas <span class="text-danger">*</span>
+                </label>
+                <input id="estimatedHours" type="number" cFormControl
+                       formControlName="estimatedHours"
+                       [class.is-invalid]="hasError('estimatedHours')"
+                       min="0" step="0.5">
+                @if (hasError('estimatedHours')) {
+                  <div class="invalid-feedback">Ingrese horas estimadas (mín. 0)</div>
+                }
+              </c-col>
+            </c-row>
+
+            <!-- Motivo de bloqueo (solo si status = blocked) -->
+            @if (showBlockedReason()) {
+              <div class="mb-3">
+                <label cLabel for="blockedReason" class="fw-medium text-danger">
+                  Motivo de bloqueo
+                </label>
+                <textarea id="blockedReason" cFormControl formControlName="blockedReason"
+                          rows="2"
+                          class="border-danger"
+                          placeholder="Describe el motivo por el cual la tarea está bloqueada...">
+                </textarea>
+              </div>
+            }
+
+            <!-- Fecha límite -->
+            <div class="mb-3">
+              <label cLabel for="dueDate" class="fw-medium">Fecha límite</label>
+              <input id="dueDate" type="date" cFormControl formControlName="dueDate">
+            </div>
+
+            <!-- Tags -->
+            <div class="mb-0">
+              <label cLabel for="tags" class="fw-medium">
+                Etiquetas
+                <span class="text-muted fw-normal" style="font-size:.76rem">
+                  (separadas por comas)
+                </span>
+              </label>
+              <input id="tags" type="text" cFormControl formControlName="tags"
+                     placeholder="angular, firebase, backend...">
+            </div>
+          </c-card-body>
+        </c-card>
+
+        <!-- ── Sección comentarios (solo en modo edición) ────────────────────── -->
+        @if (isEditing()) {
+          <c-card class="mb-3">
+            <c-card-body>
+              <p class="text-uppercase text-muted fw-semibold mb-3"
+                 style="font-size:.68rem; letter-spacing:.08em">
+                Comentarios
+              </p>
+
+              <!-- Lista de comentarios -->
+              @if (task()?.comments?.length) {
+                <div class="d-flex flex-column gap-3 mb-3">
+                  @for (comment of task()!.comments; track comment.id) {
+                    <div class="border rounded p-3" style="background:var(--cui-tertiary-bg)">
+                      <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="fw-semibold" style="font-size:.82rem">
+                          {{ comment.authorName }}
+                        </span>
+                        <span class="text-muted" style="font-size:.74rem">
+                          {{ comment.createdAt.toDate() | date:'dd/MM/yyyy HH:mm' }}
+                        </span>
+                      </div>
+                      <p class="mb-0" style="font-size:.85rem; white-space:pre-wrap">
+                        {{ comment.content }}
+                      </p>
+                    </div>
+                  }
+                </div>
+              } @else {
+                <p class="text-muted text-center py-2 mb-3" style="font-size:.82rem">
+                  No hay comentarios aún
+                </p>
+              }
+
+              <!-- Nuevo comentario -->
+              <div class="border-top pt-3">
+                <label class="fw-medium mb-1" style="font-size:.82rem">
+                  Agregar comentario
+                </label>
+                <textarea class="form-control form-control-sm mb-2"
+                          rows="3"
+                          placeholder="Escribe un comentario..."
+                          [ngModel]="newComment()"
+                          [ngModelOptions]="{standalone: true}"
+                          (ngModelChange)="newComment.set($event)">
+                </textarea>
+                <button cButton color="primary" size="sm" type="button"
+                        [disabled]="!newComment().trim() || submittingComment()"
+                        (click)="submitComment()">
+                  @if (submittingComment()) {
+                    <c-spinner size="sm" class="me-1"></c-spinner>
+                  }
+                  Agregar comentario
+                </button>
+              </div>
+            </c-card-body>
+          </c-card>
+        }
+      </c-col>
+
+      <!-- ── Columna lateral: asignados ───────────────────────────────────────── -->
+      <c-col xs="12" lg="4">
+        <c-card class="mb-3">
+          <c-card-body>
+            <p class="text-uppercase text-muted fw-semibold mb-3"
+               style="font-size:.68rem; letter-spacing:.08em">
+              Asignados
+            </p>
+
+            @if (members().length === 0) {
+              <p class="text-muted text-center" style="font-size:.82rem">
+                No hay miembros activos
+              </p>
+            } @else {
+              <div class="d-flex flex-column gap-2">
+                @for (m of members(); track m.id) {
+                  <label class="d-flex align-items-center gap-2 cursor-pointer"
+                         style="cursor:pointer">
+                    <input type="checkbox"
+                           class="form-check-input"
+                           [checked]="isAssigned(m.userId)"
+                           (change)="toggleAssignee(m.userId)">
+                    <div>
+                      <div style="font-size:.82rem; font-weight:500">{{ m.displayName }}</div>
+                      <div style="font-size:.72rem; color:var(--cui-secondary-color)">
+                        {{ m.role }}
+                      </div>
+                    </div>
+                  </label>
+                }
+              </div>
+            }
+          </c-card-body>
+        </c-card>
+
+        <!-- Estado actual (en edición) -->
+        @if (isEditing() && task()) {
+          <c-card class="mb-3">
+            <c-card-body>
+              <p class="text-uppercase text-muted fw-semibold mb-2"
+                 style="font-size:.68rem; letter-spacing:.08em">
+                Estado actual
+              </p>
+              <c-badge [color]="STATUS_COLORS[task()!.status]">
+                {{ STATUS_LABELS[task()!.status] }}
+              </c-badge>
+              <div class="mt-2" style="font-size:.78rem; color:var(--cui-secondary-color)">
+                Horas registradas: <strong>{{ task()!.loggedHours }}h</strong>
+              </div>
+            </c-card-body>
+          </c-card>
+        }
+      </c-col>
+    </c-row>
+
+    <!-- ── Botones de acción ───────────────────────────────────────────────── -->
+    <div class="d-flex gap-2">
+      <button cButton color="secondary" variant="outline" type="button"
+              (click)="goBack()">
+        Cancelar
+      </button>
+      <button cButton color="primary" type="submit"
+              [disabled]="saving()">
+        @if (saving()) {
+          <c-spinner size="sm" class="me-1"></c-spinner>
+        }
+        {{ isEditing() ? 'Guardar cambios' : 'Crear tarea' }}
+      </button>
+    </div>
+  </form>
+}

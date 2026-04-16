@@ -1,0 +1,264 @@
+<!-- ── Cabecera ──────────────────────────────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div class="d-flex align-items-center gap-2">
+    <div class="bg-primary bg-opacity-10 p-2 rounded">
+      <svg cIcon name="cilTask" size="xl" class="text-primary"></svg>
+    </div>
+    <div>
+      <h3 class="mb-0 fw-semibold">Tareas</h3>
+      <p class="text-muted small mb-0">Gestión de tareas del equipo de desarrollo</p>
+    </div>
+  </div>
+  <button cButton color="primary" size="sm"
+          (click)="router.navigate(['/team-management/tasks/new'])">
+    <svg cIcon name="cilPlus" class="me-1"></svg> Nueva Tarea
+  </button>
+</div>
+
+<!-- ── Stats strip ──────────────────────────────────────────────────────────── -->
+@if (!loading()) {
+  <div class="d-flex gap-2 mb-3 flex-wrap">
+    <div class="border rounded px-3 py-2 d-flex align-items-center gap-2 bg-body"
+         style="cursor:pointer"
+         [class.border-primary]="statusFilter() === 'all'"
+         (click)="statusFilter.set('all')">
+      <svg cIcon name="cilList" class="text-muted" size="sm"></svg>
+      <span class="fw-semibold">{{ stats().total }}</span>
+      <span class="text-muted small">Total</span>
+    </div>
+    <div class="border rounded px-3 py-2 d-flex align-items-center gap-2 bg-body"
+         style="cursor:pointer"
+         [class.border-primary]="statusFilter() === 'in_progress'"
+         (click)="statusFilter.set('in_progress')">
+      <svg cIcon name="cilLoopCircular" class="text-primary" size="sm"></svg>
+      <span class="fw-semibold text-primary">{{ stats().inProgress }}</span>
+      <span class="text-muted small">En Desarrollo</span>
+    </div>
+    <div class="border rounded px-3 py-2 d-flex align-items-center gap-2 bg-body"
+         style="cursor:pointer"
+         [class.border-danger]="statusFilter() === 'blocked'"
+         (click)="statusFilter.set('blocked')">
+      <svg cIcon name="cilBan" class="text-danger" size="sm"></svg>
+      <span class="fw-semibold text-danger">{{ stats().blocked }}</span>
+      <span class="text-muted small">Bloqueadas</span>
+    </div>
+    <div class="border rounded px-3 py-2 d-flex align-items-center gap-2 bg-body"
+         style="cursor:pointer">
+      <svg cIcon name="cilClock" class="text-warning" size="sm"></svg>
+      <span class="fw-semibold text-warning">{{ stats().overdue }}</span>
+      <span class="text-muted small">Vencidas</span>
+    </div>
+    <div class="border rounded px-3 py-2 d-flex align-items-center gap-2 bg-body"
+         style="cursor:pointer"
+         [class.border-success]="statusFilter() === 'done'"
+         (click)="statusFilter.set('done')">
+      <svg cIcon name="cilCheckCircle" class="text-success" size="sm"></svg>
+      <span class="fw-semibold text-success">{{ stats().done }}</span>
+      <span class="text-muted small">Completadas</span>
+    </div>
+  </div>
+}
+
+<!-- ── Filtros ──────────────────────────────────────────────────────────────── -->
+<c-card class="mb-0">
+  <div class="px-3 pt-2 pb-1 d-flex gap-2 flex-wrap align-items-center border-bottom">
+    <!-- Búsqueda -->
+    <div class="position-relative" style="flex:1; min-width:200px; max-width:320px">
+      <svg cIcon name="cilSearch" size="sm"
+           style="position:absolute; left:.6rem; top:50%; transform:translateY(-50%); color:var(--cui-secondary-color)">
+      </svg>
+      <input class="form-control form-control-sm" style="padding-left:2rem"
+             placeholder="Buscar por título..."
+             [ngModel]="searchTerm()"
+             (ngModelChange)="searchTerm.set($event)">
+    </div>
+
+    <!-- Filtro estado -->
+    <select class="form-select form-select-sm" style="width:170px"
+            [ngModel]="statusFilter()"
+            (ngModelChange)="statusFilter.set($event)">
+      <option value="all">Todos los estados</option>
+      <option value="backlog">Backlog</option>
+      <option value="pending">Pendiente</option>
+      <option value="in_progress">En Desarrollo</option>
+      <option value="in_qa">En QA</option>
+      <option value="blocked">Bloqueado</option>
+      <option value="done">Finalizado</option>
+    </select>
+
+    <!-- Filtro proyecto -->
+    <select class="form-select form-select-sm" style="width:180px"
+            [ngModel]="projectFilter()"
+            (ngModelChange)="projectFilter.set($event)">
+      <option value="all">Todos los proyectos</option>
+      @for (p of projects(); track p.id) {
+        <option [value]="p.id">{{ p.name }}</option>
+      }
+    </select>
+
+    <!-- Filtro prioridad -->
+    <select class="form-select form-select-sm" style="width:140px"
+            [ngModel]="priorityFilter()"
+            (ngModelChange)="priorityFilter.set($event)">
+      <option value="all">Toda prioridad</option>
+      <option value="critical">Crítica</option>
+      <option value="high">Alta</option>
+      <option value="medium">Media</option>
+      <option value="low">Baja</option>
+    </select>
+
+    <span class="ms-auto text-secondary" style="font-size:.75rem">
+      {{ filtered().length }} tarea(s)
+    </span>
+  </div>
+
+  <!-- ── Tabla ─────────────────────────────────────────────────────────────── -->
+  <c-card-body class="p-0">
+    @if (loading()) {
+      <div class="text-center py-4">
+        <c-spinner color="primary" size="sm"></c-spinner>
+      </div>
+    } @else if (filtered().length === 0) {
+      <div class="text-center py-5 text-secondary">
+        <svg cIcon name="cilTask" size="xl" class="mb-2 text-muted"></svg>
+        <p class="mb-1">No hay tareas registradas</p>
+        <button cButton color="primary" variant="outline" size="sm"
+                (click)="router.navigate(['/team-management/tasks/new'])">
+          Crear primera tarea
+        </button>
+      </div>
+    } @else {
+      <div class="table-responsive">
+        <table class="table table-hover table-sm mb-0" style="font-size:.82rem">
+          <thead class="table-light">
+            <tr>
+              <th>Tarea</th>
+              <th>Proyecto</th>
+              <th>Tipo</th>
+              <th class="text-center">Prioridad</th>
+              <th class="text-center">Estado</th>
+              <th class="text-center">Asignados</th>
+              <th class="text-center">Fecha límite</th>
+              <th class="text-center">Horas Est./Real</th>
+              <th class="text-center">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (t of filtered(); track trackById($index, t)) {
+              <tr [class.table-danger]="t.status === 'blocked'"
+                  [class.table-warning]="isOverdue(t) && t.status !== 'blocked'">
+
+                <!-- Tarea -->
+                <td style="max-width:240px">
+                  <div class="fw-medium text-truncate" style="max-width:220px" [title]="t.title">
+                    {{ t.title }}
+                  </div>
+                  @if (t.tags?.length) {
+                    <div class="d-flex gap-1 flex-wrap mt-1">
+                      @for (tag of t.tags; track tag) {
+                        <span class="badge bg-secondary bg-opacity-25 text-secondary"
+                              style="font-size:.65rem; font-weight:500">
+                          {{ tag }}
+                        </span>
+                      }
+                    </div>
+                  }
+                </td>
+
+                <!-- Proyecto -->
+                <td>
+                  <c-badge color="secondary" class="text-truncate" style="max-width:110px"
+                           [title]="t.projectName">
+                    {{ t.projectName }}
+                  </c-badge>
+                </td>
+
+                <!-- Tipo -->
+                <td>
+                  <c-badge color="light">{{ TYPE_LABELS[t.type] }}</c-badge>
+                </td>
+
+                <!-- Prioridad -->
+                <td class="text-center">
+                  <c-badge [color]="PRIORITY_COLORS[t.priority]">
+                    {{ PRIORITY_LABELS[t.priority] }}
+                  </c-badge>
+                </td>
+
+                <!-- Status -->
+                <td class="text-center">
+                  <c-badge [color]="STATUS_COLORS[t.status]">
+                    {{ STATUS_LABELS[t.status] }}
+                  </c-badge>
+                  @if (t.status === 'blocked' && t.blockedReason) {
+                    <div class="text-danger mt-1" style="font-size:.68rem">
+                      {{ t.blockedReason }}
+                    </div>
+                  }
+                </td>
+
+                <!-- Asignados -->
+                <td class="text-center">
+                  <div class="d-flex gap-1 justify-content-center flex-wrap">
+                    @for (uid of (t.assigneeIds ?? []); track uid) {
+                      <span class="badge rounded-pill bg-primary bg-opacity-75"
+                            style="font-size:.68rem; min-width:26px"
+                            [title]="uid">
+                        {{ initials(uid) }}
+                      </span>
+                    }
+                    @if (!t.assigneeIds?.length) {
+                      <span class="text-muted" style="font-size:.75rem">—</span>
+                    }
+                  </div>
+                </td>
+
+                <!-- Fecha límite -->
+                <td class="text-center text-nowrap">
+                  @if (t.dueDate) {
+                    <span [class.text-danger]="isOverdue(t)" [class.fw-semibold]="isOverdue(t)">
+                      {{ t.dueDate.toDate() | date:'dd/MM/yyyy' }}
+                    </span>
+                  } @else {
+                    <span class="text-muted">—</span>
+                  }
+                </td>
+
+                <!-- Horas -->
+                <td class="text-center font-monospace">
+                  {{ t.estimatedHours }}h / {{ t.loggedHours }}h
+                </td>
+
+                <!-- Acciones -->
+                <td class="text-center text-nowrap">
+                  <!-- Editar -->
+                  <button cButton color="secondary" variant="outline" size="sm"
+                          title="Editar tarea"
+                          (click)="router.navigate(['/team-management/tasks', t.id, 'edit'])">
+                    <svg cIcon name="cilPencil"></svg>
+                  </button>
+
+                  <!-- Cambiar status rápido -->
+                  @if (t.status !== 'done') {
+                    <button cButton color="success" variant="outline" size="sm" class="ms-1"
+                            title="Marcar como finalizada"
+                            (click)="quickChangeStatus(t, 'done')">
+                      <svg cIcon name="cilCheck"></svg>
+                    </button>
+                  }
+                  @if (t.status === 'backlog' || t.status === 'pending') {
+                    <button cButton color="primary" variant="outline" size="sm" class="ms-1"
+                            title="Iniciar desarrollo"
+                            (click)="quickChangeStatus(t, 'in_progress')">
+                      <svg cIcon name="cilMediaPlay"></svg>
+                    </button>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </c-card-body>
+</c-card>

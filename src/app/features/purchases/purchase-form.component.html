@@ -136,6 +136,11 @@
                 <span class="fw-semibold">{{ selectedSupplier()!.supplierData?.vatRetentionPct ?? 0 }}%</span>
               </div>
             </div>
+            <!-- Link ficha del proveedor -->
+            <a class="d-block text-end mt-1" style="font-size:.72rem"
+               [routerLink]="['/personas', selectedSupplier()!.id, 'edit']">
+              <svg cIcon name="cilExternalLink" size="sm" class="me-1"></svg>Ver ficha proveedor
+            </a>
           } @else {
             <!-- Search box -->
             <div class="supp-wrap">

@@ -25,9 +25,8 @@
     <div>
       <p class="mb-1 fw-bold">Información Legal Crítica</p>
       <p class="mb-0 text-muted small">
-        La <strong>Razón Social</strong> y el <strong>RUC</strong> deben coincidir exactamente con tu registro en el
-        SRI.
-        Cualquier discrepancia podría invalidar tus comprobantes electrónicos.
+        La <strong>Razón Social</strong> y el <strong>RUC / Cédula</strong> deben coincidir exactamente con tu registro en el
+        SRI. Cualquier discrepancia podría invalidar tus comprobantes electrónicos.
       </p>
     </div>
   </div>
@@ -55,11 +54,31 @@
               @if (hasError('companyName')) { <div class="invalid-feedback">{{ getError('companyName') }}</div> }
             </c-col>
 
-            <c-col md="6">
-              <label cLabel class="fw-semibold small text-primary">Número de RUC <span
-                  class="text-danger">*</span></label>
-              <input cFormControl formControlName="taxId" maxlength="13" placeholder="1700000000001"
-                [class.is-invalid]="hasError('taxId')" class="font-monospace py-2 fs-5">
+            <c-col md="3">
+              <label cLabel class="fw-semibold small">Tipo de Documento <span class="text-danger">*</span></label>
+              <select cFormSelect formControlName="taxIdType" class="py-2">
+                <option value="ruc">RUC (13 dígitos)</option>
+                <option value="cedula">Cédula (10 dígitos)</option>
+              </select>
+              <div class="form-text">
+                @if (form.get('taxIdType')?.value === 'cedula') {
+                  Persona natural que factura con cédula
+                } @else {
+                  Empresa o persona natural con RUC
+                }
+              </div>
+            </c-col>
+
+            <c-col md="5">
+              <label cLabel class="fw-semibold small text-primary">
+                {{ form.get('taxIdType')?.value === 'cedula' ? 'Número de Cédula' : 'Número de RUC' }}
+                <span class="text-danger">*</span>
+              </label>
+              <input cFormControl formControlName="taxId"
+                [maxlength]="form.get('taxIdType')?.value === 'cedula' ? 10 : 13"
+                [placeholder]="form.get('taxIdType')?.value === 'cedula' ? '1700000000' : '1700000000001'"
+                [class.is-invalid]="hasError('taxId')"
+                class="font-monospace py-2 fs-5">
               @if (hasError('taxId')) { <div class="invalid-feedback">{{ getError('taxId') }}</div> }
             </c-col>
 

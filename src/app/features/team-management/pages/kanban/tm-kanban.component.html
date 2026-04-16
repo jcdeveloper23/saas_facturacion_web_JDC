@@ -1,0 +1,148 @@
+<!-- ── Cabecera ──────────────────────────────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div class="d-flex align-items-center gap-2">
+    <div class="bg-info bg-opacity-10 p-2 rounded">
+      <svg cIcon name="cilList" size="xl" class="text-info"></svg>
+    </div>
+    <div>
+      <h3 class="mb-0 fw-semibold">Tablero Kanban</h3>
+      <p class="text-muted small mb-0">Gestión de tareas por estado</p>
+    </div>
+  </div>
+
+  <!-- Selector de proyecto -->
+  <div class="d-flex align-items-center gap-2">
+    <label class="text-muted small mb-0" style="white-space:nowrap">Proyecto:</label>
+    <select class="form-select form-select-sm" style="width:220px"
+            [ngModel]="selectedProjectId()"
+            (ngModelChange)="setProject($event)">
+      <option value="all">Todos los proyectos</option>
+      @for (p of projects(); track trackById($index, p)) {
+        <option [value]="p.id">{{ p.name }}</option>
+      }
+    </select>
+  </div>
+</div>
+
+@if (loading()) {
+  <div class="text-center py-5">
+    <c-spinner color="primary"></c-spinner>
+    <p class="text-muted mt-2">Cargando tablero...</p>
+  </div>
+} @else {
+
+  <!-- ── Columnas Kanban ────────────────────────────────────────────────────── -->
+  <div class="d-flex gap-3 overflow-auto pb-3" style="min-height:70vh; align-items:flex-start">
+
+    @for (col of COLUMNS; track trackByCol($index, col)) {
+      <div class="kanban-column flex-shrink-0" style="width:240px">
+
+        <!-- Header columna -->
+        <div class="d-flex align-items-center justify-content-between mb-2 px-1">
+          <div class="d-flex align-items-center gap-2">
+            <c-badge [color]="STATUS_COLORS[col]">
+              {{ STATUS_LABELS[col] }}
+            </c-badge>
+          </div>
+          <span class="badge bg-light text-dark border" style="font-size:.72rem">
+            {{ tasksByColumn()[col].length }}
+          </span>
+        </div>
+
+        <!-- Drop list -->
+        <div
+          cdkDropList
+          [id]="'list-' + col"
+          [cdkDropListData]="tasksByColumn()[col]"
+          [cdkDropListConnectedTo]="connectedLists()"
+          (cdkDropListDropped)="onDrop($event, col)"
+          class="kanban-list p-2 rounded"
+          style="min-height:100px; background:var(--cui-tertiary-bg, #f8f9fa); border:1px dashed var(--cui-border-color, #dee2e6)">
+
+          @if (tasksByColumn()[col].length === 0) {
+            <div class="text-center text-muted py-3" style="font-size:.78rem">
+              Sin tareas
+            </div>
+          }
+
+          @for (task of tasksByColumn()[col]; track trackById($index, task)) {
+            <div cdkDrag
+                 class="kanban-card mb-2 p-2 rounded bg-body shadow-sm"
+                 style="cursor:grab; border:1px solid var(--cui-border-color, #dee2e6)">
+
+              <!-- Placeholder mientras arrastra -->
+              <div *cdkDragPlaceholder
+                   class="kanban-card mb-2 p-2 rounded"
+                   style="height:80px; background:var(--cui-secondary-bg, #e9ecef); border:2px dashed var(--cui-border-color, #dee2e6)">
+              </div>
+
+              <!-- Tipo + Prioridad -->
+              <div class="d-flex justify-content-between align-items-center mb-1 gap-1 flex-wrap">
+                <c-badge color="secondary" style="font-size:.62rem">
+                  {{ TYPE_LABELS[task.type] }}
+                </c-badge>
+                <c-badge [color]="PRIORITY_COLORS[task.priority]" style="font-size:.62rem">
+                  {{ PRIORITY_LABELS[task.priority] }}
+                </c-badge>
+              </div>
+
+              <!-- Título -->
+              <div class="fw-semibold mb-1 lh-sm" style="font-size:.82rem; word-break:break-word">
+                {{ task.title }}
+              </div>
+
+              <!-- Proyecto (si filtro 'all') -->
+              @if (selectedProjectId() === 'all') {
+                <div class="text-muted mb-1" style="font-size:.7rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">
+                  {{ task.projectName }}
+                </div>
+              }
+
+              <!-- Fecha límite -->
+              @if (task.dueDate) {
+                <div class="d-flex align-items-center gap-1 mb-1"
+                     [class.text-danger]="isOverdue(task)"
+                     [class.text-muted]="!isOverdue(task)"
+                     style="font-size:.72rem">
+                  <svg cIcon name="cilCalendar" size="sm"></svg>
+                  {{ task.dueDate.toDate() | date:'dd/MM/yy' }}
+                  @if (isOverdue(task)) {
+                    <c-badge color="danger" style="font-size:.58rem">Vencida</c-badge>
+                  }
+                </div>
+              }
+
+              <!-- Asignados (iniciales) -->
+              @if (task.assigneeIds.length > 0) {
+                <div class="d-flex gap-1 mt-1 flex-wrap">
+                  @for (initials of assigneeInitials(task.assigneeIds); track $index) {
+                    <span class="badge bg-secondary rounded-circle"
+                          style="width:22px; height:22px; font-size:.62rem; display:inline-flex; align-items:center; justify-content:center">
+                      {{ initials }}
+                    </span>
+                  }
+                  @if (task.assigneeIds.length > 3) {
+                    <span class="badge bg-light text-dark border rounded-circle"
+                          style="width:22px; height:22px; font-size:.6rem; display:inline-flex; align-items:center; justify-content:center">
+                      +{{ task.assigneeIds.length - 3 }}
+                    </span>
+                  }
+                </div>
+              }
+
+              <!-- Razón de bloqueo -->
+              @if (task.status === 'blocked' && task.blockedReason) {
+                <div class="mt-1 text-danger" style="font-size:.7rem">
+                  <svg cIcon name="cilBan" size="sm" class="me-1"></svg>{{ task.blockedReason }}
+                </div>
+              }
+            </div>
+          }
+
+        </div>
+      </div>
+    }
+
+  </div>
+
+}

@@ -14,6 +14,12 @@ export const PURCHASES_ROUTES: Routes = [
     data: { title: 'Importar Compras SRI' }
   },
   {
+    path: 'mappings',
+    loadComponent: () =>
+      import('./purchases-mappings.component').then(m => m.PurchasesMappingsComponent),
+    data: { title: 'Homologación de Productos' }
+  },
+  {
     path: 'new',
     loadComponent: () =>
       import('./purchase-form.component').then(m => m.PurchaseFormComponent),

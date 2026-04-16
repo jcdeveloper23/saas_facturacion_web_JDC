@@ -130,8 +130,9 @@ export const navItems: INavData[] = [
     iconComponent: { name: 'cil-basket' },
     attributes: { module: 'purchases', roles: ['admin'] },
     children: [
-      { name: 'Órdenes de Compra', url: '/purchases',     icon: 'nav-icon-bullet' },
-      { name: 'Nueva Compra',      url: '/purchases/new', icon: 'nav-icon-bullet' }
+      { name: 'Órdenes de Compra', url: '/purchases',          icon: 'nav-icon-bullet' },
+      { name: 'Nueva Compra',      url: '/purchases/new',      icon: 'nav-icon-bullet' },
+      { name: 'Homologación',      url: '/purchases/mappings', icon: 'nav-icon-bullet' }
     ]
   },
 
@@ -158,6 +159,60 @@ export const navItems: INavData[] = [
   //   iconComponent: { name: 'cil-chart' },
   //   attributes: { module: 'report_orders', roles: ['admin'] }
   // },
+
+  // ─── Team Management ─────────────────────────────────────────────────────
+  {
+    title: true,
+    name: 'Equipo'
+  },
+  {
+    name: 'Team Dashboard',
+    url: '/team-management/dashboard',
+    iconComponent: { name: 'cil-speedometer' },
+    attributes: { module: 'teamManagement', roles: ['admin'] }
+  },
+  {
+    name: 'Kanban',
+    url: '/team-management/kanban',
+    iconComponent: { name: 'cil-columns' },
+    attributes: { module: 'teamManagement', roles: ['admin'] }
+  },
+  {
+    name: 'Proyectos',
+    url: '/team-management/projects',
+    iconComponent: { name: 'cil-folder' },
+    attributes: { module: 'teamManagement', roles: ['admin'] }
+  },
+  {
+    name: 'Tareas',
+    url: '/team-management/tasks',
+    iconComponent: { name: 'cil-task' },
+    attributes: { module: 'teamManagement', roles: ['admin'] }
+  },
+  {
+    name: 'Solicitudes',
+    url: '/team-management/requests',
+    iconComponent: { name: 'cil-inbox' },
+    attributes: { module: 'teamManagement', roles: ['admin'] }
+  },
+  {
+    name: 'Tiempos',
+    url: '/team-management/timesheets',
+    iconComponent: { name: 'cil-clock' },
+    attributes: { module: 'teamManagement', roles: ['admin'] }
+  },
+  {
+    name: 'Equipo',
+    url: '/team-management/members',
+    iconComponent: { name: 'cil-people' },
+    attributes: { module: 'teamManagement', roles: ['admin'] }
+  },
+  {
+    name: 'Reportes',
+    url: '/team-management/reports',
+    iconComponent: { name: 'cil-chart-line' },
+    attributes: { module: 'teamManagement', roles: ['admin'] }
+  },
 
   // ─── Administration ──────────────────────────────────────────────────────
   {

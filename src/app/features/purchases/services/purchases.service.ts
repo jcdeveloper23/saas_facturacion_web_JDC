@@ -58,6 +58,16 @@ export class PurchasesService {
     });
   }
 
+  getBySupplier(supplierId: string): Observable<Purchase[]> {
+    return new Observable<Purchase[]>(observer => {
+      const ref = collection(this.firestore, this.colPath);
+      return onSnapshot(query(ref, where('supplierId', '==', supplierId), orderBy('date', 'desc')), {
+        next:  snap => observer.next(snap.docs.map(d => ({ id: d.id, ...d.data() }) as Purchase)),
+        error: err  => observer.error(err),
+      });
+    });
+  }
+
   // ─── Firestore safe serialization ─────────────────────────────────────────
 
   private cleanDoc<T>(obj: T): T {

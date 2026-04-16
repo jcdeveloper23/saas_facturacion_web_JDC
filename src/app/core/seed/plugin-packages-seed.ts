@@ -13,11 +13,13 @@
  *
  * DEPENDENCY TREE:
  *   pkg_base (always active)
+ *     ├── pkg_team_mgmt
  *     └── pkg_sales
  *           ├── pkg_sales_advanced
  *           ├── pkg_sri
  *           ├── pkg_purchases
- *           └── pkg_reports
+ *           ├── pkg_reports
+ *           └── pkg_marketplace
  */
 
 export interface PackageSeed {
@@ -137,6 +139,23 @@ export const PLUGIN_PACKAGES_SEED: PackageSeed[] = [
     color:         'danger',
     isSystem:      false,
     order:         6,
+    state:         true
+  },
+
+  // ─── GESTIÓN DE EQUIPO ────────────────────────────────────────────────────
+  {
+    code:          'pkg_team_mgmt',
+    name:          'Gestión de Equipo',
+    description:   'Proyectos, tareas Kanban, control de tiempos y solicitudes de clientes. Ideal para equipos de desarrollo y soporte.',
+    modules:       ['teamManagement'],
+    dependencies:  ['pkg_base'],
+    price:         49,
+    currency:      'USD',
+    billingPeriod: 'monthly',
+    icon:          'cil-people',
+    color:         'primary',
+    isSystem:      false,
+    order:         5,
     state:         true
   },
 

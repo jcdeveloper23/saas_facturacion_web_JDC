@@ -1,0 +1,162 @@
+<!-- ── Cabecera ──────────────────────────────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div class="d-flex align-items-center gap-2">
+    <div class="bg-primary bg-opacity-10 p-2 rounded">
+      <svg cIcon name="cilChartLine" size="xl" class="text-primary"></svg>
+    </div>
+    <div>
+      <h3 class="mb-0 fw-semibold">Reportes de Rendimiento</h3>
+      <p class="text-muted small mb-0">Análisis de horas trabajadas por miembro del equipo</p>
+    </div>
+  </div>
+
+  <!-- Toggle de período -->
+  <div class="btn-group" role="group">
+    <button cButton
+            [color]="period() === 'week' ? 'primary' : 'secondary'"
+            [variant]="period() === 'week' ? undefined : 'outline'"
+            size="sm"
+            (click)="setPeriod('week')">
+      Esta semana
+    </button>
+    <button cButton
+            [color]="period() === 'month' ? 'primary' : 'secondary'"
+            [variant]="period() === 'month' ? undefined : 'outline'"
+            size="sm"
+            (click)="setPeriod('month')">
+      Este mes
+    </button>
+  </div>
+</div>
+
+@if (loading()) {
+  <div class="text-center py-5">
+    <c-spinner color="primary"></c-spinner>
+  </div>
+} @else {
+
+  <!-- ── KPI Cards ──────────────────────────────────────────────────────────── -->
+  <c-row class="g-2 mb-3">
+    <c-col xs="6" md="3">
+      <c-card class="border-0 shadow-sm h-100">
+        <c-card-body class="py-2 px-3">
+          <div class="text-muted small">Horas totales</div>
+          <div class="fw-bold fs-4 font-monospace">{{ totalHours() | number:'1.1-1' }}h</div>
+        </c-card-body>
+      </c-card>
+    </c-col>
+    <c-col xs="6" md="3">
+      <c-card class="border-0 shadow-sm h-100" [class.border-warning]="totalOvertime() > 0" [class.border]="totalOvertime() > 0">
+        <c-card-body class="py-2 px-3">
+          <div class="text-muted small">Horas extra totales</div>
+          <div class="fw-bold fs-4 font-monospace" [class.text-warning]="totalOvertime() > 0">
+            {{ totalOvertime() | number:'1.1-1' }}h
+          </div>
+        </c-card-body>
+      </c-card>
+    </c-col>
+    <c-col xs="6" md="3">
+      <c-card class="border-0 shadow-sm h-100">
+        <c-card-body class="py-2 px-3">
+          <div class="text-muted small">Usuarios con overtime</div>
+          <div class="fw-bold fs-4" [class.text-danger]="membersWithOvertime() > 0">
+            {{ membersWithOvertime() }}
+          </div>
+        </c-card-body>
+      </c-card>
+    </c-col>
+    <c-col xs="6" md="3">
+      <c-card class="border-0 shadow-sm h-100">
+        <c-card-body class="py-2 px-3">
+          <div class="text-muted small">Tareas registradas</div>
+          <div class="fw-bold fs-4">{{ totalTasks() }}</div>
+        </c-card-body>
+      </c-card>
+    </c-col>
+  </c-row>
+
+  <!-- ── Tabla de rendimiento ──────────────────────────────────────────────── -->
+  <c-card>
+    <c-card-header>
+      <strong class="small text-uppercase text-muted" style="letter-spacing:.05em">
+        Rendimiento por usuario
+      </strong>
+    </c-card-header>
+    <c-card-body class="p-0">
+      @if (reportRows().length === 0) {
+        <div class="text-center py-5 text-secondary">
+          <svg cIcon name="cilChartLine" size="xl" class="mb-2 text-muted"></svg>
+          <p class="mb-0">No hay datos de tiempo para el período seleccionado</p>
+        </div>
+      } @else {
+        <div class="table-responsive">
+          <table class="table table-hover table-sm mb-0" style="font-size:.82rem">
+            <thead class="table-light">
+              <tr>
+                <th>Usuario</th>
+                <th class="text-end">Horas regulares</th>
+                <th class="text-end">Horas extra</th>
+                <th class="text-center">Tareas</th>
+                <th class="text-end">Capacidad utilizada</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of reportRows(); track trackByUserId($index, row)) {
+                <tr [class.table-warning]="row.isOvertime">
+                  <!-- Usuario -->
+                  <td class="fw-medium">{{ row.userName }}</td>
+
+                  <!-- Horas regulares -->
+                  <td class="text-end font-monospace">{{ row.regularHours | number:'1.1-1' }}h</td>
+
+                  <!-- Horas extra -->
+                  <td class="text-end">
+                    @if (row.overtimeHours > 0) {
+                      <c-badge color="warning" class="font-monospace">
+                        +{{ row.overtimeHours | number:'1.1-1' }}h
+                      </c-badge>
+                    } @else {
+                      <span class="text-muted font-monospace">0h</span>
+                    }
+                  </td>
+
+                  <!-- Tareas -->
+                  <td class="text-center">{{ row.taskCount }}</td>
+
+                  <!-- Capacidad utilizada -->
+                  <td class="text-end">
+                    <span class="font-monospace"
+                          [class.text-danger]="row.capacityPct > 100"
+                          [class.fw-semibold]="row.capacityPct > 100">
+                      {{ row.capacityPct }}%
+                    </span>
+                  </td>
+                </tr>
+              }
+            </tbody>
+            <tfoot class="table-light">
+              <tr class="fw-semibold">
+                <td>Totales</td>
+                <td class="text-end font-monospace">
+                  {{ (totalHours() - totalOvertime()) | number:'1.1-1' }}h
+                </td>
+                <td class="text-end">
+                  @if (totalOvertime() > 0) {
+                    <c-badge color="warning" class="font-monospace">
+                      +{{ totalOvertime() | number:'1.1-1' }}h
+                    </c-badge>
+                  } @else {
+                    <span class="text-muted font-monospace">0h</span>
+                  }
+                </td>
+                <td class="text-center">{{ totalTasks() }}</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      }
+    </c-card-body>
+  </c-card>
+
+}

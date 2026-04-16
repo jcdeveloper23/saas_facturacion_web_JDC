@@ -1,0 +1,128 @@
+<!-- ── Stat strip ─────────────────────────────────────────────────────────── -->
+@if (!loading()) {
+  <div class="d-flex gap-2 mb-3 flex-wrap">
+
+    <div class="border rounded px-3 py-2 bg-body" style="min-width:120px">
+      <div class="text-muted" style="font-size:.68rem; text-transform:uppercase; letter-spacing:.05em">Total comprado</div>
+      <div class="fw-semibold font-monospace" style="font-size:1rem">
+        $ {{ stats().totalBought | number:'1.2-2' }}
+      </div>
+    </div>
+
+    <div class="border rounded px-3 py-2 bg-body">
+      <div class="text-muted" style="font-size:.68rem; text-transform:uppercase; letter-spacing:.05em">Órdenes</div>
+      <div class="fw-semibold" style="font-size:1rem">
+        {{ stats().received }}
+        <span class="text-muted" style="font-size:.78rem">recibidas</span>
+      </div>
+    </div>
+
+    @if (stats().pending > 0) {
+      <div class="border border-info rounded px-3 py-2 bg-body">
+        <div class="text-muted" style="font-size:.68rem; text-transform:uppercase; letter-spacing:.05em">Pendientes</div>
+        <div class="fw-semibold text-info" style="font-size:1rem">{{ stats().pending }}</div>
+      </div>
+    }
+
+    @if (stats().noRetention > 0) {
+      <div class="border border-warning rounded px-3 py-2 bg-body"
+           style="cursor:pointer" (click)="viewAllPurchases()"
+           title="Ver compras sin retención emitida">
+        <div class="text-warning" style="font-size:.68rem; text-transform:uppercase; letter-spacing:.05em">
+          <svg cIcon name="cilWarning" size="sm" class="me-1"></svg>Sin retención
+        </div>
+        <div class="fw-semibold text-warning" style="font-size:1rem">{{ stats().noRetention }}</div>
+      </div>
+    }
+
+    @if (stats().lastPurchase) {
+      <div class="border rounded px-3 py-2 bg-body">
+        <div class="text-muted" style="font-size:.68rem; text-transform:uppercase; letter-spacing:.05em">Última compra</div>
+        <div class="fw-semibold" style="font-size:.88rem">
+          {{ stats().lastPurchase | date:'dd/MM/yyyy' }}
+        </div>
+      </div>
+    }
+
+    <div class="ms-auto d-flex gap-2 align-items-center">
+      <button cButton color="secondary" variant="outline" size="sm" (click)="viewAllPurchases()">
+        <svg cIcon name="cilList" class="me-1"></svg> Ver todas
+      </button>
+      <button cButton color="primary" size="sm" (click)="newPurchase()">
+        <svg cIcon name="cilPlus" class="me-1"></svg> Nueva Compra
+      </button>
+    </div>
+  </div>
+}
+
+<!-- ── Tabla ──────────────────────────────────────────────────────────────── -->
+<c-card class="mb-0">
+  <c-card-body class="p-0">
+    @if (loading()) {
+      <div class="text-center py-4">
+        <c-spinner color="primary" size="sm"></c-spinner>
+      </div>
+    } @else if (purchases().length === 0) {
+      <div class="text-center py-5 text-secondary">
+        <svg cIcon name="cilBasket" size="xl" class="mb-2 text-muted"></svg>
+        <p class="mb-2">No hay compras registradas para este proveedor</p>
+        <button cButton color="primary" variant="outline" size="sm" (click)="newPurchase()">
+          <svg cIcon name="cilPlus" class="me-1"></svg> Registrar primera compra
+        </button>
+      </div>
+    } @else {
+      <div class="table-responsive">
+        <table class="table table-hover table-sm mb-0" style="font-size:.82rem">
+          <thead class="table-light">
+            <tr>
+              <th>Número</th>
+              <th>Fact. Proveedor</th>
+              <th class="text-center">Fecha</th>
+              <th class="text-center">Líneas</th>
+              <th class="text-end">Total</th>
+              <th class="text-center">Estado</th>
+              <th class="text-center">Retención</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (p of purchases(); track trackById($index, p)) {
+              <tr style="cursor:pointer" [routerLink]="['/purchases', p.id]">
+                <td class="fw-semibold text-nowrap">{{ p.fullNumber }}</td>
+                <td class="text-nowrap" style="color:var(--cui-secondary-color)">
+                  {{ p.supplierInvoiceNumber }}
+                </td>
+                <td class="text-center text-nowrap">
+                  {{ p.date.toDate() | date:'dd/MM/yyyy' }}
+                </td>
+                <td class="text-center">{{ p.lines.length }}</td>
+                <td class="text-end font-monospace">$ {{ p.total | number:'1.2-2' }}</td>
+                <td class="text-center">
+                  <c-badge [color]="STATUS_COLORS[p.status]">
+                    {{ STATUS_LABELS[p.status] }}
+                  </c-badge>
+                </td>
+                <td class="text-center">
+                  @if (p.status === 'received') {
+                    @if (p.retentionId) {
+                      <a [routerLink]="['/retentions', p.retentionId]"
+                         (click)="$event.stopPropagation()"
+                         class="text-success" style="font-size:.75rem">
+                        <svg cIcon name="cilCheck" size="sm" class="me-1"></svg>Emitida
+                      </a>
+                    } @else {
+                      <span class="text-warning" style="font-size:.75rem">
+                        <svg cIcon name="cilWarning" size="sm" class="me-1"></svg>Pendiente
+                      </span>
+                    }
+                  } @else {
+                    <span class="text-muted" style="font-size:.75rem">—</span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </c-card-body>
+</c-card>

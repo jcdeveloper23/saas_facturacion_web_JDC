@@ -264,6 +264,39 @@ service cloud.firestore {
                       && resource.data.status == 'draft';
       }
 
+      // ─── Team Management ──────────────────────────────────────────────────────
+
+      match /tm-projects/{id} {
+        allow read:          if isAuthenticated() && belongsToCompany(companyId);
+        allow create, update: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
+        allow delete:         if isAuthenticated() && belongsToCompany(companyId) && isAdmin()
+                              && resource.data.status == 'planning';
+      }
+
+      match /tm-tasks/{id} {
+        allow read:          if isAuthenticated() && belongsToCompany(companyId);
+        allow create, update: if isAuthenticated() && belongsToCompany(companyId);
+        allow delete:         if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
+      }
+
+      match /tm-requests/{id} {
+        allow read:          if isAuthenticated() && belongsToCompany(companyId);
+        allow create, update: if isAuthenticated() && belongsToCompany(companyId);
+        allow delete:         if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
+      }
+
+      match /tm-timesheets/{id} {
+        allow read:   if isAuthenticated() && belongsToCompany(companyId);
+        allow create: if isAuthenticated() && belongsToCompany(companyId);
+        allow update: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
+        allow delete: if false;  // audit trail inmutable
+      }
+
+      match /tm-members/{id} {
+        allow read:  if isAuthenticated() && belongsToCompany(companyId);
+        allow write: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
+      }
+
       // Default rule for all other sub-collections
       match /{collection}/{id} {
         allow read: if isAuthenticated() && belongsToCompany(companyId);

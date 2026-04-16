@@ -1,0 +1,276 @@
+<!-- ── Cabecera ──────────────────────────────────────────────────────────────── -->
+<div class="d-flex align-items-center gap-2 mb-3">
+  <button cButton color="secondary" variant="ghost" size="sm" (click)="goBack()">
+    <svg cIcon name="cilArrowLeft"></svg>
+  </button>
+  <div class="bg-primary bg-opacity-10 p-2 rounded">
+    <svg cIcon name="cilInbox" size="xl" class="text-primary"></svg>
+  </div>
+  <div>
+    <h3 class="mb-0 fw-semibold">{{ pageTitle() }}</h3>
+    <p class="text-muted small mb-0">
+      @if (isEditing()) { Modificar datos de la solicitud } @else { Registrar nueva solicitud de cliente }
+    </p>
+  </div>
+</div>
+
+@if (loading()) {
+  <div class="text-center py-5">
+    <c-spinner color="primary"></c-spinner>
+  </div>
+} @else {
+  <form [formGroup]="form" (ngSubmit)="save()">
+    <c-row class="g-3">
+
+      <!-- ── Columna principal ───────────────────────────────────────────────── -->
+      <c-col xs="12" lg="8">
+
+        <!-- Datos principales -->
+        <c-card class="mb-3">
+          <c-card-header>
+            <strong class="small text-uppercase text-muted" style="letter-spacing:.05em">
+              Datos de la Solicitud
+            </strong>
+          </c-card-header>
+          <c-card-body>
+            <c-row class="g-3">
+
+              <!-- Título -->
+              <c-col xs="12">
+                <label cLabel for="title">
+                  Título <span class="text-danger">*</span>
+                </label>
+                <input cFormControl id="title" formControlName="title"
+                       placeholder="Describe brevemente la solicitud..."
+                       [class.is-invalid]="hasError('title')">
+                @if (hasError('title')) {
+                  <div class="invalid-feedback">
+                    @if (form.get('title')?.errors?.['required']) { El título es requerido. }
+                    @if (form.get('title')?.errors?.['minlength']) { Mínimo 5 caracteres. }
+                  </div>
+                }
+              </c-col>
+
+              <!-- Descripción -->
+              <c-col xs="12">
+                <label cLabel for="description">
+                  Descripción <span class="text-danger">*</span>
+                </label>
+                <textarea cFormControl id="description" formControlName="description"
+                          rows="4"
+                          placeholder="Detalla el problema, solicitud o funcionalidad esperada..."
+                          [class.is-invalid]="hasError('description')"></textarea>
+                @if (hasError('description')) {
+                  <div class="invalid-feedback">La descripción es requerida.</div>
+                }
+              </c-col>
+
+              <!-- Tipo + Urgencia -->
+              <c-col xs="12" md="6">
+                <label cLabel for="type">Tipo <span class="text-danger">*</span></label>
+                <select cSelect id="type" formControlName="type">
+                  <option value="bug">Bug / Error</option>
+                  <option value="feature">Nueva Funcionalidad</option>
+                  <option value="change">Cambio / Mejora</option>
+                  <option value="support">Soporte</option>
+                  <option value="consulting">Consultoría</option>
+                </select>
+              </c-col>
+
+              <c-col xs="12" md="6">
+                <label cLabel for="urgency">Urgencia <span class="text-danger">*</span></label>
+                <select cSelect id="urgency" formControlName="urgency">
+                  <option value="low">Baja</option>
+                  <option value="medium">Media</option>
+                  <option value="high">Alta</option>
+                  <option value="critical">Crítica</option>
+                </select>
+              </c-col>
+
+            </c-row>
+          </c-card-body>
+        </c-card>
+
+        <!-- Cliente y Proyecto -->
+        <c-card class="mb-3">
+          <c-card-header>
+            <strong class="small text-uppercase text-muted" style="letter-spacing:.05em">
+              Cliente y Proyecto
+            </strong>
+          </c-card-header>
+          <c-card-body>
+            <c-row class="g-3">
+
+              <!-- clientId oculto -->
+              <input type="hidden" formControlName="clientId">
+
+              <!-- Nombre del cliente -->
+              <c-col xs="12" md="6">
+                <label cLabel for="clientName">
+                  Cliente <span class="text-danger">*</span>
+                </label>
+                <input cFormControl id="clientName" formControlName="clientName"
+                       placeholder="Nombre del cliente..."
+                       [class.is-invalid]="hasError('clientName')"
+                       (input)="form.patchValue({ clientId: form.get('clientName')?.value ?? '' })">
+                @if (hasError('clientName')) {
+                  <div class="invalid-feedback">El nombre del cliente es requerido.</div>
+                }
+                <div class="form-text text-muted" style="font-size:.72rem">
+                  Ingresa el nombre del cliente directamente.
+                </div>
+              </c-col>
+
+              <!-- Nombre del proyecto (opcional) -->
+              <c-col xs="12" md="6">
+                <label cLabel for="projectName">Proyecto (opcional)</label>
+                <input cFormControl id="projectName" formControlName="projectName"
+                       placeholder="Nombre del proyecto relacionado...">
+              </c-col>
+
+            </c-row>
+          </c-card-body>
+        </c-card>
+
+        <!-- Asignación -->
+        <c-card class="mb-3">
+          <c-card-header>
+            <strong class="small text-uppercase text-muted" style="letter-spacing:.05em">
+              Asignación y Planificación
+            </strong>
+          </c-card-header>
+          <c-card-body>
+            <c-row class="g-3">
+
+              <!-- Asignado a -->
+              <c-col xs="12" md="6">
+                <label cLabel for="assignedToName">Asignado a</label>
+                <input cFormControl id="assignedToName" formControlName="assignedToName"
+                       placeholder="Nombre del responsable...">
+              </c-col>
+
+              <!-- Horas estimadas -->
+              <c-col xs="12" md="3">
+                <label cLabel for="estimatedHours">Horas estimadas</label>
+                <input cFormControl type="number" id="estimatedHours"
+                       formControlName="estimatedHours" min="0" step="0.5">
+              </c-col>
+
+              <!-- Fecha comprometida -->
+              <c-col xs="12" md="3">
+                <label cLabel for="agreedDate">Fecha comprometida</label>
+                <input cFormControl type="date" id="agreedDate" formControlName="agreedDate">
+              </c-col>
+
+            </c-row>
+          </c-card-body>
+        </c-card>
+
+        <!-- Motivo de rechazo (condicional) -->
+        @if (showRejectedReason()) {
+          <c-card class="mb-3 border-danger">
+            <c-card-header class="bg-danger bg-opacity-10">
+              <strong class="small text-uppercase text-danger" style="letter-spacing:.05em">
+                <svg cIcon name="cilBan" class="me-1"></svg>
+                Motivo de Rechazo
+              </strong>
+            </c-card-header>
+            <c-card-body>
+              <textarea cFormControl id="rejectedReason" formControlName="rejectedReason"
+                        rows="3"
+                        placeholder="Explica el motivo por el que se rechaza la solicitud...">
+              </textarea>
+            </c-card-body>
+          </c-card>
+        }
+
+        <!-- Historial de status (solo edición) -->
+        @if (isEditing() && request()?.statusHistory?.length) {
+          <c-card class="mb-3">
+            <c-card-header>
+              <strong class="small text-uppercase text-muted" style="letter-spacing:.05em">
+                Historial de Estados
+              </strong>
+            </c-card-header>
+            <c-card-body class="p-0">
+              <ul class="list-group list-group-flush">
+                @for (h of request()!.statusHistory; track $index) {
+                  <li class="list-group-item py-2 px-3" style="font-size:.82rem">
+                    <div class="d-flex align-items-center gap-2">
+                      <c-badge [color]="STATUS_COLORS[h.fromStatus]" class="flex-shrink-0">
+                        {{ STATUS_LABELS[h.fromStatus] }}
+                      </c-badge>
+                      <svg cIcon name="cilArrowRight" size="sm" class="text-muted flex-shrink-0"></svg>
+                      <c-badge [color]="STATUS_COLORS[h.toStatus]" class="flex-shrink-0">
+                        {{ STATUS_LABELS[h.toStatus] }}
+                      </c-badge>
+                      <span class="text-muted ms-auto text-nowrap">
+                        {{ h.changedAt?.toDate() | date:'dd/MM/yyyy HH:mm' }}
+                      </span>
+                    </div>
+                    <div class="text-muted mt-1" style="font-size:.75rem">
+                      Por: {{ h.changedByName }}
+                      @if (h.notes) { — <em>{{ h.notes }}</em> }
+                    </div>
+                  </li>
+                }
+              </ul>
+            </c-card-body>
+          </c-card>
+        }
+
+      </c-col>
+
+      <!-- ── Columna lateral ────────────────────────────────────────────────── -->
+      <c-col xs="12" lg="4">
+
+        <!-- Estado -->
+        <c-card class="mb-3">
+          <c-card-header>
+            <strong class="small text-uppercase text-muted" style="letter-spacing:.05em">Estado</strong>
+          </c-card-header>
+          <c-card-body>
+            <label cLabel for="status">Estado actual</label>
+            <select cSelect id="status" formControlName="status">
+              <option value="new">Nueva</option>
+              <option value="triaged">Evaluada</option>
+              <option value="in_progress">En Proceso</option>
+              <option value="on_hold">En Espera</option>
+              <option value="resolved">Resuelta</option>
+              <option value="rejected">Rechazada</option>
+            </select>
+            @if (form.get('status')?.value; as statusVal) {
+              <div class="mt-2">
+                <c-badge [color]="STATUS_COLORS[statusVal]">
+                  {{ STATUS_LABELS[statusVal] }}
+                </c-badge>
+              </div>
+            }
+          </c-card-body>
+        </c-card>
+
+        <!-- Acciones -->
+        <c-card>
+          <c-card-body>
+            <div class="d-grid gap-2">
+              <button cButton color="primary" type="submit" [disabled]="saving()">
+                @if (saving()) {
+                  <c-spinner size="sm" class="me-1"></c-spinner>
+                } @else {
+                  <svg cIcon name="cilSave" class="me-1"></svg>
+                }
+                {{ isEditing() ? 'Guardar cambios' : 'Crear solicitud' }}
+              </button>
+              <button cButton color="secondary" variant="outline" type="button"
+                      [disabled]="saving()" (click)="goBack()">
+                Cancelar
+              </button>
+            </div>
+          </c-card-body>
+        </c-card>
+
+      </c-col>
+
+    </c-row>
+  </form>
+}

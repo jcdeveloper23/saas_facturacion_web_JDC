@@ -5,6 +5,7 @@ import { BaseDocument } from '../../../core/interfaces/common.interface';
 export interface CompanySettings {
   companyName: string;
   taxId: string;
+  taxIdType: 'ruc' | 'cedula';   // 'ruc' = 13 dígitos, 'cedula' = 10 dígitos (persona natural)
   fiscalAddress: string;
   city: string;
   province: string;

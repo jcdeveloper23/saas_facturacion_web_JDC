@@ -1,0 +1,239 @@
+<!-- ── Cabecera ──────────────────────────────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div class="d-flex align-items-center gap-2">
+    <div class="bg-primary bg-opacity-10 p-2 rounded">
+      <svg cIcon name="cilFolder" size="xl" class="text-primary"></svg>
+    </div>
+    <div>
+      <h3 class="mb-0 fw-semibold">Proyectos</h3>
+      <p class="text-muted small mb-0">Gestión de proyectos del equipo</p>
+    </div>
+  </div>
+  <button cButton color="primary" size="sm"
+          (click)="router.navigate(['/team-management/projects/new'])">
+    <svg cIcon name="cilPlus" class="me-1"></svg> Nuevo Proyecto
+  </button>
+</div>
+
+<!-- ── Stats strip ──────────────────────────────────────────────────────────── -->
+@if (!loading()) {
+  <div class="d-flex gap-2 mb-3 flex-wrap">
+    <!-- Total -->
+    <div class="border rounded px-3 py-2 d-flex align-items-center gap-2 bg-body"
+         style="cursor:pointer"
+         [class.border-primary]="statusFilter() === 'all'"
+         (click)="setStatusFilter('all')">
+      <svg cIcon name="cilFolder" class="text-muted" size="sm"></svg>
+      <span class="fw-semibold">{{ stats().total }}</span>
+      <span class="text-muted small">Total</span>
+    </div>
+    <!-- Activos -->
+    <div class="border rounded px-3 py-2 d-flex align-items-center gap-2 bg-body"
+         style="cursor:pointer"
+         [class.border-primary]="statusFilter() === 'active'"
+         (click)="setStatusFilter('active')">
+      <svg cIcon name="cilMediaPlay" class="text-primary" size="sm"></svg>
+      <span class="fw-semibold text-primary">{{ stats().active }}</span>
+      <span class="text-muted small">Activos</span>
+    </div>
+    <!-- Completados -->
+    <div class="border rounded px-3 py-2 d-flex align-items-center gap-2 bg-body"
+         style="cursor:pointer"
+         [class.border-success]="statusFilter() === 'completed'"
+         (click)="setStatusFilter('completed')">
+      <svg cIcon name="cilCheckCircle" class="text-success" size="sm"></svg>
+      <span class="fw-semibold text-success">{{ stats().completed }}</span>
+      <span class="text-muted small">Completados</span>
+    </div>
+    <!-- Vencidos (solo si hay alguno) -->
+    @if (stats().overdue > 0) {
+      <div class="border border-danger rounded px-3 py-2 d-flex align-items-center gap-2 bg-body">
+        <svg cIcon name="cilWarning" class="text-danger" size="sm"></svg>
+        <span class="fw-semibold text-danger">{{ stats().overdue }}</span>
+        <span class="text-muted small">Vencidos</span>
+      </div>
+    }
+  </div>
+}
+
+<!-- ── Filtros + Tabla ──────────────────────────────────────────────────────── -->
+<c-card class="mb-0">
+  <div class="px-3 pt-2 pb-1 d-flex gap-2 flex-wrap align-items-center border-bottom">
+    <!-- Buscador -->
+    <div class="position-relative" style="flex:1; min-width:200px; max-width:340px">
+      <svg cIcon name="cilSearch" size="sm"
+           style="position:absolute; left:.6rem; top:50%; transform:translateY(-50%); color:var(--cui-secondary-color)">
+      </svg>
+      <input class="form-control form-control-sm" style="padding-left:2rem"
+             placeholder="Buscar por nombre o cliente..."
+             [value]="searchTerm()"
+             (input)="searchTerm.set($any($event.target).value)">
+    </div>
+    <!-- Filtro status -->
+    <select class="form-select form-select-sm" style="width:180px"
+            [value]="statusFilter()"
+            (change)="setStatusFilter($any($event.target).value)">
+      <option value="all">Todos los estados</option>
+      <option value="planning">Planificación</option>
+      <option value="active">Activo</option>
+      <option value="on_hold">En Espera</option>
+      <option value="completed">Completado</option>
+      <option value="cancelled">Cancelado</option>
+    </select>
+    <span class="ms-auto text-secondary" style="font-size:.75rem">
+      {{ filtered().length }} proyecto(s)
+    </span>
+  </div>
+
+  <!-- ── Tabla ─────────────────────────────────────────────────────────────── -->
+  <c-card-body class="p-0">
+    @if (loading()) {
+      <div class="text-center py-4">
+        <c-spinner color="primary" size="sm"></c-spinner>
+      </div>
+    } @else if (filtered().length === 0) {
+      <div class="text-center py-5 text-secondary">
+        <svg cIcon name="cilFolder" size="xl" class="mb-2 text-muted"></svg>
+        <p class="mb-1">No hay proyectos registrados</p>
+        <button cButton color="primary" variant="outline" size="sm"
+                (click)="router.navigate(['/team-management/projects/new'])">
+          Crear primer proyecto
+        </button>
+      </div>
+    } @else {
+      <div class="table-responsive">
+        <table class="table table-hover table-sm mb-0" style="font-size:.82rem">
+          <thead class="table-light">
+            <tr>
+              <th>Proyecto</th>
+              <th>Cliente</th>
+              <th class="text-center">Prioridad</th>
+              <th class="text-center">Estado</th>
+              <th style="min-width:130px">% Completado</th>
+              <th class="text-center">Fecha límite</th>
+              <th class="text-center">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (p of filtered(); track trackById($index, p)) {
+              <tr [class.table-danger]="isOverdue(p)">
+
+                <!-- Proyecto -->
+                <td>
+                  <div class="fw-semibold"
+                       style="max-width:220px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">
+                    {{ p.name }}
+                  </div>
+                  @if (p.description) {
+                    <div style="font-size:.71rem; color:var(--cui-secondary-color); max-width:220px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">
+                      {{ p.description }}
+                    </div>
+                  }
+                  @if (p.tags?.length) {
+                    <div class="d-flex flex-wrap gap-1 mt-1">
+                      @for (tag of p.tags; track tag) {
+                        <span class="badge text-bg-secondary fw-normal"
+                              style="font-size:.65rem; font-weight:400">{{ tag }}</span>
+                      }
+                    </div>
+                  }
+                </td>
+
+                <!-- Cliente -->
+                <td class="text-nowrap" style="max-width:140px; overflow:hidden; text-overflow:ellipsis">
+                  {{ p.clientName ?? '—' }}
+                </td>
+
+                <!-- Prioridad -->
+                <td class="text-center">
+                  <c-badge [color]="PRIORITY_COLORS[p.priority]">
+                    {{ PRIORITY_LABELS[p.priority] }}
+                  </c-badge>
+                </td>
+
+                <!-- Estado -->
+                <td class="text-center">
+                  <c-badge [color]="STATUS_COLORS[p.status]">
+                    {{ STATUS_LABELS[p.status] }}
+                  </c-badge>
+                  @if (isOverdue(p)) {
+                    <c-badge color="danger" class="ms-1" title="Proyecto vencido">
+                      <svg cIcon name="cilWarning" size="sm"></svg>
+                    </c-badge>
+                  }
+                </td>
+
+                <!-- % Completado -->
+                <td>
+                  <div class="d-flex align-items-center gap-1">
+                    <c-progress class="flex-grow-1" [value]="p.completionPct" color="primary" [thin]="true"></c-progress>
+                    <span style="font-size:.75rem; min-width:32px; text-align:right">
+                      {{ p.completionPct }}%
+                    </span>
+                  </div>
+                </td>
+
+                <!-- Fecha límite -->
+                <td class="text-center text-nowrap">
+                  {{ p.dueDate?.toDate() | date:'dd/MM/yyyy' }}
+                </td>
+
+                <!-- Acciones -->
+                <td class="text-center text-nowrap">
+                  <!-- Editar -->
+                  <button cButton color="secondary" variant="outline" size="sm"
+                          title="Editar proyecto"
+                          (click)="router.navigate(['/team-management/projects', p.id, 'edit'])">
+                    <svg cIcon name="cilPencil"></svg>
+                  </button>
+
+                  <!-- Ver tareas del proyecto -->
+                  <button cButton color="info" variant="outline" size="sm"
+                          class="ms-1" title="Ver tareas del proyecto"
+                          (click)="router.navigate(['/team-management/tasks'], { queryParams: { projectId: p.id } })">
+                    <svg cIcon name="cilTask"></svg>
+                  </button>
+
+                  <!-- Activar (si está en planning u on_hold) -->
+                  @if (p.status === 'planning' || p.status === 'on_hold') {
+                    <button cButton color="primary" variant="outline" size="sm"
+                            class="ms-1" title="Activar proyecto"
+                            (click)="changeProjectStatus(p, 'active')">
+                      <svg cIcon name="cilMediaPlay"></svg>
+                    </button>
+                  }
+
+                  <!-- Poner en espera (si está activo) -->
+                  @if (p.status === 'active') {
+                    <button cButton color="warning" variant="outline" size="sm"
+                            class="ms-1" title="Poner en espera"
+                            (click)="changeProjectStatus(p, 'on_hold')">
+                      <svg cIcon name="cilMediaPause"></svg>
+                    </button>
+                  }
+
+                  <!-- Completar (si está activo o en espera) -->
+                  @if (p.status === 'active' || p.status === 'on_hold') {
+                    <button cButton color="success" variant="outline" size="sm"
+                            class="ms-1" title="Marcar como completado"
+                            (click)="changeProjectStatus(p, 'completed')">
+                      <svg cIcon name="cilCheck"></svg>
+                    </button>
+                  }
+
+                  <!-- Eliminar -->
+                  <button cButton color="danger" variant="outline" size="sm"
+                          class="ms-1" title="Eliminar proyecto"
+                          (click)="softDelete(p)">
+                    <svg cIcon name="cilTrash"></svg>
+                  </button>
+                </td>
+
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </c-card-body>
+</c-card>

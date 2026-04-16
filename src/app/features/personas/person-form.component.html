@@ -54,6 +54,13 @@
       }
     </a>
   </c-nav-item>
+  @if (isEditing && hasSupplierRole()) {
+  <c-nav-item>
+    <a cNavLink [active]="activeTab() === 'purchases'" (click)="activeTab.set('purchases')" role="button">
+      <svg cIcon name="cilBasket" class="me-1"></svg> Compras
+    </a>
+  </c-nav-item>
+  }
 </c-nav>
 
 <!-- ── Tab: General ───────────────────────────────────────────────────────── -->
@@ -70,20 +77,20 @@
           </p>
           <div class="d-flex flex-wrap gap-2">
             @for (role of ALL_ROLES; track role) {
-              <button type="button" class="role-toggle"
-                [class.role-toggle--active-customer]="role === 'customer' && selectedRoles().includes(role)"
-                [class.role-toggle--active-supplier]="role === 'supplier' && selectedRoles().includes(role)"
-                [class.role-toggle--active-employee]="role === 'employee' && selectedRoles().includes(role)"
-                [class.role-toggle--active-contact]="role === 'contact'  && selectedRoles().includes(role)"
-                [class.role-toggle--active-other]="role === 'other'    && selectedRoles().includes(role)"
-                (click)="toggleRole(role)">
-                @if (selectedRoles().includes(role)) {
-                  <svg cIcon name="cilCheckCircle" size="sm"></svg>
-                } @else {
-                  <svg cIcon name="cilCircle" size="sm"></svg>
-                }
-                {{ ROLE_LABELS[role] }}
-              </button>
+            <button type="button" class="role-toggle"
+              [class.role-toggle--active-customer]="role === 'customer' && selectedRoles().includes(role)"
+              [class.role-toggle--active-supplier]="role === 'supplier' && selectedRoles().includes(role)"
+              [class.role-toggle--active-employee]="role === 'employee' && selectedRoles().includes(role)"
+              [class.role-toggle--active-contact]="role === 'contact'  && selectedRoles().includes(role)"
+              [class.role-toggle--active-other]="role === 'other'    && selectedRoles().includes(role)"
+              (click)="toggleRole(role)">
+              @if (selectedRoles().includes(role)) {
+              <svg cIcon name="cilCheckCircle" size="sm"></svg>
+              } @else {
+              <svg cIcon name="cilCircle" size="sm"></svg>
+              }
+              {{ ROLE_LABELS[role] }}
+            </button>
             }
           </div>
           <p class="form-text">Una persona puede tener múltiples roles simultáneos. Selecciona al menos uno.</p>
@@ -798,6 +805,14 @@
 
   </c-card-body>
 </c-card>
+}
+
+<!-- ── Tab: Compras del proveedor ─────────────────────────────────────────── -->
+@if (activeTab() === 'purchases' && isEditing && hasSupplierRole()) {
+<div class="mt-3">
+  <app-supplier-purchases-tab [personId]="personId()!" [supplierName]="form?.get('name')?.value ?? ''">
+  </app-supplier-purchases-tab>
+</div>
 }
 
 <!-- ── Botones pie (móvil) ────────────────────────────────────────────────── -->

@@ -128,6 +128,16 @@ export const routes: Routes = [
         loadChildren: () => import('./features/purchases/purchases.routes').then(m => m.PURCHASES_ROUTES)
       },
 
+      // ── Team Management ────────────────────────────────────────────────────
+      {
+        path: 'team-management',
+        canActivate: [authGuard, roleGuard, moduleGuard],
+        data: { roles: ['admin'], module: 'teamManagement', title: 'Gestión de Equipo' },
+        loadChildren: () =>
+          import('./features/team-management/team-management.routes')
+            .then(m => m.TEAM_MANAGEMENT_ROUTES)
+      },
+
       // ── POS ────────────────────────────────────────────────────────────
       // {
       //   path: 'pos',

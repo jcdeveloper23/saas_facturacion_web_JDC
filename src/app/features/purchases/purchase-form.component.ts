@@ -255,6 +255,8 @@ export class PurchaseFormComponent implements OnInit, OnDestroy {
     } else {
       this.loading.set(false);
       this.addLine();
+      // A2: pre-cargar proveedor desde queryParams (deep-link desde ficha proveedor)
+      this.preloadSupplierFromQuery();
     }
   }
 
@@ -382,6 +384,32 @@ export class PurchaseFormComponent implements OnInit, OnDestroy {
     }
 
     this.refreshTotals();
+  }
+
+  // ─── Supplier pre-load from query params (A2) ─────────────────────────────
+
+  private preloadSupplierFromQuery(): void {
+    const qSupplierId = this.route.snapshot.queryParamMap.get('supplierId');
+    if (!qSupplierId) return;
+    // Wait for suppliers to be loaded, then find and select
+    const trySelect = () => {
+      const found = this.suppliers().find(s => s.id === qSupplierId);
+      if (found) {
+        this.selectSupplier(found);
+      }
+    };
+    // Suppliers may not be loaded yet — retry once they arrive
+    if (this.suppliers().length > 0) {
+      trySelect();
+    } else {
+      const interval = setInterval(() => {
+        if (this.suppliers().length > 0) {
+          clearInterval(interval);
+          trySelect();
+        }
+      }, 100);
+      setTimeout(() => clearInterval(interval), 5000);
+    }
   }
 
   // ─── Supplier selection ────────────────────────────────────────────────────

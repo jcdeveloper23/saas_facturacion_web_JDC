@@ -134,13 +134,13 @@ Una nueva ruta `/settings/plugins` (o `/plugins`) visible para el admin de empre
 | 7 | Retentions (SRI) | F5 | ✅ Completo | pkg_sri | `/retentions` |
 | 8 | Credit Notes (SRI) | F5 | ✅ Completo | pkg_sri | (inline en facturas) |
 | 9 | Electronic Invoicing UI | F5 | ✅ Completo | pkg_sri | `/electronic-invoicing` |
-| 10 | Stock Management | F6 | ⬜ Pendiente | pkg_sales | `/stock` |
+| 10 | Stock Management | F6 | ✅ Completo | pkg_sales | `/stock` |
 | 11 | Quotes | F6 | ⬜ Pendiente | pkg_sales_advanced | `/quotes` |
 | 12 | Orders | F6 | ⬜ Pendiente | pkg_sales_advanced | `/orders` |
 | 13 | Proformas | F6 | ⬜ Pendiente | pkg_sales_advanced | `/proformas` |
 | 14 | POS — Point of Sale | F6 | ⬜ Pendiente | pkg_sales_advanced | `/pos` |
-| 15 | Purchase Invoices | F6b | ⬜ Pendiente | pkg_purchases | `/purchase-invoices` |
-| 16 | Purchase Orders | F6b | ⬜ Pendiente | pkg_purchases | `/purchase-orders` |
+| 15 | Purchases (Compras) | F6b | ✅ Completo | pkg_purchases | `/purchases` |
+| 16 | Purchases — Mejoras v2 | F6b | 🔄 En progreso | pkg_purchases | `/purchases` |
 | 17 | Dashboard | F7 | ⬜ Pendiente | pkg_base | `/dashboard` |
 | 18 | Plugin Packages UI (empresa) | F2b | ✅ Completo | pkg_base | `/settings/plugins` |
 | 19 | Marketplace / Catálogo Público | F8 | ✅ Completo | pkg_marketplace | `/{slug}` (público) + `/settings/marketplace` |
@@ -282,11 +282,131 @@ Una nueva ruta `/settings/plugins` (o `/plugins`) visible para el admin de empre
 - [ ] Atajos teclado F1–F5
 - [ ] Activar ruta `/pos` con `moduleGuard: 'pos'` + `roleGuard: ['admin', 'cashier']`
 
-#### Fase 6b — Compras ⬜
-- [ ] `features/purchase-invoices/` — facturas recibidas de proveedores
-- [ ] `features/purchase-orders/` — órdenes de compra
-- [ ] CF `generatePurchaseInvoiceNumber`
-- [ ] Activar rutas con `moduleGuard: 'purchase_invoices'` / `'purchase_orders'`
+#### Fase 6b — Compras ✅ (Core completo)
+> Core implementado en `features/purchases/`. Purchase invoices y purchase orders consolidados en un único módulo con flujo draft→sent→received→cancelled.
+
+- [x] `features/purchases/purchases-list.component` — lista con stats strip, filtros, acciones
+- [x] `features/purchases/purchase-form.component` — form completo: supplier chip, product search, líneas, totales, modal recibir, link generar retención
+- [x] `features/purchases/purchase-import.component` — importación masiva TXT + XML SRI
+- [x] `features/purchases/services/purchase-importer.service.ts` — parser TXT/XML con deduplicación
+- [x] `features/purchases/services/purchases.service.ts` — CRUD + contador atómico Firestore
+- [x] `features/purchases/models/purchase.interface.ts` — interface completa + helpers de cálculo
+- [x] CF `on-purchase-receive.ts` — actualiza stock + costo promedio ponderado + StockMovement (transacción atómica, idempotente)
+- [x] Plugin package `pkg_purchases` seed con `modules: ['purchases']`, depende de `pkg_sales`
+- [x] Ruta `/purchases` con `moduleGuard: 'purchases'` + `roleGuard: ['admin']`
+- [x] Nav sidebar "Compras" con subitems lista / nueva compra
+
+---
+
+#### Fase 6b — Compras Mejoras v2 🔄
+> Objetivo: hacer el módulo de compras comparable a ERPs como Contifico/Siigo en flujo de trabajo.
+> **Prerequisito:** Core F6b completo ✅
+
+##### Grupo A — Integración bidireccional con ficha de proveedor
+
+- [x] **A1 — Tab "Compras" en ficha del proveedor**
+  - Nuevo componente: `features/personas/supplier-purchases-tab.component.ts/.html`
+  - Recibe `@Input() personId: string`, llama `purchasesService.getBySupplier(personId)`
+  - Tabla compacta: fecha, número, estado, total
+  - Stat-strip: total comprado (received), órdenes pendientes, última compra, promedio por orden
+  - Se integra como tab condicional en `person-form.component` cuando `roles.includes('supplier')`
+  - Prerequisito: A-idx (índice Firestore)
+
+- [x] **A2 — "Nueva compra a este proveedor"**
+  - Botón en `supplier-purchases-tab` → navega a `/purchases/new?supplierId=...&supplierName=...&supplierRuc=...`
+  - `purchase-form.component.ts` lee queryParams al init para pre-cargar el chip del proveedor
+
+- [x] **A3 — Link "Ver ficha proveedor" en purchase-form**
+  - En el chip del proveedor (cuando `supplierId` existe): botón con `routerLink="/personas/{{ supplierId }}/edit"`
+  - Ya tiene `RouterLink` importado en el componente
+
+- [x] **A-idx — Índice Firestore compuesto** (`supplierId ASC + date DESC`)
+  - Archivo: `firestore.indexes.json`
+  - Colección: `companies/{companyId}/purchases`
+  - Método nuevo en `purchases.service.ts`: `getBySupplier(supplierId: string): Observable<Purchase[]>`
+
+##### Grupo B — Lista de compras más potente
+
+- [x] **B1 — Filtro por proveedor en la lista**
+  - Signal `supplierFilter = signal('')` en `purchases-list.component`
+  - Filtra sobre datos en memoria (sin query extra): `p.supplierId === supplierFilter()` o búsqueda por nombre
+  - Input de búsqueda de proveedor en la barra de filtros existente
+  - Leer `?supplierId=` de queryParams al init (`ActivatedRoute`) para deep-link desde A2
+
+- [x] **B2 — Alerta "compras recibidas sin retención emitida"**
+  - `computed()` sobre datos cargados: `received` + `retentionId` null
+  - Badge de alerta en el header de la lista con count
+  - Botón quick-filter "Sin retención" en el stats strip
+
+- [x] **B3 — Pre-filtro `?supplierId=` por URL**
+  - `purchases-list.component.ts` inyecta `ActivatedRoute`, lee `supplierId` al init
+  - Permite deep-link desde el tab del proveedor (A1) a la lista pre-filtrada
+
+##### Grupo C — Homologación de productos (inspirado en Contifico)
+
+> **Referencia:** Contifico/Siigo requiere mapear productos del proveedor a inventario propio cuando el XML/TXT trae descripciones distintas a las del catálogo. Sin homologación, las importaciones quedan "parciales".
+
+- [x] **C1 — Interface + Firestore path**
+  - Nueva interface `SupplierProductMapping` en `purchases/models/`:
+    ```
+    /companies/{companyId}/supplier-product-mappings/{id}
+      supplierId:          string
+      supplierSku:         string       // código del proveedor
+      supplierDescription: string       // descripción en el XML/TXT
+      productId?:          string       // mapea a producto del catálogo (null = cuenta gasto)
+      productName?:        string       // snapshot
+      expenseAccountCode?: string       // alternativa: cuenta de gasto contable
+      expenseAccountName?: string
+      createdAt:           Timestamp
+      updatedAt:           Timestamp
+    ```
+
+- [x] **C2 — `SupplierMappingsService`**
+  - CRUD sobre `/companies/{companyId}/supplier-product-mappings`
+  - `findMapping(supplierId, supplierSku): Promise<SupplierProductMapping | null>`
+  - `saveMappingBatch(mappings[]): Promise<void>`
+
+- [x] **C3 — Integración en el importer (`purchase-importer.service.ts`)**
+  - Al parsear XML/TXT, para cada línea: buscar mapping existente por `supplierId + supplierSku`
+  - Si existe → auto-completar `productId` + `productName` en `SriImportRecord.lines`
+  - Si no existe → marcar línea con `status: 'needs_mapping'`
+  - Resultado: registro con estado `'partial'` si hay líneas sin mapear (nuevo estado en `SriImportRecord`)
+
+- [x] **C4 — UI de homologación en el flujo de importación**
+  - Nueva columna "Producto en catálogo" en la tabla de preview de `purchase-import.component`
+  - Filas sin mapear muestran selector de producto con búsqueda
+  - Checkbox "Recordar este mapeo" → guarda en `supplier-product-mappings` al importar
+  - Importar solo crea la compra cuando todas las líneas están mapeadas (o se acepta sin mapear → sin movimiento de stock)
+
+- [x] **C5 — Pantalla de gestión de homologaciones**
+  - Nueva ruta: `/purchases/mappings`
+  - Lista de mappings por proveedor: tabla editable (cambiar producto destino, borrar)
+  - Accesible desde el header de la lista de compras
+
+##### Grupo D — Mejoras de importación (inspirado en Contifico)
+
+- [ ] **D1 — Soporte ZIP para importación masiva XML**
+  - `purchase-import.component`: aceptar `.zip` además de `.xml` y `.txt`
+  - `purchase-importer.service.ts`: descomprimir ZIP en cliente con `JSZip`, extraer XMLs y procesarlos como individuales
+  - Mostrar progreso de extracción antes del preview
+
+- [ ] **D2 — Validación de ventana de 20 días (regla SRI)**
+  - En el preview de importación, marcar con badge `⚠ +20 días` las facturas cuya `supplierInvoiceDate` supera 20 días calendario desde hoy
+  - Tooltip explicando la restricción del portal SRI
+  - El usuario puede importarlas al sistema (quedará en historial) pero sabe que no podrá subirlas al portal SRI
+
+- [ ] **D3 — Estado "partial" en compras importadas**
+  - Si una compra se importó sin todos los productos mapeados, su estado inicial es `'partial'` (nuevo estado visual, no bloquea el flujo)
+  - Badge distinto en la lista + acción "Completar homologación" que abre el form con líneas pendientes destacadas
+
+##### Grupo E — Resumen financiero del proveedor (en ficha de persona)
+
+- [ ] **E1 — Saldo pendiente de pago**
+  - En `supplier-purchases-tab`: calcular `received` sin `retentionId` = monto pendiente de retención
+  - Cards: "Por pagar" / "Retenciones emitidas" / "Pagado este mes"
+
+- [ ] **E2 — Exportar historial del proveedor a CSV**
+  - Botón en `supplier-purchases-tab` → genera CSV con: fecha, número, estado, total, retención vinculada
 
 ---
 
@@ -659,8 +779,9 @@ F2b Plugin Packages   ███████████████ 100% ✅
 F3 Maestros           ███████████████ 100% ✅
 F4 Documentos Venta   ███████████████ 100% ✅
 F5 SRI Electrónico    ███████████████ 100% ✅
-F6 Avanzado           ░░░░░░░░░░░░░░░   0%
-F6b Compras           ░░░░░░░░░░░░░░░   0%
+F6 Avanzado           ████░░░░░░░░░░░  25% (Stock ✅ — Quotes/Orders/POS pendiente)
+F6b Compras core      ███████████████ 100% ✅
+F6b Compras mejoras   ██████████████░  90% (A ✅ B ✅ C ✅ — D,E pendiente)
 F7 Dashboard          ░░░░░░░░░░░░░░░   0%
 F8 Marketplace        ██████████████░  98% ✅ (pendiente deploy)
 ```
@@ -694,6 +815,8 @@ F8 Marketplace        ██████████████░  98% ✅ (pe
 | `features/invoices/` | ✅ | Facturas de venta con estados SRI |
 | `features/debit-notes/` | ✅ | Notas de débito SRI (codDoc=05) |
 | `features/retentions/` | ✅ | Retenciones SRI (codDoc=07) |
+| `features/stock/` | ✅ | Stock overview + movimientos + ajuste inline por almacén |
+| `features/purchases/` | ✅ | Compras: lista, form, importación TXT/XML, servicio CRUD con contador atómico |
 
 ### Cloud Functions completadas
 | Archivo | Estado | Descripción |
@@ -714,6 +837,9 @@ F8 Marketplace        ██████████████░  98% ✅ (pe
 | `functions/src/retentions/on-retention-emit.ts` | ✅ | Trigger emisión retención |
 | `functions/src/utils/sign-xml-helper.ts` | ✅ | Helper firma XML compartido |
 | `functions/src/utils/smtp-helper.ts` | ✅ | Helper envío email |
+| `functions/src/stock/on-purchase-receive.ts` | ✅ | Trigger recepción de compra → actualiza stock + costo promedio ponderado |
+| `functions/src/marketplace/on-marketplace-settings-change.ts` | ✅ | Trigger configuración marketplace → sincroniza public-catalogs |
+| `functions/src/marketplace/on-product-public-sync.ts` | ✅ | Trigger producto → sincroniza proyección pública |
 
 ---
 
@@ -738,6 +864,20 @@ firebase deploy --only firestore:rules,storage,functions
 - Login → `/super-admin/catalog` → "Registrar datos por defecto"
 - Login → `/super-admin/plugin-packages` → "Registrar paquetes por defecto"
 - Asignar paquetes a empresa desde `/super-admin/companies/:id/plugins`
+
+### 2. F6b Compras — Mejoras v2 (en curso)
+
+Orden de implementación:
+
+1. **A-idx** — Índice Firestore `supplierId+date` + método `getBySupplier()` (Firebase Agent)
+2. **A3 + B1 + B2** — Cambios en archivos existentes (paralelo, Angular Agent)
+3. **A1 + A2 + E1 + E2** — Nuevo `supplier-purchases-tab.component` (Angular Agent)
+4. **B3** — Pre-filtro `?supplierId=` en lista (Angular Agent)
+5. **C1 + C2** — Interface + service homologación (Firebase Agent)
+6. **C3 + C4** — Integración importer + UI homologación (Angular + Firebase Agent)
+7. **C5** — Pantalla gestión de mappings `/purchases/mappings` (Angular Agent)
+8. **D1** — Soporte ZIP importación masiva (Angular Agent + JSZip)
+9. **D2 + D3** — Validación 20 días + estado partial (Angular Agent)
 
 ### 3. Arrancar F7 — Dashboard
 - Ya puede arrancar: F4 + F5 completas

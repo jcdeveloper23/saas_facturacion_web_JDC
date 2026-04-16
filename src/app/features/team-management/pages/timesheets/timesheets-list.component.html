@@ -1,0 +1,175 @@
+<!-- ── Alerta horas extra ─────────────────────────────────────────────────────── -->
+@if (isOvertime()) {
+  <c-alert color="danger" class="mb-3 d-flex align-items-center gap-2">
+    <svg cIcon name="cilWarning"></svg>
+    <strong>Horas extra detectadas:</strong>&nbsp;{{ overtimeHours() }}h sobre el límite semanal (40h)
+  </c-alert>
+}
+
+<!-- ── Cabecera ──────────────────────────────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div class="d-flex align-items-center gap-2">
+    <div class="bg-primary bg-opacity-10 p-2 rounded">
+      <svg cIcon name="cilClock" size="xl" class="text-primary"></svg>
+    </div>
+    <div>
+      <h3 class="mb-0 fw-semibold">Control de Tiempos</h3>
+      <p class="text-muted small mb-0">Registro y aprobación de horas trabajadas</p>
+    </div>
+  </div>
+  <button cButton color="primary" size="sm"
+          (click)="router.navigate(['/team-management/timesheets/new'])">
+    <svg cIcon name="cilPlus" class="me-1"></svg> Registrar Horas
+  </button>
+</div>
+
+<!-- ── KPI Cards ─────────────────────────────────────────────────────────────── -->
+@if (!loading()) {
+  <c-row class="g-2 mb-3">
+    <c-col xs="6" md="4">
+      <c-card class="border-0 shadow-sm h-100">
+        <c-card-body class="py-2 px-3">
+          <div class="text-muted small">Horas totales</div>
+          <div class="fw-bold fs-4 font-monospace">{{ weeklyTotal() | number:'1.1-1' }}h</div>
+        </c-card-body>
+      </c-card>
+    </c-col>
+    <c-col xs="6" md="4">
+      <c-card class="border-0 shadow-sm h-100"
+              [class.border-danger]="isOvertime()" [class.border]="isOvertime()">
+        <c-card-body class="py-2 px-3">
+          <div class="text-muted small">Horas extra</div>
+          <div class="fw-bold fs-4 font-monospace"
+               [class.text-danger]="isOvertime()">
+            {{ overtimeHours() | number:'1.1-1' }}h
+          </div>
+        </c-card-body>
+      </c-card>
+    </c-col>
+    <c-col xs="6" md="4">
+      <c-card class="border-0 shadow-sm h-100">
+        <c-card-body class="py-2 px-3">
+          <div class="text-muted small">Pendientes de aprobación</div>
+          <div class="fw-bold fs-4">
+            {{ pendingCount() }}
+            @if (pendingCount() > 0) {
+              <c-badge color="warning" class="ms-1" style="font-size:.65rem">revisar</c-badge>
+            }
+          </div>
+        </c-card-body>
+      </c-card>
+    </c-col>
+  </c-row>
+}
+
+<!-- ── Filtros + tabla ──────────────────────────────────────────────────────── -->
+<c-card class="mb-0">
+  <div class="px-3 pt-2 pb-1 d-flex gap-2 flex-wrap align-items-center border-bottom">
+
+    <!-- Filtro usuario -->
+    <select class="form-select form-select-sm" style="width:200px"
+            [ngModel]="userFilter()"
+            (ngModelChange)="userFilter.set($event)">
+      <option value="all">Todos los usuarios</option>
+      @for (u of uniqueUsers(); track u.id) {
+        <option [value]="u.id">{{ u.name }}</option>
+      }
+    </select>
+
+    <!-- Filtro proyecto -->
+    <select class="form-select form-select-sm" style="width:200px"
+            [ngModel]="projectFilter()"
+            (ngModelChange)="projectFilter.set($event)">
+      <option value="all">Todos los proyectos</option>
+      @for (p of uniqueProjects(); track p.id) {
+        <option [value]="p.id">{{ p.name }}</option>
+      }
+    </select>
+
+    <span class="ms-auto text-secondary" style="font-size:.75rem">
+      {{ filtered().length }} registro(s)
+    </span>
+  </div>
+
+  <!-- ── Tabla ─────────────────────────────────────────────────────────────── -->
+  <c-card-body class="p-0">
+    @if (loading()) {
+      <div class="text-center py-4">
+        <c-spinner color="primary" size="sm"></c-spinner>
+      </div>
+    } @else if (filtered().length === 0) {
+      <div class="text-center py-5 text-secondary">
+        <svg cIcon name="cilClock" size="xl" class="mb-2 text-muted"></svg>
+        <p class="mb-1">No hay registros de tiempo</p>
+        <button cButton color="primary" variant="outline" size="sm"
+                (click)="router.navigate(['/team-management/timesheets/new'])">
+          Registrar primera entrada
+        </button>
+      </div>
+    } @else {
+      <div class="table-responsive">
+        <table class="table table-hover table-sm mb-0" style="font-size:.82rem">
+          <thead class="table-light">
+            <tr>
+              <th class="text-center">Fecha</th>
+              <th>Proyecto</th>
+              <th>Tarea</th>
+              <th>Usuario</th>
+              <th class="text-center">Horas</th>
+              <th class="text-center">Tipo</th>
+              <th>Descripción</th>
+              <th class="text-center">Estado</th>
+              <th class="text-center">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (t of filtered(); track trackById($index, t)) {
+              <tr>
+                <td class="text-center text-nowrap">
+                  {{ t.date?.toDate() | date:'dd/MM/yyyy' }}
+                </td>
+                <td>
+                  <div style="max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">
+                    {{ t.projectName }}
+                  </div>
+                </td>
+                <td>
+                  <div style="max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">
+                    {{ t.taskTitle }}
+                  </div>
+                </td>
+                <td class="text-nowrap">{{ t.userName }}</td>
+                <td class="text-center font-monospace fw-semibold">{{ t.hours }}</td>
+                <td class="text-center">
+                  <c-badge [color]="TYPE_COLORS[t.type]">{{ TYPE_LABELS[t.type] }}</c-badge>
+                </td>
+                <td>
+                  <div style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap"
+                       [title]="t.description ?? ''">
+                    {{ t.description || '—' }}
+                  </div>
+                </td>
+                <td class="text-center">
+                  @if (t.approved) {
+                    <c-badge color="success">Aprobado</c-badge>
+                  } @else {
+                    <c-badge color="warning">Pendiente</c-badge>
+                  }
+                </td>
+                <td class="text-center">
+                  @if (!t.approved) {
+                    <button cButton color="success" variant="outline" size="sm"
+                            title="Aprobar registro"
+                            (click)="approve(t.id)">
+                      <svg cIcon name="cilCheck"></svg>
+                    </button>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </c-card-body>
+</c-card>

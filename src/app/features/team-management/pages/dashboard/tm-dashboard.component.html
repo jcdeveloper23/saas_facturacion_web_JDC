@@ -1,0 +1,277 @@
+<!-- ── Cabecera ──────────────────────────────────────────────────────────────── -->
+<div class="d-flex align-items-center gap-2 mb-4">
+  <div class="bg-primary bg-opacity-10 p-2 rounded">
+    <svg cIcon name="cilSpeedometer" size="xl" class="text-primary"></svg>
+  </div>
+  <div>
+    <h3 class="mb-0 fw-semibold">Team Dashboard</h3>
+    <p class="text-muted small mb-0">Resumen del estado del equipo y proyectos</p>
+  </div>
+</div>
+
+@if (loading()) {
+  <div class="text-center py-5">
+    <c-spinner color="primary"></c-spinner>
+    <p class="text-muted mt-2">Cargando datos del equipo...</p>
+  </div>
+} @else {
+
+  <!-- ── Row KPI cards ──────────────────────────────────────────────────────── -->
+  <c-row class="mb-4 g-3">
+
+    <!-- Proyectos Activos -->
+    <c-col xs="12" sm="6" xl="3">
+      <c-card class="h-100 border-start border-primary border-3">
+        <c-card-body class="d-flex align-items-center gap-3">
+          <div class="bg-primary bg-opacity-10 p-3 rounded-circle">
+            <svg cIcon name="cilFolder" size="lg" class="text-primary"></svg>
+          </div>
+          <div>
+            <div class="fs-2 fw-bold text-primary">{{ activeProjects().length }}</div>
+            <div class="text-muted small">Proyectos Activos</div>
+          </div>
+        </c-card-body>
+      </c-card>
+    </c-col>
+
+    <!-- Tareas Bloqueadas -->
+    <c-col xs="12" sm="6" xl="3">
+      <c-card class="h-100 border-start border-danger border-3">
+        <c-card-body class="d-flex align-items-center gap-3">
+          <div class="bg-danger bg-opacity-10 p-3 rounded-circle">
+            <svg cIcon name="cilBan" size="lg" class="text-danger"></svg>
+          </div>
+          <div>
+            <div class="fs-2 fw-bold text-danger">{{ blockedTasks().length }}</div>
+            <div class="text-muted small">Tareas Bloqueadas</div>
+          </div>
+        </c-card-body>
+      </c-card>
+    </c-col>
+
+    <!-- Tareas Vencidas -->
+    <c-col xs="12" sm="6" xl="3">
+      <c-card class="h-100 border-start border-warning border-3">
+        <c-card-body class="d-flex align-items-center gap-3">
+          <div class="bg-warning bg-opacity-10 p-3 rounded-circle">
+            <svg cIcon name="cilWarning" size="lg" class="text-warning"></svg>
+          </div>
+          <div>
+            <div class="fs-2 fw-bold text-warning">{{ overdueTasks().length }}</div>
+            <div class="text-muted small">Tareas Vencidas</div>
+          </div>
+        </c-card-body>
+      </c-card>
+    </c-col>
+
+    <!-- Miembros Activos -->
+    <c-col xs="12" sm="6" xl="3">
+      <c-card class="h-100 border-start border-success border-3">
+        <c-card-body class="d-flex align-items-center gap-3">
+          <div class="bg-success bg-opacity-10 p-3 rounded-circle">
+            <svg cIcon name="cilPeople" size="lg" class="text-success"></svg>
+          </div>
+          <div>
+            <div class="fs-2 fw-bold text-success">{{ activeMembers().length }}</div>
+            <div class="text-muted small">Miembros Activos</div>
+          </div>
+        </c-card-body>
+      </c-card>
+    </c-col>
+
+  </c-row>
+
+  <!-- ── Row Tablas ─────────────────────────────────────────────────────────── -->
+  <c-row class="mb-4 g-3">
+
+    <!-- Tabla proyectos activos -->
+    <c-col xs="12" xl="7">
+      <c-card class="h-100">
+        <c-card-header class="d-flex align-items-center justify-content-between">
+          <div class="d-flex align-items-center gap-2">
+            <svg cIcon name="cilFolder" class="text-primary"></svg>
+            <strong>Proyectos Activos</strong>
+          </div>
+          <c-badge color="primary" class="ms-auto">{{ activeProjects().length }}</c-badge>
+        </c-card-header>
+        <c-card-body class="p-0">
+          @if (activeProjects().length === 0) {
+            <div class="text-center py-4 text-muted">
+              <svg cIcon name="cilFolder" size="xl" class="mb-2"></svg>
+              <p class="mb-0">No hay proyectos activos</p>
+            </div>
+          } @else {
+            <div class="table-responsive">
+              <table class="table table-hover table-sm mb-0" style="font-size:.82rem">
+                <thead class="table-light">
+                  <tr>
+                    <th>Proyecto</th>
+                    <th class="text-center">Prioridad</th>
+                    <th style="min-width:100px">Avance</th>
+                    <th class="text-center">Vence</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (p of activeProjects(); track trackById($index, p)) {
+                    <tr>
+                      <td>
+                        <div class="fw-medium" style="max-width:180px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">
+                          {{ p.name }}
+                        </div>
+                        @if (p.clientName) {
+                          <div style="font-size:.71rem; color:var(--cui-secondary-color)">{{ p.clientName }}</div>
+                        }
+                      </td>
+                      <td class="text-center">
+                        <c-badge [color]="PRIORITY_COLORS[p.priority]">
+                          {{ PRIORITY_LABELS[p.priority] }}
+                        </c-badge>
+                      </td>
+                      <td>
+                        <div class="d-flex align-items-center gap-1">
+                          <c-progress
+                            class="flex-grow-1"
+                            [value]="p.completionPct"
+                            [color]="p.completionPct >= 80 ? 'success' : p.completionPct >= 40 ? 'info' : 'warning'"
+                            thin>
+                          </c-progress>
+                          <span class="text-muted" style="font-size:.7rem; white-space:nowrap">{{ p.completionPct }}%</span>
+                        </div>
+                      </td>
+                      <td class="text-center text-nowrap" style="font-size:.78rem">
+                        {{ p.dueDate.toDate() | date:'dd/MM/yy' }}
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </c-card-body>
+      </c-card>
+    </c-col>
+
+    <!-- Tabla tareas problemáticas -->
+    <c-col xs="12" xl="5">
+      <c-card class="h-100">
+        <c-card-header class="d-flex align-items-center justify-content-between">
+          <div class="d-flex align-items-center gap-2">
+            <svg cIcon name="cilWarning" class="text-danger"></svg>
+            <strong>Tareas Bloqueadas / Vencidas</strong>
+          </div>
+          <c-badge color="danger" class="ms-auto">{{ problemTasks().length }}</c-badge>
+        </c-card-header>
+        <c-card-body class="p-0">
+          @if (problemTasks().length === 0) {
+            <div class="text-center py-4 text-muted">
+              <svg cIcon name="cilCheckCircle" size="xl" class="mb-2 text-success"></svg>
+              <p class="mb-0">Sin tareas bloqueadas ni vencidas</p>
+            </div>
+          } @else {
+            <div class="table-responsive">
+              <table class="table table-hover table-sm mb-0" style="font-size:.82rem">
+                <thead class="table-light">
+                  <tr>
+                    <th>Tarea</th>
+                    <th class="text-center">Estado</th>
+                    <th class="text-center">Retraso</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (t of problemTasks(); track trackById($index, t)) {
+                    <tr>
+                      <td>
+                        <div class="fw-medium" style="max-width:160px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">
+                          {{ t.title }}
+                        </div>
+                        <div style="font-size:.71rem; color:var(--cui-secondary-color)">{{ t.projectName }}</div>
+                        @if (t.assigneeIds.length > 0) {
+                          <div class="d-flex gap-1 mt-1">
+                            @for (initials of assigneeInitials(t.assigneeIds); track $index) {
+                              <span class="badge bg-secondary rounded-circle" style="width:20px; height:20px; font-size:.6rem; display:inline-flex; align-items:center; justify-content:center">
+                                {{ initials }}
+                              </span>
+                            }
+                          </div>
+                        }
+                      </td>
+                      <td class="text-center">
+                        <c-badge [color]="STATUS_COLORS[t.status]">
+                          {{ STATUS_LABELS[t.status] }}
+                        </c-badge>
+                      </td>
+                      <td class="text-center">
+                        @if (daysOverdue(t) > 0) {
+                          <span class="text-danger fw-semibold" style="font-size:.78rem">
+                            {{ daysOverdue(t) }}d
+                          </span>
+                        } @else {
+                          <span class="text-muted" style="font-size:.78rem">—</span>
+                        }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </c-card-body>
+      </c-card>
+    </c-col>
+
+  </c-row>
+
+  <!-- ── Row Carga del equipo ───────────────────────────────────────────────── -->
+  @if (memberWorkload().length > 0) {
+    <div class="mb-2">
+      <h5 class="fw-semibold d-flex align-items-center gap-2">
+        <svg cIcon name="cilPeople" class="text-secondary"></svg>
+        Carga del Equipo
+      </h5>
+    </div>
+    <c-row class="g-3">
+      @for (m of memberWorkload(); track trackById($index, m)) {
+        <c-col xs="12" sm="6" lg="4" xl="3">
+          <c-card>
+            <c-card-body>
+              <div class="d-flex align-items-center gap-2 mb-2">
+                @if (m.avatarUrl) {
+                  <img [src]="m.avatarUrl" [alt]="m.displayName"
+                       class="rounded-circle" style="width:36px; height:36px; object-fit:cover">
+                } @else {
+                  <div class="bg-secondary bg-opacity-20 rounded-circle d-flex align-items-center justify-content-center"
+                       style="width:36px; height:36px; font-size:.75rem; font-weight:600; color:var(--cui-secondary-color)">
+                    {{ m.displayName.substring(0, 2).toUpperCase() }}
+                  </div>
+                }
+                <div class="overflow-hidden">
+                  <div class="fw-semibold text-truncate" style="font-size:.85rem">{{ m.displayName }}</div>
+                  <c-badge [color]="ROLE_COLORS[m.role]" style="font-size:.65rem">
+                    {{ ROLE_LABELS[m.role] }}
+                  </c-badge>
+                </div>
+              </div>
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="text-muted" style="font-size:.75rem">
+                  {{ m.activeProjectIds.length }} proyecto(s)
+                </span>
+                <span class="fw-semibold" style="font-size:.78rem"
+                      [class.text-success]="m.pct < 60"
+                      [class.text-warning]="m.pct >= 60 && m.pct < 85"
+                      [class.text-danger]="m.pct >= 85">
+                  {{ m.pct }}%
+                </span>
+              </div>
+              <c-progress
+                [value]="m.pct"
+                [color]="m.pct >= 85 ? 'danger' : m.pct >= 60 ? 'warning' : 'success'"
+                thin>
+              </c-progress>
+            </c-card-body>
+          </c-card>
+        </c-col>
+      }
+    </c-row>
+  }
+
+}
