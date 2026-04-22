@@ -1,0 +1,68 @@
+@use '../../accounting-shared' as *;
+
+/* ── Form layout ──────────────────────────────────────────────────────────── */
+.form-card {
+  background: var(--cui-body-bg);
+  border: 1px solid var(--cui-border-color);
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+}
+
+.lines-section { margin-top: 1rem; }
+
+/* ── Lines table ──────────────────────────────────────────────────────────── */
+.lines-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  thead th {
+    font-size: .69rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--cui-tertiary-color);
+    padding: .3rem .5rem;
+    border-bottom: 1px solid var(--cui-border-color);
+    background: var(--cui-tertiary-bg);
+  }
+
+  tbody td {
+    padding: .3rem .5rem;
+    border-bottom: 1px solid var(--cui-border-color);
+    vertical-align: middle;
+  }
+
+  tfoot td {
+    padding: .4rem .5rem;
+    font-weight: 600;
+    border-top: 2px solid var(--cui-border-color);
+    font-family: monospace;
+    font-size: .85rem;
+  }
+}
+
+.balance-ok   { color: var(--cui-success); font-size: .8rem; }
+.balance-fail { color: var(--cui-danger);  font-size: .8rem; font-weight: 600; }
+
+/* Options in account select */
+.acc-option { font-family: monospace; font-size: .8rem; }
+
+/* ── Totals bar ───────────────────────────────────────────────────────────── */
+.totals-bar {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+  padding: .5rem .75rem;
+  background: var(--cui-tertiary-bg);
+  border-radius: 6px;
+  border: 1px solid var(--cui-border-color);
+  margin-top: .75rem;
+
+  .lbl { font-size: .75rem; color: var(--cui-secondary-color); }
+  .val { font-family: monospace; font-size: .92rem; font-weight: 600; }
+}
+
+.diff-ok   { color: var(--cui-success); }
+.diff-fail { color: var(--cui-danger); }
+
+.line-input-num { text-align: right; }

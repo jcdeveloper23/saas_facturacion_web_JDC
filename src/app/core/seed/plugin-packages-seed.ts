@@ -17,6 +17,7 @@
  *     └── pkg_sales
  *           ├── pkg_sales_advanced
  *           ├── pkg_sri
+ *           │     └── pkg_accounting
  *           ├── pkg_purchases
  *           ├── pkg_reports
  *           └── pkg_marketplace
@@ -156,6 +157,23 @@ export const PLUGIN_PACKAGES_SEED: PackageSeed[] = [
     color:         'primary',
     isSystem:      false,
     order:         5,
+    state:         true
+  },
+
+  // ─── CONTABILIDAD ─────────────────────────────────────────────────────────
+  {
+    code:          'pkg_accounting',
+    name:          'Módulo Contabilidad',
+    description:   'Contabilidad completa: plan de cuentas Ecuador (NIIF), asientos manuales y automáticos, libro diario, libro mayor, balance de comprobación, centros de costo y ejercicios contables.',
+    modules:       ['accounting'],
+    dependencies:  ['pkg_sri'],
+    price:         29,
+    currency:      'USD',
+    billingPeriod: 'monthly',
+    icon:          'cil-calculator',
+    color:         'dark',
+    isSystem:      false,
+    order:         8,
     state:         true
   },
 

@@ -1,0 +1,205 @@
+<!-- ── Header ──────────────────────────────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <a routerLink="/accounting/journal-entries" class="text-secondary text-decoration-none small">
+      <svg cIcon name="cilArrowLeft" size="sm" class="me-1"></svg>
+      Volver a Asientos
+    </a>
+    <h4 class="mb-0 mt-1">{{ pageTitle }}</h4>
+  </div>
+  <div class="d-flex gap-2">
+    <button cButton color="secondary" variant="outline" (click)="cancel()" [disabled]="saving()">
+      Cancelar
+    </button>
+    <button cButton color="secondary" (click)="save(false)" [disabled]="form.invalid || saving()">
+      @if (saving()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+      Guardar Borrador
+    </button>
+    <button cButton color="primary" (click)="save(true)" [disabled]="form.invalid || saving()">
+      @if (saving()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+      <svg cIcon name="cilCheckCircle" size="sm" class="me-1"></svg>
+      Contabilizar
+    </button>
+  </div>
+</div>
+
+@if (loading()) {
+  <div class="text-center py-5">
+    <c-spinner color="primary"></c-spinner>
+  </div>
+} @else {
+  <form [formGroup]="form">
+    <!-- ── Header fields ──────────────────────────────────────────────── -->
+    <c-card class="mb-3">
+      <c-card-body>
+        <div class="row g-3">
+          <div class="col-md-2">
+            <label cLabel>Fecha <span class="text-danger">*</span></label>
+            <input cFormControl type="date" formControlName="date"
+                   [class.is-invalid]="form.get('date')?.invalid && form.get('date')?.touched" />
+          </div>
+          <div class="col-md-5">
+            <label cLabel>Descripción / Concepto <span class="text-danger">*</span></label>
+            <input cFormControl formControlName="description"
+                   placeholder="Ej: Venta mercadería al contado"
+                   [class.is-invalid]="form.get('description')?.invalid && form.get('description')?.touched" />
+            @if (form.get('description')?.invalid && form.get('description')?.touched) {
+              <div class="invalid-feedback">Mínimo 3 caracteres</div>
+            }
+          </div>
+          <div class="col-md-2">
+            <label cLabel>Tipo</label>
+            <select cFormSelect formControlName="type">
+              @for (t of entryTypes; track t) {
+                <option [value]="t">{{ TYPE_LABELS[t] }}</option>
+              }
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label cLabel>Período Contable <span class="text-danger">*</span></label>
+            <select cFormSelect formControlName="periodId"
+                    [class.is-invalid]="form.get('periodId')?.invalid && form.get('periodId')?.touched">
+              <option value="">— Seleccionar período —</option>
+              @for (p of periods(); track p.id) {
+                <option [value]="p.id">{{ p.name }}</option>
+              }
+            </select>
+            @if (!periods().length) {
+              <div class="form-text text-warning">No hay períodos abiertos. Cree un ejercicio contable.</div>
+            }
+          </div>
+          <div class="col-md-4">
+            <label cLabel>Referencia / N° Documento</label>
+            <input cFormControl formControlName="reference"
+                   placeholder="Ej: 001-001-000000123" />
+          </div>
+        </div>
+      </c-card-body>
+    </c-card>
+
+    <!-- ── Lines ──────────────────────────────────────────────────────── -->
+    <c-card>
+      <c-card-header class="d-flex justify-content-between align-items-center">
+        <strong>Líneas del Asiento</strong>
+        <button type="button" cButton color="primary" variant="outline" size="sm" (click)="addLine()">
+          <svg cIcon name="cilPlus" size="sm" class="me-1"></svg>
+          Agregar Línea
+        </button>
+      </c-card-header>
+      <c-card-body class="p-0">
+        <div class="table-responsive">
+          <table class="lines-table">
+            <thead>
+              <tr>
+                <th class="col-acc">Cuenta Contable</th>
+                <th class="col-name">Nombre</th>
+                <th class="col-cc">Centro de Costo</th>
+                <th class="col-date text-end">Débito</th>
+                <th class="col-date text-end">Crédito</th>
+                <th>Detalle</th>
+                <th class="col-action"></th>
+              </tr>
+            </thead>
+            <tbody formArrayName="lines">
+              @for (ctrl of linesArray.controls; track $index; let i = $index) {
+                <tr [formGroupName]="i">
+                  <td>
+                    <select cFormSelect formControlName="accountCode"
+                            (change)="onAccountSelect(i, $event)"
+                            class="font-mono-xs"
+                            [class.is-invalid]="getLineGroup(i).get('accountCode')?.invalid && getLineGroup(i).get('accountCode')?.touched">
+                      <option value="">— Cuenta —</option>
+                      @for (acc of accounts(); track acc.code) {
+                        <option [value]="acc.code">{{ acc.code }}</option>
+                      }
+                    </select>
+                  </td>
+                  <td class="text-sm-muted">
+                    {{ getLineGroup(i).get('accountName')?.value || '—' }}
+                  </td>
+                  <td>
+                    <select cFormSelect formControlName="costCenterId"
+                            (change)="onCostCenterSelect(i, $event)"
+                            class="text-sm-muted">
+                      <option [value]="null">—</option>
+                      @for (cc of costCenters(); track cc.id) {
+                        <option [value]="cc.id">{{ cc.code }} - {{ cc.name }}</option>
+                      }
+                    </select>
+                  </td>
+                  <td>
+                    <input cFormControl formControlName="debit" type="number" min="0" step="0.01"
+                           class="line-input-num text-end"
+                           class="font-mono-sm"
+                           (input)="onAmountChange()" placeholder="0.00" />
+                  </td>
+                  <td>
+                    <input cFormControl formControlName="credit" type="number" min="0" step="0.01"
+                           class="line-input-num text-end"
+                           class="font-mono-sm"
+                           (input)="onAmountChange()" placeholder="0.00" />
+                  </td>
+                  <td>
+                    <input cFormControl formControlName="description" type="text"
+                           class="text-sm-muted" placeholder="Detalle opcional" />
+                  </td>
+                  <td class="text-center">
+                    <button type="button" cButton color="danger" variant="ghost" size="sm"
+                            (click)="removeLine(i)">
+                      <svg cIcon name="cilTrash" size="sm"></svg>
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colspan="3" class="text-end">TOTALES</td>
+                <td class="text-end">{{ (totals().totalDebit + linesVersion() * 0).toFixed(2) }}</td>
+                <td class="text-end">{{ totals().totalCredit.toFixed(2) }}</td>
+                <td colspan="2">
+                  @if (totals().isBalanced && linesArray.length > 0) {
+                    <span class="balance-ok">
+                      <svg cIcon name="cilCheckCircle" size="sm" class="me-1"></svg>
+                      Balanceado
+                    </span>
+                  } @else if (linesArray.length > 0) {
+                    <span class="balance-fail">
+                      <svg cIcon name="cilWarning" size="sm" class="me-1"></svg>
+                      Diferencia: {{ (totals().totalDebit - totals().totalCredit) | number:'1.2-2' }}
+                    </span>
+                  }
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </c-card-body>
+    </c-card>
+
+    <!-- ── Totals bar ─────────────────────────────────────────────────── -->
+    <div class="totals-bar mt-3">
+      <div>
+        <div class="lbl">Total Débitos</div>
+        <div class="val">{{ totals().totalDebit.toFixed(2) }} USD</div>
+      </div>
+      <div>
+        <div class="lbl">Total Créditos</div>
+        <div class="val">{{ totals().totalCredit.toFixed(2) }} USD</div>
+      </div>
+      <div>
+        <div class="lbl">Diferencia</div>
+        <div class="val" [class.diff-ok]="totals().isBalanced" [class.diff-fail]="!totals().isBalanced">
+          {{ (totals().totalDebit - totals().totalCredit).toFixed(2) }} USD
+        </div>
+      </div>
+      <div class="ms-auto">
+        @if (totals().isBalanced && linesArray.length > 0) {
+          <c-badge color="success">Asiento Cuadrado</c-badge>
+        } @else if (linesArray.length > 0) {
+          <c-badge color="danger">Asiento Descuadrado</c-badge>
+        }
+      </div>
+    </div>
+  </form>
+}

@@ -10,7 +10,7 @@ import { ApiResponse, PaginationParams } from '../interfaces';
  */
 export abstract class ApiBaseService<T> {
   protected http = inject(HttpClient);
-  protected readonly baseUrl = environment.apiGpsUrl;
+  protected readonly baseUrl = environment.apiUrl;
   protected abstract endpoint: string;
 
   protected get url(): string {

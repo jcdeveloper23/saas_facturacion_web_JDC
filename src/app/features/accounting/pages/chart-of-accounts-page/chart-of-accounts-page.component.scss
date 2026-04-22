@@ -1,0 +1,71 @@
+@use '../../accounting-shared' as *;
+
+/* ── Search ───────────────────────────────────────────────────────────────── */
+.search-input { max-width: 300px; }
+
+/* ── Accounts table ───────────────────────────────────────────────────────── */
+.acc-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  thead th {
+    font-size: .69rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--cui-tertiary-color);
+    padding: .35rem .6rem;
+    border-bottom: 1px solid var(--cui-border-color);
+    background: var(--cui-tertiary-bg);
+    white-space: nowrap;
+  }
+
+  tbody {
+    tr {
+      cursor: pointer;
+      &:hover td { background: var(--cui-tertiary-bg); }
+      &:last-child td { border-bottom: none; }
+      &.row-inactive td { opacity: .5; }
+    }
+    td {
+      padding: .38rem .6rem;
+      font-size: .82rem;
+      border-bottom: 1px solid var(--cui-border-color);
+      vertical-align: middle;
+    }
+  }
+}
+
+.acc-code   { font-family: monospace; font-size: .8rem; font-weight: 600; }
+.acc-indent { display: inline-block; }
+
+.acc-expand-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--cui-secondary-color);
+  font-size: .75rem;
+  margin-right: .25rem;
+  width: 16px;
+  display: inline-block;
+  text-align: center;
+
+  &:hover { color: var(--cui-body-color); }
+}
+
+.level-badge {
+  font-size: .65rem;
+  padding: .1rem .35rem;
+  border-radius: 3px;
+  background: var(--cui-tertiary-bg);
+  color: var(--cui-secondary-color);
+  font-family: monospace;
+}
+
+.table-footer {
+  padding: .4rem .75rem;
+  font-size: .75rem;
+  color: var(--cui-secondary-color);
+  border-top: 1px solid var(--cui-border-color);
+}

@@ -22,7 +22,9 @@ import {
 import { IconModule } from '@coreui/icons-angular';
 
 import { PermissionsService } from '../../core/services/permissions.service';
+import { RolesService } from '../../core/services/roles.service';
 import { AuthService } from '../../core/services/auth.service';
+import { NotificationService } from '../../core/services/notification.service';
 import {
   Role,
   Permission,
@@ -67,18 +69,25 @@ function getModuleCode(p: Permission): string {
 })
 export class ProfilesComponent implements OnInit {
   private permissionsService = inject(PermissionsService);
+  private rolesSvc = inject(RolesService);
   private authService = inject(AuthService);
+  private notification = inject(NotificationService);
   private fb = inject(FormBuilder);
 
   // State
   roles = signal<Role[]>([]);
-  allPermissions = signal<Permission[]>([]); // Loaded from API
+  allPermissions = signal<Permission[]>([]);
   isLoading = signal(false);
+  isSeeding = signal(false);
   showModal = signal(false);
   showViewModal = signal(false);
   editingRole = signal<Role | null>(null);
   viewingRole = signal<Role | null>(null);
   selectedPermissions = signal<PermissionString[]>([]);
+
+  // Auth helpers
+  isSuperAdmin = computed(() => this.authService.isSuperAdmin());
+  canManageRoles = computed(() => this.authService.isAdmin() || this.authService.isSuperAdmin());
 
   // Form
   roleForm!: FormGroup;
@@ -129,6 +138,25 @@ export class ProfilesComponent implements OnInit {
       color: ['#007bff'],
       icon: ['cilUser']
     });
+  }
+
+  seedDefaultRoles(): void {
+    if (!this.isSuperAdmin()) return;
+    this.isSeeding.set(true);
+    this.rolesSvc.seedDefaultRoles()
+      .then(({ created, skipped }) => {
+        if (created > 0) {
+          this.notification.success(`${created} rol(es) creado(s) correctamente.${skipped > 0 ? ` ${skipped} ya existían.` : ''}`);
+          this.loadRoles();
+        } else {
+          this.notification.info('Todos los roles del sistema ya estaban configurados.');
+        }
+      })
+      .catch(err => {
+        console.error('Error seeding roles:', err);
+        this.notification.error('Error al sembrar los roles. Verifica los permisos de Firestore.');
+      })
+      .finally(() => this.isSeeding.set(false));
   }
 
   loadPermissions(): void {
@@ -218,7 +246,7 @@ export class ProfilesComponent implements OnInit {
       description: formValue.description,
       type: 'custom',
       permissions: permissionIds, // SENDING IDs NOW
-      organizationId: this.authService.user()?.organizationId,
+      organizationId: this.authService.user()?.companyId,
       level: formValue.level,
       color: formValue.color,
       icon: formValue.icon,
@@ -310,7 +338,7 @@ export class ProfilesComponent implements OnInit {
     return module?.code || '';
   }
 
-  getPermissionsGroupedForRole(role: Role): PermissionGroup[] {
+  getPermissionsGroupedForRole(role: Role): { module: string; moduleName: string; moduleIcon: string; permissions: Permission[] }[] {
     // This is for viewing permissions in read-only modal
     // We can use the generic service grouper or our dynamic one
 

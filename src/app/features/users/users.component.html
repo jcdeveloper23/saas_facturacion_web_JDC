@@ -75,7 +75,7 @@
 
                 <!-- Filters -->
                 <c-row class="mb-3 g-3">
-                    <c-col md="3">
+                    <c-col md="4">
                         <c-input-group>
                             <span cInputGroupText>
                                 <svg cIcon name="cilSearch"></svg>
@@ -88,7 +88,7 @@
                         <select cSelect (change)="onRoleFilterChange($any($event.target).value)">
                             <option value="">Rol: Todos</option>
                             @for (role of roles(); track role.id) {
-                            <option [value]="role.id">{{ role.name }}</option>
+                            <option [value]="role.code">{{ role.name }}</option>
                             }
                         </select>
                     </c-col>
@@ -99,17 +99,7 @@
                             <option value="false">Inactivos</option>
                         </select>
                     </c-col>
-                    @if (isSuperAdmin()) {
-                    <c-col md="2">
-                        <select cSelect (change)="onOrganizationFilterChange($any($event.target).value)">
-                            <option value="">Organizacion: Todas</option>
-                            @for (org of organizations(); track org.id) {
-                            <option [value]="org.id">{{ org.name }}</option>
-                            }
-                        </select>
-                    </c-col>
-                    }
-                    <c-col [md]="isSuperAdmin() ? 3 : 5" class="d-flex justify-content-end align-items-center">
+                    <c-col md="4" class="d-flex justify-content-end align-items-center">
                         <small class="text-muted">
                             Mostrando {{ filteredUsers().length }} de {{ stats().total }} usuarios
                         </small>
@@ -133,16 +123,13 @@
                                 <th>Usuario</th>
                                 <th>Email</th>
                                 <th class="text-center">Rol</th>
-                                @if (isSuperAdmin()) {
-                                <th>Organizacion</th>
-                                }
                                 <th class="text-center">Estado</th>
                                 <th>Creado</th>
                                 <th class="text-end">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @for (user of filteredUsers(); track user.id) {
+                            @for (user of filteredUsers(); track user.uid) {
                             <tr>
                                 <td>
                                     <div class="d-flex align-items-center">
@@ -150,47 +137,41 @@
                                             {{ getUserInitials(user) }}
                                         </div>
                                         <div>
-                                            <a [routerLink]="['/users', user.id]"
+                                            <a [routerLink]="['/users', user.uid]"
                                                 class="text-decoration-none fw-semibold">
-                                                {{ user.userFullName || '' }} {{ user.userLastName || '' }}
+                                                {{ user.displayName }}
                                             </a>
-                                            @if (user.userPhone) {
-                                            <div class="small text-muted">{{ user.userPhone }}</div>
-                                            }
                                         </div>
                                     </div>
                                 </td>
-                                <td>{{ user.userEmail }}</td>
+                                <td>{{ user.email }}</td>
                                 <td class="text-center">
-                                    <c-badge [color]="getRoleColor(user.role)" shape="rounded-pill">
+                                    <c-badge [color]="getRoleColor(user.platformRole)" shape="rounded-pill">
                                         {{ getRoleName(user) }}
                                     </c-badge>
                                 </td>
-                                @if (isSuperAdmin()) {
-                                <td>{{ user.organization?.name || user.organizationName || 'N/A' }}</td>
-                                }
                                 <td class="text-center">
-                                    <c-badge [color]="getStateColor(user.state)" shape="rounded-pill">
-                                        {{ getStateLabel(user.state) }}
+                                    <c-badge [color]="getStateColor(user.isActive)" shape="rounded-pill">
+                                        {{ getStateLabel(user.isActive) }}
                                     </c-badge>
                                 </td>
                                 <td>{{ formatDate(user.createdAt) }}</td>
                                 <td class="text-end">
                                     <c-button-group role="group" size="sm">
                                         <button cButton color="info" variant="ghost"
-                                            [routerLink]="['/users', user.id]" title="Ver Detalles">
+                                            [routerLink]="['/users', user.uid]" title="Ver Detalles">
                                             <svg cIcon name="cilOptions"></svg>
                                         </button>
                                         <button cButton color="primary" variant="ghost"
-                                            [routerLink]="['/users', user.id, 'edit']"
+                                            [routerLink]="['/users', user.uid, 'edit']"
                                             *hasPermission="['users.edit']" title="Editar">
                                             <svg cIcon name="cilPencil"></svg>
                                         </button>
-                                        <button cButton [color]="user.state ? 'warning' : 'success'" variant="ghost"
+                                        <button cButton [color]="user.isActive ? 'warning' : 'success'" variant="ghost"
                                             (click)="toggleUserState(user)"
                                             *hasPermission="['users.manage']"
-                                            [title]="user.state ? 'Desactivar' : 'Activar'">
-                                            <svg cIcon [name]="user.state ? 'cilXCircle' : 'cilCheckCircle'"></svg>
+                                            [title]="user.isActive ? 'Desactivar' : 'Activar'">
+                                            <svg cIcon [name]="user.isActive ? 'cilXCircle' : 'cilCheckCircle'"></svg>
                                         </button>
                                     </c-button-group>
                                 </td>
@@ -200,7 +181,7 @@
                             <!-- Empty State -->
                             @if (filteredUsers().length === 0) {
                             <tr>
-                                <td [attr.colspan]="isSuperAdmin() ? 7 : 6" class="text-center py-5">
+                                <td colspan="6" class="text-center py-5">
                                     <div class="text-muted">
                                         <svg cIcon name="cilPeople" size="3xl" class="mb-3 opacity-25"></svg>
                                         <p class="mb-0">No se encontraron usuarios</p>

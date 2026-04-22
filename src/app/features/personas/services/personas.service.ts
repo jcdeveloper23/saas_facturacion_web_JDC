@@ -16,7 +16,7 @@ export type CustomerDataInput = Omit<CustomerData, 'code'>;
 export type SupplierDataInput = Omit<SupplierData, 'code'>;
 export type EmployeeDataInput = Omit<EmployeeData, 'code'>;
 
-export type PersonCreateInput = Omit<Person, 'id' | 'createdAt' | 'updatedAt'> & {
+export type PersonCreateInput = Omit<Person, 'id' | 'createdAt' | 'updatedAt' | 'customerData' | 'supplierData' | 'employeeData'> & {
   customerData?: CustomerDataInput;
   supplierData?: SupplierDataInput;
   employeeData?: EmployeeDataInput;

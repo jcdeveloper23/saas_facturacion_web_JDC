@@ -1,0 +1,287 @@
+<!-- ── Header ──────────────────────────────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-start mb-3">
+  <div>
+    <h4 class="mb-1">Plan de Cuentas</h4>
+    <div class="d-flex gap-2 flex-wrap">
+      <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+        {{ counts().total }} cuentas
+      </span>
+      <span class="badge bg-success-subtle text-success border border-success-subtle">
+        {{ counts().active }} activas
+      </span>
+      <span class="badge bg-info-subtle text-info border border-info-subtle">
+        {{ counts().movement }} de movimiento
+      </span>
+    </div>
+  </div>
+  <div class="d-flex gap-2">
+    <button cButton color="secondary" variant="outline" size="sm"
+            (click)="seedAccounts()" [disabled]="seeding()">
+      @if (seeding()) {
+        <c-spinner size="sm" class="me-1"></c-spinner>
+      } @else {
+        <svg cIcon name="cilCloudDownload" size="sm" class="me-1"></svg>
+      }
+      Cargar Plan Estándar
+    </button>
+    <button cButton color="primary" size="sm" (click)="openNew()">
+      <svg cIcon name="cilPlus" class="me-1"></svg>
+      Nueva Cuenta
+    </button>
+  </div>
+</div>
+
+<!-- ── Filters & View Toggle ─────────────────────────────────────────────── -->
+<c-card class="mb-3">
+  <c-card-body class="py-2 px-3">
+    <div class="d-flex gap-2 align-items-center flex-wrap">
+      <c-input-group class="search-wrap">
+        <span cInputGroupText>
+          <svg cIcon name="cilSearch" size="sm"></svg>
+        </span>
+        <input cFormControl type="text" placeholder="Buscar código o nombre..."
+               [ngModel]="searchTerm()" (ngModelChange)="searchTerm.set($event)"
+               class="form-control-sm" />
+      </c-input-group>
+
+      <!-- Type pills -->
+      <button class="btn btn-sm" [class.btn-primary]="typeFilter() === null"
+              [class.btn-outline-secondary]="typeFilter() !== null"
+              (click)="setTypeFilter(null)">Todas</button>
+      @for (type of accountTypes; track type) {
+        <button class="btn btn-sm"
+                [class.btn-primary]="typeFilter() === type"
+                [class.btn-outline-secondary]="typeFilter() !== type"
+                (click)="setTypeFilter(type)">
+          {{ TYPE_LABELS[type] }}
+        </button>
+      }
+
+      <div class="ms-auto d-flex gap-1">
+        <button cButton color="secondary" variant="outline" size="sm"
+                cTooltip="Vista árbol" (click)="treeMode.set(true)"
+                [class.active]="treeMode()">
+          <svg cIcon name="cilList" size="sm"></svg>
+        </button>
+        <button cButton color="secondary" variant="outline" size="sm"
+                cTooltip="Vista plana" (click)="treeMode.set(false)"
+                [class.active]="!treeMode()">
+          <svg cIcon name="cilEqualizer" size="sm"></svg>
+        </button>
+        @if (treeMode() && !isSearching) {
+          <button cButton color="secondary" variant="ghost" size="sm" (click)="expandAll()">
+            <svg cIcon name="cilArrowBottom" size="sm"></svg>
+          </button>
+          <button cButton color="secondary" variant="ghost" size="sm" (click)="collapseAll()">
+            <svg cIcon name="cilArrowTop" size="sm"></svg>
+          </button>
+        }
+      </div>
+    </div>
+  </c-card-body>
+</c-card>
+
+<!-- ── Table ──────────────────────────────────────────────────────────────── -->
+<c-card>
+  @if (loading()) {
+    <c-card-body class="text-center py-5">
+      <c-spinner color="primary"></c-spinner>
+      <p class="mt-2 text-secondary">Cargando plan de cuentas...</p>
+    </c-card-body>
+  } @else {
+    <div class="table-responsive">
+      <table class="acc-table">
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Nombre</th>
+            <th>Tipo</th>
+            <th>Naturaleza</th>
+            <th>Nivel</th>
+            <th>Estado</th>
+            <th class="text-end">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Tree mode -->
+          @if (treeMode() && !isSearching) {
+            @for (node of visibleNodes(); track node.code) {
+              <tr [class.row-inactive]="!node.isActive" (click)="openEdit(node, $event)">
+                <td class="acc-code">
+                  <span class="acc-indent" [style.width]="indentPx(node.level)"></span>
+                  @if (node.children.length > 0) {
+                    <button class="acc-expand-btn" (click)="toggleNode(node, $event)">
+                      {{ node.expanded ? '▾' : '▸' }}
+                    </button>
+                  } @else {
+                    <span class="acc-expand-btn"></span>
+                  }
+                  {{ node.code }}
+                </td>
+                <td>{{ node.name }}</td>
+                <td>
+                  <c-badge [color]="TYPE_COLORS[node.type]" shape="rounded-pill">
+                    {{ TYPE_LABELS[node.type] }}
+                  </c-badge>
+                </td>
+                <td class="text-capitalize text-sm-muted">{{ NATURE_LABELS[node.nature] }}</td>
+                <td><span class="level-badge">N{{ node.level }}</span></td>
+                <td>
+                  @if (node.isActive) {
+                    <c-badge color="success" shape="rounded-pill">Activa</c-badge>
+                  } @else {
+                    <c-badge color="secondary" shape="rounded-pill">Inactiva</c-badge>
+                  }
+                  @if (node.allowsMovement) {
+                    <c-badge color="info" shape="rounded-pill" class="ms-1">Movimiento</c-badge>
+                  }
+                </td>
+                <td class="text-end">
+                  <button cButton color="secondary" variant="ghost" size="sm"
+                          cTooltip="Editar" (click)="openEdit(node, $event)">
+                    <svg cIcon name="cilPencil" size="sm"></svg>
+                  </button>
+                  <button cButton [color]="node.isActive ? 'warning' : 'success'" variant="ghost" size="sm"
+                          cTooltip="{{ node.isActive ? 'Inactivar' : 'Activar' }}"
+                          (click)="toggleActive(node, $event)">
+                    <svg cIcon [name]="node.isActive ? 'cilBan' : 'cilCheckCircle'" size="sm"></svg>
+                  </button>
+                  <button cButton color="danger" variant="ghost" size="sm"
+                          cTooltip="Eliminar" (click)="delete(node, $event)">
+                    <svg cIcon name="cilTrash" size="sm"></svg>
+                  </button>
+                </td>
+              </tr>
+            }
+          } @else {
+            <!-- Flat / search mode -->
+            @for (acc of filteredFlat(); track acc.id) {
+              <tr [class.row-inactive]="!acc.isActive" (click)="openEdit(acc, $event)">
+                <td class="acc-code">{{ acc.code }}</td>
+                <td>{{ acc.name }}</td>
+                <td>
+                  <c-badge [color]="TYPE_COLORS[acc.type]" shape="rounded-pill">
+                    {{ TYPE_LABELS[acc.type] }}
+                  </c-badge>
+                </td>
+                <td class="text-sm-muted">{{ NATURE_LABELS[acc.nature] }}</td>
+                <td><span class="level-badge">N{{ acc.level }}</span></td>
+                <td>
+                  @if (acc.isActive) {
+                    <c-badge color="success" shape="rounded-pill">Activa</c-badge>
+                  } @else {
+                    <c-badge color="secondary" shape="rounded-pill">Inactiva</c-badge>
+                  }
+                  @if (acc.allowsMovement) {
+                    <c-badge color="info" shape="rounded-pill" class="ms-1">Movimiento</c-badge>
+                  }
+                </td>
+                <td class="text-end">
+                  <button cButton color="secondary" variant="ghost" size="sm"
+                          (click)="openEdit(acc, $event)">
+                    <svg cIcon name="cilPencil" size="sm"></svg>
+                  </button>
+                  <button cButton [color]="acc.isActive ? 'warning' : 'success'" variant="ghost" size="sm"
+                          (click)="toggleActive(acc, $event)">
+                    <svg cIcon [name]="acc.isActive ? 'cilBan' : 'cilCheckCircle'" size="sm"></svg>
+                  </button>
+                  <button cButton color="danger" variant="ghost" size="sm"
+                          (click)="delete(acc, $event)">
+                    <svg cIcon name="cilTrash" size="sm"></svg>
+                  </button>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+    <div class="table-footer">
+      Mostrando {{ isSearching ? filteredFlat().length : visibleNodes().length }}
+      de {{ accounts().length }} cuentas
+    </div>
+  }
+</c-card>
+
+<!-- ── Modal: Create / Edit Account ─────────────────────────────────────── -->
+<c-modal [visible]="showModal()" (visibleChange)="showModal.set($event)" backdrop="static" size="lg">
+  <c-modal-header>
+    <h5 cModalTitle>{{ editingId() ? 'Editar Cuenta' : 'Nueva Cuenta Contable' }}</h5>
+    <button type="button" class="btn-close" (click)="closeModal()"></button>
+  </c-modal-header>
+
+  <c-modal-body>
+    <form [formGroup]="form">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label cLabel>Código <span class="text-danger">*</span></label>
+          <input cFormControl formControlName="code"
+                 placeholder="Ej: 1.1.01.001"
+                 [class.is-invalid]="form.get('code')?.invalid && form.get('code')?.touched" />
+          @if (form.get('code')?.hasError('required') && form.get('code')?.touched) {
+            <div class="invalid-feedback">Código requerido</div>
+          }
+          @if (form.get('code')?.hasError('pattern') && form.get('code')?.touched) {
+            <div class="invalid-feedback">Solo números y puntos (ej: 1.1.01)</div>
+          }
+        </div>
+        <div class="col-md-8">
+          <label cLabel>Nombre <span class="text-danger">*</span></label>
+          <input cFormControl formControlName="name"
+                 placeholder="Nombre de la cuenta"
+                 [class.is-invalid]="form.get('name')?.invalid && form.get('name')?.touched" />
+          @if (form.get('name')?.invalid && form.get('name')?.touched) {
+            <div class="invalid-feedback">Nombre requerido (mín. 2 caracteres)</div>
+          }
+        </div>
+        <div class="col-md-6">
+          <label cLabel>Tipo de Cuenta <span class="text-danger">*</span></label>
+          <select cFormSelect formControlName="type" (change)="onTypeChange()">
+            @for (type of accountTypes; track type) {
+              <option [value]="type">{{ TYPE_LABELS[type] }}</option>
+            }
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label cLabel>Naturaleza</label>
+          <select cFormSelect formControlName="nature">
+            <option value="deudora">Deudora (saldo normal débito)</option>
+            <option value="acreedora">Acreedora (saldo normal crédito)</option>
+          </select>
+        </div>
+        <div class="col-12">
+          <label cLabel>Descripción</label>
+          <textarea cFormControl formControlName="description" rows="2"
+                    placeholder="Descripción o notas de la cuenta"></textarea>
+        </div>
+        <div class="col-md-6">
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" role="switch" id="allowsMovement"
+                   formControlName="allowsMovement" />
+            <label class="form-check-label" for="allowsMovement">
+              Permite Movimiento (cuenta auxiliar)
+            </label>
+          </div>
+          <div class="form-text">Marcar si esta cuenta puede recibir débitos/créditos en asientos.</div>
+        </div>
+        <div class="col-md-6">
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" role="switch" id="isActive"
+                   formControlName="isActive" />
+            <label class="form-check-label" for="isActive">Cuenta Activa</label>
+          </div>
+        </div>
+      </div>
+    </form>
+  </c-modal-body>
+
+  <c-modal-footer>
+    <button cButton color="secondary" variant="outline" (click)="closeModal()">Cancelar</button>
+    <button cButton color="primary" (click)="save()" [disabled]="form.invalid || saving()">
+      @if (saving()) {
+        <c-spinner size="sm" class="me-1"></c-spinner>
+      }
+      {{ editingId() ? 'Actualizar' : 'Crear' }}
+    </button>
+  </c-modal-footer>
+</c-modal>

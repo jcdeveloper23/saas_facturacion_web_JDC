@@ -1,0 +1,138 @@
+<!-- ── Header ──────────────────────────────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0">Balance de Comprobación (Sumas y Saldos)</h4>
+  @if (searched()) {
+    <button cButton color="secondary" variant="outline" size="sm" (click)="printReport()">
+      <svg cIcon name="cilPrint" size="sm" class="me-1"></svg>
+      Imprimir
+    </button>
+  }
+</div>
+
+<!-- ── Filters ────────────────────────────────────────────────────────────── -->
+<c-card class="mb-3">
+  <c-card-body>
+    <div class="d-flex gap-3 align-items-end flex-wrap">
+      <div>
+        <label cLabel>Período Contable</label>
+        <select cFormSelect class="select-period"
+                [ngModel]="selectedPeriod()" (ngModelChange)="selectedPeriod.set($event)">
+          <option value="">Todos los períodos</option>
+          @for (p of periods(); track p.id) {
+            <option [value]="p.id">{{ p.name }}</option>
+          }
+        </select>
+      </div>
+      <button cButton color="primary" (click)="generate()" [disabled]="searching()">
+        @if (searching()) {
+          <c-spinner size="sm" class="me-1"></c-spinner>
+          Generando...
+        } @else {
+          <svg cIcon name="cilChartLine" size="sm" class="me-1"></svg>
+          Generar Balance
+        }
+      </button>
+    </div>
+  </c-card-body>
+</c-card>
+
+<!-- ── Balance header ─────────────────────────────────────────────────────── -->
+@if (searched() && lines().length > 0) {
+  <div class="d-flex justify-content-between align-items-center mb-2 px-1">
+    <span class="text-secondary period-info">
+      Período: <strong>{{ getPeriodName() }}</strong> —
+      {{ lines().length }} cuentas con movimiento
+    </span>
+    @if (isBalanced()) {
+      <span class="ok">
+        <svg cIcon name="cilCheckCircle" size="sm" class="me-1"></svg>
+        Balance Cuadrado
+      </span>
+    } @else {
+      <span class="fail">
+        <svg cIcon name="cilWarning" size="sm" class="me-1"></svg>
+        Descuadrado — diferencia: {{ (totalDebit() - totalCredit()) | number:'1.2-2' }}
+      </span>
+    }
+  </div>
+}
+
+<!-- ── Table ──────────────────────────────────────────────────────────────── -->
+@if (searched()) {
+  <c-card>
+    @if (lines().length === 0 && !searching()) {
+      <c-card-body class="text-center py-4 text-secondary">
+        No hay movimientos contabilizados para el período seleccionado
+      </c-card-body>
+    } @else {
+      <div class="table-responsive">
+        <table class="bc-table">
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Cuenta Contable</th>
+              <th>Tipo</th>
+              <th class="text-end">Total Débitos</th>
+              <th class="text-end">Total Créditos</th>
+              <th class="text-end">Saldo Deudor</th>
+              <th class="text-end">Saldo Acreedor</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (line of lines(); track line.accountCode) {
+              <tr>
+                <td class="acc-code">{{ line.accountCode }}</td>
+                <td>{{ line.accountName }}</td>
+                <td>
+                  <small class="text-secondary">{{ ACC_TYPES[line.accountType] }}</small>
+                </td>
+                <td class="amt">{{ line.sumDebit  | number:'1.2-2' }}</td>
+                <td class="amt">{{ line.sumCredit | number:'1.2-2' }}</td>
+                <td class="amt-debit">
+                  {{ line.sumDebit > line.sumCredit ? (line.sumDebit - line.sumCredit | number:'1.2-2') : '' }}
+                </td>
+                <td class="amt-credit">
+                  {{ line.sumCredit > line.sumDebit ? (line.sumCredit - line.sumDebit | number:'1.2-2') : '' }}
+                </td>
+              </tr>
+            }
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="3" class="text-end">TOTALES</td>
+              <td class="text-end">{{ totalDebit()  | number:'1.2-2' }}</td>
+              <td class="text-end">{{ totalCredit() | number:'1.2-2' }}</td>
+              <td class="text-end">
+                {{ totalDebit() > totalCredit() ? ((totalDebit() - totalCredit()) | number:'1.2-2') : '' }}
+              </td>
+              <td class="text-end">
+                {{ totalCredit() > totalDebit() ? ((totalCredit() - totalDebit()) | number:'1.2-2') : '' }}
+              </td>
+            </tr>
+            <tr>
+              <td colspan="3" class="text-end text-xs-muted">
+                Verificación cuadre
+              </td>
+              <td colspan="2" class="text-end text-secondary text-xs-muted">
+                Dif: {{ (totalDebit() - totalCredit()) | number:'1.2-2' }}
+              </td>
+              <td colspan="2" [class.ok]="isBalanced()" [class.fail]="!isBalanced()" class="text-end">
+                {{ isBalanced() ? 'CUADRADO' : 'DESCUADRADO' }}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <div class="table-footer">
+        {{ lines().length }} cuentas con movimiento en el período
+      </div>
+    }
+  </c-card>
+}
+
+@if (!searched() && !searching()) {
+  <div class="text-center py-5 text-secondary">
+    <svg cIcon name="cilSpreadsheet" size="xl" class="mb-3 opacity-25"></svg>
+    <p>Seleccione el período y haga clic en "Generar Balance"</p>
+  </div>
+}

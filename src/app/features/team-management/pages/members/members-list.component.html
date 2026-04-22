@@ -9,7 +9,7 @@
       <p class="text-muted small mb-0">Gestión de miembros del equipo de trabajo</p>
     </div>
   </div>
-  <button cButton color="primary" size="sm"
+  <button *hasPermission="'team_management.create'" cButton color="primary" size="sm"
           (click)="router.navigate(['/team-management/members/new'])">
     <svg cIcon name="cilPlus" class="me-1"></svg> Agregar Miembro
   </button>
@@ -93,7 +93,8 @@
   <div class="text-center py-5 text-secondary">
     <svg cIcon name="cilPeople" size="xl" class="mb-2 text-muted"></svg>
     <p class="mb-1">No hay miembros registrados</p>
-    <button cButton color="primary" variant="outline" size="sm"
+    <button *hasPermission="'team_management.create'"
+            cButton color="primary" variant="outline" size="sm"
             (click)="router.navigate(['/team-management/members/new'])">
       Agregar primer miembro
     </button>
@@ -120,7 +121,8 @@
               </div>
 
               <!-- Botón editar -->
-              <button cButton color="secondary" variant="ghost" size="sm" class="flex-shrink-0"
+              <button *hasPermission="'team_management.edit'"
+                      cButton color="secondary" variant="ghost" size="sm" class="flex-shrink-0"
                       title="Editar miembro"
                       (click)="router.navigate(['/team-management/members', m.id, 'edit'])">
                 <svg cIcon name="cilPencil"></svg>

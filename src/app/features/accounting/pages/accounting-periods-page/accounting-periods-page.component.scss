@@ -1,0 +1,148 @@
+@use '../../accounting-shared' as *;
+
+/* ── Page header ──────────────────────────────────────────────────────────── */
+.page-title    { font-weight: 600; line-height: 1; }
+.page-subtitle { font-size: .76rem; color: var(--cui-secondary-color); }
+
+.page-icon {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, #212333 0%, #3c4b64 100%);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(33, 35, 51, .4);
+  flex-shrink: 0;
+}
+
+/* ── Stat strip ───────────────────────────────────────────────────────────── */
+.stat-strip {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 0;
+  background: var(--cui-card-bg);
+  border: 1px solid var(--cui-border-color);
+  border-radius: 10px;
+  padding: 5px 12px;
+  width: fit-content;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 12px;
+  font-size: .78rem;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background .15s;
+
+  &:hover  { background: var(--cui-tertiary-bg); }
+  &.active { background: var(--cui-tertiary-bg); }
+}
+
+.stat-value { font-weight: 700; font-size: .88rem; }
+.stat-label { color: var(--cui-secondary-color); font-size: .72rem; }
+.stat-sep   { width: 1px; height: 16px; background: var(--cui-border-color); flex-shrink: 0; }
+
+/* ── Seg-tabs ─────────────────────────────────────────────────────────────── */
+.seg-tabs {
+  display: flex;
+  gap: 2px;
+  background: var(--cui-tertiary-bg);
+  border: 1px solid var(--cui-border-color);
+  border-radius: 9px;
+  padding: 3px;
+}
+
+.seg-tab {
+  font-size: .78rem;
+  font-weight: 400;
+  padding: 4px 12px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--cui-secondary-color);
+  cursor: pointer;
+  transition: all .15s;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+
+  &:hover { color: var(--cui-body-color); }
+
+  &.active {
+    background: var(--cui-card-bg);
+    border: 1px solid var(--cui-border-color);
+    color: var(--cui-primary);
+    font-weight: 500;
+  }
+}
+
+.seg-count {
+  font-size: .65rem;
+  font-weight: 700;
+  background: var(--cui-secondary-bg);
+  color: var(--cui-secondary-color);
+  border-radius: 999px;
+  padding: 0 5px;
+  min-width: 18px;
+  text-align: center;
+  line-height: 1.6;
+
+  &.open   { background: var(--cui-success-bg-subtle); color: var(--cui-success-text-emphasis); }
+  &.closed { background: var(--cui-warning-bg-subtle); color: var(--cui-warning-text-emphasis); }
+  &.locked { background: var(--cui-danger-bg-subtle);  color: var(--cui-danger-text-emphasis);  }
+}
+
+.filter-divider {
+  height: 1px;
+  background: var(--cui-border-color);
+  margin: 8px -16px 0;
+}
+
+/* ── Table ────────────────────────────────────────────────────────────────── */
+.periods-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  thead th {
+    font-size: .69rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--cui-tertiary-color);
+    padding: .35rem .6rem;
+    border-bottom: 1px solid var(--cui-border-color);
+    background: var(--cui-tertiary-bg);
+  }
+
+  tbody {
+    tr {
+      cursor: pointer;
+      &:hover td { background: var(--cui-tertiary-bg); }
+    }
+    td {
+      padding: .45rem .6rem;
+      font-size: .82rem;
+      border-bottom: 1px solid var(--cui-border-color);
+      vertical-align: middle;
+    }
+  }
+}
+
+.year-badge {
+  font-family: monospace;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.table-footer {
+  padding: .4rem .75rem;
+  font-size: .75rem;
+  color: var(--cui-secondary-color);
+  border-top: 1px solid var(--cui-border-color);
+}

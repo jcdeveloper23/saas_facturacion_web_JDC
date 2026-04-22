@@ -2,6 +2,8 @@
 export { LoadingService } from './loading.service';
 export { AuthService } from './auth.service';
 export { PermissionsService } from './permissions.service';
+export { RolesService } from './roles.service';
+export { CompanyUsersService } from './company-users.service';
 export { ModulesService } from './modules.service';
 export { ActionsService } from './actions.service';
 export { NavigationService } from './navigation.service';

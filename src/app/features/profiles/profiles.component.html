@@ -10,19 +10,45 @@
               Configura los perfiles de acceso y sus permisos
             </p>
           </div>
-          <button cButton color="primary" *hasPermission="'profiles.create'" (click)="openCreateModal()">
-            <svg cIcon name="cil-plus" size="sm"></svg>
-            Nuevo Perfil
-          </button>
+          <div class="d-flex gap-2">
+            @if (isSuperAdmin()) {
+            <button cButton color="warning" variant="outline" [disabled]="isSeeding()" (click)="seedDefaultRoles()"
+              cTooltip="Crea los 5 roles del sistema (super_admin, admin, seller, cashier, read_only) si no existen">
+              @if (isSeeding()) {
+                <c-spinner size="sm" class="me-1"></c-spinner>
+              } @else {
+                <svg cIcon name="cilCloudDownload" size="sm" class="me-1"></svg>
+              }
+              Sembrar Roles por Defecto
+            </button>
+            }
+            @if (canManageRoles()) {
+            <button cButton color="primary" (click)="openCreateModal()">
+              <svg cIcon name="cilPlus" size="sm" class="me-1"></svg>
+              Nuevo Perfil
+            </button>
+            }
+          </div>
         </div>
       </c-card-header>
     </c-card>
 
     <!-- Info Alert -->
+    @if (roles().length === 0 && !isLoading()) {
+    <c-alert color="warning" class="mb-4">
+      <strong>Sin roles configurados.</strong>
+      @if (isSuperAdmin()) {
+        Usa el botón <strong>Sembrar Roles por Defecto</strong> para crear los roles del sistema.
+      } @else {
+        Solicita al super administrador que configure los roles de la plataforma.
+      }
+    </c-alert>
+    } @else {
     <c-alert color="info" class="mb-4">
       <strong>Roles del Sistema:</strong> Los roles predefinidos no pueden ser eliminados
       pero puedes crear roles personalizados con permisos específicos para tu organización.
     </c-alert>
+    }
 
     <!-- Roles Table -->
     <c-card>

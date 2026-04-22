@@ -1,0 +1,61 @@
+@use '../../accounting-shared' as *;
+
+/* ── Diario table ─────────────────────────────────────────────────────────── */
+.ld-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  thead th {
+    font-size: .69rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--cui-tertiary-color);
+    padding: .35rem .6rem;
+    border-bottom: 1px solid var(--cui-border-color);
+    background: var(--cui-tertiary-bg);
+    white-space: nowrap;
+  }
+
+  tbody {
+    tr { vertical-align: top; }
+    td {
+      padding: .38rem .6rem;
+      font-size: .82rem;
+      border-bottom: 1px solid var(--cui-border-color);
+    }
+    tr:last-child td { border-bottom: none; }
+  }
+}
+
+.ld-entry-header td { background: var(--cui-tertiary-bg) !important; font-weight: 500; }
+
+.ld-line {
+  td { padding: .2rem .6rem .2rem 2rem; font-size: .78rem; color: var(--cui-secondary-color); }
+  .acc-code { font-family: monospace; font-size: .78rem; font-weight: 500; color: var(--cui-body-color); }
+  .debit  { font-family: monospace; text-align: right; padding-left: 2rem; }
+  .credit { font-family: monospace; text-align: right; }
+}
+
+.je-num { font-family: monospace; font-weight: 600; }
+
+.totals-row td {
+  font-weight: 600;
+  font-family: monospace;
+  background: var(--cui-tertiary-bg);
+  border-top: 2px solid var(--cui-border-color);
+}
+
+.table-footer {
+  padding: .4rem .75rem;
+  font-size: .75rem;
+  color: var(--cui-secondary-color);
+  border-top: 1px solid var(--cui-border-color);
+}
+
+/* ── Print ────────────────────────────────────────────────────────────────── */
+@media print {
+  .no-print  { display: none !important; }
+  body       { font-size: 11px; }
+  .ld-table  { font-size: 10px; }
+}

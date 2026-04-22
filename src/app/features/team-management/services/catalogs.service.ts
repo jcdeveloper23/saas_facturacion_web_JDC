@@ -8,7 +8,7 @@ import { Observable } from 'rxjs';
 
 import { TenantService } from '../../../core/services/tenant.service';
 import { AuthService }   from '../../../core/services/auth.service';
-import { TmSpecialty, TmPosition } from '../models/catalog.interface';
+import { TmSpecialty, TmPosition, TmDepartment } from '../models/catalog.interface';
 
 @Injectable({ providedIn: 'root' })
 export class CatalogsService {
@@ -105,6 +105,54 @@ export class CatalogsService {
 
   async deletePosition(id: string): Promise<void> {
     const ref = doc(this.firestore, `${this.posPath}/${id}`);
+    await updateDoc(ref, { isActive: false, updatedAt: Timestamp.now() });
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════════
+  // DEPARTAMENTOS  /companies/{cId}/tm-departments
+  // Entidad de primera clase — se reutilizará en el módulo de RRHH.
+  // ══════════════════════════════════════════════════════════════════════════════
+
+  private get deptPath(): string { return `companies/${this.companyId}/tm-departments`; }
+
+  getDepartments(): Observable<TmDepartment[]> {
+    return new Observable<TmDepartment[]>(observer => {
+      const ref = collection(this.firestore, this.deptPath);
+      return onSnapshot(query(ref, orderBy('name', 'asc')), {
+        next:  snap => observer.next(
+          snap.docs
+            .map(d => ({ id: d.id, ...d.data() }) as TmDepartment)
+            .filter(d => d.isActive !== false)
+        ),
+        error: err => observer.error(err),
+      });
+    });
+  }
+
+  async addDepartment(name: string, description?: string): Promise<string> {
+    const userId = this.authService.user()?.uid ?? 'unknown';
+    const now    = Timestamp.now();
+    const payload: any = {
+      name:      name.trim(),
+      isActive:  true,
+      createdAt: now,
+      updatedAt: now,
+      createdBy: userId,
+    };
+    if (description?.trim()) payload['description'] = description.trim();
+    const ref = await addDoc(collection(this.firestore, this.deptPath), payload);
+    return ref.id;
+  }
+
+  async updateDepartment(id: string, name: string, description?: string): Promise<void> {
+    const ref = doc(this.firestore, `${this.deptPath}/${id}`);
+    const changes: any = { name: name.trim(), updatedAt: Timestamp.now() };
+    if (description !== undefined) changes['description'] = description.trim() || null;
+    await updateDoc(ref, changes);
+  }
+
+  async deleteDepartment(id: string): Promise<void> {
+    const ref = doc(this.firestore, `${this.deptPath}/${id}`);
     await updateDoc(ref, { isActive: false, updatedAt: Timestamp.now() });
   }
 }

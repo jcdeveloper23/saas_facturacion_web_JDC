@@ -19,12 +19,13 @@ import { PLUGIN_PACKAGES_SEED } from '../../../../core/seed/plugin-packages-seed
 const COREUI_COLORS = ['primary', 'secondary', 'success', 'danger', 'warning', 'info', 'dark'];
 
 const MODULE_GROUPS: { label: string; icon: string; codes: string[] }[] = [
-  { label: 'Ventas',    icon: 'cil-cart',      codes: ['personas','products','invoices','quotes','orders','proformas','pos'] },
-  { label: 'SRI',       icon: 'cil-file',      codes: ['sri','debitNotes','retentions'] },
-  { label: 'Compras',   icon: 'cil-basket',    codes: ['suppliers','purchase_invoices','purchase_orders','purchase_proformas'] },
-  { label: 'Almacén',   icon: 'cil-storage',   codes: ['stock'] },
-  { label: 'Informes',  icon: 'cil-chart-pie', codes: ['report_invoices','report_products','report_orders'] },
-  { label: 'Config',    icon: 'cil-settings',  codes: ['dashboard','settings','div','currencies','users'] },
+  { label: 'Ventas',        icon: 'cil-cart',        codes: ['personas','products','invoices','quotes','orders','proformas','pos'] },
+  { label: 'SRI',           icon: 'cil-file',        codes: ['sri','debitNotes','retentions'] },
+  { label: 'Compras',       icon: 'cil-basket',      codes: ['suppliers','purchase_invoices','purchase_orders','purchase_proformas'] },
+  { label: 'Almacén',       icon: 'cil-storage',     codes: ['stock'] },
+  { label: 'Contabilidad',  icon: 'cil-calculator',  codes: ['accounting'] },
+  { label: 'Informes',      icon: 'cil-chart-pie',   codes: ['report_invoices','report_products','report_orders'] },
+  { label: 'Config',        icon: 'cil-settings',    codes: ['dashboard','settings','div','currencies','users'] },
 ];
 
 export interface SyncStatus {

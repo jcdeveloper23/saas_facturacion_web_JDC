@@ -1,0 +1,151 @@
+<!-- ── Header ──────────────────────────────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-center mb-3 no-print">
+  <h4 class="mb-0">Libro Diario</h4>
+  <button cButton color="secondary" variant="outline" size="sm" (click)="printReport()">
+    <svg cIcon name="cilPrint" size="sm" class="me-1"></svg>
+    Imprimir
+  </button>
+</div>
+
+<!-- ── Filters ────────────────────────────────────────────────────────────── -->
+<c-card class="mb-3 no-print">
+  <c-card-body class="py-2 px-3">
+    <div class="d-flex gap-2 align-items-center flex-wrap">
+      <select cFormSelect class="select-sm"
+              [ngModel]="yearFilter()" (ngModelChange)="changeYear(+$event)">
+        @for (y of years; track y) {
+          <option [value]="y">{{ y }}</option>
+        }
+      </select>
+
+      <select cFormSelect class="select-sm"
+              [ngModel]="periodFilter()" (ngModelChange)="periodFilter.set($event)">
+        <option value="">Todos los períodos</option>
+        @for (p of periods(); track p.id) {
+          <option [value]="p.id">{{ p.name }}</option>
+        }
+      </select>
+
+      <select cFormSelect class="select-sm"
+              [ngModel]="typeFilter()" (ngModelChange)="typeFilter.set($event || null)">
+        <option [value]="null">Todos los tipos</option>
+        @for (t of entryTypes; track t) {
+          <option [value]="t">{{ TYPE_LABELS[t] }}</option>
+        }
+      </select>
+
+      <input cFormControl type="date" class="input-date-sm"
+             [ngModel]="dateFrom()" (ngModelChange)="dateFrom.set($event)"
+             placeholder="Desde" />
+      <input cFormControl type="date" class="input-date-sm"
+             [ngModel]="dateTo()" (ngModelChange)="dateTo.set($event)"
+             placeholder="Hasta" />
+
+      <c-input-group class="search-wrap-sm">
+        <span cInputGroupText>
+          <svg cIcon name="cilSearch" size="sm"></svg>
+        </span>
+        <input cFormControl type="text" placeholder="Buscar..."
+               [ngModel]="searchTerm()" (ngModelChange)="searchTerm.set($event)" />
+      </c-input-group>
+    </div>
+  </c-card-body>
+</c-card>
+
+<!-- ── Report header (print) ─────────────────────────────────────────────── -->
+<div class="print-btn text-center mb-3">
+  <h3>LIBRO DIARIO</h3>
+  <p>Período {{ yearFilter() }}</p>
+</div>
+
+<!-- ── Table ──────────────────────────────────────────────────────────────── -->
+<c-card>
+  @if (loading()) {
+    <c-card-body class="text-center py-5">
+      <c-spinner color="primary"></c-spinner>
+      <p class="mt-2 text-secondary">Cargando libro diario...</p>
+    </c-card-body>
+  } @else {
+    <div class="table-responsive">
+      <table class="ld-table">
+        <thead>
+          <tr>
+            <th class="col-num">N°</th>
+            <th class="col-date">Fecha</th>
+            <th>Descripción / Cuenta</th>
+            <th class="col-type">Tipo</th>
+            <th class="col-ref">Referencia</th>
+            <th class="col-date text-end">Débito</th>
+            <th class="col-date text-end">Crédito</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (entry of filtered(); track entry.id) {
+            <!-- Entry header row -->
+            <tr class="ld-entry-header">
+              <td class="je-num">{{ entry.number }}</td>
+              <td>{{ formatDate(entry.date) }}</td>
+              <td>
+                <strong>{{ entry.description }}</strong>
+                <small class="text-secondary ms-2">{{ getPeriodName(entry.periodId) }}</small>
+              </td>
+              <td>
+                <c-badge [color]="TYPE_COLORS[entry.type]" shape="rounded-pill" class="no-print">
+                  {{ TYPE_LABELS[entry.type] }}
+                </c-badge>
+                <span class="print-btn">{{ TYPE_LABELS[entry.type] }}</span>
+              </td>
+              <td class="text-xs">{{ entry.reference || '' }}</td>
+              <td class="text-end cell-mono">{{ entry.totalDebit | number:'1.2-2' }}</td>
+              <td class="text-end cell-mono">{{ entry.totalCredit | number:'1.2-2' }}</td>
+            </tr>
+            <!-- Lines rows -->
+            @for (line of entry.lines; track line.id) {
+              <tr class="ld-line">
+                <td></td>
+                <td></td>
+                <td>
+                  @if (line.debit > 0) {
+                    <span class="acc-code">{{ line.accountCode }} — {{ line.accountName }}</span>
+                    @if (line.description) {
+                      <small class="ms-2 text-secondary">{{ line.description }}</small>
+                    }
+                  } @else {
+                    <span class="line-indent">
+                      <span class="acc-code">{{ line.accountCode }} — {{ line.accountName }}</span>
+                      @if (line.description) {
+                        <small class="ms-2 text-secondary">{{ line.description }}</small>
+                      }
+                    </span>
+                  }
+                </td>
+                <td></td>
+                <td class="text-xs-muted">{{ line.costCenterName || '' }}</td>
+                <td class="debit">{{ line.debit > 0 ? (line.debit | number:'1.2-2') : '' }}</td>
+                <td class="credit">{{ line.credit > 0 ? (line.credit | number:'1.2-2') : '' }}</td>
+              </tr>
+            }
+          } @empty {
+            <tr>
+              <td colspan="7" class="text-center text-secondary py-4">
+                No hay asientos contabilizados para los filtros seleccionados
+              </td>
+            </tr>
+          }
+        </tbody>
+        @if (filtered().length > 0) {
+          <tfoot>
+            <tr class="totals-row">
+              <td colspan="5" class="text-end">TOTALES</td>
+              <td class="text-end">{{ grandTotalDebit() | number:'1.2-2' }}</td>
+              <td class="text-end">{{ grandTotalCredit() | number:'1.2-2' }}</td>
+            </tr>
+          </tfoot>
+        }
+      </table>
+    </div>
+    <div class="table-footer no-print">
+      {{ filtered().length }} asientos contabilizados
+    </div>
+  }
+</c-card>

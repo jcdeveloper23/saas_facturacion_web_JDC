@@ -1,0 +1,48 @@
+<div class="bg-light dark:bg-transparent min-vh-100 d-flex flex-row align-items-center">
+  <c-container>
+    <c-row class="justify-content-center">
+      <c-col md="7" lg="6">
+        <c-card class="shadow-sm">
+          <c-card-body class="p-4 p-md-5 text-center">
+
+            <!-- Icono + código -->
+            <div class="mb-4">
+              <svg cIcon name="cilLockLocked" size="3xl" class="text-danger mb-3"></svg>
+              <div class="display-4 fw-bold text-danger lh-1 mb-1">403</div>
+              <h4 class="mb-0">Acceso No Autorizado</h4>
+            </div>
+
+            <p class="text-body-secondary mb-4">
+              No tienes permisos suficientes para acceder a esta sección.
+              @if (userRole()) {
+              Tu rol actual es
+              <c-badge [color]="roleColor()" shape="rounded-pill" class="mx-1">{{ roleName() }}</c-badge>
+              y no tiene acceso a este recurso.
+              }
+            </p>
+
+            <p class="text-body-secondary small mb-4">
+              Si crees que esto es un error, contacta al administrador de tu empresa.
+            </p>
+
+            <div class="d-flex flex-wrap gap-2 justify-content-center">
+              <a cButton color="primary" routerLink="/dashboard">
+                <svg cIcon name="cilHome" size="sm" class="me-1"></svg>
+                Ir al Inicio
+              </a>
+              <button cButton color="secondary" variant="outline" (click)="goBack()">
+                <svg cIcon name="cilArrowLeft" size="sm" class="me-1"></svg>
+                Volver
+              </button>
+              <button cButton color="danger" variant="ghost" (click)="logout()">
+                <svg cIcon name="cilAccountLogout" size="sm" class="me-1"></svg>
+                Cerrar Sesion
+              </button>
+            </div>
+
+          </c-card-body>
+        </c-card>
+      </c-col>
+    </c-row>
+  </c-container>
+</div>

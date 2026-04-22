@@ -297,6 +297,25 @@ service cloud.firestore {
         allow write: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
       }
 
+      // ─── Company Users ────────────────────────────────────────────────────
+      // Perfil de plataforma de cada usuario dentro del tenant.
+      // Doc ID = Firebase Auth UID (puente entre Firebase Auth y Firestore).
+      //
+      // CRIT-02 (DECISIÓN-02): platformRole y companyId solo pueden ser
+      // escritos por Cloud Functions (Admin SDK, que bypasea estas reglas).
+      // Desde el cliente — incluso admin — no se permiten cambios en esos campos.
+      // La función isImmutableUserKeys() bloquea cualquier intento de modificarlos.
+      match /company-users/{uid} {
+        allow read:   if isAuthenticated() && belongsToCompany(companyId);
+        // Admin puede gestionar todos; cada usuario puede actualizar su propio perfil.
+        allow create: if isAuthenticated() && belongsToCompany(companyId) && (isSuperAdmin() || isAdmin());
+        allow update: if isAuthenticated() && belongsToCompany(companyId)
+                      && (isSuperAdmin() || isAdmin() || request.auth.uid == uid)
+                      && !request.resource.data.diff(resource.data)
+                           .affectedKeys().hasAny(['platformRole', 'companyId']);
+        allow delete: if isAuthenticated() && belongsToCompany(companyId) && (isSuperAdmin() || isAdmin());
+      }
+
       match /tm-specialties/{id} {
         allow read:  if isAuthenticated() && belongsToCompany(companyId);
         allow write: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
@@ -305,6 +324,63 @@ service cloud.firestore {
       match /tm-positions/{id} {
         allow read:  if isAuthenticated() && belongsToCompany(companyId);
         allow write: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
+      }
+
+      // ─── Accounting ───────────────────────────────────────────────────────
+      // Read: admin and accountant only (sellers/cashiers have no accounting access).
+      // Write: admin or accountant, with extra guards per collection.
+
+      match /chart_of_accounts/{accountId} {
+        allow read:   if isAuthenticated() && belongsToCompany(companyId)
+                      && (isAdmin() || isAccountant());
+        // Only admin can create/edit/inactivate accounts (structural catalog change).
+        allow create, update: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
+        // Accounts are never deleted — only inactivated via update.
+        allow delete: if false;
+      }
+
+      match /accounting_periods/{periodId} {
+        allow read:   if isAuthenticated() && belongsToCompany(companyId)
+                      && (isAdmin() || isAccountant());
+        // Opening/closing/locking a period is an admin-only action.
+        allow create, update: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
+        // Periods are never deleted (audit trail).
+        allow delete: if false;
+      }
+
+      match /cost_centers/{centerId} {
+        allow read:   if isAuthenticated() && belongsToCompany(companyId)
+                      && (isAdmin() || isAccountant());
+        allow create, update: if isAuthenticated() && belongsToCompany(companyId)
+                              && (isAdmin() || isAccountant());
+        // Only admin can delete cost centers.
+        allow delete: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
+      }
+
+      match /journal_entries/{entryId} {
+        allow read:   if isAuthenticated() && belongsToCompany(companyId)
+                      && (isAdmin() || isAccountant());
+
+        // CREATE — admin or accountant; new entries must start as 'draft'.
+        allow create: if isAuthenticated() && belongsToCompany(companyId)
+                      && (isAdmin() || isAccountant())
+                      && request.resource.data.status == 'draft';
+
+        // UPDATE — admin or accountant;
+        //   • Automatic entries (type == 'automatic') cannot be edited by clients;
+        //     only Cloud Functions (Admin SDK) may touch them.
+        //   • Posted entries can only be cancelled (status forward-only guard).
+        //   • Cancelled entries are immutable.
+        allow update: if isAuthenticated() && belongsToCompany(companyId)
+                      && (isAdmin() || isAccountant())
+                      && resource.data.get('type', 'manual') != 'automatic'
+                      && resource.data.status != 'cancelled'
+                      && request.resource.data.status != 'draft';
+
+        // DELETE — only draft manual entries; admin only.
+        allow delete: if isAuthenticated() && belongsToCompany(companyId) && isAdmin()
+                      && resource.data.status == 'draft'
+                      && resource.data.get('type', 'manual') == 'manual';
       }
 
       // Default rule for all other sub-collections
@@ -361,6 +437,34 @@ service cloud.firestore {
     match /plugin-packages/{packageId} {
       allow read: if isAuthenticated();
       allow write: if isSuperAdmin();
+    }
+
+    // ─── Roles catalog ────────────────────────────────────────────────────
+    // System and custom roles — read by any authenticated user (needed for
+    // user management UI and role selectors), write only admin or super_admin.
+    //
+    // MED-03 (DECISIÓN-02): admin solo puede crear/editar roles de type:'custom'.
+    // Los roles de type:'system' son inmutables desde el cliente; solo
+    // super_admin puede modificarlos. Además, no se permite cambiar el type
+    // de un rol existente (ej: custom → system) desde el cliente.
+    match /roles/{roleId} {
+      allow read: if isAuthenticated();
+
+      // super_admin puede crear cualquier tipo de rol.
+      // admin solo puede crear roles de tipo 'custom'.
+      allow create: if isAuthenticated()
+        && (isSuperAdmin()
+            || (isAdmin() && request.resource.data.type == 'custom'));
+
+      // super_admin puede actualizar cualquier rol.
+      // admin puede actualizar solo roles 'custom' y no puede cambiar el type.
+      allow update: if isAuthenticated()
+        && (isSuperAdmin()
+            || (isAdmin()
+                && resource.data.type == 'custom'
+                && request.resource.data.type == 'custom'));
+
+      allow delete: if isSuperAdmin();
     }
 
     // ─── Platform defaults ────────────────────────────────────────────────

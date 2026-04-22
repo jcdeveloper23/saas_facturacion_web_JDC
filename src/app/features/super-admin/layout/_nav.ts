@@ -27,6 +27,15 @@ export const superAdminNavItems: INavData[] = [
   },
   {
     title: true,
+    name: 'Usuarios y Acceso'
+  },
+  {
+    name: 'Perfiles y Roles',
+    url: '/profiles',
+    iconComponent: { name: 'cil-lock-locked' }
+  },
+  {
+    title: true,
     name: 'Datos por Defecto'
   },
   // {

@@ -28,6 +28,12 @@ export const routes: Routes = [
     loadComponent: () => import('./views/pages/page500/page500.component').then(m => m.Page500Component),
     data: { title: 'Page 500' }
   },
+  {
+    path: 'unauthorized',
+    loadComponent: () =>
+      import('./views/pages/unauthorized/unauthorized.component').then(m => m.UnauthorizedComponent),
+    data: { title: 'Acceso No Autorizado' }
+  },
 
   // ─── Super Admin (no tenant context) ─────────────────────────────────────
   {
@@ -78,7 +84,7 @@ export const routes: Routes = [
       {
         path: 'invoices',
         canActivate: [roleGuard],
-        data: { roles: ['admin', 'seller'], title: 'Facturas de Venta' },
+        data: { roles: ['admin', 'seller', 'cashier'], title: 'Facturas de Venta' },
         loadChildren: () => import('./features/invoices/invoices.routes').then(m => m.INVOICES_ROUTES)
       },
 
@@ -94,7 +100,7 @@ export const routes: Routes = [
       {
         path: 'debit-notes',
         canActivate: [roleGuard, moduleGuard],
-        data: { roles: ['admin', 'seller'], module: 'debitNotes', title: 'Notas de Débito' },
+        data: { roles: ['admin', 'accountant', 'seller'], module: 'debitNotes', title: 'Notas de Débito' },
         loadChildren: () => import('./features/debit-notes/debit-notes.routes').then(m => m.DEBIT_NOTES_ROUTES)
       },
 
@@ -116,7 +122,7 @@ export const routes: Routes = [
       {
         path: 'stock',
         canActivate: [roleGuard, moduleGuard],
-        data: { roles: ['admin'], module: 'stock', title: 'Inventario' },
+        data: { roles: ['admin', 'seller'], module: 'stock', title: 'Inventario' },
         loadChildren: () => import('./features/stock/stock.routes').then(m => m.STOCK_ROUTES)
       },
 
@@ -124,7 +130,7 @@ export const routes: Routes = [
       {
         path: 'purchases',
         canActivate: [authGuard, roleGuard, moduleGuard],
-        data: { roles: ['admin'], module: 'purchases', title: 'Compras' },
+        data: { roles: ['admin', 'accountant', 'seller'], module: 'purchases', title: 'Compras' },
         loadChildren: () => import('./features/purchases/purchases.routes').then(m => m.PURCHASES_ROUTES)
       },
 
@@ -132,7 +138,7 @@ export const routes: Routes = [
       {
         path: 'team-management',
         canActivate: [authGuard, roleGuard, moduleGuard],
-        data: { roles: ['admin'], module: 'teamManagement', title: 'Gestión de Equipo' },
+        data: { roles: ['admin', 'seller'], module: 'teamManagement', title: 'Gestión de Equipo' },
         loadChildren: () =>
           import('./features/team-management/team-management.routes')
             .then(m => m.TEAM_MANAGEMENT_ROUTES)
@@ -154,6 +160,38 @@ export const routes: Routes = [
       //   loadChildren: () => import('./features/electronic-invoicing/electronic-invoicing.routes').then(m => m.ELECTRONIC_INVOICING_ROUTES)
       // },
 
+      // ── Users ──────────────────────────────────────────────────────────
+      {
+        path: 'users',
+        canActivate: [roleGuard],
+        data: { roles: ['admin', 'super_admin'], title: 'Usuarios' },
+        loadChildren: () => import('./features/users/routes').then(m => m.routes)
+      },
+
+      // ── Profiles & Roles ───────────────────────────────────────────────
+      {
+        path: 'profiles',
+        canActivate: [roleGuard],
+        data: { roles: ['admin', 'super_admin'], title: 'Perfiles y Roles' },
+        loadChildren: () => import('./features/profiles/routes').then(m => m.routes)
+      },
+
+      // ── My Profile ─────────────────────────────────────────────────────
+      {
+        path: 'profile',
+        loadComponent: () => import('./features/profile/profile.component').then(m => m.ProfileComponent),
+        data: { title: 'Mi Perfil' }
+      },
+
+      // ── Accounting ────────────────────────────────────────────────────────
+      {
+        path: 'accounting',
+        canActivate: [roleGuard, moduleGuard],
+        data: { roles: ['admin', 'accountant'], module: 'accounting', title: 'Contabilidad' },
+        loadChildren: () =>
+          import('./features/accounting/accounting.routes').then(m => m.ACCOUNTING_ROUTES)
+      },
+
       // ── Settings ───────────────────────────────────────────────────────
       {
         path: 'settings',
@@ -163,29 +201,41 @@ export const routes: Routes = [
       },
 
 
-      // ── CoreUI component library (keep for reference during development) ─
+      // ── CoreUI component library (acceso restringido a super_admin en producción) ─
       {
         path: 'base',
+        canActivate: [authGuard, roleGuard],
+        data: { roles: ['super_admin'] },
         loadChildren: () => import('./views/base/routes').then(m => m.routes)
       },
       {
         path: 'forms',
+        canActivate: [authGuard, roleGuard],
+        data: { roles: ['super_admin'] },
         loadChildren: () => import('./views/forms/routes').then(m => m.routes)
       },
       {
         path: 'icons',
+        canActivate: [authGuard, roleGuard],
+        data: { roles: ['super_admin'] },
         loadChildren: () => import('./views/icons/routes').then(m => m.routes)
       },
       {
         path: 'notifications',
+        canActivate: [authGuard, roleGuard],
+        data: { roles: ['super_admin'] },
         loadChildren: () => import('./views/notifications/routes').then(m => m.routes)
       },
       {
         path: 'charts',
+        canActivate: [authGuard, roleGuard],
+        data: { roles: ['super_admin'] },
         loadChildren: () => import('./views/charts/routes').then(m => m.routes)
       },
       {
         path: 'widgets',
+        canActivate: [authGuard, roleGuard],
+        data: { roles: ['super_admin'] },
         loadChildren: () => import('./views/widgets/routes').then(m => m.routes)
       }
     ]

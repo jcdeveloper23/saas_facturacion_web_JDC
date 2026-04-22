@@ -327,6 +327,25 @@ export const MODULES_SEED: ModuleSeed[] = [
     fs_folder: 'informes', fs_name: 'informe_pedidos'
   },
 
+  // ─── CONTABILIDAD ─────────────────────────────────────────────────────────
+
+  {
+    code: 'title_accounting', name: 'Contabilidad', description: 'Sección de contabilidad',
+    dependencies: [], url: null, icon: 'cil-calculator', isTitle: true, parent_id: null,
+    showInMenu: true, order: 80, state: true, fs_folder: 'contabilidad', fs_name: 'title_accounting'
+  },
+  {
+    code: 'accounting',
+    name: 'Contabilidad',
+    description: 'Módulo contable completo: plan de cuentas, asientos, libro diario/mayor, centros de costo y ejercicios contables',
+    dependencies: ['invoices', 'retentions'],
+    url: '/accounting',
+    icon: 'cil-calculator',
+    isTitle: false, parent_id: null,
+    showInMenu: true, order: 81, state: true,
+    fs_folder: 'contabilidad', fs_name: 'contabilidad'
+  },
+
   // ─── CONFIGURACIÓN ────────────────────────────────────────────────────────
 
   {

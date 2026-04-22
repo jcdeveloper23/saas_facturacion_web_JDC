@@ -49,5 +49,14 @@ export { onTaskStatusChanged }         from './team-management/on-task-status-ch
 export { detectOverdueTasksScheduled } from './team-management/detect-overdue-tasks-scheduled';
 export { generateWeeklyReport }        from './team-management/generate-weekly-report';
 
+// Accounting
+export { generateJournalEntryFromInvoice }   from './accounting/generate-journal-entry-from-invoice';
+export { generateJournalEntryFromRetention } from './accounting/generate-journal-entry-from-retention';
+export { closeAccountingPeriod }             from './accounting/close-accounting-period';
+
+// Users
+export { createCompanyUser } from './users/create-company-user';
+export { updateCompanyUser } from './users/update-company-user';
+
 // Utils
 export { downloadDocument } from './utils/download-document';

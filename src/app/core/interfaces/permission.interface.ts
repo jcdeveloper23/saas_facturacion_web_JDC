@@ -228,6 +228,30 @@ export interface PluginPackageInput {
 }
 
 // ============================================================================
+// MODULE METADATA — display info for the permissions UI
+// Keeps UI labels/icons co-located with the permission model.
+// Used by ProfilesComponent and PermissionsService as a fallback catalog.
+// ============================================================================
+
+export const MODULE_METADATA: Record<string, { name: string; icon: string; order: number }> = {
+  dashboard:       { name: 'Dashboard',           icon: 'cilSpeedometer', order: 0  },
+  customers:       { name: 'Clientes',             icon: 'cilPeople',      order: 10 },
+  suppliers:       { name: 'Proveedores',          icon: 'cilTruck',       order: 11 },
+  products:        { name: 'Productos',            icon: 'cilTag',         order: 20 },
+  invoices:        { name: 'Facturas',             icon: 'cilDescription', order: 30 },
+  quotes:          { name: 'Cotizaciones',         icon: 'cilNotes',       order: 31 },
+  orders:          { name: 'Pedidos',              icon: 'cilCart',        order: 32 },
+  purchases:       { name: 'Compras',              icon: 'cilBasket',      order: 40 },
+  stock:           { name: 'Inventario',           icon: 'cilStorage',     order: 50 },
+  pos:             { name: 'Punto de Venta',       icon: 'cilCash',        order: 60 },
+  sri:             { name: 'SRI / Electrónica',    icon: 'cilShieldAlt',   order: 70 },
+  team_management: { name: 'Gestión de Equipo',    icon: 'cilPeople',      order: 80 },
+  personas:        { name: 'Personas',             icon: 'cilUser',        order: 85 },
+  users:           { name: 'Usuarios',             icon: 'cilLockLocked',  order: 90 },
+  settings:        { name: 'Configuración',        icon: 'cilSettings',    order: 99 },
+};
+
+// ============================================================================
 // API RESPONSE TYPES (kept for compatibility)
 // ============================================================================
 

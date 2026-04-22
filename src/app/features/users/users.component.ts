@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import {
@@ -15,17 +15,17 @@ import {
 } from '@coreui/angular';
 import { IconModule } from '@coreui/icons-angular';
 import { ReactiveFormsModule, FormControl } from '@angular/forms';
+import { Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
 import { HasPermissionDirective } from '../../shared/directives/has-permission.directive';
-import { UsersService } from '../../core/services/users.service';
+import { CompanyUsersService } from '../../core/services/company-users.service';
 import { PermissionsService } from '../../core/services/permissions.service';
-import { OrganizationsService } from '../../core/services/organizations.service';
-import { AuthService } from '../../core/services/auth.service';
+import { AuthService, UserRole } from '../../core/services/auth.service';
 import { NotificationService } from '../../core/services/notification.service';
-import { User, UserStats, UserFilters } from '../../core/interfaces/user.interface';
+import { CompanyUser } from '../../core/interfaces/company-user.interface';
 import { Role } from '../../core/interfaces/permission.interface';
-import { Organization } from '../../core/interfaces/organization.interface';
+import { UserStats } from '../../core/interfaces/user.interface';
 
 @Component({
     selector: 'app-users',
@@ -50,74 +50,77 @@ import { Organization } from '../../core/interfaces/organization.interface';
     templateUrl: './users.component.html',
     styleUrl: './users.component.scss'
 })
-export class UsersComponent implements OnInit {
-    private usersService = inject(UsersService);
+export class UsersComponent implements OnInit, OnDestroy {
+    private companyUsersSvc = inject(CompanyUsersService);
     private permissionsService = inject(PermissionsService);
-    private organizationsService = inject(OrganizationsService);
     private authService = inject(AuthService);
     private notification = inject(NotificationService);
 
     // State signals
-    users = signal<User[]>([]);
+    users = signal<CompanyUser[]>([]);
     loading = signal(false);
     error = signal<string | null>(null);
 
     // Select options
     roles = signal<Role[]>([]);
-    organizations = signal<Organization[]>([]);
 
     // Filters
     searchControl = new FormControl('');
-    roleFilter = signal<number | undefined>(undefined);
+    searchTerm = signal('');
+    roleFilter = signal<UserRole | undefined>(undefined);
     stateFilter = signal<boolean | 'all'>('all');
-    organizationFilter = signal<number | undefined>(undefined);
 
     // Super admin check
     isSuperAdmin = signal(false);
+
+    // Subscription reference for cleanup
+    private usersSubscription?: Subscription;
 
     // Computed stats
     stats = computed<UserStats>(() => {
         const list = this.users();
         return {
             total: list.length,
-            admins: list.filter(u => {
-                const roleLevel = u.role?.level;
-                return roleLevel !== undefined && roleLevel <= 1;
-            }).length,
-            active: list.filter(u => u.state === true || u.state === 1).length,
-            inactive: list.filter(u => u.state === false || u.state === 0).length
+            admins: list.filter(u => u.platformRole === 'admin' || u.platformRole === 'super_admin').length,
+            active: list.filter(u => u.isActive).length,
+            inactive: list.filter(u => !u.isActive).length
         };
     });
 
-    // Computed filtered users
+    // Computed filtered users (client-side — Firestore stream already loaded)
     filteredUsers = computed(() => {
         let list = this.users();
-        const roleId = this.roleFilter();
-        const orgId = this.organizationFilter();
+        const roleFilter = this.roleFilter();
+        const stateFilter = this.stateFilter();
+        const search = this.searchTerm().toLowerCase();
 
-        if (roleId !== undefined) {
-            list = list.filter(u => u.roleId === roleId || u.role?.id === roleId);
+        if (roleFilter !== undefined) {
+            list = list.filter(u => u.platformRole === roleFilter);
         }
 
-        if (orgId !== undefined) {
-            list = list.filter(u => u.organization_id === orgId || u.organizationId === orgId);
+        if (stateFilter !== 'all') {
+            list = list.filter(u => u.isActive === stateFilter);
+        }
+
+        if (search) {
+            list = list.filter(u =>
+                u.displayName.toLowerCase().includes(search) ||
+                u.email.toLowerCase().includes(search)
+            );
         }
 
         return list;
     });
 
     ngOnInit(): void {
-        this.checkPermissions();
+        this.isSuperAdmin.set(this.authService.isSuperAdmin());
         this.setupFilters();
         this.loadRoles();
         this.loadUsers();
     }
 
-    private checkPermissions(): void {
-        this.isSuperAdmin.set(this.authService.isSuperAdmin());
-        if (this.isSuperAdmin()) {
-            this.loadOrganizations();
-        }
+    ngOnDestroy(): void {
+        this.usersSubscription?.unsubscribe();
     }
 
     private loadRoles(): void {
@@ -127,37 +130,19 @@ export class UsersComponent implements OnInit {
         });
     }
 
-    private loadOrganizations(): void {
-        this.organizationsService.getOrganizations({ is_active: true }).subscribe({
-            next: (response) => this.organizations.set(response.data || []),
-            error: (err) => console.error('Error loading organizations:', err)
-        });
-    }
-
     setupFilters(): void {
         this.searchControl.valueChanges.pipe(
             debounceTime(400),
             distinctUntilChanged()
-        ).subscribe(() => {
-            this.loadUsers();
-        });
+        ).subscribe(val => this.searchTerm.set(val ?? ''));
     }
 
     loadUsers(): void {
         this.loading.set(true);
         this.error.set(null);
 
-        const filters: UserFilters = {};
-
-        const stateVal = this.stateFilter();
-        if (stateVal !== 'all') {
-            filters.state = stateVal;
-        }
-
-        const search = this.searchControl.value;
-        if (search) filters.search = search;
-
-        this.usersService.getUsers(filters).subscribe({
+        this.usersSubscription?.unsubscribe();
+        this.usersSubscription = this.companyUsersSvc.getCompanyUsers().subscribe({
             next: (data) => {
                 this.users.set(data);
                 this.loading.set(false);
@@ -172,7 +157,7 @@ export class UsersComponent implements OnInit {
     }
 
     onRoleFilterChange(value: string): void {
-        this.roleFilter.set(value ? Number(value) : undefined);
+        this.roleFilter.set(value ? value as UserRole : undefined);
     }
 
     onStateFilterChange(value: string): void {
@@ -181,11 +166,6 @@ export class UsersComponent implements OnInit {
         } else {
             this.stateFilter.set(value === 'true');
         }
-        this.loadUsers();
-    }
-
-    onOrganizationFilterChange(value: string): void {
-        this.organizationFilter.set(value ? Number(value) : undefined);
     }
 
     refresh(): void {
@@ -193,56 +173,62 @@ export class UsersComponent implements OnInit {
         this.notification.info('Actualizando lista de usuarios...');
     }
 
-    toggleUserState(user: User): void {
-        if (!user.id) return;
-        const newState = !user.state;
+    toggleUserState(user: CompanyUser): void {
+        const newState = !user.isActive;
         const action = newState ? 'activar' : 'desactivar';
 
-        this.usersService.updateState(user.id, newState).subscribe({
-            next: () => {
-                this.notification.success(`Usuario ${newState ? 'activado' : 'desactivado'} correctamente`);
-                this.loadUsers();
-            },
-            error: () => {
-                this.notification.error(`Error al ${action} el usuario`);
-            }
-        });
+        const promise = newState
+            ? this.companyUsersSvc.activateCompanyUser(user.uid)
+            : this.companyUsersSvc.deactivateCompanyUser(user.uid);
+
+        promise
+            .then(() => this.notification.success(`Usuario ${newState ? 'activado' : 'desactivado'} correctamente`))
+            .catch(() => this.notification.error(`Error al ${action} el usuario`));
     }
 
-    getRoleColor(role?: Role): string {
-        if (!role) return 'secondary';
-        switch (role.code) {
+    getRoleColor(platformRole?: UserRole): string {
+        switch (platformRole) {
             case 'super_admin': return 'danger';
-            case 'org_admin': return 'primary';
-            case 'org_manager': return 'info';
-            case 'operator': return 'success';
-            case 'viewer': return 'secondary';
-            case 'driver': return 'warning';
-            default: return 'dark';
+            case 'admin':       return 'primary';
+            case 'accountant':  return 'warning';
+            case 'seller':      return 'info';
+            case 'cashier':     return 'success';
+            case 'read_only':   return 'secondary';
+            default:            return 'dark';
         }
     }
 
-    getRoleName(user: User): string {
-        if (user.role?.name) return user.role.name;
-        return 'Sin rol';
+    getRoleName(user: CompanyUser): string {
+        const names: Record<UserRole, string> = {
+            super_admin: 'Super Admin',
+            admin:       'Administrador',
+            accountant:  'Contador',
+            seller:      'Vendedor',
+            cashier:     'Cajero',
+            read_only:   'Solo lectura'
+        };
+        return names[user.platformRole] ?? 'Sin rol';
     }
 
-    getStateColor(state: boolean | number): string {
-        return !!state ? 'success' : 'warning';
+    getStateColor(isActive: boolean): string {
+        return isActive ? 'success' : 'warning';
     }
 
-    getStateLabel(state: boolean | number): string {
-        return !!state ? 'Activo' : 'Inactivo';
+    getStateLabel(isActive: boolean): string {
+        return isActive ? 'Activo' : 'Inactivo';
     }
 
-    getUserInitials(user: User): string {
-        const first = user.userFullName?.charAt(0) || '';
-        const last = user.userLastName?.charAt(0) || '';
-        return (first + last).toUpperCase() || user.userEmail.charAt(0).toUpperCase();
+    getUserInitials(user: CompanyUser): string {
+        const parts = user.displayName.trim().split(' ');
+        const first = parts[0]?.charAt(0) ?? '';
+        const last = parts[1]?.charAt(0) ?? '';
+        return (first + last).toUpperCase() || user.email.charAt(0).toUpperCase();
     }
 
-    formatDate(date: string | undefined): string {
+    formatDate(date: any): string {
         if (!date) return 'N/A';
-        return new Date(date).toLocaleDateString('es-CO');
+        // Firestore Timestamp tiene .toDate(); string/Date se convierten directamente
+        const d = date?.toDate ? date.toDate() : new Date(date);
+        return d.toLocaleDateString('es-EC');
     }
 }

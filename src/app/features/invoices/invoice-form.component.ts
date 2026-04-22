@@ -1134,7 +1134,6 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
         addresses:    [],
         bankAccounts: [],
         customerData: {
-          code:            '',
           currency:        'USD',
           paymentTermCode: this.paymentTerms()[0]?.code ?? '',
           vatRegime:       'General',

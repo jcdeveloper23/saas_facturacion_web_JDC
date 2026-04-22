@@ -1,0 +1,264 @@
+<!-- ── Header ──────────────────────────────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-start mb-3">
+  <div>
+    <h4 class="mb-1">Asientos Contables</h4>
+    <div class="d-flex gap-2 flex-wrap">
+      <button class="btn btn-sm" [class.btn-primary]="statusFilter() === null"
+              [class.btn-outline-secondary]="statusFilter() !== null"
+              (click)="statusFilter.set(null)">
+        Todos <strong>{{ counts().total }}</strong>
+      </button>
+      <button class="btn btn-sm" [class.btn-success]="statusFilter() === 'posted'"
+              [class.btn-outline-secondary]="statusFilter() !== 'posted'"
+              (click)="statusFilter.set('posted')">
+        Contabilizados <strong>{{ counts().posted }}</strong>
+      </button>
+      <button class="btn btn-sm" [class.btn-secondary]="statusFilter() === 'draft'"
+              [class.btn-outline-secondary]="statusFilter() !== 'draft'"
+              (click)="statusFilter.set('draft')">
+        Borradores <strong>{{ counts().draft }}</strong>
+      </button>
+      @if (counts().cancelled > 0) {
+        <button class="btn btn-sm" [class.btn-danger]="statusFilter() === 'cancelled'"
+                [class.btn-outline-secondary]="statusFilter() !== 'cancelled'"
+                (click)="statusFilter.set('cancelled')">
+          Anulados <strong>{{ counts().cancelled }}</strong>
+        </button>
+      }
+    </div>
+  </div>
+  <button cButton color="primary" size="sm" (click)="openNew()">
+    <svg cIcon name="cilPlus" class="me-1"></svg>
+    Nuevo Asiento
+  </button>
+</div>
+
+<!-- ── Filters ────────────────────────────────────────────────────────────── -->
+<c-card class="mb-3">
+  <c-card-body class="py-2 px-3">
+    <div class="d-flex gap-2 align-items-center flex-wrap">
+      <c-input-group class="search-input">
+        <span cInputGroupText>
+          <svg cIcon name="cilSearch" size="sm"></svg>
+        </span>
+        <input cFormControl type="text" placeholder="N° asiento, descripción..."
+               [ngModel]="searchTerm()" (ngModelChange)="searchTerm.set($event)" />
+      </c-input-group>
+
+      <select cFormSelect class="select-sm"
+              [ngModel]="yearFilter()" (ngModelChange)="changeYear(+$event)">
+        @for (y of years; track y) {
+          <option [value]="y">{{ y }}</option>
+        }
+      </select>
+
+      <select cFormSelect class="select-sm"
+              [ngModel]="typeFilter()" (ngModelChange)="typeFilter.set($event || null)">
+        <option [value]="null">Todos los tipos</option>
+        @for (t of entryTypes; track t) {
+          <option [value]="t">{{ TYPE_LABELS[t] }}</option>
+        }
+      </select>
+    </div>
+  </c-card-body>
+</c-card>
+
+<!-- ── Table ──────────────────────────────────────────────────────────────── -->
+<c-card>
+  @if (loading()) {
+    <c-card-body class="text-center py-5">
+      <c-spinner color="primary"></c-spinner>
+      <p class="mt-2 text-secondary">Cargando asientos...</p>
+    </c-card-body>
+  } @else {
+    <div class="table-responsive">
+      <table class="je-table">
+        <thead>
+          <tr>
+            <th>N°</th>
+            <th>Fecha</th>
+            <th>Descripción</th>
+            <th>Tipo</th>
+            <th>Referencia</th>
+            <th class="text-end">Débito</th>
+            <th class="text-end">Crédito</th>
+            <th>Estado</th>
+            <th class="text-end">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (entry of filtered(); track entry.id) {
+            <tr [class.row-cancelled]="entry.status === 'cancelled'"
+                (click)="openDetail(entry, $event)">
+              <td class="je-num">{{ entry.number }}</td>
+              <td>{{ formatDate(entry.date) }}</td>
+              <td>{{ entry.description }}</td>
+              <td>
+                <c-badge [color]="TYPE_COLORS[entry.type]" shape="rounded-pill">
+                  {{ TYPE_LABELS[entry.type] }}
+                </c-badge>
+              </td>
+              <td class="text-sm-muted">
+                {{ entry.reference || '—' }}
+              </td>
+              <td class="je-amt">{{ formatAmt(entry.totalDebit) }}</td>
+              <td class="je-amt">{{ formatAmt(entry.totalCredit) }}</td>
+              <td>
+                <c-badge [color]="STATUS_COLORS[entry.status]" shape="rounded-pill">
+                  {{ STATUS_LABELS[entry.status] }}
+                </c-badge>
+                @if (!entry.isBalanced) {
+                  <c-badge color="danger" shape="rounded-pill" class="ms-1">
+                    Descuadrado
+                  </c-badge>
+                }
+              </td>
+              <td class="text-end" (click)="$event.stopPropagation()">
+                @if (entry.status === 'draft') {
+                  <button cButton color="secondary" variant="ghost" size="sm"
+                          cTooltip="Editar" (click)="openEdit(entry)">
+                    <svg cIcon name="cilPencil" size="sm"></svg>
+                  </button>
+                  <button cButton color="success" variant="ghost" size="sm"
+                          cTooltip="Contabilizar" (click)="postEntry(entry, $event)">
+                    <svg cIcon name="cilCheckCircle" size="sm"></svg>
+                  </button>
+                }
+                @if (entry.status === 'posted' && entry.type === 'manual') {
+                  <button cButton color="danger" variant="ghost" size="sm"
+                          cTooltip="Anular" (click)="openCancelDlg(entry, $event)">
+                    <svg cIcon name="cilBan" size="sm"></svg>
+                  </button>
+                }
+                <button cButton color="info" variant="ghost" size="sm"
+                        cTooltip="Duplicar" (click)="duplicateEntry(entry, $event)">
+                  <svg cIcon name="cilCopy" size="sm"></svg>
+                </button>
+                @if (entry.status === 'draft') {
+                  <button cButton color="danger" variant="ghost" size="sm"
+                          cTooltip="Eliminar" (click)="deleteEntry(entry, $event)">
+                    <svg cIcon name="cilTrash" size="sm"></svg>
+                  </button>
+                }
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="9" class="text-center text-secondary py-4">
+                No hay asientos contables para los filtros seleccionados
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <div class="table-footer d-flex justify-content-between">
+      <span>{{ filtered().length }} asientos</span>
+      <span>
+        Total contabilizado: <strong class="ms-1">{{ totalPostedDebit() | number:'1.2-2' }} USD</strong>
+      </span>
+    </div>
+  }
+</c-card>
+
+<!-- ── Modal: Entry Detail ───────────────────────────────────────────────── -->
+@if (detailEntry()) {
+  <c-modal [visible]="showDetail()" (visibleChange)="showDetail.set($event)" size="xl" backdrop="static">
+    <c-modal-header>
+      <h5 cModalTitle>
+        Asiento N° {{ detailEntry()!.number }} —
+        <c-badge [color]="STATUS_COLORS[detailEntry()!.status]" class="ms-1">
+          {{ STATUS_LABELS[detailEntry()!.status] }}
+        </c-badge>
+      </h5>
+      <button type="button" class="btn-close" (click)="closeDetail()"></button>
+    </c-modal-header>
+    <c-modal-body>
+      <div class="row g-2 mb-3">
+        <div class="col-md-3">
+          <small class="text-secondary d-block">Fecha</small>
+          <strong>{{ formatDate(detailEntry()!.date) }}</strong>
+        </div>
+        <div class="col-md-3">
+          <small class="text-secondary d-block">Tipo</small>
+          <c-badge [color]="TYPE_COLORS[detailEntry()!.type]">{{ TYPE_LABELS[detailEntry()!.type] }}</c-badge>
+        </div>
+        <div class="col-md-3">
+          <small class="text-secondary d-block">Referencia</small>
+          <span>{{ detailEntry()!.reference || '—' }}</span>
+        </div>
+        <div class="col-md-3">
+          <small class="text-secondary d-block">Período</small>
+          <span>{{ getPeriodName(detailEntry()!.periodId) }}</span>
+        </div>
+        <div class="col-12">
+          <small class="text-secondary d-block">Descripción</small>
+          <span>{{ detailEntry()!.description }}</span>
+        </div>
+      </div>
+
+      <table class="lines-table">
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Cuenta</th>
+            <th>Centro de Costo</th>
+            <th class="text-end">Débito</th>
+            <th class="text-end">Crédito</th>
+            <th>Detalle</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (line of detailEntry()!.lines; track line.id) {
+            <tr>
+              <td class="je-num">{{ line.accountCode }}</td>
+              <td>{{ line.accountName }}</td>
+              <td>{{ line.costCenterName || '—' }}</td>
+              <td class="text-end">{{ line.debit > 0 ? formatAmt(line.debit) : '' }}</td>
+              <td class="text-end">{{ line.credit > 0 ? formatAmt(line.credit) : '' }}</td>
+              <td class="text-xs-muted">{{ line.description || '' }}</td>
+            </tr>
+          }
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="3" class="text-end">TOTALES</td>
+            <td class="text-end">{{ formatAmt(detailEntry()!.totalDebit) }}</td>
+            <td class="text-end">{{ formatAmt(detailEntry()!.totalCredit) }}</td>
+            <td [class.balance-ok]="detailEntry()!.isBalanced" [class.balance-fail]="!detailEntry()!.isBalanced">
+              {{ detailEntry()!.isBalanced ? 'Cuadrado' : 'DESCUADRADO' }}
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </c-modal-body>
+    <c-modal-footer>
+      @if (detailEntry()!.status === 'draft') {
+        <button cButton color="primary" size="sm" (click)="openEdit(detailEntry()!); closeDetail()">
+          <svg cIcon name="cilPencil" size="sm" class="me-1"></svg>Editar
+        </button>
+      }
+      <button cButton color="secondary" variant="outline" (click)="closeDetail()">Cerrar</button>
+    </c-modal-footer>
+  </c-modal>
+}
+
+<!-- ── Modal: Cancel Entry ───────────────────────────────────────────────── -->
+<c-modal [visible]="showCancelDlg()" (visibleChange)="showCancelDlg.set($event)" backdrop="static">
+  <c-modal-header>
+    <h5 cModalTitle>Anular Asiento N° {{ detailEntry()?.number }}</h5>
+    <button type="button" class="btn-close" (click)="showCancelDlg.set(false)"></button>
+  </c-modal-header>
+  <c-modal-body>
+    <label cLabel>Motivo de anulación <span class="text-danger">*</span></label>
+    <textarea cFormControl rows="3"
+              [ngModel]="cancelReason()" (ngModelChange)="cancelReason.set($event)"
+              placeholder="Indique el motivo de anulación..."></textarea>
+  </c-modal-body>
+  <c-modal-footer>
+    <button cButton color="secondary" variant="outline" (click)="showCancelDlg.set(false)">Cancelar</button>
+    <button cButton color="danger" (click)="confirmCancel()" [disabled]="!cancelReason().trim()">
+      Confirmar Anulación
+    </button>
+  </c-modal-footer>
+</c-modal>

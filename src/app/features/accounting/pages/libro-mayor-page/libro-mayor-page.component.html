@@ -1,0 +1,174 @@
+<!-- ── Header ──────────────────────────────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0">Libro Mayor</h4>
+  @if (lines().length > 0) {
+    <button cButton color="secondary" variant="outline" size="sm" (click)="printReport()">
+      <svg cIcon name="cilPrint" size="sm" class="me-1"></svg>
+      Imprimir
+    </button>
+  }
+</div>
+
+<!-- ── Selector ───────────────────────────────────────────────────────────── -->
+<c-card class="mb-3">
+  <c-card-body>
+    <div class="row g-3 align-items-end">
+      <div class="col-md-4">
+        <label cLabel>Buscar Cuenta</label>
+        <c-input-group>
+          <span cInputGroupText>
+            <svg cIcon name="cilSearch" size="sm"></svg>
+          </span>
+          <input cFormControl type="text" placeholder="Código o nombre de cuenta..."
+                 [ngModel]="accountSearch()" (ngModelChange)="accountSearch.set($event)" />
+        </c-input-group>
+      </div>
+      <div class="col-md-4">
+        <label cLabel>Cuenta Contable <span class="text-danger">*</span></label>
+        <select cFormSelect class="select-account" [ngModel]="selectedCode()" (ngModelChange)="selectedCode.set($event)">
+          <option value="">— Seleccionar cuenta —</option>
+          @for (acc of filteredAccounts(); track acc.code) {
+            <option [value]="acc.code">{{ acc.code }} — {{ acc.name }}</option>
+          }
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label cLabel>Período</label>
+        <select cFormSelect class="select-period" [ngModel]="selectedPeriod()" (ngModelChange)="selectedPeriod.set($event)">
+          <option value="">Todos los períodos</option>
+          @for (p of periods(); track p.id) {
+            <option [value]="p.id">{{ p.name }}</option>
+          }
+        </select>
+      </div>
+      <div class="col-md-1">
+        <button cButton color="primary" class="w-100" (click)="loadMayor()" [disabled]="!selectedCode() || searching()">
+          @if (searching()) {
+            <c-spinner size="sm"></c-spinner>
+          } @else {
+            <svg cIcon name="cilSearch" size="sm"></svg>
+          }
+        </button>
+      </div>
+    </div>
+  </c-card-body>
+</c-card>
+
+<!-- ── Account Header ─────────────────────────────────────────────────────── -->
+@if (selectedAccount()) {
+  <div class="acc-header mb-3">
+    <div class="d-flex justify-content-between">
+      <div>
+        <h5>{{ selectedAccount()!.code }} — {{ selectedAccount()!.name }}</h5>
+        <div class="d-flex gap-3 text-xs">
+          <span>Tipo: <strong>{{ ACC_TYPES[selectedAccount()!.type] }}</strong></span>
+          <span>Naturaleza: <strong>{{ ACC_NATURES[selectedAccount()!.nature] }}</strong></span>
+          <span>Período: <strong>{{ getPeriodName(selectedPeriod()) }}</strong></span>
+        </div>
+      </div>
+      <div class="text-end">
+        <div class="text-xs-muted">Saldo Final</div>
+        <div class="val saldo-final-value"
+             [class.bal-positive]="finalBalance() >= 0"
+             [class.bal-negative]="finalBalance() < 0">
+          {{ finalBalance().toFixed(2) }} USD
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ── Table ──────────────────────────────────────────────────────────────── -->
+@if (selectedAccount()) {
+  <c-card>
+    @if (searching()) {
+      <c-card-body class="text-center py-5">
+        <c-spinner color="primary"></c-spinner>
+        <p class="mt-2 text-secondary">Cargando movimientos...</p>
+      </c-card-body>
+    } @else {
+      <div class="table-responsive">
+        <table class="lm-table">
+          <thead>
+            <tr>
+              <th>N° Asiento</th>
+              <th>Fecha</th>
+              <th>Descripción</th>
+              <th>Tipo</th>
+              <th>Referencia</th>
+              <th class="text-end">Débito</th>
+              <th class="text-end">Crédito</th>
+              <th class="text-end">Saldo</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Opening balance row if there are entries -->
+            @if (lines().length > 0) {
+              <tr class="bg-tertiary">
+                <td colspan="7" class="text-end text-xs-muted">
+                  Saldo Inicial
+                </td>
+                <td class="bal text-end">0.00</td>
+              </tr>
+            }
+            @for (line of lines(); track $index) {
+              <tr>
+                <td class="je-num">{{ line.entryNumber }}</td>
+                <td>{{ formatDate(line.date) }}</td>
+                <td>{{ line.description }}</td>
+                <td>
+                  <small class="text-secondary">{{ TYPE_LABELS[line.type] }}</small>
+                </td>
+                <td class="text-xs-muted">{{ line.reference || '' }}</td>
+                <td class="amt">{{ formatAmt(line.debit) }}</td>
+                <td class="amt">{{ formatAmt(line.credit) }}</td>
+                <td class="bal" [class]="balanceClass(line.balance)">{{ formatBal(line.balance) }}</td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="8" class="text-center text-secondary py-4">
+                  No hay movimientos para esta cuenta en el período seleccionado
+                </td>
+              </tr>
+            }
+          </tbody>
+          @if (lines().length > 0) {
+            <tfoot>
+              <tr>
+                <td colspan="5" class="text-end">TOTALES</td>
+                <td class="text-end">{{ totalDebit() | number:'1.2-2' }}</td>
+                <td class="text-end">{{ totalCredit() | number:'1.2-2' }}</td>
+                <td class="text-end" [class]="balanceClass(finalBalance())">{{ finalBalance() | number:'1.2-2' }}</td>
+              </tr>
+            </tfoot>
+          }
+        </table>
+      </div>
+      <div class="saldo-info">
+        <div>
+          <div class="lbl">Total Débitos</div>
+          <div class="val">{{ totalDebit() | number:'1.2-2' }} USD</div>
+        </div>
+        <div>
+          <div class="lbl">Total Créditos</div>
+          <div class="val">{{ totalCredit() | number:'1.2-2' }} USD</div>
+        </div>
+        <div>
+          <div class="lbl">Saldo Final</div>
+          <div class="val" [class]="balanceClass(finalBalance())">{{ finalBalance() | number:'1.2-2' }} USD</div>
+        </div>
+        <div>
+          <div class="lbl">Movimientos</div>
+          <div class="val">{{ lines().length }}</div>
+        </div>
+      </div>
+    }
+  </c-card>
+}
+
+@if (!selectedAccount() && !searching()) {
+  <div class="text-center py-5 text-secondary">
+    <svg cIcon name="cilChart" size="xl" class="mb-3 opacity-25"></svg>
+    <p>Seleccione una cuenta contable y haga clic en buscar para ver el Libro Mayor</p>
+  </div>
+}

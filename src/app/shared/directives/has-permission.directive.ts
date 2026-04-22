@@ -3,6 +3,8 @@ import {
   Input,
   TemplateRef,
   ViewContainerRef,
+  ElementRef,
+  Renderer2,
   inject,
   effect,
   OnDestroy
@@ -100,11 +102,13 @@ export class HasPermissionDirective implements OnDestroy {
 }
 
 /**
- * Directive to disable elements based on permissions
+ * Directive to disable elements based on permissions.
  * Unlike hasPermission, this shows the element but disables it
+ * (and adds aria-disabled for accessibility).
  *
  * Usage:
- * <button [disableIfNoPermission]="'devices.delete'">Eliminar</button>
+ * <button [disableIfNoPermission]="'invoices.delete'">Eliminar</button>
+ * <button [disableIfNoPermission]="['invoices.edit', 'invoices.create']">Guardar</button>
  */
 @Directive({
   selector: '[disableIfNoPermission]',
@@ -112,13 +116,23 @@ export class HasPermissionDirective implements OnDestroy {
 })
 export class DisableIfNoPermissionDirective {
   private permissionsService = inject(PermissionsService);
+  private elementRef         = inject(ElementRef);
+  private renderer           = inject(Renderer2);
 
   @Input()
   set disableIfNoPermission(permission: PermissionString | PermissionString[]) {
-    const permissions = Array.isArray(permission) ? permission : [permission];
+    const permissions  = Array.isArray(permission) ? permission : [permission];
     const hasPermission = this.permissionsService.hasAnyPermission(permissions);
+    const el: HTMLElement = this.elementRef.nativeElement;
 
-    // This would need ElementRef to actually disable the element
-    // For now, this is a placeholder for the pattern
+    if (hasPermission) {
+      this.renderer.removeAttribute(el, 'disabled');
+      this.renderer.removeAttribute(el, 'aria-disabled');
+      this.renderer.removeClass(el, 'disabled');
+    } else {
+      this.renderer.setAttribute(el, 'disabled', 'true');
+      this.renderer.setAttribute(el, 'aria-disabled', 'true');
+      this.renderer.addClass(el, 'disabled');
+    }
   }
 }

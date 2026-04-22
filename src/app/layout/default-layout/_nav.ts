@@ -34,7 +34,7 @@ export const navItems: INavData[] = [
     name: 'Notas de Débito',
     url: '/debit-notes',
     iconComponent: { name: 'cil-plus' },
-    attributes: { module: 'debitNotes', roles: ['admin', 'seller'] }
+    attributes: { module: 'debitNotes', roles: ['admin', 'accountant', 'seller'] }
   },
   {
     name: 'Retenciones',
@@ -118,7 +118,7 @@ export const navItems: INavData[] = [
     name: 'Inventario',
     url: '/stock',
     iconComponent: { name: 'cil-storage' },
-    attributes: { module: 'stock', roles: ['admin'] },
+    attributes: { module: 'stock', roles: ['admin', 'seller'] },
     children: [
       { name: 'Stock por Producto',  url: '/stock',            icon: 'nav-icon-bullet' },
       { name: 'Movimientos',         url: '/stock/movements',  icon: 'nav-icon-bullet' }
@@ -128,12 +128,53 @@ export const navItems: INavData[] = [
     name: 'Compras',
     url: '/purchases',
     iconComponent: { name: 'cil-basket' },
-    attributes: { module: 'purchases', roles: ['admin'] },
+    attributes: { module: 'purchases', roles: ['admin', 'accountant', 'seller'] },
     children: [
       { name: 'Órdenes de Compra', url: '/purchases',          icon: 'nav-icon-bullet' },
       { name: 'Nueva Compra',      url: '/purchases/new',      icon: 'nav-icon-bullet' },
       { name: 'Homologación',      url: '/purchases/mappings', icon: 'nav-icon-bullet' }
     ]
+  },
+
+  // ─── Contabilidad ─────────────────────────────────────────────────────────
+  {
+    title: true,
+    name: 'Contabilidad'
+  },
+  {
+    name: 'Plan de Cuentas',
+    url: '/accounting/chart-of-accounts',
+    iconComponent: { name: 'cil-list' },
+    attributes: { module: 'accounting', roles: ['admin', 'accountant'] }
+  },
+  {
+    name: 'Asientos Contables',
+    url: '/accounting/journal-entries',
+    iconComponent: { name: 'cil-description' },
+    attributes: { module: 'accounting', roles: ['admin', 'accountant'] }
+  },
+  {
+    name: 'Reportes Contables',
+    url: '/accounting/libro-diario',
+    iconComponent: { name: 'cil-chart-line' },
+    attributes: { module: 'accounting', roles: ['admin', 'accountant'] },
+    children: [
+      { name: 'Libro Diario',              url: '/accounting/libro-diario',            icon: 'nav-icon-bullet' },
+      { name: 'Libro Mayor',               url: '/accounting/libro-mayor',             icon: 'nav-icon-bullet' },
+      { name: 'Balance de Comprobación',   url: '/accounting/balance-comprobacion',    icon: 'nav-icon-bullet' }
+    ]
+  },
+  {
+    name: 'Centros de Costo',
+    url: '/accounting/cost-centers',
+    iconComponent: { name: 'cil-sitemap' },
+    attributes: { module: 'accounting', roles: ['admin', 'accountant'] }
+  },
+  {
+    name: 'Ejercicios Contables',
+    url: '/accounting/periods',
+    iconComponent: { name: 'cil-calendar' },
+    attributes: { module: 'accounting', roles: ['admin', 'accountant'] }
   },
 
   // ─── Reports ─────────────────────────────────────────────────────────────
@@ -169,49 +210,49 @@ export const navItems: INavData[] = [
     name: 'Team Dashboard',
     url: '/team-management/dashboard',
     iconComponent: { name: 'cil-speedometer' },
-    attributes: { module: 'teamManagement', roles: ['admin'] }
+    attributes: { module: 'teamManagement', roles: ['admin', 'seller'] }
   },
   {
     name: 'Kanban',
     url: '/team-management/kanban',
     iconComponent: { name: 'cil-columns' },
-    attributes: { module: 'teamManagement', roles: ['admin'] }
+    attributes: { module: 'teamManagement', roles: ['admin', 'seller'] }
   },
   {
     name: 'Proyectos',
     url: '/team-management/projects',
     iconComponent: { name: 'cil-folder' },
-    attributes: { module: 'teamManagement', roles: ['admin'] }
+    attributes: { module: 'teamManagement', roles: ['admin', 'seller'] }
   },
   {
     name: 'Tareas',
     url: '/team-management/tasks',
     iconComponent: { name: 'cil-task' },
-    attributes: { module: 'teamManagement', roles: ['admin'] }
+    attributes: { module: 'teamManagement', roles: ['admin', 'seller'] }
   },
   {
     name: 'Solicitudes',
     url: '/team-management/requests',
     iconComponent: { name: 'cil-inbox' },
-    attributes: { module: 'teamManagement', roles: ['admin'] }
+    attributes: { module: 'teamManagement', roles: ['admin', 'seller'] }
   },
   {
     name: 'Tiempos',
     url: '/team-management/timesheets',
     iconComponent: { name: 'cil-clock' },
-    attributes: { module: 'teamManagement', roles: ['admin'] }
+    attributes: { module: 'teamManagement', roles: ['admin', 'seller'] }
   },
   {
     name: 'Equipo',
     url: '/team-management/members',
     iconComponent: { name: 'cil-people' },
-    attributes: { module: 'teamManagement', roles: ['admin'] }
+    attributes: { module: 'teamManagement', roles: ['admin', 'seller'] }
   },
   {
     name: 'Reportes',
     url: '/team-management/reports',
     iconComponent: { name: 'cil-chart-line' },
-    attributes: { module: 'teamManagement', roles: ['admin'] }
+    attributes: { module: 'teamManagement', roles: ['admin', 'seller'] }
   },
   {
     name: 'Catálogos',
@@ -244,12 +285,18 @@ export const navItems: INavData[] = [
       { name: 'Catálogo Público',    url: '/settings/marketplace',    icon: 'nav-icon-bullet', attributes: { module: 'marketplace' } }
     ]
   },
-  // {
-  //   name: 'Usuarios',
-  //   url: '/users',
-  //   iconComponent: { name: 'cil-user-follow' },
-  //   attributes: { module: 'users', roles: ['admin'] }
-  // },
+  {
+    name: 'Usuarios',
+    url: '/users',
+    iconComponent: { name: 'cil-user-follow' },
+    attributes: { module: 'users', roles: ['admin', 'super_admin'] }
+  },
+  {
+    name: 'Perfiles y Roles',
+    url: '/profiles',
+    iconComponent: { name: 'cil-lock-locked' },
+    attributes: { module: 'users', roles: ['admin', 'super_admin'] }
+  },
 
   // ─── CoreUI reference (remove after development) ─────────────────────────
   // {

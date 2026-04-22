@@ -11,7 +11,7 @@ import {
 import { Router } from '@angular/router';
 import { TenantService } from './tenant.service';
 
-export type UserRole = 'admin' | 'seller' | 'cashier' | 'read_only' | 'super_admin';
+export type UserRole = 'admin' | 'seller' | 'cashier' | 'read_only' | 'super_admin' | 'accountant';
 
 export interface AuthUser {
   uid: string;

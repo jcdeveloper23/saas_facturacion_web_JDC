@@ -1,0 +1,102 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// _accounting-shared.scss
+// Clases utilitarias compartidas por todas las páginas del módulo contable.
+// Importar con:  @use '../accounting-shared' as *;
+// ═══════════════════════════════════════════════════════════════════════════
+
+/* ── Tipografía ───────────────────────────────────────────────────────────── */
+.text-xs          { font-size: .76rem; }
+.text-xs-muted    { font-size: .76rem; color: var(--cui-secondary-color); }
+.text-sm-muted    { font-size: .78rem; color: var(--cui-secondary-color); }
+.font-mono        { font-family: monospace; }
+.font-mono-sm     { font-family: monospace; font-size: .82rem; }
+.font-mono-xs     { font-family: monospace; font-size: .78rem; }
+
+/* ── Layout helpers ───────────────────────────────────────────────────────── */
+.search-wrap      { max-width: 280px; }
+.search-wrap-md   { max-width: 300px; }
+.search-wrap-sm   { max-width: 220px; }
+.overflow-ellipsis {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Tabla base contable ──────────────────────────────────────────────────── */
+// Mixin reutilizable para todas las tablas del módulo
+%acc-thead-th {
+  font-size: .69rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--cui-tertiary-color);
+  padding: .35rem .6rem;
+  border-bottom: 1px solid var(--cui-border-color);
+  background: var(--cui-tertiary-bg);
+  white-space: nowrap;
+}
+
+%acc-tbody-td {
+  padding: .38rem .6rem;
+  font-size: .82rem;
+  border-bottom: 1px solid var(--cui-border-color);
+  vertical-align: middle;
+}
+
+/* ── Table footer ─────────────────────────────────────────────────────────── */
+%table-footer {
+  padding: .4rem .75rem;
+  font-size: .75rem;
+  color: var(--cui-secondary-color);
+  border-top: 1px solid var(--cui-border-color);
+}
+
+/* ── Col widths para th ──────────────────────────────────────────────────── */
+// Usar con [style.width] en lugar de style="width:Npx"
+.col-num     { width: 60px;  }
+.col-date    { width: 110px; }
+.col-type    { width: 100px; }
+.col-ref     { width: 120px; }
+.col-amt     { width: 110px; }
+.col-acc     { width: 200px; }
+.col-name    { width: 160px; }
+.col-cc      { width: 150px; }
+.col-action  { width: 40px;  }
+
+/* ── Filter controls ─────────────────────────────────────────────────────── */
+.select-sm {
+  font-size: .82rem;
+  width: auto;
+  min-width: 130px;
+}
+
+.input-date-sm {
+  font-size: .82rem;
+  width: auto;
+  min-width: 130px;
+}
+
+/* ── Saldo final card ─────────────────────────────────────────────────────── */
+.saldo-final-label {
+  font-size: .72rem;
+  color: var(--cui-secondary-color);
+}
+
+.saldo-final-value {
+  font-size: 1.2rem;
+  font-weight: 700;
+  font-family: monospace;
+}
+
+/* ── Totals row ───────────────────────────────────────────────────────────── */
+.totals-row-muted {
+  font-size: .76rem;
+  color: var(--cui-secondary-color);
+}
+
+/* ── Line-detail indent ──────────────────────────────────────────────────── */
+.line-indent { padding-left: 2rem; }
+
+/* ── Monospace amounts ───────────────────────────────────────────────────── */
+.cell-mono { font-family: monospace; }

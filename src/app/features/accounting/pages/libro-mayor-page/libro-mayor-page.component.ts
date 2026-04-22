@@ -1,0 +1,128 @@
+import {
+  Component, OnInit, OnDestroy, inject, signal, computed
+} from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { Subject, takeUntil, of, take } from 'rxjs';
+import { catchError } from 'rxjs/operators';
+import {
+  CardModule, ButtonModule, GridModule, BadgeModule,
+  SpinnerModule, TableModule, FormModule, TooltipModule,
+  InputGroupComponent, InputGroupTextDirective
+} from '@coreui/angular';
+import { IconModule } from '@coreui/icons-angular';
+
+import { JournalEntriesService }    from '../../services/journal-entries.service';
+import { AccountingPeriodsService } from '../../services/accounting-periods.service';
+import { ChartOfAccountsService }   from '../../services/chart-of-accounts.service';
+import { NotificationService }      from '../../../../core/services/notification.service';
+import { LibroMayorLine, JOURNAL_ENTRY_TYPE_LABELS } from '../../models/journal-entry.interface';
+import { Account, ACCOUNT_TYPE_LABELS, ACCOUNT_NATURE_LABELS } from '../../models/account.interface';
+import { AccountingPeriod } from '../../models/accounting-period.interface';
+
+@Component({
+  selector: 'app-libro-mayor-page',
+  standalone: true,
+  templateUrl: './libro-mayor-page.component.html',
+  styleUrl:    './libro-mayor-page.component.scss',
+  imports: [
+    CommonModule, FormsModule,
+    CardModule, ButtonModule, GridModule, BadgeModule, SpinnerModule,
+    TableModule, FormModule, TooltipModule, IconModule,
+    InputGroupComponent, InputGroupTextDirective
+  ]
+})
+export class LibroMayorPageComponent implements OnInit, OnDestroy {
+  private svc           = inject(JournalEntriesService);
+  private periodsSvc    = inject(AccountingPeriodsService);
+  private accountsSvc   = inject(ChartOfAccountsService);
+  private notifications = inject(NotificationService);
+  private destroy$      = new Subject<void>();
+
+  // ── State ─────────────────────────────────────────────────────────────────
+  accounts        = signal<Account[]>([]);
+  periods         = signal<AccountingPeriod[]>([]);
+  lines           = signal<LibroMayorLine[]>([]);
+  selectedAccount = signal<Account | null>(null);
+  selectedPeriod  = signal('');
+  selectedCode    = signal('');
+  loading         = signal(false);
+  searching       = signal(false);
+  accountSearch   = signal('');
+
+  readonly TYPE_LABELS  = JOURNAL_ENTRY_TYPE_LABELS;
+  readonly ACC_TYPES    = ACCOUNT_TYPE_LABELS;
+  readonly ACC_NATURES  = ACCOUNT_NATURE_LABELS;
+
+  // ── Computed ──────────────────────────────────────────────────────────────
+  filteredAccounts = computed(() => {
+    const t = this.accountSearch().toLowerCase().trim();
+    if (!t) return this.accounts().slice(0, 80);
+    return this.accounts().filter(a =>
+      a.code.includes(t) || a.name.toLowerCase().includes(t)
+    ).slice(0, 80);
+  });
+
+  totalDebit  = computed(() => this.lines().reduce((s, l) => s + l.debit,  0));
+  totalCredit = computed(() => this.lines().reduce((s, l) => s + l.credit, 0));
+  finalBalance = computed(() => {
+    const last = this.lines();
+    return last.length ? last[last.length - 1].balance : 0;
+  });
+
+  // ── Lifecycle ─────────────────────────────────────────────────────────────
+  ngOnInit(): void {
+    this.accountsSvc.getActiveMovementAccounts().pipe(take(1)).subscribe(a => this.accounts.set(a));
+    this.periodsSvc.getPeriods().pipe(take(1)).subscribe(p => this.periods.set(p));
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  // ── Load mayor ────────────────────────────────────────────────────────────
+  async loadMayor(): Promise<void> {
+    const code = this.selectedCode();
+    if (!code) { this.notifications.warning('Seleccione una cuenta'); return; }
+
+    const acc = this.accounts().find(a => a.code === code);
+    this.selectedAccount.set(acc ?? null);
+    this.searching.set(true);
+    this.lines.set([]);
+
+    try {
+      const periodId = this.selectedPeriod() || undefined;
+      const result   = await this.svc.getLibroMayor(code, periodId);
+      this.lines.set(result);
+    } catch (err: any) {
+      this.notifications.error('Error cargando libro mayor: ' + (err?.message ?? err));
+    } finally {
+      this.searching.set(false);
+    }
+  }
+
+  printReport(): void { window.print(); }
+
+  balanceClass(bal: number): string {
+    if (bal > 0)  return 'bal-positive';
+    if (bal < 0)  return 'bal-negative';
+    return 'bal-zero';
+  }
+
+  // ── Formatters ────────────────────────────────────────────────────────────
+  formatDate(ts: any): string {
+    if (!ts) return '—';
+    const d = ts?.toDate ? ts.toDate() : new Date(ts);
+    return d.toLocaleDateString('es-EC', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+
+  formatAmt(n: number): string { return n !== 0 ? n.toFixed(2) : ''; }
+  formatBal(n: number): string { return n.toFixed(2); }
+
+  getPeriodName(periodId: string): string {
+    return this.periods().find(p => p.id === periodId)?.name ?? 'Todos los períodos';
+  }
+
+  trackByEntryId(_: number, item: LibroMayorLine): string { return item.entryId + item.date?.toString(); }
+}

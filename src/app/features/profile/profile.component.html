@@ -1,0 +1,106 @@
+<c-row>
+  <c-col [xs]="12" [md]="8" [lg]="6" class="mx-auto">
+
+    <!-- Header card -->
+    <c-card class="mb-4">
+      <c-card-header>
+        <svg cIcon name="cilUser" class="me-2"></svg>
+        Mi Perfil
+      </c-card-header>
+      <c-card-body>
+        @if (currentUser(); as user) {
+          <c-row class="mb-3 align-items-center">
+            <c-col [xs]="3" class="text-center">
+              <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center"
+                   style="width:72px;height:72px;font-size:2rem;">
+                {{ user.displayName.charAt(0).toUpperCase() }}
+              </div>
+            </c-col>
+            <c-col [xs]="9">
+              <h5 class="mb-1">{{ user.displayName }}</h5>
+              <p class="text-muted mb-1">{{ user.email }}</p>
+              <c-badge [color]="roleColor">{{ roleLabel }}</c-badge>
+            </c-col>
+          </c-row>
+
+          <hr />
+
+          <dl class="row mb-0">
+            <dt class="col-sm-4">UID</dt>
+            <dd class="col-sm-8 text-muted small font-monospace">{{ user.uid }}</dd>
+
+            <dt class="col-sm-4">Empresa</dt>
+            <dd class="col-sm-8 text-muted small font-monospace">{{ user.companyId }}</dd>
+
+            <dt class="col-sm-4">Rol</dt>
+            <dd class="col-sm-8">
+              <c-badge [color]="roleColor">{{ roleLabel }}</c-badge>
+            </dd>
+          </dl>
+        }
+      </c-card-body>
+    </c-card>
+
+    <!-- Password reset card -->
+    <c-card>
+      <c-card-header>
+        <svg cIcon name="cilLockLocked" class="me-2"></svg>
+        Cambiar Contraseña
+      </c-card-header>
+      <c-card-body>
+        <p class="text-muted small mb-3">
+          Se enviará un correo a <strong>{{ currentUser()?.email }}</strong> con un enlace
+          para restablecer tu contraseña.
+        </p>
+
+        @if (errorMessage()) {
+          <c-alert color="danger">{{ errorMessage() }}</c-alert>
+        }
+
+        @if (successMessage()) {
+          <c-alert color="success">{{ successMessage() }}</c-alert>
+        }
+
+        <form [formGroup]="passwordForm" (ngSubmit)="changePassword()">
+          <div class="mb-3">
+            <label cLabel for="newPassword">Nueva contraseña (confirmación visual)</label>
+            <input
+              cFormControl
+              id="newPassword"
+              type="password"
+              formControlName="newPassword"
+              placeholder="••••••"
+              [class.is-invalid]="isFieldInvalid('newPassword')"
+            />
+            @if (isFieldInvalid('newPassword')) {
+              <div class="invalid-feedback">Mínimo 6 caracteres</div>
+            }
+          </div>
+
+          <div class="mb-4">
+            <label cLabel for="confirmPassword">Confirmar nueva contraseña</label>
+            <input
+              cFormControl
+              id="confirmPassword"
+              type="password"
+              formControlName="confirmPassword"
+              placeholder="••••••"
+              [class.is-invalid]="isFieldInvalid('confirmPassword')"
+            />
+            @if (isFieldInvalid('confirmPassword')) {
+              <div class="invalid-feedback">Este campo es requerido</div>
+            }
+          </div>
+
+          <button cButton color="primary" type="submit" [disabled]="loading()">
+            @if (loading()) {
+              <c-spinner size="sm" class="me-2"></c-spinner>
+            }
+            Enviar correo de restablecimiento
+          </button>
+        </form>
+      </c-card-body>
+    </c-card>
+
+  </c-col>
+</c-row>

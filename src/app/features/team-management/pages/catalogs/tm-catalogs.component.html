@@ -6,7 +6,7 @@
   <div>
     <h4 class="mb-0 fw-semibold">Catálogos del Equipo</h4>
     <p class="text-muted small mb-0">
-      Administra especialidades/tecnologías y cargos disponibles para tu compañía
+      Administra especialidades, departamentos y cargos de tu compañía
     </p>
   </div>
 </div>
@@ -18,7 +18,10 @@
   </div>
 } @else {
 
-<c-row class="g-4">
+<!-- ════════════════════════════════════════════════════════════════════════════
+     FILA 1: Especialidades + Departamentos
+════════════════════════════════════════════════════════════════════════════ -->
+<c-row class="g-4 mb-4">
 
   <!-- ════════════════════════════════════════════════════════════════
        ESPECIALIDADES / TECNOLOGÍAS
@@ -49,27 +52,22 @@
             @for (s of specialties(); track trackById($index, s)) {
 
               @if (editingSpecId() === s.id) {
-                <!-- Modo edición inline -->
                 <div class="d-flex align-items-center gap-1">
                   <input class="form-control form-control-sm"
                          style="width:140px; font-size:.8rem"
                          [ngModel]="editingSpecName()"
                          (ngModelChange)="editingSpecName.set($event)"
-                         (keydown)="onEditSpecKeydown($event, s.id)"
-                         #editSpecInput>
+                         (keydown)="onEditSpecKeydown($event, s.id)">
                   <button cButton color="primary" size="sm" variant="outline"
-                          (click)="saveEditSpec(s.id)"
-                          title="Guardar">
+                          (click)="saveEditSpec(s.id)" title="Guardar">
                     <svg cIcon name="cilCheck" style="width:12px;height:12px"></svg>
                   </button>
                   <button cButton color="secondary" size="sm" variant="ghost"
-                          (click)="cancelEditSpec()"
-                          title="Cancelar">
+                          (click)="cancelEditSpec()" title="Cancelar">
                     <svg cIcon name="cilX" style="width:12px;height:12px"></svg>
                   </button>
                 </div>
               } @else {
-                <!-- Chip normal -->
                 <div class="d-inline-flex align-items-center gap-1 rounded-pill px-3 py-1"
                      style="background:var(--cui-primary-bg-subtle); border:1px solid var(--cui-primary-border-subtle); font-size:.8rem; cursor:pointer"
                      (click)="startEditSpec(s)"
@@ -119,10 +117,129 @@
   </c-col>
 
   <!-- ════════════════════════════════════════════════════════════════
-       CARGOS / POSICIONES
+       DEPARTAMENTOS
   ═════════════════════════════════════════════════════════════════ -->
   <c-col xs="12" lg="6">
     <c-card class="h-100">
+      <c-card-header class="d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center gap-2">
+          <svg cIcon name="cilBuilding" class="text-success"></svg>
+          <strong>Departamentos</strong>
+        </div>
+        <c-badge color="success">{{ departments().length }}</c-badge>
+      </c-card-header>
+
+      <c-card-body>
+        <p class="text-muted small mb-3">
+          Unidades organizacionales de la empresa. Agrupan los cargos y se reutilizarán
+          en el módulo de Recursos Humanos.
+        </p>
+
+        <!-- Lista de departamentos ────────────────────────────── -->
+        @if (departments().length === 0) {
+          <div class="text-center py-3 text-muted" style="font-size:.82rem">
+            No hay departamentos registrados todavía
+          </div>
+        } @else {
+          <div class="d-flex flex-column gap-2 mb-4">
+            @for (d of departments(); track trackById($index, d)) {
+              <div class="d-flex align-items-center gap-2 py-2 px-3 rounded"
+                   style="background:var(--cui-success-bg-subtle); border:1px solid var(--cui-success-border-subtle)">
+
+                @if (editingDeptId() === d.id) {
+                  <!-- Edición inline -->
+                  <div class="flex-grow-1 d-flex flex-column gap-1">
+                    <input class="form-control form-control-sm"
+                           placeholder="Nombre del departamento *"
+                           style="font-size:.8rem"
+                           [ngModel]="editingDeptName()"
+                           (ngModelChange)="editingDeptName.set($event)"
+                           (keydown)="onEditDeptKeydown($event, d.id)">
+                    <input class="form-control form-control-sm"
+                           placeholder="Descripción (opcional)"
+                           style="font-size:.78rem"
+                           [ngModel]="editingDeptDesc()"
+                           (ngModelChange)="editingDeptDesc.set($event)"
+                           (keydown)="onEditDeptKeydown($event, d.id)">
+                  </div>
+                  <button cButton color="primary" size="sm" variant="outline"
+                          (click)="saveEditDept(d.id)" title="Guardar">
+                    <svg cIcon name="cilCheck" style="width:12px;height:12px"></svg>
+                  </button>
+                  <button cButton color="secondary" size="sm" variant="ghost"
+                          (click)="cancelEditDept()" title="Cancelar">
+                    <svg cIcon name="cilX" style="width:12px;height:12px"></svg>
+                  </button>
+                } @else {
+                  <!-- Vista normal -->
+                  <svg cIcon name="cilBuilding" style="width:14px;height:14px; color:var(--cui-success); flex-shrink:0"></svg>
+                  <div class="flex-grow-1 min-width-0">
+                    <div class="fw-medium" style="font-size:.84rem; color:var(--cui-success-text-emphasis)">
+                      {{ d.name }}
+                    </div>
+                    @if (d.description) {
+                      <div class="text-muted" style="font-size:.75rem">{{ d.description }}</div>
+                    }
+                  </div>
+                  <button cButton color="secondary" variant="ghost" size="sm"
+                          (click)="startEditDept(d)" title="Editar">
+                    <svg cIcon name="cilPencil" style="width:12px;height:12px"></svg>
+                  </button>
+                  <button cButton color="danger" variant="ghost" size="sm"
+                          (click)="deleteDepartment(d.id)" title="Eliminar">
+                    <svg cIcon name="cilX" style="width:12px;height:12px"></svg>
+                  </button>
+                }
+
+              </div>
+            }
+          </div>
+        }
+
+        <!-- Agregar nuevo departamento ──────────────────────────── -->
+        <div class="border-top pt-3">
+          <p class="text-uppercase fw-semibold mb-2"
+             style="font-size:.65rem; letter-spacing:.07em; color:var(--cui-tertiary-color)">
+            Agregar departamento
+          </p>
+          <div class="d-flex flex-column gap-2">
+            <div class="d-flex gap-2">
+              <input class="form-control form-control-sm"
+                     placeholder="Nombre del departamento *"
+                     [ngModel]="newDeptName()"
+                     (ngModelChange)="newDeptName.set($event)"
+                     (keydown)="onDeptKeydown($event)"
+                     [disabled]="savingDept()">
+              <button cButton color="success" size="sm"
+                      [disabled]="!newDeptName().trim() || savingDept()"
+                      (click)="addDepartment()">
+                @if (savingDept()) {
+                  <c-spinner size="sm"></c-spinner>
+                } @else {
+                  <svg cIcon name="cilPlus"></svg>
+                }
+              </button>
+            </div>
+            <input class="form-control form-control-sm"
+                   placeholder="Descripción (opcional)"
+                   [ngModel]="newDeptDescription()"
+                   (ngModelChange)="newDeptDescription.set($event)"
+                   [disabled]="savingDept()">
+          </div>
+          <div class="form-text">Ej: Tecnología, Ventas, Administración</div>
+        </div>
+      </c-card-body>
+    </c-card>
+  </c-col>
+
+</c-row>
+
+<!-- ════════════════════════════════════════════════════════════════════════════
+     FILA 2: Cargos / Posiciones (full width)
+════════════════════════════════════════════════════════════════════════════ -->
+<c-row>
+  <c-col xs="12">
+    <c-card>
       <c-card-header class="d-flex align-items-center justify-content-between">
         <div class="d-flex align-items-center gap-2">
           <svg cIcon name="cilBriefcase" class="text-warning"></svg>
@@ -133,8 +250,8 @@
 
       <c-card-body>
         <p class="text-muted small mb-3">
-          Catálogo de cargos de la empresa. Se usará en los perfiles del equipo
-          y en el futuro módulo de Recursos Humanos.
+          Catálogo de cargos de la empresa, agrupados por departamento.
+          Se usará en los perfiles del equipo y en el módulo de Recursos Humanos.
         </p>
 
         <!-- Lista agrupada por departamento ─────────────────────── -->
@@ -143,59 +260,64 @@
             No hay cargos registrados todavía
           </div>
         } @else {
-          <div class="mb-4">
+          <c-row class="g-3 mb-4">
             @for (dept of deptKeys(); track trackByKey($index, dept)) {
-              <div class="mb-3">
-                <div class="text-uppercase fw-semibold mb-1"
-                     style="font-size:.65rem; letter-spacing:.06em; color:var(--cui-tertiary-color)">
-                  {{ dept }}
-                </div>
-
-                @for (p of positionsByDept().get(dept)!; track trackById($index, p)) {
-                  <div class="d-flex align-items-center gap-2 py-1 border-bottom"
-                       style="font-size:.84rem">
-
-                    @if (editingPosId() === p.id) {
-                      <!-- Modo edición inline -->
-                      <input class="form-control form-control-sm flex-grow-1"
-                             placeholder="Nombre del cargo"
-                             style="font-size:.8rem"
-                             [ngModel]="editingPosName()"
-                             (ngModelChange)="editingPosName.set($event)"
-                             (keydown)="onEditPosKeydown($event, p.id)">
-                      <input class="form-control form-control-sm"
-                             placeholder="Departamento"
-                             style="font-size:.8rem; width:130px"
-                             [ngModel]="editingPosDept()"
-                             (ngModelChange)="editingPosDept.set($event)"
-                             (keydown)="onEditPosKeydown($event, p.id)">
-                      <button cButton color="primary" size="sm" variant="outline"
-                              (click)="saveEditPos(p.id)" title="Guardar">
-                        <svg cIcon name="cilCheck" style="width:12px;height:12px"></svg>
-                      </button>
-                      <button cButton color="secondary" size="sm" variant="ghost"
-                              (click)="cancelEditPos()" title="Cancelar">
-                        <svg cIcon name="cilX" style="width:12px;height:12px"></svg>
-                      </button>
-                    } @else {
-                      <!-- Vista normal -->
-                      <svg cIcon name="cilCircle" style="width:6px;height:6px; color:var(--cui-warning); flex-shrink:0"></svg>
-                      <span class="flex-grow-1 fw-medium">{{ p.name }}</span>
-                      <button cButton color="secondary" variant="ghost" size="sm"
-                              (click)="startEditPos(p)" title="Editar">
-                        <svg cIcon name="cilPencil" style="width:12px;height:12px"></svg>
-                      </button>
-                      <button cButton color="danger" variant="ghost" size="sm"
-                              (click)="deletePosition(p.id)" title="Eliminar">
-                        <svg cIcon name="cilX" style="width:12px;height:12px"></svg>
-                      </button>
-                    }
-
+              <c-col xs="12" md="6" xl="4">
+                <div class="border rounded p-3 h-100">
+                  <div class="text-uppercase fw-semibold mb-2"
+                       style="font-size:.65rem; letter-spacing:.06em; color:var(--cui-tertiary-color)">
+                    <svg cIcon name="cilBuilding" style="width:11px;height:11px" class="me-1"></svg>
+                    {{ dept }}
                   </div>
-                }
-              </div>
+                  @for (p of positionsByDept().get(dept)!; track trackById($index, p)) {
+                    <div class="d-flex align-items-center gap-2 py-1 border-bottom"
+                         style="font-size:.84rem">
+
+                      @if (editingPosId() === p.id) {
+                        <div class="flex-grow-1 d-flex gap-1">
+                          <input class="form-control form-control-sm"
+                                 placeholder="Nombre del cargo"
+                                 style="font-size:.8rem"
+                                 [ngModel]="editingPosName()"
+                                 (ngModelChange)="editingPosName.set($event)"
+                                 (keydown)="onEditPosKeydown($event, p.id)">
+                          <select class="form-select form-select-sm"
+                                  style="font-size:.8rem; max-width:140px"
+                                  [ngModel]="editingPosDept()"
+                                  (ngModelChange)="editingPosDept.set($event)">
+                            <option value="">Sin departamento</option>
+                            @for (dn of departmentNames(); track dn) {
+                              <option [value]="dn">{{ dn }}</option>
+                            }
+                          </select>
+                        </div>
+                        <button cButton color="primary" size="sm" variant="outline"
+                                (click)="saveEditPos(p.id)" title="Guardar">
+                          <svg cIcon name="cilCheck" style="width:12px;height:12px"></svg>
+                        </button>
+                        <button cButton color="secondary" size="sm" variant="ghost"
+                                (click)="cancelEditPos()" title="Cancelar">
+                          <svg cIcon name="cilX" style="width:12px;height:12px"></svg>
+                        </button>
+                      } @else {
+                        <svg cIcon name="cilCircle" style="width:6px;height:6px; color:var(--cui-warning); flex-shrink:0"></svg>
+                        <span class="flex-grow-1 fw-medium">{{ p.name }}</span>
+                        <button cButton color="secondary" variant="ghost" size="sm"
+                                (click)="startEditPos(p)" title="Editar">
+                          <svg cIcon name="cilPencil" style="width:12px;height:12px"></svg>
+                        </button>
+                        <button cButton color="danger" variant="ghost" size="sm"
+                                (click)="deletePosition(p.id)" title="Eliminar">
+                          <svg cIcon name="cilX" style="width:12px;height:12px"></svg>
+                        </button>
+                      }
+
+                    </div>
+                  }
+                </div>
+              </c-col>
             }
-          </div>
+          </c-row>
         }
 
         <!-- Agregar nuevo cargo ─────────────────────────────────── -->
@@ -205,7 +327,7 @@
             Agregar cargo
           </p>
           <c-row class="g-2 mb-2">
-            <c-col xs="12" sm="6">
+            <c-col xs="12" sm="5">
               <input class="form-control form-control-sm"
                      placeholder="Nombre del cargo *"
                      [ngModel]="newPosName()"
@@ -213,31 +335,47 @@
                      (keydown)="onPosKeydown($event)"
                      [disabled]="savingPos()">
             </c-col>
-            <c-col xs="12" sm="6">
-              <input class="form-control form-control-sm"
-                     placeholder="Departamento (opcional)"
-                     [ngModel]="newPosDept()"
-                     (ngModelChange)="newPosDept.set($event)"
-                     (keydown)="onPosKeydown($event)"
-                     [disabled]="savingPos()">
+            <c-col xs="12" sm="5">
+              @if (departments().length > 0) {
+                <select class="form-select form-select-sm"
+                        [ngModel]="newPosDept()"
+                        (ngModelChange)="newPosDept.set($event)"
+                        [disabled]="savingPos()">
+                  <option value="">Sin departamento</option>
+                  @for (d of departments(); track d.id) {
+                    <option [value]="d.name">{{ d.name }}</option>
+                  }
+                </select>
+              } @else {
+                <input class="form-control form-control-sm"
+                       placeholder="Primero crea departamentos arriba"
+                       disabled>
+              }
+            </c-col>
+            <c-col xs="12" sm="2">
+              <button cButton color="warning" size="sm" class="w-100"
+                      [disabled]="!newPosName().trim() || savingPos()"
+                      (click)="addPosition()">
+                @if (savingPos()) {
+                  <c-spinner size="sm"></c-spinner>
+                } @else {
+                  <svg cIcon name="cilPlus" class="me-1"></svg>
+                  Agregar
+                }
+              </button>
             </c-col>
           </c-row>
-          <button cButton color="warning" size="sm"
-                  [disabled]="!newPosName().trim() || savingPos()"
-                  (click)="addPosition()">
-            @if (savingPos()) {
-              <c-spinner size="sm" class="me-1"></c-spinner>
+          <div class="form-text">
+            @if (departments().length === 0) {
+              Primero crea departamentos para poder asignar cargos a ellos.
             } @else {
-              <svg cIcon name="cilPlus" class="me-1"></svg>
+              Selecciona el departamento al que pertenece este cargo.
             }
-            Agregar cargo
-          </button>
-          <div class="form-text">El departamento agrupa los cargos en la lista</div>
+          </div>
         </div>
       </c-card-body>
     </c-card>
   </c-col>
-
 </c-row>
 
 }

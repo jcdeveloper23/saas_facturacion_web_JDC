@@ -1,0 +1,205 @@
+<!-- ── Page header ────────────────────────────────────────────────────────── -->
+<div class="mb-3">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <div class="d-flex align-items-center gap-2">
+      <div class="page-icon">
+        <svg cIcon name="cilCalendar" size="lg" class="text-white"></svg>
+      </div>
+      <div>
+        <h4 class="page-title mb-0">Ejercicios Contables</h4>
+        <span class="page-subtitle">Gestión de periodos fiscales</span>
+      </div>
+    </div>
+    <button cButton color="primary" size="sm" (click)="openNew()"
+            class="d-flex align-items-center gap-1 px-3 shadow-sm">
+      <svg cIcon name="cilPlus" size="sm"></svg>
+      <span>Nuevo Ejercicio</span>
+    </button>
+  </div>
+
+  @if (!loading()) {
+    <div class="stat-strip">
+      <div class="stat-item" [class.active]="statusFilter() === 'all'"
+           (click)="statusFilter.set('all')">
+        <span class="stat-value text-primary">{{ counts().total }}</span>
+        <span class="stat-label">total</span>
+      </div>
+      <div class="stat-sep"></div>
+      <div class="stat-item" [class.active]="statusFilter() === 'open'"
+           (click)="statusFilter.set('open')">
+        <span class="stat-value text-success">{{ counts().open }}</span>
+        <span class="stat-label">abiertos</span>
+      </div>
+      <div class="stat-sep"></div>
+      <div class="stat-item" [class.active]="statusFilter() === 'closed'"
+           (click)="statusFilter.set('closed')">
+        <span class="stat-value text-warning">{{ counts().closed }}</span>
+        <span class="stat-label">cerrados</span>
+      </div>
+      <div class="stat-sep"></div>
+      <div class="stat-item" [class.active]="statusFilter() === 'locked'"
+           (click)="statusFilter.set('locked')">
+        <span class="stat-value text-danger">{{ counts().locked }}</span>
+        <span class="stat-label">bloqueados</span>
+      </div>
+    </div>
+  }
+</div>
+
+<!-- ── Filter tabs + Table ────────────────────────────────────────────────── -->
+<c-card class="border-0 shadow-sm overflow-hidden rounded-3">
+
+  <!-- Seg-tabs -->
+  <div class="px-3 pt-2 pb-0">
+    <div class="d-flex align-items-center gap-3">
+      <div class="seg-tabs">
+        @for (tab of tabOptions; track tab.value) {
+          <button class="seg-tab" [class.active]="statusFilter() === tab.value"
+                  (click)="statusFilter.set(tab.value)">
+            {{ tab.label }}
+            @if (tab.value !== 'all') {
+              <span class="seg-count {{ tab.value }}">{{ counts()[tab.value] }}</span>
+            }
+          </button>
+        }
+      </div>
+    </div>
+    <div class="filter-divider"></div>
+  </div>
+
+  @if (loading()) {
+    <c-card-body class="text-center py-5">
+      <c-spinner color="primary"></c-spinner>
+      <p class="mt-2 text-secondary">Cargando ejercicios...</p>
+    </c-card-body>
+  } @else {
+    <div class="table-responsive">
+      <table class="periods-table">
+        <thead>
+          <tr>
+            <th>Año</th>
+            <th>Nombre</th>
+            <th>Inicio</th>
+            <th>Fin</th>
+            <th>Estado</th>
+            <th>Notas</th>
+            <th class="text-end">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (p of filteredPeriods(); track p.id) {
+            <tr (click)="openEdit(p, $event)">
+              <td><span class="year-badge">{{ p.year }}</span></td>
+              <td><strong>{{ p.name }}</strong></td>
+              <td>{{ formatDate(p.startDate) }}</td>
+              <td>{{ formatDate(p.endDate) }}</td>
+              <td>
+                <c-badge [color]="STATUS_COLORS[p.status]" shape="rounded-pill">
+                  {{ STATUS_LABELS[p.status] }}
+                </c-badge>
+              </td>
+              <td class="text-xs-muted">
+                {{ p.notes || '—' }}
+              </td>
+              <td class="text-end" (click)="$event.stopPropagation()">
+                <button cButton color="secondary" variant="ghost" size="sm"
+                        cTooltip="Editar" (click)="openEdit(p, $event)">
+                  <svg cIcon name="cilPencil" size="sm"></svg>
+                </button>
+                @if (p.status === 'open') {
+                  <button cButton color="warning" variant="ghost" size="sm"
+                          cTooltip="Cerrar ejercicio" (click)="closePeriod(p, $event)">
+                    <svg cIcon name="cilLockLocked" size="sm"></svg>
+                  </button>
+                }
+                @if (p.status === 'closed') {
+                  <button cButton color="danger" variant="ghost" size="sm"
+                          cTooltip="Bloquear ejercicio" (click)="lockPeriod(p, $event)">
+                    <svg cIcon name="cilBan" size="sm"></svg>
+                  </button>
+                  <button cButton color="success" variant="ghost" size="sm"
+                          cTooltip="Reabrir ejercicio" (click)="reopenPeriod(p, $event)">
+                    <svg cIcon name="cilLockUnlocked" size="sm"></svg>
+                  </button>
+                }
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="7" class="text-center text-secondary py-4">
+                No hay ejercicios contables registrados. Cree el primero.
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <div class="table-footer">
+      {{ filteredPeriods().length }} ejercicio{{ filteredPeriods().length !== 1 ? 's' : '' }}
+      @if (statusFilter() !== 'all') {
+        <span class="ms-1 text-secondary">— filtrado por <strong>{{ activeFilterLabel }}</strong></span>
+      }
+    </div>
+  }
+</c-card>
+
+<!-- ── Modal ──────────────────────────────────────────────────────────────── -->
+<c-modal [visible]="showModal()" (visibleChange)="showModal.set($event)" backdrop="static" size="lg">
+  <c-modal-header>
+    <h5 cModalTitle>{{ editingId() ? 'Editar Ejercicio' : 'Nuevo Ejercicio Contable' }}</h5>
+    <button type="button" class="btn-close" (click)="closeModal()"></button>
+  </c-modal-header>
+  <c-modal-body>
+    <form [formGroup]="form">
+      <div class="row g-3">
+        <div class="col-md-3">
+          <label cLabel>Año <span class="text-danger">*</span></label>
+          <input cFormControl type="number" formControlName="year"
+                 (change)="onYearChange()"
+                 [class.is-invalid]="form.get('year')?.invalid && form.get('year')?.touched" />
+          @if (form.get('year')?.invalid && form.get('year')?.touched) {
+            <div class="invalid-feedback">Año válido requerido</div>
+          }
+        </div>
+        <div class="col-md-9">
+          <label cLabel>Nombre del Ejercicio <span class="text-danger">*</span></label>
+          <input cFormControl formControlName="name" placeholder="Ej: Ejercicio 2025"
+                 [class.is-invalid]="form.get('name')?.invalid && form.get('name')?.touched" />
+          @if (form.get('name')?.invalid && form.get('name')?.touched) {
+            <div class="invalid-feedback">Nombre requerido</div>
+          }
+        </div>
+        <div class="col-md-4">
+          <label cLabel>Fecha de Inicio <span class="text-danger">*</span></label>
+          <input cFormControl type="date" formControlName="startDate"
+                 [class.is-invalid]="form.get('startDate')?.invalid && form.get('startDate')?.touched" />
+        </div>
+        <div class="col-md-4">
+          <label cLabel>Fecha de Cierre <span class="text-danger">*</span></label>
+          <input cFormControl type="date" formControlName="endDate"
+                 [class.is-invalid]="form.get('endDate')?.invalid && form.get('endDate')?.touched" />
+        </div>
+        <div class="col-md-4">
+          <label cLabel>Estado</label>
+          <select cFormSelect class="form-select" formControlName="status">
+            @for (s of statuses; track s) {
+              <option [value]="s">{{ STATUS_LABELS[s] }}</option>
+            }
+          </select>
+        </div>
+        <div class="col-12">
+          <label cLabel>Notas</label>
+          <textarea cFormControl formControlName="notes" rows="2"
+                    placeholder="Observaciones del ejercicio"></textarea>
+        </div>
+      </div>
+    </form>
+  </c-modal-body>
+  <c-modal-footer>
+    <button cButton color="secondary" variant="outline" (click)="closeModal()">Cancelar</button>
+    <button cButton color="primary" (click)="save()" [disabled]="form.invalid || saving()">
+      @if (saving()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+      {{ editingId() ? 'Actualizar' : 'Crear' }}
+    </button>
+  </c-modal-footer>
+</c-modal>

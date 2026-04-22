@@ -1,14 +1,14 @@
 import { Routes } from '@angular/router';
-import { permissionGuard } from '../../core/guards';
+import { roleGuard } from '../../core/guards';
 
 export const routes: Routes = [
   {
     path: '',
     loadComponent: () => import('./profiles.component').then(m => m.ProfilesComponent),
-    canActivate: [permissionGuard],
+    canActivate: [roleGuard],
     data: {
       title: 'Perfiles y Roles',
-      permissions: ['profiles.view']
+      roles: ['admin', 'super_admin']
     }
   }
 ];

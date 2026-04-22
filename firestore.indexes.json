@@ -239,6 +239,103 @@
         { "fieldPath": "clientId",  "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
+    },
+
+    {
+      "collectionGroup": "chart_of_accounts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "allowsMovement", "order": "ASCENDING" },
+        { "fieldPath": "isActive",       "order": "ASCENDING" },
+        { "fieldPath": "code",           "order": "ASCENDING" }
+      ]
+    },
+
+    {
+      "collectionGroup": "journal_entries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "periodId", "order": "ASCENDING" },
+        { "fieldPath": "date",     "order": "DESCENDING" },
+        { "fieldPath": "number",   "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "journal_entries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "periodYear", "order": "ASCENDING" },
+        { "fieldPath": "date",       "order": "DESCENDING" },
+        { "fieldPath": "number",     "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "journal_entries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "type",   "order": "ASCENDING" },
+        { "fieldPath": "date",   "order": "DESCENDING" },
+        { "fieldPath": "number", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "journal_entries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "date",   "order": "DESCENDING" },
+        { "fieldPath": "number", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "journal_entries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "periodId", "order": "ASCENDING" },
+        { "fieldPath": "type",     "order": "ASCENDING" },
+        { "fieldPath": "date",     "order": "DESCENDING" },
+        { "fieldPath": "number",   "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "journal_entries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "periodId", "order": "ASCENDING" },
+        { "fieldPath": "status",   "order": "ASCENDING" },
+        { "fieldPath": "date",     "order": "DESCENDING" },
+        { "fieldPath": "number",   "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "journal_entries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "periodYear", "order": "ASCENDING" },
+        { "fieldPath": "type",       "order": "ASCENDING" },
+        { "fieldPath": "date",       "order": "DESCENDING" },
+        { "fieldPath": "number",     "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "journal_entries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "periodYear", "order": "ASCENDING" },
+        { "fieldPath": "status",     "order": "ASCENDING" },
+        { "fieldPath": "date",       "order": "DESCENDING" },
+        { "fieldPath": "number",     "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "journal_entries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "periodId", "order": "ASCENDING" },
+        { "fieldPath": "status",   "order": "ASCENDING" },
+        { "fieldPath": "date",     "order": "ASCENDING" },
+        { "fieldPath": "number",   "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

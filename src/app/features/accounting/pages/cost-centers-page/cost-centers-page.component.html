@@ -1,0 +1,160 @@
+<!-- ── Header ──────────────────────────────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0">Centros de Costo</h4>
+  <button cButton color="primary" size="sm" (click)="openNew()">
+    <svg cIcon name="cilPlus" class="me-1"></svg>
+    Nuevo Centro
+  </button>
+</div>
+
+<!-- ── Search ─────────────────────────────────────────────────────────────── -->
+<c-card class="mb-3">
+  <c-card-body class="py-2 px-3">
+    <c-input-group class="search-wrap-md">
+      <span cInputGroupText>
+        <svg cIcon name="cilSearch" size="sm"></svg>
+      </span>
+      <input cFormControl type="text" placeholder="Buscar por código o nombre..."
+             [ngModel]="searchTerm()" (ngModelChange)="searchTerm.set($event)" />
+    </c-input-group>
+  </c-card-body>
+</c-card>
+
+<!-- ── Table ──────────────────────────────────────────────────────────────── -->
+<c-card>
+  @if (loading()) {
+    <c-card-body class="text-center py-5">
+      <c-spinner color="primary"></c-spinner>
+      <p class="mt-2 text-secondary">Cargando centros de costo...</p>
+    </c-card-body>
+  } @else {
+    <div class="table-responsive">
+      <table class="cc-table">
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Nombre</th>
+            <th>Tipo</th>
+            <th>Superior</th>
+            <th>Descripción</th>
+            <th>Estado</th>
+            <th class="text-end">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (cc of filtered(); track cc.id) {
+            <tr [class.row-inactive]="!cc.isActive" (click)="openEdit(cc, $event)">
+              <td class="cc-code">{{ cc.code }}</td>
+              <td>{{ cc.name }}</td>
+              <td>
+                <c-badge [color]="TYPE_COLORS[cc.type]" shape="rounded-pill">
+                  {{ TYPE_LABELS[cc.type] }}
+                </c-badge>
+              </td>
+              <td class="text-sm-muted">
+                {{ getParentName(cc.parentId) }}
+              </td>
+              <td class="text-sm-muted overflow-ellipsis">
+                {{ cc.description || '—' }}
+              </td>
+              <td>
+                @if (cc.isActive) {
+                  <c-badge color="success" shape="rounded-pill">Activo</c-badge>
+                } @else {
+                  <c-badge color="secondary" shape="rounded-pill">Inactivo</c-badge>
+                }
+              </td>
+              <td class="text-end" (click)="$event.stopPropagation()">
+                <button cButton color="secondary" variant="ghost" size="sm"
+                        (click)="openEdit(cc, $event)">
+                  <svg cIcon name="cilPencil" size="sm"></svg>
+                </button>
+                <button cButton [color]="cc.isActive ? 'warning' : 'success'" variant="ghost" size="sm"
+                        (click)="toggleActive(cc, $event)">
+                  <svg cIcon [name]="cc.isActive ? 'cilBan' : 'cilCheckCircle'" size="sm"></svg>
+                </button>
+                <button cButton color="danger" variant="ghost" size="sm"
+                        (click)="delete(cc, $event)">
+                  <svg cIcon name="cilTrash" size="sm"></svg>
+                </button>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="7" class="text-center text-secondary py-4">
+                No hay centros de costo registrados
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <div class="table-footer">{{ filtered().length }} centros de costo</div>
+  }
+</c-card>
+
+<!-- ── Modal ──────────────────────────────────────────────────────────────── -->
+<c-modal [visible]="showModal()" (visibleChange)="showModal.set($event)" backdrop="static" size="lg">
+  <c-modal-header>
+    <h5 cModalTitle>{{ editingId() ? 'Editar Centro de Costo' : 'Nuevo Centro de Costo' }}</h5>
+    <button type="button" class="btn-close" (click)="closeModal()"></button>
+  </c-modal-header>
+  <c-modal-body>
+    <form [formGroup]="form">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label cLabel>Código <span class="text-danger">*</span></label>
+          <input cFormControl formControlName="code" placeholder="Ej: CC001"
+                 [class.is-invalid]="form.get('code')?.invalid && form.get('code')?.touched" />
+          @if (form.get('code')?.invalid && form.get('code')?.touched) {
+            <div class="invalid-feedback">Código requerido</div>
+          }
+        </div>
+        <div class="col-md-8">
+          <label cLabel>Nombre <span class="text-danger">*</span></label>
+          <input cFormControl formControlName="name" placeholder="Nombre del centro de costo"
+                 [class.is-invalid]="form.get('name')?.invalid && form.get('name')?.touched" />
+          @if (form.get('name')?.invalid && form.get('name')?.touched) {
+            <div class="invalid-feedback">Nombre requerido</div>
+          }
+        </div>
+        <div class="col-md-6">
+          <label cLabel>Tipo</label>
+          <select cFormSelect formControlName="type">
+            @for (t of centerTypes; track t) {
+              <option [value]="t">{{ TYPE_LABELS[t] }}</option>
+            }
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label cLabel>Centro Superior</label>
+          <select cFormSelect formControlName="parentId">
+            <option [value]="null">— Sin superior —</option>
+            @for (parent of parentOptions(); track parent.id) {
+              <option [value]="parent.id">{{ parent.code }} — {{ parent.name }}</option>
+            }
+          </select>
+        </div>
+        <div class="col-12">
+          <label cLabel>Descripción</label>
+          <textarea cFormControl formControlName="description" rows="2"
+                    placeholder="Descripción del centro de costo"></textarea>
+        </div>
+        <div class="col-12">
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" role="switch" id="ccIsActive"
+                   formControlName="isActive" />
+            <label class="form-check-label" for="ccIsActive">Centro Activo</label>
+          </div>
+        </div>
+      </div>
+    </form>
+  </c-modal-body>
+  <c-modal-footer>
+    <button cButton color="secondary" variant="outline" (click)="closeModal()">Cancelar</button>
+    <button cButton color="primary" (click)="save()" [disabled]="form.invalid || saving()">
+      @if (saving()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+      {{ editingId() ? 'Actualizar' : 'Crear' }}
+    </button>
+  </c-modal-footer>
+</c-modal>

@@ -15,6 +15,7 @@ import { Timestamp }            from '@angular/fire/firestore';
 import { TeamMembersService }   from '../../services/team-members.service';
 import { TimesheetsService }    from '../../services/timesheets.service';
 import { NotificationService }  from '../../../../core/services/notification.service';
+import { HasPermissionDirective } from '../../../../shared/directives/has-permission.directive';
 import {
   TeamMember, MemberRole, MemberStatus,
   MEMBER_ROLE_LABELS, MEMBER_ROLE_COLORS, MEMBER_STATUS_LABELS
@@ -30,6 +31,7 @@ import { TimesheetEntry } from '../../models/timesheet.interface';
     CardModule, ButtonModule, GridModule, BadgeModule, SpinnerModule,
     ProgressModule,
     IconModule,
+    HasPermissionDirective,
   ],
 })
 export class MembersListComponent implements OnInit, OnDestroy {

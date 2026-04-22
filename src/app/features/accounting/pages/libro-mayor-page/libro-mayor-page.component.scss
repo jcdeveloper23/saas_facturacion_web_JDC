@@ -1,0 +1,81 @@
+@use '../../accounting-shared' as *;
+
+/* ── Account selector ─────────────────────────────────────────────────────── */
+.select-account {
+  min-width: 280px;
+}
+
+.select-period {
+  min-width: 180px;
+}
+
+/* ── Account header card ──────────────────────────────────────────────────── */
+.acc-header {
+  background: var(--cui-primary-bg-subtle);
+  border: 1px solid var(--cui-primary-border-subtle);
+  border-radius: 6px;
+  padding: .75rem 1rem;
+  margin-bottom: .75rem;
+
+  h5 { font-family: monospace; margin-bottom: .15rem; }
+}
+
+/* ── Mayor table ──────────────────────────────────────────────────────────── */
+.lm-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  thead th {
+    font-size: .69rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--cui-tertiary-color);
+    padding: .35rem .6rem;
+    border-bottom: 1px solid var(--cui-border-color);
+    background: var(--cui-tertiary-bg);
+    white-space: nowrap;
+  }
+
+  tbody td {
+    padding: .38rem .6rem;
+    font-size: .82rem;
+    border-bottom: 1px solid var(--cui-border-color);
+  }
+
+  tfoot td {
+    padding: .4rem .6rem;
+    font-weight: 600;
+    background: var(--cui-tertiary-bg);
+    border-top: 2px solid var(--cui-border-color);
+    font-family: monospace;
+  }
+}
+
+.je-num { font-family: monospace; font-weight: 600; }
+.amt    { font-family: monospace; text-align: right; }
+.bal    { font-family: monospace; text-align: right; font-weight: 600; }
+
+.bal-positive { color: var(--cui-success); }
+.bal-negative { color: var(--cui-danger); }
+.bal-zero     { color: var(--cui-secondary-color); }
+
+/* ── Saldo info footer ────────────────────────────────────────────────────── */
+.saldo-info {
+  display: flex;
+  gap: 1.5rem;
+  padding: .5rem .75rem;
+  background: var(--cui-tertiary-bg);
+  border-top: 1px solid var(--cui-border-color);
+  font-size: .82rem;
+
+  .lbl { color: var(--cui-secondary-color); font-size: .72rem; }
+  .val { font-family: monospace; font-weight: 600; }
+}
+
+.table-footer {
+  padding: .4rem .75rem;
+  font-size: .75rem;
+  color: var(--cui-secondary-color);
+  border-top: 1px solid var(--cui-border-color);
+}

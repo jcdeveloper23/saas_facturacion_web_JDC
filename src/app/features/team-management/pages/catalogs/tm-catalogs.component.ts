@@ -13,7 +13,7 @@ import { IconModule } from '@coreui/icons-angular';
 
 import { CatalogsService }     from '../../services/catalogs.service';
 import { NotificationService } from '../../../../core/services/notification.service';
-import { TmSpecialty, TmPosition } from '../../models/catalog.interface';
+import { TmSpecialty, TmPosition, TmDepartment } from '../../models/catalog.interface';
 
 @Component({
   selector: 'app-tm-catalogs',
@@ -36,6 +36,7 @@ export class TmCatalogsComponent implements OnInit, OnDestroy {
 
   specialties = signal<TmSpecialty[]>([]);
   positions   = signal<TmPosition[]>([]);
+  departments = signal<TmDepartment[]>([]);
 
   // ── Specialty form ───────────────────────────────────────────────────────────
   newSpecName      = signal('');
@@ -43,15 +44,25 @@ export class TmCatalogsComponent implements OnInit, OnDestroy {
   editingSpecId    = signal<string | null>(null);
   editingSpecName  = signal('');
 
+  // ── Department form ──────────────────────────────────────────────────────────
+  newDeptName        = signal('');
+  newDeptDescription = signal('');
+  savingDept         = signal(false);
+  editingDeptId      = signal<string | null>(null);
+  editingDeptName    = signal('');
+  editingDeptDesc    = signal('');
+
   // ── Position form ────────────────────────────────────────────────────────────
-  newPosName       = signal('');
-  newPosDept       = signal('');
-  savingPos        = signal(false);
-  editingPosId     = signal<string | null>(null);
-  editingPosName   = signal('');
-  editingPosDept   = signal('');
+  newPosName     = signal('');
+  newPosDept     = signal('');
+  savingPos      = signal(false);
+  editingPosId   = signal<string | null>(null);
+  editingPosName = signal('');
+  editingPosDept = signal('');
 
   // ── Computed ─────────────────────────────────────────────────────────────────
+  departmentNames = computed(() => this.departments().map(d => d.name));
+
   positionsByDept = computed(() => {
     const groups = new Map<string, TmPosition[]>();
     for (const p of this.positions()) {
@@ -67,7 +78,7 @@ export class TmCatalogsComponent implements OnInit, OnDestroy {
   // ── Lifecycle ─────────────────────────────────────────────────────────────────
   ngOnInit(): void {
     let done = 0;
-    const check = () => { done++; if (done >= 2) this.loading.set(false); };
+    const check = () => { done++; if (done >= 3) this.loading.set(false); };
 
     this.svc.getSpecialties()
       .pipe(takeUntil(this.destroy$))
@@ -76,6 +87,10 @@ export class TmCatalogsComponent implements OnInit, OnDestroy {
     this.svc.getPositions()
       .pipe(takeUntil(this.destroy$))
       .subscribe({ next: list => { this.positions.set(list); check(); }, error: () => check() });
+
+    this.svc.getDepartments()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({ next: list => { this.departments.set(list); check(); }, error: () => check() });
   }
 
   ngOnDestroy(): void {
@@ -138,6 +153,66 @@ export class TmCatalogsComponent implements OnInit, OnDestroy {
   onEditSpecKeydown(event: KeyboardEvent, id: string): void {
     if (event.key === 'Enter') { event.preventDefault(); this.saveEditSpec(id); }
     if (event.key === 'Escape') { this.cancelEditSpec(); }
+  }
+
+  // ── Departments ───────────────────────────────────────────────────────────────
+  async addDepartment(): Promise<void> {
+    const name = this.newDeptName().trim();
+    if (!name) return;
+    if (this.departments().some(d => d.name.toLowerCase() === name.toLowerCase())) {
+      this.notifications.error('Ya existe un departamento con ese nombre');
+      return;
+    }
+    this.savingDept.set(true);
+    try {
+      await this.svc.addDepartment(name, this.newDeptDescription() || undefined);
+      this.newDeptName.set('');
+      this.newDeptDescription.set('');
+    } catch {
+      this.notifications.error('Error al agregar el departamento');
+    } finally {
+      this.savingDept.set(false);
+    }
+  }
+
+  startEditDept(d: TmDepartment): void {
+    this.editingDeptId.set(d.id);
+    this.editingDeptName.set(d.name);
+    this.editingDeptDesc.set(d.description ?? '');
+  }
+
+  cancelEditDept(): void {
+    this.editingDeptId.set(null);
+    this.editingDeptName.set('');
+    this.editingDeptDesc.set('');
+  }
+
+  async saveEditDept(id: string): Promise<void> {
+    const name = this.editingDeptName().trim();
+    if (!name) return;
+    try {
+      await this.svc.updateDepartment(id, name, this.editingDeptDesc());
+      this.cancelEditDept();
+    } catch {
+      this.notifications.error('Error al actualizar el departamento');
+    }
+  }
+
+  async deleteDepartment(id: string): Promise<void> {
+    try {
+      await this.svc.deleteDepartment(id);
+    } catch {
+      this.notifications.error('Error al eliminar el departamento');
+    }
+  }
+
+  onDeptKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Enter') { event.preventDefault(); this.addDepartment(); }
+  }
+
+  onEditDeptKeydown(event: KeyboardEvent, id: string): void {
+    if (event.key === 'Enter') { event.preventDefault(); this.saveEditDept(id); }
+    if (event.key === 'Escape') { this.cancelEditDept(); }
   }
 
   // ── Positions ─────────────────────────────────────────────────────────────────

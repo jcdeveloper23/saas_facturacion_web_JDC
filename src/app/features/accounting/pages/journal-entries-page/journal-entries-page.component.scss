@@ -1,0 +1,79 @@
+@use '../../accounting-shared' as *;
+
+.search-input { max-width: 280px; }
+
+/* ── Entries table ────────────────────────────────────────────────────────── */
+.je-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  thead th {
+    font-size: .69rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--cui-tertiary-color);
+    padding: .35rem .6rem;
+    border-bottom: 1px solid var(--cui-border-color);
+    background: var(--cui-tertiary-bg);
+    white-space: nowrap;
+  }
+
+  tbody {
+    tr {
+      cursor: pointer;
+      &:hover td { background: var(--cui-tertiary-bg); }
+      &:last-child td { border-bottom: none; }
+      &.row-cancelled td { opacity: .5; }
+    }
+    td {
+      padding: .38rem .6rem;
+      font-size: .82rem;
+      border-bottom: 1px solid var(--cui-border-color);
+      vertical-align: middle;
+    }
+  }
+}
+
+.je-num { font-family: monospace; font-size: .8rem; font-weight: 600; }
+.je-amt { font-family: monospace; font-size: .82rem; text-align: right; white-space: nowrap; }
+
+/* ── Lines table inside detail modal ─────────────────────────────────────── */
+.lines-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: .5rem;
+
+  th {
+    font-size: .7rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    background: var(--cui-tertiary-bg);
+    padding: .3rem .5rem;
+    border-bottom: 1px solid var(--cui-border-color);
+  }
+
+  td {
+    padding: .3rem .5rem;
+    font-size: .8rem;
+    border-bottom: 1px solid var(--cui-border-color);
+  }
+
+  tfoot td {
+    padding: .35rem .5rem;
+    font-weight: 600;
+    font-size: .82rem;
+    border-top: 2px solid var(--cui-border-color);
+    font-family: monospace;
+  }
+}
+
+.balance-ok   { color: var(--cui-success); }
+.balance-fail { color: var(--cui-danger); }
+
+.table-footer {
+  padding: .4rem .75rem;
+  font-size: .75rem;
+  color: var(--cui-secondary-color);
+  border-top: 1px solid var(--cui-border-color);
+}

@@ -20,8 +20,7 @@ export const roleGuard: CanActivateFn = (route) => {
     map(() => {
       if (allowedRoles.length === 0 || authService.hasRole(...allowedRoles)) return true;
 
-      // Unauthenticated users are handled by authGuard, or they default back to /dashboard
-      router.navigate(['/dashboard']);
+      router.navigate(['/unauthorized']);
       return false;
     })
   );

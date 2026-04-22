@@ -715,7 +715,7 @@ export class PurchaseImporterService {
       addresses:    [],
       bankAccounts: [],
       isActive:     true,
-      supplierData: { code: '', currency: 'USD', paymentTermCode: '', vatRegime: 'General' },
+      supplierData: { currency: 'USD', paymentTermCode: '', vatRegime: 'General' },
     });
 
     return { id, name, ruc, irRetentionPct: 0, vatRetentionPct: 0 };

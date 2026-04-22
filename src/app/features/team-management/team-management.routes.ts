@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { roleGuard } from '../../core/guards';
 
 export const TEAM_MANAGEMENT_ROUTES: Routes = [
   {
@@ -26,15 +27,17 @@ export const TEAM_MANAGEMENT_ROUTES: Routes = [
   },
   {
     path: 'projects/new',
+    canActivate: [roleGuard],
     loadComponent: () =>
       import('./pages/projects/project-form.component').then(m => m.ProjectFormComponent),
-    data: { title: 'Nuevo Proyecto' }
+    data: { roles: ['admin', 'seller'], title: 'Nuevo Proyecto' }
   },
   {
     path: 'projects/:id/edit',
+    canActivate: [roleGuard],
     loadComponent: () =>
       import('./pages/projects/project-form.component').then(m => m.ProjectFormComponent),
-    data: { title: 'Editar Proyecto' }
+    data: { roles: ['admin', 'seller'], title: 'Editar Proyecto' }
   },
   {
     path: 'tasks',
@@ -44,15 +47,17 @@ export const TEAM_MANAGEMENT_ROUTES: Routes = [
   },
   {
     path: 'tasks/new',
+    canActivate: [roleGuard],
     loadComponent: () =>
       import('./pages/tasks/task-form.component').then(m => m.TaskFormComponent),
-    data: { title: 'Nueva Tarea' }
+    data: { roles: ['admin', 'seller'], title: 'Nueva Tarea' }
   },
   {
     path: 'tasks/:id/edit',
+    canActivate: [roleGuard],
     loadComponent: () =>
       import('./pages/tasks/task-form.component').then(m => m.TaskFormComponent),
-    data: { title: 'Editar Tarea' }
+    data: { roles: ['admin', 'seller'], title: 'Editar Tarea' }
   },
   {
     path: 'requests',
@@ -62,15 +67,17 @@ export const TEAM_MANAGEMENT_ROUTES: Routes = [
   },
   {
     path: 'requests/new',
+    canActivate: [roleGuard],
     loadComponent: () =>
       import('./pages/requests/request-form.component').then(m => m.RequestFormComponent),
-    data: { title: 'Nueva Solicitud' }
+    data: { roles: ['admin', 'seller'], title: 'Nueva Solicitud' }
   },
   {
     path: 'requests/:id/edit',
+    canActivate: [roleGuard],
     loadComponent: () =>
       import('./pages/requests/request-form.component').then(m => m.RequestFormComponent),
-    data: { title: 'Editar Solicitud' }
+    data: { roles: ['admin', 'seller'], title: 'Editar Solicitud' }
   },
   {
     path: 'timesheets',
@@ -86,15 +93,17 @@ export const TEAM_MANAGEMENT_ROUTES: Routes = [
   },
   {
     path: 'members/new',
+    canActivate: [roleGuard],
     loadComponent: () =>
       import('./pages/members/member-form.component').then(m => m.MemberFormComponent),
-    data: { title: 'Nuevo Miembro' }
+    data: { roles: ['admin', 'seller'], title: 'Nuevo Miembro' }
   },
   {
     path: 'members/:id/edit',
+    canActivate: [roleGuard],
     loadComponent: () =>
       import('./pages/members/member-form.component').then(m => m.MemberFormComponent),
-    data: { title: 'Editar Miembro' }
+    data: { roles: ['admin', 'seller'], title: 'Editar Miembro' }
   },
   {
     path: 'reports',
@@ -104,8 +113,9 @@ export const TEAM_MANAGEMENT_ROUTES: Routes = [
   },
   {
     path: 'catalogs',
+    canActivate: [roleGuard],
     loadComponent: () =>
       import('./pages/catalogs/tm-catalogs.component').then(m => m.TmCatalogsComponent),
-    data: { title: 'Catálogos del Equipo' }
+    data: { roles: ['admin'], title: 'Catálogos del Equipo' }
   },
 ];

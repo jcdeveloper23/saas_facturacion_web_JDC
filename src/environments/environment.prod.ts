@@ -1,5 +1,6 @@
 export const environment = {
   production: true,
+  apiUrl: 'https://api.facturasec.com',
   cloudFunctionsUrl: 'https://us-central1-facturasproec.cloudfunctions.net',
   firebase: {
     apiKey: "AIzaSyAN8TSjffljKHfErfJ3O_GCG3EWxfyYR14",

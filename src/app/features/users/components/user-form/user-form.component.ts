@@ -1,26 +1,36 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
-import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import {
-    CardModule,
-    GridModule,
-    ButtonModule,
-    FormModule,
-    UtilitiesModule,
-    SpinnerModule,
-    AlertModule,
-    BadgeModule
+    ReactiveFormsModule,
+    FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors
+} from '@angular/forms';
+import {
+    CardModule, GridModule, ButtonModule, FormModule,
+    UtilitiesModule, SpinnerModule, AlertModule, BadgeModule
 } from '@coreui/angular';
 import { IconModule } from '@coreui/icons-angular';
-import { UsersService } from '../../../../core/services/users.service';
-import { PermissionsService } from '../../../../core/services/permissions.service';
-import { OrganizationsService } from '../../../../core/services/organizations.service';
-import { AuthService } from '../../../../core/services/auth.service';
-import { NotificationService } from '../../../../core/services/notification.service';
-import { User } from '../../../../core/interfaces/user.interface';
-import { Role } from '../../../../core/interfaces/permission.interface';
-import { Organization } from '../../../../core/interfaces/organization.interface';
+import { Subscription } from 'rxjs';
+
+import { UserManagementService } from '../../../../core/services/user-management.service';
+import { CompanyUsersService }   from '../../../../core/services/company-users.service';
+import { PermissionsService }    from '../../../../core/services/permissions.service';
+import { AuthService }           from '../../../../core/services/auth.service';
+import { NotificationService }   from '../../../../core/services/notification.service';
+import { Role }                  from '../../../../core/interfaces/permission.interface';
+import { CompanyUser }           from '../../../../core/interfaces/company-user.interface';
+import { PersonasService, EmployeeDataInput } from '../../../personas/services/personas.service';
+import { Person }                             from '../../../personas/models/person.interface';
+
+export type PersonaMode = 'none' | 'existing' | 'new';
+
+/** Valida que password y passwordConfirm coincidan. */
+function passwordMatchValidator(group: AbstractControl): ValidationErrors | null {
+    const pw  = group.get('password')?.value;
+    const pwc = group.get('passwordConfirm')?.value;
+    if (pw && pwc && pw !== pwc) return { passwordMismatch: true };
+    return null;
+}
 
 @Component({
     selector: 'app-user-form',
@@ -28,46 +38,42 @@ import { Organization } from '../../../../core/interfaces/organization.interface
     imports: [
         CommonModule,
         ReactiveFormsModule,
-        CardModule,
-        GridModule,
-        ButtonModule,
-        FormModule,
-        UtilitiesModule,
-        IconModule,
-        SpinnerModule,
-        AlertModule,
-        BadgeModule
+        CardModule, GridModule, ButtonModule, FormModule,
+        UtilitiesModule, IconModule, SpinnerModule, AlertModule, BadgeModule
     ],
     templateUrl: './user-form.component.html'
 })
-export class UserFormComponent implements OnInit {
-    private fb = inject(FormBuilder);
-    private usersService = inject(UsersService);
-    private permissionsService = inject(PermissionsService);
-    private organizationsService = inject(OrganizationsService);
-    private authService = inject(AuthService);
-    private notification = inject(NotificationService);
-    private router = inject(Router);
-    private route = inject(ActivatedRoute);
+export class UserFormComponent implements OnInit, OnDestroy {
+    private fb             = inject(FormBuilder);
+    private userMgmtSvc    = inject(UserManagementService);
+    private companyUsersSvc = inject(CompanyUsersService);
+    private permissionsSvc  = inject(PermissionsService);
+    private authService    = inject(AuthService);
+    private notification   = inject(NotificationService);
+    private personasSvc    = inject(PersonasService);
+    private router         = inject(Router);
+    private route          = inject(ActivatedRoute);
 
     userForm!: FormGroup;
-    isEditMode = false;
-    loading = signal(false);
-    loadingData = signal(true);
+    isEditMode  = false;
     userId: string | null = null;
+
+    loading      = signal(false);
+    loadingData  = signal(true);
     errorMessage = signal('');
 
-    // Options for selects
-    allRoles = signal<Role[]>([]);
     assignableRoles = signal<Role[]>([]);
-    organizations = signal<Organization[]>([]);
+    employees       = signal<Person[]>([]);
+    personaMode     = signal<PersonaMode>('none');
+    linkedEmployee  = signal<Person | null>(null);
 
-    isSuperAdmin = signal(false);
+    private userSub?:      Subscription;
+    private employeesSub?: Subscription;
 
     ngOnInit(): void {
         this.initForm();
-        this.checkPermissions();
-        this.loadSelectOptions();
+        this.loadRoles();
+        this.loadEmployees();
 
         this.route.params.subscribe(params => {
             if (params['id']) {
@@ -80,195 +86,254 @@ export class UserFormComponent implements OnInit {
         });
     }
 
+    ngOnDestroy(): void {
+        this.userSub?.unsubscribe();
+        this.employeesSub?.unsubscribe();
+    }
+
     private initForm(): void {
-        const currentUser = this.authService.user();
-
         this.userForm = this.fb.group({
-            // Personal info
-            userFullName: ['', [Validators.required, Validators.maxLength(100)]],
-            userLastName: ['', [Validators.required, Validators.maxLength(100)]],
-            userEmail: ['', [Validators.required, Validators.email]],
-            userPhone: ['', [Validators.maxLength(20)]],
+            displayName:    ['', [Validators.required, Validators.maxLength(120)]],
+            email:          ['', [Validators.required, Validators.email]],
+            password:       ['', [Validators.required, Validators.minLength(6)]],
+            passwordConfirm:['', [Validators.required]],
+            platformRole:   [null, Validators.required],
+            isActive:       [true],
+            // Empleado asociado
+            personaId:      [null],
+            empName:        [''],
+            empTaxId:       [''],
+            empTaxIdType:   ['CI'],
+            empPosition:    [''],
+            empDepartment:  [''],
+        }, { validators: passwordMatchValidator });
+    }
 
-            // Security
-            userPassword: ['', [Validators.required, Validators.minLength(6)]],
-            passwordConfirm: ['', [Validators.required]],
-
-            // Emergency contact
-            userPhoneEmergency: ['', [Validators.maxLength(20)]],
-            userEmailEmergency: ['', [Validators.email]],
-
-            // Notifications
-            userReceiveNotifications: [true],
-            userMuteNotifications: [false],
-
-            // Role & assignment
-            organizationId: [currentUser?.organizationId || null],
-            roleId: [null, Validators.required],
-
-            // State
-            state: [true]
+    private loadRoles(): void {
+        this.permissionsSvc.getAssignableRolesQuery().subscribe({
+            next: roles => this.assignableRoles.set(roles),
+            error: err => console.error('Error loading roles:', err)
         });
     }
 
-    private checkPermissions(): void {
-        this.isSuperAdmin.set(this.authService.isSuperAdmin());
-    }
-
-    private loadSelectOptions(): void {
-        // Load roles
-        this.permissionsService.getRoles().subscribe({
-            next: (roles) => {
-                this.allRoles.set(roles);
-                this.assignableRoles.set(this.permissionsService.getAssignableRoles(roles));
-                console.log('Roles loaded:', roles.length);
+    private loadEmployees(): void {
+        this.employeesSub = this.personasSvc.getPersonas('employee').subscribe({
+            next: list => {
+                this.employees.set(list);
+                // Si en modo edición hay un personaId ya seteado en el form,
+                // asegurarse de que linkedEmployee esté cargado una vez que employees llegue
+                const currentPersonaId = this.userForm.get('personaId')?.value;
+                if (currentPersonaId && !this.linkedEmployee()) {
+                    const found = list.find(e => e.id === currentPersonaId) ?? null;
+                    if (found) this.linkedEmployee.set(found);
+                }
             },
-            error: (err) => console.error('Error loading roles:', err)
+            error: err => console.error('Error loading employees:', err)
         });
-
-        // Only super admin can see organizations
-        if (this.isSuperAdmin()) {
-            console.log('Loading organizations for super admin...');
-            this.organizationsService.getOrganizations({ is_active: true }).subscribe({
-                next: (response) => {
-                    console.log('Organizations response:', response);
-                    console.log('Organizations data:', response.data);
-                    this.organizations.set(response.data || []);
-                },
-                error: (err) => console.error('Error loading organizations:', err)
-            });
-        } else {
-            console.log('Not super admin, skipping organizations load');
-        }
     }
 
-    loadUser(id: string): void {
+    private loadUser(uid: string): void {
         this.loadingData.set(true);
-        this.usersService.get(id).subscribe({
-            next: (user) => {
-                // In edit mode: password not required, email disabled
-                this.userForm.get('userPassword')?.clearValidators();
-                this.userForm.get('userPassword')?.updateValueAndValidity();
+        this.userSub = this.companyUsersSvc.getCompanyUser(uid).subscribe({
+            next: user => {
+                if (!user) {
+                    this.errorMessage.set('Usuario no encontrado');
+                    this.loadingData.set(false);
+                    return;
+                }
+                // En edición: email no editable, password no requerida
+                this.userForm.get('email')?.disable();
+                this.userForm.get('password')?.clearValidators();
+                this.userForm.get('password')?.updateValueAndValidity();
                 this.userForm.get('passwordConfirm')?.clearValidators();
                 this.userForm.get('passwordConfirm')?.updateValueAndValidity();
-                this.userForm.get('userEmail')?.disable();
 
                 this.userForm.patchValue({
-                    userFullName: user.userFullName || '',
-                    userLastName: user.userLastName || '',
-                    userEmail: user.userEmail,
-                    userPhone: user.userPhone || '',
-                    userPhoneEmergency: user.userPhoneEmergency || '',
-                    userEmailEmergency: user.userEmailEmergency || '',
-                    userReceiveNotifications: user.userReceiveNotifications ?? true,
-                    userMuteNotifications: user.userMuteNotifications ?? false,
-                    organizationId: user.organization_id || user.organizationId || null,
-                    roleId: user.roleId || user.role?.id || null,
-                    state: user.state === 1 || user.state === true
+                    displayName:  user.displayName,
+                    email:        user.email,
+                    platformRole: user.platformRole,
+                    isActive:     user.isActive,
+                    personaId:    user.personaId ?? null,
                 });
+
+                if (user.personaId) {
+                    this.personaMode.set('existing');
+                    this.personasSvc.getPerson(user.personaId).then(p => {
+                        this.linkedEmployee.set(p);
+                    });
+                }
+
                 this.loadingData.set(false);
             },
-            error: (err) => {
+            error: err => {
                 this.errorMessage.set('Error al cargar el usuario');
                 this.loadingData.set(false);
-                this.notification.error('Error al cargar el usuario');
                 console.error(err);
             }
         });
     }
 
-    onSubmit(): void {
+    setPersonaMode(mode: PersonaMode): void {
+        this.personaMode.set(mode);
+        if (mode !== 'existing') {
+            this.userForm.get('personaId')?.setValue(null);
+            this.linkedEmployee.set(null);
+        }
+        if (mode !== 'new') {
+            this.userForm.get('empName')?.setValue('');
+            this.userForm.get('empTaxId')?.setValue('');
+            this.userForm.get('empPosition')?.setValue('');
+            this.userForm.get('empDepartment')?.setValue('');
+        }
+    }
+
+    async onSubmit(): Promise<void> {
         if (this.userForm.invalid) {
             this.userForm.markAllAsTouched();
             this.notification.warning('Por favor complete todos los campos requeridos');
             return;
         }
 
-        // Validate password confirmation
-        const formValue = this.userForm.getRawValue();
-        if (formValue.userPassword && formValue.userPassword !== formValue.passwordConfirm) {
-            this.errorMessage.set('Las contrasenas no coinciden');
-            this.notification.warning('Las contrasenas no coinciden');
+        // Validar campos del nuevo empleado si aplica
+        const mode = this.personaMode();
+        if (mode === 'new') {
+            const empName  = this.userForm.get('empName')?.value?.trim();
+            const empTaxId = this.userForm.get('empTaxId')?.value?.trim();
+            if (!empName || !empTaxId) {
+                this.notification.warning('Complete el nombre y cédula/RUC del empleado');
+                return;
+            }
+        }
+
+        const companyId = this.authService.user()?.companyId;
+        if (!companyId) {
+            this.errorMessage.set('No se pudo determinar la empresa activa. Verifica tu sesión.');
             return;
         }
 
         this.loading.set(true);
         this.errorMessage.set('');
+        const v = this.userForm.getRawValue();
 
-        // Build payload
-        const userData: Partial<User> = {
-            userFullName: formValue.userFullName,
-            userLastName: formValue.userLastName,
-            userEmail: formValue.userEmail,
-            userPhone: formValue.userPhone || undefined,
-            userPhoneEmergency: formValue.userPhoneEmergency || undefined,
-            userEmailEmergency: formValue.userEmailEmergency || undefined,
-            userReceiveNotifications: formValue.userReceiveNotifications,
-            userMuteNotifications: formValue.userMuteNotifications,
-            organization_id: formValue.organizationId, // Backend uses snake_case
-            userCurrentRole: formValue.roleId,
-            state: formValue.state
-        };
+        try {
+            // ── Resolver personaId ────────────────────────────────────────────
+            let resolvedPersonaId: string | undefined;
 
-        // Only include password if provided
-        if (formValue.userPassword) {
-            userData.userPassword = formValue.userPassword;
-        }
-
-        const request$ = this.isEditMode
-            ? this.usersService.patch(this.userId!, userData)
-            : this.usersService.create(userData);
-
-        request$.subscribe({
-            next: (savedUser) => {
-                this.loading.set(false);
-                this.notification.success(
-                    this.isEditMode ? 'Usuario actualizado correctamente' : 'Usuario creado correctamente'
-                );
-                this.router.navigate(['/users', savedUser.id]);
-            },
-            error: (err) => {
-                this.loading.set(false);
-                let message = err.error?.message || err.message || 'Error al guardar el usuario';
-                if (err.status === 409) {
-                    message = 'Ya existe un usuario con ese correo electronico';
-                }
-                this.errorMessage.set(message);
-                this.notification.error(message);
-                console.error(err);
+            if (mode === 'existing' && v.personaId) {
+                resolvedPersonaId = v.personaId;
+            } else if (mode === 'new') {
+                resolvedPersonaId = await this.personasSvc.createPerson({
+                    roles:       ['employee'],
+                    taxId:       v.empTaxId.trim(),
+                    taxIdType:   v.empTaxIdType,
+                    isCompany:   false,
+                    name:        v.empName.trim(),
+                    legalName:   v.empName.trim(),
+                    addresses:   [],
+                    bankAccounts:[],
+                    isActive:    true,
+                    employeeData: {
+                        position:   v.empPosition?.trim() || undefined,
+                        department: v.empDepartment?.trim() || undefined,
+                    } as EmployeeDataInput
+                });
             }
-        });
+
+            // ── Guardar usuario ───────────────────────────────────────────────
+            if (this.isEditMode) {
+                await this.userMgmtSvc.updateCompanyUser({
+                    uid:          this.userId!,
+                    companyId,
+                    displayName:  v.displayName,
+                    platformRole: v.platformRole,
+                    isActive:     v.isActive,
+                    personaId:    resolvedPersonaId,
+                });
+                // Escribir personaId directo en Firestore (fuente de verdad garantizada,
+                // independiente de si el CF ya fue desplegado con el campo)
+                const firestorePersonaUpdate: Partial<CompanyUser> = {};
+                if (resolvedPersonaId) {
+                    firestorePersonaUpdate.personaId = resolvedPersonaId;
+                }
+                await this.companyUsersSvc.upsertCompanyUser(this.userId!, firestorePersonaUpdate);
+                this.notification.success('Usuario actualizado correctamente');
+                this.router.navigate(['/users']);
+            } else {
+                const result = await this.userMgmtSvc.createCompanyUser({
+                    email:        v.email,
+                    password:     v.password,
+                    displayName:  v.displayName,
+                    platformRole: v.platformRole,
+                    companyId,
+                    personaId:    resolvedPersonaId,
+                });
+                // Escribir personaId directo en Firestore si aplica
+                if (resolvedPersonaId) {
+                    await this.companyUsersSvc.upsertCompanyUser(result.uid, { personaId: resolvedPersonaId });
+                }
+                this.notification.success('Usuario creado correctamente');
+                this.router.navigate(['/users', result.uid]);
+            }
+        } catch (err: any) {
+            const code    = err?.code ?? '';
+            const message = err?.message ?? 'Error al guardar el usuario';
+
+            if (code.includes('already-exists')) {
+                this.errorMessage.set('Ya existe un usuario con ese correo electrónico');
+            } else if (code.includes('permission-denied')) {
+                this.errorMessage.set('No tienes permisos para realizar esta acción');
+            } else {
+                this.errorMessage.set(message);
+            }
+            this.notification.error(this.errorMessage());
+            console.error('[UserFormComponent] onSubmit error:', err);
+        } finally {
+            this.loading.set(false);
+        }
     }
 
-    onOrganizationChange(): void {
-        // When org changes, we could reload roles filtered by org
-        // For now, roles are global
+    // ── Template helpers ─────────────────────────────────────────────────────
+
+    isFieldInvalid(field: string): boolean {
+        const c = this.userForm.get(field);
+        return !!(c && c.invalid && c.touched);
     }
 
-    // Helpers
-    isFieldInvalid(fieldName: string): boolean {
-        const field = this.userForm.get(fieldName);
-        return !!(field && field.invalid && field.touched);
+    hasFormError(errorKey: string): boolean {
+        return !!(this.userForm.errors?.[errorKey] &&
+            this.userForm.get('passwordConfirm')?.touched);
     }
 
-    getFieldError(fieldName: string): string {
-        const field = this.userForm.get(fieldName);
-        if (!field || !field.errors) return '';
+    getFieldError(field: string): string {
+        const c = this.userForm.get(field);
+        if (!c?.errors) return '';
+        if (c.errors['required'])  return 'Este campo es requerido';
+        if (c.errors['minlength']) return `Mínimo ${c.errors['minlength'].requiredLength} caracteres`;
+        if (c.errors['maxlength']) return `Máximo ${c.errors['maxlength'].requiredLength} caracteres`;
+        if (c.errors['email'])     return 'Ingresa un correo electrónico válido';
+        return 'Campo inválido';
+    }
 
-        if (field.errors['required']) return 'Este campo es requerido';
-        if (field.errors['minlength']) return `Minimo ${field.errors['minlength'].requiredLength} caracteres`;
-        if (field.errors['maxlength']) return `Maximo ${field.errors['maxlength'].requiredLength} caracteres`;
-        if (field.errors['email']) return 'Ingrese un correo electronico valido';
-        if (field.errors['pattern']) return 'Formato invalido';
+    onEmployeeSelected(personaId: string | null): void {
+        if (!personaId) {
+            this.linkedEmployee.set(null);
+            return;
+        }
+        const found = this.employees().find(e => e.id === personaId) ?? null;
+        this.linkedEmployee.set(found);
+        if (!found) {
+            this.personasSvc.getPerson(personaId).then(p => this.linkedEmployee.set(p));
+        }
+    }
 
-        return 'Campo invalido';
+    getEmployeeLabel(emp: Person): string {
+        return `${emp.name} — ${emp.taxId}`;
     }
 
     cancel(): void {
-        if (this.isEditMode && this.userId) {
-            this.router.navigate(['/users', this.userId]);
-        } else {
-            this.router.navigate(['/users']);
-        }
+        this.router.navigate(this.isEditMode && this.userId
+            ? ['/users', this.userId]
+            : ['/users']
+        );
     }
 }

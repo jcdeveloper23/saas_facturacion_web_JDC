@@ -20,7 +20,8 @@
     </div>
     <hr>
     <div class="d-flex gap-2">
-        <button cButton color="danger" variant="outline" size="sm" (click)="loadUser(route.snapshot.params['id'])">
+        <button cButton color="danger" variant="outline" size="sm"
+            (click)="loadUser(route.snapshot.params['id'])">
             <svg cIcon name="cilReload" class="me-1"></svg> Reintentar
         </button>
         <button cButton color="secondary" variant="ghost" size="sm" (click)="goBack()">
@@ -44,21 +45,22 @@
                             <span class="fs-4 fw-bold text-primary">{{ getUserInitials() }}</span>
                         </div>
                         <div>
-                            <h4 class="mb-0">{{ user()!.userFullName || '' }} {{ user()!.userLastName || '' }}</h4>
-                            <div class="text-muted">
-                                <span class="me-2">{{ user()!.userEmail }}</span>
+                            <h4 class="mb-0">{{ user()!.displayName }}</h4>
+                            <div class="text-muted d-flex align-items-center gap-2 flex-wrap mt-1">
+                                <span>{{ user()!.email }}</span>
                                 <c-badge [color]="getRoleColor()" shape="rounded-pill">
                                     {{ getRoleName() }}
                                 </c-badge>
+                                @if (user()!.isActive) {
+                                <c-badge color="success" shape="rounded-pill">Activo</c-badge>
+                                } @else {
+                                <c-badge color="secondary" shape="rounded-pill">Inactivo</c-badge>
+                                }
                             </div>
                         </div>
                     </div>
                     <div class="d-flex gap-2">
-                        <button cButton color="light" size="sm" (click)="refreshUser()" title="Actualizar">
-                            <svg cIcon name="cilReload"></svg>
-                        </button>
-                        <button cButton color="primary" variant="outline" size="sm" (click)="editUser()"
-                            *hasPermission="['users.edit']">
+                        <button cButton color="primary" variant="outline" size="sm" (click)="editUser()">
                             <svg cIcon name="cilPencil" class="me-1"></svg> Editar
                         </button>
                         <button cButton color="secondary" variant="ghost" size="sm" (click)="goBack()">
@@ -70,82 +72,75 @@
         </c-card>
     </c-col>
 
-    <!-- Left Column: Info -->
+    <!-- Left Column -->
     <c-col lg="8">
-        <!-- Informacion Personal -->
+        <!-- Informacion de cuenta -->
         <c-card class="mb-4">
             <c-card-header>
                 <svg cIcon name="cilUser" class="me-2"></svg>
-                <strong>Informacion Personal</strong>
+                <strong>Informacion de Cuenta</strong>
             </c-card-header>
             <c-card-body>
                 <dl class="row mb-0">
-                    <dt class="col-sm-4 text-muted">Nombre Completo</dt>
-                    <dd class="col-sm-8">{{ user()!.userFullName || '' }} {{ user()!.userLastName || '' }}</dd>
+                    <dt class="col-sm-4 text-muted">Nombre</dt>
+                    <dd class="col-sm-8">{{ user()!.displayName }}</dd>
 
                     <dt class="col-sm-4 text-muted">Correo Electronico</dt>
-                    <dd class="col-sm-8">{{ user()!.userEmail }}</dd>
+                    <dd class="col-sm-8">{{ user()!.email }}</dd>
 
-                    <dt class="col-sm-4 text-muted">Telefono</dt>
-                    <dd class="col-sm-8">{{ user()!.userPhone || 'No registrado' }}</dd>
+                    <dt class="col-sm-4 text-muted">UID</dt>
+                    <dd class="col-sm-8"><code class="small">{{ user()!.uid }}</code></dd>
+                </dl>
+            </c-card-body>
+        </c-card>
 
-                    @if (user()!.userUuid) {
-                    <dt class="col-sm-4 text-muted">UUID</dt>
-                    <dd class="col-sm-8"><code>{{ user()!.userUuid }}</code></dd>
+        <!-- Empleado Asociado -->
+        @if (user()!.personaId) {
+        <c-card class="mb-4">
+            <c-card-header>
+                <svg cIcon name="cilPeople" class="me-2"></svg>
+                <strong>Empleado Asociado</strong>
+            </c-card-header>
+            <c-card-body>
+                @if (employee()) {
+                <dl class="row mb-0">
+                    <dt class="col-sm-4 text-muted">Nombre</dt>
+                    <dd class="col-sm-8">{{ employee()!.name }}</dd>
+
+                    <dt class="col-sm-4 text-muted">Cedula / RUC</dt>
+                    <dd class="col-sm-8">{{ employee()!.taxId }}</dd>
+
+                    @if (employee()!.employeeData?.position) {
+                    <dt class="col-sm-4 text-muted">Cargo</dt>
+                    <dd class="col-sm-8">{{ employee()!.employeeData!.position }}</dd>
+                    }
+
+                    @if (employee()!.employeeData?.department) {
+                    <dt class="col-sm-4 text-muted">Departamento</dt>
+                    <dd class="col-sm-8">{{ employee()!.employeeData!.department }}</dd>
+                    }
+
+                    @if (employee()!.employeeData?.code) {
+                    <dt class="col-sm-4 text-muted">Codigo empleado</dt>
+                    <dd class="col-sm-8"><code>{{ employee()!.employeeData!.code }}</code></dd>
                     }
                 </dl>
+                } @else {
+                <c-spinner size="sm" class="me-2"></c-spinner>
+                <span class="text-muted small">Cargando datos del empleado...</span>
+                }
             </c-card-body>
         </c-card>
-
-        <!-- Contacto de Emergencia -->
-        <c-card class="mb-4">
-            <c-card-header>
-                <svg cIcon name="cilContact" class="me-2"></svg>
-                <strong>Contacto de Emergencia</strong>
-            </c-card-header>
-            <c-card-body>
-                <dl class="row mb-0">
-                    <dt class="col-sm-4 text-muted">Telefono de Emergencia</dt>
-                    <dd class="col-sm-8">{{ user()!.userPhoneEmergency || 'No registrado' }}</dd>
-
-                    <dt class="col-sm-4 text-muted">Email de Emergencia</dt>
-                    <dd class="col-sm-8">{{ user()!.userEmailEmergency || 'No registrado' }}</dd>
-                </dl>
-            </c-card-body>
-        </c-card>
-
-        <!-- Notificaciones -->
-        <c-card class="mb-4">
-            <c-card-header>
-                <svg cIcon name="cilBell" class="me-2"></svg>
-                <strong>Notificaciones</strong>
-            </c-card-header>
-            <c-card-body>
-                <div class="d-flex gap-2">
-                    <c-badge [color]="user()!.userReceiveNotifications ? 'success' : 'secondary'" shape="rounded-pill"
-                        class="px-3 py-2">
-                        <svg cIcon [name]="user()!.userReceiveNotifications ? 'cilCheckCircle' : 'cilXCircle'" size="sm"
-                            class="me-1"></svg>
-                        {{ user()!.userReceiveNotifications ? 'Recibe notificaciones' : 'No recibe notificaciones' }}
-                    </c-badge>
-                    <c-badge [color]="user()!.userMuteNotifications ? 'warning' : 'secondary'" shape="rounded-pill"
-                        class="px-3 py-2">
-                        <svg cIcon [name]="user()!.userMuteNotifications ? 'cilVolumeOff' : 'cilVolumeHigh'" size="sm"
-                            class="me-1"></svg>
-                        {{ user()!.userMuteNotifications ? 'Silenciado' : 'Sonido activo' }}
-                    </c-badge>
-                </div>
-            </c-card-body>
-        </c-card>
+        }
     </c-col>
 
-    <!-- Right Column: Role & Meta -->
+    <!-- Right Column -->
     <c-col lg="4">
-        <!-- Rol y Organizacion -->
+        <!-- Rol y Estado -->
         <c-card class="mb-4">
             <c-card-header>
                 <svg cIcon name="cilShieldAlt" class="me-2"></svg>
-                <strong>Rol y Organizacion</strong>
+                <strong>Rol y Estado</strong>
             </c-card-header>
             <c-card-body>
                 <div class="mb-3">
@@ -155,42 +150,40 @@
                     </c-badge>
                 </div>
 
-                @if (isSuperAdmin() || user()!.organizationName || user()!.organization) {
-                <div class="mb-3">
-                    <div class="text-muted small mb-1">Organizacion</div>
-                    <span class="fw-semibold">{{ user()!.organization?.name || user()!.organizationName || 'Sin asignar'
-                        }}</span>
-                </div>
-                }
-
                 <div>
                     <div class="text-muted small mb-1">Estado</div>
                     <div class="d-flex align-items-center gap-2">
-                        @if (user()!.state) {
+                        @if (user()!.isActive) {
                         <c-badge color="success" shape="rounded-pill" class="px-3 py-2">
                             <svg cIcon name="cilCheckCircle" class="me-1"></svg>
                             Activo
                         </c-badge>
                         } @else {
-                        <c-badge color="warning" shape="rounded-pill" class="px-3 py-2">
+                        <c-badge color="secondary" shape="rounded-pill" class="px-3 py-2">
                             <svg cIcon name="cilBan" class="me-1"></svg>
                             Inactivo
                         </c-badge>
                         }
-                        <button cButton [color]="user()!.state ? 'warning' : 'success'" size="sm" variant="outline"
-                            (click)="toggleState()" *hasPermission="['users.manage']">
-                            {{ user()!.state ? 'Desactivar' : 'Activar' }}
+                        <button cButton [color]="user()!.isActive ? 'warning' : 'success'"
+                            size="sm" variant="outline"
+                            [disabled]="toggling()"
+                            (click)="toggleState()">
+                            @if (toggling()) {
+                            <c-spinner size="sm" class="me-1"></c-spinner>
+                            } @else {
+                            {{ user()!.isActive ? 'Desactivar' : 'Activar' }}
+                            }
                         </button>
                     </div>
                 </div>
             </c-card-body>
         </c-card>
 
-        <!-- Fechas -->
+        <!-- Auditoria -->
         <c-card class="mb-4">
             <c-card-header>
                 <svg cIcon name="cilCalendar" class="me-2"></svg>
-                <strong>Fechas</strong>
+                <strong>Auditoria</strong>
             </c-card-header>
             <c-card-body>
                 <dl class="row mb-0 small">
@@ -199,6 +192,21 @@
 
                     <dt class="col-5 text-muted">Actualizado</dt>
                     <dd class="col-7">{{ formatDate(user()!.updatedAt) }}</dd>
+
+                    @if (user()!.lastLoginAt) {
+                    <dt class="col-5 text-muted">Ultimo acceso</dt>
+                    <dd class="col-7">{{ formatDate(user()!.lastLoginAt) }}</dd>
+                    }
+
+                    @if (user()!.createdBy) {
+                    <dt class="col-5 text-muted">Creado por</dt>
+                    <dd class="col-7">{{ resolveUid(user()!.createdBy) }}</dd>
+                    }
+
+                    @if (user()!.updatedBy) {
+                    <dt class="col-5 text-muted">Modificado por</dt>
+                    <dd class="col-7">{{ resolveUid(user()!.updatedBy) }}</dd>
+                    }
                 </dl>
             </c-card-body>
         </c-card>
