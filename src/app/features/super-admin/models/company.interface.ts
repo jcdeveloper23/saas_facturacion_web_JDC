@@ -1,4 +1,5 @@
 import { Timestamp } from '@angular/fire/firestore';
+import { Plan, PlanFeatureFlags } from './plan.interface';
 
 export type CompanyStatus = 'active' | 'suspended' | 'cancelled' | 'trial';
 
@@ -54,6 +55,21 @@ export interface Company {
   // Module management — derived from enabledPackages + manual overrides
   enabledModules: string[];     // module.code[] computed when packages change
   disabledModules: string[];    // module codes manually overridden off
+
+  // Plan desnormalizado (escrito solo por CF al asignar plan)
+  planLimits?: Plan['limits'];
+  planFeatures?: PlanFeatureFlags;
+
+  // Totales acumulados (escritos por CF en cada create/activate/deactivate)
+  totalPersonasActive?: number;
+  totalCustomersActive?: number;
+  totalProductsActive?: number;
+  totalWarehousesActive?: number;
+  totalUsersActive?: number;
+  totalCustomRoles?: number;
+  totalCostCenters?: number;
+  totalActiveProjects?: number;
+  usageTotalsUpdatedAt?: Timestamp;
 
   createdAt: Timestamp;
   updatedAt: Timestamp;

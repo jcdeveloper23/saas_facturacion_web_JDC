@@ -1,18 +1,119 @@
 import { Timestamp } from '@angular/fire/firestore';
 
-// /plans/{planId}  ← root-level (super-admin only)
+export type BillingPeriod = 'monthly' | 'yearly' | 'one_time';
+
+// ─── Límites de documentos SRI ────────────────────────────────────────────────
+
+export interface PlanSriLimits {
+  invoicesPerMonth: number;        // facturas de venta (isCreditNote = false)
+  invoicesPerYear: number;         // -1 = no aplica límite anual
+  creditNotesPerMonth: number;     // notas de crédito (Invoice con isCreditNote = true)
+  debitNotesPerMonth: number;      // 0 = no puede emitir notas de débito
+  retentionsPerMonth: number;      // 0 = no es agente retenedor
+  purchasesPerMonth: number;       // compras/liquidaciones registradas
+  remissionsPerMonth: number;      // 0 = no disponible aún
+  totalSriDocsPerMonth: number;    // cap global; -1 = ignorar, usar límites individuales
+}
+
+// ─── Límites de maestros de datos ─────────────────────────────────────────────
+
+export interface PlanMasterDataLimits {
+  personasTotal: number;           // entidad unificada /personas (clientes + proveedores + empleados)
+  customersTotal: number;          // colección /customers (legado/paralela)
+  suppliersTotal: number;          // personas con role 'supplier'
+  employeesTotal: number;          // 0 = módulo RRHH no disponible
+  productsTotal: number;           // productos y servicios
+  familiesTotal: number;           // categorías de productos; 0 = sin categorización
+  manufacturersTotal: number;      // marcas/fabricantes; 0 = sin marcas
+  warehousesTotal: number;         // mínimo 1 (bodega principal siempre)
+  costCentersTotal: number;        // 0 = sin contabilidad analítica
+  priceListsTotal: number;         // 0 = precio único por producto
+}
+
+// ─── Límites de usuarios y acceso ─────────────────────────────────────────────
+
+export interface PlanUserLimits {
+  activeUsersPerCompany: number;     // mínimo 1 (el admin)
+  customRolesPerCompany: number;     // 0 = solo roles de sistema (seller, accountant, cashier, read_only)
+  concurrentSessionsPerUser: number; // -1 = ilimitado; futuro
+}
+
+// ─── Límites multi-empresa ─────────────────────────────────────────────────────
+
+export interface PlanMultiCompanyLimits {
+  /**
+   * Cuántas empresas puede administrar UNA MISMA cuenta (uid).
+   * Escenario: contador que lleva N empresas desde una sola cuenta SaaS.
+   *   1  = modelo actual (1 usuario = 1 empresa)
+   *  >1  = modo contador/despacho contable
+   *  -1  = ilimitado
+   */
+  companiesPerAccount: number;
+}
+
+// ─── Límites de operaciones y colaboración ────────────────────────────────────
+
+export interface PlanOperationsLimits {
+  activeProjectsTotal: number;     // proyectos activos en Team Management; 0 = módulo no disponible
+  tasksPerMonth: number;           // tareas creadas por mes; 0 = módulo no disponible
+  exportsPerMonth: number;         // PDFs/Excels generados manualmente; -1 = ilimitado
+  scheduledReportsTotal: number;   // reportes programados activos; 0 = sin scheduler
+  activeIntegrationsTotal: number; // integraciones con APIs externas; 0 = sin integraciones
+  apiCallsPerMonth: number;        // llamadas a la API pública de la empresa; 0 = sin API
+}
+
+// ─── Límites de infraestructura ───────────────────────────────────────────────
+
+export interface PlanInfraLimits {
+  storageGb: number;               // GB para PDFs, XMLs, imágenes, certificados p12
+  documentHistoryMonths: number;   // meses de retención; -1 = permanente
+  usageHistoryMonths: number;      // meses de contadores de uso conservados
+}
+
+// ─── Feature flags de módulos ─────────────────────────────────────────────────
+
+export interface PlanFeatureFlags {
+  electronicInvoicing: boolean;    // false = solo modo borrador/impresión
+  purchasesModule: boolean;
+  accountingModule: boolean;
+  stockModule: boolean;
+  teamManagementModule: boolean;
+  publicCatalogModule: boolean;
+  publicApiModule: boolean;
+  prioritySupport: boolean;
+  betaAccess: boolean;
+  multiCompanyMode: boolean;       // habilita UI de cambio de empresa (requiere companiesPerAccount > 1)
+}
+
+// ─── Interface principal ──────────────────────────────────────────────────────
+
 export interface Plan {
   id: string;
-  name: string;             // 'Basic', 'Professional', 'Enterprise'
-  price: number;            // monthly USD
-  limits: {
-    users: number;
-    invoicesPerMonth: number;
-    warehouses: number;
-    storageGb: number;
-  };
-  features: string[];       // ['pos', 'electronic_invoicing', 'multi_warehouse']
+  name: string;                    // 'Emprendedor', 'PYME', 'Profesional', 'Empresarial', 'Ilimitado'
+  description: string;             // texto corto para cards de pricing
+  priceMonthly: number;            // precio USD por mes (facturación mensual)
+  priceYearly: number;             // precio USD por mes cuando se paga anual
+  billingPeriod: BillingPeriod;    // periodo por defecto en pricing
+  trialDays: number;               // 0 = sin trial
+  sortOrder: number;               // orden de display: 1, 2, 3, 4, 5
   isActive: boolean;
+  isPublic: boolean;               // false = plan interno/privado
+  badge?: string;                  // 'Más popular', 'Recomendado'
+
+  limits: {
+    sri: PlanSriLimits;
+    masterData: PlanMasterDataLimits;
+    users: PlanUserLimits;
+    multiCompany: PlanMultiCompanyLimits;
+    operations: PlanOperationsLimits;
+    infra: PlanInfraLimits;
+  };
+
+  features: PlanFeatureFlags;
+
+  // Módulos que se activan en enabledModules de la empresa al asignar este plan
+  includedModules: string[];
+
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

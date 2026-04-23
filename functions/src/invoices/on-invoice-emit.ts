@@ -63,8 +63,67 @@ export const onInvoiceEmit = onDocumentUpdated(
       return;
     }
 
-    const isCreditNote = !!after['isCreditNote'];
+    const isCreditNote = (after['isCreditNote'] === true) || (after['documentType'] === 'creditNote');
     const docLabel     = isCreditNote ? 'Nota de Crédito' : 'Factura';
+
+    // ── Contador de uso (no bloqueante) ─────────────────────────────────────
+    const usageNow    = new Date();
+    const period      = `${usageNow.getFullYear()}-${String(usageNow.getMonth() + 1).padStart(2, '0')}`;
+    const usageRef    = db.doc(`companies/${companyId}/usage/${period}`);
+
+    try {
+      await db.runTransaction(async tx => {
+        const snap = await tx.get(usageRef);
+        const cur  = snap.exists ? snap.data()! : {};
+        tx.set(usageRef, {
+          ...(isCreditNote
+            ? { creditNotesEmitted: ((cur['creditNotesEmitted'] as number) ?? 0) + 1 }
+            : { invoicesEmitted:    ((cur['invoicesEmitted']    as number) ?? 0) + 1 }),
+          totalSriDocsEmitted: ((cur['totalSriDocsEmitted'] as number) ?? 0) + 1,
+          updatedAt: admin.firestore.Timestamp.now(),
+          ...(snap.exists ? {} : {
+            period,
+            year:      usageNow.getFullYear(),
+            month:     usageNow.getMonth() + 1,
+            createdAt: admin.firestore.Timestamp.now(),
+          }),
+        }, { merge: true });
+      });
+    } catch (e) {
+      console.error('[onInvoiceEmit] Error incrementando contador de uso:', e);
+    }
+
+    // ── Enforcement de plan ─────────────────────────────────────────────────
+    // Leer empresa para verificar planFeatures y planLimits
+    const companySnap  = await db.doc(`companies/${companyId}`).get();
+    const company      = companySnap.data();
+    const planFeatures = company?.['planFeatures'] as Record<string, any> | null | undefined;
+    const planLimits   = company?.['planLimits']   as Record<string, any> | null | undefined;
+
+    if (planFeatures && planFeatures['electronicInvoicing'] === false) {
+      console.warn('[onInvoiceEmit] Feature electronicInvoicing deshabilitada en el plan:', { companyId, invoiceId });
+      await db.doc(`companies/${companyId}/invoices/${invoiceId}`).update({
+        sriStatus: 'plan_feature_disabled',
+        updatedAt: admin.firestore.Timestamp.now(),
+      });
+      return;
+    }
+
+    const invoicesPerMonth = (planLimits?.['sri']?.['invoicesPerMonth'] as number | undefined);
+    if (!isCreditNote && invoicesPerMonth !== undefined && invoicesPerMonth > 0) {
+      const usageSnap    = await db.doc(`companies/${companyId}/usage/${period}`).get();
+      const currentCount = (usageSnap.data()?.['invoicesEmitted'] as number) ?? 0;
+      const monthLimit   = invoicesPerMonth;
+      if (currentCount >= monthLimit) {
+        console.warn('[onInvoiceEmit] Límite de facturas mensual alcanzado:', { companyId, currentCount, monthLimit });
+        await db.doc(`companies/${companyId}/invoices/${invoiceId}`).update({
+          sriStatus: 'plan_limit_reached',
+          sriError:  `Límite del plan: ${currentCount}/${monthLimit} facturas este mes`,
+          updatedAt: admin.firestore.Timestamp.now(),
+        });
+        return;
+      }
+    }
 
     try {
       if (isCreditNote) {

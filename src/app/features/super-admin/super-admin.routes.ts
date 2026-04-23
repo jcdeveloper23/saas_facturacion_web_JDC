@@ -56,6 +56,12 @@ export const SUPER_ADMIN_ROUTES: Routes = [
         data: { title: 'Plans' }
       },
       {
+        path: 'plans/:id',
+        loadComponent: () =>
+          import('./pages/plans/plan-detail.component').then(m => m.PlanDetailComponent),
+        data: { title: 'Detalle de Plan' }
+      },
+      {
         path: 'defaults',
         loadComponent: () =>
           import('./pages/defaults/platform-defaults.component').then(m => m.PlatformDefaultsComponent),

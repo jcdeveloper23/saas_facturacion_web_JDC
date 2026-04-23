@@ -7,7 +7,10 @@ export { setUserCustomClaims } from './auth/set-custom-claims';
 export { setupFirstAdmin } from './auth/setup-first-admin'; // TODO: remove after first admin created
 
 // Tenants
-export { setupCompany } from './tenants/setup-company';
+export { setupCompany }          from './tenants/setup-company';
+export { assignPlanToCompany }   from './tenants/assign-plan-to-company';
+export { onPlanUpdated }         from './tenants/on-plan-updated';
+export { checkPlanLimit }        from './tenants/check-plan-limit';
 
 // Invoices / SRI
 export { uploadCertificate }    from './invoices/upload-certificate';

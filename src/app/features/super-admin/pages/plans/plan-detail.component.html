@@ -1,0 +1,142 @@
+@if (loading()) {
+  <div class="text-center py-5"><c-spinner color="primary"></c-spinner></div>
+} @else if (!plan()) {
+  <div class="text-center py-5 text-muted">
+    <p>Plan no encontrado.</p>
+    <button cButton color="secondary" size="sm" (click)="goBack()">
+      <svg cIcon name="cilArrowLeft" class="me-1"></svg> Volver a Planes
+    </button>
+  </div>
+} @else {
+
+  <!-- ── Header ─────────────────────────────────────────────────── -->
+  <c-row class="mb-4 align-items-center">
+    <c-col>
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <h2 class="mb-0">{{ plan()!.name }}</h2>
+        @if (plan()!.badge) {
+          <c-badge color="info">{{ plan()!.badge }}</c-badge>
+        }
+        <c-badge [color]="plan()!.isActive ? 'success' : 'secondary'">
+          {{ plan()!.isActive ? 'Activo' : 'Inactivo' }}
+        </c-badge>
+        @if (!plan()!.isPublic) {
+          <c-badge color="warning">Privado</c-badge>
+        }
+      </div>
+      <p class="text-muted small mb-0 mt-1">{{ plan()!.description }}</p>
+    </c-col>
+    <c-col xs="auto">
+      <button cButton color="secondary" size="sm" (click)="goBack()">
+        <svg cIcon name="cilArrowLeft" class="me-1"></svg> Volver
+      </button>
+    </c-col>
+  </c-row>
+
+  <!-- ── Límites clave ──────────────────────────────────────────── -->
+  <c-card class="mb-4">
+    <c-card-header>
+      <strong>Límites Clave</strong>
+    </c-card-header>
+    <c-card-body>
+      <c-row class="g-3 text-center">
+        <c-col md="2" sm="4" xs="6">
+          <div class="fw-bold fs-4">{{ plan()!.priceMonthly | currency:'USD':'symbol':'1.0-0' }}</div>
+          <div class="text-muted small">Precio/mes</div>
+        </c-col>
+        <c-col md="2" sm="4" xs="6">
+          <div class="fw-bold fs-4">{{ formatLimit(plan()!.limits?.sri?.invoicesPerMonth) }}</div>
+          <div class="text-muted small">Facturas/mes</div>
+        </c-col>
+        <c-col md="2" sm="4" xs="6">
+          <div class="fw-bold fs-4">{{ formatLimit(plan()!.limits?.users?.activeUsersPerCompany) }}</div>
+          <div class="text-muted small">Usuarios</div>
+        </c-col>
+        <c-col md="2" sm="4" xs="6">
+          <div class="fw-bold fs-4">{{ companies().length }}</div>
+          <div class="text-muted small">Empresas en plan</div>
+        </c-col>
+        <c-col md="2" sm="4" xs="6">
+          <div class="fw-bold fs-4">{{ formatLimit(plan()!.limits?.infra?.storageGb) }} GB</div>
+          <div class="text-muted small">Storage</div>
+        </c-col>
+        <c-col md="2" sm="4" xs="6">
+          <div class="fw-bold fs-4">{{ formatLimit(plan()!.limits?.multiCompany?.companiesPerAccount) }}</div>
+          <div class="text-muted small">Multi-empresa</div>
+        </c-col>
+      </c-row>
+    </c-card-body>
+  </c-card>
+
+  <!-- ── Feature Flags ─────────────────────────────────────────── -->
+  <c-card class="mb-4">
+    <c-card-header>
+      <strong>Módulos Habilitados</strong>
+    </c-card-header>
+    <c-card-body>
+      <div class="d-flex flex-wrap gap-2">
+        @for (feat of enabledFeatures(plan()!); track feat) {
+          <c-badge color="success">{{ feat }}</c-badge>
+        }
+        @if (enabledFeatures(plan()!).length === 0) {
+          <span class="text-muted small">Sin módulos habilitados</span>
+        }
+      </div>
+    </c-card-body>
+  </c-card>
+
+  <!-- ── Empresas en este plan ─────────────────────────────────── -->
+  <c-card>
+    <c-card-header>
+      <strong>Empresas en este Plan</strong>
+      <c-badge color="secondary" class="ms-2">{{ companies().length }}</c-badge>
+    </c-card-header>
+    <c-card-body>
+      @if (companies().length === 0) {
+        <div class="text-center py-4 text-muted">
+          <p class="mb-0">Ninguna empresa tiene asignado este plan.</p>
+        </div>
+      } @else {
+        <table cTable hover responsive>
+          <thead>
+            <tr>
+              <th>Empresa</th>
+              <th>RUC / Tax ID</th>
+              <th>Estado</th>
+              <th>Inicio suscripción</th>
+              <th>Fin suscripción</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (company of companies(); track trackById($index, company)) {
+              <tr>
+                <td class="fw-semibold">{{ company.name }}</td>
+                <td><code>{{ company.taxId }}</code></td>
+                <td>
+                  <c-badge [color]="statusColors[company.status]">
+                    {{ statusLabels[company.status] }}
+                  </c-badge>
+                </td>
+                <td>
+                  @if (company.subscriptionStart) {
+                    {{ company.subscriptionStart.toDate() | date:'dd/MM/yyyy' }}
+                  } @else {
+                    <span class="text-muted">—</span>
+                  }
+                </td>
+                <td>
+                  @if (company.subscriptionEnd) {
+                    {{ company.subscriptionEnd.toDate() | date:'dd/MM/yyyy' }}
+                  } @else {
+                    <span class="text-muted">—</span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </c-card-body>
+  </c-card>
+
+}

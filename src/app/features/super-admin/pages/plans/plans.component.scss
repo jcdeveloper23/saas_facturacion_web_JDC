@@ -1,0 +1,11 @@
+.limit-hint {
+  font-size: 0.75rem;
+  color: var(--cui-secondary-color);
+  margin-top: 2px;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem 1.5rem;
+}

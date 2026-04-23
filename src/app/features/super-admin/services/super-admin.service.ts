@@ -68,4 +68,9 @@ export class SuperAdminService {
     const fn = httpsCallable(this.functions, 'setUserCustomClaims');
     await fn({ targetUid, companyId, role });
   }
+
+  async assignPlanToCompany(companyId: string, planId: string): Promise<void> {
+    const fn = httpsCallable(this.functions, 'assignPlanToCompany');
+    await fn({ companyId, planId });
+  }
 }

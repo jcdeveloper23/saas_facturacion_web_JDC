@@ -383,6 +383,14 @@ service cloud.firestore {
                       && resource.data.get('type', 'manual') == 'manual';
       }
 
+      // ─── Monthly usage counters ───────────────────────────────────────────
+      // Written exclusively by Cloud Functions via Admin SDK.
+      // Company admin and users can read their own usage for the dashboard/subscription page.
+      match /usage/{period} {
+        allow read: if isAuthenticated() && belongsToCompany(companyId);
+        allow write: if false;
+      }
+
       // Default rule for all other sub-collections
       match /{collection}/{id} {
         allow read: if isAuthenticated() && belongsToCompany(companyId);
@@ -485,6 +493,15 @@ service cloud.firestore {
     match /platform/defaults/{subCollection}/{docId} {
       allow read: if isAuthenticated();
       allow write: if isSuperAdmin();
+    }
+
+    // ─── Multi-empresa — empresas vinculadas a una cuenta ─────────────────────
+    // /account-companies/{uid}/companies/{companyId}
+    // Cada usuario puede leer solo sus propias empresas vinculadas.
+    // Escritura exclusiva por Cloud Functions via Admin SDK (super_admin via CF).
+    match /account-companies/{uid}/companies/{companyId} {
+      allow read: if isAuthenticated() && request.auth.uid == uid;
+      allow write: if false;
     }
   }
 }

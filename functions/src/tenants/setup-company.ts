@@ -121,6 +121,24 @@ export const setupCompany = onCall(async (request) => {
   const db = admin.firestore();
   const now = Timestamp.now();
 
+  // ── Load plan data (if planId provided) ────────────────────────────────────
+  let planLimits: Record<string, any> | null = null;
+  let planFeatures: Record<string, any> | null = null;
+  let includedModules: string[] = [];
+
+  if (data.planId) {
+    const planSnap = await db.doc(`plans/${data.planId}`).get();
+    if (planSnap.exists) {
+      const plan = planSnap.data()!;
+      planLimits      = plan['limits']          ?? null;
+      planFeatures    = plan['features']         ?? null;
+      includedModules = plan['includedModules']  ?? [];
+      console.log('[setupCompany] Plan cargado:', data.planId, '| modules:', includedModules.length);
+    } else {
+      console.warn('[setupCompany] planId no encontrado en /plans:', data.planId);
+    }
+  }
+
   // ── Load platform defaults ─────────────────────────────────────────────────
   console.log('[setupCompany] Loading platform defaults from Firestore...');
 
@@ -234,6 +252,18 @@ export const setupCompany = onCall(async (request) => {
     subscriptionEnd: data.subscriptionEnd
       ? Timestamp.fromDate(new Date(data.subscriptionEnd))
       : Timestamp.fromMillis(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    planLimits,
+    planFeatures,
+    enabledModules:          includedModules,
+    totalPersonasActive:     0,
+    totalCustomersActive:    0,
+    totalProductsActive:     0,
+    totalWarehousesActive:   0,
+    totalUsersActive:        0,
+    totalCustomRoles:        0,
+    totalCostCenters:        0,
+    totalActiveProjects:     0,
+    usageTotalsUpdatedAt:    admin.firestore.Timestamp.now(),
     createdAt: now,
     updatedAt: now
   });

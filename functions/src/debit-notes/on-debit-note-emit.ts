@@ -162,6 +162,31 @@ export const onDebitNoteEmit = onDocumentUpdated(
       console.error('[onDebitNoteEmit] Error marcando pending:', err); return;
     }
 
+    // ── Contador de uso (no bloqueante) ──────────────────────────────────────
+    const usageNow = new Date();
+    const period   = `${usageNow.getFullYear()}-${String(usageNow.getMonth() + 1).padStart(2, '0')}`;
+    const usageRef = db.doc(`companies/${companyId}/usage/${period}`);
+
+    try {
+      await db.runTransaction(async tx => {
+        const snap = await tx.get(usageRef);
+        const cur  = snap.exists ? snap.data()! : {};
+        tx.set(usageRef, {
+          debitNotesEmitted:   ((cur['debitNotesEmitted']   as number) ?? 0) + 1,
+          totalSriDocsEmitted: ((cur['totalSriDocsEmitted'] as number) ?? 0) + 1,
+          updatedAt: admin.firestore.Timestamp.now(),
+          ...(snap.exists ? {} : {
+            period,
+            year:      usageNow.getFullYear(),
+            month:     usageNow.getMonth() + 1,
+            createdAt: admin.firestore.Timestamp.now(),
+          }),
+        }, { merge: true });
+      });
+    } catch (e) {
+      console.error('[onDebitNoteEmit] Error contador notas de débito:', e);
+    }
+
     try {
       console.log('[onDebitNoteEmit] Paso 1/3 — XML...');
       await generateDebitNoteXmlInternal(debitNoteId, companyId);
