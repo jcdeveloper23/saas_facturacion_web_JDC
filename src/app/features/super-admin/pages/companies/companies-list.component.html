@@ -62,6 +62,11 @@
               </td>
               <td>
                 <div class="d-flex gap-2">
+                  <button cButton color="outline-secondary" size="sm"
+                          (click)="openAssignPlanModal(company)"
+                          title="Cambiar plan">
+                    <svg cIcon name="cilCreditCard"></svg>
+                  </button>
                   <a [routerLink]="['/super-admin/companies', company.id, 'plugins']"
                      cButton color="outline-info" size="sm" title="Plugins">
                     <svg cIcon name="cilPuzzle"></svg>
@@ -96,3 +101,93 @@
 
   </c-card-body>
 </c-card>
+
+<!-- ── Modal: Asignar Plan ─────────────────────────────────────────────────── -->
+<c-modal [visible]="showAssignPlanModal()" (visibleChange)="showAssignPlanModal.set($event)" size="lg">
+  <c-modal-header>
+    <h5 cModalTitle>Asignar Plan — {{ selectedCompanyForPlan()?.name }}</h5>
+    <button cButtonClose (click)="closeAssignPlanModal()"></button>
+  </c-modal-header>
+  <c-modal-body>
+
+    <!-- Selector de plan -->
+    <div class="mb-3">
+      <label cLabel>Seleccionar plan</label>
+      <select cFormSelect [value]="selectedPlanId()"
+              (change)="onPlanPreviewChange($any($event.target).value)">
+        <option value="">-- Selecciona un plan --</option>
+        @for (plan of availablePlans(); track plan.id) {
+          <option [value]="plan.id">
+            {{ plan.name }} — ${{ plan.priceMonthly }}/mes
+          </option>
+        }
+      </select>
+    </div>
+
+    <!-- Preview del plan seleccionado -->
+    @if (selectedPlanPreview(); as plan) {
+      <div class="plan-preview">
+
+        <!-- Alerta de cambio de plan -->
+        @if (selectedCompanyForPlan()?.planId && selectedCompanyForPlan()?.planId !== plan.id) {
+          <c-alert color="warning" class="mb-3">
+            <strong>Cambio de plan:</strong> de <em>{{ selectedCompanyForPlan()?.planName }}</em>
+            a <em>{{ plan.name }}</em>. Los nuevos límites se aplicarán de inmediato.
+          </c-alert>
+        }
+
+        <!-- Límites clave del plan -->
+        <div class="limits-grid mb-3">
+          <div class="limit-item">
+            <span class="limit-label">Facturas/mes</span>
+            <strong>{{ plan.limits?.sri?.invoicesPerMonth === -1 ? '∞' : plan.limits?.sri?.invoicesPerMonth }}</strong>
+          </div>
+          <div class="limit-item">
+            <span class="limit-label">Usuarios</span>
+            <strong>{{ plan.limits?.users?.activeUsersPerCompany === -1 ? '∞' : plan.limits?.users?.activeUsersPerCompany }}</strong>
+          </div>
+          <div class="limit-item">
+            <span class="limit-label">Retenciones/mes</span>
+            <strong>{{ plan.limits?.sri?.retentionsPerMonth === -1 ? '∞' : (plan.limits?.sri?.retentionsPerMonth === 0 ? 'N/D' : plan.limits?.sri?.retentionsPerMonth) }}</strong>
+          </div>
+          <div class="limit-item">
+            <span class="limit-label">Productos</span>
+            <strong>{{ plan.limits?.masterData?.productsTotal === -1 ? '∞' : plan.limits?.masterData?.productsTotal }}</strong>
+          </div>
+          <div class="limit-item">
+            <span class="limit-label">Storage</span>
+            <strong>{{ plan.limits?.infra?.storageGb === -1 ? '∞' : plan.limits?.infra?.storageGb + ' GB' }}</strong>
+          </div>
+          <div class="limit-item">
+            <span class="limit-label">Multi-empresa</span>
+            <strong>{{ plan.limits?.multiCompany?.companiesPerAccount === -1 ? '∞' : plan.limits?.multiCompany?.companiesPerAccount }}</strong>
+          </div>
+        </div>
+
+        <!-- Módulos incluidos -->
+        @if (plan.includedModules?.length) {
+          <div>
+            <small class="text-medium-emphasis">Módulos incluidos:</small>
+            <div class="mt-1">
+              @for (mod of plan.includedModules; track mod) {
+                <c-badge color="info" class="me-1">{{ mod }}</c-badge>
+              }
+            </div>
+          </div>
+        }
+
+      </div>
+    }
+
+  </c-modal-body>
+  <c-modal-footer>
+    <button cButton color="secondary" variant="outline" (click)="closeAssignPlanModal()">
+      Cancelar
+    </button>
+    <button cButton color="primary"
+            [disabled]="!selectedPlanId() || assigningPlan()"
+            (click)="confirmAssignPlan()">
+      @if (assigningPlan()) { Asignando... } @else { Confirmar asignación }
+    </button>
+  </c-modal-footer>
+</c-modal>

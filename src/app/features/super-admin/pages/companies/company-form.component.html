@@ -80,11 +80,47 @@
             [class.is-invalid]="hasError('planId')">
             <option value="">— Seleccionar —</option>
             @for (plan of plans(); track plan.id) {
-            <option [value]="plan.id">{{ plan.name }} — ${{ plan.price }}/mes</option>
+            <option [value]="plan.id">{{ plan.name }} — ${{ plan.priceMonthly }}/mes</option>
             }
           </select>
           @if (hasError('planId')) { <div class="invalid-feedback d-block">{{ getError('planId') }}</div> }
         </c-col>
+
+        @if (selectedPlanPreview(); as plan) {
+        <c-col md="12">
+          <div class="plan-limits-preview mt-2 mb-3">
+            <small class="text-medium-emphasis d-block mb-2">
+              Límites del plan <strong>{{ plan.name }}</strong>:
+            </small>
+            <div class="limits-preview-grid">
+              <div class="limit-preview-item">
+                <span>Facturas/mes</span>
+                <strong>{{ plan.limits?.sri?.invoicesPerMonth === -1 ? '∞' : plan.limits?.sri?.invoicesPerMonth }}</strong>
+              </div>
+              <div class="limit-preview-item">
+                <span>Usuarios</span>
+                <strong>{{ plan.limits?.users?.activeUsersPerCompany === -1 ? '∞' : plan.limits?.users?.activeUsersPerCompany }}</strong>
+              </div>
+              <div class="limit-preview-item">
+                <span>Productos</span>
+                <strong>{{ plan.limits?.masterData?.productsTotal === -1 ? '∞' : plan.limits?.masterData?.productsTotal }}</strong>
+              </div>
+              <div class="limit-preview-item">
+                <span>Multi-empresa</span>
+                <strong>{{ plan.limits?.multiCompany?.companiesPerAccount === -1 ? '∞' : plan.limits?.multiCompany?.companiesPerAccount }}</strong>
+              </div>
+            </div>
+            @if (plan.includedModules?.length) {
+              <div class="mt-2">
+                @for (mod of plan.includedModules; track mod) {
+                  <c-badge color="info" class="me-1 mb-1" style="font-size:0.7rem">{{ mod }}</c-badge>
+                }
+              </div>
+            }
+          </div>
+        </c-col>
+        }
+
         <c-col md="4">
           <label cLabel for="status">Estado cuenta *</label>
           <select cSelect id="status" formControlName="status" [class.is-invalid]="hasError('status')">

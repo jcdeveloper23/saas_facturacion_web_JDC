@@ -29,6 +29,22 @@
   </div>
   } @else {
 
+  <!-- Plan badge + context -->
+  <c-row class="mb-3">
+    <c-col xs="12">
+      <div class="d-flex align-items-center gap-2">
+        @if (company()?.planName) {
+          <c-badge color="primary" shape="rounded-pill">
+            Plan: {{ company()!.planName }}
+          </c-badge>
+        }
+        <small class="text-medium-emphasis">
+          Los módulos del plan son la base. Los paquetes adicionales extienden el acceso.
+        </small>
+      </div>
+    </c-col>
+  </c-row>
+
   <!-- Info bar -->
   <c-row class="mb-4">
     <c-col xs="12">

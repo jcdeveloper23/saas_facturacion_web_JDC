@@ -8,7 +8,7 @@ import {
   FormLabelDirective, FormControlDirective, FormSelectDirective, FormCheckComponent,
   FormCheckInputDirective, FormCheckLabelDirective,
   InputGroupComponent, InputGroupTextDirective,
-  ButtonDirective, SpinnerComponent, AlertComponent
+  ButtonDirective, SpinnerComponent, AlertComponent, BadgeComponent
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 import { SuperAdminService } from '../../services/super-admin.service';
@@ -19,6 +19,7 @@ import { ecuadorRucValidator } from '../../../../shared/validators/ruc.validator
 @Component({
   selector: 'app-company-form',
   templateUrl: './company-form.component.html',
+  styleUrl: './company-form.component.scss',
   standalone: true,
   imports: [
     CommonModule,
@@ -29,7 +30,7 @@ import { ecuadorRucValidator } from '../../../../shared/validators/ruc.validator
     FormLabelDirective, FormControlDirective, FormSelectDirective,
     FormCheckComponent, FormCheckInputDirective, FormCheckLabelDirective,
     InputGroupComponent, InputGroupTextDirective,
-    ButtonDirective, SpinnerComponent, AlertComponent,
+    ButtonDirective, SpinnerComponent, AlertComponent, BadgeComponent,
     IconDirective
   ]
 })
@@ -47,6 +48,7 @@ export class CompanyFormComponent implements OnInit {
   plans = signal<Plan[]>([]);
   errorMessage = signal('');
   showPassword = signal(false);
+  selectedPlanPreview = signal<Plan | null>(null);
 
   form = this.fb.group({
     name:         ['', [Validators.required, Validators.minLength(3)]],
@@ -78,7 +80,16 @@ export class CompanyFormComponent implements OnInit {
     this.companyId.set(id);
 
     // Load plans for selector
-    this.svc.getPlans().subscribe(plans => this.plans.set(plans.filter(p => p.isActive)));
+    this.svc.getPlans().subscribe(plans => {
+      const active = plans.filter(p => p.isActive);
+      this.plans.set(active);
+      // Pre-populate preview when editing — planId may already be patched
+      const currentPlanId = this.form.get('planId')?.value;
+      if (currentPlanId) {
+        const plan = active.find(p => p.id === currentPlanId) ?? null;
+        this.selectedPlanPreview.set(plan);
+      }
+    });
 
     if (!id) {
       // Require password when creating a new company
@@ -110,10 +121,11 @@ export class CompanyFormComponent implements OnInit {
 
   onPlanChange(): void {
     const planId = this.form.get('planId')?.value;
-    const plan = this.plans().find(p => p.id === planId);
+    const plan = this.plans().find(p => p.id === planId) ?? null;
     if (plan) {
       this.form.get('planName')?.setValue(plan.name);
     }
+    this.selectedPlanPreview.set(plan);
   }
 
   async onSubmit(): Promise<void> {

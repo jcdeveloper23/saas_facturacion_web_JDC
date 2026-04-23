@@ -1,0 +1,23 @@
+.plan-preview {
+  border: 1px solid var(--cui-border-color);
+  border-radius: 0.375rem;
+  padding: 1rem;
+  background: var(--cui-tertiary-bg);
+}
+
+.limits-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+}
+
+.limit-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.limit-label {
+  font-size: 0.75rem;
+  color: var(--cui-secondary-color);
+}
