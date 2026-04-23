@@ -1,0 +1,103 @@
+.role-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  flex-shrink: 0;
+}
+
+.color-picker {
+  width: 48px;
+  height: 38px;
+  padding: 2px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid var(--cui-border-color);
+}
+
+.role-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  background-color: var(--cui-tertiary-bg);
+  border: 1px dashed var(--cui-border-color);
+  margin-top: 8px;
+}
+
+// ── Permissions matrix ──────────────────────────────────────────────────────
+
+.permissions-table-wrap {
+  overflow-x: auto;
+  padding: 0 0 8px 0;
+}
+
+.permissions-matrix {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 520px;
+
+  thead tr {
+    border-bottom: 2px solid var(--cui-border-color);
+    background-color: var(--cui-tertiary-bg);
+  }
+
+  th, td {
+    padding: 8px 10px;
+    vertical-align: middle;
+  }
+
+  .col-module {
+    min-width: 180px;
+    max-width: 220px;
+    font-weight: 500;
+  }
+
+  .col-action {
+    width: 72px;
+    min-width: 64px;
+  }
+
+  .action-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--cui-secondary-color);
+    white-space: nowrap;
+  }
+
+  .module-name {
+    font-size: 0.875rem;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid var(--cui-border-color-translucent);
+    transition: background-color 0.1s;
+
+    &:hover {
+      background-color: var(--cui-tertiary-bg);
+    }
+
+    &.row-full {
+      background-color: rgba(var(--cui-success-rgb), 0.06);
+    }
+
+    &.row-partial {
+      background-color: rgba(var(--cui-warning-rgb), 0.05);
+    }
+  }
+
+  .perm-cell {
+    cursor: pointer;
+  }
+
+  .cell-na {
+    color: var(--cui-border-color);
+    font-size: 0.85rem;
+  }
+}

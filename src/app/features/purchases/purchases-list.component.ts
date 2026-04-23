@@ -10,6 +10,7 @@ import {
 } from '@coreui/angular';
 import { IconModule } from '@coreui/icons-angular';
 
+import { HasPermissionDirective } from '../../shared/directives/has-permission.directive';
 import { PurchasesService } from './services/purchases.service';
 import { NotificationService } from '../../core/services/notification.service';
 import {
@@ -25,6 +26,7 @@ import {
     CommonModule, FormsModule, RouterLink,
     CardModule, ButtonModule, GridModule, BadgeModule, SpinnerModule,
     IconModule,
+    HasPermissionDirective,
   ],
 })
 export class PurchasesListComponent implements OnInit, OnDestroy {

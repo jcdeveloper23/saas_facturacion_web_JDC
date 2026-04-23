@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { roleGuard } from '../../core/guards';
 
 export const PURCHASES_ROUTES: Routes = [
   {
@@ -8,16 +9,19 @@ export const PURCHASES_ROUTES: Routes = [
     data: { title: 'Compras' }
   },
   {
+    // Importación SRI y homologación — solo admin y accountant (operaciones avanzadas)
     path: 'import',
+    canActivate: [roleGuard],
     loadComponent: () =>
       import('./purchase-import.component').then(m => m.PurchaseImportComponent),
-    data: { title: 'Importar Compras SRI' }
+    data: { roles: ['admin', 'accountant'], title: 'Importar Compras SRI' }
   },
   {
     path: 'mappings',
+    canActivate: [roleGuard],
     loadComponent: () =>
       import('./purchases-mappings.component').then(m => m.PurchasesMappingsComponent),
-    data: { title: 'Homologación de Productos' }
+    data: { roles: ['admin', 'accountant'], title: 'Homologación de Productos' }
   },
   {
     path: 'new',

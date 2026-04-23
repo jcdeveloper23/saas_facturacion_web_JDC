@@ -233,7 +233,8 @@
                         <label cLabel for="platformRole">
                             Rol <span class="text-danger">*</span>
                         </label>
-                        <select cSelect id="platformRole" formControlName="platformRole">
+                        <select cSelect id="platformRole" formControlName="platformRole"
+                            [class.is-invalid]="isFieldInvalid('platformRole')">
                             <option [ngValue]="null">-- Seleccionar rol --</option>
                             @for (role of assignableRoles(); track role.code) {
                             <option [value]="role.code">{{ role.name }}</option>
@@ -243,6 +244,13 @@
                         <div class="text-danger small mt-1">
                             <svg cIcon name="cilXCircle" size="sm" class="me-1"></svg>
                             {{ getFieldError('platformRole') }}
+                        </div>
+                        }
+                        @if (assignableRoles().length === 0 && !loadingData()) {
+                        <div class="text-warning small mt-1">
+                            <svg cIcon name="cilWarning" size="sm" class="me-1"></svg>
+                            No hay roles configurados. Ve a <strong>Perfiles y Roles</strong>
+                            e inicializa los roles de empresa primero.
                         </div>
                         }
                         <div class="form-text">Nivel de acceso en el sistema.</div>

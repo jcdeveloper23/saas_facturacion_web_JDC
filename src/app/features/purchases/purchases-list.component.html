@@ -31,7 +31,7 @@
             (click)="router.navigate(['/purchases/import'])">
       <svg cIcon name="cilCloudDownload" class="me-1"></svg> Importar SRI
     </button>
-    <button cButton color="primary" size="sm" (click)="router.navigate(['/purchases/new'])">
+    <button *hasPermission="'purchases.create'" cButton color="primary" size="sm" (click)="router.navigate(['/purchases/new'])">
       <svg cIcon name="cilPlus" class="me-1"></svg> Nueva Compra
     </button>
   </div>
@@ -124,7 +124,7 @@
       <div class="text-center py-5 text-secondary">
         <svg cIcon name="cilBasket" size="xl" class="mb-2 text-muted"></svg>
         <p class="mb-1">No hay compras registradas</p>
-        <button cButton color="primary" variant="outline" size="sm"
+        <button *hasPermission="'purchases.create'" cButton color="primary" variant="outline" size="sm"
                 (click)="router.navigate(['/purchases/new'])">
           Registrar primera compra
         </button>
@@ -178,7 +178,7 @@
                 <td class="text-center text-nowrap">
                   <!-- Ver / Editar -->
                   @if (canEdit(p)) {
-                    <button cButton color="secondary" variant="outline" size="sm"
+                    <button *hasPermission="'purchases.edit'" cButton color="secondary" variant="outline" size="sm"
                             title="Editar"
                             (click)="router.navigate(['/purchases', p.id])">
                       <svg cIcon name="cilPencil"></svg>
@@ -202,7 +202,7 @@
 
                   <!-- Cancelar -->
                   @if (p.status !== 'received' && p.status !== 'cancelled') {
-                    <button cButton color="danger" variant="outline" size="sm"
+                    <button *hasPermission="'purchases.delete'" cButton color="danger" variant="outline" size="sm"
                             class="ms-1" title="Cancelar"
                             (click)="cancelOrder(p)">
                       <svg cIcon name="cilBan"></svg>

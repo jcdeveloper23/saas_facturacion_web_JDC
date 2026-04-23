@@ -11,7 +11,7 @@
         <span class="page-subtitle">Clientes, proveedores, empleados y contactos</span>
       </div>
     </div>
-    <button cButton color="primary" size="sm" (click)="openNew()"
+    <button *hasPermission="'personas.create'" cButton color="primary" size="sm" (click)="openNew()"
             class="d-flex align-items-center gap-1 px-3 shadow-sm">
       <svg cIcon name="cilPlus" size="sm"></svg>
       <span>Nueva Persona</span>
@@ -215,7 +215,7 @@
             <svg cIcon name="cilFilterX" size="sm" class="me-1"></svg> Limpiar filtros
           </button>
         } @else {
-          <button cButton color="primary" size="sm" (click)="openNew()">
+          <button *hasPermission="'personas.create'" cButton color="primary" size="sm" (click)="openNew()">
             <svg cIcon name="cilPlus" class="me-1"></svg> Nueva Persona
           </button>
         }

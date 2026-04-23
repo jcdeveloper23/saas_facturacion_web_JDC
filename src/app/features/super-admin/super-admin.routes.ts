@@ -108,6 +108,25 @@ export const SUPER_ADMIN_ROUTES: Routes = [
         loadComponent: () =>
           import('./pages/defaults/smtp-config/platform-smtp-config.component').then(m => m.PlatformSmtpConfigComponent),
         data: { title: 'Configuración SMTP' }
+      },
+      // Perfiles y Roles — dentro del super-admin layout para no perder el nav
+      {
+        path: 'profiles',
+        loadComponent: () =>
+          import('../profiles/profiles.component').then(m => m.ProfilesComponent),
+        data: { title: 'Perfiles y Roles' }
+      },
+      {
+        path: 'profiles/new',
+        loadComponent: () =>
+          import('../profiles/pages/profile-form/profile-form.component').then(m => m.ProfileFormComponent),
+        data: { title: 'Nuevo Perfil' }
+      },
+      {
+        path: 'profiles/:id/edit',
+        loadComponent: () =>
+          import('../profiles/pages/profile-form/profile-form.component').then(m => m.ProfileFormComponent),
+        data: { title: 'Editar Perfil' }
       }
     ]
   }

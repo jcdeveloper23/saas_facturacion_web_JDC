@@ -63,6 +63,17 @@
                         <button cButton color="primary" variant="outline" size="sm" (click)="editUser()">
                             <svg cIcon name="cilPencil" class="me-1"></svg> Editar
                         </button>
+                        <button *hasPermission="'users.delete'"
+                            cButton color="danger" variant="outline" size="sm"
+                            [disabled]="deleting()"
+                            (click)="deleteUser()">
+                            @if (deleting()) {
+                            <c-spinner size="sm" class="me-1"></c-spinner>
+                            } @else {
+                            <svg cIcon name="cilTrash" class="me-1"></svg>
+                            }
+                            Eliminar
+                        </button>
                         <button cButton color="secondary" variant="ghost" size="sm" (click)="goBack()">
                             <svg cIcon name="cilArrowLeft" class="me-1"></svg> Volver
                         </button>

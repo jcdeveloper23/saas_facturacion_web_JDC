@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.downloadDocument = exports.updateCompanyUser = exports.createCompanyUser = exports.closeAccountingPeriod = exports.generateJournalEntryFromRetention = exports.generateJournalEntryFromInvoice = exports.generateWeeklyReport = exports.detectOverdueTasksScheduled = exports.onTaskStatusChanged = exports.onTimesheetDeleted = exports.onTimesheetCreated = exports.onProductPublicSync = exports.onMarketplaceSettingsChange = exports.onPurchaseReceive = exports.onInvoiceStock = exports.onDebitNoteEmit = exports.sendDebitNoteEmail = exports.generateDebitNotePdf = exports.generateDebitNoteXml = exports.onRetentionEmit = exports.sendRetentionEmail = exports.generateRetentionPdf = exports.generateRetentionXml = exports.onInvoiceEmit = exports.sendCreditNoteEmail = exports.generateCreditNotePdf = exports.sendInvoiceEmail = exports.generatePdf = exports.checkSriStatus = exports.sendToSri = exports.signXml = exports.generateCreditNoteXml = exports.generateInvoiceXml = exports.uploadCertificate = exports.setupCompany = exports.setupFirstAdmin = exports.setUserCustomClaims = void 0;
+exports.downloadDocument = exports.deleteCompanyUser = exports.updateCompanyUser = exports.createCompanyUser = exports.closeAccountingPeriod = exports.generateJournalEntryFromRetention = exports.generateJournalEntryFromInvoice = exports.generateWeeklyReport = exports.detectOverdueTasksScheduled = exports.onTaskStatusChanged = exports.onTimesheetDeleted = exports.onTimesheetCreated = exports.onProductPublicSync = exports.onMarketplaceSettingsChange = exports.onPurchaseReceive = exports.onInvoiceStock = exports.onDebitNoteEmit = exports.sendDebitNoteEmail = exports.generateDebitNotePdf = exports.generateDebitNoteXml = exports.onRetentionEmit = exports.sendRetentionEmail = exports.generateRetentionPdf = exports.generateRetentionXml = exports.onInvoiceEmit = exports.sendCreditNoteEmail = exports.generateCreditNotePdf = exports.sendInvoiceEmail = exports.generatePdf = exports.checkSriStatus = exports.sendToSri = exports.signXml = exports.generateCreditNoteXml = exports.generateInvoiceXml = exports.uploadCertificate = exports.setupCompany = exports.setupFirstAdmin = exports.setUserCustomClaims = void 0;
 const admin = __importStar(require("firebase-admin"));
 admin.initializeApp();
 // Auth
@@ -118,6 +118,8 @@ var create_company_user_1 = require("./users/create-company-user");
 Object.defineProperty(exports, "createCompanyUser", { enumerable: true, get: function () { return create_company_user_1.createCompanyUser; } });
 var update_company_user_1 = require("./users/update-company-user");
 Object.defineProperty(exports, "updateCompanyUser", { enumerable: true, get: function () { return update_company_user_1.updateCompanyUser; } });
+var delete_company_user_1 = require("./users/delete-company-user");
+Object.defineProperty(exports, "deleteCompanyUser", { enumerable: true, get: function () { return delete_company_user_1.deleteCompanyUser; } });
 // Utils
 var download_document_1 = require("./utils/download-document");
 Object.defineProperty(exports, "downloadDocument", { enumerable: true, get: function () { return download_document_1.downloadDocument; } });

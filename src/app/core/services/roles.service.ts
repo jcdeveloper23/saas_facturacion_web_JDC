@@ -18,15 +18,17 @@ import {
 import { Role, PermissionString } from '../interfaces/permission.interface';
 
 /**
- * Roles por defecto del sistema.
- * Usados en seedDefaultRoles() para poblar /roles en Firestore.
- * Doc ID = role.code para garantizar idempotencia y O(1) lookup.
+ * Roles de PLATAFORMA — se siembran en /roles (colección raíz).
+ * Solo super_admin y admin: son los únicos roles de sistema global.
+ * El resto de roles son de empresa y se gestionan por cada compañía.
+ *
+ * Doc ID = role.code para idempotencia y O(1) lookup.
  */
 export const DEFAULT_SYSTEM_ROLES: Omit<Role, 'id' | 'createdAt' | 'updatedAt'>[] = [
   {
     code: 'super_admin',
     name: 'Super Administrador',
-    description: 'Acceso total a la plataforma. Gestiona compañías y configuración raíz.',
+    description: 'Acceso total a la plataforma. Gestiona compañías, planes y configuración raíz.',
     type: 'system',
     level: 0,
     color: '#dc3545',
@@ -34,11 +36,27 @@ export const DEFAULT_SYSTEM_ROLES: Omit<Role, 'id' | 'createdAt' | 'updatedAt'>[
     isDefault: true,
     state: true,
     permissions: [
+      // Plataforma
       'companies.view', 'companies.create', 'companies.edit', 'companies.delete',
       'plans.view', 'plans.create', 'plans.edit', 'plans.delete',
       'users.view', 'users.create', 'users.edit', 'users.delete',
       'settings.view', 'settings.create', 'settings.edit', 'settings.delete',
       'team_management.view', 'team_management.create', 'team_management.edit', 'team_management.delete',
+      // Empresa — super_admin nunca tiene menos permisos que admin
+      'customers.view', 'customers.create', 'customers.edit', 'customers.delete',
+      'suppliers.view', 'suppliers.create', 'suppliers.edit', 'suppliers.delete',
+      'products.view', 'products.create', 'products.edit', 'products.delete',
+      'invoices.view', 'invoices.create', 'invoices.edit', 'invoices.delete',
+      'quotes.view', 'quotes.create', 'quotes.edit', 'quotes.delete',
+      'orders.view', 'orders.create', 'orders.edit', 'orders.delete',
+      'purchases.view', 'purchases.create', 'purchases.edit', 'purchases.delete',
+      'stock.view', 'stock.create', 'stock.edit', 'stock.delete',
+      'pos.view', 'pos.create', 'pos.edit', 'pos.delete',
+      'sri.view', 'sri.create', 'sri.edit', 'sri.delete',
+      'personas.view', 'personas.create', 'personas.edit', 'personas.delete',
+      'retentions.view', 'retentions.create', 'retentions.edit', 'retentions.delete',
+      'debit_notes.view', 'debit_notes.create', 'debit_notes.edit', 'debit_notes.delete',
+      'accounting.view', 'accounting.create', 'accounting.edit', 'accounting.delete',
     ] as PermissionString[]
   },
   {
@@ -63,11 +81,23 @@ export const DEFAULT_SYSTEM_ROLES: Omit<Role, 'id' | 'createdAt' | 'updatedAt'>[
       'pos.view', 'pos.create', 'pos.edit', 'pos.delete',
       'sri.view', 'sri.create', 'sri.edit', 'sri.delete',
       'personas.view', 'personas.create', 'personas.edit', 'personas.delete',
+      'retentions.view', 'retentions.create', 'retentions.edit', 'retentions.delete',
+      'debit_notes.view', 'debit_notes.create', 'debit_notes.edit', 'debit_notes.delete',
+      'accounting.view', 'accounting.create', 'accounting.edit', 'accounting.delete',
       'settings.view', 'settings.create', 'settings.edit', 'settings.delete',
       'users.view', 'users.create', 'users.edit', 'users.delete',
       'team_management.view', 'team_management.create', 'team_management.edit', 'team_management.delete',
     ] as PermissionString[]
   },
+];
+
+/**
+ * Roles de EMPRESA — se siembran en companies/{companyId}/roles cuando se crea
+ * una empresa nueva (setupCompany CF). Cada empresa los puede personalizar después.
+ *
+ * NO se incluyen en /roles global. Son propiedad de la empresa.
+ */
+export const COMPANY_DEFAULT_ROLES: Omit<Role, 'id' | 'createdAt' | 'updatedAt'>[] = [
   {
     code: 'seller',
     name: 'Vendedor',
@@ -91,6 +121,29 @@ export const DEFAULT_SYSTEM_ROLES: Omit<Role, 'id' | 'createdAt' | 'updatedAt'>[
       'sri.view',
       'settings.view',
       'team_management.view', 'team_management.create', 'team_management.edit',
+    ] as PermissionString[]
+  },
+  {
+    code: 'accountant',
+    name: 'Contador',
+    description: 'Gestiona documentos fiscales (retenciones, notas de débito, compras) y contabilidad.',
+    type: 'system',
+    level: 2,
+    color: '#6f42c1',
+    icon: 'cilSpreadsheet',
+    isDefault: true,
+    state: true,
+    permissions: [
+      'purchases.view', 'purchases.create', 'purchases.edit', 'purchases.delete',
+      'retentions.view', 'retentions.create', 'retentions.edit', 'retentions.delete',
+      'debit_notes.view', 'debit_notes.create', 'debit_notes.edit', 'debit_notes.delete',
+      'accounting.view', 'accounting.create', 'accounting.edit',
+      'invoices.view',
+      'customers.view',
+      'suppliers.view',
+      'products.view',
+      'sri.view',
+      'settings.view',
     ] as PermissionString[]
   },
   {
@@ -130,42 +183,6 @@ export const DEFAULT_SYSTEM_ROLES: Omit<Role, 'id' | 'createdAt' | 'updatedAt'>[
       'sri.view', 'settings.view', 'team_management.view',
     ] as PermissionString[]
   },
-  // DECISIÓN-01: accountant es un rol real del sistema.
-  // Level=2 (mismo que seller) — puede ser asignado por admin.
-  //
-  // Sincronización con ROLE_MATRIX (permissions.service.ts):
-  //   ROLE_MATRIX.accountant usa snake_case: debit_notes, team_management.
-  //   DEFAULT_SYSTEM_ROLES.accountant usa el código de permiso del catálogo,
-  //   que también usa snake_case consistente.
-  // No hay divergencia entre ambas fuentes de verdad.
-  {
-    code: 'accountant',
-    name: 'Contador',
-    description: 'Gestiona documentos fiscales (retenciones, notas de débito, compras) y contabilidad. Solo lectura en facturación de ventas.',
-    type: 'system',
-    level: 2,
-    color: '#6f42c1',
-    icon: 'cilSpreadsheet',
-    isDefault: true,
-    state: true,
-    permissions: [
-      // Compras — CRUD completo
-      'purchases.view', 'purchases.create', 'purchases.edit', 'purchases.delete',
-      // Retenciones — CRUD completo
-      'retentions.view', 'retentions.create', 'retentions.edit', 'retentions.delete',
-      // Notas de débito — CRUD completo
-      'debit_notes.view', 'debit_notes.create', 'debit_notes.edit', 'debit_notes.delete',
-      // Contabilidad — sin borrar (los asientos son inmutables por diseño)
-      'accounting.view', 'accounting.create', 'accounting.edit',
-      // Módulos de soporte — solo lectura
-      'invoices.view',
-      'customers.view',
-      'suppliers.view',
-      'products.view',
-      'sri.view',
-      'settings.view',
-    ] as PermissionString[]
-  }
 ];
 
 /**
@@ -254,8 +271,8 @@ export class RolesService {
   }
 
   /**
-   * Roles asignables consultados directamente en Firestore con where('level', '>', currentUserLevel).
-   * Evita transferir toda la colección al cliente. Usar en formularios de creación/edición de usuarios.
+   * Roles de plataforma asignables (super_admin únicamente).
+   * Consulta /roles con where('level', '>', currentUserLevel).
    */
   getRolesAssignableTo(currentUserLevel: number): Observable<Role[]> {
     return new Observable<Role[]>(observer => {
@@ -266,5 +283,87 @@ export class RolesService {
         error: err => observer.error(err),
       });
     });
+  }
+
+  // ── Company roles ─────────────────────────────────────────────────────────
+
+  /** Todos los roles de una empresa (companies/{companyId}/roles). */
+  getCompanyRoles(companyId: string): Observable<Role[]> {
+    return new Observable<Role[]>(observer => {
+      const ref = collection(this.firestore, `companies/${companyId}/roles`);
+      return onSnapshot(ref, {
+        next: snap => observer.next(
+          snap.docs
+            .map(d => ({ id: d.id, ...d.data() }) as Role)
+            .sort((a, b) => (a.level ?? 99) - (b.level ?? 99))
+        ),
+        error: err => observer.error(err),
+      });
+    });
+  }
+
+  /**
+   * Roles de empresa asignables: level > currentUserLevel.
+   * Usar en el formulario de creación/edición de usuarios de empresa.
+   */
+  getCompanyRolesAssignableTo(companyId: string, currentUserLevel: number): Observable<Role[]> {
+    return new Observable<Role[]>(observer => {
+      const ref = collection(this.firestore, `companies/${companyId}/roles`);
+      const q   = query(ref, where('level', '>', currentUserLevel), orderBy('level', 'asc'));
+      return onSnapshot(q, {
+        next: snap => observer.next(snap.docs.map(d => ({ id: d.id, ...d.data() }) as Role)),
+        error: err => observer.error(err),
+      });
+    });
+  }
+
+  /** Crea un rol personalizado en la empresa. */
+  createCompanyRole(companyId: string, data: Partial<Role>): Observable<Role> {
+    const now = Timestamp.now();
+    const code = (data as any).code as string;
+    const ref = doc(this.firestore, `companies/${companyId}/roles/${code}`);
+    return from(
+      setDoc(ref, { ...data, createdAt: now, updatedAt: now })
+        .then(() => ({ id: code, ...data } as Role))
+    );
+  }
+
+  /** Actualiza un rol de empresa existente. */
+  updateCompanyRole(companyId: string, id: string, data: Partial<Role>): Observable<Role> {
+    const ref = doc(this.firestore, `companies/${companyId}/roles/${id}`);
+    return from(
+      updateDoc(ref, { ...data, updatedAt: Timestamp.now() } as any)
+        .then(() => ({ id, ...data } as Role))
+    );
+  }
+
+  /** Elimina un rol de empresa. */
+  deleteCompanyRole(companyId: string, id: string): Observable<void> {
+    const ref = doc(this.firestore, `companies/${companyId}/roles/${id}`);
+    return from(deleteDoc(ref));
+  }
+
+  /**
+   * Siembra los roles de empresa por defecto en companies/{companyId}/roles.
+   * Idempotente: solo crea los que no existen (doc ID = role.code).
+   * Llamado por setupCompany CF al crear una empresa nueva.
+   */
+  async seedCompanyDefaultRoles(companyId: string): Promise<{ created: number; skipped: number }> {
+    let created = 0;
+    let skipped = 0;
+    const now = Timestamp.now();
+
+    for (const roleData of COMPANY_DEFAULT_ROLES) {
+      const ref  = doc(this.firestore, `companies/${companyId}/roles/${roleData.code}`);
+      const snap = await getDoc(ref);
+      if (!snap.exists()) {
+        await setDoc(ref, { ...roleData, createdAt: now, updatedAt: now });
+        created++;
+      } else {
+        skipped++;
+      }
+    }
+
+    return { created, skipped };
   }
 }

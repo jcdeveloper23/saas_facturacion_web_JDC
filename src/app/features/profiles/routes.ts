@@ -10,5 +10,17 @@ export const routes: Routes = [
       title: 'Perfiles y Roles',
       roles: ['admin', 'super_admin']
     }
+  },
+  {
+    path: 'new',
+    loadComponent: () => import('./pages/profile-form/profile-form.component').then(m => m.ProfileFormComponent),
+    canActivate: [roleGuard],
+    data: { title: 'Nuevo Perfil', roles: ['admin', 'super_admin'] }
+  },
+  {
+    path: ':id/edit',
+    loadComponent: () => import('./pages/profile-form/profile-form.component').then(m => m.ProfileFormComponent),
+    canActivate: [roleGuard],
+    data: { title: 'Editar Perfil', roles: ['admin', 'super_admin'] }
   }
 ];

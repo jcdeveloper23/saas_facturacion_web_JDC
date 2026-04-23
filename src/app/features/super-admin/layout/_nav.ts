@@ -1,6 +1,8 @@
 import { INavData } from '@coreui/angular';
 
 export const superAdminNavItems: INavData[] = [
+
+  // ─── Gestión ──────────────────────────────────────────────────────────────
   {
     title: true,
     name: 'Gestión'
@@ -16,7 +18,7 @@ export const superAdminNavItems: INavData[] = [
     iconComponent: { name: 'cil-credit-card' }
   },
   {
-    name: 'Catálogo de Módulos',
+    name: 'Módulos',
     url: '/super-admin/catalog',
     iconComponent: { name: 'cil-puzzle' }
   },
@@ -25,66 +27,43 @@ export const superAdminNavItems: INavData[] = [
     url: '/super-admin/plugin-packages',
     iconComponent: { name: 'cil-layers' }
   },
+
+  // ─── Usuarios y Acceso ────────────────────────────────────────────────────
   {
     title: true,
-    name: 'Usuarios y Acceso'
+    name: 'Acceso'
   },
   {
     name: 'Perfiles y Roles',
-    url: '/profiles',
+    url: '/super-admin/profiles',
     iconComponent: { name: 'cil-lock-locked' }
   },
+
+  // ─── Configuración de Plataforma ──────────────────────────────────────────
   {
     title: true,
-    name: 'Datos por Defecto'
-  },
-  // {
-  //   name: 'Config General',
-  //   url: '/super-admin/defaults',
-  //   iconComponent: { name: 'cil-settings' }
-  // },
-  {
-    name: 'Divisas',
-    url: '/super-admin/defaults/currencies',
-    iconComponent: { name: 'cil-settings' }
+    name: 'Plataforma'
   },
   {
-    name: 'Países',
-    url: '/super-admin/defaults/countries',
-    iconComponent: { name: 'cil-location-pin' }
+    name: 'Datos Plataforma',
+    url: '/super-admin/__datos-plataforma',
+    iconComponent: { name: 'cil-settings' },
+    children: [
+      { name: 'Divisas',              url: '/super-admin/defaults/currencies'      },
+      { name: 'Países',               url: '/super-admin/defaults/countries'       },
+      { name: 'Impuestos',            url: '/super-admin/defaults/tax-rates'       },
+      { name: 'Métodos de Pago',      url: '/super-admin/defaults/payment-methods' },
+      { name: 'Series de Documentos', url: '/super-admin/defaults/document-series' },
+      { name: 'Bodegas',              url: '/super-admin/defaults/warehouses'      }
+    ]
   },
   {
-    name: 'Impuestos',
-    url: '/super-admin/defaults/tax-rates',
-    iconComponent: { name: 'cil-location-pin' }
-  },
-  {
-    name: 'Métodos de Pago',
-    url: '/super-admin/defaults/payment-methods',
-    iconComponent: { name: 'cil-location-pin' }
-  },
-  {
-    name: 'Series de Documentos',
-    url: '/super-admin/defaults/document-series',
-    iconComponent: { name: 'cil-location-pin' }
-  },
-  {
-    name: 'Bodegas',
-    url: '/super-admin/defaults/warehouses',
-    iconComponent: { name: 'cil-location-pin' }
-  },
-  {
-    title: true,
-    name: 'Facturación Electrónica'
-  },
-  {
-    name: 'Config SRI Ecuador',
-    url: '/super-admin/defaults/sri-config',
-    iconComponent: { name: 'cil-description' }
-  },
-  {
-    name: 'Config SMTP',
-    url: '/super-admin/defaults/smtp-config',
-    iconComponent: { name: 'cil-envelope-closed' }
+    name: 'Fact. Electrónica',
+    url: '/super-admin/__fact-electronica',
+    iconComponent: { name: 'cil-description' },
+    children: [
+      { name: 'Config SRI',  url: '/super-admin/defaults/sri-config'  },
+      { name: 'Config SMTP', url: '/super-admin/defaults/smtp-config' }
+    ]
   }
 ];

@@ -13,17 +13,28 @@
           <div class="d-flex gap-2">
             @if (isSuperAdmin()) {
             <button cButton color="warning" variant="outline" [disabled]="isSeeding()" (click)="seedDefaultRoles()"
-              cTooltip="Crea los 5 roles del sistema (super_admin, admin, seller, cashier, read_only) si no existen">
+              cTooltip="Crea super_admin y admin en /roles (plataforma) si no existen">
               @if (isSeeding()) {
                 <c-spinner size="sm" class="me-1"></c-spinner>
               } @else {
                 <svg cIcon name="cilCloudDownload" size="sm" class="me-1"></svg>
               }
-              Sembrar Roles por Defecto
+              Sembrar Roles de Plataforma
+            </button>
+            }
+            @if (!isSuperAdmin() && canManageRoles()) {
+            <button cButton color="warning" variant="outline" [disabled]="isSeeding()" (click)="seedCompanyRoles()"
+              cTooltip="Inicializa los roles de empresa por defecto">
+              @if (isSeeding()) {
+                <c-spinner size="sm" class="me-1"></c-spinner>
+              } @else {
+                <svg cIcon name="cilCloudDownload" size="sm" class="me-1"></svg>
+              }
+              Inicializar Roles de Empresa
             </button>
             }
             @if (canManageRoles()) {
-            <button cButton color="primary" (click)="openCreateModal()">
+            <button cButton color="primary" (click)="openCreate()">
               <svg cIcon name="cilPlus" size="sm" class="me-1"></svg>
               Nuevo Perfil
             </button>
@@ -38,14 +49,15 @@
     <c-alert color="warning" class="mb-4">
       <strong>Sin roles configurados.</strong>
       @if (isSuperAdmin()) {
-        Usa el botón <strong>Sembrar Roles por Defecto</strong> para crear los roles del sistema.
+        Usa <strong>Sembrar Roles de Plataforma</strong> para crear super_admin y admin.
       } @else {
-        Solicita al super administrador que configure los roles de la plataforma.
+        Usa <strong>Inicializar Roles de Empresa</strong> para crear los roles por defecto.
+        Solo necesitas hacerlo una vez.
       }
     </c-alert>
     } @else {
     <c-alert color="info" class="mb-4">
-      <strong>Roles del Sistema:</strong> Los roles predefinidos no pueden ser eliminados
+      <strong>Roles del Sistema:</strong> Los roles predefinidos no pueden ser eliminados,
       pero puedes crear roles personalizados con permisos específicos para tu organización.
     </c-alert>
     }
@@ -74,8 +86,7 @@
               <td>
                 <div class="d-flex align-items-center">
                   <div class="role-icon me-2" [style.background-color]="role.color || '#6c757d'">
-                    <svg cIcon [name]="role.icon ? (role.icon.includes('-') ? role.icon : 'cil-' + role.icon) : 'cil-user'"
-                      size="sm"></svg>
+                    <svg cIcon [name]="role.icon || 'cilUser'" size="sm"></svg>
                   </div>
                   <div>
                     <strong>{{ role.name }}</strong>
@@ -93,25 +104,23 @@
                 <c-badge color="secondary">{{ role.level }}</c-badge>
               </td>
               <td>
-                <span class="text-muted">
-                  {{ role.permissions.length }} permisos
-                </span>
+                <span class="text-muted">{{ role.permissions.length }} permisos</span>
               </td>
               <td class="text-center">
                 <button cButton color="info" variant="ghost" size="sm" cTooltip="Ver permisos"
                   (click)="viewPermissions(role)">
-                  <svg cIcon name="cil-list" size="sm"></svg>
+                  <svg cIcon name="cilList" size="sm"></svg>
                 </button>
-                <!-- @if (role.type === 'custom') { -->
+                @if (canManageRoles()) {
                 <button cButton color="warning" variant="ghost" size="sm" cTooltip="Editar"
-                  *hasPermission="'profiles.update'" (click)="editRole(role)">
-                  <svg cIcon name="cil-pencil" size="sm"></svg>
+                  (click)="openEdit(role)">
+                  <svg cIcon name="cilPencil" size="sm"></svg>
                 </button>
                 <button cButton color="danger" variant="ghost" size="sm" cTooltip="Eliminar"
-                  *hasPermission="'profiles.delete'" (click)="confirmDelete(role)">
-                  <svg cIcon name="cil-trash" size="sm"></svg>
+                  (click)="confirmDelete(role)">
+                  <svg cIcon name="cilTrash" size="sm"></svg>
                 </button>
-                <!-- } -->
+                }
               </td>
             </tr>
             }
@@ -123,123 +132,39 @@
   </c-col>
 </c-row>
 
-<!-- Create/Edit Modal -->
-<c-modal [visible]="showModal()" (visibleChange)="showModal.set($event)" size="xl">
-  <c-modal-header>
-    <h5 cModalTitle>{{ editingRole() ? 'Editar' : 'Crear' }} Perfil</h5>
-  </c-modal-header>
-  <c-modal-body>
-    <form [formGroup]="roleForm">
-      <c-row class="mb-3">
-        <c-col [md]="6">
-          <label cLabel>Nombre del Rol *</label>
-          <input cFormControl formControlName="name" placeholder="Ej: Supervisor" />
-        </c-col>
-        <c-col [md]="6">
-          <label cLabel>Código *</label>
-          <input cFormControl formControlName="code" placeholder="Ej: supervisor" [readonly]="!!editingRole()" />
-          <small class="text-muted">Identificador único (sin espacios)</small>
-        </c-col>
-      </c-row>
-      <c-row class="mb-3">
-        <c-col [md]="8">
-          <label cLabel>Descripción</label>
-          <input cFormControl formControlName="description" placeholder="Descripción del rol" />
-        </c-col>
-        <c-col [md]="4">
-          <label cLabel>Nivel de Jerarquía</label>
-          <input cFormControl type="number" formControlName="level" min="1" max="100" />
-          <small class="text-muted">Menor = más privilegios</small>
-        </c-col>
-      </c-row>
-      <c-row class="mb-3">
-        <c-col [md]="6">
-          <label cLabel>Color</label>
-          <input cFormControl type="color" formControlName="color" />
-        </c-col>
-        <c-col [md]="6">
-          <label cLabel>Icono</label>
-          <select cFormControl formControlName="icon">
-            <option value="cil-user">Usuario</option>
-            <option value="cil-people">Personas</option>
-            <option value="cil-shield-alt">Escudo</option>
-            <option value="cil-briefcase">Maletín</option>
-            <option value="cil-truck">Camión</option>
-            <option value="cil-settings">Configuración</option>
-            <option value="cil-screen-desktop">Monitor</option>
-          </select>
-        </c-col>
-      </c-row>
-
-      <!-- Permissions Section -->
-      <hr class="my-4">
-      <h6 class="mb-3">Permisos</h6>
-
-      <div class="permissions-grid">
-        @for (group of permissionGroups(); track group.module) {
-        <c-card class="mb-3">
-          <c-card-header class="py-2">
-            <div class="d-flex align-items-center">
-              <input type="checkbox" class="form-check-input me-2"
-                [checked]="isModuleFullySelected(getModuleCodeFromGroup(group.module))"
-                [indeterminate]="isModulePartiallySelected(getModuleCodeFromGroup(group.module))"
-                (change)="toggleModule(getModuleCodeFromGroup(group.module), $event)" />
-              <svg cIcon [name]="group.moduleIcon || 'cil-folder'" size="sm" class="me-2"></svg>
-              <strong>{{ group.moduleName }}</strong>
-            </div>
-          </c-card-header>
-          <c-card-body class="py-2">
-            <div class="row">
-              @for (perm of group.permissions; track perm.code) {
-              <div class="col-6 col-md-4">
-                <div class="form-check">
-                  <input type="checkbox" class="form-check-input" [id]="perm.code"
-                    [checked]="isPermissionSelected(perm.code)" (change)="togglePermission(perm.code)" />
-                  <label class="form-check-label" [for]="perm.code">
-                    {{ perm.name }}
-                  </label>
-                </div>
-              </div>
-              }
-            </div>
-          </c-card-body>
-        </c-card>
-        }
-      </div>
-    </form>
-  </c-modal-body>
-  <c-modal-footer>
-    <button cButton color="secondary" (click)="closeModal()">Cancelar</button>
-    <button cButton color="primary" [disabled]="!roleForm.valid || selectedPermissions().length === 0"
-      (click)="saveRole()">
-      {{ editingRole() ? 'Guardar Cambios' : 'Crear Perfil' }}
-    </button>
-  </c-modal-footer>
-</c-modal>
-
 <!-- View Permissions Modal -->
 <c-modal [visible]="showViewModal()" (visibleChange)="showViewModal.set($event)" size="lg">
   <c-modal-header>
-    <h5 cModalTitle>
-      Permisos de: {{ viewingRole()?.name }}
-    </h5>
+    <div class="d-flex align-items-center gap-2">
+      @if (viewingRole()) {
+        <div class="role-icon" [style.background-color]="viewingRole()!.color || '#6c757d'">
+          <svg cIcon [name]="viewingRole()!.icon || 'cilUser'" size="sm"></svg>
+        </div>
+      }
+      <div>
+        <h5 cModalTitle class="mb-0">{{ viewingRole()?.name }}</h5>
+        <small class="text-muted">{{ viewingRole()?.permissions?.length }} permisos asignados</small>
+      </div>
+    </div>
   </c-modal-header>
   <c-modal-body>
     @if (viewingRole()) {
-    @for (group of getPermissionsGroupedForRole(viewingRole()!); track group.module) {
-    <div class="mb-3">
-      <h6 class="text-muted mb-2">
-        <svg cIcon [name]="group.moduleIcon ? (group.moduleIcon.includes('-') ? group.moduleIcon : 'cil-' + group.moduleIcon) : 'cil-folder'"
-          size="sm" class="me-1"></svg>
-        {{ group.moduleName }}
-      </h6>
-      <div class="d-flex flex-wrap gap-2">
-        @for (perm of group.permissions; track perm.code) {
-        <c-badge color="success">{{ perm.name }}</c-badge>
-        }
+      @if (viewingRole()!.description) {
+      <p class="text-muted small mb-3">{{ viewingRole()!.description }}</p>
+      }
+      @for (group of getPermissionsGroupedForRole(viewingRole()!); track group.module) {
+      <div class="mb-3">
+        <h6 class="text-muted mb-2 d-flex align-items-center gap-1">
+          <svg cIcon [name]="group.moduleIcon" size="sm"></svg>
+          {{ group.moduleName }}
+        </h6>
+        <div class="d-flex flex-wrap gap-2">
+          @for (perm of group.permissions; track perm.code) {
+          <c-badge color="success">{{ perm.name }}</c-badge>
+          }
+        </div>
       </div>
-    </div>
-    }
+      }
     }
   </c-modal-body>
   <c-modal-footer>

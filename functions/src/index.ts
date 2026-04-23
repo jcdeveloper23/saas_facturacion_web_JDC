@@ -57,6 +57,7 @@ export { closeAccountingPeriod }             from './accounting/close-accounting
 // Users
 export { createCompanyUser } from './users/create-company-user';
 export { updateCompanyUser } from './users/update-company-user';
+export { deleteCompanyUser } from './users/delete-company-user';
 
 // Utils
 export { downloadDocument } from './utils/download-document';

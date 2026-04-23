@@ -9,6 +9,7 @@ import {
 import { IconModule } from '@coreui/icons-angular';
 import { take } from 'rxjs/operators';
 
+import { HasPermissionDirective } from '../../shared/directives/has-permission.directive';
 import { PersonasService }    from './services/personas.service';
 import { SettingsService }    from '../settings/services/settings.service';
 import { NotificationService } from '../../core/services/notification.service';
@@ -272,7 +273,8 @@ const SECONDARY_DEFAULTS: SecondaryFilters = { isCompany: '', hasEmail: '', hasP
   imports: [
     CommonModule,
     CardModule, ButtonModule, GridModule, BadgeModule, SpinnerModule,
-    TableModule, FormModule, IconModule
+    TableModule, FormModule, IconModule,
+    HasPermissionDirective
   ]
 })
 export class PersonasListComponent implements OnInit, OnDestroy {

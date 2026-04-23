@@ -116,7 +116,7 @@ export const navItems: INavData[] = [
   },
   {
     name: 'Inventario',
-    url: '/stock',
+    url: '/stock/__group',
     iconComponent: { name: 'cil-storage' },
     attributes: { module: 'stock', roles: ['admin', 'seller'] },
     children: [
@@ -126,7 +126,7 @@ export const navItems: INavData[] = [
   },
   {
     name: 'Compras',
-    url: '/purchases',
+    url: '/purchases/__group',
     iconComponent: { name: 'cil-basket' },
     attributes: { module: 'purchases', roles: ['admin', 'accountant', 'seller'] },
     children: [
@@ -155,7 +155,7 @@ export const navItems: INavData[] = [
   },
   {
     name: 'Reportes Contables',
-    url: '/accounting/libro-diario',
+    url: '/accounting/__group',
     iconComponent: { name: 'cil-chart-line' },
     attributes: { module: 'accounting', roles: ['admin', 'accountant'] },
     children: [
@@ -268,7 +268,7 @@ export const navItems: INavData[] = [
   },
   {
     name: 'Configuración',
-    url: '/settings',
+    url: '/settings/__group',
     iconComponent: { name: 'cil-settings' },
     attributes: { module: 'settings', roles: ['admin'] },
     children: [
@@ -337,6 +337,10 @@ export function filterNav(
   activeModules: string[]
 ): INavData[] {
   const filtered: INavData[] = [];
+  // super_admin no pertenece a ninguna empresa — opera a nivel de plataforma.
+  // Salta el chequeo de módulos del tenant para que siempre vea todos los ítems
+  // para los que tiene rol asignado.
+  const isSuperAdmin = userRole === 'super_admin';
 
   for (const item of items) {
     // ── Role check ──────────────────────────────────────────────────────────
@@ -344,8 +348,10 @@ export function filterNav(
     if (allowedRoles && userRole && !allowedRoles.includes(userRole)) continue;
 
     // ── Module check ────────────────────────────────────────────────────────
+    // super_admin bypasses module/tenant check — no tiene companyId y tiene
+    // acceso irrestricto a todos los módulos.
     const moduleCode = item.attributes?.['module'] as string | undefined;
-    if (moduleCode && !activeModules.includes(moduleCode)) continue;
+    if (!isSuperAdmin && moduleCode && !activeModules.includes(moduleCode)) continue;
 
     // ── Children (parent with sub-items) ───────────────────────────────────
     if (item.children?.length) {

@@ -1,12 +1,12 @@
 import { Routes } from '@angular/router';
-import { moduleGuard } from '../../core/guards';
+import { moduleGuard, roleGuard } from '../../core/guards';
 
 export const INVOICES_ROUTES: Routes = [
   {
     path: '',
-    canActivate: [moduleGuard], 
+    canActivate: [moduleGuard],
     data: { module: 'invoices', title: 'Facturas de Venta' },
-    loadComponent: () => 
+    loadComponent: () =>
       import('./invoices-list.component').then(m => m.InvoicesListComponent)
   },
   {
@@ -17,9 +17,10 @@ export const INVOICES_ROUTES: Routes = [
       import('./invoice-form.component').then(m => m.InvoiceFormComponent)
   },
   {
+    // cashier tiene solo RC (no update) — requiere admin o seller para editar
     path: ':id/edit',
-    canActivate: [moduleGuard],
-    data: { module: 'invoices', title: 'Editar Factura' },
+    canActivate: [moduleGuard, roleGuard],
+    data: { module: 'invoices', roles: ['admin', 'seller'], title: 'Editar Factura' },
     loadComponent: () =>
       import('./invoice-form.component').then(m => m.InvoiceFormComponent)
   }

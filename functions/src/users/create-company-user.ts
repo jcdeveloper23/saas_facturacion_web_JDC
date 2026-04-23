@@ -4,7 +4,10 @@ import { Timestamp } from 'firebase-admin/firestore';
 
 type UserRole = 'admin' | 'seller' | 'cashier' | 'read_only' | 'accountant';
 
-// super_admin se excluye: no se puede crear desde la UI de empresa
+// super_admin: nunca asignable desde aquí (es rol de sistema, se setea manualmente)
+// admin: solo super_admin puede asignarlo (es el rol del primer usuario de empresa, creado
+//        automáticamente por setupCompany; los admin de empresa NO pueden crear otros admin)
+const ROLES_SUPER_ADMIN_ONLY: UserRole[] = ['admin'];
 const ASSIGNABLE_ROLES: UserRole[] = ['admin', 'seller', 'cashier', 'read_only', 'accountant'];
 
 interface CreateCompanyUserData {
@@ -66,6 +69,15 @@ export const createCompanyUser = onCall(async (request): Promise<CreateCompanyUs
     throw new HttpsError(
       'invalid-argument',
       `Rol inválido: ${platformRole}. Debe ser uno de: ${ASSIGNABLE_ROLES.join(', ')}`
+    );
+  }
+
+  // El rol 'admin' es exclusivo del primer usuario de empresa (creado por setupCompany).
+  // Un admin de empresa NO puede crear otro admin — solo super_admin puede hacerlo.
+  if (ROLES_SUPER_ADMIN_ONLY.includes(platformRole) && callerRole !== 'super_admin') {
+    throw new HttpsError(
+      'permission-denied',
+      `Solo super_admin puede asignar el rol '${platformRole}'.`
     );
   }
 

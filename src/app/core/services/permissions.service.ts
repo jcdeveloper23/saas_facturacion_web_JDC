@@ -1,5 +1,5 @@
 import { Injectable, inject, computed, signal } from '@angular/core';
-import { Observable, tap } from 'rxjs';
+import { Observable, of, tap } from 'rxjs';
 import { AuthService, UserRole } from './auth.service';
 import { RolesService } from './roles.service';
 import { PermissionsCatalogService } from './permissions-catalog.service';
@@ -19,12 +19,31 @@ type ModulePermissions = Partial<Record<CrudAction, boolean>>;
 // is fully seeded and connected (Phase 5).
 
 const ROLE_MATRIX: Record<UserRole, Record<string, ModulePermissions>> = {
+  // super_admin: acceso total — nunca debe tener menos permisos que admin.
+  // Incluye todos los módulos de plataforma + todos los de empresa.
+  // can() saltea la verificación de tenant para este rol.
   super_admin: {
+    // Plataforma
     companies:       { read: true, create: true, update: true, delete: true },
     plans:           { read: true, create: true, update: true, delete: true },
     users:           { read: true, create: true, update: true, delete: true },
     settings:        { read: true, create: true, update: true, delete: true },
     team_management: { read: true, create: true, update: true, delete: true },
+    // Empresa (mismo que admin)
+    customers:       { read: true, create: true, update: true, delete: true },
+    suppliers:       { read: true, create: true, update: true, delete: true },
+    products:        { read: true, create: true, update: true, delete: true },
+    invoices:        { read: true, create: true, update: true, delete: true },
+    quotes:          { read: true, create: true, update: true, delete: true },
+    orders:          { read: true, create: true, update: true, delete: true },
+    purchases:       { read: true, create: true, update: true, delete: true },
+    stock:           { read: true, create: true, update: true, delete: true },
+    pos:             { read: true, create: true, update: true, delete: true },
+    sri:             { read: true, create: true, update: true, delete: true },
+    personas:        { read: true, create: true, update: true, delete: true },
+    retentions:      { read: true, create: true, update: true, delete: true },
+    debit_notes:     { read: true, create: true, update: true, delete: true },
+    accounting:      { read: true, create: true, update: true, delete: true },
   },
   admin: {
     customers:       { read: true, create: true, update: true, delete: true },
@@ -38,6 +57,9 @@ const ROLE_MATRIX: Record<UserRole, Record<string, ModulePermissions>> = {
     pos:             { read: true, create: true, update: true, delete: true },
     sri:             { read: true, create: true, update: true, delete: true },
     personas:        { read: true, create: true, update: true, delete: true },
+    retentions:      { read: true, create: true, update: true, delete: true },
+    debit_notes:     { read: true, create: true, update: true, delete: true },
+    accounting:      { read: true, create: true, update: true, delete: true },
     settings:        { read: true, create: true, update: true, delete: true },
     users:           { read: true, create: true, update: true, delete: true },
     team_management: { read: true, create: true, update: true, delete: true },
@@ -214,6 +236,9 @@ export class PermissionsService {
     const allowed = ROLE_MATRIX[role]?.[module]?.[action] ?? false;
     if (!allowed) return false;
 
+    // super_admin: acceso total, no está sujeto al plan del tenant.
+    if (role === 'super_admin') return true;
+
     // Paso 2: si es módulo de plataforma, no requiere verificación del tenant.
     if (PLATFORM_MODULES.has(module)) return true;
 
@@ -238,12 +263,20 @@ export class PermissionsService {
 
   /**
    * Roles asignables por el usuario actual, filtrados en Firestore.
-   * Usa where('level', '>', currentUserLevel) — sin cargar toda la colección.
+   * - super_admin: consulta /roles (roles de plataforma, puede asignar 'admin')
+   * - company users: consulta companies/{companyId}/roles (roles de la empresa)
    */
   getAssignableRolesQuery(): Observable<Role[]> {
-    const role = this.role() as UserRole | null;
-    const level = role ? (ROLE_LEVEL[role] ?? 99) : 99;
-    return this.rolesSvc.getRolesAssignableTo(level);
+    const role      = this.role() as UserRole | null;
+    const level     = role ? (ROLE_LEVEL[role] ?? 99) : 99;
+    const companyId = this.authService.user()?.companyId;
+
+    if (role === 'super_admin') {
+      return this.rolesSvc.getRolesAssignableTo(level);
+    }
+
+    if (!companyId) return of([]);
+    return this.rolesSvc.getCompanyRolesAssignableTo(companyId, level);
   }
 
   createRole(data: Partial<Role>): Observable<Role> {

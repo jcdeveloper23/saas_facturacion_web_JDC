@@ -11,6 +11,7 @@ import {
 import { IconModule } from '@coreui/icons-angular';
 import { Functions, httpsCallable } from '@angular/fire/functions';
 
+import { HasPermissionDirective } from '../../shared/directives/has-permission.directive';
 import { InvoicesService }   from './services/invoices.service';
 import { SettingsService }   from '../settings/services/settings.service';
 import { NotificationService } from '../../core/services/notification.service';
@@ -112,7 +113,8 @@ export interface LineMatch { invoice: Invoice; lineDesc: string; lineSku: string
     CommonModule, RouterLink,
     CardModule, ButtonModule, GridModule, BadgeModule, SpinnerModule,
     TableModule, FormModule, TooltipModule, IconModule,
-    InputGroupComponent, InputGroupTextDirective
+    InputGroupComponent, InputGroupTextDirective,
+    HasPermissionDirective
   ]
 })
 export class InvoicesListComponent implements OnInit, OnDestroy {

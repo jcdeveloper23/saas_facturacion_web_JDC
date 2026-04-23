@@ -38,6 +38,66 @@ const https_1 = require("firebase-functions/v2/https");
 const admin = __importStar(require("firebase-admin"));
 const firestore_1 = require("firebase-admin/firestore");
 /**
+ * Roles de empresa sembrados en companies/{companyId}/roles al crear una empresa.
+ * Espejo de COMPANY_DEFAULT_ROLES en roles.service.ts (frontend).
+ * super_admin y admin NO se incluyen — son roles de plataforma global (/roles).
+ */
+const COMPANY_DEFAULT_ROLES = [
+    {
+        code: 'seller', name: 'Vendedor', level: 2, type: 'system',
+        description: 'Gestiona clientes, facturas, cotizaciones y pedidos.',
+        color: '#0dcaf0', icon: 'cilCart', isDefault: true, state: true,
+        permissions: [
+            'customers.view', 'customers.create', 'customers.edit',
+            'suppliers.view', 'suppliers.create', 'suppliers.edit',
+            'products.view', 'products.create', 'products.edit',
+            'invoices.view', 'invoices.create', 'invoices.edit',
+            'quotes.view', 'quotes.create', 'quotes.edit',
+            'orders.view', 'orders.create', 'orders.edit',
+            'purchases.view', 'purchases.create', 'purchases.edit',
+            'stock.view', 'stock.create', 'stock.edit',
+            'personas.view', 'personas.create', 'personas.edit',
+            'sri.view', 'settings.view',
+            'team_management.view', 'team_management.create', 'team_management.edit',
+        ],
+    },
+    {
+        code: 'accountant', name: 'Contador', level: 2, type: 'system',
+        description: 'Gestiona documentos fiscales (retenciones, notas de débito, compras) y contabilidad.',
+        color: '#6f42c1', icon: 'cilSpreadsheet', isDefault: true, state: true,
+        permissions: [
+            'purchases.view', 'purchases.create', 'purchases.edit', 'purchases.delete',
+            'retentions.view', 'retentions.create', 'retentions.edit', 'retentions.delete',
+            'debit_notes.view', 'debit_notes.create', 'debit_notes.edit', 'debit_notes.delete',
+            'accounting.view', 'accounting.create', 'accounting.edit',
+            'invoices.view', 'customers.view', 'suppliers.view', 'products.view',
+            'sri.view', 'settings.view',
+        ],
+    },
+    {
+        code: 'cashier', name: 'Cajero', level: 3, type: 'system',
+        description: 'Opera el punto de venta, emite facturas y consulta inventario.',
+        color: '#198754', icon: 'cilCash', isDefault: true, state: true,
+        permissions: [
+            'customers.view', 'products.view',
+            'invoices.view', 'invoices.create',
+            'pos.view', 'pos.create',
+            'stock.view', 'settings.view', 'team_management.view',
+        ],
+    },
+    {
+        code: 'read_only', name: 'Solo Lectura', level: 4, type: 'system',
+        description: 'Acceso de consulta a todos los módulos. No puede crear ni modificar datos.',
+        color: '#6c757d', icon: 'cilLockLocked', isDefault: true, state: true,
+        permissions: [
+            'customers.view', 'suppliers.view', 'products.view',
+            'invoices.view', 'quotes.view', 'orders.view',
+            'purchases.view', 'stock.view', 'pos.view',
+            'sri.view', 'settings.view', 'team_management.view',
+        ],
+    },
+];
+/**
  * setupCompany
  *
  * Called by super-admin when creating a new tenant.
@@ -264,17 +324,21 @@ exports.setupCompany = (0, https_1.onCall)(async (request) => {
             createdBy: request.auth.uid, updatedBy: request.auth.uid
         });
     }
-    // ── User records ───────────────────────────────────────────────────────────
+    // ── Admin user record ──────────────────────────────────────────────────────
+    // Path: companies/{companyId}/company-users/{uid} (mismo patrón que createCompanyUser)
+    // platformRole 'admin' se setea aquí — es el único usuario de empresa con este rol
+    // creado directamente; los siguientes usuarios se crean vía createCompanyUser CF.
     if (adminUid) {
-        batch.set(db.doc(`users/${adminUid}`), {
-            uid: adminUid, email: data.email, displayName: data.name,
-            role: 'admin', companyId, isActive: true,
-            lastLogin: now, createdAt: now, updatedAt: now
-        });
-        batch.set(db.doc(`companies/${companyId}/users/${adminUid}`), {
-            uid: adminUid, email: data.email, displayName: data.name,
-            role: 'admin', companyId, isActive: true,
-            lastLogin: now, createdAt: now, updatedAt: now
+        batch.set(db.doc(`companies/${companyId}/company-users/${adminUid}`), {
+            uid: adminUid,
+            email: data.email,
+            displayName: data.name,
+            platformRole: 'admin',
+            companyId,
+            isActive: true,
+            createdAt: now,
+            updatedAt: now,
+            createdBy: request.auth.uid,
         });
     }
     await batch.commit();
@@ -305,6 +369,15 @@ exports.setupCompany = (0, https_1.onCall)(async (request) => {
     if (adminUid) {
         await auth.setCustomUserClaims(adminUid, { companyId, role: 'admin' });
     }
+    // ── Seed company roles ────────────────────────────────────────────────────
+    // Siembra seller, accountant, cashier, read_only en companies/{companyId}/roles.
+    // super_admin y admin son roles globales de plataforma (/roles) — no se repiten aquí.
+    const rolesBatch = db.batch();
+    for (const roleData of COMPANY_DEFAULT_ROLES) {
+        rolesBatch.set(db.doc(`companies/${companyId}/roles/${roleData.code}`), { ...roleData, createdAt: now, updatedAt: now, createdBy: request.auth.uid });
+    }
+    await rolesBatch.commit();
+    console.log(`[setupCompany] Company roles seeded: ${COMPANY_DEFAULT_ROLES.map(r => r.code).join(', ')}`);
     return { companyId };
 });
 //# sourceMappingURL=setup-company.js.map

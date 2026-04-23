@@ -51,7 +51,7 @@
       <svg cIcon name="cilSearch" size="sm" class="me-1"></svg>
       Buscar líneas
     </button>
-    <button cButton color="primary" size="sm" (click)="openNew()">
+    <button *hasPermission="'invoices.create'" cButton color="primary" size="sm" (click)="openNew()">
       <svg cIcon name="cilPlus" class="me-1"></svg>
       Nueva Factura
     </button>
@@ -153,7 +153,7 @@
               : 'No hay facturas en ' + yearFilter() }}
         </p>
         @if (!searchTerm() && !hasActiveFilters()) {
-          <button cButton color="primary" size="sm" (click)="openNew()">
+          <button *hasPermission="'invoices.create'" cButton color="primary" size="sm" (click)="openNew()">
             <svg cIcon name="cilPlus" class="me-1"></svg>
             Crear Factura
           </button>
@@ -296,14 +296,14 @@
                       </button>
                     }
                     @if (inv.status !== 'void' && inv.status !== 'draft') {
-                      <button cButton color="danger" variant="ghost" size="sm"
+                      <button *hasPermission="'invoices.edit'" cButton color="danger" variant="ghost" size="sm"
                               cTooltip="Anular"
                               (click)="markVoid(inv, $event)">
                         <svg cIcon name="cilBan" size="sm"></svg>
                       </button>
                     }
                     @if (inv.status === 'draft') {
-                      <button cButton color="danger" variant="ghost" size="sm"
+                      <button *hasPermission="'invoices.delete'" cButton color="danger" variant="ghost" size="sm"
                               cTooltip="Eliminar borrador"
                               (click)="deleteInvoice(inv, $event)">
                         <svg cIcon name="cilTrash" size="sm"></svg>

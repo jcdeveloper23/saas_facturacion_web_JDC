@@ -16,6 +16,7 @@ import { NotificationService } from '../../../../core/services/notification.serv
 import { CompanyUser } from '../../../../core/interfaces/company-user.interface';
 import { PersonasService } from '../../../personas/services/personas.service';
 import { Person } from '../../../personas/models/person.interface';
+import { HasPermissionDirective } from '../../../../shared/directives/has-permission.directive';
 
 @Component({
     selector: 'app-user-detail',
@@ -23,7 +24,8 @@ import { Person } from '../../../personas/models/person.interface';
     imports: [
         CommonModule,
         CardModule, GridModule, ButtonModule, BadgeModule,
-        UtilitiesModule, SpinnerModule, AlertModule, IconModule
+        UtilitiesModule, SpinnerModule, AlertModule, IconModule,
+        HasPermissionDirective
     ],
     templateUrl: './user-detail.component.html'
 })
@@ -40,6 +42,7 @@ export class UserDetailComponent implements OnInit, OnDestroy {
     employee      = signal<Person | null>(null);
     loading       = signal(true);
     toggling      = signal(false);
+    deleting      = signal(false);
     error         = signal<string | null>(null);
     resolvedNames = signal<Map<string, string>>(new Map());
 
@@ -183,6 +186,26 @@ export class UserDetailComponent implements OnInit, OnDestroy {
     editUser(): void {
         const uid = this.user()?.uid;
         if (uid) this.router.navigate(['/users', uid, 'edit']);
+    }
+
+    async deleteUser(): Promise<void> {
+        const u = this.user();
+        if (!u) return;
+        const companyId = this.authService.user()?.companyId;
+        if (!companyId) return;
+
+        if (!confirm(`¿Eliminar permanentemente a ${u.displayName}? Esta acción no se puede deshacer.`)) return;
+
+        this.deleting.set(true);
+        try {
+            await this.userMgmtSvc.deleteCompanyUser({ uid: u.uid, companyId });
+            this.notification.success('Usuario eliminado correctamente');
+            this.router.navigate(['/users']);
+        } catch (err: any) {
+            this.notification.error('Error al eliminar el usuario: ' + (err?.message ?? err));
+        } finally {
+            this.deleting.set(false);
+        }
     }
 
     goBack(): void {

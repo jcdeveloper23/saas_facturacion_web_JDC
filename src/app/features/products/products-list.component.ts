@@ -9,6 +9,7 @@ import {
 } from '@coreui/angular';
 import { IconModule } from '@coreui/icons-angular';
 
+import { HasPermissionDirective } from '../../shared/directives/has-permission.directive';
 import { ProductsService }      from './services/products.service';
 import { FamiliesService }      from './services/families.service';
 import { ManufacturersService } from './services/manufacturers.service';
@@ -355,7 +356,8 @@ const SECONDARY_DEFAULTS: SecondaryFilters = {
     CommonModule,
     CardModule, ButtonModule, GridModule, BadgeModule, SpinnerModule,
     TableModule, FormModule, IconModule, NavModule,
-    InputGroupComponent, InputGroupTextDirective
+    InputGroupComponent, InputGroupTextDirective,
+    HasPermissionDirective
   ]
 })
 export class ProductsListComponent implements OnInit, OnDestroy {
