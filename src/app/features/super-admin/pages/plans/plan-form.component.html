@@ -1,328 +1,597 @@
+<!-- ── Header ──────────────────────────────────────────────────────────────── -->
 <c-row class="mb-4 align-items-center">
   <c-col>
     <h2 class="mb-0">{{ editingId() ? 'Editar Plan' : 'Nuevo Plan' }}</h2>
-    <p class="text-muted small mb-0">{{ editingId() ? 'Modifica los parámetros del plan' : 'Define un nuevo plan de suscripción' }}</p>
+    <p class="text-muted small mb-0">
+      {{ editingId()
+        ? 'Modifica los parámetros del plan. Los cambios se propagan automáticamente a todas las empresas que lo usen.'
+        : 'Define un nuevo plan de suscripción para asignar a empresas.' }}
+    </p>
+  </c-col>
+  <c-col xs="auto">
+    <button cButton color="secondary" variant="outline" size="sm" (click)="cancel()">
+      <svg cIcon name="cilArrowLeft" class="me-1" size="sm"></svg> Volver
+    </button>
   </c-col>
 </c-row>
 
 @if (errorMessage()) {
-  <c-alert color="danger" class="mb-3">{{ errorMessage() }}</c-alert>
+  <c-alert color="danger" class="mb-3">
+    <svg cIcon name="cilWarning" class="me-2"></svg>{{ errorMessage() }}
+  </c-alert>
 }
 
+<!-- ── Leyenda de convención ───────────────────────────────────────────────── -->
+<c-alert color="info" class="mb-4 d-flex align-items-start gap-3 flex-wrap">
+  <svg cIcon name="cilInfo" size="lg" class="mt-1 flex-shrink-0"></svg>
+  <div>
+    <strong class="d-block mb-1">Convención de valores numéricos</strong>
+    <div class="d-flex flex-wrap gap-2">
+      <span class="convention-badge unlimited">−1 = Ilimitado</span>
+      <span class="convention-badge disabled">0 = Deshabilitado / No disponible</span>
+      <span class="convention-badge numeric">&gt; 0 = Límite numérico</span>
+    </div>
+    <small class="d-block mt-1 text-body-secondary">
+      Usa −1 para quitar la restricción, 0 para deshabilitar la funcionalidad completamente,
+      o un número positivo para el límite exacto.
+    </small>
+  </div>
+</c-alert>
+
 <form [formGroup]="form">
-  <c-card>
+
+  <!-- ══ 1. GENERAL ══════════════════════════════════════════════════════════ -->
+  <c-card class="mb-3">
     <c-card-header>
-      <strong>General</strong>
+      <div class="section-header">
+        <svg cIcon name="cilDescription" size="sm"></svg>
+        <strong>Información General</strong>
+      </div>
     </c-card-header>
     <c-card-body>
       <c-row class="g-3">
+
+        <!-- Nombre -->
         <c-col md="8">
           <label cLabel for="planName">Nombre del Plan *</label>
           <input cFormControl id="planName" formControlName="name"
-                 placeholder="ej: Professional"
+                 placeholder="ej: Profesional"
                  [class.is-invalid]="hasError('name')">
           @if (hasError('name')) {
             <div class="invalid-feedback">Mínimo 2 caracteres</div>
           }
+          <div class="field-hint">Nombre visible para el administrador y en el selector de planes.</div>
         </c-col>
+
+        <!-- Badge -->
         <c-col md="4">
-          <label cLabel for="planBadge">Badge</label>
+          <label cLabel for="planBadge">Etiqueta destacada</label>
           <input cFormControl id="planBadge" formControlName="badge"
                  placeholder="ej: Más popular">
+          <div class="field-hint">Texto corto que aparece como chip junto al nombre del plan.</div>
         </c-col>
+
+        <!-- Descripción -->
         <c-col md="12">
           <label cLabel for="planDescription">Descripción *</label>
           <input cFormControl id="planDescription" formControlName="description"
-                 placeholder="Texto corto para la tarjeta de precios"
+                 placeholder="ej: Ideal para PYMEs con hasta 5 usuarios y 300 facturas/mes"
                  [class.is-invalid]="hasError('description')">
           @if (hasError('description')) {
             <div class="invalid-feedback">Campo requerido</div>
           }
+          <div class="field-hint">Texto breve que se muestra en la tarjeta de precios y en los selectores.</div>
         </c-col>
+
+        <!-- Precio mensual -->
         <c-col md="4">
-          <label cLabel for="planPriceMonthly">Precio USD/mes *</label>
+          <label cLabel for="planPriceMonthly">Precio USD/mes (facturación mensual) *</label>
           <input cFormControl id="planPriceMonthly" type="number"
                  formControlName="priceMonthly" min="0">
+          <div class="field-hint">Precio cuando el cliente paga mes a mes.</div>
         </c-col>
+
+        <!-- Precio anual -->
         <c-col md="4">
-          <label cLabel for="planPriceYearly">Precio USD/mes (anual) *</label>
+          <label cLabel for="planPriceYearly">Precio USD/mes (facturación anual)</label>
           <input cFormControl id="planPriceYearly" type="number"
                  formControlName="priceYearly" min="0">
+          <div class="field-hint">Precio por mes cuando se paga el año completo. Generalmente menor al mensual.</div>
         </c-col>
+
+        <!-- Periodo de facturación -->
         <c-col md="4">
-          <label cLabel for="planBilling">Periodo de facturación *</label>
-          <select cFormSelect id="planBilling" formControlName="billingPeriod">
-            <option value="monthly">Mensual</option>
-            <option value="yearly">Anual</option>
-            <option value="one_time">Pago único</option>
-          </select>
+          <label cLabel for="planBilling">Periodo de facturación por defecto *</label>
+          <div>
+            <select cFormSelect id="planBilling" formControlName="billingPeriod">
+              <option value="monthly">Mensual</option>
+              <option value="yearly">Anual</option>
+              <option value="one_time">Pago único</option>
+            </select>
+          </div>
+          <div class="field-hint">Periodo que se aplica al calcular la fecha de vencimiento al asignar el plan.</div>
         </c-col>
+
+        <!-- Días de trial -->
         <c-col md="4">
-          <label cLabel for="planTrialDays">Días de trial</label>
+          <label cLabel for="planTrialDays">Días de prueba gratuita</label>
           <input cFormControl id="planTrialDays" type="number"
                  formControlName="trialDays" min="0">
+          <div class="field-hint">0 = sin período de prueba. El sistema otorga acceso completo durante este período.</div>
         </c-col>
+
+        <!-- Orden de display -->
         <c-col md="4">
           <label cLabel for="planSortOrder">Orden de display *</label>
           <input cFormControl id="planSortOrder" type="number"
                  formControlName="sortOrder" min="1">
+          <div class="field-hint">Número más bajo aparece primero en la lista. Ej: 1 = primero, 99 = último.</div>
         </c-col>
-        <c-col md="4" class="d-flex align-items-end gap-4 pb-1">
-          <c-form-check [switch]="true" class="mb-0">
-            <input cFormCheckInput type="checkbox" formControlName="isActive" id="planIsActive">
-            <label cFormCheckLabel for="planIsActive">Activo</label>
-          </c-form-check>
-          <c-form-check [switch]="true" class="mb-0">
-            <input cFormCheckInput type="checkbox" formControlName="isPublic" id="planIsPublic">
-            <label cFormCheckLabel for="planIsPublic">Público</label>
-          </c-form-check>
+
+        <!-- Switches isActive / isPublic -->
+        <c-col md="4" class="d-flex align-items-start gap-4 pt-4">
+          <div>
+            <c-form-check [switch]="true" class="mb-1">
+              <input cFormCheckInput type="checkbox" formControlName="isActive" id="planIsActive">
+              <label cFormCheckLabel for="planIsActive">Activo</label>
+            </c-form-check>
+            <div class="field-hint ms-1">Los planes inactivos no se pueden asignar.</div>
+          </div>
+          <div>
+            <c-form-check [switch]="true" class="mb-1">
+              <input cFormCheckInput type="checkbox" formControlName="isPublic" id="planIsPublic">
+              <label cFormCheckLabel for="planIsPublic">Público</label>
+            </c-form-check>
+            <div class="field-hint ms-1">Visible en la página de precios. Los privados son solo para asignación interna.</div>
+          </div>
         </c-col>
+
       </c-row>
     </c-card-body>
   </c-card>
 
-  <!-- Documentos SRI -->
-  <c-card class="mt-3">
-    <c-card-header><strong>Documentos SRI</strong></c-card-header>
+  <!-- ══ 2. DOCUMENTOS SRI ═══════════════════════════════════════════════════ -->
+  <c-card class="mb-3">
+    <c-card-header>
+      <div class="section-header">
+        <svg cIcon name="cilFile" size="sm"></svg>
+        <strong>Documentos Electrónicos SRI</strong>
+      </div>
+    </c-card-header>
     <c-card-body>
-      <p class="text-muted small mb-3">-1 = ilimitado &nbsp;&middot;&nbsp; 0 = deshabilitado</p>
+      <div class="section-description">
+        Controla cuántos documentos electrónicos puede emitir la empresa por mes calendario.
+        El contador se reinicia automáticamente el 1 de cada mes.
+        El <strong>Total docs SRI/mes</strong> actúa como cap global independiente de los límites individuales.
+      </div>
       <div formGroupName="limits">
         <c-row class="g-3" formGroupName="sri">
+
           <c-col md="3">
-            <label cLabel>Facturas/mes</label>
+            <label cLabel>Facturas de venta / mes</label>
             <input cFormControl type="number" formControlName="invoicesPerMonth">
+            <div class="field-hint">Facturas emitidas al SRI (excluye notas de crédito).</div>
           </c-col>
+
           <c-col md="3">
-            <label cLabel>Facturas/año</label>
+            <label cLabel>Facturas de venta / año</label>
             <input cFormControl type="number" formControlName="invoicesPerYear">
+            <div class="field-hint">Cap anual acumulado. −1 = solo aplica el límite mensual.</div>
           </c-col>
+
           <c-col md="3">
-            <label cLabel>Notas crédito/mes</label>
+            <label cLabel>Notas de crédito / mes</label>
             <input cFormControl type="number" formControlName="creditNotesPerMonth">
+            <div class="field-hint">Devoluciones y anulaciones. 0 = no puede emitir notas de crédito.</div>
           </c-col>
+
           <c-col md="3">
-            <label cLabel>Notas débito/mes</label>
+            <label cLabel>Notas de débito / mes</label>
             <input cFormControl type="number" formControlName="debitNotesPerMonth">
+            <div class="field-hint">Ajustes de precio al alza. 0 = no puede emitir notas de débito.</div>
           </c-col>
+
           <c-col md="3">
-            <label cLabel>Retenciones/mes</label>
+            <label cLabel>Retenciones / mes</label>
             <input cFormControl type="number" formControlName="retentionsPerMonth">
+            <div class="field-hint">Aplica si la empresa es agente retenedor de IR, IVA o ISD. 0 = no es agente retenedor.</div>
           </c-col>
+
           <c-col md="3">
-            <label cLabel>Compras/mes</label>
+            <label cLabel>Compras / mes</label>
             <input cFormControl type="number" formControlName="purchasesPerMonth">
+            <div class="field-hint">Registros de compra y liquidaciones. 0 = solo lectura del módulo compras.</div>
           </c-col>
+
           <c-col md="3">
-            <label cLabel>Remisiones/mes</label>
+            <label cLabel>Guías de remisión / mes</label>
             <input cFormControl type="number" formControlName="remissionsPerMonth">
+            <div class="field-hint">Documentos de traslado de mercadería. 0 = módulo no disponible aún.</div>
           </c-col>
+
           <c-col md="3">
-            <label cLabel>Total docs SRI/mes</label>
+            <label cLabel>Total documentos SRI / mes</label>
             <input cFormControl type="number" formControlName="totalSriDocsPerMonth">
+            <div class="field-hint">Cap global (suma de todos los tipos). −1 = sin cap global, usar límites individuales.</div>
           </c-col>
+
         </c-row>
       </div>
     </c-card-body>
   </c-card>
 
-  <!-- Datos Maestros -->
-  <c-card class="mt-3">
-    <c-card-header><strong>Datos Maestros</strong></c-card-header>
+  <!-- ══ 3. DATOS MAESTROS ═══════════════════════════════════════════════════ -->
+  <c-card class="mb-3">
+    <c-card-header>
+      <div class="section-header">
+        <svg cIcon name="cilPeople" size="sm"></svg>
+        <strong>Datos Maestros</strong>
+      </div>
+    </c-card-header>
     <c-card-body>
-      <p class="text-muted small mb-3">-1 = ilimitado &nbsp;&middot;&nbsp; 0 = deshabilitado</p>
+      <div class="section-description">
+        Límites sobre la cantidad total de registros almacenados (no por mes — son acumulados).
+        El sistema verifica estos límites al momento de crear un nuevo registro.
+      </div>
       <div formGroupName="limits">
         <c-row class="g-3" formGroupName="masterData">
+
           <c-col md="3">
-            <label cLabel>Personas total</label>
+            <label cLabel>Personas (total)</label>
             <input cFormControl type="number" formControlName="personasTotal">
+            <div class="field-hint">Entidad unificada: clientes + proveedores + empleados + contactos.</div>
           </c-col>
+
           <c-col md="3">
-            <label cLabel>Clientes total</label>
+            <label cLabel>Clientes (total)</label>
             <input cFormControl type="number" formControlName="customersTotal">
+            <div class="field-hint">Clientes en el módulo de facturación. Generalmente igualar a Personas.</div>
           </c-col>
+
           <c-col md="3">
-            <label cLabel>Proveedores total</label>
+            <label cLabel>Proveedores (total)</label>
             <input cFormControl type="number" formControlName="suppliersTotal">
+            <div class="field-hint">Empresas y personas de las que se compra. 0 = solo lectura de proveedores.</div>
           </c-col>
+
           <c-col md="3">
-            <label cLabel>Empleados total</label>
+            <label cLabel>Empleados (total)</label>
             <input cFormControl type="number" formControlName="employeesTotal">
+            <div class="field-hint">Empleados en nómina. 0 = módulo RRHH no disponible en este plan.</div>
           </c-col>
+
           <c-col md="3">
-            <label cLabel>Productos total</label>
+            <label cLabel>Productos y servicios (total)</label>
             <input cFormControl type="number" formControlName="productsTotal">
+            <div class="field-hint">Ítems del catálogo de ventas. Incluye productos físicos y servicios.</div>
           </c-col>
+
           <c-col md="3">
-            <label cLabel>Familias total</label>
+            <label cLabel>Familias / categorías (total)</label>
             <input cFormControl type="number" formControlName="familiesTotal">
+            <div class="field-hint">Grupos de clasificación de productos. 0 = sin categorización.</div>
           </c-col>
+
           <c-col md="3">
-            <label cLabel>Fabricantes total</label>
+            <label cLabel>Marcas / fabricantes (total)</label>
             <input cFormControl type="number" formControlName="manufacturersTotal">
+            <div class="field-hint">Marcas comerciales de los productos. 0 = sin gestión de marcas.</div>
           </c-col>
+
           <c-col md="3">
-            <label cLabel>Almacenes total *</label>
+            <label cLabel>Almacenes / bodegas *</label>
             <input cFormControl type="number" formControlName="warehousesTotal" min="1">
+            <div class="field-hint">Mínimo 1 (bodega principal siempre activa). −1 = sin límite de bodegas.</div>
           </c-col>
+
           <c-col md="3">
-            <label cLabel>Centros de costo</label>
+            <label cLabel>Centros de costo (total)</label>
             <input cFormControl type="number" formControlName="costCentersTotal">
+            <div class="field-hint">Unidades de control contable (departamentos, proyectos). 0 = sin contabilidad analítica.</div>
           </c-col>
+
           <c-col md="3">
             <label cLabel>Listas de precios</label>
             <input cFormControl type="number" formControlName="priceListsTotal">
+            <div class="field-hint">Listas de precio diferenciadas por cliente o segmento. 0 = precio único por producto.</div>
           </c-col>
+
         </c-row>
       </div>
     </c-card-body>
   </c-card>
 
-  <!-- Usuarios y Acceso -->
-  <c-card class="mt-3">
-    <c-card-header><strong>Usuarios y Acceso</strong></c-card-header>
+  <!-- ══ 4. USUARIOS Y ACCESO ════════════════════════════════════════════════ -->
+  <c-card class="mb-3">
+    <c-card-header>
+      <div class="section-header">
+        <svg cIcon name="cilUser" size="sm"></svg>
+        <strong>Usuarios y Acceso</strong>
+      </div>
+    </c-card-header>
     <c-card-body>
-      <p class="text-muted small mb-3">-1 = ilimitado &nbsp;&middot;&nbsp; 0 = deshabilitado</p>
+      <div class="section-description">
+        Define cuántas personas pueden acceder a cada empresa y qué nivel de personalización de roles tienen.
+        El campo <strong>Empresas por cuenta</strong> habilita el modo multi-empresa para contadores o grupos empresariales.
+      </div>
       <div formGroupName="limits">
         <c-row class="g-3" formGroupName="users">
+
           <c-col md="4">
-            <label cLabel>Usuarios activos/empresa *</label>
+            <label cLabel>Usuarios activos por empresa *</label>
             <input cFormControl type="number" formControlName="activeUsersPerCompany" min="1">
+            <div class="field-hint">Usuarios simultáneos con acceso activo. El dueño siempre cuenta como 1.</div>
           </c-col>
+
           <c-col md="4">
             <label cLabel>Roles personalizados</label>
             <input cFormControl type="number" formControlName="customRolesPerCompany">
+            <div class="field-hint">Roles creados por el admin de la empresa (adicionales a los 4 del sistema). 0 = solo roles predefinidos.</div>
           </c-col>
+
           <c-col md="4">
-            <label cLabel>Sesiones concurrentes/usuario</label>
+            <label cLabel>Sesiones simultáneas por usuario</label>
             <input cFormControl type="number" formControlName="concurrentSessionsPerUser">
+            <div class="field-hint">Cuántos dispositivos puede tener un usuario conectado al mismo tiempo. −1 = sin límite.</div>
           </c-col>
+
         </c-row>
-        <c-row class="g-3 mt-1" formGroupName="multiCompany">
+
+        <hr class="my-3">
+        <p class="text-muted small mb-2 fw-semibold">Multi-empresa</p>
+
+        <c-row class="g-3" formGroupName="multiCompany">
           <c-col md="4">
             <label cLabel>Empresas por cuenta *</label>
             <input cFormControl type="number" formControlName="companiesPerAccount" min="1">
+            <div class="field-hint">
+              Cuántas empresas puede gestionar UNA misma cuenta de usuario.
+              <strong>1</strong> = modelo estándar (1 usuario = 1 empresa).
+              <strong>&gt;1</strong> = habilita el modo contador / grupo empresarial.
+            </div>
+          </c-col>
+          <c-col md="8" class="d-flex align-items-center">
+            <c-alert color="info" class="mb-0 py-2 px-3 w-100">
+              <small>
+                <svg cIcon name="cilInfo" size="sm" class="me-1"></svg>
+                Para habilitar el cambio de empresa en la UI, activa también el módulo
+                <strong>Modo Multi-empresa</strong> en la sección de Módulos Habilitados.
+              </small>
+            </c-alert>
           </c-col>
         </c-row>
       </div>
     </c-card-body>
   </c-card>
 
-  <!-- Operaciones -->
-  <c-card class="mt-3">
-    <c-card-header><strong>Operaciones</strong></c-card-header>
+  <!-- ══ 5. OPERACIONES ══════════════════════════════════════════════════════ -->
+  <c-card class="mb-3">
+    <c-card-header>
+      <div class="section-header">
+        <svg cIcon name="cilTask" size="sm"></svg>
+        <strong>Operaciones</strong>
+      </div>
+    </c-card-header>
     <c-card-body>
-      <p class="text-muted small mb-3">-1 = ilimitado &nbsp;&middot;&nbsp; 0 = deshabilitado</p>
+      <div class="section-description">
+        Límites sobre funcionalidades operativas adicionales: gestión de equipos, exportaciones, integraciones y acceso API.
+        Usa 0 en los campos de un módulo no disponible en este plan para deshabilitarlo completamente.
+      </div>
       <div formGroupName="limits">
         <c-row class="g-3" formGroupName="operations">
+
           <c-col md="4">
-            <label cLabel>Proyectos activos total</label>
+            <label cLabel>Proyectos activos (total)</label>
             <input cFormControl type="number" formControlName="activeProjectsTotal">
+            <div class="field-hint">Proyectos simultáneamente activos en Team Management. 0 = módulo no disponible.</div>
           </c-col>
+
           <c-col md="4">
-            <label cLabel>Tareas/mes</label>
+            <label cLabel>Tareas / mes</label>
             <input cFormControl type="number" formControlName="tasksPerMonth">
+            <div class="field-hint">Tareas creadas por mes en Team Management. 0 = módulo no disponible.</div>
           </c-col>
+
           <c-col md="4">
-            <label cLabel>Exportaciones/mes</label>
+            <label cLabel>Exportaciones / mes</label>
             <input cFormControl type="number" formControlName="exportsPerMonth">
+            <div class="field-hint">PDFs y Excels generados manualmente. −1 = exportaciones ilimitadas.</div>
           </c-col>
+
           <c-col md="4">
-            <label cLabel>Reportes programados</label>
+            <label cLabel>Reportes programados (total)</label>
             <input cFormControl type="number" formControlName="scheduledReportsTotal">
+            <div class="field-hint">Reportes con envío automático configurado. 0 = sin reportes programados.</div>
           </c-col>
+
           <c-col md="4">
-            <label cLabel>Integraciones activas</label>
+            <label cLabel>Integraciones activas (total)</label>
             <input cFormControl type="number" formControlName="activeIntegrationsTotal">
+            <div class="field-hint">Conexiones con sistemas externos (ERPs, e-commerce). 0 = sin integraciones.</div>
           </c-col>
+
           <c-col md="4">
-            <label cLabel>Llamadas API/mes</label>
+            <label cLabel>Llamadas API / mes</label>
             <input cFormControl type="number" formControlName="apiCallsPerMonth">
+            <div class="field-hint">Solicitudes a la API pública de la empresa. 0 = sin acceso a API pública.</div>
           </c-col>
+
         </c-row>
       </div>
     </c-card-body>
   </c-card>
 
-  <!-- Infraestructura -->
-  <c-card class="mt-3">
-    <c-card-header><strong>Infraestructura</strong></c-card-header>
+  <!-- ══ 6. INFRAESTRUCTURA ══════════════════════════════════════════════════ -->
+  <c-card class="mb-3">
+    <c-card-header>
+      <div class="section-header">
+        <svg cIcon name="cilCloud" size="sm"></svg>
+        <strong>Infraestructura y Almacenamiento</strong>
+      </div>
+    </c-card-header>
     <c-card-body>
-      <p class="text-muted small mb-3">-1 = permanente / ilimitado &nbsp;&middot;&nbsp; 0 = sin retención</p>
+      <div class="section-description">
+        Controla el espacio en disco y por cuánto tiempo se conservan los documentos históricos.
+        El SRI Ecuador requiere conservar documentos por al menos 7 años — usa −1 para retención permanente.
+      </div>
       <div formGroupName="limits">
         <c-row class="g-3" formGroupName="infra">
+
           <c-col md="4">
-            <label cLabel>Storage (GB) *</label>
+            <label cLabel>Almacenamiento (GB) *</label>
             <input cFormControl type="number" formControlName="storageGb" min="0">
+            <div class="field-hint">Espacio para XMLs, PDFs firmados, imágenes de productos y certificados .p12.</div>
           </c-col>
+
           <c-col md="4">
-            <label cLabel>Historial documentos (meses)</label>
+            <label cLabel>Retención de documentos (meses)</label>
             <input cFormControl type="number" formControlName="documentHistoryMonths">
+            <div class="field-hint">Documentos más antiguos se archivan o eliminan. −1 = retención permanente (recomendado para cumplimiento SRI).</div>
           </c-col>
+
           <c-col md="4">
-            <label cLabel>Historial uso (meses)</label>
+            <label cLabel>Historial de uso (meses)</label>
             <input cFormControl type="number" formControlName="usageHistoryMonths">
+            <div class="field-hint">Cuántos meses de contadores de uso (facturas/mes, etc.) se conservan para reportes históricos.</div>
           </c-col>
+
         </c-row>
       </div>
     </c-card-body>
   </c-card>
 
-  <!-- Módulos Habilitados -->
-  <c-card class="mt-3">
-    <c-card-header><strong>Módulos Habilitados</strong></c-card-header>
-    <c-card-body>
-      <div formGroupName="features" class="features-grid">
-        <c-form-check [switch]="true">
-          <input cFormCheckInput type="checkbox" formControlName="electronicInvoicing" id="fElectronic">
-          <label cFormCheckLabel for="fElectronic">Facturación Electrónica</label>
-        </c-form-check>
-        <c-form-check [switch]="true">
-          <input cFormCheckInput type="checkbox" formControlName="purchasesModule" id="fPurchases">
-          <label cFormCheckLabel for="fPurchases">Módulo Compras</label>
-        </c-form-check>
-        <c-form-check [switch]="true">
-          <input cFormCheckInput type="checkbox" formControlName="accountingModule" id="fAccounting">
-          <label cFormCheckLabel for="fAccounting">Módulo Contabilidad</label>
-        </c-form-check>
-        <c-form-check [switch]="true">
-          <input cFormCheckInput type="checkbox" formControlName="stockModule" id="fStock">
-          <label cFormCheckLabel for="fStock">Módulo Stock</label>
-        </c-form-check>
-        <c-form-check [switch]="true">
-          <input cFormCheckInput type="checkbox" formControlName="teamManagementModule" id="fTeam">
-          <label cFormCheckLabel for="fTeam">Gestión de Equipos</label>
-        </c-form-check>
-        <c-form-check [switch]="true">
-          <input cFormCheckInput type="checkbox" formControlName="publicCatalogModule" id="fCatalog">
-          <label cFormCheckLabel for="fCatalog">Catálogo Público</label>
-        </c-form-check>
-        <c-form-check [switch]="true">
-          <input cFormCheckInput type="checkbox" formControlName="publicApiModule" id="fApi">
-          <label cFormCheckLabel for="fApi">API Pública</label>
-        </c-form-check>
-        <c-form-check [switch]="true">
-          <input cFormCheckInput type="checkbox" formControlName="prioritySupport" id="fSupport">
-          <label cFormCheckLabel for="fSupport">Soporte Prioritario</label>
-        </c-form-check>
-        <c-form-check [switch]="true">
-          <input cFormCheckInput type="checkbox" formControlName="betaAccess" id="fBeta">
-          <label cFormCheckLabel for="fBeta">Acceso Beta</label>
-        </c-form-check>
-        <c-form-check [switch]="true">
-          <input cFormCheckInput type="checkbox" formControlName="multiCompanyMode" id="fMulti">
-          <label cFormCheckLabel for="fMulti">Modo Multi-empresa</label>
-        </c-form-check>
+  <!-- ══ 7. MÓDULOS HABILITADOS ══════════════════════════════════════════════ -->
+  <c-card>
+    <c-card-header>
+      <div class="section-header">
+        <svg cIcon name="cilApps" size="sm"></svg>
+        <strong>Paquetes incluidos en el Plan</strong>
       </div>
+    </c-card-header>
+    <c-card-body>
+      <div class="section-description">
+        Selecciona qué paquetes de funcionalidad están incluidos en este plan.
+        Al asignar el plan a una empresa, estos paquetes se activarán automáticamente.
+        Los paquetes respetan sus dependencias — activa primero los requeridos.
+      </div>
+
+      @if (availablePackages().length === 0) {
+        <div class="text-center py-3 text-muted">
+          <c-spinner size="sm" class="me-2"></c-spinner> Cargando paquetes...
+        </div>
+      } @else {
+        <div class="packages-grid">
+          @for (pkg of availablePackages(); track pkg.code) {
+            <div class="package-card"
+                 [class.selected]="isPackageSelected(pkg.code)"
+                 [class.disabled]="!canSelectPackage(pkg)"
+                 (click)="canSelectPackage(pkg) && togglePackage(pkg.code)">
+
+              <div class="package-card-header">
+                <div class="d-flex align-items-center gap-2">
+                  <c-badge [color]="pkg.color || 'primary'" shape="rounded-pill">
+                    <svg cIcon [name]="pkg.icon || 'cilPuzzle'" size="sm"></svg>
+                  </c-badge>
+                  <span class="fw-semibold">{{ pkg.name }}</span>
+                  @if (pkg.isSystem) {
+                    <c-badge color="secondary" size="sm">Sistema</c-badge>
+                  }
+                </div>
+                <div class="package-check">
+                  <input type="checkbox"
+                         [checked]="isPackageSelected(pkg.code)"
+                         [disabled]="!canSelectPackage(pkg)"
+                         (change)="togglePackage(pkg.code)"
+                         (click)="$event.stopPropagation()">
+                </div>
+              </div>
+
+              <div class="package-card-body">
+                <p class="package-description">{{ pkg.description }}</p>
+                <div class="d-flex flex-wrap gap-1 mt-1">
+                  @for (mod of (pkg.modules || []); track mod) {
+                    <code class="module-chip">{{ mod }}</code>
+                  }
+                </div>
+                @if (pkg.dependencies?.length) {
+                  <div class="package-deps mt-2">
+                    <small class="text-body-secondary">
+                      Requiere:
+                      @for (dep of pkg.dependencies; track dep) {
+                        <code>{{ dep }}</code>@if (!$last) { , }
+                      }
+                    </small>
+                  </div>
+                }
+                @if (!canSelectPackage(pkg)) {
+                  <div class="package-blocked mt-1">
+                    <small class="text-warning">
+                      <svg cIcon name="cilWarning" size="sm"></svg>
+                      Activa primero los paquetes requeridos.
+                    </small>
+                  </div>
+                }
+              </div>
+
+              @if (pkg.price > 0) {
+                <div class="package-price">
+                  ${{ pkg.price }}/mes
+                </div>
+              } @else {
+                <div class="package-price free">Incluido</div>
+              }
+
+            </div>
+          }
+        </div>
+      }
+
+      <!-- Flags de nivel de servicio (no ligados a paquetes) -->
+      <hr class="my-4">
+      <p class="fw-semibold text-body-secondary small mb-3">Características de nivel de servicio</p>
+      <div formGroupName="features" class="features-grid">
+        <div class="feature-item">
+          <c-form-check [switch]="true">
+            <input cFormCheckInput type="checkbox" formControlName="prioritySupport" id="fSupport">
+            <label cFormCheckLabel for="fSupport">Soporte Prioritario</label>
+          </c-form-check>
+          <div class="feature-hint">Cola de soporte preferencial con tiempos de respuesta garantizados.</div>
+        </div>
+        <div class="feature-item">
+          <c-form-check [switch]="true">
+            <input cFormCheckInput type="checkbox" formControlName="betaAccess" id="fBeta">
+            <label cFormCheckLabel for="fBeta">Acceso Beta</label>
+          </c-form-check>
+          <div class="feature-hint">Acceso anticipado a nuevas funcionalidades antes del lanzamiento general.</div>
+        </div>
+        <div class="feature-item">
+          <c-form-check [switch]="true">
+            <input cFormCheckInput type="checkbox" formControlName="multiCompanyMode" id="fMulti">
+            <label cFormCheckLabel for="fMulti">Modo Multi-empresa</label>
+          </c-form-check>
+          <div class="feature-hint">Habilita el selector de empresa en la UI. Requiere "Empresas por cuenta" &gt; 1.</div>
+        </div>
+      </div>
+
     </c-card-body>
+
+    <!-- Footer de acciones -->
     <c-card-footer>
-      <small class="text-body-secondary">Los cambios en los límites se aplican a las nuevas suscripciones.</small>
-      <button cButton color="secondary" variant="outline" (click)="cancel()" [disabled]="saving()" class="ms-auto me-2">
-        Cancelar
-      </button>
-      <button cButton color="primary" (click)="save()" [disabled]="saving()">
-        @if (saving()) { <c-spinner size="sm" class="me-1"></c-spinner> }
-        {{ editingId() ? 'Guardar Cambios' : 'Crear Plan' }}
-      </button>
+      <div class="form-actions">
+        <span class="actions-note">
+          <svg cIcon name="cilInfo" size="sm" class="me-1"></svg>
+          Los cambios en límites se propagan automáticamente a las empresas que usen este plan.
+        </span>
+        <div class="actions-buttons">
+          <button cButton color="secondary" variant="outline" (click)="cancel()" [disabled]="saving()">
+            Cancelar
+          </button>
+          <button cButton color="primary" (click)="save()" [disabled]="saving()">
+            @if (saving()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+            {{ editingId() ? 'Guardar Cambios' : 'Crear Plan' }}
+          </button>
+        </div>
+      </div>
     </c-card-footer>
   </c-card>
 

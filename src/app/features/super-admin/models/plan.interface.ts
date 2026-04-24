@@ -70,16 +70,11 @@ export interface PlanInfraLimits {
   usageHistoryMonths: number;      // meses de contadores de uso conservados
 }
 
-// ─── Feature flags de módulos ─────────────────────────────────────────────────
+// ─── Feature flags de nivel de servicio ──────────────────────────────────────
+// Solo flags NO ligados a paquetes. Los módulos de negocio se derivan de
+// plan.includedModules (códigos de paquetes: 'pkg_sales', 'pkg_sri', etc.).
 
 export interface PlanFeatureFlags {
-  electronicInvoicing: boolean;    // false = solo modo borrador/impresión
-  purchasesModule: boolean;
-  accountingModule: boolean;
-  stockModule: boolean;
-  teamManagementModule: boolean;
-  publicCatalogModule: boolean;
-  publicApiModule: boolean;
   prioritySupport: boolean;
   betaAccess: boolean;
   multiCompanyMode: boolean;       // habilita UI de cambio de empresa (requiere companiesPerAccount > 1)
@@ -111,7 +106,9 @@ export interface Plan {
 
   features: PlanFeatureFlags;
 
-  // Módulos que se activan en enabledModules de la empresa al asignar este plan
+  // Códigos de paquetes incluidos en este plan (ej: ['pkg_base', 'pkg_sales', 'pkg_sri']).
+  // Al asignar el plan a una empresa, estos paquetes se activan automáticamente.
+  // Los módulos individuales se resuelven a partir de los paquetes vía PluginPackagesService.
   includedModules: string[];
 
   createdAt: Timestamp;

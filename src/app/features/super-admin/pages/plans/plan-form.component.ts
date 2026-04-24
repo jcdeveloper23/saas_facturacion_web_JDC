@@ -7,7 +7,7 @@ import {
   CardComponent, CardBodyComponent, CardHeaderComponent, CardFooterComponent,
   ButtonDirective, SpinnerComponent, RowComponent, ColComponent,
   FormLabelDirective, FormControlDirective, FormSelectDirective,
-  AlertComponent,
+  AlertComponent, BadgeComponent,
   AccordionComponent, AccordionItemComponent, AccordionButtonDirective,
   TemplateIdDirective,
   FormCheckComponent, FormCheckInputDirective, FormCheckLabelDirective
@@ -16,10 +16,13 @@ import { IconDirective } from '@coreui/icons-angular';
 import { SuperAdminService } from '../../services/super-admin.service';
 import { Plan, PlanFormData } from '../../models/plan.interface';
 import { NotificationService } from '../../../../core/services/notification.service';
+import { PluginPackagesService } from '../../../../core/services/plugin-packages.service';
+import { PluginPackage } from '../../../../core/interfaces/permission.interface';
 
 @Component({
   selector: 'app-plan-form',
   templateUrl: './plan-form.component.html',
+  styleUrl: './plan-form.component.scss',
   standalone: true,
   imports: [
     CommonModule,
@@ -27,7 +30,7 @@ import { NotificationService } from '../../../../core/services/notification.serv
     CardComponent, CardBodyComponent, CardHeaderComponent, CardFooterComponent,
     ButtonDirective, SpinnerComponent, RowComponent, ColComponent,
     FormLabelDirective, FormControlDirective, FormSelectDirective,
-    AlertComponent,
+    AlertComponent, BadgeComponent,
     AccordionComponent, AccordionItemComponent, AccordionButtonDirective,
     TemplateIdDirective,
     FormCheckComponent, FormCheckInputDirective, FormCheckLabelDirective,
@@ -36,15 +39,17 @@ import { NotificationService } from '../../../../core/services/notification.serv
 })
 export class PlanFormComponent implements OnInit, OnDestroy {
   private svc           = inject(SuperAdminService);
+  private pkgSvc        = inject(PluginPackagesService);
   private notifications = inject(NotificationService);
   private fb            = inject(FormBuilder);
   private router        = inject(Router);
   private route         = inject(ActivatedRoute);
   private subs          = new Subscription();
 
-  editingId   = signal<string | null>(null);
-  saving      = signal(false);
-  errorMessage = signal('');
+  editingId        = signal<string | null>(null);
+  saving           = signal(false);
+  errorMessage     = signal('');
+  availablePackages = signal<PluginPackage[]>([]);
 
   form = this.fb.group({
     name:          ['', [Validators.required, Validators.minLength(2)]],
@@ -103,21 +108,24 @@ export class PlanFormComponent implements OnInit, OnDestroy {
       })
     }),
     features: this.fb.group({
-      electronicInvoicing:    [true],
-      purchasesModule:        [true],
-      accountingModule:       [false],
-      stockModule:            [false],
-      teamManagementModule:   [false],
-      publicCatalogModule:    [true],
-      publicApiModule:        [false],
-      prioritySupport:        [false],
-      betaAccess:             [false],
-      multiCompanyMode:       [false]
+      prioritySupport:  [false],
+      betaAccess:       [false],
+      multiCompanyMode: [false]
     }),
-    includedModules: [[] as string[]]
+    includedModules: [[] as string[]]  // códigos de paquetes: ['pkg_base', 'pkg_sales', ...]
   });
 
   ngOnInit(): void {
+    // Cargar catálogo de paquetes
+    this.subs.add(
+      this.pkgSvc.getPackages(true).subscribe({
+        next: (pkgs) => {
+          this.availablePackages.set([...pkgs].sort((a, b) => (a.order ?? 99) - (b.order ?? 99)));
+        },
+        error: () => console.error('Error cargando paquetes')
+      })
+    );
+
     const id = this.route.snapshot.paramMap.get('id');
     if (!id) return;
 
@@ -226,16 +234,9 @@ export class PlanFormComponent implements OnInit, OnDestroy {
           }
         },
         features: {
-          electronicInvoicing:  v.features!.electronicInvoicing!,
-          purchasesModule:      v.features!.purchasesModule!,
-          accountingModule:     v.features!.accountingModule!,
-          stockModule:          v.features!.stockModule!,
-          teamManagementModule: v.features!.teamManagementModule!,
-          publicCatalogModule:  v.features!.publicCatalogModule!,
-          publicApiModule:      v.features!.publicApiModule!,
-          prioritySupport:      v.features!.prioritySupport!,
-          betaAccess:           v.features!.betaAccess!,
-          multiCompanyMode:     v.features!.multiCompanyMode!
+          prioritySupport:  v.features!.prioritySupport!,
+          betaAccess:       v.features!.betaAccess!,
+          multiCompanyMode: v.features!.multiCompanyMode!
         },
         includedModules: (v.includedModules ?? []) as string[]
       };
@@ -255,6 +256,27 @@ export class PlanFormComponent implements OnInit, OnDestroy {
     } finally {
       this.saving.set(false);
     }
+  }
+
+  togglePackage(code: string): void {
+    const current = (this.form.get('includedModules')?.value as string[]) ?? [];
+    const idx = current.indexOf(code);
+    if (idx >= 0) {
+      this.form.get('includedModules')?.setValue(current.filter(c => c !== code));
+    } else {
+      this.form.get('includedModules')?.setValue([...current, code]);
+    }
+  }
+
+  isPackageSelected(code: string): boolean {
+    const current = (this.form.get('includedModules')?.value as string[]) ?? [];
+    return current.includes(code);
+  }
+
+  canSelectPackage(pkg: PluginPackage): boolean {
+    if (!pkg.dependencies?.length) return true;
+    const selected = (this.form.get('includedModules')?.value as string[]) ?? [];
+    return pkg.dependencies.every(dep => selected.includes(dep));
   }
 
   cancel(): void {
