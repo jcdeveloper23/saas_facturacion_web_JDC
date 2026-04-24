@@ -2,7 +2,8 @@ import { Component } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import {
   CardComponent, CardBodyComponent,
-  NavComponent, NavItemComponent, NavLinkDirective
+  NavComponent, NavItemComponent, NavLinkDirective,
+  RowComponent, ColComponent
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 
@@ -16,6 +17,7 @@ import { IconDirective } from '@coreui/icons-angular';
     RouterLinkActive,
     CardComponent, CardBodyComponent,
     NavComponent, NavItemComponent, NavLinkDirective,
+    RowComponent, ColComponent,
     IconDirective
   ]
 })

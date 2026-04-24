@@ -72,6 +72,12 @@ export const SETTINGS_ROUTES: Routes = [
         loadComponent: () =>
           import('./pages/marketplace/marketplace-settings.component').then(m => m.MarketplaceSettingsComponent),
         data: { title: 'Catálogo Público' }
+      },
+      {
+        path: 'subscription',
+        loadComponent: () =>
+          import('./pages/subscription/subscription.component').then(m => m.SubscriptionComponent),
+        data: { title: 'Mi Suscripción' }
       }
     ]
   }

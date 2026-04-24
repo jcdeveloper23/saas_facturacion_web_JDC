@@ -1,5 +1,6 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { Firestore, doc, onSnapshot } from '@angular/fire/firestore';
+import { PlanLimitsService } from './plan-limits.service';
 
 export interface CompanyConfig {
   id: string;
@@ -53,6 +54,7 @@ export interface CompanyConfig {
 @Injectable({ providedIn: 'root' })
 export class TenantService {
   private firestore = inject(Firestore);
+  private planLimits = inject(PlanLimitsService);
 
   private _companyId = signal<string>('');
   private _company   = signal<CompanyConfig | null>(null);
@@ -125,6 +127,7 @@ export class TenantService {
     if (!id || id === this._companyId()) return;
     this._companyId.set(id);
     this.loadCompany(id);
+    this.planLimits.init(id);
   }
 
   private loadCompany(companyId: string): void {

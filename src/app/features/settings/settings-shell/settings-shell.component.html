@@ -1,3 +1,83 @@
 <div class="fade-in">
-  <router-outlet></router-outlet>
+  <c-row>
+    <c-col xs="12" md="3" lg="2" class="mb-3">
+      <c-nav variant="tabs" class="flex-column">
+        <c-nav-item>
+          <a cNavLink routerLink="company" routerLinkActive="active">
+            <svg cIcon name="cilBuilding" class="me-2"></svg>
+            Empresa
+          </a>
+        </c-nav-item>
+        <c-nav-item>
+          <a cNavLink routerLink="warehouses" routerLinkActive="active">
+            <svg cIcon name="cilInbox" class="me-2"></svg>
+            Bodegas
+          </a>
+        </c-nav-item>
+        <c-nav-item>
+          <a cNavLink routerLink="document-series" routerLinkActive="active">
+            <svg cIcon name="cilDescription" class="me-2"></svg>
+            Series
+          </a>
+        </c-nav-item>
+        <c-nav-item>
+          <a cNavLink routerLink="payment-terms" routerLinkActive="active">
+            <svg cIcon name="cilCash" class="me-2"></svg>
+            Formas de pago
+          </a>
+        </c-nav-item>
+        <c-nav-item>
+          <a cNavLink routerLink="tax-rates" routerLinkActive="active">
+            <svg cIcon name="cilChartPie" class="me-2"></svg>
+            Impuestos
+          </a>
+        </c-nav-item>
+        <c-nav-item>
+          <a cNavLink routerLink="families" routerLinkActive="active">
+            <svg cIcon name="cilTags" class="me-2"></svg>
+            Familias
+          </a>
+        </c-nav-item>
+        <c-nav-item>
+          <a cNavLink routerLink="currencies" routerLinkActive="active">
+            <svg cIcon name="cilDollar" class="me-2"></svg>
+            Divisas
+          </a>
+        </c-nav-item>
+        <c-nav-item>
+          <a cNavLink routerLink="countries" routerLinkActive="active">
+            <svg cIcon name="cilMap" class="me-2"></svg>
+            Países
+          </a>
+        </c-nav-item>
+        <c-nav-item>
+          <a cNavLink routerLink="form-config" routerLinkActive="active">
+            <svg cIcon name="cilSettings" class="me-2"></svg>
+            Formularios
+          </a>
+        </c-nav-item>
+        <c-nav-item>
+          <a cNavLink routerLink="plugins" routerLinkActive="active">
+            <svg cIcon name="cilPuzzle" class="me-2"></svg>
+            Plugins
+          </a>
+        </c-nav-item>
+        <c-nav-item>
+          <a cNavLink routerLink="marketplace" routerLinkActive="active">
+            <svg cIcon name="cilCart" class="me-2"></svg>
+            Catálogo
+          </a>
+        </c-nav-item>
+        <c-nav-item>
+          <a cNavLink routerLink="subscription" routerLinkActive="active">
+            <svg cIcon name="cilCreditCard" class="me-2"></svg>
+            Suscripción
+          </a>
+        </c-nav-item>
+      </c-nav>
+    </c-col>
+    <c-col xs="12" md="9" lg="10">
+      <router-outlet></router-outlet>
+    </c-col>
+  </c-row>
 </div>

@@ -1,0 +1,329 @@
+<c-row class="mb-4 align-items-center">
+  <c-col>
+    <h2 class="mb-0">{{ editingId() ? 'Editar Plan' : 'Nuevo Plan' }}</h2>
+    <p class="text-muted small mb-0">{{ editingId() ? 'Modifica los parámetros del plan' : 'Define un nuevo plan de suscripción' }}</p>
+  </c-col>
+</c-row>
+
+@if (errorMessage()) {
+  <c-alert color="danger" class="mb-3">{{ errorMessage() }}</c-alert>
+}
+
+<form [formGroup]="form">
+  <c-card>
+    <c-card-header>
+      <strong>General</strong>
+    </c-card-header>
+    <c-card-body>
+      <c-row class="g-3">
+        <c-col md="8">
+          <label cLabel for="planName">Nombre del Plan *</label>
+          <input cFormControl id="planName" formControlName="name"
+                 placeholder="ej: Professional"
+                 [class.is-invalid]="hasError('name')">
+          @if (hasError('name')) {
+            <div class="invalid-feedback">Mínimo 2 caracteres</div>
+          }
+        </c-col>
+        <c-col md="4">
+          <label cLabel for="planBadge">Badge</label>
+          <input cFormControl id="planBadge" formControlName="badge"
+                 placeholder="ej: Más popular">
+        </c-col>
+        <c-col md="12">
+          <label cLabel for="planDescription">Descripción *</label>
+          <input cFormControl id="planDescription" formControlName="description"
+                 placeholder="Texto corto para la tarjeta de precios"
+                 [class.is-invalid]="hasError('description')">
+          @if (hasError('description')) {
+            <div class="invalid-feedback">Campo requerido</div>
+          }
+        </c-col>
+        <c-col md="4">
+          <label cLabel for="planPriceMonthly">Precio USD/mes *</label>
+          <input cFormControl id="planPriceMonthly" type="number"
+                 formControlName="priceMonthly" min="0">
+        </c-col>
+        <c-col md="4">
+          <label cLabel for="planPriceYearly">Precio USD/mes (anual) *</label>
+          <input cFormControl id="planPriceYearly" type="number"
+                 formControlName="priceYearly" min="0">
+        </c-col>
+        <c-col md="4">
+          <label cLabel for="planBilling">Periodo de facturación *</label>
+          <select cFormSelect id="planBilling" formControlName="billingPeriod">
+            <option value="monthly">Mensual</option>
+            <option value="yearly">Anual</option>
+            <option value="one_time">Pago único</option>
+          </select>
+        </c-col>
+        <c-col md="4">
+          <label cLabel for="planTrialDays">Días de trial</label>
+          <input cFormControl id="planTrialDays" type="number"
+                 formControlName="trialDays" min="0">
+        </c-col>
+        <c-col md="4">
+          <label cLabel for="planSortOrder">Orden de display *</label>
+          <input cFormControl id="planSortOrder" type="number"
+                 formControlName="sortOrder" min="1">
+        </c-col>
+        <c-col md="4" class="d-flex align-items-end gap-4 pb-1">
+          <c-form-check [switch]="true" class="mb-0">
+            <input cFormCheckInput type="checkbox" formControlName="isActive" id="planIsActive">
+            <label cFormCheckLabel for="planIsActive">Activo</label>
+          </c-form-check>
+          <c-form-check [switch]="true" class="mb-0">
+            <input cFormCheckInput type="checkbox" formControlName="isPublic" id="planIsPublic">
+            <label cFormCheckLabel for="planIsPublic">Público</label>
+          </c-form-check>
+        </c-col>
+      </c-row>
+    </c-card-body>
+  </c-card>
+
+  <!-- Documentos SRI -->
+  <c-card class="mt-3">
+    <c-card-header><strong>Documentos SRI</strong></c-card-header>
+    <c-card-body>
+      <p class="text-muted small mb-3">-1 = ilimitado &nbsp;&middot;&nbsp; 0 = deshabilitado</p>
+      <div formGroupName="limits">
+        <c-row class="g-3" formGroupName="sri">
+          <c-col md="3">
+            <label cLabel>Facturas/mes</label>
+            <input cFormControl type="number" formControlName="invoicesPerMonth">
+          </c-col>
+          <c-col md="3">
+            <label cLabel>Facturas/año</label>
+            <input cFormControl type="number" formControlName="invoicesPerYear">
+          </c-col>
+          <c-col md="3">
+            <label cLabel>Notas crédito/mes</label>
+            <input cFormControl type="number" formControlName="creditNotesPerMonth">
+          </c-col>
+          <c-col md="3">
+            <label cLabel>Notas débito/mes</label>
+            <input cFormControl type="number" formControlName="debitNotesPerMonth">
+          </c-col>
+          <c-col md="3">
+            <label cLabel>Retenciones/mes</label>
+            <input cFormControl type="number" formControlName="retentionsPerMonth">
+          </c-col>
+          <c-col md="3">
+            <label cLabel>Compras/mes</label>
+            <input cFormControl type="number" formControlName="purchasesPerMonth">
+          </c-col>
+          <c-col md="3">
+            <label cLabel>Remisiones/mes</label>
+            <input cFormControl type="number" formControlName="remissionsPerMonth">
+          </c-col>
+          <c-col md="3">
+            <label cLabel>Total docs SRI/mes</label>
+            <input cFormControl type="number" formControlName="totalSriDocsPerMonth">
+          </c-col>
+        </c-row>
+      </div>
+    </c-card-body>
+  </c-card>
+
+  <!-- Datos Maestros -->
+  <c-card class="mt-3">
+    <c-card-header><strong>Datos Maestros</strong></c-card-header>
+    <c-card-body>
+      <p class="text-muted small mb-3">-1 = ilimitado &nbsp;&middot;&nbsp; 0 = deshabilitado</p>
+      <div formGroupName="limits">
+        <c-row class="g-3" formGroupName="masterData">
+          <c-col md="3">
+            <label cLabel>Personas total</label>
+            <input cFormControl type="number" formControlName="personasTotal">
+          </c-col>
+          <c-col md="3">
+            <label cLabel>Clientes total</label>
+            <input cFormControl type="number" formControlName="customersTotal">
+          </c-col>
+          <c-col md="3">
+            <label cLabel>Proveedores total</label>
+            <input cFormControl type="number" formControlName="suppliersTotal">
+          </c-col>
+          <c-col md="3">
+            <label cLabel>Empleados total</label>
+            <input cFormControl type="number" formControlName="employeesTotal">
+          </c-col>
+          <c-col md="3">
+            <label cLabel>Productos total</label>
+            <input cFormControl type="number" formControlName="productsTotal">
+          </c-col>
+          <c-col md="3">
+            <label cLabel>Familias total</label>
+            <input cFormControl type="number" formControlName="familiesTotal">
+          </c-col>
+          <c-col md="3">
+            <label cLabel>Fabricantes total</label>
+            <input cFormControl type="number" formControlName="manufacturersTotal">
+          </c-col>
+          <c-col md="3">
+            <label cLabel>Almacenes total *</label>
+            <input cFormControl type="number" formControlName="warehousesTotal" min="1">
+          </c-col>
+          <c-col md="3">
+            <label cLabel>Centros de costo</label>
+            <input cFormControl type="number" formControlName="costCentersTotal">
+          </c-col>
+          <c-col md="3">
+            <label cLabel>Listas de precios</label>
+            <input cFormControl type="number" formControlName="priceListsTotal">
+          </c-col>
+        </c-row>
+      </div>
+    </c-card-body>
+  </c-card>
+
+  <!-- Usuarios y Acceso -->
+  <c-card class="mt-3">
+    <c-card-header><strong>Usuarios y Acceso</strong></c-card-header>
+    <c-card-body>
+      <p class="text-muted small mb-3">-1 = ilimitado &nbsp;&middot;&nbsp; 0 = deshabilitado</p>
+      <div formGroupName="limits">
+        <c-row class="g-3" formGroupName="users">
+          <c-col md="4">
+            <label cLabel>Usuarios activos/empresa *</label>
+            <input cFormControl type="number" formControlName="activeUsersPerCompany" min="1">
+          </c-col>
+          <c-col md="4">
+            <label cLabel>Roles personalizados</label>
+            <input cFormControl type="number" formControlName="customRolesPerCompany">
+          </c-col>
+          <c-col md="4">
+            <label cLabel>Sesiones concurrentes/usuario</label>
+            <input cFormControl type="number" formControlName="concurrentSessionsPerUser">
+          </c-col>
+        </c-row>
+        <c-row class="g-3 mt-1" formGroupName="multiCompany">
+          <c-col md="4">
+            <label cLabel>Empresas por cuenta *</label>
+            <input cFormControl type="number" formControlName="companiesPerAccount" min="1">
+          </c-col>
+        </c-row>
+      </div>
+    </c-card-body>
+  </c-card>
+
+  <!-- Operaciones -->
+  <c-card class="mt-3">
+    <c-card-header><strong>Operaciones</strong></c-card-header>
+    <c-card-body>
+      <p class="text-muted small mb-3">-1 = ilimitado &nbsp;&middot;&nbsp; 0 = deshabilitado</p>
+      <div formGroupName="limits">
+        <c-row class="g-3" formGroupName="operations">
+          <c-col md="4">
+            <label cLabel>Proyectos activos total</label>
+            <input cFormControl type="number" formControlName="activeProjectsTotal">
+          </c-col>
+          <c-col md="4">
+            <label cLabel>Tareas/mes</label>
+            <input cFormControl type="number" formControlName="tasksPerMonth">
+          </c-col>
+          <c-col md="4">
+            <label cLabel>Exportaciones/mes</label>
+            <input cFormControl type="number" formControlName="exportsPerMonth">
+          </c-col>
+          <c-col md="4">
+            <label cLabel>Reportes programados</label>
+            <input cFormControl type="number" formControlName="scheduledReportsTotal">
+          </c-col>
+          <c-col md="4">
+            <label cLabel>Integraciones activas</label>
+            <input cFormControl type="number" formControlName="activeIntegrationsTotal">
+          </c-col>
+          <c-col md="4">
+            <label cLabel>Llamadas API/mes</label>
+            <input cFormControl type="number" formControlName="apiCallsPerMonth">
+          </c-col>
+        </c-row>
+      </div>
+    </c-card-body>
+  </c-card>
+
+  <!-- Infraestructura -->
+  <c-card class="mt-3">
+    <c-card-header><strong>Infraestructura</strong></c-card-header>
+    <c-card-body>
+      <p class="text-muted small mb-3">-1 = permanente / ilimitado &nbsp;&middot;&nbsp; 0 = sin retención</p>
+      <div formGroupName="limits">
+        <c-row class="g-3" formGroupName="infra">
+          <c-col md="4">
+            <label cLabel>Storage (GB) *</label>
+            <input cFormControl type="number" formControlName="storageGb" min="0">
+          </c-col>
+          <c-col md="4">
+            <label cLabel>Historial documentos (meses)</label>
+            <input cFormControl type="number" formControlName="documentHistoryMonths">
+          </c-col>
+          <c-col md="4">
+            <label cLabel>Historial uso (meses)</label>
+            <input cFormControl type="number" formControlName="usageHistoryMonths">
+          </c-col>
+        </c-row>
+      </div>
+    </c-card-body>
+  </c-card>
+
+  <!-- Módulos Habilitados -->
+  <c-card class="mt-3">
+    <c-card-header><strong>Módulos Habilitados</strong></c-card-header>
+    <c-card-body>
+      <div formGroupName="features" class="features-grid">
+        <c-form-check [switch]="true">
+          <input cFormCheckInput type="checkbox" formControlName="electronicInvoicing" id="fElectronic">
+          <label cFormCheckLabel for="fElectronic">Facturación Electrónica</label>
+        </c-form-check>
+        <c-form-check [switch]="true">
+          <input cFormCheckInput type="checkbox" formControlName="purchasesModule" id="fPurchases">
+          <label cFormCheckLabel for="fPurchases">Módulo Compras</label>
+        </c-form-check>
+        <c-form-check [switch]="true">
+          <input cFormCheckInput type="checkbox" formControlName="accountingModule" id="fAccounting">
+          <label cFormCheckLabel for="fAccounting">Módulo Contabilidad</label>
+        </c-form-check>
+        <c-form-check [switch]="true">
+          <input cFormCheckInput type="checkbox" formControlName="stockModule" id="fStock">
+          <label cFormCheckLabel for="fStock">Módulo Stock</label>
+        </c-form-check>
+        <c-form-check [switch]="true">
+          <input cFormCheckInput type="checkbox" formControlName="teamManagementModule" id="fTeam">
+          <label cFormCheckLabel for="fTeam">Gestión de Equipos</label>
+        </c-form-check>
+        <c-form-check [switch]="true">
+          <input cFormCheckInput type="checkbox" formControlName="publicCatalogModule" id="fCatalog">
+          <label cFormCheckLabel for="fCatalog">Catálogo Público</label>
+        </c-form-check>
+        <c-form-check [switch]="true">
+          <input cFormCheckInput type="checkbox" formControlName="publicApiModule" id="fApi">
+          <label cFormCheckLabel for="fApi">API Pública</label>
+        </c-form-check>
+        <c-form-check [switch]="true">
+          <input cFormCheckInput type="checkbox" formControlName="prioritySupport" id="fSupport">
+          <label cFormCheckLabel for="fSupport">Soporte Prioritario</label>
+        </c-form-check>
+        <c-form-check [switch]="true">
+          <input cFormCheckInput type="checkbox" formControlName="betaAccess" id="fBeta">
+          <label cFormCheckLabel for="fBeta">Acceso Beta</label>
+        </c-form-check>
+        <c-form-check [switch]="true">
+          <input cFormCheckInput type="checkbox" formControlName="multiCompanyMode" id="fMulti">
+          <label cFormCheckLabel for="fMulti">Modo Multi-empresa</label>
+        </c-form-check>
+      </div>
+    </c-card-body>
+    <c-card-footer>
+      <small class="text-body-secondary">Los cambios en los límites se aplican a las nuevas suscripciones.</small>
+      <button cButton color="secondary" variant="outline" (click)="cancel()" [disabled]="saving()" class="ms-auto me-2">
+        Cancelar
+      </button>
+      <button cButton color="primary" (click)="save()" [disabled]="saving()">
+        @if (saving()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+        {{ editingId() ? 'Guardar Cambios' : 'Crear Plan' }}
+      </button>
+    </c-card-footer>
+  </c-card>
+
+</form>

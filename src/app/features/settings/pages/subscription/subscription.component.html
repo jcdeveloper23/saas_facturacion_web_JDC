@@ -1,0 +1,131 @@
+<c-row>
+  <c-col xs="12" lg="8" xl="6">
+
+    <!-- Mi Suscripción -->
+    <c-card class="mb-4">
+      <c-card-header>
+        <strong>Mi Suscripción</strong>
+        @if (company()?.status) {
+          <c-badge [color]="statusColor(company()!.status)" class="ms-2">
+            {{ statusLabel(company()!.status) }}
+          </c-badge>
+        }
+      </c-card-header>
+      <c-card-body>
+        @if (company()) {
+          <p class="mb-1"><strong>Plan:</strong> {{ company()!.planName }}</p>
+          <p class="mb-1">
+            <strong>Inicio:</strong>
+            {{ toDate(company()!.subscriptionStart) | date:'dd/MM/yyyy' }}
+          </p>
+          <p class="mb-0">
+            <strong>Vencimiento:</strong>
+            {{ toDate(company()!.subscriptionEnd) | date:'dd/MM/yyyy' }}
+          </p>
+        } @else {
+          <p class="text-body-secondary mb-0">Cargando información de suscripción…</p>
+        }
+      </c-card-body>
+      <c-card-footer>
+        <small class="text-body-secondary">Para cambiar de plan, contacta a soporte.</small>
+        <button cButton color="primary" class="ms-2" [disabled]="true">Cambiar plan (próximamente)</button>
+      </c-card-footer>
+    </c-card>
+
+    <!-- Uso este mes — Documentos SRI -->
+    <c-card class="mb-4">
+      <c-card-header>
+        <strong>Uso este mes — Documentos SRI</strong>
+      </c-card-header>
+      <c-card-body>
+        @for (row of sriResources; track row.resource) {
+          <div class="mb-3">
+            <div class="d-flex justify-content-between mb-1">
+              <small>{{ row.label }}</small>
+              <small>
+                {{ getUsed(row.resource) }} /
+                @if (getLimit(row.resource) === -1) {
+                  Ilimitado
+                } @else {
+                  {{ getLimit(row.resource) }}
+                }
+                @if (getLimit(row.resource) !== -1) {
+                  &nbsp;({{ usagePercent(row.resource) }}%)
+                }
+              </small>
+            </div>
+            @if (getLimit(row.resource) !== -1) {
+              <c-progress
+                thin
+                [value]="usagePercent(row.resource)"
+                [color]="progressColor(usagePercent(row.resource))"
+              />
+            } @else {
+              <c-progress thin [value]="0" color="success" />
+            }
+          </div>
+        }
+      </c-card-body>
+    </c-card>
+
+    <!-- Maestros -->
+    <c-card class="mb-4">
+      <c-card-header>
+        <strong>Maestros</strong>
+      </c-card-header>
+      <c-card-body>
+        @for (row of masterResources; track row.resource) {
+          <div class="mb-3">
+            <div class="d-flex justify-content-between mb-1">
+              <small>{{ row.label }}</small>
+              <small>
+                {{ getUsed(row.resource) }} /
+                @if (getLimit(row.resource) === -1) {
+                  Ilimitado
+                } @else {
+                  {{ getLimit(row.resource) }}
+                }
+                @if (getLimit(row.resource) !== -1) {
+                  &nbsp;({{ usagePercent(row.resource) }}%)
+                }
+              </small>
+            </div>
+            @if (getLimit(row.resource) !== -1) {
+              <c-progress
+                thin
+                [value]="usagePercent(row.resource)"
+                [color]="progressColor(usagePercent(row.resource))"
+              />
+            } @else {
+              <c-progress thin [value]="0" color="success" />
+            }
+          </div>
+        }
+      </c-card-body>
+    </c-card>
+
+    <!-- Características del plan -->
+    <c-card class="mb-4">
+      <c-card-header>
+        <strong>Características del plan</strong>
+      </c-card-header>
+      <c-card-body>
+        <c-row>
+          @for (feat of featureEntries(); track feat.key) {
+            <c-col class="mb-2">
+              <div class="d-flex align-items-center gap-2">
+                @if (feat.value) {
+                  <svg cIcon name="cilCheckAlt" class="text-success"></svg>
+                } @else {
+                  <svg cIcon name="cilX" class="text-secondary"></svg>
+                }
+                <small>{{ feat.label }}</small>
+              </div>
+            </c-col>
+          }
+        </c-row>
+      </c-card-body>
+    </c-card>
+
+  </c-col>
+</c-row>
