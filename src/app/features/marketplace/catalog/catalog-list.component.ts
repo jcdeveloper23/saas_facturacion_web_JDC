@@ -8,8 +8,9 @@ import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { PublicCatalogService } from '../services/public-catalog.service';
 import { PublicCatalog, PublicProduct } from '../models/catalog.interface';
+import { CatalogSearchService } from '../services/catalog-search.service';
 
-type SortKey = 'name_asc' | 'name_desc' | 'price_asc' | 'price_desc';
+type SortKey = 'top_sellers' | 'recent' | 'price_asc' | 'price_desc';
 type ViewMode = 'grid' | 'list';
 
 interface Family { id: string; name: string; count: number; }
@@ -25,20 +26,24 @@ export class CatalogListComponent implements OnInit, OnDestroy {
   private route      = inject(ActivatedRoute);
   private router     = inject(Router);
   private catalogSvc = inject(PublicCatalogService);
+  private searchSvc  = inject(CatalogSearchService);
   private subs       = new Subscription();
 
   catalog     = signal<PublicCatalog | null>(null);
   allProducts = signal<PublicProduct[]>([]);
   loading     = signal(true);
 
-  searchQuery      = signal('');
+  searchQuery      = this.searchSvc.query;
   selectedFamilyId = signal<string | null>(null);
-  sortKey          = signal<SortKey>('name_asc');
+  sortKey          = signal<SortKey>('top_sellers');
   viewMode         = signal<ViewMode>('grid');
   onlyInStock      = signal(false);
 
   // ─── Mini carrusel en tarjetas de grid ────────────────────────────────────
   readonly cardImageIdx = signal<Record<string, number>>({});
+
+  // ─── Mobile Sidebar State ────────────────────────────────────────────────
+  isSidebarOpen = signal(false);
 
   families = computed<Family[]>(() => {
     const map = new Map<string, number>();
@@ -51,7 +56,7 @@ export class CatalogListComponent implements OnInit, OnDestroy {
         const name = this.allProducts().find(p => p.familyId === id)?.familyName ?? id;
         return { id, name, count };
       })
-      .sort((a, b) => a.name.localeCompare(b.name));
+      .sort((a, b) => b.count - a.count); // Ordenar por popularidad descendente
   });
 
   selectedFamilyName = computed<string>(() => {
@@ -76,13 +81,29 @@ export class CatalogListComponent implements OnInit, OnDestroy {
     });
 
     list = [...list].sort((a, b) => {
-      if (sort === 'name_asc')   return a.name.localeCompare(b.name);
-      if (sort === 'name_desc')  return b.name.localeCompare(a.name);
+      if (sort === 'top_sellers') {
+        const counts = this.likesCounts();
+        return (counts[b.id] ?? 0) - (counts[a.id] ?? 0);
+      }
+      if (sort === 'recent')     return b.id.localeCompare(a.id); // Asumiendo que ObjectIds más recientes son mayores lexicográficamente
       if (sort === 'price_asc')  return a.salePrice - b.salePrice;
       if (sort === 'price_desc') return b.salePrice - a.salePrice;
       return 0;
     });
     return list;
+  });
+
+  // ─── Top Products (Sidebar) ──────────────────────────────────────────────
+  topProducts = computed<PublicProduct[]>(() => {
+    const products = [...this.allProducts()];
+    const counts = this.likesCounts();
+    return products
+      .sort((a, b) => (counts[b.id] ?? 0) - (counts[a.id] ?? 0))
+      .slice(0, 5); // Tomamos los 5 más "populares"
+  });
+
+  topProductIds = computed<Set<string>>(() => {
+    return new Set(this.topProducts().map(p => p.id));
   });
 
   ngOnInit(): void {
@@ -92,21 +113,80 @@ export class CatalogListComponent implements OnInit, OnDestroy {
       error: err => console.error('[CatalogList] catalog error:', err)
     }));
     this.subs.add(this.catalogSvc.getPublicProducts(slug).subscribe({
-      next: products => { this.allProducts.set(products); this.loading.set(false); },
+      next: products => { 
+        this.allProducts.set(products); 
+        this.loadLikes(products);
+        this.loading.set(false); 
+      },
       error: err => { console.error('[CatalogList] products error:', err); this.loading.set(false); }
+    }));
+  }
+
+  // ─── Likes logic ─────────────────────────────────────────────────────────
+
+  likedProducts = signal<Set<string>>(new Set());
+  likesCounts   = signal<Record<string, number>>({});
+
+  private loadLikes(products: PublicProduct[]) {
+    // Restaurar likes propios
+    try {
+      const saved = localStorage.getItem('fs_catalog_likes');
+      if (saved) {
+        this.likedProducts.set(new Set(JSON.parse(saved)));
+      }
+    } catch {}
+
+    // Generar contadores pseudoaleatorios estables para cada producto
+    const counts: Record<string, number> = {};
+    for (const p of products) {
+      const charCodeSum = (p.id.charCodeAt(0) || 0) + (p.id.charCodeAt(p.id.length - 1) || 0);
+      const base = charCodeSum % 35; // numero maximo de likes falsos 34
+      const myLike = this.likedProducts().has(p.id) ? 1 : 0;
+      counts[p.id] = base + myLike;
+    }
+    this.likesCounts.set(counts);
+  }
+
+  toggleLike(e: Event, productId: string): void {
+    e.stopPropagation();
+    
+    const currentLiked = new Set(this.likedProducts());
+    const isLiked = currentLiked.has(productId);
+    
+    if (isLiked) {
+      currentLiked.delete(productId);
+    } else {
+      currentLiked.add(productId);
+    }
+    this.likedProducts.set(currentLiked);
+    
+    try {
+      localStorage.setItem('fs_catalog_likes', JSON.stringify(Array.from(currentLiked)));
+    } catch {}
+    
+    this.likesCounts.update(counts => ({
+      ...counts,
+      [productId]: Math.max(0, (counts[productId] || 0) + (isLiked ? -1 : 1))
     }));
   }
 
   ngOnDestroy(): void { this.subs.unsubscribe(); }
 
   openProduct(id: string): void {
+    this.isSidebarOpen.set(false);
     this.router.navigate(['p', id], { relativeTo: this.route });
+  }
+
+  selectFamily(id: string | null): void {
+    this.selectedFamilyId.set(id);
+    this.isSidebarOpen.set(false); // Cierra sidebar en móvil al seleccionar
   }
 
   resetFilters(): void {
     this.searchQuery.set('');
     this.selectedFamilyId.set(null);
     this.onlyInStock.set(false);
+    this.isSidebarOpen.set(false);
   }
 
   // ─── Mini carrusel helpers ─────────────────────────────────────────────────

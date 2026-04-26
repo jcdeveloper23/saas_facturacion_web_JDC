@@ -1,5 +1,13 @@
 # FacturaSec — Frontend
 
+node 20.19.5
+nvm use 20.19.5
+ng s
+angular 21.1.4
+firebase
+cloud functions
+
+
 SaaS de facturación electrónica para Ecuador. Multi-tenant, integración con SRI, firma digital y emisión de documentos electrónicos. Desarrollado con Angular 21 y CoreUI 5.
 
 ## Stack Tecnológico
