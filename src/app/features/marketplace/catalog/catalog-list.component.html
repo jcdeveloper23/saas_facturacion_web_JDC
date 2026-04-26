@@ -1,41 +1,34 @@
 <div class="cl-root">
 
-  <!-- ── Search bar ────────────────────────────────────────────────────── -->
-  <div class="cl-search-wrap">
-    <div class="cl-search">
-      <svg class="cl-search__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-        <path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11zM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9z" clip-rule="evenodd"/>
+
+
+  <!-- Mobile Toggle -->
+  <div class="cl-mobile-bar">
+    <button class="cl-mobile-toggle" (click)="isSidebarOpen.set(!isSidebarOpen())">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
       </svg>
-      <input
-        class="cl-search__input"
-        type="text"
-        placeholder="Buscar en el catálogo…"
-        [ngModel]="searchQuery()"
-        (ngModelChange)="searchQuery.set($event)"
-      />
-      @if (searchQuery()) {
-        <button class="cl-search__clear" (click)="searchQuery.set('')">✕</button>
-      }
-    </div>
+      Filtros y Categorías
+    </button>
   </div>
 
   <!-- ── Body: sidebar + products ────────────────────────────────────────── -->
   <div class="cl-body">
 
     <!-- Sidebar -->
-    <aside class="cl-sidebar">
+    <div class="cl-sidebar-backdrop" *ngIf="isSidebarOpen()" (click)="isSidebarOpen.set(false)"></div>
+    <aside class="cl-sidebar" [class.open]="isSidebarOpen()">
 
       <!-- Categories -->
       <div class="cl-sidebar__section">
-        <h3 class="cl-sidebar__title">Categorías</h3>
+        <h3 class="cl-sidebar__title">Categorías Populares</h3>
         <ul class="cl-category-list">
           <li>
             <button
               class="cl-category-item"
               [class.active]="selectedFamilyId() === null"
-              (click)="selectedFamilyId.set(null)">
+              (click)="selectFamily(null)">
               <span>Todos los productos</span>
-              <span class="cl-category-item__count">{{ allProducts().length }}</span>
             </button>
           </li>
           @for (f of families(); track f.id) {
@@ -43,9 +36,8 @@
               <button
                 class="cl-category-item"
                 [class.active]="selectedFamilyId() === f.id"
-                (click)="selectedFamilyId.set(f.id)">
+                (click)="selectFamily(f.id)">
                 <span>{{ f.name }}</span>
-                <span class="cl-category-item__count">{{ f.count }}</span>
               </button>
             </li>
           }
@@ -59,6 +51,26 @@
           <input type="checkbox" [ngModel]="onlyInStock()" (ngModelChange)="onlyInStock.set($event)" />
           <span class="cl-toggle-row__label">Solo disponibles</span>
         </label>
+      </div>
+
+      <!-- Productos Más Vendidos -->
+      <div class="cl-sidebar__section">
+        <h3 class="cl-sidebar__title">Más Vendidos</h3>
+        <div class="cl-top-products">
+          @for (tp of topProducts(); track tp.id) {
+            <article class="cl-top-item" (click)="openProduct(tp.id)">
+              <div class="cl-top-item__img-wrap">
+                <img *ngIf="tp.imageUrl" [src]="tp.imageUrl" [alt]="tp.name" class="cl-top-item__img" />
+              </div>
+              <div class="cl-top-item__info">
+                <h4 class="cl-top-item__name">{{ tp.name }}</h4>
+                @if (catalog()?.showPrices) {
+                  <span class="cl-top-item__price">{{ tp.salePrice * (1 + (tp.taxRate ?? 0) / 100) | currency:'USD':'symbol':'1.2-2' }}</span>
+                }
+              </div>
+            </article>
+          }
+        </div>
       </div>
 
     </aside>
@@ -79,12 +91,15 @@
           }
         </p>
         <div class="cl-toolbar__right">
-          <select class="cl-sort-select" [ngModel]="sortKey()" (ngModelChange)="sortKey.set($event)">
-            <option value="name_asc">Nombre A–Z</option>
-            <option value="name_desc">Nombre Z–A</option>
-            <option value="price_asc">Precio: menor a mayor</option>
-            <option value="price_desc">Precio: mayor a menor</option>
-          </select>
+          <div class="cl-sort-wrap">
+            <span class="cl-sort-label">Ordenar por:</span>
+            <select class="cl-sort-select" [ngModel]="sortKey()" (ngModelChange)="sortKey.set($event)">
+              <option value="top_sellers">Más vendidos</option>
+              <option value="recent">Más recientes</option>
+              <option value="price_asc">Precio: menor a mayor</option>
+              <option value="price_desc">Precio: mayor a menor</option>
+            </select>
+          </div>
           <div class="cl-view-toggle">
             <button [class.active]="viewMode() === 'grid'" (click)="viewMode.set('grid')" title="Cuadrícula">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
@@ -167,12 +182,22 @@
 
                 @if (p.stockAvailable === 0 && !p.noStock) {
                   <span class="cl-badge cl-badge--out">Agotado</span>
-                } @else if (!p.noStock && p.stockAvailable <= 5 && p.stockAvailable > 0) {
-                  <span class="cl-badge cl-badge--low">Últimas unidades</span>
                 }
-                <div class="cl-card__overlay">
-                  <span class="cl-card__cta">Ver detalle →</span>
-                </div>
+                
+                @if (topProductIds().has(p.id)) {
+                  <span class="cl-badge cl-badge--top">★ Más vendido</span>
+                }
+                
+                <!-- Like Button -->
+                <button class="cl-like-btn" 
+                        [class.liked]="likedProducts().has(p.id)"
+                        (click)="toggleLike($event, p.id)" 
+                        title="Me Gusta">
+                  <svg class="cl-like-btn__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+                  </svg>
+                  <span class="cl-like-btn__count">{{ likesCounts()[p.id] || 0 }}</span>
+                </button>
               </div>
               <div class="cl-card__body">
                 @if (p.familyName) {
@@ -182,19 +207,22 @@
                 @if (catalog()?.showNotes && p.notes) {
                   <p class="cl-card__notes">{{ p.notes }}</p>
                 }
-                @if (catalog()?.showPrices) {
-                  <div class="cl-card__price">
-                    {{ p.salePrice * (1 + (p.taxRate ?? 0) / 100) | currency:'USD':'symbol':'1.2-2' }}
-                  </div>
-                }
-                <div class="cl-card__stock-row">
-                  @if (p.noStock) {
-                    <span class="cl-stock cl-stock--service">Servicio</span>
-                  } @else if (p.stockAvailable > 0) {
-                    <span class="cl-stock cl-stock--in">● Disponible</span>
-                  } @else {
-                    <span class="cl-stock cl-stock--out">● Agotado</span>
+                
+                <div class="cl-card__footer">
+                  @if (catalog()?.showPrices) {
+                    <div class="cl-card__price">
+                      {{ p.salePrice * (1 + (p.taxRate ?? 0) / 100) | currency:'USD':'symbol':'1.2-2' }}
+                    </div>
                   }
+                  <div class="cl-card__stock-row">
+                    @if (p.noStock) {
+                      <span class="cl-stock cl-stock--service">Servicio</span>
+                    } @else if (p.stockAvailable > 0) {
+                      <span class="cl-stock cl-stock--in">Disponible</span>
+                    } @else {
+                      <span class="cl-stock cl-stock--out">Agotado</span>
+                    }
+                  </div>
                 </div>
               </div>
             </article>
@@ -216,6 +244,21 @@
                     </svg>
                   </div>
                 }
+                
+                @if (topProductIds().has(p.id)) {
+                  <span class="cl-badge cl-badge--top">★ Más vendido</span>
+                }
+                
+                <!-- Like Button -->
+                <button class="cl-like-btn" 
+                        [class.liked]="likedProducts().has(p.id)"
+                        (click)="toggleLike($event, p.id)" 
+                        title="Me Gusta">
+                  <svg class="cl-like-btn__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+                  </svg>
+                  <span class="cl-like-btn__count">{{ likesCounts()[p.id] || 0 }}</span>
+                </button>
               </div>
               <div class="cl-list-item__body">
                 @if (p.familyName) {
@@ -232,9 +275,9 @@
                   @if (p.noStock) {
                     <span class="cl-stock cl-stock--service">Servicio</span>
                   } @else if (p.stockAvailable > 0) {
-                    <span class="cl-stock cl-stock--in">● Disponible</span>
+                    <span class="cl-stock cl-stock--in">Disponible</span>
                   } @else {
-                    <span class="cl-stock cl-stock--out">● Agotado</span>
+                    <span class="cl-stock cl-stock--out">Agotado</span>
                   }
                 </div>
               </div>
