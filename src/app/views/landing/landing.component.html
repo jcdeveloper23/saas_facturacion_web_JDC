@@ -10,16 +10,18 @@
 
       <ul class="lp-nav__links">
         <li *ngFor="let link of navLinks">
-          <button (click)="scrollToSection(link.id)">{{ link.label }}</button>
+          <button (click)="scrollToSection(link.id)" [class.nav-active]="activeSection === link.id">{{ link.label
+            }}</button>
         </li>
       </ul>
 
       <div class="lp-nav__actions">
         <a routerLink="/login" class="btn-outline">Iniciar sesión</a>
-        <a routerLink="/login" class="btn-solid">Prueba gratis</a>
+        <a routerLink="/register" class="btn-solid">Prueba gratis</a>
       </div>
 
-      <button class="hamburger" (click)="toggleMobileMenu()" [class.is-open]="mobileMenuOpen">
+      <button class="hamburger" (click)="toggleMobileMenu()" [class.is-open]="mobileMenuOpen"
+        aria-label="Menú de navegación" [attr.aria-expanded]="mobileMenuOpen" aria-controls="mobile-panel">
         <span></span><span></span><span></span>
       </button>
     </div>
@@ -27,7 +29,7 @@
     <!-- Mobile panel -->
     <div class="mobile-menu" [class.is-open]="mobileMenuOpen">
       <div class="mobile-overlay" (click)="toggleMobileMenu()"></div>
-      <div class="mobile-panel">
+      <div class="mobile-panel" id="mobile-panel">
         <ul>
           <li *ngFor="let link of navLinks">
             <button (click)="scrollToSection(link.id)">{{ link.label }}</button>
@@ -35,7 +37,7 @@
         </ul>
         <div class="mobile-ctas">
           <a routerLink="/login" (click)="mobileMenuOpen=false">Iniciar sesión</a>
-          <a routerLink="/login" class="solid" (click)="mobileMenuOpen=false">Prueba gratis — 30 días</a>
+          <a routerLink="/register" class="solid" (click)="mobileMenuOpen=false">Prueba gratis — 30 días</a>
         </div>
       </div>
     </div>
@@ -63,13 +65,13 @@
           Cumple con el SRI sin esfuerzo.
         </p>
         <div class="hero-btns">
-          <a routerLink="/login" class="btn-hero-cta">🚀 Comenzar gratis — sin tarjeta</a>
-          <button class="btn-hero-ghost" (click)="scrollToSection('modules')">▶ Ver módulos</button>
+          <a routerLink="/register" class="btn-hero-cta">Comenzar gratis — sin tarjeta</a>
+          <button class="btn-hero-ghost" (click)="openVideoDemo()"><svg cIcon name="cilMediaPlay" class="lp-icon-play"></svg> Ver demo en vivo</button>
         </div>
         <div class="hero-trust">
-          <span>✅ Sin instalación</span>
-          <span>✅ 30 días gratis</span>
-          <span>✅ Soporte 24/7</span>
+          <span><svg cIcon name="cilCheckCircle" class="lp-icon-check"></svg> Sin instalación</span>
+          <span><svg cIcon name="cilCheckCircle" class="lp-icon-check"></svg> 30 días gratis</span>
+          <span><svg cIcon name="cilCheckCircle" class="lp-icon-check"></svg> Soporte 24/7</span>
         </div>
       </div>
 
@@ -91,9 +93,18 @@
             </div>
             <div class="dash-content">
               <div class="kpi-row">
-                <div class="kpi green"><div class="kl">Ventas mes</div><div class="kv">$48.250</div></div>
-                <div class="kpi blue"><div class="kl">Facturas</div><div class="kv">342</div></div>
-                <div class="kpi amber"><div class="kl">Stock alerta</div><div class="kv">5 items</div></div>
+                <div class="kpi green">
+                  <div class="kl">Ventas mes</div>
+                  <div class="kv">$48.250</div>
+                </div>
+                <div class="kpi blue">
+                  <div class="kl">Facturas</div>
+                  <div class="kv">342</div>
+                </div>
+                <div class="kpi amber">
+                  <div class="kl">Stock alerta</div>
+                  <div class="kv">5 items</div>
+                </div>
               </div>
               <div class="dash-chart">
                 <div class="bar" style="height:45%"></div>
@@ -113,8 +124,8 @@
           </div>
         </div>
 
-        <div class="fc fc-green">✅ Factura #000342 Autorizada por SRI</div>
-        <div class="fc fc-blue">🏢 3 empresas activas · 12 usuarios</div>
+        <div class="fc fc-green"><svg cIcon name="cilCheckCircle" class="lp-icon-badge"></svg> Factura #000342 Autorizada por SRI</div>
+        <div class="fc fc-blue"><svg cIcon name="cilBuilding" class="lp-icon-badge"></svg> 3 empresas activas · 12 usuarios</div>
       </div>
     </div>
   </section>
@@ -122,17 +133,17 @@
   <!-- ═══ TRUST BAR ════════════════════════════════════════════════════════ -->
   <section class="lp-trust">
     <div class="trust-inner">
-      <p class="trust-label">Tecnología respaldada por</p>
+      <p class="trust-label">Reconocimientos y certificaciones</p>
       <div class="trust-logos">
-        <div class="trust-item"><span>🔥</span> Firebase</div>
+        <div class="trust-item"><svg cIcon name="cilShieldAlt" class="lp-icon-trust"></svg> SRI Homologado</div>
         <div class="trust-sep"></div>
-        <div class="trust-item"><span>☁️</span> Google Cloud</div>
+        <div class="trust-item"><svg cIcon name="cilStar" class="lp-icon-trust"></svg> +2.500 empresas activas</div>
         <div class="trust-sep"></div>
-        <div class="trust-item"><span>🅰️</span> Angular 17+</div>
+        <div class="trust-item"><svg cIcon name="cilLockLocked" class="lp-icon-trust"></svg> Datos cifrados TLS 1.3</div>
         <div class="trust-sep"></div>
-        <div class="trust-item"><span>🔒</span> SRI Ecuador</div>
+        <div class="trust-item"><svg cIcon name="cilCloudDownload" class="lp-icon-trust"></svg> Google Cloud infraestructura</div>
         <div class="trust-sep"></div>
-        <div class="trust-item"><span>📱</span> PWA Ready</div>
+        <div class="trust-item"><svg cIcon name="cilBolt" class="lp-icon-trust"></svg> 99.9% uptime garantizado</div>
       </div>
     </div>
   </section>
@@ -141,7 +152,7 @@
   <section class="lp-stats" id="stats-section">
     <div class="stats-inner">
       <div class="stat-card fade-in" *ngFor="let stat of stats">
-        <div class="stat-icon">{{ stat.icon }}</div>
+        <div class="stat-icon"><svg cIcon [name]="stat.icon" class="lp-icon-stat"></svg></div>
         <div class="stat-num">{{ stat.display }}{{ stat.suffix }}</div>
         <div class="stat-lbl">{{ stat.label }}</div>
       </div>
@@ -159,7 +170,7 @@
 
       <div class="modules-grid">
         <div class="mod-card fade-in" *ngFor="let mod of modules">
-          <div class="mod-icon" [ngClass]="'c-' + mod.color">{{ mod.icon }}</div>
+          <div class="mod-icon" [ngClass]="'c-' + mod.color"><svg cIcon [name]="mod.icon" class="lp-icon-mod"></svg></div>
           <div class="mod-body">
             <div class="mod-head">
               <h3>{{ mod.title }}</h3>
@@ -167,6 +178,25 @@
             </div>
             <p>{{ mod.description }}</p>
           </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ CÓMO FUNCIONA ════════════════════════════════════════════════ -->
+  <section class="lp-how" id="how-it-works">
+    <div class="lp-container">
+      <div class="sec-head fade-in">
+        <span class="sec-tag">Proceso simple</span>
+        <h2>Empieza en 3 pasos</h2>
+        <p>Sin instalaciones, sin contratos. Configura tu empresa y emite tu primera factura hoy.</p>
+      </div>
+      <div class="how-steps">
+        <div class="how-step fade-in" *ngFor="let step of howSteps; let i = index">
+          <div class="how-num">{{ i + 1 }}</div>
+          <div class="how-icon"><svg cIcon [name]="step.icon" class="lp-icon-how"></svg></div>
+          <h3>{{ step.title }}</h3>
+          <p>{{ step.desc }}</p>
         </div>
       </div>
     </div>
@@ -197,13 +227,14 @@
       <div class="feat-text fade-in">
         <span class="sec-tag">Facturación SRI</span>
         <h2>Autorización automática en segundos</h2>
-        <p>Firma digital con tu certificado .p12, envío al webservice SRI y descarga de la autorización — todo sin intervención manual.</p>
+        <p>Firma digital con tu certificado .p12, envío al webservice SRI y descarga de la autorización — todo sin
+          intervención manual.</p>
         <ul class="feat-list">
-          <li>✅ Firma electrónica con certificado .p12</li>
-          <li>✅ Envío en ambiente producción y pruebas</li>
-          <li>✅ Descarga de RIDE en PDF</li>
-          <li>✅ Envío automático al cliente por email</li>
-          <li>✅ Reintentos automáticos ante errores SRI</li>
+          <li><svg cIcon name="cilCheck" class="lp-icon-check-feat"></svg> Firma electrónica con certificado .p12</li>
+          <li><svg cIcon name="cilCheck" class="lp-icon-check-feat"></svg> Envío en ambiente producción y pruebas</li>
+          <li><svg cIcon name="cilCheck" class="lp-icon-check-feat"></svg> Descarga de RIDE en PDF</li>
+          <li><svg cIcon name="cilCheck" class="lp-icon-check-feat"></svg> Envío automático al cliente por email</li>
+          <li><svg cIcon name="cilCheck" class="lp-icon-check-feat"></svg> Reintentos automáticos ante errores SRI</li>
         </ul>
       </div>
     </div>
@@ -215,13 +246,14 @@
       <div class="feat-text fade-in">
         <span class="sec-tag">Multi-Empresa</span>
         <h2>Una cuenta, empresas ilimitadas</h2>
-        <p>Gestiona todas tus empresas desde un panel centralizado. Datos completamente aislados, reportes consolidados y cambio de empresa en un clic.</p>
+        <p>Gestiona todas tus empresas desde un panel centralizado. Datos completamente aislados, reportes consolidados
+          y cambio de empresa en un clic.</p>
         <ul class="feat-list">
-          <li>✅ Empresas ilimitadas por cuenta</li>
-          <li>✅ Usuarios y permisos por empresa</li>
-          <li>✅ Reportes consolidados del grupo</li>
-          <li>✅ Auditoría completa de acciones</li>
-          <li>✅ Configuración independiente por empresa</li>
+          <li><svg cIcon name="cilCheck" class="lp-icon-check-feat"></svg> Empresas ilimitadas por cuenta</li>
+          <li><svg cIcon name="cilCheck" class="lp-icon-check-feat"></svg> Usuarios y permisos por empresa</li>
+          <li><svg cIcon name="cilCheck" class="lp-icon-check-feat"></svg> Reportes consolidados del grupo</li>
+          <li><svg cIcon name="cilCheck" class="lp-icon-check-feat"></svg> Auditoría completa de acciones</li>
+          <li><svg cIcon name="cilCheck" class="lp-icon-check-feat"></svg> Configuración independiente por empresa</li>
         </ul>
       </div>
       <div class="feat-visual fade-in">
@@ -272,9 +304,40 @@
           <ul class="pc-features">
             <li *ngFor="let f of plan.features"><span>✓</span> {{ f }}</li>
           </ul>
-          <a routerLink="/login" class="pc-cta" [class.pc-cta-white]="plan.highlighted">
-            {{ plan.ctaText }}
-          </a>
+          <ng-container *ngIf="!plan.contactSales">
+            <a routerLink="/register" class="pc-cta" [class.pc-cta-white]="plan.highlighted">
+              {{ plan.ctaText }}
+            </a>
+          </ng-container>
+          <ng-container *ngIf="plan.contactSales">
+            <button class="pc-cta" [class.pc-cta-white]="plan.highlighted" (click)="scrollToSection('contact')">
+              {{ plan.ctaText }}
+            </button>
+          </ng-container>
+        </div>
+      </div>
+
+      <div class="plan-compare fade-in">
+        <h3>Comparativa detallada</h3>
+        <div class="pc-table-wrap">
+          <table class="pc-table">
+            <thead>
+              <tr>
+                <th>Característica</th>
+                <th>Starter</th>
+                <th class="col-featured">Business</th>
+                <th>Enterprise</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let row of planComparison">
+                <td class="feat-name">{{ row.feature }}</td>
+                <td [class.cell-no]="row.starter === '—'">{{ row.starter }}</td>
+                <td class="col-featured" [class.cell-no]="row.business === '—'">{{ row.business }}</td>
+                <td [class.cell-no]="row.enterprise === '—'">{{ row.enterprise }}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -321,12 +384,14 @@
         <p>Resolvemos tus dudas más comunes.</p>
       </div>
       <div class="faq-list">
-        <div class="faq-item fade-in" *ngFor="let item of faqItems" [class.open]="item.open">
-          <button class="faq-q" (click)="toggleFaq(item)">
+        <div class="faq-item fade-in" *ngFor="let item of faqItems; let i = index" [class.open]="isFaqOpen(i)">
+          <button class="faq-q" (click)="toggleFaq(i)" [attr.aria-expanded]="isFaqOpen(i)"
+            [attr.aria-controls]="'faq-ans-' + i" [attr.id]="'faq-btn-' + i">
             {{ item.question }}
-            <span class="faq-arr" [class.rot]="item.open">›</span>
+            <span class="faq-arr" [class.rot]="isFaqOpen(i)">›</span>
           </button>
-          <div class="faq-a" [class.open]="item.open">
+          <div class="faq-a" [class.open]="isFaqOpen(i)" [attr.id]="'faq-ans-' + i"
+            [attr.aria-labelledby]="'faq-btn-' + i" role="region">
             <p>{{ item.answer }}</p>
           </div>
         </div>
@@ -342,9 +407,25 @@
         <h2>Comienza a facturar electrónicamente hoy</h2>
         <p>Únete a más de 2.500 empresas que simplificaron su gestión con FacturaSec. Setup en menos de 10 minutos.</p>
         <div class="contact-items">
-          <div class="ci"><span>⚡</span><div><strong>Setup en 10 minutos</strong><small>Configura tu empresa y emite tu primera factura hoy</small></div></div>
-          <div class="ci"><span>🔒</span><div><strong>Datos 100% seguros</strong><small>Cifrado TLS 1.3 + backups automáticos en Google Cloud</small></div></div>
-          <div class="ci"><span>🤝</span><div><strong>Onboarding gratuito</strong><small>Nuestro equipo te acompaña en los primeros pasos</small></div></div>
+          <div class="ci"><span><svg cIcon name="cilBolt" class="lp-icon-ci"></svg></span>
+            <div><strong>Setup en 10 minutos</strong><small>Configura tu empresa y emite tu primera factura hoy</small>
+            </div>
+          </div>
+          <div class="ci"><span><svg cIcon name="cilLockLocked" class="lp-icon-ci"></svg></span>
+            <div><strong>Datos 100% seguros</strong><small>Cifrado TLS 1.3 + backups automáticos en Google Cloud</small>
+            </div>
+          </div>
+          <div class="ci"><span><svg cIcon name="cilPeople" class="lp-icon-ci"></svg></span>
+            <div><strong>Onboarding gratuito</strong><small>Nuestro equipo te acompaña en los primeros pasos</small>
+            </div>
+          </div>
+          <div class="ci">
+            <span><svg cIcon name="cilScreenSmartphone" class="lp-icon-ci"></svg></span>
+            <div>
+              <strong>WhatsApp / Teléfono</strong>
+              <small>+593 097 964 3984 · Lun–Vie 8:00–18:00</small>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -352,25 +433,41 @@
         <div class="contact-form" *ngIf="!formSubmitted">
           <h3>Solicita una demo gratuita</h3>
           <p>Te contactamos en menos de 24 horas</p>
-          <form (ngSubmit)="onSubmitContact()" #cf="ngForm">
+          <form (ngSubmit)="onSubmitContact(cf)" #cf="ngForm">
             <div class="fg"><label>Nombre completo</label>
-              <input type="text" placeholder="Juan Pérez" [(ngModel)]="contactForm.name" name="name" required /></div>
+              <input type="text" placeholder="Juan Pérez" [(ngModel)]="contactForm.name" name="name" required
+                #nameField="ngModel" [class.field-invalid]="nameField.invalid && nameField.touched" />
+              <span class="fg-error" *ngIf="nameField.invalid && nameField.touched">Este campo es requerido</span>
+            </div>
             <div class="fg"><label>Correo electrónico</label>
-              <input type="email" placeholder="juan@empresa.com" [(ngModel)]="contactForm.email" name="email" required /></div>
+              <input type="email" placeholder="[EMAIL_ADDRESS]" [(ngModel)]="contactForm.email" name="email" required
+                email #emailField="ngModel" [class.field-invalid]="emailField.invalid && emailField.touched" />
+              <span class="fg-error" *ngIf="emailField.invalid && emailField.touched">Ingresa un email válido</span>
+            </div>
+            <div class="fg"><label>Teléfono / WhatsApp</label>
+              <input type="tel" placeholder="+593 097 964 3984" [(ngModel)]="contactForm.phone" name="phone" />
+            </div>
             <div class="fg"><label>Empresa</label>
-              <input type="text" placeholder="Mi Empresa S.A." [(ngModel)]="contactForm.company" name="company" /></div>
+              <input type="text" placeholder="Mi Empresa S.A." [(ngModel)]="contactForm.company" name="company" />
+            </div>
             <div class="fg"><label>¿En qué podemos ayudarte?</label>
-              <textarea rows="3" placeholder="Cuéntanos sobre tu empresa..." [(ngModel)]="contactForm.message" name="message"></textarea></div>
-            <button type="submit" [class.loading]="formSubmitting">
+              <textarea rows="3" placeholder="Cuéntanos sobre tu empresa..." [(ngModel)]="contactForm.message"
+                name="message"></textarea>
+            </div>
+            <button type="submit" [class.loading]="formSubmitting" [disabled]="formSubmitting">
               <span *ngIf="!formSubmitting">Solicitar demo gratuita →</span>
               <span *ngIf="formSubmitting">Enviando...</span>
             </button>
           </form>
         </div>
         <div class="form-ok" *ngIf="formSubmitted">
-          <div>✅</div>
+          <div><svg cIcon name="cilCheckCircle" class="lp-icon-ok"></svg></div>
           <h3>¡Mensaje enviado!</h3>
           <p>Te contactaremos en menos de 24 horas para coordinar tu demo.</p>
+        </div>
+        <div class="form-error-msg" *ngIf="formError && !formSubmitting">
+          <p><svg cIcon name="cilWarning" class="lp-icon-warn"></svg> Hubo un error al enviar el mensaje. Por favor escríbenos directamente a <a
+              href="mailto:info@facturasec.com">info&#64;facturasec.com</a></p>
         </div>
       </div>
     </div>
@@ -387,9 +484,12 @@
           </div>
           <p>El ERP inteligente para empresas ecuatorianas. Facturación electrónica y más en la nube.</p>
           <div class="fb-social">
-            <a href="#" aria-label="LinkedIn">in</a>
-            <a href="#" aria-label="Twitter">𝕏</a>
-            <a href="#" aria-label="Facebook">f</a>
+            <a href="https://linkedin.com/company/facturasec" target="_blank" rel="noopener noreferrer"
+              aria-label="LinkedIn">in</a>
+            <a href="https://twitter.com/facturasec" target="_blank" rel="noopener noreferrer"
+              aria-label="Twitter/X">𝕏</a>
+            <a href="https://facebook.com/facturasec" target="_blank" rel="noopener noreferrer"
+              aria-label="Facebook">f</a>
           </div>
         </div>
 
@@ -399,16 +499,16 @@
             <li><button (click)="scrollToSection('modules')">Módulos</button></li>
             <li><button (click)="scrollToSection('pricing')">Precios</button></li>
             <li><a routerLink="/login">Iniciar sesión</a></li>
-            <li><a routerLink="/login">Registrarse</a></li>
+            <li><a routerLink="/register">Registrarse</a></li>
           </ul>
         </div>
 
         <div class="footer-col">
           <h4>Legal</h4>
           <ul>
-            <li><a href="#">Términos de uso</a></li>
-            <li><a href="#">Privacidad</a></li>
-            <li><a href="#">Aviso legal</a></li>
+            <li><a routerLink="/legal/terminos">Términos de uso</a></li>
+            <li><a routerLink="/legal/privacidad">Privacidad</a></li>
+            <li><a routerLink="/legal/aviso">Aviso legal</a></li>
           </ul>
         </div>
 
@@ -416,6 +516,7 @@
           <h4>Contacto</h4>
           <ul>
             <li><a href="mailto:info@facturasec.com">info&#64;facturasec.com</a></li>
+            <li><a href="tel:+5930979643984">+593 097 964 3984</a></li>
             <li><span>Quito, Ecuador</span></li>
             <li><button (click)="scrollToSection('contact')">Solicitar demo</button></li>
           </ul>
@@ -428,5 +529,27 @@
       </div>
     </div>
   </footer>
+
+  <a class="whatsapp-fab" href="https://wa.me/5930979643984?text=Hola%2C%20quiero%20información%20sobre%20FacturaSec"
+    target="_blank" rel="noopener noreferrer" aria-label="Contactar por WhatsApp">
+    <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967c-.273-.099-.471-.148-.67.15c-.197.297-.767.966-.94 1.164c-.173.199-.347.223-.644.075c-.297-.15-1.255-.463-2.39-1.475c-.883-.788-1.48-1.761-1.653-2.059c-.173-.297-.018-.458.13-.606c.134-.133.298-.347.446-.52c.149-.174.198-.298.298-.497c.099-.198.05-.371-.025-.52c-.075-.149-.669-1.612-.916-2.207c-.242-.579-.487-.5-.669-.51c-.173-.008-.371-.01-.57-.01c-.198 0-.52.074-.792.372c-.272.297-1.04 1.016-1.04 2.479c0 1.462 1.065 2.875 1.213 3.074c.149.198 2.096 3.2 5.077 4.487c.709.306 1.262.489 1.694.625c.712.227 1.36.195 1.871.118c.571-.085 1.758-.719 2.006-1.413c.248-.694.248-1.289.173-1.413c-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214l-3.741.982l.998-3.648l-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884c2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.890-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+    </svg>
+  </a>
+
+  <!-- ═══ MODAL VIDEO DEMO ══════════════════════════════════════════════ -->
+  <div class="video-modal" [class.open]="videoDemoOpen" (click)="closeVideoDemo()">
+    <div class="video-wrap" (click)="$event.stopPropagation()">
+      <button class="video-close" (click)="closeVideoDemo()" aria-label="Cerrar">✕</button>
+      <div class="video-placeholder" *ngIf="videoDemoOpen">
+        <div class="vp-inner">
+          <span><svg cIcon name="cilMediaPlay" class="lp-icon-play-lg"></svg></span>
+          <p>Video demo próximamente</p>
+          <small>Reemplaza este bloque con un iframe de YouTube cuando tengas el video listo</small>
+        </div>
+      </div>
+    </div>
+  </div>
 
 </div><!-- /.lp -->

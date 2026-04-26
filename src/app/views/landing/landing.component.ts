@@ -9,8 +9,10 @@ import {
   ViewEncapsulation
 } from '@angular/core';
 import { isPlatformBrowser, NgClass, NgFor, NgIf } from '@angular/common';
+import { Meta, Title } from '@angular/platform-browser';
 import { RouterLink } from '@angular/router';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, NgForm } from '@angular/forms';
+import { IconDirective } from '@coreui/icons-angular';
 
 interface Module {
   icon: string;
@@ -47,18 +49,18 @@ interface PricingPlan {
   highlighted: boolean;
   badge?: string;
   ctaText: string;
+  contactSales?: boolean;
 }
 
 interface FaqItem {
   question: string;
   answer: string;
-  open: boolean;
 }
 
 @Component({
   selector: 'app-landing',
   standalone: true,
-  imports: [NgClass, NgFor, NgIf, RouterLink, FormsModule],
+  imports: [NgClass, NgFor, NgIf, RouterLink, FormsModule, IconDirective],
   templateUrl: './landing.component.html',
   styleUrls: ['./landing.component.scss'],
   // Desactiva el scoping de Angular para que .lp pueda aislar de CoreUI global
@@ -66,10 +68,13 @@ interface FaqItem {
 })
 export class LandingComponent implements OnInit, AfterViewInit, OnDestroy {
   private platformId = inject(PLATFORM_ID);
+  private meta = inject(Meta);
+  private titleService = inject(Title);
 
   // ─── Navbar state ───────────────────────────────────────────────
   scrolled = false;
   mobileMenuOpen = false;
+  activeSection = '';
 
   // ─── Stats counter ──────────────────────────────────────────────
   statsAnimated = false;
@@ -79,70 +84,36 @@ export class LandingComponent implements OnInit, AfterViewInit, OnDestroy {
   // ─── Scroll fade-in ─────────────────────────────────────────────
   private fadeObserver?: IntersectionObserver;
 
+  // ─── Section observer ───────────────────────────────────────────
+  private sectionObserver?: IntersectionObserver;
+
+  // ─── Video demo modal ───────────────────────────────────────────
+  videoDemoOpen = false;
+
   // ─── Contact form ───────────────────────────────────────────────
-  contactForm = { name: '', email: '', company: '', message: '' };
+  contactForm = { name: '', email: '', phone: '', company: '', message: '' };
   formSubmitted = false;
   formSubmitting = false;
+  formError = false;
+  openFaqIndices = new Set<number>();
 
   // ─── Data ───────────────────────────────────────────────────────
   readonly modules: Module[] = [
-    {
-      icon: '📄',
-      title: 'Facturación Electrónica',
-      description: 'Facturas, notas de crédito/débito, retenciones, guías de remisión y liquidaciones. Totalmente homologado con el SRI.',
-      badge: 'SRI Homologado',
-      color: 'blue'
-    },
-    {
-      icon: '📊',
-      title: 'Contabilidad NIIF',
-      description: 'Plan de cuentas, asientos contables, balance general, estado de resultados, libro mayor y cierre contable.',
-      color: 'purple'
-    },
-    {
-      icon: '📦',
-      title: 'Inventarios Multi-Bodega',
-      description: 'Kardex FIFO/LIFO/Promedio, variantes, lotes, alertas de stock, trazabilidad y transferencias entre bodegas.',
-      color: 'green'
-    },
-    {
-      icon: '🛒',
-      title: 'Compras',
-      description: 'Órdenes de compra, recepción de mercadería, facturas de proveedor, anticipos e importaciones.',
-      color: 'orange'
-    },
-    {
-      icon: '💼',
-      title: 'Ventas',
-      description: 'Cotizaciones, pedidos, facturación directa, gestión de cobranzas y comisiones de vendedores.',
-      color: 'teal'
-    },
-    {
-      icon: '👥',
-      title: 'Nómina y RRHH',
-      description: 'Roles de pago, décimos, fondos de reserva, IESS, RDEP, vacaciones y gestión de empleados.',
-      color: 'pink'
-    },
-    {
-      icon: '🏪',
-      title: 'Punto de Venta POS',
-      description: 'Interfaz táctil, múltiples cajas, cierre de caja diario, integrado con inventario en tiempo real.',
-      color: 'indigo'
-    },
-    {
-      icon: '🏢',
-      title: 'Multi-Empresa',
-      description: 'Empresas ilimitadas desde una cuenta, roles y permisos granulares, auditoría completa y consolidación.',
-      badge: 'Exclusivo',
-      color: 'red'
-    }
+    { icon: 'cilDescription',   title: 'Facturación Electrónica',  description: 'Facturas, notas de crédito/débito, retenciones, guías de remisión y liquidaciones. Totalmente homologado con el SRI.', badge: 'SRI Homologado', color: 'blue' },
+    { icon: 'cilChartPie',      title: 'Contabilidad NIIF',         description: 'Plan de cuentas, asientos contables, balance general, estado de resultados, libro mayor y cierre contable.', color: 'purple' },
+    { icon: 'cilLayers',        title: 'Inventarios Multi-Bodega',  description: 'Kardex FIFO/LIFO/Promedio, variantes, lotes, alertas de stock, trazabilidad y transferencias entre bodegas.', color: 'green' },
+    { icon: 'cilCart',          title: 'Compras',                   description: 'Órdenes de compra, recepción de mercadería, facturas de proveedor, anticipos e importaciones.', color: 'orange' },
+    { icon: 'cilBriefcase',     title: 'Ventas',                    description: 'Cotizaciones, pedidos, facturación directa, gestión de cobranzas y comisiones de vendedores.', color: 'teal' },
+    { icon: 'cilPeople',        title: 'Nómina y RRHH',             description: 'Roles de pago, décimos, fondos de reserva, IESS, RDEP, vacaciones y gestión de empleados.', color: 'pink' },
+    { icon: 'cilScreenDesktop', title: 'Punto de Venta POS',        description: 'Interfaz táctil, múltiples cajas, cierre de caja diario, integrado con inventario en tiempo real.', color: 'indigo' },
+    { icon: 'cilBuilding',      title: 'Multi-Empresa',             description: 'Empresas ilimitadas desde una cuenta, roles y permisos granulares, auditoría completa y consolidación.', badge: 'Exclusivo', color: 'red' }
   ];
 
   readonly stats: Stat[] = [
-    { value: 2500, display: '0', suffix: '+', label: 'Empresas activas', icon: '🏢', current: 0 },
-    { value: 1200000, display: '0', suffix: '+', label: 'Facturas emitidas', icon: '📄', current: 0 },
-    { value: 99.9, display: '0', suffix: '%', label: 'Uptime garantizado', icon: '⚡', current: 0 },
-    { value: 24, display: '0', suffix: '/7', label: 'Soporte técnico', icon: '🎯', current: 0 }
+    { value: 2500,    display: '0', suffix: '+',  label: 'Empresas activas',   icon: 'cilBuilding',    current: 0 },
+    { value: 1200000, display: '0', suffix: '+',  label: 'Facturas emitidas',  icon: 'cilFile',        current: 0 },
+    { value: 99.9,    display: '0', suffix: '%',  label: 'Uptime garantizado', icon: 'cilBolt',        current: 0 },
+    { value: 24,      display: '0', suffix: '/7', label: 'Soporte técnico',    icon: 'cilSpeedometer', current: 0 }
   ];
 
   readonly testimonials: Testimonial[] = [
@@ -159,7 +130,7 @@ export class LandingComponent implements OnInit, AfterViewInit, OnDestroy {
       role: 'CEO',
       company: 'Distribuidora Vega Hnos.',
       avatar: 'CV',
-      text: 'Manejamos 5 empresas desde una sola cuenta. El módulo multi-empresa es increíble, podemos consolidar reportes de todas nuestras empresas en segundos. El soporte técnico es excepcional.',
+      text: 'Manejamos 5 empresas desde una sola cuenta. El módulo multi-empresa es increíble, podemos consolidar reportes en segundos. El soporte técnico responde en minutos, no en días.',
       rating: 5
     },
     {
@@ -168,6 +139,30 @@ export class LandingComponent implements OnInit, AfterViewInit, OnDestroy {
       company: 'Consultora ML & Asociados',
       avatar: 'AM',
       text: 'Como contadora, lo que más valoro es la precisión en los cálculos NIIF y la facilidad de generar el RDEP. El módulo de nómina es el más completo que he usado en Ecuador.',
+      rating: 5
+    },
+    {
+      name: 'Roberto Castillo',
+      role: 'Dueño',
+      company: 'Ferretería El Progreso',
+      avatar: 'RC',
+      text: 'Antes tardaba media hora en hacer una factura con mi sistema anterior. Con FacturaSec la hago en 2 minutos y el cliente recibe el XML automáticamente. La migración fue fácil y el equipo me ayudó en todo.',
+      rating: 4
+    },
+    {
+      name: 'Gabriela Sánchez',
+      role: 'Directora Administrativa',
+      company: 'Clínica Sánchez & Asociados',
+      avatar: 'GS',
+      text: 'Implementamos FacturaSec en nuestra clínica y el cambio fue inmediato. Las liquidaciones de compra y retenciones ahora se generan sin errores. El precio es muy justo considerando todo lo que incluye.',
+      rating: 5
+    },
+    {
+      name: 'Diego Montoya',
+      role: 'Gerente General',
+      company: 'Grupo Montoya Textiles',
+      avatar: 'DM',
+      text: 'Llevamos 8 meses con FacturaSec y no hemos tenido ni un solo problema con el SRI. El módulo de inventario multi-bodega nos permite controlar nuestras 3 bodegas en tiempo real. Lo recomiendo.',
       rating: 5
     }
   ];
@@ -225,41 +220,56 @@ export class LandingComponent implements OnInit, AfterViewInit, OnDestroy {
         'SLA garantizado 99.9%'
       ],
       highlighted: false,
-      ctaText: 'Contactar ventas'
+      ctaText: 'Contactar ventas',
+      contactSales: true
     }
   ];
 
   readonly faqItems: FaqItem[] = [
     {
       question: '¿FacturaSec está homologado con el SRI?',
-      answer: 'Sí, FacturaSec está completamente homologado con el Servicio de Rentas Internas del Ecuador. Soporta todos los comprobantes electrónicos: facturas, notas de crédito, notas de débito, retenciones, guías de remisión y liquidaciones de compra, cumpliendo con la ficha técnica del SRI versión 2.21.',
-      open: false
+      answer: 'Sí, FacturaSec está completamente homologado con el Servicio de Rentas Internas del Ecuador. Soporta todos los comprobantes electrónicos: facturas, notas de crédito, notas de débito, retenciones, guías de remisión y liquidaciones de compra, cumpliendo con la ficha técnica del SRI versión 2.21.'
     },
     {
       question: '¿Puedo probar FacturaSec antes de pagar?',
-      answer: 'Absolutamente. Ofrecemos 30 días de prueba gratuita con acceso completo a todos los módulos del plan Business. No se requiere tarjeta de crédito. Al finalizar el período de prueba, puedes elegir el plan que mejor se adapte a tu empresa.',
-      open: false
+      answer: 'Absolutamente. Ofrecemos 30 días de prueba gratuita con acceso completo a todos los módulos del plan Business. No se requiere tarjeta de crédito. Al finalizar el período de prueba, puedes elegir el plan que mejor se adapte a tu empresa.'
     },
     {
       question: '¿Cómo funciona el módulo multi-empresa?',
-      answer: 'Desde una sola cuenta puedes gestionar múltiples empresas (RUCs diferentes) con datos completamente aislados. Cada empresa tiene su propio inventario, contabilidad, usuarios y configuración. Puedes cambiar entre empresas en un clic y generar reportes consolidados.',
-      open: false
+      answer: 'Desde una sola cuenta puedes gestionar múltiples empresas (RUCs diferentes) con datos completamente aislados. Cada empresa tiene su propio inventario, contabilidad, usuarios y configuración. Puedes cambiar entre empresas en un clic y generar reportes consolidados.'
     },
     {
       question: '¿Los datos están seguros en la nube?',
-      answer: 'Sí. Utilizamos infraestructura de Google Firebase con cifrado en tránsito (TLS 1.3) y en reposo. Los backups se realizan automáticamente cada 24 horas. Nuestros centros de datos están en Brasil (región más cercana a Ecuador) con redundancia geográfica.',
-      open: false
+      answer: 'Sí. Utilizamos infraestructura de Google Firebase con cifrado en tránsito (TLS 1.3) y en reposo. Los backups se realizan automáticamente cada 24 horas. Nuestros centros de datos están en Brasil (región más cercana a Ecuador) con redundancia geográfica.'
     },
     {
       question: '¿Qué pasa si necesito migrar mis datos desde otro sistema?',
-      answer: 'Ofrecemos un servicio gratuito de migración de datos para planes Business y Enterprise. Nuestro equipo técnico se encarga de importar tu catálogo de productos, clientes, proveedores y saldos iniciales desde Excel, XML o tu sistema anterior.',
-      open: false
+      answer: 'Ofrecemos un servicio gratuito de migración de datos para planes Business y Enterprise. Nuestro equipo técnico se encarga de importar tu catálogo de productos, clientes, proveedores y saldos iniciales desde Excel, XML o tu sistema anterior.'
     },
     {
       question: '¿Puedo cancelar mi suscripción en cualquier momento?',
-      answer: 'Sí, puedes cancelar en cualquier momento sin penalidades. Al cancelar, mantenes acceso hasta el fin del período pagado y puedes exportar todos tus datos en formatos estándar (Excel, XML, PDF) antes de que expire tu cuenta.',
-      open: false
+      answer: 'Sí, puedes cancelar en cualquier momento sin penalidades. Al cancelar, mantenes acceso hasta el fin del período pagado y puedes exportar todos tus datos en formatos estándar (Excel, XML, PDF) antes de que expire tu cuenta.'
     }
+  ];
+
+  readonly howSteps = [
+    { icon: 'cilDescription', title: 'Crea tu cuenta',           desc: 'Regístrate gratis en menos de 2 minutos. Sin tarjeta de crédito. Acceso completo por 30 días.' },
+    { icon: 'cilBuilding',    title: 'Configura tu empresa',     desc: 'Ingresa tu RUC, carga tu certificado .p12 del SRI y personaliza tu perfil de empresa.' },
+    { icon: 'cilMediaPlay',   title: 'Emite tu primera factura', desc: 'Crea y autoriza tu primera factura electrónica. El SRI la recibirá automáticamente en segundos.' }
+  ];
+
+  readonly planComparison = [
+    { feature: 'Empresas',               starter: '1',          business: '3',              enterprise: 'Ilimitadas' },
+    { feature: 'Usuarios',               starter: '2',          business: '10',             enterprise: 'Ilimitados' },
+    { feature: 'Facturación electrónica',starter: '200/mes',    business: 'Ilimitada',      enterprise: 'Ilimitada' },
+    { feature: 'Contabilidad NIIF',       starter: '—',          business: '✓',              enterprise: '✓' },
+    { feature: 'Inventario multi-bodega', starter: 'Básico',     business: '✓',              enterprise: '✓' },
+    { feature: 'Módulo compras/ventas',   starter: '—',          business: '✓',              enterprise: '✓' },
+    { feature: 'Nómina y RRHH',          starter: '—',          business: '—',              enterprise: '✓' },
+    { feature: 'POS multi-caja',         starter: '—',          business: '—',              enterprise: '✓' },
+    { feature: 'API + integraciones',    starter: '—',          business: '—',              enterprise: '✓' },
+    { feature: 'Soporte',                starter: 'Email',       business: 'Prioritario 24/7',enterprise: 'Dedicado + SLA' },
+    { feature: 'Onboarding',             starter: 'Self-service',business: 'Guiado',         enterprise: 'Personalizado' },
   ];
 
   readonly navLinks = [
@@ -271,17 +281,32 @@ export class LandingComponent implements OnInit, AfterViewInit, OnDestroy {
   ];
 
   // ─── Lifecycle ──────────────────────────────────────────────────
-  ngOnInit(): void {}
+  ngOnInit(): void {
+    this.titleService.setTitle('FacturaSec — ERP de Facturación Electrónica para Ecuador');
+    this.meta.addTags([
+      { name: 'description', content: 'Facturación electrónica, inventarios, contabilidad y nómina en una sola plataforma. Homologado SRI Ecuador. Prueba gratis 30 días.' },
+      { property: 'og:title', content: 'FacturaSec — ERP Inteligente Ecuador' },
+      { property: 'og:description', content: 'El ERP más completo para empresas ecuatorianas. SRI homologado, multi-empresa, 100% en la nube.' },
+      { property: 'og:image', content: 'https://facturasec.com/assets/og-image.png' },
+      { property: 'og:url', content: 'https://facturasec.com' },
+      { property: 'og:type', content: 'website' },
+      { name: 'twitter:card', content: 'summary_large_image' },
+      { name: 'twitter:title', content: 'FacturaSec — ERP Inteligente Ecuador' },
+      { name: 'twitter:description', content: 'Facturación electrónica, inventarios y contabilidad NIIF. Homologado SRI Ecuador.' },
+    ]);
+  }
 
   ngAfterViewInit(): void {
     if (!isPlatformBrowser(this.platformId)) return;
     this.initFadeInObserver();
     this.initStatsObserver();
+    this.initSectionObserver();
   }
 
   ngOnDestroy(): void {
     this.fadeObserver?.disconnect();
     this.statsObserver?.disconnect();
+    this.sectionObserver?.disconnect();
     this.animationFrames.forEach(id => cancelAnimationFrame(id));
   }
 
@@ -307,18 +332,51 @@ export class LandingComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   // ─── FAQ ────────────────────────────────────────────────────────
-  toggleFaq(item: FaqItem): void {
-    item.open = !item.open;
+  toggleFaq(index: number): void {
+    if (this.openFaqIndices.has(index)) {
+      this.openFaqIndices.delete(index);
+    } else {
+      this.openFaqIndices.add(index);
+    }
+  }
+
+  isFaqOpen(index: number): boolean {
+    return this.openFaqIndices.has(index);
   }
 
   // ─── Contact form ───────────────────────────────────────────────
-  onSubmitContact(): void {
+  onSubmitContact(form: NgForm): void {
+    if (form.invalid) { form.form.markAllAsTouched(); return; }
     if (this.formSubmitting) return;
     this.formSubmitting = true;
-    setTimeout(() => {
+    this.formError = false;
+
+    const payload = {
+      service_id: 'YOUR_SERVICE_ID',
+      template_id: 'YOUR_TEMPLATE_ID',
+      user_id: 'YOUR_PUBLIC_KEY',
+      template_params: {
+        from_name: this.contactForm.name,
+        from_email: this.contactForm.email,
+        phone: this.contactForm.phone,
+        company: this.contactForm.company,
+        message: this.contactForm.message,
+      }
+    };
+
+    fetch('https://api.emailjs.com/api/v1.0/email/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+    .then(() => {
       this.formSubmitting = false;
       this.formSubmitted = true;
-    }, 1500);
+    })
+    .catch(() => {
+      this.formSubmitting = false;
+      this.formError = true;
+    });
   }
 
   // ─── IntersectionObserver: fade-in ──────────────────────────────
@@ -354,7 +412,7 @@ export class LandingComponent implements OnInit, AfterViewInit, OnDestroy {
           this.statsObserver?.disconnect();
         }
       });
-    }, { threshold: 0.4 });
+    }, { threshold: 0.2, rootMargin: '0px 0px -50px 0px' });
 
     this.statsObserver.observe(statsSection);
   }
@@ -408,6 +466,27 @@ export class LandingComponent implements OnInit, AfterViewInit, OnDestroy {
   private easeOutCubic(t: number): number {
     return 1 - Math.pow(1 - t, 3);
   }
+
+  // ─── IntersectionObserver: active section ───────────────────────
+  private initSectionObserver(): void {
+    const ids = ['modules', 'pricing', 'testimonials', 'faq', 'contact'];
+    this.sectionObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          this.activeSection = entry.target.id;
+        }
+      });
+    }, { threshold: 0.35 });
+
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) this.sectionObserver?.observe(el);
+    });
+  }
+
+  // ─── Video demo modal ───────────────────────────────────────────
+  openVideoDemo(): void { this.videoDemoOpen = true; document.body.style.overflow = 'hidden'; }
+  closeVideoDemo(): void { this.videoDemoOpen = false; document.body.style.overflow = ''; }
 
   // ─── Utility ────────────────────────────────────────────────────
   getStarArray(rating: number): number[] {

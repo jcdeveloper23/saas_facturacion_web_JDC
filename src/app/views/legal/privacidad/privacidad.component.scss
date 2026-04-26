@@ -1,0 +1,199 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+.legal-page {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 16px;
+  line-height: 1.7;
+  color: #1a1a2e;
+  background: #ffffff;
+  min-height: 100vh;
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  // ─── Navbar ──────────────────────────────────────────────────────────────
+  .legal-nav {
+    position: fixed;
+    inset: 0 0 auto 0;
+    z-index: 100;
+    background: rgba(13,13,43,0.95);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+  }
+
+  .legal-nav__inner {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 24px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .legal-nav__logo {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    text-decoration: none;
+
+    span {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: white;
+    }
+  }
+
+  .legal-logo-mark {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #321fdb, #4f3fe6);
+    color: white;
+    font-weight: 900;
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .legal-back {
+    font-size: 0.88rem;
+    font-weight: 500;
+    color: rgba(255,255,255,0.65);
+    text-decoration: none;
+    padding: 7px 14px;
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 8px;
+    transition: all 0.2s;
+
+    &:hover {
+      color: white;
+      border-color: rgba(255,255,255,0.4);
+      background: rgba(255,255,255,0.07);
+    }
+  }
+
+  // ─── Hero ────────────────────────────────────────────────────────────────
+  .legal-hero {
+    background: linear-gradient(135deg, #0d0d2b 0%, #1a1060 55%, #0d1b4b 100%);
+    padding: 110px 24px 56px;
+    text-align: center;
+
+    h1 {
+      font-size: clamp(2rem, 4vw, 3rem);
+      font-weight: 900;
+      color: white;
+      margin-bottom: 12px;
+    }
+
+    p {
+      font-size: 0.92rem;
+      color: rgba(255,255,255,0.5);
+    }
+  }
+
+  // ─── Contenido ───────────────────────────────────────────────────────────
+  .legal-content {
+    background: #ffffff;
+    padding: 56px 24px 72px;
+  }
+
+  .legal-container {
+    max-width: 780px;
+    margin: 0 auto;
+  }
+
+  .legal-section {
+    margin-bottom: 40px;
+    padding-bottom: 40px;
+    border-bottom: 1px solid #f1f3f5;
+
+    &:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    h2 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #0d0d2b;
+      margin-bottom: 14px;
+    }
+
+    p {
+      font-size: 0.93rem;
+      color: #374151;
+      line-height: 1.75;
+      margin-bottom: 12px;
+
+      &:last-child { margin-bottom: 0; }
+    }
+
+    ul {
+      margin: 12px 0 12px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+
+      li {
+        font-size: 0.92rem;
+        color: #374151;
+        line-height: 1.65;
+      }
+    }
+
+    a {
+      color: #321fdb;
+      font-weight: 500;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      transition: color 0.2s;
+
+      &:hover { color: #1e13b5; }
+    }
+
+    strong { color: #0d0d2b; font-weight: 600; }
+  }
+
+  // ─── Footer ──────────────────────────────────────────────────────────────
+  .legal-footer {
+    background: #06060f;
+    padding: 28px 24px;
+  }
+
+  .legal-footer .legal-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+
+    p {
+      font-size: 0.82rem;
+      color: rgba(255,255,255,0.4);
+    }
+  }
+
+  .legal-footer-links {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    a {
+      font-size: 0.82rem;
+      color: rgba(255,255,255,0.5);
+      text-decoration: none;
+      transition: color 0.2s;
+
+      &:hover { color: rgba(255,255,255,0.88); }
+    }
+
+    span { color: rgba(255,255,255,0.2); font-size: 0.75rem; }
+  }
+
+  @media (max-width: 600px) {
+    .legal-footer .legal-container { flex-direction: column; align-items: center; text-align: center; }
+    .legal-footer-links { flex-wrap: wrap; justify-content: center; }
+  }
+}

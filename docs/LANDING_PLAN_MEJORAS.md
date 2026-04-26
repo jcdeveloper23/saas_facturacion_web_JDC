@@ -15,6 +15,99 @@ El landing tiene una base visual sólida con buena estructura de secciones (Hero
 
 ---
 
+## 🔴 FASE 0 — Correcciones Críticas Encontradas en Revisión (25 Abril 2025)
+
+> Problemas adicionales detectados en revisión del 25 de Abril. Ejecutar junto con Fase 1.
+
+---
+
+### 0.1 "Prueba gratis" y "Registrarse" apuntan a `/login` en vez de `/register`
+
+**Problema:** Un usuario nuevo que hace clic en "Prueba gratis" (navbar, hero, mobile panel) o "Registrarse" (footer) llega al login, no al registro. Impacto directo en conversión.
+
+**Archivos afectados (`landing.component.html`):**
+```html
+<!-- línea 19 — navbar desktop -->
+<a routerLink="/register" class="btn-solid">Prueba gratis</a>
+
+<!-- línea 38 — mobile panel -->
+<a routerLink="/register" class="solid" (click)="mobileMenuOpen=false">Prueba gratis — 30 días</a>
+
+<!-- línea 66 — hero CTA -->
+<a routerLink="/register" class="btn-hero-cta">🚀 Comenzar gratis — sin tarjeta</a>
+
+<!-- línea 402 — footer -->
+<li><a routerLink="/register">Registrarse</a></li>
+```
+
+**Estimación:** 10 minutos
+
+---
+
+### 0.2 Agregar campo "Teléfono/WhatsApp" al formulario de contacto
+
+**Problema:** `contactForm` solo tiene nombre, email, empresa, mensaje. Para el mercado ecuatoriano el seguimiento de ventas se hace por WhatsApp; sin teléfono no se puede contactar al lead.
+
+**Cambios en `landing.component.ts`:**
+```typescript
+contactForm = { name: '', email: '', phone: '', company: '', message: '' };
+```
+
+**Nuevo campo en `landing.component.html` (después del campo email):**
+```html
+<div class="fg">
+  <label>Teléfono / WhatsApp</label>
+  <input type="tel" placeholder="+593 99 XXX XXXX"
+         [(ngModel)]="contactForm.phone" name="phone" />
+</div>
+```
+
+**Estimación:** 20 minutos
+
+---
+
+### 0.3 Agregar validación visual al formulario de contacto
+
+**Problema:** El formulario usa `#cf="ngForm"` pero nunca muestra errores. El usuario puede enviar campos vacíos sin feedback. Al integrar el backend real (1.1), se enviarían datos incompletos.
+
+**Cambios clave:**
+- Agregar `#nameField="ngModel"` y `#emailField="ngModel"` con `[class.invalid]`
+- Mostrar `<span class="fg-error">` cuando campo inválido y tocado
+- `onSubmitContact(form: NgForm)` debe llamar `form.form.markAllAsTouched()` si inválido y retornar
+
+**Estilos en `landing.component.scss`:**
+```scss
+.fg {
+  input.invalid, textarea.invalid { border-color: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,0.09); }
+  .fg-error { display: block; font-size: 0.76rem; color: #ef4444; margin-top: 4px; }
+}
+```
+
+**Estimación:** 45 minutos
+
+---
+
+### 0.4 Corregir breakpoint del grid de precios en tablets
+
+**Problema:** A `max-width: 1100px` el grid pasa a `1fr` con `max-width: 400px`. En iPads y tablets las cards se ven muy estrechas.
+
+**Cambio en `landing.component.scss`:**
+```scss
+// ANTES
+@media (max-width: 1100px) {
+  .pricing-grid { grid-template-columns: 1fr; max-width: 400px; margin: 0 auto; }
+}
+
+// DESPUÉS
+@media (max-width: 1100px) {
+  .pricing-grid { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+}
+```
+
+**Estimación:** 10 minutos
+
+---
+
 ## 🔴 FASE 1 — Alta Prioridad (Conversión & Credibilidad)
 
 > Estas mejoras deben ejecutarse **antes** de cualquier campaña de marketing o lanzamiento público.
@@ -520,39 +613,140 @@ isFaqOpen(index: number): boolean {
 
 | Fase | Mejoras | Estimación total | Prioridad |
 |------|---------|-----------------|-----------|
+| 🔴 Fase 0 | 0.1 a 0.4 | ~1.5 horas | Junto con Fase 1 |
 | 🔴 Fase 1 | 1.1 a 1.5 | 4–6 horas | Antes del lanzamiento |
 | 🟡 Fase 2 | 2.1 a 2.6 | 14–16 horas | Semanas 1–2 post lanzamiento |
 | 🟢 Fase 3 | 3.1 a 3.6 | 6–8 horas | Mes 1–2 post lanzamiento |
 
-**Total estimado:** 24–30 horas de desarrollo
+**Total estimado:** 26–32 horas de desarrollo
 
 ---
 
 ## ✅ Checklist de seguimiento
 
+### Fase 0 — Correcciones adicionales
+- [x] 0.1 Corregir rutas "Prueba gratis" y "Registrarse" → `/register`
+- [x] 0.2 Agregar campo Teléfono/WhatsApp al formulario de contacto
+- [x] 0.3 Agregar validación visual al formulario (campos requeridos)
+- [x] 0.4 Corregir breakpoint grid de precios en tablets
+
 ### Fase 1 — Crítica
-- [ ] 1.1 Conectar formulario a backend real (EmailJS o Firebase Functions)
-- [ ] 1.2 Corregir CTA del plan Enterprise (→ `scrollToSection('contact')`)
-- [ ] 1.3 Añadir botón flotante de WhatsApp
-- [ ] 1.4 Corregir links de redes sociales y legales
-- [ ] 1.5 Añadir teléfono en sección contacto y footer
+- [ ] 1.1 Conectar formulario a backend real — **pendiente: configurar credenciales EmailJS** (`YOUR_SERVICE_ID`, `YOUR_TEMPLATE_ID`, `YOUR_PUBLIC_KEY` en `onSubmitContact()`)
+- [x] 1.2 Corregir CTA del plan Enterprise (→ `scrollToSection('contact')`)
+- [x] 1.3 Añadir botón flotante de WhatsApp
+- [x] 1.4 Corregir links de redes sociales y legales (código listo; **pendiente: crear páginas `/legal/terminos`, `/legal/privacidad`, `/legal/aviso`**)
+- [x] 1.5 Añadir teléfono en sección contacto y footer ✓ número actualizado por el usuario
 
 ### Fase 2 — Media
-- [ ] 2.1 Sección "Cómo funciona" (3 pasos)
-- [ ] 2.2 Ampliar y mejorar testimonios (6 total, con variedad)
-- [ ] 2.3 Active section en navbar (IntersectionObserver)
-- [ ] 2.4 Modal de video demo
-- [ ] 2.5 Bajar threshold del observer de stats a 0.2
-- [ ] 2.6 Tabla comparativa de planes
+- [x] 2.1 Sección "Cómo funciona" (3 pasos)
+- [x] 2.2 Ampliar y mejorar testimonios (6 total, con variedad)
+- [x] 2.3 Active section en navbar (IntersectionObserver)
+- [ ] 2.4 Modal de video demo — **pendiente: reemplazar `.video-placeholder` con `<iframe>` de YouTube cuando haya video**
+- [x] 2.5 Bajar threshold del observer de stats a 0.2
+- [x] 2.6 Tabla comparativa de planes
 
 ### Fase 3 — Baja
-- [ ] 3.1 Meta tags SEO / Open Graph
-- [ ] 3.2 Accesibilidad: aria-label, aria-expanded en hamburger y FAQ
-- [ ] 3.3 Refactorizar estado del FAQ (usar `Set<number>`)
-- [ ] 3.4 Reemplazar Trust Bar con contenido orientado al cliente
-- [ ] 3.5 Corregir max-height FAQ (300px → 600px)
-- [ ] 3.6 Grid testimonios responsive con `auto-fill`
+- [x] 3.1 Meta tags SEO / Open Graph
+- [x] 3.2 Accesibilidad: aria-label, aria-expanded en hamburger y FAQ
+- [x] 3.3 Refactorizar estado del FAQ (usar `Set<number>`)
+- [x] 3.4 Reemplazar Trust Bar con contenido orientado al cliente
+- [x] 3.5 Corregir max-height FAQ (300px → 600px)
+- [x] 3.6 Grid testimonios responsive con `auto-fill`
 
 ---
 
-*Documento generado el 24 de Abril de 2025 — FacturaSec Landing Analysis v1.0*
+## 🔴 FASE 4 — Calidad visual & Páginas legales (Agregado 25 Abril 2025)
+
+---
+
+### 4.1 Reemplazar emojis por iconos del sistema CoreUI
+
+**Problema:** La landing usa emojis del sistema operativo que varían por plataforma (iOS vs Android vs Windows). Los iconos CoreUI son consistentes, escalables y alineados con el resto del ERP.
+
+**Patrón de uso:** `<svg cIcon name="cilIconName"></svg>` — requiere `IconDirective` de `@coreui/icons-angular` en el array imports del componente.
+
+**Mapeo emoji → icono:**
+| Contexto | Emoji | Icono CoreUI |
+|---|---|---|
+| Hero trust badges | ✅ | `cilCheckCircle` |
+| Hero floating badges | ✅ / 🏢 | `cilCheckCircle` / `cilBuilding` |
+| Hero ghost button | ▶ | `cilMediaPlay` |
+| Trust bar | 🏛️ ⭐ 🔒 ☁️ ⚡ | `cilShieldAlt` `cilStar` `cilLockLocked` `cilCloudDownload` `cilBolt` |
+| Stats | 🏢 📄 ⚡ 🎯 | `cilBuilding` `cilFile` `cilBolt` `cilSpeedometer` |
+| Módulos (8) | 📄 📊 📦 🛒 💼 👥 🏪 🏢 | `cilDescription` `cilChartPie` `cilLayers` `cilCart` `cilBriefcase` `cilPeople` `cilScreenDesktop` `cilBuilding` |
+| Feature list ✅ | ✅ | `cilCheck` |
+| Contact items | ⚡ 🔒 🤝 📱 | `cilBolt` `cilLockLocked` `cilPeople` `cilScreenSmartphone` |
+| How steps | 📝 🏢 🚀 | `cilDescription` `cilBuilding` `cilMediaPlay` |
+| Form ok | ✅ grande | `cilCheckCircle` |
+| Form error | ⚠️ | `cilWarning` |
+| Video modal | ▶ | `cilMediaPlay` |
+| Hero CTA | 🚀 | eliminado |
+| Excluidos | 🇪🇨 pill, mockup sidebar, SRI mock | sin cambio (decorativo/bandera) |
+
+**Estimación:** 3 horas
+
+---
+
+### 4.2 Crear páginas legales
+
+**Problema:** Los links `/legal/terminos`, `/legal/privacidad`, `/legal/aviso` del footer apuntan a rutas que no existen.
+
+**Archivos a crear:**
+- `src/app/views/legal/legal-terminos.component.ts + .html + .scss`
+- `src/app/views/legal/legal-privacidad.component.ts + .html + .scss`
+- `src/app/views/legal/legal-aviso.component.ts + .html + .scss`
+
+**Ruta sugerida en router:** Vista pública (sin auth guard), mismo layout que landing o layout mínimo con navbar y footer compartido.
+
+**Estimación:** 4–6 horas (dependiendo de contenido legal real)
+
+---
+
+## ✅ Checklist de seguimiento
+
+### Fase 0 — Correcciones adicionales
+- [x] 0.1 Corregir rutas "Prueba gratis" y "Registrarse" → `/register`
+- [x] 0.2 Agregar campo Teléfono/WhatsApp al formulario de contacto
+- [x] 0.3 Agregar validación visual al formulario (campos requeridos)
+- [x] 0.4 Corregir breakpoint grid de precios en tablets
+
+### Fase 1 — Crítica
+- [ ] 1.1 Conectar formulario a backend real — **pendiente: configurar credenciales EmailJS** (`YOUR_SERVICE_ID`, `YOUR_TEMPLATE_ID`, `YOUR_PUBLIC_KEY` en `onSubmitContact()`)
+- [x] 1.2 Corregir CTA del plan Enterprise (→ `scrollToSection('contact')`)
+- [x] 1.3 Añadir botón flotante de WhatsApp
+- [x] 1.4 Corregir links de redes sociales y legales (código listo; **pendiente: crear páginas `/legal/...`**)
+- [x] 1.5 Añadir teléfono en sección contacto y footer ✓ número actualizado
+
+### Fase 2 — Media
+- [x] 2.1 Sección "Cómo funciona" (3 pasos)
+- [x] 2.2 Ampliar y mejorar testimonios (6 total, con variedad)
+- [x] 2.3 Active section en navbar (IntersectionObserver)
+- [ ] 2.4 Modal de video demo — **pendiente: reemplazar `.video-placeholder` con `<iframe>` de YouTube**
+- [x] 2.5 Bajar threshold del observer de stats a 0.2
+- [x] 2.6 Tabla comparativa de planes
+
+### Fase 3 — Baja
+- [x] 3.1 Meta tags SEO / Open Graph
+- [x] 3.2 Accesibilidad: aria-label, aria-expanded en hamburger y FAQ
+- [x] 3.3 Refactorizar estado del FAQ (usar `Set<number>`)
+- [x] 3.4 Reemplazar Trust Bar con contenido orientado al cliente
+- [x] 3.5 Corregir max-height FAQ (300px → 600px)
+- [x] 3.6 Grid testimonios responsive con `auto-fill`
+
+### Fase 4 — Calidad visual & Legal
+- [x] 4.1 Reemplazar emojis por iconos CoreUI
+- [x] 4.2 Crear páginas legales (`/legal/terminos`, `/legal/privacidad`, `/legal/aviso`)
+
+---
+
+## ⏳ Pendientes manuales (requieren acción externa)
+
+| # | Tarea | Acción requerida |
+|---|-------|-----------------|
+| 1 | EmailJS (formulario de contacto) | Crear cuenta en emailjs.com, configurar servicio + template, reemplazar las 3 constantes en `onSubmitContact()` |
+| 2 | Video demo (modal) | Grabar/conseguir video, subir a YouTube, reemplazar `.video-placeholder` con `<iframe src="https://www.youtube.com/embed/VIDEO_ID?autoplay=1">` |
+| 3 | Páginas legales | ~~Crear vistas para `/legal/terminos`, `/legal/privacidad`, `/legal/aviso`~~ ✓ Completado |
+
+---
+
+*Documento generado el 24 de Abril de 2025 — v1.3 actualizado el 25 de Abril de 2025 — FacturaSec Landing Analysis*

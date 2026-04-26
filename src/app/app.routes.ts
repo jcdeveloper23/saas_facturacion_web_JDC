@@ -241,6 +241,26 @@ export const routes: Routes = [
     ]
   },
 
+  // ─── Legal pages (public) ────────────────────────────────────────────────
+  {
+    path: 'legal/terminos',
+    loadComponent: () =>
+      import('./views/legal/terminos/terminos.component').then(m => m.TerminosComponent),
+    data: { title: 'Términos de Uso — FacturaSec' }
+  },
+  {
+    path: 'legal/privacidad',
+    loadComponent: () =>
+      import('./views/legal/privacidad/privacidad.component').then(m => m.PrivacidadComponent),
+    data: { title: 'Política de Privacidad — FacturaSec' }
+  },
+  {
+    path: 'legal/aviso',
+    loadComponent: () =>
+      import('./views/legal/aviso/aviso.component').then(m => m.AvisoComponent),
+    data: { title: 'Aviso Legal — FacturaSec' }
+  },
+
   // ─── Public catalog (must be last before wildcard) ───────────────────────
   {
     path: ':slug',
