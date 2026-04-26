@@ -15,7 +15,8 @@
  *   pkg_base (always active)
  *     ├── pkg_team_mgmt
  *     └── pkg_sales
- *           ├── pkg_sales_advanced
+ *           ├── pkg_sales_advanced   (quotes, orders, proformas)
+ *           ├── pkg_pos              (punto de venta táctil)
  *           ├── pkg_sri
  *           │     └── pkg_accounting
  *           ├── pkg_purchases
@@ -79,16 +80,33 @@ export const PLUGIN_PACKAGES_SEED: PackageSeed[] = [
   {
     code:          'pkg_sales_advanced',
     name:          'Facturación Avanzada',
-    description:   'Presupuestos, pedidos de cliente, proformas/albaranes y punto de venta (POS) con apertura/cierre de caja.',
-    modules:       ['quotes', 'orders', 'proformas', 'pos'],
+    description:   'Presupuestos, pedidos de cliente y proformas/albaranes.',
+    modules:       ['quotes', 'orders', 'proformas'],
     dependencies:  ['pkg_sales'],
     price:         19,
     currency:      'USD',
     billingPeriod: 'monthly',
-    icon:          'cil-calculator',
+    icon:          'cil-clipboard',
     color:         'info',
     isSystem:      false,
     order:         3,
+    state:         true
+  },
+
+  // ─── PUNTO DE VENTA (POS) ─────────────────────────────────────────────────
+  {
+    code:          'pkg_pos',
+    name:          'Punto de Venta (POS)',
+    description:   'Caja registradora táctil con gestión de terminales, apertura/cierre de caja, ventas multi-método de pago (efectivo, tarjeta, transferencia), impresora térmica ESC/POS y lector de código de barras.',
+    modules:       ['pos'],
+    dependencies:  ['pkg_sales'],
+    price:         15,
+    currency:      'USD',
+    billingPeriod: 'monthly',
+    icon:          'cil-calculator',
+    color:         'success',
+    isSystem:      false,
+    order:         4,
     state:         true
   },
 

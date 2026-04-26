@@ -1,0 +1,285 @@
+<!-- ═══════════════════════════════════════════════════════════════════════════
+  POS MAIN — Pantalla de venta táctil
+  Layout: Header | [Left: Catálogo 60%] [Right: Ticket 40%]
+══════════════════════════════════════════════════════════════════════════════ -->
+<div class="pos-root">
+
+  <!-- ── HEADER ─────────────────────────────────────────────────────────────── -->
+  <header class="pos-header">
+    <div class="pos-header-left">
+      <div class="pos-logo-sm">POS</div>
+      <div class="pos-session-info">
+        <span class="terminal-label">{{ terminalInfo?.name ?? 'Terminal' }}</span>
+        <span class="session-label">{{ sessionInfo?.openedAt?.toDate() | date:'HH:mm' }}</span>
+      </div>
+    </div>
+
+    <div class="pos-header-center">
+      <!-- Buscador rápido -->
+      <div class="pos-search-wrap">
+        <svg cIcon name="cilSearch" class="search-icon"></svg>
+        <input
+          #searchInput
+          type="text"
+          class="pos-search"
+          placeholder="Buscar producto (F3) o escanea código..."
+          [value]="searchQuery()"
+          (input)="searchQuery.set($any($event.target).value)"
+          autocomplete="off"
+        >
+        @if (searchQuery()) {
+          <button class="search-clear" (click)="searchQuery.set('')">×</button>
+        }
+      </div>
+    </div>
+
+    <div class="pos-header-right">
+      <span class="cashier-label">{{ currentUser?.displayName ?? currentUser?.email }}</span>
+      <button class="hdr-btn" (click)="goToHistory()" title="Historial de ventas">
+        <svg cIcon name="cilHistory"></svg>
+      </button>
+      <button class="hdr-btn hdr-btn-danger" (click)="goToClose()" title="Cerrar caja">
+        <svg cIcon name="cilLockLocked"></svg>
+        <span class="hdr-btn-label">Cerrar caja</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ── BODY ───────────────────────────────────────────────────────────────── -->
+  <div class="pos-body">
+
+    <!-- ════ LEFT: Catálogo ═════════════════════════════════════════════════ -->
+    <div class="pos-catalog">
+
+      <!-- Categorías -->
+      <div class="pos-categories">
+        <button
+          class="cat-chip"
+          [class.active]="selectedFamily() === null"
+          (click)="selectedFamily.set(null)"
+        >
+          Todos
+        </button>
+        @for (fam of allFamilies(); track fam.id) {
+          <button
+            class="cat-chip"
+            [class.active]="selectedFamily() === fam.id"
+            (click)="selectedFamily.set(fam.id)"
+          >
+            {{ fam.name }}
+          </button>
+        }
+      </div>
+
+      <!-- Grid de productos -->
+      @if (loadingProducts()) {
+        <div class="catalog-loading">
+          <c-spinner color="primary"/>
+          <p>Cargando productos...</p>
+        </div>
+      } @else if (filteredProducts().length === 0) {
+        <div class="catalog-empty">
+          <svg cIcon name="cilSearch" size="xl"></svg>
+          <p>No hay productos</p>
+        </div>
+      } @else {
+        <div class="product-grid">
+          @for (product of filteredProducts(); track product.id; let i = $index) {
+            <button
+              class="product-card"
+              (click)="addToCart(product)"
+              [class.out-of-stock]="!product.noStock && product.stockQty <= 0"
+            >
+              @if (product.imageUrl) {
+                <img [src]="product.imageUrl" [alt]="product.name" class="product-img">
+              } @else {
+                <div class="product-img-placeholder">
+                  <svg cIcon name="cilImage"></svg>
+                </div>
+              }
+              <div class="product-info">
+                <span class="product-name">{{ product.shortName ?? product.name }}</span>
+                <span class="product-sku">{{ product.sku }}</span>
+                <span class="product-price">${{ product.salePrice | number:'1.2-2' }}</span>
+              </div>
+              @if (!product.noStock && product.stockQty <= 0) {
+                <div class="product-no-stock">Sin stock</div>
+              }
+              @if (!product.noStock && product.stockQty > 0 && product.stockQty <= product.stockMin) {
+                <div class="product-low-stock">Stock bajo</div>
+              }
+            </button>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- ════ RIGHT: Ticket ══════════════════════════════════════════════════ -->
+    <div class="pos-ticket">
+
+      <!-- Cliente -->
+      <div class="ticket-customer" (click)="showCustomerSearch.set(true)">
+        <div class="customer-icon">
+          <svg cIcon name="cilUser"></svg>
+        </div>
+        <div class="customer-info">
+          <span class="customer-name">{{ posSession.customerName() }}</span>
+          <span class="customer-tax">{{ posSession.customerTaxId() }}</span>
+        </div>
+        <div class="customer-change">
+          <svg cIcon name="cilPencil" size="sm"></svg>
+        </div>
+      </div>
+
+      <!-- Líneas del carrito -->
+      <div class="ticket-lines">
+        @if (isEmpty()) {
+          <div class="ticket-empty">
+            <svg cIcon name="cilCart" size="xl"></svg>
+            <p>Toca un producto para agregar</p>
+            <small>F1 Cobrar · F2 Cliente · F3 Buscar · F4 Descuento</small>
+          </div>
+        }
+
+        @for (item of cart(); track item.productId) {
+          <div class="ticket-line">
+            <div class="tl-name">
+              <span class="tl-product-name">{{ item.productShortName ?? item.productName }}</span>
+              @if (item.discountPct > 0) {
+                <span class="tl-discount">-{{ item.discountPct }}%</span>
+              }
+            </div>
+            <div class="tl-controls">
+              <button class="qty-btn" (click)="decreaseQty(item.productId)">−</button>
+              <span class="qty-val">{{ item.quantity }}</span>
+              <button class="qty-btn" (click)="increaseQty(item.productId)">+</button>
+            </div>
+            <div class="tl-price">
+              <span class="tl-unit">× ${{ item.salePrice | number:'1.2-2' }}</span>
+              <span class="tl-total">${{ item.lineTotal | number:'1.2-2' }}</span>
+            </div>
+            <button class="tl-remove" (click)="removeItem(item.productId)" title="Eliminar">×</button>
+          </div>
+        }
+      </div>
+
+      <!-- Totales -->
+      @if (!isEmpty()) {
+        <div class="ticket-totals">
+          <div class="total-row">
+            <span>Subtotal</span>
+            <span>${{ totals().subtotal | number:'1.2-2' }}</span>
+          </div>
+          @if (totals().discountAmount > 0) {
+            <div class="total-row discount-row">
+              <span>Descuento ({{ posSession.globalDiscountPct() }}%)</span>
+              <span>−${{ totals().discountAmount | number:'1.2-2' }}</span>
+            </div>
+          }
+          <div class="total-row">
+            <span>IVA</span>
+            <span>${{ totals().vatAmount | number:'1.2-2' }}</span>
+          </div>
+          <div class="total-row grand-total">
+            <span>TOTAL</span>
+            <span>${{ totals().total | number:'1.2-2' }}</span>
+          </div>
+        </div>
+      }
+
+      <!-- Acciones rápidas -->
+      <div class="ticket-actions">
+        <button class="ta-btn ta-discount" (click)="showDiscountModal.set(true)" title="Descuento (F4)">
+          <svg cIcon name="cilTag"></svg>
+          <span>Descuento</span>
+        </button>
+        <button class="ta-btn ta-customer" (click)="showCustomerSearch.set(true)" title="Cliente (F2)">
+          <svg cIcon name="cilUser"></svg>
+          <span>Cliente</span>
+        </button>
+        <button class="ta-btn ta-clear" (click)="clearCart()" title="Borrar (ESC)">
+          <svg cIcon name="cilTrash"></svg>
+          <span>Borrar</span>
+        </button>
+      </div>
+
+      <!-- Botón COBRAR -->
+      <button
+        class="btn-cobrar"
+        [class.disabled]="isEmpty() || processingPayment()"
+        [disabled]="isEmpty() || processingPayment()"
+        (click)="openPayment()"
+      >
+        @if (processingPayment()) {
+          <c-spinner size="sm" class="me-2"/>
+          Procesando...
+        } @else {
+          <svg cIcon name="cilCash" class="me-2"></svg>
+          Cobrar · ${{ totals().total | number:'1.2-2' }}
+          <small class="cobrar-hint">F1</small>
+        }
+      </button>
+
+    </div>
+    <!-- END RIGHT -->
+
+  </div>
+  <!-- END BODY -->
+
+</div>
+<!-- END POS ROOT -->
+
+<!-- ── MODALES ─────────────────────────────────────────────────────────────── -->
+
+<!-- Modal de pago -->
+@if (showPaymentModal()) {
+  <app-pos-payment-modal
+    [total]="totals().total"
+    (confirmed)="onPaymentConfirmed($event)"
+    (cancelled)="showPaymentModal.set(false)"
+  />
+}
+
+<!-- Modal de búsqueda de cliente -->
+@if (showCustomerSearch()) {
+  <app-pos-customer-search
+    [currentCustomerName]="posSession.customerName()"
+    (selected)="onCustomerSelected($event)"
+    (cancelled)="showCustomerSearch.set(false)"
+  />
+}
+
+<!-- Modal de descuento -->
+@if (showDiscountModal()) {
+  <app-pos-discount-modal
+    [currentDiscount]="posSession.globalDiscountPct()"
+    (applied)="onDiscountApplied($event)"
+    (cancelled)="showDiscountModal.set(false)"
+  />
+}
+
+<!-- Preview ticket (tras venta exitosa) -->
+@if (showTicketPreview() && lastSale()) {
+  <div class="pos-overlay" (click)="closeTicketPreview()">
+    <div class="ticket-success" (click)="$event.stopPropagation()">
+      <div class="ts-check">
+        <svg cIcon name="cilCheckAlt" size="xl"></svg>
+      </div>
+      <h4>¡Venta completada!</h4>
+      <div class="ts-detail">
+        <div class="ts-row"><span>Ticket</span><strong>#{{ lastSale()!.ticketNumber }}</strong></div>
+        <div class="ts-row"><span>Total</span><strong>${{ lastSale()!.total | number:'1.2-2' }}</strong></div>
+        <div class="ts-row"><span>Cliente</span><strong>{{ lastSale()!.customerName }}</strong></div>
+        @for (p of lastSale()!.payments; track p.method) {
+          <div class="ts-row"><span>{{ p.methodLabel }}</span><strong>${{ p.amount | number:'1.2-2' }}</strong></div>
+        }
+        @if (lastSale()!.change > 0) {
+          <div class="ts-row highlight"><span>Cambio</span><strong>${{ lastSale()!.change | number:'1.2-2' }}</strong></div>
+        }
+      </div>
+      <button class="ts-close" (click)="closeTicketPreview()">
+        Continuar <svg cIcon name="cilArrowRight" size="sm"></svg>
+      </button>
+    </div>
+  </div>
+}

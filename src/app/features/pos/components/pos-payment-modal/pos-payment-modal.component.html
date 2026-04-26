@@ -1,0 +1,122 @@
+<div class="pm-overlay" (click)="cancelled.emit()">
+<div class="pm-modal" (click)="$event.stopPropagation()">
+
+  <!-- Header -->
+  <div class="pm-header">
+    <div class="pm-title">
+      <svg cIcon name="cilCreditCard" size="xl" class="pm-title-icon"></svg>
+      <div>
+        <h5>Cobrar</h5>
+        <p>Total a cobrar: <strong>${{ total | number:'1.2-2' }}</strong></p>
+      </div>
+    </div>
+    <button class="pm-close" (click)="cancelled.emit()">×</button>
+  </div>
+
+  <!-- Métodos disponibles -->
+  <div class="pm-methods-bar">
+    @for (m of methods; track m.method) {
+      <button
+        class="pm-method-btn"
+        [class.active]="hasSlot(m.method)"
+        (click)="hasSlot(m.method) ? removeSlot(m.method) : addSlot(m.method)"
+      >
+        <svg cIcon [name]="m.icon" size="sm"></svg>
+        <span>{{ m.label }}</span>
+      </button>
+    }
+  </div>
+
+  <!-- Slots de pago -->
+  <div class="pm-slots">
+    @for (slot of slots(); track slot.method) {
+      <div class="pm-slot">
+        <div class="pm-slot-header">
+          <svg cIcon [name]="slot.icon" size="sm" class="pm-slot-icon"></svg>
+          <span class="pm-slot-label">{{ slot.label }}</span>
+          @if (slots().length > 1) {
+            <button class="pm-slot-remove" (click)="removeSlot(slot.method)">×</button>
+          }
+        </div>
+
+        <div class="pm-slot-body">
+          <div class="pm-amount-row">
+            <span class="pm-currency">$</span>
+            <input
+              type="number"
+              class="pm-amount-input"
+              [value]="slot.amount"
+              (input)="updateAmount(slot.method, +$any($event.target).value)"
+              min="0"
+              step="0.01"
+              inputmode="decimal"
+            >
+            <button class="pm-exact-btn" (click)="setExactAmount(slot.method)">
+              Exacto
+            </button>
+          </div>
+
+          @if (slot.method === 'cash') {
+            <div class="pm-quick-amounts">
+              @for (qa of quickAmounts; track qa) {
+                <button class="pm-quick" (click)="addQuickAmount(slot.method, qa)">
+                  +${{ qa }}
+                </button>
+              }
+            </div>
+          }
+
+          @if (slot.method !== 'cash') {
+            <input
+              type="text"
+              class="pm-reference"
+              placeholder="Referencia (opcional)"
+              [(ngModel)]="slot.reference"
+            >
+          }
+        </div>
+      </div>
+    }
+  </div>
+
+  <!-- Resumen -->
+  <div class="pm-summary">
+    <div class="pm-sum-row">
+      <span>Total</span>
+      <strong>${{ total | number:'1.2-2' }}</strong>
+    </div>
+    <div class="pm-sum-row">
+      <span>Pagado</span>
+      <strong [class.over]="totalPaid() >= total">${{ totalPaid() | number:'1.2-2' }}</strong>
+    </div>
+    @if (remaining() > 0) {
+      <div class="pm-sum-row remaining">
+        <span>Falta</span>
+        <strong>${{ remaining() | number:'1.2-2' }}</strong>
+      </div>
+    }
+    @if (change() > 0) {
+      <div class="pm-sum-row change">
+        <span>Cambio</span>
+        <strong>${{ change() | number:'1.2-2' }}</strong>
+      </div>
+    }
+  </div>
+
+  <!-- Botón confirmar -->
+  <button
+    class="pm-confirm"
+    [class.ready]="canConfirm()"
+    [disabled]="!canConfirm()"
+    (click)="confirm()"
+  >
+    @if (!canConfirm()) {
+      Ingresa el monto completo
+    } @else {
+      <svg cIcon name="cilCheck" size="sm"></svg>
+      Confirmar pago · ${{ total | number:'1.2-2' }}
+    }
+  </button>
+
+</div>
+</div>

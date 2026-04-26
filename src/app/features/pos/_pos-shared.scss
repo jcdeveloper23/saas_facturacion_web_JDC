@@ -1,0 +1,53 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// _pos-shared.scss
+// Clases utilitarias compartidas por las páginas administrativas del módulo POS.
+// Importar con:  @use '../pos-shared' as *;
+// ═══════════════════════════════════════════════════════════════════════════
+
+/* ── Page header ──────────────────────────────────────────────────────────── */
+.page-title    { font-weight: 600; line-height: 1; }
+.page-subtitle { font-size: .76rem; color: var(--cui-secondary-color); }
+
+.page-icon {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, var(--cui-primary) 0%, var(--cui-primary-text-emphasis) 100%);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(var(--cui-primary-rgb), .35);
+  flex-shrink: 0;
+}
+
+/* ── Stat strip ───────────────────────────────────────────────────────────── */
+.stat-strip {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 0;
+  background: var(--cui-card-bg);
+  border: 1px solid var(--cui-border-color);
+  border-radius: 10px;
+  padding: 5px 12px;
+  width: fit-content;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 12px;
+  font-size: .78rem;
+  border-radius: 6px;
+}
+
+.stat-value { font-weight: 700; font-size: .88rem; }
+.stat-label { color: var(--cui-secondary-color); font-size: .72rem; }
+.stat-sep   { width: 1px; height: 16px; background: var(--cui-border-color); flex-shrink: 0; }
+
+/* ── Table row clickable ──────────────────────────────────────────────────── */
+.row-clickable {
+  cursor: pointer;
+  &:hover td { background: var(--cui-tertiary-bg); }
+}

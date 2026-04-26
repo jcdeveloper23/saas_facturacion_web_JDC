@@ -1,0 +1,47 @@
+<div class="pcs-overlay" (click)="cancelled.emit()">
+<div class="pcs-modal" (click)="$event.stopPropagation()">
+
+  <div class="pcs-header">
+    <h5>Seleccionar cliente</h5>
+    <button class="pcs-close" (click)="cancelled.emit()">×</button>
+  </div>
+
+  <div class="pcs-search">
+    <input
+      type="text"
+      class="pcs-input"
+      placeholder="Buscar por nombre, RUC o cédula..."
+      [(ngModel)]="searchQuery"
+      (ngModelChange)="onSearch($event)"
+      autofocus
+    >
+    @if (loading()) { <c-spinner size="sm" class="pcs-spinner"/> }
+  </div>
+
+  <div class="pcs-list">
+    <!-- Consumidor Final siempre primero -->
+    <button class="pcs-item pcs-cf" (click)="selectConsumidorFinal()">
+      <div class="pcs-avatar">CF</div>
+      <div class="pcs-info">
+        <span class="pcs-name">Consumidor Final</span>
+        <span class="pcs-tax">9999999999999</span>
+      </div>
+    </button>
+
+    @for (p of results(); track p.id) {
+      <button class="pcs-item" (click)="selectPerson(p)">
+        <div class="pcs-avatar">{{ p.name.charAt(0).toUpperCase() }}</div>
+        <div class="pcs-info">
+          <span class="pcs-name">{{ p.name }}</span>
+          <span class="pcs-tax">{{ p.taxIdType }}: {{ p.taxId }}</span>
+        </div>
+      </button>
+    }
+
+    @if (!loading() && results().length === 0 && searchQuery) {
+      <div class="pcs-empty">Sin resultados para "{{ searchQuery }}"</div>
+    }
+  </div>
+
+</div>
+</div>

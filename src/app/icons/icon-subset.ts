@@ -144,7 +144,14 @@ import {
   cilBattery5,
   cilActionRedo,
   cilActionUndo,
-  cilRunning
+  cilRunning,
+  cilCash,
+  cilTransfer,
+  cilImage,
+  cilCart,
+  cilTag,
+  cilCheckAlt,
+  cilMonitor
 } from '@coreui/icons';
 
 import { signet } from './signet';
@@ -297,6 +304,13 @@ export const iconSubset = {
   cilActionRedo,
   cilActionUndo,
   cilRunning,
+  cilCash,
+  cilTransfer,
+  cilImage,
+  cilCart,
+  cilTag,
+  cilCheckAlt,
+  cilMonitor,
   logo,
   signet
 };

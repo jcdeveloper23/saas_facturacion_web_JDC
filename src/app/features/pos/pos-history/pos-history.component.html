@@ -1,0 +1,138 @@
+<div class="ph-root">
+
+  <div class="ph-header">
+    <button cButton color="light" variant="outline" size="sm"
+            class="d-flex align-items-center gap-1" (click)="goBack()">
+      <svg cIcon name="cilArrowLeft" size="sm"></svg> Volver
+    </button>
+    <h2>Historial de ventas POS</h2>
+  </div>
+
+  <!-- Selector de sesión -->
+  <div class="ph-session-select">
+    <label class="fw-semibold text-muted small">Sesión:</label>
+    <select cSelect [(ngModel)]="selectedSessionId" (ngModelChange)="onSessionChange($event)">
+      @for (s of sessions(); track s.id) {
+        <option [value]="s.id">
+          {{ s.terminalName }} · {{ s.openedAt.toDate() | date:'dd/MM/yyyy HH:mm' }}
+          {{ s.status === 'open' ? '(Abierta)' : '' }}
+        </option>
+      }
+    </select>
+  </div>
+
+  <!-- Resumen -->
+  @if (sales().length > 0) {
+    <div class="ph-summary">
+      <div class="ph-sum-item">
+        <span>Tickets</span>
+        <strong>{{ completedCount() }}</strong>
+      </div>
+      <div class="ph-sum-item">
+        <span>Total ventas</span>
+        <strong>${{ totalSales(sales()) | number:'1.2-2' }}</strong>
+      </div>
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="ph-loading"><c-spinner color="primary"/> Cargando...</div>
+  }
+
+  <!-- Tabla de ventas -->
+  @if (!loading()) {
+    <c-card class="border-0 shadow-sm overflow-hidden">
+      <c-card-body class="p-0">
+        <div class="table-responsive">
+          <table cTable hover align="middle" class="mb-0">
+            <thead class="bg-body-secondary">
+              <tr>
+                <th>#</th>
+                <th>Hora</th>
+                <th>Cliente</th>
+                <th>Items</th>
+                <th class="text-end">Total</th>
+                <th>Pago</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (sale of sales(); track sale.id) {
+                <tr
+                  class="ph-row"
+                  [class.selected]="selected()?.id === sale.id"
+                  [class.void]="sale.status === 'void'"
+                  (click)="selectSale(sale)"
+                >
+                  <td><strong>#{{ sale.ticketNumber }}</strong></td>
+                  <td class="ph-time">{{ sale.createdAt.toDate() | date:'HH:mm' }}</td>
+                  <td class="ph-customer">{{ sale.customerName }}</td>
+                  <td>{{ sale.lines.length }} items</td>
+                  <td class="text-end"><strong>${{ sale.total | number:'1.2-2' }}</strong></td>
+                  <td>
+                    <div class="ph-payments">
+                      @for (p of sale.payments; track p.method) {
+                        <span class="ph-pay-chip">{{ p.methodLabel }}</span>
+                      }
+                    </div>
+                  </td>
+                  <td>
+                    @if (sale.status === 'completed') {
+                      <c-badge color="success" shape="rounded-pill">Completada</c-badge>
+                    } @else if (sale.status === 'void') {
+                      <c-badge color="danger" shape="rounded-pill">Anulada</c-badge>
+                    } @else {
+                      <c-badge color="secondary" shape="rounded-pill">{{ sale.status }}</c-badge>
+                    }
+                  </td>
+                </tr>
+
+                <!-- Detalle expandido -->
+                @if (selected()?.id === sale.id) {
+                  <tr class="ph-detail-row">
+                    <td colspan="7">
+                      <div class="ph-detail">
+                        <div class="ph-detail-lines">
+                          <h6>Detalle</h6>
+                          @for (line of sale.lines; track line.productId) {
+                            <div class="ph-line-row">
+                              <span>{{ line.productName }}</span>
+                              <span>{{ line.quantity }} × ${{ line.salePrice | number:'1.2-2' }}</span>
+                              <strong>${{ line.lineTotal | number:'1.2-2' }}</strong>
+                            </div>
+                          }
+                          <div class="ph-line-totals">
+                            <span>IVA: ${{ sale.vatAmount | number:'1.2-2' }}</span>
+                            <strong>Total: ${{ sale.total | number:'1.2-2' }}</strong>
+                          </div>
+                        </div>
+                        @if (sale.change > 0) {
+                          <div class="ph-change">Cambio entregado: ${{ sale.change | number:'1.2-2' }}</div>
+                        }
+                        @if (sale.status === 'completed') {
+                          <button
+                            cButton color="danger" variant="outline" size="sm"
+                            (click)="voidSale(sale); $event.stopPropagation()"
+                            [disabled]="voiding()"
+                          >
+                            Anular ticket
+                          </button>
+                        }
+                      </div>
+                    </td>
+                  </tr>
+                }
+              }
+              @if (sales().length === 0) {
+                <tr>
+                  <td colspan="7" class="ph-empty">Sin ventas en esta sesión</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </c-card-body>
+    </c-card>
+  }
+
+</div>

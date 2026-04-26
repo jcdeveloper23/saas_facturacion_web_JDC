@@ -1,0 +1,172 @@
+<div class="pc-root">
+
+  <div class="pc-header">
+    @if (!closed()) {
+      <button class="pc-back" (click)="goBack()">
+        ← Volver al POS
+      </button>
+    }
+    <h2>Cierre de Caja</h2>
+    <div class="pc-terminal-badge">{{ terminal()?.name ?? 'Terminal' }}</div>
+  </div>
+
+  @if (loading()) {
+    <div class="pc-loading">
+      <c-spinner color="primary"/>
+      <p>Cargando datos de la sesión...</p>
+    </div>
+  }
+
+  @if (!loading() && !closed()) {
+    <div class="pc-content">
+
+      <!-- Reporte de la sesión -->
+      <div class="pc-report">
+
+        <div class="pc-report-header">
+          <h4>Resumen de sesión</h4>
+          <div class="pc-session-meta">
+            <span>Cajero: <strong>{{ session()?.userName }}</strong></span>
+            <span>Apertura: <strong>{{ session()?.openedAt?.toDate() | date:'dd/MM/yyyy HH:mm' }}</strong></span>
+            <span>Tickets: <strong>{{ sales().length }}</strong></span>
+          </div>
+        </div>
+
+        <div class="pc-stats-grid">
+          <div class="pc-stat">
+            <span class="pc-stat-label">Ventas totales</span>
+            <span class="pc-stat-value">${{ totalSales() | number:'1.2-2' }}</span>
+          </div>
+          <div class="pc-stat">
+            <span class="pc-stat-label">Efectivo ventas</span>
+            <span class="pc-stat-value">${{ totalCash() | number:'1.2-2' }}</span>
+          </div>
+          <div class="pc-stat">
+            <span class="pc-stat-label">Tarjeta</span>
+            <span class="pc-stat-value">${{ totalCard() | number:'1.2-2' }}</span>
+          </div>
+          <div class="pc-stat">
+            <span class="pc-stat-label">Transferencia</span>
+            <span class="pc-stat-value">${{ totalTransfer() | number:'1.2-2' }}</span>
+          </div>
+          <div class="pc-stat">
+            <span class="pc-stat-label">Ingresos manuales</span>
+            <span class="pc-stat-value">${{ totalCashIn() | number:'1.2-2' }}</span>
+          </div>
+          <div class="pc-stat">
+            <span class="pc-stat-label">Egresos manuales</span>
+            <span class="pc-stat-value text-danger">−${{ totalCashOut() | number:'1.2-2' }}</span>
+          </div>
+        </div>
+
+        <div class="pc-expected">
+          <span>Efectivo esperado en caja</span>
+          <strong class="pc-expected-value">${{ expectedBalance() | number:'1.2-2' }}</strong>
+          <small>(Apertura ${{ session()?.openingBalance | number:'1.2-2' }} + Efectivo ventas + Ingresos − Egresos)</small>
+        </div>
+      </div>
+
+      <!-- Movimientos manuales -->
+      @if (movements().length > 0) {
+        <div class="pc-movements">
+          <h5>Movimientos de caja</h5>
+          @for (m of movements(); track m.id) {
+            <div class="pc-mov-row" [class.cash-in]="m.type === 'cash_in'" [class.cash-out]="m.type === 'cash_out'">
+              <span>{{ m.type === 'cash_in' ? '↑ Ingreso' : '↓ Egreso' }}</span>
+              <span>{{ m.reason }}</span>
+              <strong>{{ m.type === 'cash_in' ? '+' : '−' }}${{ m.amount | number:'1.2-2' }}</strong>
+              <small>{{ m.createdAt.toDate() | date:'HH:mm' }}</small>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- Formulario de cierre -->
+      <div class="pc-close-form">
+        <h4>Conteo de efectivo</h4>
+        <p class="pc-hint">Cuenta el efectivo físico en la caja y regístralo:</p>
+
+        <div class="pc-form-row">
+          <label>Efectivo real contado ($)</label>
+          <input
+            type="number"
+            class="pc-amount-input"
+            [(ngModel)]="closingBalance"
+            min="0"
+            step="0.01"
+            placeholder="0.00"
+          >
+        </div>
+
+        <div class="pc-difference-preview" [class.ok]="closingBalance === expectedBalance()" [class.diff]="closingBalance !== expectedBalance()">
+          <span>Diferencia estimada</span>
+          <strong>{{ closingBalance - expectedBalance() >= 0 ? '+' : '' }}${{ (closingBalance - expectedBalance()) | number:'1.2-2' }}</strong>
+        </div>
+
+        <div class="pc-form-row">
+          <label>Notas de cierre (opcional)</label>
+          <textarea
+            class="pc-notes"
+            [(ngModel)]="closingNotes"
+            rows="2"
+            placeholder="Observaciones..."
+          ></textarea>
+        </div>
+
+        <div class="pc-close-actions">
+          <button class="pc-btn-back" (click)="goBack()">Cancelar</button>
+          <button
+            class="pc-btn-close"
+            (click)="closeSession()"
+            [disabled]="closing()"
+          >
+            @if (closing()) { <c-spinner size="sm" class="me-2"/> }
+            Cerrar caja
+          </button>
+        </div>
+      </div>
+
+    </div>
+  }
+
+  <!-- Resultado de cierre -->
+  @if (closed() && closeResult()) {
+    <div class="pc-success">
+      <div class="pc-success-icon">
+        <svg cIcon name="cilLockLocked" class="text-success"></svg>
+      </div>
+      <h3>Caja cerrada exitosamente</h3>
+
+      <div class="pc-success-detail">
+        <div class="pc-result-row">
+          <span>Efectivo esperado</span>
+          <strong>${{ closeResult()!.expectedBalance | number:'1.2-2' }}</strong>
+        </div>
+        <div class="pc-result-row">
+          <span>Efectivo contado</span>
+          <strong>${{ closingBalance | number:'1.2-2' }}</strong>
+        </div>
+        <div class="pc-result-row" [class.ok]="closeResult()!.difference === 0" [class.diff]="closeResult()!.difference !== 0">
+          <span>Diferencia</span>
+          <strong>{{ closeResult()!.difference >= 0 ? '+' : '' }}${{ closeResult()!.difference | number:'1.2-2' }}</strong>
+        </div>
+        <div class="pc-result-row">
+          <span>Total ventas</span>
+          <strong>${{ totalSales() | number:'1.2-2' }}</strong>
+        </div>
+        <div class="pc-result-row">
+          <span>Tickets emitidos</span>
+          <strong>{{ sales().length }}</strong>
+        </div>
+      </div>
+
+      <div class="pc-success-actions">
+        <button class="pc-btn-print" (click)="printReport()">
+          <svg cIcon name="cilPrint" size="sm" class="me-1"></svg> Imprimir reporte
+        </button>
+        <button class="pc-btn-exit" (click)="goToLogin()">Salir del POS</button>
+      </div>
+    </div>
+  }
+
+</div>

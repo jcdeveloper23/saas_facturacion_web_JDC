@@ -1,0 +1,344 @@
+<!-- ── Page header ────────────────────────────────────────────────────────── -->
+<div class="mb-3">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <div class="d-flex align-items-center gap-2">
+      <div class="page-icon">
+        <svg cIcon name="cilMonitor" size="lg" class="text-white"></svg>
+      </div>
+      <div>
+        <h4 class="page-title mb-0">Terminales POS</h4>
+        <span class="page-subtitle">Configuración de cajas y hardware</span>
+      </div>
+    </div>
+    @if (!showForm) {
+      <button cButton color="primary" size="sm" (click)="openNew()"
+              class="d-flex align-items-center gap-1 px-3 shadow-sm">
+        <svg cIcon name="cilPlus" size="sm"></svg>
+        <span>Nuevo terminal</span>
+      </button>
+    }
+  </div>
+
+  @if (!loading() && !showForm) {
+    <div class="stat-strip">
+      <div class="stat-item">
+        <span class="stat-value text-primary">{{ terminals().length }}</span>
+        <span class="stat-label">activos</span>
+      </div>
+      <div class="stat-sep"></div>
+      <div class="stat-item">
+        <span class="stat-value text-success">{{ inUseCount() }}</span>
+        <span class="stat-label">en uso</span>
+      </div>
+      <div class="stat-sep"></div>
+      <div class="stat-item">
+        <span class="stat-value">{{ freeCount() }}</span>
+        <span class="stat-label">libres</span>
+      </div>
+    </div>
+  }
+</div>
+
+<!-- ── Lista de terminales ────────────────────────────────────────────────── -->
+@if (!showForm) {
+  <c-card class="border-0 shadow-sm overflow-hidden">
+    <c-card-body class="p-0">
+
+      @if (loading()) {
+        <div class="text-center py-5">
+          <c-spinner color="primary"></c-spinner>
+        </div>
+
+      } @else if (terminals().length === 0) {
+        <div class="text-center py-5 bg-body-secondary">
+          <svg cIcon name="cilMonitor" size="3xl" class="text-muted mb-3 opacity-25 d-block mx-auto"></svg>
+          <p class="text-muted mb-2">No hay terminales configurados</p>
+          <button cButton color="primary" size="sm" (click)="openNew()">
+            <svg cIcon name="cilPlus" class="me-1"></svg> Nuevo terminal
+          </button>
+        </div>
+
+      } @else {
+        <div class="table-responsive">
+          <table cTable hover align="middle" class="mb-0">
+            <thead class="bg-body-secondary">
+              <tr>
+                <th>Terminal</th>
+                <th>Bodega</th>
+                <th>Serie</th>
+                <th>Impresora</th>
+                <th>Hardware</th>
+                <th>Tickets</th>
+                <th>Estado</th>
+                <th class="text-end pe-3"></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (t of terminals(); track t.id) {
+                <tr class="row-clickable" (click)="openEdit(t)">
+                  <td><strong>{{ t.name }}</strong></td>
+                  <td class="text-muted">{{ t.warehouseCode }}</td>
+                  <td>
+                    <c-badge color="secondary" shape="rounded-pill">{{ t.seriesCode }}</c-badge>
+                  </td>
+                  <td class="text-muted">{{ printerLabel(t) }} · {{ t.paperWidth }}mm</td>
+                  <td>
+                    @if (t.cashDrawerEnabled) {
+                      <c-badge color="info" shape="rounded-pill" class="me-1">Cajón</c-badge>
+                    }
+                    @if (t.barcodeEnabled) {
+                      <c-badge color="secondary" shape="rounded-pill">Escáner</c-badge>
+                    }
+                  </td>
+                  <td class="text-muted">{{ t.numTickets | number }}</td>
+                  <td>
+                    @if (t.currentSessionId) {
+                      <c-badge color="success" shape="rounded-pill">
+                        En uso · {{ t.currentUserName }}
+                      </c-badge>
+                    } @else {
+                      <c-badge color="light" class="text-muted border" shape="rounded-pill">Libre</c-badge>
+                    }
+                  </td>
+                  <td class="text-end pe-2" (click)="$event.stopPropagation()">
+                    @if (!t.currentSessionId) {
+                      <button cButton color="danger" variant="ghost" size="sm"
+                              (click)="deactivate(t)" title="Desactivar">
+                        <svg cIcon name="cilTrash" size="sm"></svg>
+                      </button>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <div class="bg-body-secondary px-3 py-2 border-top d-flex justify-content-between align-items-center">
+          <small class="text-muted">
+            {{ terminals().length }} terminal{{ terminals().length !== 1 ? 'es' : '' }}
+          </small>
+          <small class="text-muted fst-italic">Clic en una fila para editar</small>
+        </div>
+      }
+
+    </c-card-body>
+  </c-card>
+}
+
+<!-- ── Formulario ──────────────────────────────────────────────────────────── -->
+@if (showForm) {
+  <c-card class="border-0 shadow-sm">
+    <c-card-header class="d-flex align-items-center justify-content-between">
+      <strong>{{ editing() ? 'Editar terminal' : 'Nuevo terminal' }}</strong>
+      <button cButton color="light" size="sm" variant="outline" (click)="cancel()">Cancelar</button>
+    </c-card-header>
+
+    <c-card-body>
+      <c-row class="g-3">
+
+        <!-- ── Identificación ─────────────────────────────────────────────── -->
+        <c-col [sm]="12">
+          <small class="text-uppercase text-muted fw-semibold pt-section-label">
+            Identificación
+          </small>
+          <hr class="mt-1 mb-2">
+        </c-col>
+
+        <c-col [sm]="12" [md]="6">
+          <label class="form-label">Nombre del terminal *</label>
+          <input cFormControl type="text" [(ngModel)]="form.name"
+                 placeholder="Caja Principal, Terminal 2...">
+        </c-col>
+
+        <c-col [sm]="6" [md]="3">
+          <label class="form-label">Bodega (codalmacen) *</label>
+          <select cSelect [(ngModel)]="form.warehouseCode">
+            <option value="">— Seleccionar —</option>
+            @for (w of warehouses(); track w.code) {
+              <option [value]="w.code">{{ w.code }} · {{ w.name }}</option>
+            }
+          </select>
+        </c-col>
+
+        <c-col [sm]="6" [md]="3">
+          <label class="form-label">Serie de documentos (codserie) *</label>
+          <select cSelect [(ngModel)]="form.seriesCode">
+            <option value="">— Seleccionar —</option>
+            @for (s of series(); track s.code) {
+              <option [value]="s.code">{{ s.code }} · {{ s.name }}</option>
+            }
+          </select>
+          @if (series().length === 0) {
+            <div class="form-text text-warning">
+              No hay series de tipo "Factura" configuradas en Ajustes.
+            </div>
+          }
+        </c-col>
+
+        <c-col [sm]="12" [md]="6">
+          <label class="form-label">RUC / CI cliente por defecto (codcliente)</label>
+          <input cFormControl type="text" [(ngModel)]="form.defaultCustomerTaxId"
+                 placeholder="9999999999999">
+          <div class="form-text">Consumidor Final si se deja el valor por defecto.</div>
+        </c-col>
+
+        <!-- ── Hardware ───────────────────────────────────────────────────── -->
+        <c-col [sm]="12" class="mt-2">
+          <small class="text-uppercase text-muted fw-semibold pt-section-label">
+            Hardware
+          </small>
+          <hr class="mt-1 mb-2">
+        </c-col>
+
+        <c-col [sm]="6" [md]="3">
+          <label class="form-label">Ancho de papel (anchopapel)</label>
+          <select cSelect [(ngModel)]="form.paperWidth">
+            <option [value]="58">58 mm</option>
+            <option [value]="80">80 mm</option>
+          </select>
+        </c-col>
+
+        <c-col [sm]="12">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="chkSinComandos"
+                   [(ngModel)]="form.sinComandos">
+            <label class="form-check-label" for="chkSinComandos">
+              <strong>Sin comandos ESC/POS</strong> — usar ventana de impresión del navegador
+              <span class="text-muted ms-1">(sin_comandos)</span>
+            </label>
+          </div>
+        </c-col>
+
+        @if (!form.sinComandos) {
+          <c-col [sm]="6" [md]="3">
+            <label class="form-label">Tipo de conexión impresora</label>
+            <select cSelect [(ngModel)]="form.printerType">
+              <option value="usb">USB (Web Serial API)</option>
+              <option value="network">Red (IP)</option>
+            </select>
+          </c-col>
+
+          @if (form.printerType === 'network') {
+            <c-col [sm]="6" [md]="3">
+              <label class="form-label">IP de la impresora</label>
+              <input cFormControl type="text" [(ngModel)]="form.printerIp"
+                     placeholder="192.168.1.100">
+            </c-col>
+            <c-col [sm]="6" [md]="2">
+              <label class="form-label">Puerto</label>
+              <input cFormControl type="number" [(ngModel)]="form.printerPort"
+                     placeholder="9100">
+            </c-col>
+          }
+
+          <c-col [sm]="12" [md]="5">
+            <label class="form-label">Comando de corte (comandocorte)</label>
+            <input cFormControl type="text" [(ngModel)]="form.cutCommand"
+                   placeholder="27.105">
+            <div class="form-text">Epson TM-T20II: 27.109 · Bixolon: 27.105 · Okipos: 29.86.66.100</div>
+          </c-col>
+
+          <c-col [sm]="12" [md]="5">
+            <label class="form-label">Comando apertura cajón (comandoapertura)</label>
+            <input cFormControl type="text" [(ngModel)]="form.openDrawerCommand"
+                   placeholder="27.112.48">
+            <div class="form-text">Epson: 27.112.48.55.121 · Bixolon/Oki: 27.112.48</div>
+          </c-col>
+
+          <!-- Ayuda de comandos -->
+          <c-col [sm]="12">
+            <c-alert color="light" class="mb-0 py-2 px-3 border">
+              <div class="d-flex align-items-start gap-2">
+                <svg cIcon name="cilInfo" size="sm" class="mt-1 flex-shrink-0"></svg>
+                <div>
+                  <div class="fw-semibold mb-1">Referencia de comandos por impresora</div>
+                  <div class="table-responsive">
+                    <table class="table table-sm table-borderless mb-1 pt-ref-table">
+                      <thead>
+                        <tr class="text-muted">
+                          <th class="ps-0 py-1">Impresora</th>
+                          <th class="py-1">Corte (decimal)</th>
+                          <th class="py-1">Corte (hex)</th>
+                          <th class="py-1">Cajón (decimal)</th>
+                          <th class="py-1">Cajón (hex)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td class="ps-0 py-1">Samsung Bixolon</td>
+                          <td class="py-1 font-monospace">27.105</td>
+                          <td class="py-1 font-monospace text-muted">\x1b\x69</td>
+                          <td class="py-1 font-monospace">27.112.48</td>
+                          <td class="py-1 font-monospace text-muted">\x1b\x70\x30</td>
+                        </tr>
+                        <tr>
+                          <td class="ps-0 py-1">Epson TM-T20II</td>
+                          <td class="py-1 font-monospace">27.109</td>
+                          <td class="py-1 font-monospace text-muted">\x1b\x6d</td>
+                          <td class="py-1 font-monospace">27.112.48.55.121</td>
+                          <td class="py-1 font-monospace text-muted">\x1b\x70\x30\x37\x79</td>
+                        </tr>
+                        <tr>
+                          <td class="ps-0 py-1">Okipos / Genérica</td>
+                          <td class="py-1 font-monospace">29.86.66.100</td>
+                          <td class="py-1 font-monospace text-muted">\x1d\x56\x42\x64</td>
+                          <td class="py-1 font-monospace">27.112.48</td>
+                          <td class="py-1 font-monospace text-muted">\x1b\x70\x30</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <small class="text-muted">
+                    Ambos formatos son aceptados: decimal (como FacturaScripts) o hex con \x.
+                    Si tu impresora no aparece puede funcionar igual.
+                    Si no logras imprimir, activa <strong>Sin comandos ESC/POS</strong> para usar el navegador.
+                  </small>
+                </div>
+              </div>
+            </c-alert>
+          </c-col>
+        }
+
+        <!-- ── Periféricos ─────────────────────────────────────────────────── -->
+        <c-col [sm]="12" class="mt-2">
+          <small class="text-uppercase text-muted fw-semibold pt-section-label">
+            Periféricos
+          </small>
+          <hr class="mt-1 mb-2">
+        </c-col>
+
+        <c-col [sm]="12">
+          <div class="d-flex flex-wrap gap-4">
+            <div class="form-check mb-0">
+              <input class="form-check-input" type="checkbox" id="chkDrawer"
+                     [(ngModel)]="form.cashDrawerEnabled">
+              <label class="form-check-label" for="chkDrawer">
+                Cajón portamonedas habilitado
+              </label>
+            </div>
+            <div class="form-check mb-0">
+              <input class="form-check-input" type="checkbox" id="chkBarcode"
+                     [(ngModel)]="form.barcodeEnabled">
+              <label class="form-check-label" for="chkBarcode">
+                Lector de código de barras habilitado
+              </label>
+            </div>
+          </div>
+        </c-col>
+
+      </c-row>
+    </c-card-body>
+
+    <c-card-footer class="d-flex justify-content-end gap-2">
+      <button cButton color="light" (click)="cancel()">Cancelar</button>
+      <button cButton color="primary" (click)="save()" [disabled]="saving()">
+        @if (saving()) {
+          <c-spinner size="sm" class="me-1"></c-spinner>
+          Guardando...
+        } @else {
+          Guardar terminal
+        }
+      </button>
+    </c-card-footer>
+  </c-card>
+}

@@ -1,0 +1,218 @@
+<div class="pos-session-wrap">
+
+  <!-- Logo / Header -->
+  <div class="pos-session-header">
+    <div class="pos-logo">
+      <svg width="28" height="28" viewBox="0 0 36 36" fill="none">
+        <rect width="36" height="36" rx="8" fill="var(--cui-primary)"/>
+        <path d="M8 14h4v10H8V14zm8-4h4v14h-4V10zm8 6h4v8h-4v-8z" fill="white"/>
+      </svg>
+      <span>POS</span>
+    </div>
+    <p class="pos-session-subtitle">Sistema de Punto de Venta</p>
+  </div>
+
+  <!-- Loading -->
+  @if (loading()) {
+    <div class="pos-session-loading">
+      <c-spinner color="primary"/>
+      <p>Cargando terminales...</p>
+    </div>
+  }
+
+  <!-- Error global -->
+  @if (errorMsg()) {
+    <c-alert color="danger" class="mb-0">{{ errorMsg() }}</c-alert>
+  }
+
+  <!-- ── PASO 1: Seleccionar terminal ─────────────────────────────────────── -->
+  @if (!loading() && !selectedTerminal()) {
+    <div class="pos-session-card">
+
+      <!-- Encabezado del paso -->
+      <div class="pss-step-header">
+        <div>
+          <h5 class="pos-section-title mb-0">
+            <svg cIcon name="cilMonitor" size="sm"></svg>
+            Selecciona un terminal
+          </h5>
+          <p class="pss-step-subtitle">Elige el terminal desde el que vas a trabajar hoy</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          @if (isAdmin) {
+            <button cButton color="light" variant="outline" size="sm"
+                    class="d-flex align-items-center gap-1" (click)="goToTerminals()">
+              <svg cIcon name="cilSettings" size="sm"></svg>
+              <span class="d-none d-sm-inline">Gestionar terminales</span>
+            </button>
+          }
+          <button class="pss-info-btn" (click)="showTerminalInfo = !showTerminalInfo"
+                  [class.active]="showTerminalInfo" title="¿Qué es un terminal?">
+            <svg cIcon name="cilInfo" size="sm"></svg>
+            <span>¿Qué es un terminal?</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Panel informativo -->
+      @if (showTerminalInfo) {
+        <div class="pss-info-panel">
+          <p class="mb-1">
+            <strong>Un terminal es la suma de PC + impresora de tickets + cajón portamonedas.</strong>
+          </p>
+          <p class="mb-1">
+            Puedes configurar los terminales desde el menú
+            <strong>TPV › Arqueos y terminales</strong>.
+            Cada terminal puede tener su propia impresora de tickets y cajón portamonedas configurados.
+          </p>
+          <p class="mb-0 text-muted small">
+            Una vez abierta la caja, el terminal queda bloqueado para otros usuarios hasta que se cierre.
+          </p>
+        </div>
+      }
+
+      <!-- Sin terminales -->
+      @if (terminals().length === 0) {
+        <div class="pos-empty">
+          <svg cIcon name="cilMonitor" size="3xl" class="text-muted opacity-25 d-block mb-2 mx-auto"></svg>
+          <p>No hay terminales activos configurados.</p>
+          @if (isAdmin) {
+            <button class="pos-link-btn" (click)="goToTerminals()">
+              + Configurar terminales
+            </button>
+          }
+        </div>
+      }
+
+      <!-- Grid de terminales -->
+      <div class="terminals-grid">
+        @for (t of terminals(); track t.id) {
+          <button class="terminal-card"
+            (click)="selectTerminal(t)"
+            [class.occupied]="!!t.currentSessionId && t.currentUserId !== currentUser?.uid"
+            [class.mine]="t.currentUserId === currentUser?.uid">
+            <div class="terminal-icon">
+              <svg cIcon [name]="t.currentUserId === currentUser?.uid ? 'cilMediaPlay' : 'cilMonitor'" size="lg"></svg>
+            </div>
+            <div class="terminal-name">{{ t.name }}</div>
+            <div class="terminal-meta">Bodega: {{ t.warehouseCode }}</div>
+            @if (t.currentUserId === currentUser?.uid) {
+              <span class="terminal-badge mine">Continuar</span>
+            } @else if (t.currentSessionId) {
+              <span class="terminal-badge occupied">
+                <svg cIcon name="cilLockLocked" size="sm" class="me-1"></svg>
+                {{ t.currentUserName }}
+              </span>
+            } @else {
+              <span class="terminal-badge available">Disponible</span>
+            }
+          </button>
+        }
+      </div>
+
+      <!-- Aviso de bloqueo -->
+      @if (terminals().length > 0) {
+        <p class="pss-lock-hint">
+          <svg cIcon name="cilLockLocked" size="sm"></svg>
+          Una vez abierta la caja, ningún otro usuario podrá usar ese terminal hasta que se cierre.
+        </p>
+      }
+
+    </div>
+
+    <div class="pos-session-footer">
+      <span>Conectado como <strong>{{ currentUser?.displayName ?? currentUser?.email }}</strong></span>
+    </div>
+  }
+
+  <!-- ── PASO 2: Apertura / retomar sesión ─────────────────────────────────── -->
+  @if (!loading() && selectedTerminal()) {
+    <div class="pos-session-card open-card">
+
+      <button class="back-btn" (click)="back()">
+        <svg cIcon name="cilArrowLeft" size="sm"></svg>
+        Volver
+      </button>
+
+      <h5 class="pos-section-title">
+        <svg cIcon name="cilMonitor" size="sm"></svg>
+        {{ selectedTerminal()!.name }}
+      </h5>
+
+      @if (checkingSession()) {
+        <div class="pos-session-loading">
+          <c-spinner color="primary"/>
+          <span>Verificando caja...</span>
+        </div>
+      }
+
+      <!-- Sesión ya abierta por otro -->
+      @if (!checkingSession() && existingSession()) {
+        <c-alert color="warning" class="mb-3">
+          <strong>Sesión activa encontrada</strong><br>
+          Abierta por <strong>{{ existingSession()!.userName }}</strong> el
+          {{ existingSession()!.openedAt.toDate() | date:'dd/MM/yyyy HH:mm' }}<br>
+          Efectivo inicial: <strong>$ {{ existingSession()!.openingBalance | number:'1.2-2' }}</strong>
+        </c-alert>
+
+        <div class="open-actions">
+          <button cButton color="primary" (click)="resumeSession()" [disabled]="saving()">
+            <svg cIcon name="cilMediaPlay" class="me-2"></svg>
+            Retomar sesión
+          </button>
+        </div>
+      }
+
+      <!-- Sin sesión: abrir nueva -->
+      @if (!checkingSession() && !existingSession()) {
+        <div class="open-form">
+
+          <div class="form-group-pos">
+            <label class="pss-cash-label">¿Cuánto dinero hay en la caja?</label>
+            <input
+              cFormControl
+              type="number"
+              class="pos-input-lg"
+              [(ngModel)]="openingBalance"
+              min="0"
+              step="0.01"
+              placeholder="0.00"
+              autofocus
+            >
+            <p class="pss-cash-hint">
+              <svg cIcon name="cilInfo" size="sm"></svg>
+              Introduce el efectivo disponible al abrir. Si tienes cajón portamonedas configurado,
+              se abrirá automáticamente al confirmar ventas en efectivo.
+            </p>
+          </div>
+
+          <div class="form-group-pos">
+            <label>Notas de apertura <span class="fw-normal text-muted">(opcional)</span></label>
+            <textarea
+              cFormControl
+              class="pos-input"
+              [(ngModel)]="openingNotes"
+              rows="2"
+              placeholder="Ej: Billetes $50, Monedas $5..."
+            ></textarea>
+          </div>
+
+          <div class="open-actions">
+            <button
+              cButton color="success"
+              (click)="openSession()"
+              [disabled]="saving()"
+            >
+              @if (saving()) { <c-spinner size="sm" class="me-2"/> }
+              @else { <svg cIcon name="cilLockUnlocked" class="me-2"></svg> }
+              Abrir caja
+            </button>
+          </div>
+
+        </div>
+      }
+
+    </div>
+  }
+
+</div>

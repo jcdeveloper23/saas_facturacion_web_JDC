@@ -1,0 +1,39 @@
+<div class="pdm-overlay" (click)="cancelled.emit()">
+<div class="pdm-modal" (click)="$event.stopPropagation()">
+
+  <div class="pdm-header">
+    <h5><svg cIcon name="cilTags" size="sm" class="me-1"></svg> Descuento global</h5>
+    <button class="pdm-close" (click)="cancelled.emit()">×</button>
+  </div>
+
+  <div class="pdm-body">
+    <div class="pdm-input-row">
+      <input
+        type="number"
+        class="pdm-input"
+        [(ngModel)]="discountValue"
+        min="0" max="100" step="1"
+        inputmode="numeric"
+        autofocus
+      >
+      <span class="pdm-pct">%</span>
+    </div>
+
+    <div class="pdm-quick">
+      @for (q of quickDiscounts; track q) {
+        <button class="pdm-chip" [class.active]="discountValue === q" (click)="setQuick(q)">
+          {{ q }}%
+        </button>
+      }
+    </div>
+  </div>
+
+  <div class="pdm-actions">
+    @if (currentDiscount > 0) {
+      <button class="pdm-remove" (click)="remove()">Quitar descuento</button>
+    }
+    <button class="pdm-apply" (click)="apply()">Aplicar {{ discountValue }}%</button>
+  </div>
+
+</div>
+</div>

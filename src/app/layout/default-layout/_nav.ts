@@ -42,12 +42,12 @@ export const navItems: INavData[] = [
     iconComponent: { name: 'cil-inbox' },
     attributes: { module: 'retentions', roles: ['admin', 'accountant'] }
   },
-  // {
-  //   name: 'Punto de Venta',
-  //   url: '/pos',
-  //   iconComponent: { name: 'cil-calculator' },
-  //   attributes: { module: 'pos', roles: ['admin', 'cashier'] }
-  // },
+  {
+    name: 'Punto de Venta',
+    url: '/pos',
+    iconComponent: { name: 'cil-calculator' },
+    attributes: { module: 'pos', roles: ['admin', 'cashier', 'seller'] }
+  },
   // {
   //   name: 'Presupuestos',
   //   url: '/quotes',

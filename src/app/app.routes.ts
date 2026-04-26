@@ -145,12 +145,12 @@ export const routes: Routes = [
       },
 
       // ── POS ────────────────────────────────────────────────────────────
-      // {
-      //   path: 'pos',
-      //   canActivate: [roleGuard],
-      //   data: { roles: ['admin', 'cashier'], title: 'Point of Sale' },
-      //   loadChildren: () => import('./features/pos/pos.routes').then(m => m.POS_ROUTES)
-      // },
+      {
+        path: 'pos',
+        canActivate: [roleGuard, moduleGuard],
+        data: { roles: ['admin', 'cashier', 'seller'], module: 'pos', title: 'Punto de Venta' },
+        loadChildren: () => import('./features/pos/pos.routes').then(m => m.POS_ROUTES)
+      },
 
       // ── Electronic Invoicing (SRI) ─────────────────────────────────────
       // {

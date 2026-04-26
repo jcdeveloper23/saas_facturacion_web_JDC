@@ -336,6 +336,50 @@
         { "fieldPath": "date",     "order": "ASCENDING" },
         { "fieldPath": "number",   "order": "ASCENDING" }
       ]
+    },
+
+    {
+      "collectionGroup": "pos-terminals",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "isActive", "order": "ASCENDING" },
+        { "fieldPath": "name",     "order": "ASCENDING" }
+      ]
+    },
+
+    {
+      "collectionGroup": "pos-sessions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "terminalId", "order": "ASCENDING" },
+        { "fieldPath": "openedAt",   "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "pos-sessions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "terminalId", "order": "ASCENDING" },
+        { "fieldPath": "status",     "order": "ASCENDING" }
+      ]
+    },
+
+    {
+      "collectionGroup": "pos-sales",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "sessionId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+
+    {
+      "collectionGroup": "pos-cash-movements",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "sessionId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []
