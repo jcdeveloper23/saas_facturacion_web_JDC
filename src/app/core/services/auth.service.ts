@@ -8,6 +8,7 @@ import {
   User as FirebaseUser,
   IdTokenResult
 } from '@angular/fire/auth';
+import { Functions, httpsCallable } from '@angular/fire/functions';
 import { Router } from '@angular/router';
 import { TenantService } from './tenant.service';
 
@@ -27,8 +28,9 @@ export interface AuthUser {
  */
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private auth = inject(Auth);
-  private router = inject(Router);
+  private auth          = inject(Auth);
+  private functions     = inject(Functions);
+  private router        = inject(Router);
   private tenantService = inject(TenantService);
 
   private _currentUser = signal<AuthUser | null>(null);
@@ -49,6 +51,7 @@ export class AuthService {
           const authUser = await this.buildAuthUser(firebaseUser);
           this._currentUser.set(authUser);
           this.tenantService.setCompanyId(authUser.companyId);
+          this.tenantService.setUid(authUser.uid);
         } catch (error) {
           console.error('[AuthService] Error building auth user:', error);
           this._currentUser.set(null);
@@ -74,6 +77,7 @@ export class AuthService {
             const authUser = await this.buildAuthUser(firebaseUser);
             this._currentUser.set(authUser);
             this.tenantService.setCompanyId(authUser.companyId);
+            this.tenantService.setUid(authUser.uid);
           } catch (error) {
             console.error('[AuthService] Error during init:', error);
           }
@@ -92,7 +96,33 @@ export class AuthService {
     const authUser = await this.buildAuthUser(credential.user);
     this._currentUser.set(authUser);
     this.tenantService.setCompanyId(authUser.companyId);
+    this.tenantService.setUid(authUser.uid);
     this.router.navigate([this.getDefaultRoute()]);
+  }
+
+  /**
+   * Cambia la empresa activa del usuario (multi-empresa).
+   * Llama la CF switchActiveCompany, fuerza el refresh del token
+   * y reinicia TenantService con el nuevo companyId.
+   */
+  async switchCompany(targetCompanyId: string): Promise<void> {
+    const firebaseUser = this.auth.currentUser;
+    if (!firebaseUser) return;
+
+    this.tenantService.setSwitching(true);
+    try {
+      const fn = httpsCallable(this.functions, 'switchActiveCompany');
+      await fn({ targetCompanyId });
+
+      // Forzar refresh del token para obtener los nuevos custom claims
+      await firebaseUser.getIdToken(true);
+
+      const authUser = await this.buildAuthUser(firebaseUser);
+      this._currentUser.set(authUser);
+      this.tenantService.setCompanyId(authUser.companyId);
+    } finally {
+      this.tenantService.setSwitching(false);
+    }
   }
 
   async logout(): Promise<void> {

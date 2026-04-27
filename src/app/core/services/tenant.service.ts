@@ -1,6 +1,14 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
-import { Firestore, doc, onSnapshot } from '@angular/fire/firestore';
+import { Firestore, doc, collection, onSnapshot } from '@angular/fire/firestore';
 import { PlanLimitsService } from './plan-limits.service';
+
+export interface ManagedCompany {
+  companyId: string;
+  companyName: string;
+  companyTaxId?: string;
+  role: string;
+  isActive: boolean;
+}
 
 export interface CompanyConfig {
   id: string;
@@ -56,8 +64,51 @@ export class TenantService {
   private firestore = inject(Firestore);
   private planLimits = inject(PlanLimitsService);
 
-  private _companyId = signal<string>('');
-  private _company   = signal<CompanyConfig | null>(null);
+  private _companyId        = signal<string>('');
+  private _uid              = signal<string>('');
+  private _company          = signal<CompanyConfig | null>(null);
+  private _managedCompanies = signal<ManagedCompany[]>([]);
+  private _switchingCompany = signal(false);
+  private _managedLoaded    = false;
+
+  // ─── Multi-company API ───────────────────────────────────────────────────
+
+  /** Lista de empresas que el usuario puede gestionar (requiere multiCompanyMode). */
+  readonly managedCompanies = computed(() => this._managedCompanies());
+
+  /** Verdadero si el plan de la empresa activa tiene multiCompanyMode habilitado. */
+  readonly multiCompanyEnabled = computed(() =>
+    this.planLimits.isFeatureEnabled('multiCompanyMode')
+  );
+
+  /** Verdadero mientras se está ejecutando el switch de empresa. */
+  readonly switchingCompany = computed(() => this._switchingCompany());
+
+  /**
+   * Carga en tiempo real las empresas vinculadas al usuario.
+   * Solo se ejecuta cuando multiCompanyMode está habilitado en el plan.
+   * Llamado internamente tras cargar el doc de empresa, o desde AuthService
+   * después de un switchCompany.
+   */
+  loadManagedCompanies(uid: string): void {
+    if (this._managedLoaded) return;
+    this._managedLoaded = true;
+    const colRef = collection(this.firestore, `account-companies/${uid}/companies`);
+    onSnapshot(colRef, {
+      next:  snap => this._managedCompanies.set(
+        snap.docs.map(d => ({ companyId: d.id, ...d.data() } as ManagedCompany))
+      ),
+      error: _err => {
+        // Colección no existe aún o sin permisos — no es error crítico
+        this._managedCompanies.set([]);
+      }
+    });
+  }
+
+  /** Marca el estado de switching para bloquear la UI durante el cambio. */
+  setSwitching(value: boolean): void {
+    this._switchingCompany.set(value);
+  }
 
   // ─── Plugin Package API ───────────────────────────────────────────────────
 
@@ -126,15 +177,28 @@ export class TenantService {
   setCompanyId(id: string): void {
     if (!id || id === this._companyId()) return;
     this._companyId.set(id);
+    this._managedLoaded = false;   // reset al cambiar de empresa
     this.loadCompany(id);
     this.planLimits.init(id);
+  }
+
+  /** Almacena el uid del usuario para carga lazy de managed companies. */
+  setUid(uid: string): void {
+    this._uid.set(uid);
   }
 
   private loadCompany(companyId: string): void {
     const ref = doc(this.firestore, `companies/${companyId}`);
     onSnapshot(ref, {
-      next:  snap => this._company.set(snap.exists() ? ({ id: snap.id, ...snap.data() } as CompanyConfig) : null),
-      error: err  => console.error('[TenantService] Failed to load company:', err)
+      next: snap => {
+        this._company.set(snap.exists() ? ({ id: snap.id, ...snap.data() } as CompanyConfig) : null);
+        // Carga lazy: solo si el plan tiene multiCompanyMode habilitado
+        const uid = this._uid();
+        if (uid && this.multiCompanyEnabled() && !this._managedLoaded) {
+          this.loadManagedCompanies(uid);
+        }
+      },
+      error: err => console.error('[TenantService] Failed to load company:', err)
     });
   }
 }

@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { moduleGuard, roleGuard } from '../../core/guards';
+import { moduleGuard, roleGuard, planLimitGuard } from '../../core/guards';
 
 export const INVOICES_ROUTES: Routes = [
   {
@@ -11,8 +11,8 @@ export const INVOICES_ROUTES: Routes = [
   },
   {
     path: 'new',
-    canActivate: [moduleGuard],
-    data: { module: 'invoices', title: 'Nueva Factura' },
+    canActivate: [moduleGuard, planLimitGuard],
+    data: { module: 'invoices', limitResource: 'invoices', title: 'Nueva Factura' },
     loadComponent: () =>
       import('./invoice-form.component').then(m => m.InvoiceFormComponent)
   },

@@ -127,5 +127,37 @@
       </c-card-body>
     </c-card>
 
+    <!-- Add-ons activos -->
+    @if (addonPackages().length > 0) {
+    <c-card class="mb-4">
+      <c-card-header>
+        <strong>Add-ons activos</strong>
+        <c-badge color="info" class="ms-2">{{ addonPackages().length }}</c-badge>
+      </c-card-header>
+      <c-card-body class="p-0">
+        @for (addon of addonPackages(); track addon.packageCode; let last = $last) {
+        <div class="d-flex align-items-center justify-content-between px-3 py-2"
+          [class.border-bottom]="!last">
+          <div>
+            <span class="fw-semibold d-block" style="font-size:.88rem">{{ addon.packageName }}</span>
+            <small class="text-muted">
+              Activado el {{ toDate(addon.activatedAt) | date:'dd/MM/yyyy' }}
+              @if (addon.notes) { · {{ addon.notes }} }
+            </small>
+          </div>
+          <c-badge color="success" shape="rounded-pill" style="white-space:nowrap">
+            {{ addon.priceAtActivation | currency:'USD':'symbol':'1.0-0' }}/mes
+          </c-badge>
+        </div>
+        }
+      </c-card-body>
+      <c-card-footer>
+        <small class="text-body-secondary">
+          Para contratar o cancelar add-ons, contacta a soporte.
+        </small>
+      </c-card-footer>
+    </c-card>
+    }
+
   </c-col>
 </c-row>

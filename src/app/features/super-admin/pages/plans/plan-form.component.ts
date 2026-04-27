@@ -108,11 +108,20 @@ export class PlanFormComponent implements OnInit, OnDestroy {
       })
     }),
     features: this.fb.group({
-      prioritySupport:  [false],
-      betaAccess:       [false],
-      multiCompanyMode: [false]
+      // Módulos de negocio
+      electronicInvoicing:  [true],
+      purchasesModule:      [true],
+      accountingModule:     [false],
+      stockModule:          [false],
+      teamManagementModule: [false],
+      publicCatalogModule:  [true],
+      publicApiModule:      [false],
+      // Nivel de servicio
+      prioritySupport:      [false],
+      betaAccess:           [false],
+      multiCompanyMode:     [false]
     }),
-    includedModules: [[] as string[]]  // códigos de paquetes: ['pkg_base', 'pkg_sales', ...]
+    includedPackages: [[] as string[]]
   });
 
   ngOnInit(): void {
@@ -166,8 +175,8 @@ export class PlanFormComponent implements OnInit, OnDestroy {
         operations:   plan.limits?.operations   ?? {},
         infra:        plan.limits?.infra        ?? {}
       },
-      features:       plan.features        ?? {},
-      includedModules: (plan.includedModules ?? []) as string[]
+      features:          plan.features           ?? {},
+      includedPackages:  (plan.includedPackages ?? []) as string[]
     });
   }
 
@@ -234,11 +243,18 @@ export class PlanFormComponent implements OnInit, OnDestroy {
           }
         },
         features: {
-          prioritySupport:  v.features!.prioritySupport!,
-          betaAccess:       v.features!.betaAccess!,
-          multiCompanyMode: v.features!.multiCompanyMode!
+          electronicInvoicing:  v.features!.electronicInvoicing!,
+          purchasesModule:      v.features!.purchasesModule!,
+          accountingModule:     v.features!.accountingModule!,
+          stockModule:          v.features!.stockModule!,
+          teamManagementModule: v.features!.teamManagementModule!,
+          publicCatalogModule:  v.features!.publicCatalogModule!,
+          publicApiModule:      v.features!.publicApiModule!,
+          prioritySupport:      v.features!.prioritySupport!,
+          betaAccess:           v.features!.betaAccess!,
+          multiCompanyMode:     v.features!.multiCompanyMode!
         },
-        includedModules: (v.includedModules ?? []) as string[]
+        includedPackages: (v.includedPackages ?? []) as string[]
       };
 
       const id = this.editingId();
@@ -259,23 +275,23 @@ export class PlanFormComponent implements OnInit, OnDestroy {
   }
 
   togglePackage(code: string): void {
-    const current = (this.form.get('includedModules')?.value as string[]) ?? [];
+    const current = (this.form.get('includedPackages')?.value as string[]) ?? [];
     const idx = current.indexOf(code);
     if (idx >= 0) {
-      this.form.get('includedModules')?.setValue(current.filter(c => c !== code));
+      this.form.get('includedPackages')?.setValue(current.filter(c => c !== code));
     } else {
-      this.form.get('includedModules')?.setValue([...current, code]);
+      this.form.get('includedPackages')?.setValue([...current, code]);
     }
   }
 
   isPackageSelected(code: string): boolean {
-    const current = (this.form.get('includedModules')?.value as string[]) ?? [];
+    const current = (this.form.get('includedPackages')?.value as string[]) ?? [];
     return current.includes(code);
   }
 
   canSelectPackage(pkg: PluginPackage): boolean {
     if (!pkg.dependencies?.length) return true;
-    const selected = (this.form.get('includedModules')?.value as string[]) ?? [];
+    const selected = (this.form.get('includedPackages')?.value as string[]) ?? [];
     return pkg.dependencies.every(dep => selected.includes(dep));
   }
 

@@ -7,7 +7,12 @@ import {
   where,
   orderBy,
   limit,
-  onSnapshot
+  onSnapshot,
+  setDoc,
+  updateDoc,
+  increment,
+  serverTimestamp,
+  getDoc
 } from '@angular/fire/firestore';
 import { Observable } from 'rxjs';
 import { PublicCatalog, PublicProduct } from '../models/catalog.interface';
@@ -54,5 +59,42 @@ export class PublicCatalogService {
         error: err => observer.error(err)
       });
     });
+  }
+
+  /**
+   * Streams like counts for all products in a catalog.
+   * Path: public-catalogs/{slug}/product-likes/{productId}  →  { count: number }
+   */
+  getLikesForCatalog(slug: string): Observable<Record<string, number>> {
+    return new Observable<Record<string, number>>(observer => {
+      const ref = collection(this.firestore, `public-catalogs/${slug}/product-likes`);
+      return onSnapshot(ref, {
+        next: snap => {
+          const counts: Record<string, number> = {};
+          snap.docs.forEach(d => { counts[d.id] = (d.data()['count'] as number) ?? 0; });
+          observer.next(counts);
+        },
+        error: err => observer.error(err)
+      });
+    });
+  }
+
+  /**
+   * Increments or decrements the like counter for a product.
+   * delta: +1 (like) | -1 (unlike)
+   * Creates the document if it doesn't exist yet.
+   */
+  async toggleProductLike(slug: string, productId: string, delta: 1 | -1): Promise<void> {
+    const ref = doc(this.firestore, `public-catalogs/${slug}/product-likes/${productId}`);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) {
+      await setDoc(ref, { count: Math.max(0, delta), updatedAt: serverTimestamp() });
+    } else {
+      const current = (snap.data()['count'] as number) ?? 0;
+      await updateDoc(ref, {
+        count: increment(current + delta < 0 ? -current : delta),
+        updatedAt: serverTimestamp()
+      });
+    }
   }
 }

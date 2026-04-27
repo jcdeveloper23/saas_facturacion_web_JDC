@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard, loginGuard, roleGuard, moduleGuard } from './core/guards';
+import { authGuard, loginGuard, roleGuard, moduleGuard, featureFlagGuard } from './core/guards';
 
 export const routes: Routes = [
   // ─── Landing Page (public root) ─────────────────────────────────────────
@@ -121,24 +121,24 @@ export const routes: Routes = [
       // ── Stock ──────────────────────────────────────────────────────────
       {
         path: 'stock',
-        canActivate: [roleGuard, moduleGuard],
-        data: { roles: ['admin', 'seller'], module: 'stock', title: 'Inventario' },
+        canActivate: [roleGuard, moduleGuard, featureFlagGuard],
+        data: { roles: ['admin', 'seller'], module: 'stock', featureFlag: 'stockModule', title: 'Inventario' },
         loadChildren: () => import('./features/stock/stock.routes').then(m => m.STOCK_ROUTES)
       },
 
       // ── Purchases ──────────────────────────────────────────────────────
       {
         path: 'purchases',
-        canActivate: [authGuard, roleGuard, moduleGuard],
-        data: { roles: ['admin', 'accountant', 'seller'], module: 'purchases', title: 'Compras' },
+        canActivate: [authGuard, roleGuard, moduleGuard, featureFlagGuard],
+        data: { roles: ['admin', 'accountant', 'seller'], module: 'purchases', featureFlag: 'purchasesModule', title: 'Compras' },
         loadChildren: () => import('./features/purchases/purchases.routes').then(m => m.PURCHASES_ROUTES)
       },
 
       // ── Team Management ────────────────────────────────────────────────────
       {
         path: 'team-management',
-        canActivate: [authGuard, roleGuard, moduleGuard],
-        data: { roles: ['admin', 'seller'], module: 'teamManagement', title: 'Gestión de Equipo' },
+        canActivate: [authGuard, roleGuard, moduleGuard, featureFlagGuard],
+        data: { roles: ['admin', 'seller'], module: 'teamManagement', featureFlag: 'teamManagementModule', title: 'Gestión de Equipo' },
         loadChildren: () =>
           import('./features/team-management/team-management.routes')
             .then(m => m.TEAM_MANAGEMENT_ROUTES)
@@ -186,8 +186,8 @@ export const routes: Routes = [
       // ── Accounting ────────────────────────────────────────────────────────
       {
         path: 'accounting',
-        canActivate: [roleGuard, moduleGuard],
-        data: { roles: ['admin', 'accountant'], module: 'accounting', title: 'Contabilidad' },
+        canActivate: [roleGuard, moduleGuard, featureFlagGuard],
+        data: { roles: ['admin', 'accountant'], module: 'accounting', featureFlag: 'accountingModule', title: 'Contabilidad' },
         loadChildren: () =>
           import('./features/accounting/accounting.routes').then(m => m.ACCOUNTING_ROUTES)
       },

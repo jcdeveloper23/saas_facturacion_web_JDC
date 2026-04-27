@@ -139,4 +139,13 @@ export class CompaniesListComponent implements OnInit {
   trackById(_: number, item: Company): string {
     return item.id;
   }
+
+  /** Convierte cualquier valor de Firestore (Timestamp, Date, string, null) a Date o null. */
+  safeDate(ts: any): Date | null {
+    if (!ts) return null;
+    if (typeof ts.toDate === 'function') return ts.toDate();
+    if (ts instanceof Date) return ts;
+    const d = new Date(ts);
+    return isNaN(d.getTime()) ? null : d;
+  }
 }

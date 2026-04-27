@@ -15,7 +15,9 @@
     "start": "ng serve -o",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "seed:plans": "GOOGLE_APPLICATION_CREDENTIALS=./serviceAccount.json npx ts-node --esm scripts/seed-plans.ts",
+    "seed:plans:emulator": "FIRESTORE_EMULATOR_HOST=localhost:8080 npx ts-node --esm scripts/seed-plans.ts"
   },
   "private": true,
   "dependencies": {

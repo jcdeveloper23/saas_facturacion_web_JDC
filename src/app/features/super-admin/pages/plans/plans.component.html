@@ -3,7 +3,20 @@
     <h2 class="mb-0">Planes de Suscripción</h2>
     <p class="text-muted small mb-0">Define los planes disponibles para las empresas</p>
   </c-col>
-  <c-col xs="auto">
+  <c-col xs="auto" class="d-flex gap-2">
+    <a cButton color="outline-secondary" size="sm" routerLink="guide">
+      <svg cIcon name="cilBook" class="me-1"></svg> Guía comercial
+    </a>
+    <button cButton color="outline-warning" size="sm"
+            [disabled]="syncing()"
+            (click)="syncPlans()"
+            title="Crea o actualiza los 5 planes y 11 paquetes por defecto en Firestore (merge)">
+      @if (syncing()) {
+        <c-spinner size="sm" class="me-1"></c-spinner> Sincronizando…
+      } @else {
+        <svg cIcon name="cilCloudUpload" class="me-1"></svg> Sincronizar planes
+      }
+    </button>
     <button cButton color="primary" size="sm" (click)="openNew()">
       <svg cIcon name="cilPlus" class="me-1"></svg> Nuevo Plan
     </button>
@@ -31,6 +44,7 @@
           <tr>
             <th>Plan</th>
             <th>$/mes</th>
+            <th>Paquetes incluidos</th>
             <th>Fact./mes</th>
             <th>Usuarios</th>
             <th>Multi-emp.</th>
@@ -50,6 +64,19 @@
                 }
               </td>
               <td>{{ plan.priceMonthly | currency:'USD':'symbol':'1.0-0' }}</td>
+              <td>
+                <div class="d-flex flex-wrap gap-1" style="max-width:260px">
+                  @for (pkg of (plan.includedPackages ?? []); track pkg) {
+                    <c-badge color="primary" variant="outline" shape="rounded-pill"
+                      style="font-size:.65rem;white-space:nowrap">
+                      {{ pkg.replace('pkg_', '') }}
+                    </c-badge>
+                  }
+                  @if (!(plan.includedPackages?.length)) {
+                    <span class="text-muted small">—</span>
+                  }
+                </div>
+              </td>
               <td>{{ formatLimit(plan.limits?.sri?.invoicesPerMonth) }}</td>
               <td>{{ formatLimit(plan.limits?.users?.activeUsersPerCompany) }}</td>
               <td>{{ formatLimit(plan.limits?.multiCompany?.companiesPerAccount) }}</td>

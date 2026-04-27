@@ -1,0 +1,724 @@
+<c-container fluid>
+
+  <!-- ── Loading ───────────────────────────────────────────────────────────── -->
+  @if (loading()) {
+    <div class="text-center py-5">
+      <c-spinner color="primary"></c-spinner>
+      <p class="mt-2 text-muted">Cargando guía comercial…</p>
+    </div>
+  }
+
+  @if (!loading()) {
+
+  <!-- ── Header ─────────────────────────────────────────────────────────────── -->
+  <c-row class="mb-4 align-items-center">
+    <c-col>
+      <h2 class="mb-1">
+        <svg cIcon name="cil-book" class="me-2 text-primary"></svg>
+        Guía Comercial — Planes y Add-ons
+      </h2>
+      <p class="text-muted mb-0">
+        Manual interactivo para el equipo comercial y de soporte ·
+        Cómo funciona el modelo de negocio de SaasFacturacion
+      </p>
+    </c-col>
+    <c-col xs="auto">
+      <a cButton color="outline-primary" size="sm" routerLink="../plans">
+        <svg cIcon name="cil-list" class="me-1"></svg>Ver planes
+      </a>
+    </c-col>
+  </c-row>
+
+  <!-- ── Tabs de navegación ─────────────────────────────────────────────────── -->
+  <c-card class="mb-0">
+    <c-card-body class="p-0">
+
+      <!-- Tab nav -->
+      <div class="d-flex flex-wrap border-bottom px-3 pt-3 gap-1">
+        @for (tab of [
+          { id: 'modelo',   icon: 'cil-puzzle',      label: 'Modelo de negocio' },
+          { id: 'planes',   icon: 'cil-credit-card', label: 'Los 5 planes' },
+          { id: 'paquetes', icon: 'cil-layers',      label: 'Árbol de paquetes' },
+          { id: 'addons',   icon: 'cil-plus',        label: 'Flujo Add-ons' },
+          { id: 'casos',    icon: 'cil-people',      label: 'Casos de uso' },
+          { id: 'faq',      icon: 'cil-chat-bubble', label: 'FAQ' }
+        ]; track tab.id) {
+        <button
+          class="btn btn-sm mb-3 px-3"
+          [class.btn-primary]="activeTab() === tab.id"
+          [class.btn-ghost-secondary]="activeTab() !== tab.id"
+          (click)="activeTab.set(tab.id)">
+          <svg cIcon [name]="tab.icon" class="me-1" style="width:14px;height:14px"></svg>
+          {{ tab.label }}
+        </button>
+        }
+      </div>
+
+      <div class="p-4">
+
+        <!-- ══════════════════════════════════════════════════════════════════ -->
+        <!-- TAB: MODELO DE NEGOCIO                                           -->
+        <!-- ══════════════════════════════════════════════════════════════════ -->
+        @if (activeTab() === 'modelo') {
+
+        <c-row class="g-4">
+
+          <!-- Resumen visual -->
+          <c-col xs="12">
+            <c-alert color="secondary" class="mb-0">
+              <svg cIcon name="cil-info" class="me-2"></svg>
+              <strong>Regla de oro:</strong> El cliente paga el <strong>precio del plan</strong>.
+              Los <strong>add-ons</strong> son paquetes extra que el super_admin activa manualmente
+              y factura por su canal. No hay cobro automático en el sistema.
+            </c-alert>
+          </c-col>
+
+          <!-- Plan vs Paquete -->
+          <c-col xs="12" md="6">
+            <c-card class="h-100 border-primary">
+              <c-card-header class="bg-primary text-white">
+                <svg cIcon name="cil-credit-card" class="me-2"></svg>
+                <strong>PLAN — Precio fijo del cliente</strong>
+              </c-card-header>
+              <c-card-body>
+                <ul class="mb-0 ps-3">
+                  <li>Es lo que el cliente contrata y paga mensualmente</li>
+                  <li>Incluye un <strong>bundle fijo de paquetes</strong></li>
+                  <li>Define <strong>límites operativos</strong> (facturas, usuarios, etc.)</li>
+                  <li>Define <strong>feature flags</strong> (qué funcionalidades están habilitadas)</li>
+                  <li>El precio NO se puede negociar — es fijo por plan</li>
+                </ul>
+                <div class="mt-3 p-2 bg-body-secondary rounded">
+                  <small class="fw-semibold d-block text-muted mb-1">Ejemplo</small>
+                  <span>Plan PYME = <strong>$39/mes</strong> · incluye pkg_sales + pkg_stock + pkg_sri + pkg_purchases + pkg_marketplace</span>
+                </div>
+              </c-card-body>
+            </c-card>
+          </c-col>
+
+          <!-- Paquete add-on -->
+          <c-col xs="12" md="6">
+            <c-card class="h-100 border-success">
+              <c-card-header class="bg-success text-white">
+                <svg cIcon name="cil-plus" class="me-2"></svg>
+                <strong>ADD-ON — Precio de referencia para cobro manual</strong>
+              </c-card-header>
+              <c-card-body>
+                <ul class="mb-0 ps-3">
+                  <li>Paquete extra fuera del plan base del cliente</li>
+                  <li>Lo activa el <strong>super_admin a pedido</strong> del cliente</li>
+                  <li>El <code>PluginPackage.price</code> es la <strong>tarifa sugerida</strong></li>
+                  <li>El precio se puede negociar y editar al activar</li>
+                  <li>El super_admin <strong>factura manualmente</strong> al cliente</li>
+                </ul>
+                <div class="mt-3 p-2 bg-body-secondary rounded">
+                  <small class="fw-semibold d-block text-muted mb-1">Ejemplo</small>
+                  <span>Cliente PYME + pkg_accounting = <strong>$39 + $29 = $68/mes total</strong> (facturado manualmente)</span>
+                </div>
+              </c-card-body>
+            </c-card>
+          </c-col>
+
+          <!-- Arquitectura Plan → Paquetes → Módulos -->
+          <c-col xs="12">
+            <c-card>
+              <c-card-header>
+                <strong>Arquitectura: Plan → Paquetes → Módulos</strong>
+              </c-card-header>
+              <c-card-body>
+                <div class="d-flex flex-column flex-md-row align-items-center justify-content-center gap-3 py-2">
+
+                  <div class="text-center p-3 border rounded bg-body-secondary" style="min-width:160px">
+                    <svg cIcon name="cil-credit-card" class="text-primary mb-2" style="width:32px;height:32px"></svg>
+                    <div class="fw-bold">Plan</div>
+                    <small class="text-muted">Define precio y<br>paquetes incluidos</small>
+                  </div>
+
+                  <svg cIcon name="cil-arrow-right" class="text-muted" style="width:24px;height:24px;flex-shrink:0"></svg>
+
+                  <div class="text-center p-3 border rounded bg-body-secondary" style="min-width:160px">
+                    <svg cIcon name="cil-layers" class="text-success mb-2" style="width:32px;height:32px"></svg>
+                    <div class="fw-bold">Paquetes</div>
+                    <small class="text-muted">Bundle de módulos<br>con precio de referencia</small>
+                  </div>
+
+                  <svg cIcon name="cil-arrow-right" class="text-muted" style="width:24px;height:24px;flex-shrink:0"></svg>
+
+                  <div class="text-center p-3 border rounded bg-body-secondary" style="min-width:160px">
+                    <svg cIcon name="cil-puzzle" class="text-info mb-2" style="width:32px;height:32px"></svg>
+                    <div class="fw-bold">Módulos</div>
+                    <small class="text-muted">Funcionalidades<br>en la app</small>
+                  </div>
+
+                  <svg cIcon name="cil-arrow-right" class="text-muted" style="width:24px;height:24px;flex-shrink:0"></svg>
+
+                  <div class="text-center p-3 border rounded bg-body-secondary" style="min-width:160px">
+                    <svg cIcon name="cil-building" class="text-warning mb-2" style="width:32px;height:32px"></svg>
+                    <div class="fw-bold">Empresa</div>
+                    <small class="text-muted">enabledPackages<br>+ enabledModules</small>
+                  </div>
+
+                </div>
+                <div class="mt-3">
+                  <c-alert color="warning" class="mb-0">
+                    <strong>Regla fundamental:</strong>
+                    Los módulos se derivan SIEMPRE de los paquetes. Nunca se asignan módulos directamente al plan.
+                    Si un paquete agrega un módulo, todas las empresas con ese paquete lo obtienen automáticamente.
+                  </c-alert>
+                </div>
+              </c-card-body>
+            </c-card>
+          </c-col>
+
+          <!-- Feature Flags -->
+          <c-col xs="12">
+            <c-card>
+              <c-card-header>
+                <strong>Feature Flags — Doble condición de acceso</strong>
+              </c-card-header>
+              <c-card-body>
+                <p class="text-muted">
+                  Para acceder a un módulo de negocio se necesitan <strong>dos condiciones</strong> simultáneamente:
+                </p>
+                <c-row class="g-3">
+                  <c-col xs="12" md="6">
+                    <div class="border rounded p-3 border-primary">
+                      <div class="d-flex align-items-center gap-2 mb-2">
+                        <c-badge color="primary" shape="rounded-pill">Condición 1</c-badge>
+                        <strong>Feature flag del plan = true</strong>
+                      </div>
+                      <small class="text-muted">
+                        <code>company.planFeatures.stockModule === true</code><br>
+                        Viene del plan asignado. Si es false, el módulo está bloqueado
+                        sin importar qué paquetes tenga activos.
+                      </small>
+                    </div>
+                  </c-col>
+                  <c-col xs="12" md="6">
+                    <div class="border rounded p-3 border-success">
+                      <div class="d-flex align-items-center gap-2 mb-2">
+                        <c-badge color="success" shape="rounded-pill">Condición 2</c-badge>
+                        <strong>Módulo en enabledModules</strong>
+                      </div>
+                      <small class="text-muted">
+                        <code>'stock' está en company.enabledModules</code><br>
+                        Viene del paquete activo. Si el paquete no está activado,
+                        el módulo no existe en el contexto de la empresa.
+                      </small>
+                    </div>
+                  </c-col>
+                </c-row>
+                <div class="mt-3 p-3 bg-body-secondary rounded">
+                  <small>
+                    <strong>Ejemplo práctico:</strong> Una empresa en Plan PYME activa pkg_accounting como add-on.
+                    Pero el Plan PYME tiene <code>accountingModule: false</code>. El módulo de contabilidad
+                    NO aparece aunque el paquete esté activo — el flag del plan lo bloquea.
+                    Para que funcione se debe cambiar el plan (a Profesional o superior) que sí tiene
+                    <code>accountingModule: true</code>.
+                  </small>
+                </div>
+              </c-card-body>
+            </c-card>
+          </c-col>
+
+        </c-row>
+        }
+
+        <!-- ══════════════════════════════════════════════════════════════════ -->
+        <!-- TAB: LOS 5 PLANES                                                -->
+        <!-- ══════════════════════════════════════════════════════════════════ -->
+        @if (activeTab() === 'planes') {
+
+        <c-row class="g-4">
+          @for (plan of plans(); track plan.id) {
+          <c-col xs="12" md="6" xl="4">
+            <c-card class="h-100" [class]="'border-' + plan.color">
+              <c-card-header [class]="'bg-' + plan.color + ' text-white'">
+                <div class="d-flex align-items-center justify-content-between">
+                  <strong class="fs-5">{{ plan.name }}</strong>
+                  @if (plan.badge) {
+                    <c-badge [color]="plan.badgeColor ?? 'light'" shape="rounded-pill" class="text-dark">
+                      {{ plan.badge }}
+                    </c-badge>
+                  }
+                </div>
+                <div class="mt-1">
+                  <span class="fs-4 fw-bold">${{ plan.priceMonthly }}</span>
+                  <small class="opacity-75">/mes · ${{ plan.priceYearly }}/mes (anual)</small>
+                </div>
+              </c-card-header>
+              <c-card-body>
+                <p class="text-muted small mb-3">{{ plan.description }}</p>
+
+                <div class="mb-3">
+                  <small class="text-muted fw-semibold text-uppercase d-block mb-1">Perfil del cliente</small>
+                  <span class="small">{{ plan.audience }}</span>
+                </div>
+
+                <div class="mb-3">
+                  <small class="text-muted fw-semibold text-uppercase d-block mb-1">Destacados</small>
+                  <ul class="mb-0 ps-3">
+                    @for (h of plan.highlights; track h) {
+                    <li><small>{{ h }}</small></li>
+                    }
+                  </ul>
+                </div>
+
+                <div class="mb-3">
+                  <small class="text-muted fw-semibold text-uppercase d-block mb-1">Paquetes incluidos</small>
+                  <div class="d-flex flex-wrap gap-1">
+                    @for (pkg of plan.packages; track pkg) {
+                    <c-badge [color]="plan.color" variant="outline" shape="rounded-pill" style="font-size:.65rem">
+                      {{ pkg.startsWith('pkg_') ? pkg.replace('pkg_', '') : pkg }}
+                    </c-badge>
+                    }
+                  </div>
+                </div>
+
+                <div class="d-flex gap-3 pt-2 border-top">
+                  <div class="text-center">
+                    <div class="fw-bold" [class]="'text-' + plan.color">{{ plan.invoicesMonth }}</div>
+                    <small class="text-muted">fact/mes</small>
+                  </div>
+                  <div class="text-center">
+                    <div class="fw-bold" [class]="'text-' + plan.color">{{ plan.users }}</div>
+                    <small class="text-muted">usuarios</small>
+                  </div>
+                  <div class="text-center">
+                    <div class="fw-bold" [class]="'text-' + plan.color">{{ plan.companies }}</div>
+                    <small class="text-muted">empresas</small>
+                  </div>
+                </div>
+              </c-card-body>
+            </c-card>
+          </c-col>
+          }
+        </c-row>
+
+        <!-- Tabla comparativa rápida -->
+        <c-row class="mt-4">
+          <c-col xs="12">
+            <c-card>
+              <c-card-header><strong>Tabla comparativa rápida</strong></c-card-header>
+              <c-card-body class="p-0">
+                <table cTable responsive hover class="mb-0">
+                  <thead>
+                    <tr>
+                      <th>Característica</th>
+                      <th class="text-center text-success">Emprendedor</th>
+                      <th class="text-center text-primary">PYME</th>
+                      <th class="text-center text-warning">Profesional</th>
+                      <th class="text-center text-danger">Empresarial</th>
+                      <th class="text-center">Ilimitado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><small>Precio mensual</small></td>
+                      <td class="text-center"><small>$15</small></td>
+                      <td class="text-center"><small>$39</small></td>
+                      <td class="text-center"><small>$79</small></td>
+                      <td class="text-center"><small>$149</small></td>
+                      <td class="text-center"><small>$299</small></td>
+                    </tr>
+                    <tr>
+                      <td><small>Facturas/mes</small></td>
+                      <td class="text-center"><small>50</small></td>
+                      <td class="text-center"><small>300</small></td>
+                      <td class="text-center"><small>1.000</small></td>
+                      <td class="text-center"><small>5.000</small></td>
+                      <td class="text-center"><small>∞</small></td>
+                    </tr>
+                    <tr>
+                      <td><small>Usuarios</small></td>
+                      <td class="text-center"><small>1</small></td>
+                      <td class="text-center"><small>5</small></td>
+                      <td class="text-center"><small>15</small></td>
+                      <td class="text-center"><small>50</small></td>
+                      <td class="text-center"><small>∞</small></td>
+                    </tr>
+                    @for (row of [
+                      { label: 'Facturación electrónica SRI', vals: [true, true, true, true, true] },
+                      { label: 'Stock / Inventario', vals: [false, true, true, true, true] },
+                      { label: 'Retenciones', vals: [false, true, true, true, true] },
+                      { label: 'Compras', vals: [false, true, true, true, true] },
+                      { label: 'Contabilidad', vals: [false, false, true, true, true] },
+                      { label: 'Team Management', vals: [false, false, true, true, true] },
+                      { label: 'Multi-empresa', vals: [false, false, true, true, true] },
+                      { label: 'Soporte prioritario', vals: [false, false, false, true, true] }
+                    ]; track row.label) {
+                    <tr>
+                      <td><small>{{ row.label }}</small></td>
+                      @for (val of row.vals; track $index) {
+                      <td class="text-center">
+                        @if (val) {
+                          <svg cIcon name="cil-check-alt" class="text-success" style="width:16px"></svg>
+                        } @else {
+                          <svg cIcon name="cil-x" class="text-body-tertiary" style="width:16px"></svg>
+                        }
+                      </td>
+                      }
+                    </tr>
+                    }
+                  </tbody>
+                </table>
+              </c-card-body>
+            </c-card>
+          </c-col>
+        </c-row>
+        }
+
+        <!-- ══════════════════════════════════════════════════════════════════ -->
+        <!-- TAB: ÁRBOL DE PAQUETES                                           -->
+        <!-- ══════════════════════════════════════════════════════════════════ -->
+        @if (activeTab() === 'paquetes') {
+
+        <c-row class="mb-3">
+          <c-col xs="12">
+            <c-alert color="secondary" class="mb-0">
+              <strong>Árbol de dependencias:</strong> Un paquete solo se puede activar si sus dependencias están activas.
+              Al desactivar un paquete, todos los que dependen de él se desactivan en cascada.
+            </c-alert>
+          </c-col>
+        </c-row>
+
+        <c-row class="g-3">
+          @for (pkg of packages(); track pkg.code) {
+          <c-col xs="12" sm="6" xl="4">
+            <c-card class="h-100" [class]="'border-' + pkg.color">
+              <c-card-body class="p-3">
+                <div class="d-flex align-items-start justify-content-between mb-2">
+                  <div class="d-flex align-items-center gap-2">
+                    <svg cIcon [name]="pkg.icon" [class]="'text-' + pkg.color" style="width:20px;height:20px"></svg>
+                    <div>
+                      <span class="fw-semibold d-block">{{ pkg.name }}</span>
+                      @if (pkg.isSystem) {
+                        <c-badge color="secondary" shape="rounded-pill" style="font-size:.65rem">siempre activo</c-badge>
+                      } @else {
+                        <small [class]="'text-' + pkg.color" style="font-size:.75rem">
+                          add-on ${{ pkg.price }}/mes
+                        </small>
+                      }
+                    </div>
+                  </div>
+                  <code class="small text-muted">{{ pkg.code }}</code>
+                </div>
+
+                <p class="text-muted mb-2" style="font-size:.78rem">{{ pkg.description }}</p>
+
+                <div class="mb-2">
+                  <small class="text-muted d-block mb-1">Módulos que activa</small>
+                  <div class="d-flex flex-wrap gap-1">
+                    @for (mod of pkg.modules; track mod) {
+                    <c-badge [color]="pkg.color" variant="outline" shape="rounded-pill" style="font-size:.65rem">
+                      {{ mod }}
+                    </c-badge>
+                    }
+                  </div>
+                </div>
+
+                @if (pkg.dependencies.length > 0) {
+                <div>
+                  <small class="text-muted d-block mb-1">Requiere</small>
+                  <div class="d-flex flex-wrap gap-1">
+                    @for (dep of pkg.dependencies; track dep) {
+                    <c-badge color="secondary" shape="rounded-pill" style="font-size:.65rem">
+                      {{ dep.replace('pkg_', '') }}
+                    </c-badge>
+                    }
+                  </div>
+                </div>
+                }
+              </c-card-body>
+            </c-card>
+          </c-col>
+          }
+        </c-row>
+
+        <!-- Tabla de precios de add-ons -->
+        <c-row class="mt-4">
+          <c-col xs="12" md="8" xl="6">
+            <c-card>
+              <c-card-header><strong>Precios de referencia para add-ons</strong></c-card-header>
+              <c-card-body class="p-0">
+                <table cTable hover class="mb-0">
+                  <thead>
+                    <tr>
+                      <th>Paquete</th>
+                      <th>Módulos</th>
+                      <th class="text-end">Precio ref.</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (pkg of packages(); track pkg.code) {
+                    @if (!pkg.isSystem) {
+                    <tr>
+                      <td><small class="fw-semibold">{{ pkg.name }}</small></td>
+                      <td>
+                        <div class="d-flex flex-wrap gap-1">
+                          @for (m of pkg.modules; track m) {
+                          <c-badge color="secondary" shape="rounded-pill" style="font-size:.62rem">{{ m }}</c-badge>
+                          }
+                        </div>
+                      </td>
+                      <td class="text-end"><small class="fw-semibold">${{ pkg.price }}/mes</small></td>
+                    </tr>
+                    }
+                    }
+                  </tbody>
+                </table>
+              </c-card-body>
+            </c-card>
+          </c-col>
+        </c-row>
+        }
+
+        <!-- ══════════════════════════════════════════════════════════════════ -->
+        <!-- TAB: FLUJO ADD-ONS                                               -->
+        <!-- ══════════════════════════════════════════════════════════════════ -->
+        @if (activeTab() === 'addons') {
+
+        <c-row class="g-4">
+
+          <!-- Flujo de activación -->
+          <c-col xs="12" lg="7">
+            <c-card class="h-100">
+              <c-card-header><strong>Pasos para activar un add-on</strong></c-card-header>
+              <c-card-body>
+                @for (step of [
+                  { n: 1, icon: 'cil-phone',      color: 'info',    title: 'El cliente solicita el add-on', detail: 'El admin de la empresa detecta que necesita una funcionalidad no incluida en su plan (ej. contabilidad) y contacta al super_admin por WhatsApp, email o teléfono.' },
+                  { n: 2, icon: 'cil-magnifying-glass', color: 'warning', title: 'Super_admin verifica el plan', detail: 'Entra a /super-admin/companies/{id}/plugins. Identifica que el paquete NO está en plan.includedPackages (badge "Add-on · $X/mes" en el paquete).' },
+                  { n: 3, icon: 'cil-check',       color: 'primary', title: 'Confirma la activación con precio', detail: 'Al hacer click en el paquete, el sistema muestra el modal de add-on con el precio de referencia pre-llenado. El super_admin puede editar el precio si hay descuento y agregar notas.' },
+                  { n: 4, icon: 'cil-cloud-upload', color: 'success', title: 'Sistema registra el acuerdo', detail: 'Se actualiza company.enabledPackages, company.enabledModules y se agrega un registro en company.addonPackages[] con el precio acordado, fecha y uid del super_admin.' },
+                  { n: 5, icon: 'cil-money',        color: 'danger',  title: 'Facturación manual al cliente', detail: 'El super_admin factura al cliente el total: precio del plan + suma de add-ons. No hay cobro automático en el sistema.' }
+                ]; track step.n) {
+                <div class="d-flex gap-3 mb-3" [class.mb-4]="step.n < 5">
+                  <div class="d-flex flex-column align-items-center">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold text-white"
+                      [class]="'bg-' + step.color"
+                      style="width:36px;height:36px;min-width:36px;font-size:.85rem">
+                      {{ step.n }}
+                    </div>
+                    @if (step.n < 5) {
+                      <div class="flex-grow-1 mt-1" style="width:2px;background:var(--cui-border-color)"></div>
+                    }
+                  </div>
+                  <div class="pb-2">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                      <svg cIcon [name]="step.icon" [class]="'text-' + step.color" style="width:16px;height:16px"></svg>
+                      <span class="fw-semibold">{{ step.title }}</span>
+                    </div>
+                    <small class="text-muted">{{ step.detail }}</small>
+                  </div>
+                </div>
+                }
+              </c-card-body>
+            </c-card>
+          </c-col>
+
+          <!-- Panel derecho: detalles clave -->
+          <c-col xs="12" lg="5">
+
+            <c-card class="mb-3">
+              <c-card-header class="bg-success text-white">
+                <strong>¿Qué queda registrado en Firestore?</strong>
+              </c-card-header>
+              <c-card-body>
+                <pre class="mb-0 small" style="font-size:.72rem;white-space:pre-wrap">company &#123;
+  enabledPackages: [
+    ...paquetes del plan,
+    'pkg_accounting'  ← nuevo
+  ],
+  enabledModules: [
+    ...módulos del plan,
+    'accounting'      ← resuelto
+  ],
+  addonPackages: [&#123;
+    packageCode: 'pkg_accounting',
+    packageName: 'Módulo Contabilidad',
+    priceAtActivation: 29,
+    activatedAt: Timestamp.now(),
+    activatedBy: 'uid_superadmin',
+    notes: ''
+  &#125;]
+&#125;</pre>
+              </c-card-body>
+            </c-card>
+
+            <c-card class="mb-3">
+              <c-card-header class="bg-warning text-dark">
+                <strong>Al desactivar un add-on</strong>
+              </c-card-header>
+              <c-card-body>
+                <ul class="mb-0 ps-3 small">
+                  <li>Se elimina el código de <code>enabledPackages</code></li>
+                  <li>Se recalculan los módulos activos</li>
+                  <li>Se <strong>elimina el registro</strong> de <code>addonPackages[]</code></li>
+                  <li>La empresa pierde acceso al módulo inmediatamente</li>
+                  <li>Es reversible — se puede volver a activar</li>
+                </ul>
+              </c-card-body>
+            </c-card>
+
+            <c-card>
+              <c-card-header class="bg-danger text-white">
+                <strong>Al cambiar de plan</strong>
+              </c-card-header>
+              <c-card-body>
+                <ul class="mb-0 ps-3 small">
+                  <li>Los <code>addonPackages</code> se <strong>preservan</strong></li>
+                  <li>Si el nuevo plan incluye un add-on activo, el super_admin debe notificar al cliente que ya no se factura por separado</li>
+                  <li>Los límites (planLimits) y feature flags (planFeatures) se actualizan automáticamente</li>
+                </ul>
+              </c-card-body>
+            </c-card>
+
+          </c-col>
+
+          <!-- Ejemplo de modal de add-on (mockup visual) -->
+          <c-col xs="12">
+            <c-card class="border-primary">
+              <c-card-header>
+                <strong>Vista del modal de activación (referencia visual)</strong>
+              </c-card-header>
+              <c-card-body>
+                <div class="border rounded p-3 bg-body-secondary" style="max-width:480px">
+                  <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                    <svg cIcon name="cil-plus" class="text-success"></svg>
+                    <strong>Activar add-on: Módulo Contabilidad</strong>
+                  </div>
+                  <p class="text-muted small mb-3">
+                    Este paquete <strong>no está incluido en el plan PYME</strong>.
+                    Registrar como add-on genera un acuerdo comercial para facturación manual.
+                  </p>
+                  <div class="mb-3">
+                    <label class="form-label small fw-semibold">Precio acordado (USD/mes)</label>
+                    <input type="number" class="form-control form-control-sm" value="29" readonly />
+                    <small class="text-muted">Precio de referencia del paquete: $29/mes</small>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label small fw-semibold">Notas / motivo</label>
+                    <input type="text" class="form-control form-control-sm" placeholder="cortesía, plan personalizado, piloto..." readonly />
+                  </div>
+                  <div class="d-flex gap-2 justify-content-end">
+                    <button class="btn btn-sm btn-outline-secondary" disabled>Cancelar</button>
+                    <button class="btn btn-sm btn-success" disabled>Activar add-on</button>
+                  </div>
+                </div>
+              </c-card-body>
+            </c-card>
+          </c-col>
+
+        </c-row>
+        }
+
+        <!-- ══════════════════════════════════════════════════════════════════ -->
+        <!-- TAB: CASOS DE USO                                                -->
+        <!-- ══════════════════════════════════════════════════════════════════ -->
+        @if (activeTab() === 'casos') {
+
+        <c-row class="g-4">
+          @for (scenario of scenarios; track scenario.title) {
+          <c-col xs="12" lg="6">
+            <c-card class="h-100">
+              <c-card-header>
+                <svg cIcon name="cil-user" class="me-2 text-primary"></svg>
+                <strong>{{ scenario.title }}</strong>
+              </c-card-header>
+              <c-card-body>
+                <div class="mb-2">
+                  <c-badge color="secondary" shape="rounded-pill" class="me-1">{{ scenario.profile }}</c-badge>
+                </div>
+
+                <div class="mb-2">
+                  <small class="text-muted fw-semibold text-uppercase">Necesidad</small>
+                  <p class="mb-0 small mt-1">{{ scenario.need }}</p>
+                </div>
+
+                <div class="mb-2">
+                  <small class="text-muted fw-semibold text-uppercase">Solución</small>
+                  <p class="mb-0 small mt-1">{{ scenario.solution }}</p>
+                </div>
+
+                <div class="d-flex align-items-center gap-2 py-2 px-3 rounded mt-3"
+                  style="background:var(--cui-primary-bg-subtle)">
+                  <svg cIcon name="cil-credit-card" class="text-primary flex-shrink-0"></svg>
+                  <strong class="small text-primary">{{ scenario.plan }}</strong>
+                </div>
+
+                @if (scenario.addons?.length) {
+                <div class="mt-2">
+                  @for (addon of scenario.addons; track addon) {
+                  <div class="d-flex align-items-center gap-2 py-1 px-3 rounded"
+                    style="background:var(--cui-success-bg-subtle)">
+                    <svg cIcon name="cil-plus" class="text-success flex-shrink-0" style="width:14px"></svg>
+                    <small class="text-success">{{ addon }}</small>
+                  </div>
+                  }
+                </div>
+                }
+
+                @if (scenario.tip) {
+                <div class="mt-3 p-2 rounded border-start border-4 border-warning bg-body-secondary">
+                  <small>
+                    <svg cIcon name="cil-lightbulb" class="text-warning me-1" style="width:14px"></svg>
+                    <strong>Tip:</strong> {{ scenario.tip }}
+                  </small>
+                </div>
+                }
+              </c-card-body>
+            </c-card>
+          </c-col>
+          }
+        </c-row>
+        }
+
+        <!-- ══════════════════════════════════════════════════════════════════ -->
+        <!-- TAB: FAQ                                                         -->
+        <!-- ══════════════════════════════════════════════════════════════════ -->
+        @if (activeTab() === 'faq') {
+
+        <!-- Filtro por categoría -->
+        <div class="d-flex flex-wrap gap-2 mb-4">
+          @for (cat of faqCategories; track cat.id) {
+          <button class="btn btn-sm"
+            [class.btn-primary]="activeFaqCategory() === cat.id"
+            [class.btn-outline-secondary]="activeFaqCategory() !== cat.id"
+            (click)="activeFaqCategory.set(cat.id)">
+            {{ cat.label }}
+          </button>
+          }
+        </div>
+
+        <c-accordion [flush]="true">
+          @for (faq of filteredFaqs(); track faq.question; let i = $index) {
+          <c-accordion-item #faqItem="cAccordionItem" [visible]="false">
+            <ng-template cTemplateId="accordionHeaderTemplate">
+              <button (click)="faqItem.toggleItem()" [collapsed]="!faqItem.visible" cAccordionButton
+                class="d-flex align-items-center gap-2 text-start">
+                <c-badge
+                  [color]="faq.category === 'pricing' ? 'success' :
+                           faq.category === 'packages' ? 'primary' :
+                           faq.category === 'addons' ? 'info' :
+                           faq.category === 'limits' ? 'warning' : 'secondary'"
+                  shape="rounded-pill" style="font-size:.65rem;min-width:60px;text-align:center;flex-shrink:0">
+                  {{ faqCategoryLabel(faq.category) }}
+                </c-badge>
+                <span>{{ faq.question }}</span>
+              </button>
+            </ng-template>
+            <ng-template cTemplateId="accordionBodyTemplate">
+              <p class="mb-0 text-muted">{{ faq.answer }}</p>
+            </ng-template>
+          </c-accordion-item>
+          }
+        </c-accordion>
+        }
+
+      </div><!-- /p-4 -->
+    </c-card-body>
+  </c-card>
+
+  } <!-- /!loading() -->
+
+</c-container>

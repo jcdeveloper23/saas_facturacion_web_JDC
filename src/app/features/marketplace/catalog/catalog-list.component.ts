@@ -107,16 +107,17 @@ export class CatalogListComponent implements OnInit, OnDestroy {
   });
 
   ngOnInit(): void {
-    const slug = this.route.parent?.snapshot.paramMap.get('slug') ?? '';
+    this.catalogSlug = this.route.parent?.snapshot.paramMap.get('slug') ?? '';
+    const slug = this.catalogSlug;
     this.subs.add(this.catalogSvc.getCatalogBySlug(slug).subscribe({
       next: data => this.catalog.set(data),
       error: err => console.error('[CatalogList] catalog error:', err)
     }));
     this.subs.add(this.catalogSvc.getPublicProducts(slug).subscribe({
-      next: products => { 
-        this.allProducts.set(products); 
+      next: products => {
+        this.allProducts.set(products);
         this.loadLikes(products);
-        this.loading.set(false); 
+        this.loading.set(false);
       },
       error: err => { console.error('[CatalogList] products error:', err); this.loading.set(false); }
     }));
@@ -127,47 +128,46 @@ export class CatalogListComponent implements OnInit, OnDestroy {
   likedProducts = signal<Set<string>>(new Set());
   likesCounts   = signal<Record<string, number>>({});
 
+  private catalogSlug = '';
+
   private loadLikes(products: PublicProduct[]) {
-    // Restaurar likes propios
+    // Restaurar likes propios desde localStorage
     try {
       const saved = localStorage.getItem('fs_catalog_likes');
-      if (saved) {
-        this.likedProducts.set(new Set(JSON.parse(saved)));
-      }
+      if (saved) this.likedProducts.set(new Set(JSON.parse(saved)));
     } catch {}
 
-    // Generar contadores pseudoaleatorios estables para cada producto
-    const counts: Record<string, number> = {};
-    for (const p of products) {
-      const charCodeSum = (p.id.charCodeAt(0) || 0) + (p.id.charCodeAt(p.id.length - 1) || 0);
-      const base = charCodeSum % 35; // numero maximo de likes falsos 34
-      const myLike = this.likedProducts().has(p.id) ? 1 : 0;
-      counts[p.id] = base + myLike;
-    }
-    this.likesCounts.set(counts);
+    // Suscribir al stream real de contadores desde Firestore
+    this.subs.add(
+      this.catalogSvc.getLikesForCatalog(this.catalogSlug).subscribe({
+        next: counts => this.likesCounts.set(counts),
+        error: err  => console.error('[CatalogList] likes error:', err)
+      })
+    );
   }
 
   toggleLike(e: Event, productId: string): void {
     e.stopPropagation();
-    
+
     const currentLiked = new Set(this.likedProducts());
     const isLiked = currentLiked.has(productId);
-    
+    const delta: 1 | -1 = isLiked ? -1 : 1;
+
+    // Actualizar estado local inmediatamente (optimistic UI)
     if (isLiked) {
       currentLiked.delete(productId);
     } else {
       currentLiked.add(productId);
     }
     this.likedProducts.set(currentLiked);
-    
+
     try {
       localStorage.setItem('fs_catalog_likes', JSON.stringify(Array.from(currentLiked)));
     } catch {}
-    
-    this.likesCounts.update(counts => ({
-      ...counts,
-      [productId]: Math.max(0, (counts[productId] || 0) + (isLiked ? -1 : 1))
-    }));
+
+    // Persistir en Firestore
+    this.catalogSvc.toggleProductLike(this.catalogSlug, productId, delta)
+      .catch(err => console.error('[CatalogList] toggleLike error:', err));
   }
 
   ngOnDestroy(): void { this.subs.unsubscribe(); }

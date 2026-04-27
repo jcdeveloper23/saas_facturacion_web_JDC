@@ -12,16 +12,20 @@
  *   No changes needed in guards, nav filter, or TenantService.
  *
  * DEPENDENCY TREE:
- *   pkg_base (always active)
- *     ├── pkg_team_mgmt
- *     └── pkg_sales
- *           ├── pkg_sales_advanced   (quotes, orders, proformas)
- *           ├── pkg_pos              (punto de venta táctil)
- *           ├── pkg_sri
- *           │     └── pkg_accounting
- *           ├── pkg_purchases
- *           ├── pkg_reports
- *           └── pkg_marketplace
+ *   pkg_base (always active, price: 0)
+ *     ├── pkg_team_mgmt              ($49/mes add-on)
+ *     └── pkg_sales                  ($29/mes add-on)
+ *           ├── pkg_stock            ($19/mes add-on) ← inventario separado
+ *           ├── pkg_sales_advanced   ($19/mes add-on) (quotes, orders, proformas)
+ *           ├── pkg_pos              ($15/mes add-on) (punto de venta táctil)
+ *           ├── pkg_sri              ($24/mes add-on)
+ *           │     └── pkg_accounting ($29/mes add-on)
+ *           ├── pkg_purchases        ($19/mes add-on)
+ *           ├── pkg_reports          ($9/mes add-on)
+ *           └── pkg_marketplace      ($15/mes add-on)
+ *
+ * NOTA: pkg_stock está separado de pkg_sales para permitir planes con
+ * facturación sin inventario (ej. Plan Emprendedor: features.stockModule = false).
  */
 
 export interface PackageSeed {
@@ -63,8 +67,8 @@ export const PLUGIN_PACKAGES_SEED: PackageSeed[] = [
   {
     code:          'pkg_sales',
     name:          'Facturación Base',
-    description:   'Personas (clientes, proveedores, empleados), catálogo de artículos, facturas de venta e inventario básico.',
-    modules:       ['personas', 'products', 'invoices', 'stock'],
+    description:   'Personas (clientes, proveedores, empleados), catálogo de artículos y facturas de venta.',
+    modules:       ['personas', 'products', 'invoices'],
     dependencies:  ['pkg_base'],
     price:         29,
     currency:      'USD',
@@ -73,6 +77,25 @@ export const PLUGIN_PACKAGES_SEED: PackageSeed[] = [
     color:         'primary',
     isSystem:      false,
     order:         2,
+    state:         true
+  },
+
+  // ─── INVENTARIO Y STOCK ───────────────────────────────────────────────────
+  // Separado de pkg_sales para permitir planes con facturación sin inventario.
+  // Ejemplo: Plan Emprendedor incluye pkg_sales pero features.stockModule = false.
+  {
+    code:          'pkg_stock',
+    name:          'Inventario y Stock',
+    description:   'Control de inventario, movimientos de stock, kardex y valorización de existencias.',
+    modules:       ['stock'],
+    dependencies:  ['pkg_sales'],
+    price:         19,
+    currency:      'USD',
+    billingPeriod: 'monthly',
+    icon:          'cil-storage',
+    color:         'warning',
+    isSystem:      false,
+    order:         3,
     state:         true
   },
 

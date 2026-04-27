@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { moduleGuard } from '../../core/guards';
+import { moduleGuard, planLimitGuard } from '../../core/guards';
 
 export const PERSONAS_ROUTES: Routes = [
   {
@@ -11,8 +11,8 @@ export const PERSONAS_ROUTES: Routes = [
   },
   {
     path: 'new',
-    canActivate: [moduleGuard],
-    data: { module: 'personas', title: 'Nueva Persona' },
+    canActivate: [moduleGuard, planLimitGuard],
+    data: { module: 'personas', limitResource: 'personas', title: 'Nueva Persona' },
     loadComponent: () =>
       import('./person-form.component').then(m => m.PersonFormComponent)
   },

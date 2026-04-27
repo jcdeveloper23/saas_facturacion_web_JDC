@@ -60,6 +60,19 @@ export interface Company {
   planLimits?: Plan['limits'];
   planFeatures?: PlanFeatureFlags;
 
+  // Paquetes add-on activos fuera del plan base.
+  // Escrito por CompanyPluginsComponent cuando el super_admin activa un paquete
+  // que NO está en plan.includedPackages del plan actual de la empresa.
+  // Es el registro del acuerdo comercial para facturación manual.
+  addonPackages?: Array<{
+    packageCode: string;             // PluginPackage.code
+    packageName: string;             // snapshot del nombre en el momento de activación
+    priceAtActivation: number;       // snapshot del price (USD/mes acordado)
+    activatedAt: Timestamp;
+    activatedBy: string;             // uid del super_admin
+    notes?: string;                  // 'cortesía', 'plan personalizado', 'piloto', etc.
+  }>;
+
   // Totales acumulados (escritos por CF en cada create/activate/deactivate)
   totalPersonasActive?: number;
   totalCustomersActive?: number;

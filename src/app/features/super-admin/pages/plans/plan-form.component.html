@@ -22,7 +22,7 @@
 }
 
 <!-- ── Leyenda de convención ───────────────────────────────────────────────── -->
-<c-alert color="info" class="mb-4 d-flex align-items-start gap-3 flex-wrap">
+<c-alert color="secondary" class="mb-4 d-flex align-items-start gap-3 flex-wrap">
   <svg cIcon name="cilInfo" size="lg" class="mt-1 flex-shrink-0"></svg>
   <div>
     <strong class="d-block mb-1">Convención de valores numéricos</strong>
@@ -489,9 +489,9 @@
 
               <div class="package-card-header">
                 <div class="d-flex align-items-center gap-2">
-                  <c-badge [color]="pkg.color || 'primary'" shape="rounded-pill">
-                    <svg cIcon [name]="pkg.icon || 'cilPuzzle'" size="sm"></svg>
-                  </c-badge>
+                  <div class="pkg-icon-wrap" [class]="'pkg-icon-' + (pkg.color || 'secondary')">
+                    <svg cIcon [name]="pkg.icon || 'cilPuzzle'" style="width:15px;height:15px"></svg>
+                  </div>
                   <span class="fw-semibold">{{ pkg.name }}</span>
                   @if (pkg.isSystem) {
                     <c-badge color="secondary" size="sm">Sistema</c-badge>
@@ -546,30 +546,127 @@
         </div>
       }
 
-      <!-- Flags de nivel de servicio (no ligados a paquetes) -->
+      <!-- Feature flags -->
       <hr class="my-4">
-      <p class="fw-semibold text-body-secondary small mb-3">Características de nivel de servicio</p>
-      <div formGroupName="features" class="features-grid">
-        <div class="feature-item">
-          <c-form-check [switch]="true">
-            <input cFormCheckInput type="checkbox" formControlName="prioritySupport" id="fSupport">
-            <label cFormCheckLabel for="fSupport">Soporte Prioritario</label>
-          </c-form-check>
-          <div class="feature-hint">Cola de soporte preferencial con tiempos de respuesta garantizados.</div>
+      <div formGroupName="features">
+
+        <!-- Módulos de negocio -->
+        <p class="fw-semibold text-body-secondary small mb-1">Módulos de negocio</p>
+        <p class="text-muted" style="font-size:0.8rem; margin-bottom:0.75rem;">
+          Controlan si la empresa puede usar una funcionalidad <strong>aunque tenga el paquete activo</strong>.
+          Un flag desactivado bloquea el acceso independientemente de los paquetes incluidos.
+        </p>
+        <div class="features-grid mb-4">
+
+          <div class="feature-item">
+            <c-form-check [switch]="true">
+              <input cFormCheckInput type="checkbox" formControlName="electronicInvoicing" id="fEInvoice">
+              <label cFormCheckLabel for="fEInvoice">Facturación Electrónica SRI</label>
+            </c-form-check>
+            <div class="feature-hint">
+              Si está desactivado, las facturas solo se guardan como borrador — no se envían al SRI.
+              Útil para planes de prueba o en períodos de gracia.
+            </div>
+          </div>
+
+          <div class="feature-item">
+            <c-form-check [switch]="true">
+              <input cFormCheckInput type="checkbox" formControlName="purchasesModule" id="fPurchases">
+              <label cFormCheckLabel for="fPurchases">Módulo de Compras</label>
+            </c-form-check>
+            <div class="feature-hint">
+              Habilita el registro de órdenes de compra y liquidaciones. Requiere también <code>pkg_purchases</code>.
+            </div>
+          </div>
+
+          <div class="feature-item">
+            <c-form-check [switch]="true">
+              <input cFormCheckInput type="checkbox" formControlName="accountingModule" id="fAccounting">
+              <label cFormCheckLabel for="fAccounting">Módulo Contable</label>
+            </c-form-check>
+            <div class="feature-hint">
+              Habilita contabilidad completa (plan de cuentas NIIF, asientos, balances). Requiere <code>pkg_accounting</code>.
+            </div>
+          </div>
+
+          <div class="feature-item">
+            <c-form-check [switch]="true">
+              <input cFormCheckInput type="checkbox" formControlName="stockModule" id="fStock">
+              <label cFormCheckLabel for="fStock">Control de Inventario</label>
+            </c-form-check>
+            <div class="feature-hint">
+              Habilita movimientos de stock y kardex. Requiere <code>pkg_stock</code>.
+              El Plan Emprendedor puede tener <code>pkg_sales</code> sin stock activando solo facturas.
+            </div>
+          </div>
+
+          <div class="feature-item">
+            <c-form-check [switch]="true">
+              <input cFormCheckInput type="checkbox" formControlName="teamManagementModule" id="fTeam">
+              <label cFormCheckLabel for="fTeam">Gestión de Equipos</label>
+            </c-form-check>
+            <div class="feature-hint">
+              Habilita proyectos Kanban, tareas y control de tiempos. Requiere <code>pkg_team_mgmt</code>.
+            </div>
+          </div>
+
+          <div class="feature-item">
+            <c-form-check [switch]="true">
+              <input cFormCheckInput type="checkbox" formControlName="publicCatalogModule" id="fCatalog">
+              <label cFormCheckLabel for="fCatalog">Catálogo Público</label>
+            </c-form-check>
+            <div class="feature-hint">
+              Habilita el catálogo de productos accesible sin login. Requiere <code>pkg_marketplace</code>.
+            </div>
+          </div>
+
+          <div class="feature-item">
+            <c-form-check [switch]="true">
+              <input cFormCheckInput type="checkbox" formControlName="publicApiModule" id="fApi">
+              <label cFormCheckLabel for="fApi">API Pública</label>
+            </c-form-check>
+            <div class="feature-hint">
+              Habilita el acceso a la API REST de la empresa para integraciones externas.
+              Ver también el límite de <em>Llamadas API/mes</em> en Operaciones.
+            </div>
+          </div>
+
         </div>
-        <div class="feature-item">
-          <c-form-check [switch]="true">
-            <input cFormCheckInput type="checkbox" formControlName="betaAccess" id="fBeta">
-            <label cFormCheckLabel for="fBeta">Acceso Beta</label>
-          </c-form-check>
-          <div class="feature-hint">Acceso anticipado a nuevas funcionalidades antes del lanzamiento general.</div>
-        </div>
-        <div class="feature-item">
-          <c-form-check [switch]="true">
-            <input cFormCheckInput type="checkbox" formControlName="multiCompanyMode" id="fMulti">
-            <label cFormCheckLabel for="fMulti">Modo Multi-empresa</label>
-          </c-form-check>
-          <div class="feature-hint">Habilita el selector de empresa en la UI. Requiere "Empresas por cuenta" &gt; 1.</div>
+
+        <!-- Nivel de servicio -->
+        <p class="fw-semibold text-body-secondary small mb-1">Nivel de servicio</p>
+        <p class="text-muted" style="font-size:0.8rem; margin-bottom:0.75rem;">
+          Atributos del plan no ligados a paquetes específicos.
+        </p>
+        <div class="features-grid">
+
+          <div class="feature-item">
+            <c-form-check [switch]="true">
+              <input cFormCheckInput type="checkbox" formControlName="prioritySupport" id="fSupport">
+              <label cFormCheckLabel for="fSupport">Soporte Prioritario</label>
+            </c-form-check>
+            <div class="feature-hint">Cola de soporte preferencial con tiempos de respuesta garantizados (SLA reducido).</div>
+          </div>
+
+          <div class="feature-item">
+            <c-form-check [switch]="true">
+              <input cFormCheckInput type="checkbox" formControlName="betaAccess" id="fBeta">
+              <label cFormCheckLabel for="fBeta">Acceso Beta</label>
+            </c-form-check>
+            <div class="feature-hint">Acceso anticipado a nuevas funcionalidades antes del lanzamiento general.</div>
+          </div>
+
+          <div class="feature-item">
+            <c-form-check [switch]="true">
+              <input cFormCheckInput type="checkbox" formControlName="multiCompanyMode" id="fMulti">
+              <label cFormCheckLabel for="fMulti">Modo Multi-empresa</label>
+            </c-form-check>
+            <div class="feature-hint">
+              Habilita el selector de empresa en la barra lateral.
+              Requiere también <em>Empresas por cuenta</em> &gt; 1 en la sección Usuarios.
+            </div>
+          </div>
+
         </div>
       </div>
 

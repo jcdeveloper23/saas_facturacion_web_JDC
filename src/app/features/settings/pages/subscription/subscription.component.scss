@@ -1,0 +1,48 @@
+:host {
+  display: block;
+}
+
+.resource-row {
+  margin-bottom: 1rem;
+
+  small {
+    font-size: 0.82rem;
+  }
+}
+
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.5rem;
+
+  .feature-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+  }
+}
+
+.addon-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--cui-border-color-translucent, rgba(0,0,0,.08));
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  .addon-price {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--cui-primary, #321fdb);
+    white-space: nowrap;
+  }
+
+  .addon-meta {
+    font-size: 0.75rem;
+    color: var(--cui-text-secondary, #6c757d);
+  }
+}

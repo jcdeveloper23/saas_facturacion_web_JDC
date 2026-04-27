@@ -70,13 +70,31 @@ export interface PlanInfraLimits {
   usageHistoryMonths: number;      // meses de contadores de uso conservados
 }
 
-// ─── Feature flags de nivel de servicio ──────────────────────────────────────
-// Solo flags NO ligados a paquetes. Los módulos de negocio se derivan de
-// plan.includedModules (códigos de paquetes: 'pkg_sales', 'pkg_sri', etc.).
+// ─── Feature flags ────────────────────────────────────────────────────────────
+//
+// Módulos de negocio: controlan si la empresa puede usar una funcionalidad aunque
+// tenga el paquete activo. Permiten bundles con el mismo set de paquetes pero
+// comportamiento diferenciado por plan (ej. borrador vs. emisión real SRI).
+//
+// Doble condición para acceder a un módulo:
+//   (1) features.[flag] === true         ← verificado por featureFlagGuard
+//   (2) módulo está en enabledModules    ← verificado por moduleGuard existente
+//
+// Nivel de servicio: no están ligados a paquetes, son atributos del plan.
 
 export interface PlanFeatureFlags {
-  prioritySupport: boolean;
-  betaAccess: boolean;
+  // ── Módulos de negocio ─────────────────────────────────────────────────────
+  electronicInvoicing: boolean;    // false = solo modo borrador, no envía al SRI
+  purchasesModule: boolean;        // false = módulo compras oculto aunque tenga pkg_purchases
+  accountingModule: boolean;       // false = contabilidad oculta aunque tenga pkg_accounting
+  stockModule: boolean;            // false = inventario oculto aunque tenga pkg_stock
+  teamManagementModule: boolean;   // false = team mgmt oculto aunque tenga pkg_team_mgmt
+  publicCatalogModule: boolean;    // false = catálogo público deshabilitado
+  publicApiModule: boolean;        // false = API pública deshabilitada
+
+  // ── Nivel de servicio ──────────────────────────────────────────────────────
+  prioritySupport: boolean;        // acceso a soporte prioritario (SLA reducido)
+  betaAccess: boolean;             // acceso a features en beta antes del lanzamiento
   multiCompanyMode: boolean;       // habilita UI de cambio de empresa (requiere companiesPerAccount > 1)
 }
 
@@ -106,10 +124,27 @@ export interface Plan {
 
   features: PlanFeatureFlags;
 
-  // Códigos de paquetes incluidos en este plan (ej: ['pkg_base', 'pkg_sales', 'pkg_sri']).
-  // Al asignar el plan a una empresa, estos paquetes se activan automáticamente.
-  // Los módulos individuales se resuelven a partir de los paquetes vía PluginPackagesService.
-  includedModules: string[];
+  /**
+   * Códigos de PAQUETES (PluginPackage.code) incluidos en este plan.
+   * Ejemplos: ['pkg_base', 'pkg_sales', 'pkg_sri', 'pkg_marketplace']
+   *
+   * Al asignar el plan a una empresa, la CF assignPlanToCompany:
+   *   1. Lee cada paquete de /plugin-packages
+   *   2. Resuelve la unión de todos sus modules[]
+   *   3. Escribe enabledPackages y enabledModules en la empresa
+   *
+   * ⚠️  Son códigos de PAQUETES, no de módulos. Los módulos siempre se
+   *     derivan de los paquetes — nunca se listan módulos directamente aquí.
+   */
+  includedPackages: string[];
+
+  // ─── Metadatos de presentación (UI / Guía Comercial) ─────────────────────────
+  // Opcionales: se usan para renderizar la Guía Comercial y la página de pricing.
+  // Se populan en el seed y se pueden editar desde el formulario de planes.
+  color?: string;        // CoreUI color: 'success' | 'primary' | 'warning' | 'danger' | 'dark'
+  badgeColor?: string;   // Color del badge de destacado: 'warning' | 'info' | etc.
+  audience?: string;     // Perfil del cliente objetivo: 'Personas naturales, RIMPE…'
+  highlights?: string[]; // Puntos clave de venta: ['50 facturas/mes', '1 usuario', …]
 
   createdAt: Timestamp;
   updatedAt: Timestamp;

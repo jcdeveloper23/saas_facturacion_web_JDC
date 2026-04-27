@@ -110,10 +110,10 @@
                 <strong>{{ plan.limits?.multiCompany?.companiesPerAccount === -1 ? '∞' : plan.limits?.multiCompany?.companiesPerAccount }}</strong>
               </div>
             </div>
-            @if (plan.includedModules?.length) {
+            @if (plan.includedPackages?.length) {
               <div class="mt-2">
-                @for (mod of plan.includedModules; track mod) {
-                  <c-badge color="info" class="me-1 mb-1" style="font-size:0.7rem">{{ mod }}</c-badge>
+                @for (pkg of plan.includedPackages; track pkg) {
+                  <c-badge color="info" class="me-1 mb-1" style="font-size:0.7rem">{{ pkg }}</c-badge>
                 }
               </div>
             }

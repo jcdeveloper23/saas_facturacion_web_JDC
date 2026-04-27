@@ -18,27 +18,44 @@ import {
   HeaderTogglerDirective,
   NavItemComponent,
   NavLinkDirective,
-  SidebarToggleDirective
+  SidebarToggleDirective,
+  SpinnerComponent
 } from '@coreui/angular';
 
 import { IconDirective } from '@coreui/icons-angular';
 import { AuthService } from '../../../core/services/auth.service';
+import { TenantService } from '../../../core/services/tenant.service';
 
 @Component({
   selector: 'app-default-header',
   templateUrl: './default-header.component.html',
-  imports: [ContainerComponent, HeaderTogglerDirective, SidebarToggleDirective, IconDirective, HeaderNavComponent, NavItemComponent, NavLinkDirective, RouterLink, RouterLinkActive, NgTemplateOutlet, BreadcrumbRouterComponent, DropdownComponent, DropdownToggleDirective, AvatarComponent, DropdownMenuDirective, DropdownItemDirective, BadgeComponent, DropdownDividerDirective]
+  imports: [NgTemplateOutlet, SpinnerComponent, ContainerComponent, HeaderTogglerDirective, SidebarToggleDirective, IconDirective, HeaderNavComponent, NavItemComponent, NavLinkDirective, RouterLink, RouterLinkActive, BreadcrumbRouterComponent, DropdownComponent, DropdownToggleDirective, AvatarComponent, DropdownMenuDirective, DropdownItemDirective, BadgeComponent, DropdownDividerDirective]
 })
 export class DefaultHeaderComponent extends HeaderComponent {
 
   readonly #colorModeService = inject(ColorModeService);
-  readonly #authService = inject(AuthService);
-  readonly #router = inject(Router);
+  readonly #authService      = inject(AuthService);
+  readonly #tenantService    = inject(TenantService);
+  readonly #router           = inject(Router);
 
   readonly colorMode = this.#colorModeService.colorMode;
 
   // Datos del usuario actual
   readonly currentUser = this.#authService.user;
+
+  // Multi-empresa
+  readonly managedCompanies   = computed(() => this.#tenantService.managedCompanies());
+  readonly multiCompanyEnabled = computed(() => this.#tenantService.multiCompanyEnabled());
+  readonly switchingCompany    = computed(() => this.#tenantService.switchingCompany());
+  readonly activeCompanyId     = computed(() => this.currentUser()?.companyId ?? '');
+
+  readonly showCompanySwitcher = computed(() =>
+    this.multiCompanyEnabled() && this.managedCompanies().length > 1
+  );
+
+  readonly activeCompanyName = computed(() =>
+    this.managedCompanies().find(c => c.companyId === this.activeCompanyId())?.companyName ?? 'Empresa'
+  );
 
   readonly colorModes = [
     { name: 'light', text: 'Light', icon: 'cilSun' },
@@ -131,6 +148,16 @@ export class DefaultHeaderComponent extends HeaderComponent {
     { id: 3, title: 'Add new layouts', value: 75, color: 'info' },
     { id: 4, title: 'Angular Version', value: 100, color: 'success' }
   ];
+
+  async switchCompany(companyId: string): Promise<void> {
+    if (companyId === this.activeCompanyId() || this.switchingCompany()) return;
+    try {
+      await this.#authService.switchCompany(companyId);
+      this.#router.navigate(['/dashboard']);
+    } catch (err) {
+      console.error('[Header] switchCompany error:', err);
+    }
+  }
 
   /**
    * Cierra la sesión del usuario y redirige al login

@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { moduleGuard } from '../../core/guards';
+import { moduleGuard, planLimitGuard } from '../../core/guards';
 
 export const PRODUCTS_ROUTES: Routes = [
   {
@@ -11,8 +11,8 @@ export const PRODUCTS_ROUTES: Routes = [
   },
   {
     path: 'new',
-    canActivate: [moduleGuard],
-    data: { module: 'products', title: 'Nuevo Artículo' },
+    canActivate: [moduleGuard, planLimitGuard],
+    data: { module: 'products', limitResource: 'products', title: 'Nuevo Artículo' },
     loadComponent: () =>
       import('./product-form.component').then(m => m.ProductFormComponent)
   },

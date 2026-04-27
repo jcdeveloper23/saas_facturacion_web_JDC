@@ -56,6 +56,12 @@ export const SUPER_ADMIN_ROUTES: Routes = [
         data: { title: 'Plans' }
       },
       {
+        path: 'plans/guide',
+        loadComponent: () =>
+          import('./pages/plans/plan-guide.component').then(m => m.PlanGuideComponent),
+        data: { title: 'Guía Comercial — Planes y Add-ons' }
+      },
+      {
         path: 'plans/new',
         loadComponent: () =>
           import('./pages/plans/plan-form.component').then(m => m.PlanFormComponent),

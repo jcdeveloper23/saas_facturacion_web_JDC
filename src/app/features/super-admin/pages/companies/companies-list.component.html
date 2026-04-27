@@ -58,7 +58,7 @@
                 </c-badge>
               </td>
               <td class="small">
-                {{ company.subscriptionEnd?.toDate() | date:'dd/MM/yyyy' }}
+                {{ safeDate(company.subscriptionEnd) | date:'dd/MM/yyyy' }}
               </td>
               <td>
                 <div class="d-flex gap-2">
@@ -164,13 +164,13 @@
           </div>
         </div>
 
-        <!-- Módulos incluidos -->
-        @if (plan.includedModules?.length) {
+        <!-- Paquetes incluidos -->
+        @if (plan.includedPackages?.length) {
           <div>
-            <small class="text-medium-emphasis">Módulos incluidos:</small>
+            <small class="text-medium-emphasis">Paquetes incluidos:</small>
             <div class="mt-1">
-              @for (mod of plan.includedModules; track mod) {
-                <c-badge color="info" class="me-1">{{ mod }}</c-badge>
+              @for (pkg of plan.includedPackages; track pkg) {
+                <c-badge color="info" class="me-1">{{ pkg }}</c-badge>
               }
             </div>
           </div>

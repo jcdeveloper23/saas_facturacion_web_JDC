@@ -2,6 +2,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { Firestore, doc, onSnapshot } from '@angular/fire/firestore';
 import { Company } from '../../features/super-admin/models/company.interface';
 import { MonthlyUsage } from '../../features/super-admin/models/monthly-usage.interface';
+import { PlanFeatureFlags } from '../../features/super-admin/models/plan.interface';
 
 export type LimitedResource = 'invoices' | 'retentions' | 'debitNotes' | 'purchases' | 'personas' | 'products' | 'users';
 
@@ -84,5 +85,16 @@ export class PlanLimitsService {
     const limit = this.getLimit(resource);
     if (limit === -1) return true;
     return this.usagePercent(resource) < 100;
+  }
+
+  /**
+   * Verifica síncronamente si un feature flag del plan está habilitado.
+   * Se lee desde el snapshot del company document (desnormalizado desde el plan).
+   * Retorna true si planFeatures aún no cargó (evita bloqueos en arranque).
+   */
+  isFeatureEnabled(flag: keyof PlanFeatureFlags): boolean {
+    const features = this.companyDoc()?.planFeatures;
+    if (!features) return true;
+    return features[flag] === true;
   }
 }

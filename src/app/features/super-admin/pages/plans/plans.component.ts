@@ -1,6 +1,6 @@
 import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
 import {
   CardComponent, CardBodyComponent, CardHeaderComponent,
@@ -18,7 +18,7 @@ import { NotificationService } from '../../../../core/services/notification.serv
   styleUrl: './plans.component.scss',
   standalone: true,
   imports: [
-    CommonModule,
+    CommonModule, RouterLink,
     CardComponent, CardBodyComponent, CardHeaderComponent,
     TableDirective, BadgeComponent,
     ButtonDirective, SpinnerComponent, RowComponent, ColComponent,
@@ -33,6 +33,7 @@ export class PlansComponent implements OnInit, OnDestroy {
 
   plans             = signal<Plan[]>([]);
   loading           = signal(true);
+  syncing           = signal(false);
   companiesPerPlan  = signal<Map<string, number>>(new Map());
 
   ngOnInit(): void {
@@ -78,6 +79,29 @@ export class PlansComponent implements OnInit, OnDestroy {
 
   goToDetail(plan: Plan): void {
     this.router.navigate(['/super-admin/plans', plan.id]);
+  }
+
+  async syncPlans(): Promise<void> {
+    if (this.syncing()) return;
+    const ok = confirm(
+      '¿Sincronizar los 5 planes y 11 paquetes por defecto?\n\n' +
+      'Se usará merge — los campos ya personalizados no se sobreescriben.\n' +
+      'Si un plan no existe, se creará. Si ya existe, solo se actualizan los campos del seed.'
+    );
+    if (!ok) return;
+    this.syncing.set(true);
+    try {
+      const { plans, packages, deleted } = await this.svc.syncDefaultPlans();
+      const msg = deleted > 0
+        ? `Sincronización completa — ${plans} planes, ${packages} paquetes actualizados · ${deleted} duplicados eliminados`
+        : `Sincronización completa — ${plans} planes y ${packages} paquetes actualizados`;
+      this.notifications.success(msg);
+    } catch (err) {
+      console.error('Error sincronizando planes:', err);
+      this.notifications.error('Error al sincronizar. Revisa la consola.');
+    } finally {
+      this.syncing.set(false);
+    }
   }
 
   async deactivate(plan: Plan): Promise<void> {

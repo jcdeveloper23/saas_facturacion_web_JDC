@@ -1,0 +1,110 @@
+<c-card class="plan-usage-widget mb-4">
+
+  <!-- Header -->
+  <c-card-header class="d-flex align-items-center justify-content-between">
+    <div class="d-flex align-items-center gap-2">
+      <svg cIcon name="cilChartPie" size="sm"></svg>
+      <strong>Uso del plan</strong>
+      @if (company()?.planName) {
+        <c-badge color="primary" shape="rounded-pill">{{ company()!.planName }}</c-badge>
+      }
+    </div>
+    @if (company()?.status) {
+      <c-badge [color]="company()!.status === 'active' ? 'success' : 'warning'">
+        {{ company()!.status === 'active' ? 'Activo' : company()!.status }}
+      </c-badge>
+    }
+  </c-card-header>
+
+  <c-card-body>
+
+    <!-- Alerta de vencimiento próximo -->
+    @if (isExpiringSoon()) {
+      <div class="expiry-alert mb-3">
+        <svg cIcon name="cilWarning" size="sm" class="me-1"></svg>
+        Tu suscripción vence en <strong>{{ daysLeft() }} día{{ daysLeft() === 1 ? '' : 's' }}</strong>
+        ({{ subscriptionEndDate() | date:'dd/MM/yyyy' }}).
+        Contacta a soporte para renovar.
+      </div>
+    }
+
+    <!-- Documentos SRI -->
+    <p class="usage-section-label">Documentos SRI — este mes</p>
+    @for (row of sriRows; track row.resource) {
+      @if (getLimit(row.resource) !== 0) {
+        <div class="usage-row mb-2">
+          <div class="d-flex justify-content-between mb-1">
+            <small [class.text-warning]="isNearOrOver(row.resource)">
+              @if (isNearOrOver(row.resource)) {
+                <svg cIcon name="cilWarning" size="sm" class="me-1"></svg>
+              }
+              {{ row.label }}
+            </small>
+            <small>
+              <strong>{{ getUsed(row.resource) }}</strong>
+              @if (getLimit(row.resource) === -1) {
+                <span class="text-body-secondary"> / ∞</span>
+              } @else {
+                <span class="text-body-secondary"> / {{ getLimit(row.resource) }}</span>
+              }
+            </small>
+          </div>
+          @if (getLimit(row.resource) > 0) {
+            <c-progress thin [value]="usagePercent(row.resource)"
+                        [color]="progressColor(usagePercent(row.resource))" />
+          } @else {
+            <c-progress thin [value]="0" color="secondary" />
+          }
+        </div>
+      }
+    }
+
+    <hr class="my-3">
+
+    <!-- Maestros -->
+    <p class="usage-section-label">Registros acumulados</p>
+    @for (row of masterRows; track row.resource) {
+      @if (getLimit(row.resource) !== 0) {
+        <div class="usage-row mb-2">
+          <div class="d-flex justify-content-between mb-1">
+            <small [class.text-warning]="isNearOrOver(row.resource)">
+              @if (isNearOrOver(row.resource)) {
+                <svg cIcon name="cilWarning" size="sm" class="me-1"></svg>
+              }
+              {{ row.label }}
+            </small>
+            <small>
+              <strong>{{ getUsed(row.resource) }}</strong>
+              @if (getLimit(row.resource) === -1) {
+                <span class="text-body-secondary"> / ∞</span>
+              } @else {
+                <span class="text-body-secondary"> / {{ getLimit(row.resource) }}</span>
+              }
+            </small>
+          </div>
+          @if (getLimit(row.resource) > 0) {
+            <c-progress thin [value]="usagePercent(row.resource)"
+                        [color]="progressColor(usagePercent(row.resource))" />
+          } @else {
+            <c-progress thin [value]="0" color="secondary" />
+          }
+        </div>
+      }
+    }
+
+  </c-card-body>
+
+  <c-card-footer class="d-flex justify-content-between align-items-center">
+    @if (subscriptionEndDate() && !isExpiringSoon()) {
+      <small class="text-body-secondary">
+        Vigente hasta {{ subscriptionEndDate() | date:'dd/MM/yyyy' }}
+      </small>
+    } @else {
+      <span></span>
+    }
+    <a routerLink="/settings/subscription" cButton color="primary" variant="outline" size="sm">
+      Ver detalles
+    </a>
+  </c-card-footer>
+
+</c-card>

@@ -39,6 +39,12 @@
       </div>
     </c-header-nav>
 
+    @if (showCompanySwitcher()) {
+    <c-header-nav class="mx-0 me-2">
+      <ng-container *ngTemplateOutlet="companyDropdown" />
+    </c-header-nav>
+    }
+
     <c-header-nav class="mx-0">
       <ng-container *ngTemplateOutlet="userDropdown" />
     </c-header-nav>
@@ -95,6 +101,45 @@
           Cerrar Sesión
         </a>
       </li>
+    </ul>
+  </c-dropdown>
+</ng-template>
+
+<ng-template #companyDropdown>
+  <c-dropdown [popperOptions]="{ placement: 'bottom-end' }" variant="nav-item">
+    <button [caret]="false" cDropdownToggle class="py-0 pe-0 d-flex align-items-center gap-2"
+      aria-label="Cambiar empresa" [disabled]="switchingCompany()">
+      @if (switchingCompany()) {
+        <c-spinner size="sm" color="primary"></c-spinner>
+      } @else {
+        <svg cIcon name="cil-building" size="lg"></svg>
+      }
+      <small class="d-none d-lg-inline text-truncate fw-semibold" style="max-width:140px">
+        {{ activeCompanyName() }}
+      </small>
+    </button>
+    <ul cDropdownMenu class="pt-0" style="min-width:220px">
+      <li>
+        <div class="px-3 py-2 bg-body-secondary rounded-top">
+          <small class="text-body-secondary fw-semibold text-uppercase">Mis empresas</small>
+        </div>
+      </li>
+      @for (company of managedCompanies(); track company.companyId) {
+      <li>
+        <button cDropdownItem
+          [class.fw-bold]="company.companyId === activeCompanyId()"
+          (click)="switchCompany(company.companyId)"
+          [disabled]="company.companyId === activeCompanyId() || switchingCompany()">
+          <div class="d-flex align-items-center justify-content-between gap-2">
+            <span class="text-truncate" style="max-width:160px">{{ company.companyName }}</span>
+            @if (company.companyId === activeCompanyId()) {
+              <svg cIcon name="cil-check-alt" class="text-success flex-shrink-0" style="width:14px"></svg>
+            }
+          </div>
+          <small class="text-body-secondary d-block">{{ company.role }}</small>
+        </button>
+      </li>
+      }
     </ul>
   </c-dropdown>
 </ng-template>

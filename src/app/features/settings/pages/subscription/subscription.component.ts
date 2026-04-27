@@ -1,5 +1,5 @@
 import { Component, computed, inject } from '@angular/core';
-import { DatePipe, NgIf } from '@angular/common';
+import { CurrencyPipe, DatePipe, NgIf } from '@angular/common';
 import {
   BadgeComponent,
   ButtonDirective,
@@ -52,9 +52,11 @@ const FEATURE_LABELS: Record<string, string> = {
   selector: 'app-subscription',
   standalone: true,
   templateUrl: './subscription.component.html',
+  styleUrl: './subscription.component.scss',
   imports: [
     NgIf,
     DatePipe,
+    CurrencyPipe,
     CardComponent,
     CardHeaderComponent,
     CardBodyComponent,
@@ -71,8 +73,9 @@ export class SubscriptionComponent {
   private planLimits = inject(PlanLimitsService);
   private tenant = inject(TenantService);
 
-  readonly company = computed(() => this.planLimits.companyDoc());
-  readonly usage = computed(() => this.planLimits.currentUsage());
+  readonly company      = computed(() => this.planLimits.companyDoc());
+  readonly usage        = computed(() => this.planLimits.currentUsage());
+  readonly addonPackages = computed(() => this.company()?.addonPackages ?? []);
 
   readonly sriResources: ResourceRow[] = [
     { resource: 'invoices',    label: 'Facturas' },

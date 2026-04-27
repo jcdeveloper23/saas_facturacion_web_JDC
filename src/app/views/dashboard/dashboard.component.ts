@@ -22,7 +22,7 @@ import { IconDirective } from '@coreui/icons-angular';
 import { WidgetsBrandComponent } from '../widgets/widgets-brand/widgets-brand.component';
 import { WidgetsDropdownComponent } from '../widgets/widgets-dropdown/widgets-dropdown.component';
 import { DashboardChartsData, IChartProps } from './dashboard-charts-data';
-import { PlanLimitsService, LimitedResource } from '../../core/services/plan-limits.service';
+import { PlanUsageWidgetComponent } from './widgets/plan-usage-widget/plan-usage-widget.component';
 
 interface IUser {
   name: string;
@@ -41,7 +41,7 @@ interface IUser {
 @Component({
   templateUrl: 'dashboard.component.html',
   styleUrls: ['dashboard.component.scss'],
-  imports: [WidgetsDropdownComponent, CardComponent, CardBodyComponent, RowComponent, ColComponent, ButtonDirective, IconDirective, ReactiveFormsModule, ButtonGroupComponent, FormCheckLabelDirective, ChartjsComponent, CardFooterComponent, GutterDirective, ProgressComponent, WidgetsBrandComponent, CardHeaderComponent, TableDirective, AvatarComponent]
+  imports: [WidgetsDropdownComponent, CardComponent, CardBodyComponent, RowComponent, ColComponent, ButtonDirective, IconDirective, ReactiveFormsModule, ButtonGroupComponent, FormCheckLabelDirective, ChartjsComponent, CardFooterComponent, GutterDirective, ProgressComponent, WidgetsBrandComponent, CardHeaderComponent, TableDirective, AvatarComponent, PlanUsageWidgetComponent]
 })
 export class DashboardComponent implements OnInit {
 
@@ -49,41 +49,6 @@ export class DashboardComponent implements OnInit {
   readonly #document: Document = inject(DOCUMENT);
   readonly #renderer: Renderer2 = inject(Renderer2);
   readonly #chartsData: DashboardChartsData = inject(DashboardChartsData);
-  readonly #planLimits: PlanLimitsService = inject(PlanLimitsService);
-
-  readonly resources: LimitedResource[] = ['invoices', 'retentions', 'debitNotes', 'purchases'];
-
-  private readonly resourceLabels: Record<LimitedResource, string> = {
-    invoices: 'Facturas',
-    retentions: 'Retenciones',
-    debitNotes: 'Notas de débito',
-    purchases: 'Compras',
-    personas: 'Personas',
-    products: 'Productos',
-    users: 'Usuarios'
-  };
-
-  resourceLabel(r: LimitedResource): string {
-    return this.resourceLabels[r];
-  }
-
-  usagePercent(r: LimitedResource): number {
-    return this.#planLimits.usagePercent(r);
-  }
-
-  getLimit(r: LimitedResource): number {
-    return this.#planLimits.getLimit(r);
-  }
-
-  getUsed(r: LimitedResource): number {
-    return this.#planLimits.getUsed(r);
-  }
-
-  progressColor(pct: number): string {
-    if (pct >= 90) return 'danger';
-    if (pct >= 70) return 'warning';
-    return 'success';
-  }
 
   public users: IUser[] = [
     {

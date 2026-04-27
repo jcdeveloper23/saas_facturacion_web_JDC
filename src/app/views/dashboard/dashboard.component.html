@@ -1,17 +1,4 @@
-<c-card class="mb-4">
-  <c-card-header><strong>Uso del mes</strong></c-card-header>
-  <c-card-body>
-    @for (r of resources; track r) {
-      <div class="mb-2">
-        <div class="d-flex justify-content-between mb-1">
-          <small>{{ resourceLabel(r) }}</small>
-          <small>{{ getUsed(r) }} / {{ getLimit(r) === -1 ? '∞' : getLimit(r) }}</small>
-        </div>
-        <c-progress thin [value]="usagePercent(r)" [color]="progressColor(usagePercent(r))" />
-      </div>
-    }
-  </c-card-body>
-</c-card>
+<app-plan-usage-widget />
 <app-widgets-dropdown />
 <c-card class="my-4">
   <c-card-body>
