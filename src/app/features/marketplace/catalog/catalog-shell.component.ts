@@ -9,28 +9,28 @@ import { Subscription } from 'rxjs';
 import { PublicCatalogService } from '../services/public-catalog.service';
 import { PublicCatalog } from '../models/catalog.interface';
 import { CatalogSearchService } from '../services/catalog-search.service';
+import { CartService } from '../services/cart.service';
+import { CartDrawerComponent } from './cart-drawer.component';
 
 @Component({
   selector: 'app-catalog-shell',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterOutlet],
+  imports: [CommonModule, FormsModule, RouterOutlet, CartDrawerComponent],
   templateUrl: './catalog-shell.component.html',
   styleUrl: './catalog-shell.component.scss',
 })
 export class CatalogShellComponent implements OnInit, OnDestroy {
-  private route = inject(ActivatedRoute);
+  private route      = inject(ActivatedRoute);
   private catalogSvc = inject(PublicCatalogService);
-  private searchSvc = inject(CatalogSearchService);
-  private subs = new Subscription();
+  private searchSvc  = inject(CatalogSearchService);
+  protected cart     = inject(CartService);
+  private subs       = new Subscription();
 
-  catalog = signal<PublicCatalog | null>(null);
-  loading = signal(true);
-  
-  // Usamos el signal de búsqueda centralizado
-  headerSearch = this.searchSvc.query;
+  catalog       = signal<PublicCatalog | null>(null);
+  loading       = signal(true);
+  cartOpen      = signal(false);
 
-  // Estado temporal del carrito para UI Demo
-  cartItemCount = signal(3);
+  headerSearch  = this.searchSvc.query;
 
   ngOnInit(): void {
     const slug = this.route.snapshot.paramMap.get('slug') ?? '';
@@ -58,6 +58,6 @@ export class CatalogShellComponent implements OnInit, OnDestroy {
   }
 
   openCart(): void {
-    alert('Abriendo carrito de compras...');
+    this.cartOpen.set(true);
   }
 }

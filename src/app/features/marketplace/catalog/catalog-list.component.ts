@@ -9,6 +9,7 @@ import { Subscription } from 'rxjs';
 import { PublicCatalogService } from '../services/public-catalog.service';
 import { PublicCatalog, PublicProduct } from '../models/catalog.interface';
 import { CatalogSearchService } from '../services/catalog-search.service';
+import { CartService } from '../services/cart.service';
 
 type SortKey = 'top_sellers' | 'recent' | 'price_asc' | 'price_desc';
 type ViewMode = 'grid' | 'list';
@@ -27,6 +28,7 @@ export class CatalogListComponent implements OnInit, OnDestroy {
   private router     = inject(Router);
   private catalogSvc = inject(PublicCatalogService);
   private searchSvc  = inject(CatalogSearchService);
+  protected cartSvc  = inject(CartService);
   private subs       = new Subscription();
 
   catalog     = signal<PublicCatalog | null>(null);
@@ -168,6 +170,18 @@ export class CatalogListComponent implements OnInit, OnDestroy {
     // Persistir en Firestore
     this.catalogSvc.toggleProductLike(this.catalogSlug, productId, delta)
       .catch(err => console.error('[CatalogList] toggleLike error:', err));
+  }
+
+  // ─── Add to cart ─────────────────────────────────────────────────────────
+
+  addedFeedback = signal<string | null>(null);
+
+  addToCart(e: Event, product: PublicProduct): void {
+    e.stopPropagation();
+    if (product.stockAvailable === 0 && !product.noStock) return;
+    this.cartSvc.addItem(product, this.catalogSlug);
+    this.addedFeedback.set(product.id);
+    setTimeout(() => this.addedFeedback.set(null), 1500);
   }
 
   ngOnDestroy(): void { this.subs.unsubscribe(); }

@@ -337,6 +337,21 @@
   white-space: nowrap; transition: opacity .15s;
 }
 .cl-btn-detail:hover { opacity: .88; }
+
+/* ── Add to cart button ──────────────────────────────────── */
+.cl-add-btn {
+  display: flex; align-items: center; justify-content: center; gap: .3rem;
+  width: 100%; padding: .5rem .75rem;
+  border: 1.5px solid var(--cp); border-radius: 7px;
+  background: #fff; color: var(--cp);
+  font-size: .82rem; font-weight: 600; cursor: pointer;
+  transition: background .15s, color .15s, border-color .15s;
+  margin-top: .4rem;
+}
+.cl-add-btn:hover:not(:disabled) { background: var(--cp); color: #fff; }
+.cl-add-btn--added { background: #16a34a !important; color: #fff !important; border-color: #16a34a !important; }
+.cl-add-btn:disabled { opacity: .4; cursor: not-allowed; }
+
 /* ── Like Button ─────────────────────────────────────────── */
 .cl-like-btn {
   position: absolute;

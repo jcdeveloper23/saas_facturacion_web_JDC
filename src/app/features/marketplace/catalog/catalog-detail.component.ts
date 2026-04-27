@@ -7,6 +7,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { PublicCatalogService } from '../services/public-catalog.service';
 import { PublicCatalog, PublicProduct } from '../models/catalog.interface';
+import { CartService } from '../services/cart.service';
 
 @Component({
   selector: 'app-catalog-detail',
@@ -19,6 +20,7 @@ export class CatalogDetailComponent implements OnInit, OnDestroy {
   private route      = inject(ActivatedRoute);
   private router     = inject(Router);
   private catalogSvc = inject(PublicCatalogService);
+  private cartSvc    = inject(CartService);
   private subs       = new Subscription();
 
   catalog        = signal<PublicCatalog | null>(null);
@@ -27,6 +29,9 @@ export class CatalogDetailComponent implements OnInit, OnDestroy {
   shareFeedback  = signal('');
   activeImageIdx = signal(0);
   slideDir       = signal<'left' | 'right' | null>(null);
+
+  qty            = signal(1);
+  addedFeedback  = signal(false);
 
   // Touch swipe
   private _touchStartX = 0;
@@ -76,6 +81,19 @@ export class CatalogDetailComponent implements OnInit, OnDestroy {
     const msg = `Hola, me interesa el producto: *${p.name}*\n${url}`;
     return `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
   });
+
+  // ─── Cart ─────────────────────────────────────────────────────────────────
+
+  decrementQty(): void { this.qty.update(q => Math.max(1, q - 1)); }
+  incrementQty(): void { this.qty.update(q => q + 1); }
+
+  addToCart(): void {
+    const p = this.product();
+    if (!p || (p.stockAvailable === 0 && !p.noStock)) return;
+    this.cartSvc.addItem(p, this.slug, this.qty());
+    this.addedFeedback.set(true);
+    setTimeout(() => { this.addedFeedback.set(false); this.qty.set(1); }, 1800);
+  }
 
   ngOnInit(): void {
     const slug = this.route.parent?.snapshot.paramMap.get('slug') ?? '';
