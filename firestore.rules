@@ -407,6 +407,15 @@ service cloud.firestore {
         allow read: if true;
         allow write: if false;
       }
+
+      // Contadores de likes por producto — escritura pública anónima.
+      // Validación: count debe ser número >= 0; solo se permiten los campos esperados.
+      match /product-likes/{productId} {
+        allow read: if true;
+        allow write: if request.resource.data.keys().hasOnly(['count', 'updatedAt'])
+                     && request.resource.data.count is int
+                     && request.resource.data.count >= 0;
+      }
     }
 
     // ─── Global users registry ────────────────────────────────────────────
