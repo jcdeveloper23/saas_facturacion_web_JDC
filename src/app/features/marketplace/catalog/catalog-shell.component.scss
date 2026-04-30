@@ -49,6 +49,10 @@
 .cs-brand {
   display: flex; align-items: center; gap: 0.6rem;
   text-decoration: none; color: #fff; flex: 1 1 auto; min-width: 0;
+  transition: opacity .2s;
+}
+.cs-brand:hover {
+  opacity: .85;
 }
 .cs-brand__logo {
   height: 36px; width: 36px; border-radius: 6px;

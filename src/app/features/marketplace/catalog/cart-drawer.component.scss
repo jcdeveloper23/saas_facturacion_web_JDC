@@ -105,6 +105,10 @@
 .cdr-item__stepper {
   display: flex; align-items: center; gap: .35rem;
 }
+.cdr-item__qty-label {
+  font-size: .78rem; font-weight: 600; color: #6b7280;
+  margin-right: .15rem;
+}
 .cdr-stepper__btn {
   width: 26px; height: 26px; border-radius: 50%;
   border: 1.5px solid #e5e7eb; background: #fff;
@@ -112,7 +116,11 @@
   display: flex; align-items: center; justify-content: center;
   transition: border-color .15s, background .15s;
 }
-.cdr-stepper__btn:hover { border-color: var(--cp); color: var(--cp); background: #fff9f0; }
+.cdr-stepper__btn:hover { 
+  border-color: var(--cp); 
+  color: var(--cp); 
+  background: color-mix(in srgb, var(--cp), transparent 92%); 
+}
 .cdr-stepper__val { min-width: 24px; text-align: center; font-size: .9rem; font-weight: 700; color: #1a1a2e; }
 
 /* right col */
@@ -165,4 +173,8 @@
   border: 1.5px solid #e5e7eb;
   font-size: .82rem;
 }
-.cdr-btn--ghost:hover { background: #f9fafb; }
+.cdr-btn--ghost:hover { 
+  background: color-mix(in srgb, var(--cp), transparent 95%);
+  border-color: var(--cp);
+  color: var(--cp);
+}
