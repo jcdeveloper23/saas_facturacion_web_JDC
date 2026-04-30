@@ -43,7 +43,7 @@
             type="text"
             placeholder="Buscar artículos…"
             [ngModel]="headerSearch()"
-            (ngModelChange)="headerSearch.set($event)"
+            (ngModelChange)="onSearchChange($event)"
           />
           @if (headerSearch()) {
             <button class="cs-search__clear" (click)="headerSearch.set('')" aria-label="Limpiar búsqueda">✕</button>
@@ -117,16 +117,7 @@
         <p class="cs-footer__powered">Powered by <a href="#" class="cs-powered-link">FacturaSec</a></p>
       </div>
 
-      <!-- Bloque 2: Legal -->
-      <div class="cs-footer__col cs-footer__col--legal">
-        <h5 class="cs-footer__title">Información Legal</h5>
-        <ul class="cs-footer__links">
-          <li><a href="#">Términos de Uso</a></li>
-          <li><a href="#">Políticas de Privacidad</a></li>
-        </ul>
-      </div>
-
-      <!-- Bloque 3: Redes Sociales -->
+      <!-- Bloque 2: Redes Sociales -->
       <div class="cs-footer__col cs-footer__col--social">
         <h5 class="cs-footer__title">Síguenos</h5>
         <div class="cs-footer__socials">

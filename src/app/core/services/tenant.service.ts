@@ -42,6 +42,13 @@ export interface CompanyConfig {
     welcomeMessage?: string;
     primaryColor?: string;           // hex: '#1a73e8'
     whatsapp?: string;               // número con código de país: '+593987654321'
+    phone?: string;
+    email?: string;
+    instagram?: string;
+    facebook?: string;
+    tiktok?: string;
+    locationText?: string;
+    locationUrl?: string;
     showPrices: boolean;
     showNotes: boolean;
     showOutOfStock: boolean;

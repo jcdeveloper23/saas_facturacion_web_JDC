@@ -167,7 +167,7 @@
 }
 
 /* ── main ────────────────────────────────────────────────── */
-.cs-main { width: 100%; padding: 0 1.2rem; }
+.cs-main { width: 100%; padding: 0 1.2rem; overflow-x: hidden; box-sizing: border-box; }
 
 /* ── footer ──────────────────────────────────────────────── */
 .cs-footer {
@@ -182,8 +182,9 @@
   max-width: 1200px;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: 1fr auto;
+  gap: 2rem;
+  align-items: center;
 }
 
 .cs-footer__col { display: flex; flex-direction: column; }
@@ -205,15 +206,6 @@
   letter-spacing: 0.05em; margin: 0 0 .8rem;
 }
 
-/* Legal Links */
-.cs-footer__links {
-  list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .5rem;
-}
-.cs-footer__links a {
-  color: inherit; text-decoration: none; transition: color 0.2s, transform 0.2s;
-  display: inline-block;
-}
-.cs-footer__links a:hover { color: #fff; transform: translateX(3px); }
 
 /* Social Icons */
 .cs-footer__socials {

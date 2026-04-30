@@ -1,6 +1,6 @@
 import {
-  Component, OnInit, OnDestroy,
-  inject, signal, computed
+  Component, OnInit, OnDestroy, AfterViewInit,
+  inject, signal, computed, ViewChild, ElementRef
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -23,13 +23,23 @@ interface Family { id: string; name: string; count: number; }
   templateUrl: './catalog-list.component.html',
   styleUrl: './catalog-list.component.scss',
 })
-export class CatalogListComponent implements OnInit, OnDestroy {
+export class CatalogListComponent implements OnInit, OnDestroy, AfterViewInit {
   private route      = inject(ActivatedRoute);
   private router     = inject(Router);
   private catalogSvc = inject(PublicCatalogService);
   private searchSvc  = inject(CatalogSearchService);
   protected cartSvc  = inject(CartService);
   private subs       = new Subscription();
+
+  @ViewChild('catBarScroll') catBarScrollRef!: ElementRef<HTMLDivElement>;
+
+  ngAfterViewInit(): void {
+    // Posicionar el scroll en la tanda central al inicio para permitir scroll a ambos lados
+    setTimeout(() => {
+      const el = this.catBarScrollRef?.nativeElement;
+      if (el) el.scrollLeft = el.scrollWidth / 3;
+    }, 800);
+  }
 
   catalog     = signal<PublicCatalog | null>(null);
   allProducts = signal<PublicProduct[]>([]);
@@ -67,18 +77,29 @@ export class CatalogListComponent implements OnInit, OnDestroy {
   });
 
   filteredProducts = computed<PublicProduct[]>(() => {
-    const q        = this.searchQuery().toLowerCase().trim();
+    const qRaw     = this.searchQuery();
     const familyId = this.selectedFamilyId();
     const cat      = this.catalog();
     const stockOnly = this.onlyInStock();
     const sort     = this.sortKey();
 
+    // Normalizar búsqueda: quitar acentos y pasar a minúsculas
+    const normalize = (s: string) => s ? s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : '';
+    const q = normalize(qRaw).trim();
+    const qTerms = q.split(/\s+/).filter(t => t.length > 0);
+
     let list = this.allProducts().filter(p => {
       if (cat && !cat.showOutOfStock && p.stockAvailable === 0 && !p.noStock) return false;
       if (stockOnly && p.stockAvailable === 0 && !p.noStock) return false;
       if (familyId && p.familyId !== familyId) return false;
-      if (q && !p.name.toLowerCase().includes(q) &&
-          !(p.notes ?? '').toLowerCase().includes(q)) return false;
+
+      if (qTerms.length > 0) {
+        const nameNorm = normalize(p.name);
+        const notesNorm = normalize(p.notes ?? '');
+        // El producto debe coincidir con TODOS los términos buscados
+        return qTerms.every(term => nameNorm.includes(term) || notesNorm.includes(term));
+      }
+
       return true;
     });
 
@@ -194,6 +215,29 @@ export class CatalogListComponent implements OnInit, OnDestroy {
   selectFamily(id: string | null): void {
     this.selectedFamilyId.set(id);
     this.isSidebarOpen.set(false); // Cierra sidebar en móvil al seleccionar
+  }
+
+  // ─── Scroll horizontal de la barra de categorías ─────────────────────────
+
+  scrollCatBar(direction: -1 | 1): void {
+    const el = this.catBarScrollRef?.nativeElement;
+    if (!el) return;
+
+    const { scrollLeft, scrollWidth, clientWidth } = el;
+    const third = scrollWidth / 3;
+    const amount = 280;
+
+    // Lógica de bucle infinito con 3 tandas:
+    // Si al movernos saldríamos de la tanda central (segundo tercio),
+    // reseteamos la posición al equivalente en el centro instantáneamente.
+
+    if (direction === 1 && (scrollLeft + amount) >= (third * 2)) {
+      el.scrollLeft = scrollLeft - third;
+    } else if (direction === -1 && (scrollLeft - amount) <= 0) {
+      el.scrollLeft = scrollLeft + third;
+    }
+
+    el.scrollBy({ left: direction * amount, behavior: 'smooth' });
   }
 
   resetFilters(): void {

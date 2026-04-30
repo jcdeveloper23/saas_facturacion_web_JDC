@@ -87,7 +87,8 @@
           <div class="cd-gallery__thumbs">
             @for (img of productImages(); track $index) {
               <button class="cd-gallery__thumb" [class.active]="activeImageIdx() === $index"
-                      (click)="goToImage($index)">
+                      (click)="goToImage($index)"
+                      (mouseenter)="goToImage($index)">
                 <img [src]="img" [alt]="'img ' + ($index + 1)" loading="lazy">
               </button>
             }
@@ -214,29 +215,40 @@
     <!-- ══ PRODUCTOS RELACIONADOS ════════════════════════════════════════ -->
     @if (relatedProducts().length > 0) {
       <section class="cd-related">
-        <h2 class="cd-related__title">Más en <em>{{ product()!.familyName }}</em></h2>
-        <div class="cd-related__row">
-          @for (rp of relatedProducts(); track rp.id) {
-            <article class="cd-related__card" (click)="openProduct(rp.id)">
-              <div class="cd-related__img">
-                @if (rp.imageUrl) {
-                  <img [src]="rp.imageUrl" [alt]="rp.name" loading="lazy">
-                } @else {
-                  <div class="cd-related__img-ph">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="#e5e7eb" stroke-width="1.2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0z"/>
-                    </svg>
-                  </div>
-                }
-              </div>
-              <div class="cd-related__body">
-                <p class="cd-related__name">{{ rp.name }}</p>
-                @if (catalog()?.showPrices) {
-                  <p class="cd-related__price">{{ rp.salePrice * (1 + (rp.taxRate ?? 0) / 100) | currency:'USD':'symbol':'1.2-2' }}</p>
-                }
-              </div>
-            </article>
-          }
+        <h2 class="cd-related__title">{{ relatedTitle() }}</h2>
+        
+        <div class="cd-related__wrap">
+          <button class="cd-related__arrow cd-related__arrow--left" (click)="scrollRelated(-1)" aria-label="Anterior">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20"><path fill-rule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clip-rule="evenodd"/></svg>
+          </button>
+
+          <div class="cd-related__row" #relatedScroll>
+            @for (rp of relatedProducts(); track rp.id) {
+              <article class="cd-related__card" (click)="openProduct(rp.id)">
+                <div class="cd-related__img">
+                  @if (rp.imageUrl) {
+                    <img [src]="rp.imageUrl" [alt]="rp.name" loading="lazy">
+                  } @else {
+                    <div class="cd-related__img-ph">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="#e5e7eb" stroke-width="1.2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0z"/>
+                      </svg>
+                    </div>
+                  }
+                </div>
+                <div class="cd-related__body">
+                  <p class="cd-related__name">{{ rp.name }}</p>
+                  @if (catalog()?.showPrices) {
+                    <p class="cd-related__price">{{ rp.salePrice * (1 + (rp.taxRate ?? 0) / 100) | currency:'USD':'symbol':'1.2-2' }}</p>
+                  }
+                </div>
+              </article>
+            }
+          </div>
+
+          <button class="cd-related__arrow cd-related__arrow--right" (click)="scrollRelated(1)" aria-label="Siguiente">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20"><path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd"/></svg>
+          </button>
         </div>
       </section>
     }

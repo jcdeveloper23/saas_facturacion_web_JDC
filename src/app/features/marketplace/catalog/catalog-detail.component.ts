@@ -1,6 +1,6 @@
 import {
   Component, OnInit, OnDestroy,
-  inject, signal, computed
+  inject, signal, computed, ViewChild, ElementRef
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -23,6 +23,8 @@ export class CatalogDetailComponent implements OnInit, OnDestroy {
   private cartSvc    = inject(CartService);
   private subs       = new Subscription();
 
+  @ViewChild('relatedScroll') relatedScroll?: ElementRef<HTMLDivElement>;
+
   catalog        = signal<PublicCatalog | null>(null);
   allProducts    = signal<PublicProduct[]>([]);
   loading        = signal(true);
@@ -33,11 +35,14 @@ export class CatalogDetailComponent implements OnInit, OnDestroy {
   qty            = signal(1);
   addedFeedback  = signal(false);
 
+  productId      = signal<string | null>(null);
+  likesCounts    = signal<Record<string, number>>({});
+
   // Touch swipe
   private _touchStartX = 0;
 
   product = computed<PublicProduct | null>(() => {
-    const id = this.route.snapshot.paramMap.get('productId');
+    const id = this.productId();
     return this.allProducts().find(p => p.id === id) ?? null;
   });
 
@@ -51,11 +56,33 @@ export class CatalogDetailComponent implements OnInit, OnDestroy {
   });
 
   relatedProducts = computed<PublicProduct[]>(() => {
-    const p = this.product();
-    if (!p?.familyId) return [];
-    return this.allProducts()
-      .filter(x => x.familyId === p.familyId && x.id !== p.id)
-      .slice(0, 6);
+    const current = this.product();
+    if (!current) return [];
+
+    const all = this.allProducts();
+    const likes = this.likesCounts();
+
+    // 1. Productos de la misma categoría (excluyendo el actual)
+    const sameFamily = all.filter(p => p.familyId === current.familyId && p.id !== current.id);
+
+    // 2. Rellenamos con todos los demás productos del catálogo
+    const others = all.filter(p => p.familyId !== current.familyId && p.id !== current.id);
+    
+    // Ordenar por popularidad (likes) los de otras categorías
+    others.sort((a, b) => (likes[b.id] ?? 0) - (likes[a.id] ?? 0));
+
+    return [...sameFamily, ...others];
+  });
+
+  relatedTitle = computed<string>(() => {
+    const current = this.product();
+    const related = this.relatedProducts();
+    if (!current || related.length === 0) return '';
+    
+    const allSameFamily = related.every(p => p.familyId === current.familyId);
+    return allSameFamily 
+      ? `Más en ${current.familyName}` 
+      : 'También te puede interesar';
   });
 
   finalPrice = computed<number>(() => {
@@ -95,11 +122,29 @@ export class CatalogDetailComponent implements OnInit, OnDestroy {
     setTimeout(() => { this.addedFeedback.set(false); this.qty.set(1); }, 1800);
   }
 
+  scrollRelated(dir: number): void {
+    if (!this.relatedScroll) return;
+    const el = this.relatedScroll.nativeElement;
+    const scrollAmount = 320; // Aproximadamente 2 tarjetas
+    el.scrollBy({ left: dir * scrollAmount, behavior: 'smooth' });
+  }
+
   ngOnInit(): void {
+    this.subs.add(this.route.paramMap.subscribe(params => {
+      this.productId.set(params.get('productId'));
+      this.activeImageIdx.set(0); // Reiniciar galería al cambiar de producto
+    }));
+
     const slug = this.route.parent?.snapshot.paramMap.get('slug') ?? '';
     this.subs.add(this.catalogSvc.getCatalogBySlug(slug).subscribe({
       next: data => this.catalog.set(data),
       error: err => console.error('[CatalogDetail] catalog error:', err)
+    }));
+
+    // Cargar popularidad para el relleno de relacionados
+    this.subs.add(this.catalogSvc.getLikesForCatalog(slug).subscribe({
+      next: counts => this.likesCounts.set(counts),
+      error: err => console.error('[CatalogDetail] likes error:', err)
     }));
     this.subs.add(this.catalogSvc.getPublicProducts(slug).subscribe({
       next: products => { this.allProducts.set(products); this.loading.set(false); },

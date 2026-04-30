@@ -6,6 +6,13 @@ export interface PublicCatalog {
   primaryColor?: string;
   welcomeMessage?: string;
   whatsapp?: string;        // número con código de país para contacto directo
+  phone?: string;
+  email?: string;
+  instagram?: string;
+  facebook?: string;
+  tiktok?: string;
+  locationText?: string;
+  locationUrl?: string;
   showPrices: boolean;
   showOutOfStock: boolean;
   showNotes: boolean;       // muestra descripción/observaciones del producto

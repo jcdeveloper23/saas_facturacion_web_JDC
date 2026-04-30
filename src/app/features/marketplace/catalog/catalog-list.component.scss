@@ -6,8 +6,8 @@
   display: block;
 }
 
-/* ── layout ──────────────────────────────────────────────── */
-.cl-root   { padding-bottom: 2rem; }
+/* ── layout ─────────────────────────────────────────────── */
+.cl-root { padding-bottom: 2rem; overflow-x: hidden; }
 
 /* ── Mobile Bar ──────────────────────────────────────────── */
 .cl-mobile-bar { display: none; margin-bottom: 1rem; }
@@ -25,6 +25,15 @@
   grid-template-columns: 210px 1fr;
   gap: 1.5rem;
   padding: 1rem 0;
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+/* El área principal de productos — debe estar contenida dentro de su celda del grid */
+.cl-main {
+  min-width: 0;       /* clave: evita que el grid item crezca sin límite */
+  overflow-x: hidden;
+  width: 100%;
 }
 
 /* ── sidebar ─────────────────────────────────────────────── */
@@ -52,7 +61,7 @@
 /* Categorías limpias */
 .cl-category-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 .cl-category-item {
-  width: 100%; display: flex; align-items: center;
+  width: 100%; display: flex; align-items: center; justify-content: space-between;
   background: none; border: none; cursor: pointer;
   padding: .45rem .5rem; border-radius: 4px;
   font-size: .85rem; color: #4b5563; font-weight: 500;
@@ -66,6 +75,11 @@
   border-left-color: var(--cp);
   background: #fff;
 }
+.cl-cat-count {
+  font-size: .75rem; color: #9ca3af; font-weight: 400; margin-left: .3rem; flex-shrink: 0;
+}
+.cl-category-item.active .cl-cat-count { color: var(--cp-dark); font-weight: 600; }
+.cl-category-item:hover .cl-cat-count { color: var(--cp-dark); }
 
 /* Más Vendidos */
 .cl-top-products { display: flex; flex-direction: column; gap: .75rem; }
@@ -84,7 +98,35 @@
   margin: 0; font-size: .78rem; font-weight: 600; color: #111827; line-height: 1.25;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
-.cl-top-item__price { font-size: .85rem; font-weight: 800; color: #374151; }
+.cl-top-item__price { font-size: .8rem; font-weight: 700; color: var(--cp); }
+
+/* ── Contáctanos ─────────────────────────────────────────────── */
+.cl-contact-list {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: 0.5rem;
+}
+.cl-contact-item {
+  display: flex; align-items: center; gap: 0.6rem;
+  color: #4b5563; text-decoration: none; font-size: 0.85rem;
+  font-weight: 500; transition: all 0.15s;
+  padding: 0.35rem 0.5rem; border-radius: 6px; margin: 0 -0.5rem;
+}
+.cl-contact-item:hover {
+  color: var(--cp-dark);
+  background: #f9fafb;
+}
+.cl-contact-icon {
+  color: var(--cp);
+  flex-shrink: 0;
+}
+.cl-contact-text-truncate {
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 130px; /* Previene desbordamiento en correos largos */
+}
+.cl-contact-text-wrap {
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden; line-height: 1.3;
+}
 
 .cl-toggle-row {
   display: flex; align-items: center; gap: .5rem;
@@ -114,16 +156,66 @@
   }
 }
 
-/* ── toolbar ─────────────────────────────────────────────── */
+/* ── Toolbar unificado (categorías + ordenar + vista) ───────── */
 .cl-toolbar {
-  display: flex; align-items: center; justify-content: space-between;
-  background: #fff; border-radius: 8px; padding: .4rem .8rem;
-  box-shadow: 0 1px 3px rgba(0,0,0,.06); margin-bottom: 1rem;
-  gap: .75rem; flex-wrap: wrap;
+  display: flex; align-items: center; gap: .3rem;
+  background: #fff; border-radius: 8px;
+  padding: .35rem .6rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  margin-bottom: 1rem;
+  min-width: 0;
+  width: 100%;
+  /* NO overflow:hidden aquí — el scroll interno de cl-catbar__scroll lo maneja */
 }
-.cl-toolbar__count { margin: 0; font-size: .85rem; color: #6b7280; }
-.cl-toolbar__count strong { color: #111827; }
-.cl-toolbar__right { display: flex; align-items: center; gap: .5rem; }
+
+/* Scroll de pills — ocupa todo el espacio disponible */
+.cl-catbar__scroll {
+  display: flex; align-items: center; gap: .35rem;
+  overflow-x: auto; scroll-behavior: smooth;
+  flex: 1 1 0; min-width: 0; max-width: 100%;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding: .15rem 0;
+}
+.cl-catbar__scroll::-webkit-scrollbar { display: none; }
+
+/* Flechas de navegación */
+.cl-catbar__arrow {
+  display: flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 6px;
+  border: none; background: transparent; cursor: pointer;
+  color: #6b7280; flex-shrink: 0;
+  transition: background .15s, color .15s;
+}
+.cl-catbar__arrow:hover { background: #f3f4f6; color: #111827; }
+
+/* Separador vertical entre pills y ordenar */
+.cl-toolbar__sep {
+  width: 1px; height: 22px; background: #e5e7eb;
+  flex-shrink: 0; margin: 0 .25rem;
+}
+
+/* Lado derecho: ordenar + vista — NO se encoge */
+.cl-toolbar__right {
+  display: flex; align-items: center; gap: .5rem;
+  flex-shrink: 0;
+}
+
+/* Pills de categorías */
+.cl-cat-pill {
+  display: inline-flex; align-items: center; gap: .2rem;
+  flex-shrink: 0; white-space: nowrap; cursor: pointer;
+  padding: .28rem .65rem; border-radius: 20px;
+  border: 1px solid #e5e7eb; background: #f9fafb;
+  font-size: .8rem; font-weight: 500; color: #4b5563;
+  transition: all .15s;
+}
+.cl-cat-pill:hover { border-color: var(--cp); color: var(--cp-dark); background: var(--cp-light); }
+.cl-cat-pill.active {
+  background: var(--cp); border-color: var(--cp); color: #fff; font-weight: 700;
+}
+.cl-cat-pill__count { font-size: .72rem; font-weight: 400; opacity: .8; }
+.cl-cat-pill.active .cl-cat-pill__count { opacity: 1; }
 
 .cl-sort-wrap {
   display: flex; align-items: center; gap: .4rem;

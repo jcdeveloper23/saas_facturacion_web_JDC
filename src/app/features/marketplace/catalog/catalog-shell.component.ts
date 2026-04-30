@@ -4,7 +4,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterOutlet } from '@angular/router';
+import { ActivatedRoute, Router, RouterOutlet } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { PublicCatalogService } from '../services/public-catalog.service';
 import { PublicCatalog } from '../models/catalog.interface';
@@ -21,6 +21,7 @@ import { CartDrawerComponent } from './cart-drawer.component';
 })
 export class CatalogShellComponent implements OnInit, OnDestroy {
   private route      = inject(ActivatedRoute);
+  private router     = inject(Router);
   private catalogSvc = inject(PublicCatalogService);
   private searchSvc  = inject(CatalogSearchService);
   protected cart     = inject(CartService);
@@ -59,5 +60,15 @@ export class CatalogShellComponent implements OnInit, OnDestroy {
 
   openCart(): void {
     this.cartOpen.set(true);
+  }
+
+  onSearchChange(q: string): void {
+    this.headerSearch.set(q);
+    
+    // Si hay búsqueda y no estamos en la lista principal, navegamos a ella
+    const slug = this.route.snapshot.paramMap.get('slug');
+    if (q.trim().length > 0 && this.router.url.includes('/p/')) {
+      this.router.navigate(['/', slug]);
+    }
   }
 }
