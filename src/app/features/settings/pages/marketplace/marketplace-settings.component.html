@@ -1,36 +1,47 @@
-<c-row>
-  <c-col xs="12" lg="8" xl="7">
+<form [formGroup]="form" (ngSubmit)="save()">
 
-    <!-- Package warning -->
-    @if (!hasMarketplacePkg()) {  
-      <c-alert color="warning" class="mb-3">
-        <strong>Paquete no activo.</strong>
-        Activa el paquete <em>Catálogo Público</em> desde
-        <a href="/settings/plugins" class="alert-link">Configuración &rarr; Mis Plugins</a>
-        para habilitar esta función.
-      </c-alert> 
-    }
+  <!-- Package warning -->
+  @if (!hasMarketplacePkg()) {
+    <c-alert color="warning" class="mb-4">
+      <strong>Paquete no activo.</strong>
+      Activa el paquete <em>Catálogo Público</em> desde
+      <a href="/settings/plugins" class="alert-link">Configuración &rarr; Mis Plugins</a>
+      para habilitar esta función.
+    </c-alert>
+  }
 
-    <c-card>
-      <c-card-header>
-        <strong>Catálogo Público</strong>
-      </c-card-header>
-      <c-card-body>
-        <form [formGroup]="form" (ngSubmit)="save()">
+  <!-- ① Estado y URL ─────────────────────────────────────────────────────── -->
+  <c-card class="mb-4">
+    <c-card-header class="d-flex align-items-center gap-2">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+      <strong>Catálogo Público</strong>
+      <span class="ms-auto">
+        @if (form.get('enabled')?.value) {
+          <span class="badge bg-success" style="font-size:0.75rem">● Activo</span>
+        } @else {
+          <span class="badge bg-secondary" style="font-size:0.75rem">● Inactivo</span>
+        }
+      </span>
+    </c-card-header>
+    <c-card-body>
 
-          <!-- Enabled toggle -->
-          <div class="mb-4 d-flex align-items-center gap-3">
-            <c-form-check class="form-switch" sizing="xl">
-              <input cFormCheckInput type="checkbox" formControlName="enabled" id="mkt-enabled" role="switch" />
-              <label cFormCheckLabel for="mkt-enabled">
-                <strong>Activar catálogo público</strong>
-              </label>
-            </c-form-check>
-          </div>
+      <!-- Enable toggle -->
+      <div class="d-flex align-items-start gap-3 p-3 rounded mb-4" style="background:var(--cui-tertiary-bg, #f8f9fa)">
+        <c-form-check class="form-switch" sizing="xl">
+          <input cFormCheckInput type="checkbox" formControlName="enabled" id="mkt-enabled" role="switch" />
+          <label cFormCheckLabel for="mkt-enabled">
+            <span class="fw-semibold">Activar catálogo público</span>
+            <span class="d-block text-muted small fw-normal">Tus clientes podrán ver y comprar desde tu catálogo en línea</span>
+          </label>
+        </c-form-check>
+      </div>
 
-          <!-- Slug -->
-          <div class="mb-3">
-            <label cFormLabel for="mkt-slug">URL del catálogo <span class="text-danger">*</span></label>
+      <c-row>
+        <!-- Slug -->
+        <c-col xs="12" md="7">
+          <label cFormLabel for="mkt-slug">URL del catálogo <span class="text-danger">*</span></label>
+          <div class="input-group">
+            <span class="input-group-text text-muted small">facturasec.com/</span>
             <input
               cFormControl
               id="mkt-slug"
@@ -39,144 +50,227 @@
               placeholder="mi-empresa"
               [class.is-invalid]="hasError('slug')"
             />
-            @if (hasError('slug')) {
-              <div class="invalid-feedback">
-                @if (form.get('slug')?.errors?.['required']) { El slug es obligatorio. }
-                @else if (form.get('slug')?.errors?.['minlength']) { Mínimo 3 caracteres. }
-                @else if (form.get('slug')?.errors?.['pattern']) { Solo letras minúsculas, números y guiones. }
-                @else if (form.get('slug')?.errors?.['reservedSlug']) { Esta URL está reservada por el sistema. }
-              </div>
-            }
-            <!-- Live URL preview -->
-            <div class="mt-1 d-flex align-items-center gap-2 flex-wrap">
-              <small class="text-muted">
-                Tu catálogo estará en:
-                <strong class="text-primary">{{ catalogUrl() }}</strong>
-              </small>
-              <button
-                type="button"
-                cButton
-                color="outline-primary"
-                size="sm"
-                [disabled]="!form.get('enabled')?.value || !form.get('slug')?.value"
-                (click)="openCatalog()"
-              >
-                Abrir catálogo
-              </button>
-            </div>
           </div>
-
-          <!-- WhatsApp de contacto -->
-          <div class="mb-3">
-            <label cFormLabel for="mkt-whatsapp">WhatsApp de contacto</label>
-
-            @if (companyPhone()) {
-              <div class="mb-2">
-                <c-form-check>
-                  <input
-                    cFormCheckInput
-                    type="checkbox"
-                    id="mkt-whatsapp-same"
-                    [checked]="useCompanyPhone()"
-                    (change)="toggleUseCompanyPhone()"
-                  />
-                  <label cFormCheckLabel for="mkt-whatsapp-same">
-                    Usar el teléfono de la empresa
-                    <strong class="text-muted ms-1">({{ companyPhone() }})</strong>
-                  </label>
-                </c-form-check>
-              </div>
-            }
-
-            <div class="d-flex align-items-center gap-2">
-              <span class="input-group-text">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="#25d366">
-                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/>
-                </svg>
-              </span>
-              <input
-                cFormControl
-                id="mkt-whatsapp"
-                type="tel"
-                formControlName="whatsapp"
-                placeholder="+593987654321"
-              />
+          @if (hasError('slug')) {
+            <div class="text-danger small mt-1">
+              @if (form.get('slug')?.errors?.['required']) { El slug es obligatorio. }
+              @else if (form.get('slug')?.errors?.['minlength']) { Mínimo 3 caracteres. }
+              @else if (form.get('slug')?.errors?.['pattern']) { Solo letras minúsculas, números y guiones. }
+              @else if (form.get('slug')?.errors?.['reservedSlug']) { Esta URL está reservada por el sistema. }
             </div>
-            <small class="text-muted d-block mb-3">Incluye el código de país. Ej: +593987654321. Los clientes podrán contactarte directamente desde el catálogo.</small>
-
-            <label cFormLabel for="mkt-phone">Teléfono (Llamadas)</label>
-            <input cFormControl id="mkt-phone" type="tel" formControlName="phone" placeholder="Ej: 0987654321" class="mb-3" />
-
-            <label cFormLabel for="mkt-email">Correo electrónico</label>
-            <input cFormControl id="mkt-email" type="email" formControlName="email" placeholder="contacto@empresa.com" class="mb-3" />
-
-            <label cFormLabel for="mkt-instagram">Instagram (URL o usuario)</label>
-            <input cFormControl id="mkt-instagram" type="text" formControlName="instagram" placeholder="https://instagram.com/tuempresa" class="mb-3" />
-
-            <label cFormLabel for="mkt-facebook">Facebook (URL)</label>
-            <input cFormControl id="mkt-facebook" type="text" formControlName="facebook" placeholder="https://facebook.com/tuempresa" class="mb-3" />
-
-            <label cFormLabel for="mkt-tiktok">TikTok (URL o usuario)</label>
-            <input cFormControl id="mkt-tiktok" type="text" formControlName="tiktok" placeholder="https://tiktok.com/@tuempresa" class="mb-3" />
-
-            <label cFormLabel for="mkt-locationText">Ubicación (Texto descriptivo)</label>
-            <input cFormControl id="mkt-locationText" type="text" formControlName="locationText" placeholder="Av. Principal 123 y Secundaria" class="mb-3" />
-
-            <label cFormLabel for="mkt-locationUrl">Enlace a Google Maps</label>
-            <input cFormControl id="mkt-locationUrl" type="url" formControlName="locationUrl" placeholder="https://maps.google.com/..." class="mb-3" />
-            
+          }
+          <div class="d-flex align-items-center gap-2 mt-2 flex-wrap">
+            <a
+              [href]="catalogUrl()"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-primary small fw-semibold text-decoration-none d-flex align-items-center gap-1"
+              [class.pe-none]="!form.get('slug')?.value"
+            >
+              {{ catalogUrl() }}
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            </a>
+            <button
+              type="button"
+              cButton
+              color="outline-primary"
+              size="sm"
+              [disabled]="!form.get('enabled')?.value || !form.get('slug')?.value"
+              (click)="openCatalog()"
+            >
+              Abrir catálogo
+            </button>
           </div>
+        </c-col>
 
-          <!-- Primary color -->
-          <div class="mb-3">
-            <label cFormLabel for="mkt-color">Color principal</label>
-            <div class="d-flex align-items-center gap-2">
-              <input
-                type="color"
-                id="mkt-color"
-                formControlName="primaryColor"
-                class="form-control form-control-color"
-                style="width:56px;height:38px;padding:2px 4px;"
-              />
-              <input
-                cFormControl
-                type="text"
-                formControlName="primaryColor"
-                placeholder="#0d6efd"
-                style="max-width:140px;"
-              />
-              <div
-                class="rounded border"
-                style="width:38px;height:38px;"
-                [style.background]="form.get('primaryColor')?.value ?? '#0d6efd'"
-              ></div>
-            </div>
-          </div>
-
-          <!-- Welcome message -->
-          <div class="mb-3">
-            <label cFormLabel for="mkt-welcome">Mensaje de bienvenida</label>
-            <textarea
+        <!-- Color principal -->
+        <c-col xs="12" md="5" class="mt-3 mt-md-0">
+          <label cFormLabel for="mkt-color">Color principal del catálogo</label>
+          <div class="d-flex align-items-center gap-2">
+            <input
+              type="color"
+              id="mkt-color"
+              formControlName="primaryColor"
+              class="form-control form-control-color"
+              style="width:44px;height:38px;padding:2px 4px;"
+            />
+            <input
               cFormControl
-              id="mkt-welcome"
-              formControlName="welcomeMessage"
-              rows="3"
-              placeholder="Bienvenido a nuestro catálogo de productos..."
-              maxlength="200"
-              [class.is-invalid]="hasError('welcomeMessage')"
-            ></textarea>
-            <div class="d-flex justify-content-between mt-1">
-              @if (hasError('welcomeMessage')) {
-                <span class="invalid-feedback d-block">Máximo 200 caracteres.</span>
-              } @else {
-                <span></span>
-              }
-              <small class="text-muted">{{ welcomeLength() }}/200</small>
+              type="text"
+              formControlName="primaryColor"
+              placeholder="#0d6efd"
+              style="max-width:120px;"
+            />
+            <div
+              class="rounded border"
+              style="width:38px;height:38px;flex-shrink:0"
+              [style.background]="form.get('primaryColor')?.value ?? '#0d6efd'"
+            ></div>
+          </div>
+          <small class="text-muted">Botones y acentos del catálogo</small>
+        </c-col>
+      </c-row>
+
+      <!-- Mensaje de bienvenida -->
+      <div class="mt-3">
+        <label cFormLabel for="mkt-welcome">Mensaje de bienvenida</label>
+        <textarea
+          cFormControl
+          id="mkt-welcome"
+          formControlName="welcomeMessage"
+          rows="2"
+          placeholder="Bienvenido a nuestro catálogo de productos..."
+          maxlength="200"
+          [class.is-invalid]="hasError('welcomeMessage')"
+        ></textarea>
+        <div class="d-flex justify-content-between mt-1">
+          @if (hasError('welcomeMessage')) {
+            <span class="text-danger small">Máximo 200 caracteres.</span>
+          } @else { <span></span> }
+          <small class="text-muted">{{ welcomeLength() }}/200</small>
+        </div>
+      </div>
+
+    </c-card-body>
+  </c-card>
+
+  <!-- ② Contacto + Redes sociales y Ubicación ────────────────────────────── -->
+  <c-row class="mb-4">
+
+    <!-- Información de contacto -->
+    <c-col xs="12" lg="6">
+      <c-card class="h-100">
+        <c-card-header class="d-flex align-items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.11 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          <strong>Información de Contacto</strong>
+        </c-card-header>
+        <c-card-body>
+
+          <!-- WhatsApp -->
+          <label cFormLabel for="mkt-whatsapp">WhatsApp</label>
+          @if (companyPhone()) {
+            <div class="mb-2">
+              <c-form-check>
+                <input
+                  cFormCheckInput
+                  type="checkbox"
+                  id="mkt-whatsapp-same"
+                  [checked]="useCompanyPhone()"
+                  (change)="toggleUseCompanyPhone()"
+                />
+                <label cFormCheckLabel for="mkt-whatsapp-same">
+                  Usar teléfono de la empresa
+                  <strong class="text-muted">({{ companyPhone() }})</strong>
+                </label>
+              </c-form-check>
             </div>
+          }
+          <div class="input-group mb-1">
+            <span class="input-group-text">
+              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="#25d366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
+            </span>
+            <input cFormControl id="mkt-whatsapp" type="tel" formControlName="whatsapp" placeholder="+593987654321" />
+          </div>
+          <small class="text-muted d-block mb-3">Incluye el código de país. Ej: +593987654321</small>
+
+          <!-- Teléfono -->
+          <label cFormLabel for="mkt-phone">Teléfono (llamadas)</label>
+          <div class="input-group mb-3">
+            <span class="input-group-text">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.11 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            </span>
+            <input cFormControl id="mkt-phone" type="tel" formControlName="phone" placeholder="Ej: 0987654321" />
           </div>
 
-          <!-- Toggles de visibilidad -->
-          <p class="fw-semibold small text-muted mb-2 mt-1">Datos visibles en el catálogo</p>
+          <!-- Email -->
+          <label cFormLabel for="mkt-email">Correo electrónico</label>
+          <div class="input-group">
+            <span class="input-group-text">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            </span>
+            <input cFormControl id="mkt-email" type="email" formControlName="email" placeholder="contacto@empresa.com" />
+          </div>
+
+        </c-card-body>
+      </c-card>
+    </c-col>
+
+    <!-- Redes sociales + Ubicación -->
+    <c-col xs="12" lg="6" class="mt-4 mt-lg-0">
+      <c-card class="h-100">
+        <c-card-header class="d-flex align-items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          <strong>Redes Sociales y Ubicación</strong>
+        </c-card-header>
+        <c-card-body>
+
+          <!-- Instagram -->
+          <label cFormLabel for="mkt-instagram">Instagram</label>
+          <div class="input-group mb-3">
+            <span class="input-group-text">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+            </span>
+            <input cFormControl id="mkt-instagram" type="text" formControlName="instagram" placeholder="https://instagram.com/tuempresa" />
+          </div>
+
+          <!-- Facebook -->
+          <label cFormLabel for="mkt-facebook">Facebook</label>
+          <div class="input-group mb-3">
+            <span class="input-group-text">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+            </span>
+            <input cFormControl id="mkt-facebook" type="text" formControlName="facebook" placeholder="https://facebook.com/tuempresa" />
+          </div>
+
+          <!-- TikTok -->
+          <label cFormLabel for="mkt-tiktok">TikTok</label>
+          <div class="input-group mb-3">
+            <span class="input-group-text">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"/></svg>
+            </span>
+            <input cFormControl id="mkt-tiktok" type="text" formControlName="tiktok" placeholder="https://tiktok.com/@tuempresa" />
+          </div>
+
+          <hr class="my-2" />
+          <p class="small text-muted fw-semibold mb-2 mt-1">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            Ubicación
+          </p>
+
+          <!-- Dirección -->
+          <label cFormLabel for="mkt-locationText">Dirección</label>
+          <div class="input-group mb-3">
+            <span class="input-group-text">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            </span>
+            <input cFormControl id="mkt-locationText" type="text" formControlName="locationText" placeholder="Av. Principal 123 y Secundaria" />
+          </div>
+
+          <!-- Google Maps -->
+          <label cFormLabel for="mkt-locationUrl">Enlace Google Maps</label>
+          <div class="input-group">
+            <span class="input-group-text">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+            </span>
+            <input cFormControl id="mkt-locationUrl" type="url" formControlName="locationUrl" placeholder="https://maps.google.com/..." />
+          </div>
+
+        </c-card-body>
+      </c-card>
+    </c-col>
+
+  </c-row>
+
+  <!-- ③ Visibilidad de productos ──────────────────────────────────────────── -->
+  <c-card class="mb-4">
+    <c-card-header class="d-flex align-items-center gap-2">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      <strong>Visibilidad de Productos</strong>
+    </c-card-header>
+    <c-card-body>
+      <c-row>
+        <c-col xs="12" md="5">
+          <p class="small text-muted fw-semibold mb-2">¿Qué ven tus clientes?</p>
           <div class="mb-2">
             <c-form-check class="form-switch">
               <input cFormCheckInput type="checkbox" formControlName="showPrices" id="mkt-prices" role="switch" />
@@ -186,66 +280,60 @@
           <div class="mb-2">
             <c-form-check class="form-switch">
               <input cFormCheckInput type="checkbox" formControlName="showNotes" id="mkt-notes" role="switch" />
-              <label cFormCheckLabel for="mkt-notes">Mostrar descripción / observaciones del producto</label>
+              <label cFormCheckLabel for="mkt-notes">Mostrar descripción del producto</label>
             </c-form-check>
           </div>
-          <div class="mb-4">
+          <div>
             <c-form-check class="form-switch">
               <input cFormCheckInput type="checkbox" formControlName="showOutOfStock" id="mkt-stock" role="switch" />
               <label cFormCheckLabel for="mkt-stock">Mostrar productos agotados</label>
             </c-form-check>
           </div>
+        </c-col>
 
-          <!-- Allowed families -->
-          @if (families().length > 0) {
-            <div class="mb-4">
-              <label class="form-label fw-semibold">
-                Familias visibles en el catálogo
-                <small class="text-muted fw-normal">(sin selección = todas)</small>
-              </label>
-              <div class="d-flex flex-wrap gap-2">
-                @for (family of families(); track family.id) {
-                  <c-form-check>
-                    <input
-                      cFormCheckInput
-                      type="checkbox"
-                      [id]="'family-' + family.id"
-                      [checked]="isFamilySelected(family.id)"
-                      (change)="toggleFamily(family.id)"
-                    />
-                    <label cFormCheckLabel [for]="'family-' + family.id">{{ family.name }}</label>
-                  </c-form-check>
-                }
-              </div>
-            </div>
-          }
-
-          <!-- Feedback alerts -->
-          @if (savedOk()) {
-            <c-alert color="success" class="mb-3">Configuracion guardada correctamente.</c-alert>
-          }
-          @if (errorMessage()) {
-            <c-alert color="danger" class="mb-3">{{ errorMessage() }}</c-alert>
-          }
-
-          <!-- Save button -->
-          <div class="d-flex gap-2">
-            <button
-              type="submit"
-              cButton
-              color="primary"
-              [disabled]="saving() || form.invalid"
-            >
-              @if (saving()) {
-                <c-spinner size="sm" class="me-2" />
+        @if (families().length > 0) {
+          <c-col xs="12" md="7" class="mt-3 mt-md-0">
+            <p class="small text-muted fw-semibold mb-2">Familias visibles <span class="fw-normal">(sin selección = todas)</span></p>
+            <div class="d-flex flex-wrap gap-2">
+              @for (family of families(); track family.id) {
+                <c-form-check>
+                  <input
+                    cFormCheckInput
+                    type="checkbox"
+                    [id]="'family-' + family.id"
+                    [checked]="isFamilySelected(family.id)"
+                    (change)="toggleFamily(family.id)"
+                  />
+                  <label cFormCheckLabel [for]="'family-' + family.id">{{ family.name }}</label>
+                </c-form-check>
               }
-              Guardar configuración
-            </button>
-          </div>
+            </div>
+          </c-col>
+        }
+      </c-row>
+    </c-card-body>
+  </c-card>
 
-        </form>
-      </c-card-body>
-    </c-card>
+  <!-- Feedback + Guardar ──────────────────────────────────────────────────── -->
+  @if (savedOk()) {
+    <c-alert color="success" class="mb-3">Configuración guardada correctamente.</c-alert>
+  }
+  @if (errorMessage()) {
+    <c-alert color="danger" class="mb-3">{{ errorMessage() }}</c-alert>
+  }
 
-  </c-col>
-</c-row>
+  <div class="d-flex justify-content-end">
+    <button
+      type="submit"
+      cButton
+      color="primary"
+      [disabled]="saving() || form.invalid"
+    >
+      @if (saving()) {
+        <c-spinner size="sm" class="me-2" />
+      }
+      Guardar configuración
+    </button>
+  </div>
+
+</form>
