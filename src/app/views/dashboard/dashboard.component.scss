@@ -1,7 +1,104 @@
-:host {
-  .legend {
-    small {
-      font-size: x-small;
-    }
-  }
+// ── KPI Cards ─────────────────────────────────────────────────────────────────
+
+.kpi-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.5rem;
+  margin-bottom: 0.75rem;
+
+  &--success { background: rgba(var(--cui-success-rgb), 0.15); color: var(--cui-success); }
+  &--primary { background: rgba(var(--cui-primary-rgb), 0.15); color: var(--cui-primary); }
+  &--warning { background: rgba(var(--cui-warning-rgb), 0.15); color: var(--cui-warning); }
+  &--info    { background: rgba(var(--cui-info-rgb),    0.15); color: var(--cui-info);    }
+}
+
+.kpi-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1.1;
+  margin-bottom: 0.2rem;
+  color: var(--cui-body-color);
+}
+
+.kpi-label {
+  font-size: 0.8rem;
+  color: var(--cui-secondary-color);
+  margin-bottom: 0.4rem;
+}
+
+.kpi-delta {
+  font-size: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+
+  &.positive { color: var(--cui-success); }
+  &.negative { color: var(--cui-danger);  }
+}
+
+.kpi-sub {
+  font-size: 0.75rem;
+  color: var(--cui-secondary-color);
+}
+
+// ── Chart ─────────────────────────────────────────────────────────────────────
+
+.chart-wrapper {
+  position: relative;
+  height: 260px;
+}
+
+// ── Recent invoices list ──────────────────────────────────────────────────────
+
+.recent-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.recent-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid var(--cui-border-color-translucent);
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.15s;
+
+  &:last-child { border-bottom: none; }
+  &:hover { background: var(--cui-tertiary-bg); }
+}
+
+.recent-item__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.recent-item__name {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.recent-item__num {
+  font-size: 0.75rem;
+}
+
+.recent-item__right {
+  text-align: right;
+  flex-shrink: 0;
+  margin-left: 0.75rem;
+}
+
+.recent-item__amount {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.badge-xs {
+  font-size: 0.65rem;
+  padding: 0.15rem 0.4rem;
 }

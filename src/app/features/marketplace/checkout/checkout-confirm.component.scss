@@ -1,0 +1,215 @@
+:host {
+  --cp: var(--catalog-primary, #e47911);
+  display: block;
+}
+
+.ccf-card {
+  background: #fff;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  padding: 1.75rem;
+}
+
+.ccf-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 .25rem;
+}
+
+.ccf-sub {
+  font-size: .85rem;
+  color: #6b7280;
+  margin: 0 0 1.5rem;
+}
+
+/* ── Secciones ─────────────────────────────────────────────── */
+.ccf-section {
+  padding: 1rem 0;
+  border-bottom: 1px solid #f3f4f6;
+  margin-bottom: 1rem;
+}
+.ccf-section:last-of-type { border-bottom: none; }
+
+.ccf-section__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: .65rem;
+}
+
+.ccf-section__title {
+  font-size: .88rem;
+  font-weight: 700;
+  color: #374151;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.ccf-edit {
+  background: none;
+  border: none;
+  color: var(--cp);
+  font-size: .8rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  transition: opacity .15s;
+}
+.ccf-edit:hover { opacity: .7; }
+
+/* ── DL datos cliente ──────────────────────────────────────── */
+.ccf-dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: .3rem .75rem;
+  margin: 0;
+}
+
+.ccf-dl dt {
+  font-size: .8rem;
+  font-weight: 600;
+  color: #9ca3af;
+  white-space: nowrap;
+}
+
+.ccf-dl dd {
+  font-size: .85rem;
+  color: #111827;
+  margin: 0;
+}
+
+/* ── Método de pago ────────────────────────────────────────── */
+.ccf-payment-method {
+  font-size: .9rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 .65rem;
+}
+
+.ccf-proof {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: .5rem;
+}
+
+.ccf-proof__img {
+  max-width: 100%;
+  max-height: 160px;
+  border-radius: 7px;
+  border: 1px solid #e5e7eb;
+  object-fit: contain;
+}
+
+.ccf-proof__pdf {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  font-size: .82rem;
+  font-weight: 600;
+  color: #374151;
+  padding: .5rem .75rem;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 7px;
+}
+
+.ccf-proof__ok {
+  display: flex;
+  align-items: center;
+  gap: .3rem;
+  font-size: .78rem;
+  font-weight: 600;
+  color: #10b981;
+}
+
+.ccf-note {
+  display: flex;
+  align-items: flex-start;
+  gap: .4rem;
+  font-size: .82rem;
+  color: #6b7280;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 7px;
+  padding: .6rem .75rem;
+  margin: 0;
+}
+
+/* ── Error ─────────────────────────────────────────────────── */
+.ccf-error {
+  display: flex;
+  align-items: flex-start;
+  gap: .5rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: .75rem 1rem;
+  font-size: .85rem;
+  color: #dc2626;
+  margin-bottom: 1rem;
+}
+
+/* ── Acciones ──────────────────────────────────────────────── */
+.ccf-actions {
+  display: flex;
+  gap: .75rem;
+  margin-top: 1.25rem;
+}
+
+.ccf-btn-back {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .7rem 1.1rem;
+  background: #fff;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: .88rem;
+  font-weight: 600;
+  color: #6b7280;
+  cursor: pointer;
+  transition: border-color .15s, color .15s;
+}
+.ccf-btn-back:hover:not(:disabled) {
+  border-color: #9ca3af;
+  color: #374151;
+}
+.ccf-btn-back:disabled { opacity: .5; cursor: not-allowed; }
+
+.ccf-btn-confirm {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  padding: .75rem 1.5rem;
+  background: var(--cp);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: .95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .15s, transform .1s;
+}
+.ccf-btn-confirm:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--cp) 85%, #000);
+  transform: translateY(-1px);
+}
+.ccf-btn-confirm:disabled { opacity: .7; cursor: not-allowed; }
+
+/* Spinner */
+.ccf-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255,255,255,.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }

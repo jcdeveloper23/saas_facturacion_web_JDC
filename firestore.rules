@@ -416,6 +416,44 @@ service cloud.firestore {
                      && request.resource.data.count is int
                      && request.resource.data.count >= 0;
       }
+
+      // Órdenes del catálogo — creación y lectura pública (sin auth).
+      // Cualquier visitante puede crear una orden y consultar la suya por ID.
+      // Actualización y eliminación denegadas desde el cliente;
+      // solo el Admin SDK (Cloud Functions) y el admin autenticado del tenant pueden hacerlo.
+      match /orders/{orderId} {
+        // Cualquiera puede crear una orden (comprador anónimo).
+        allow create: if request.resource.data.keys().hasAll([
+                          'slug', 'companyId', 'customer', 'items',
+                          'total', 'paymentMethod', 'paymentStatus',
+                          'status', 'orderNumber', 'createdAt', 'updatedAt'
+                        ])
+                        && request.resource.data.total is number
+                        && request.resource.data.total > 0
+                        && request.resource.data.paymentStatus == 'pending'
+                        && request.resource.data.status == 'new';
+
+        // Lectura pública: el comprador accede por URL directa con el ID.
+        allow read: if true;
+
+        // Comprador: subir comprobante de pago (campos y estado estrictamente limitados).
+        allow update: if request.resource.data.diff(resource.data)
+                           .affectedKeys()
+                           .hasOnly(['paymentProofUrl', 'paymentProofStoragePath',
+                                     'paymentStatus', 'updatedAt'])
+                       && request.resource.data.paymentStatus == 'proof_uploaded';
+
+        // Admin del tenant: confirmar/rechazar pago y cambiar estado del pedido.
+        // Verifica que el usuario autenticado pertenece a la empresa dueña del catálogo
+        // leyendo el companyId del documento padre /public-catalogs/{slug}.
+        allow update: if isAuthenticated()
+                       && request.auth.token.role in ['admin', 'seller']
+                       && get(/databases/$(database)/documents/public-catalogs/$(slug))
+                            .data.companyId == request.auth.token.companyId;
+
+        // Eliminación denegada desde el cliente (audit trail).
+        allow delete: if false;
+      }
     }
 
     // ─── Global users registry ────────────────────────────────────────────

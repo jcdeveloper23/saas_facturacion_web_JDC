@@ -294,9 +294,9 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
   vatExpandedIdx    = signal<number | null>(null);
 
   // ── Stock availability per line (Fase B) ─────────────────────────────────
-  // Key = line index, value = { qty, trackStock }
-  // Uses qty (physical stock), not available, since reservations are not yet implemented.
-  lineStocks = signal<Record<number, { qty: number; trackStock: boolean }>>({});
+  // Key = line index, value = { available, trackStock }
+  // Uses available (qty − reserved) so existing reservations are reflected correctly.
+  lineStocks = signal<Record<number, { available: number; trackStock: boolean }>>({});
 
   /** True when any line has qty > available stock AND blockSaleOnInsufficient=true. */
   emitBlocked = computed(() =>
@@ -313,7 +313,7 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
       const s = stocks[idx];
       if (!s?.trackStock) return false;
       const qty = parseFloat(ctrl.get('quantity')?.value) || 0;
-      return qty > s.qty;
+      return qty > s.available;
     });
   });
 
@@ -330,10 +330,29 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
   autoSaveStatus = signal<'idle' | 'saving' | 'saved' | 'error'>('idle');
   autoSavedAt    = signal<Date | null>(null);
 
+  // ── Default customer & no-customers alert ────────────────────────────────
+  showNoCustomersAlert  = signal(false);
+  savingConsumidorFinal = signal(false);
+
+  /** Cliente marcado como predeterminado en esta empresa */
+  readonly defaultCustomer = computed(() =>
+    this.customers().find(c => c.customerData?.isDefault === true) ?? null
+  );
+
   // ── F3.3 — Quick customer modal ───────────────────────────────────────────
   showNewCustomerModal = signal(false);
   savingNewCustomer    = signal(false);
   newCustomerForm!: FormGroup;
+
+  // ── Fase D — Payment balance computed signals ─────────────────────────────
+
+  /** Suma de todos los montos en las formas de pago */
+  paymentTotal = signal(0);
+
+  /** True cuando la diferencia entre pago y total es menor a $0.01 */
+  readonly paymentBalanced = computed(() =>
+    Math.abs(this.paymentTotal() - this.totals().total) < 0.01
+  );
 
   // ── F3.2 — SRI Payment Methods ────────────────────────────────────────────
   readonly sriPaymentMethods = SRI_PAYMENT_METHODS;
@@ -350,6 +369,9 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
 
   // ── Totals (signal, updated via form.valueChanges) ───────────────────────
   totals = signal(calcInvoiceTotals([], 0));
+
+  // ── Re-entrancy guard for recalcLine ─────────────────────────────────────
+  private _recalcInProgress = false;
 
   // ── Dirty state ───────────────────────────────────────────────────────────
   isDirty = computed(() => this.form?.dirty ?? false);
@@ -439,10 +461,38 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
       });
   }
 
+  private recalcPaymentTotal(): void {
+    const sum = this.paymentMethodsArray.controls.reduce((s, c) => {
+      return s + (parseFloat(c.get('amount')?.value) || 0);
+    }, 0);
+    this.paymentTotal.set(Math.round(sum * 100) / 100);
+  }
+
   private refreshTotals(): void {
-    const lines: InvoiceLine[] = this.linesArray.controls.map(c => c.value as InvoiceLine);
-    const disc = this.form.get('globalDiscountPct')?.value ?? 0;
+    const rawForm = (this.form as FormGroup).getRawValue();
+    const disc = rawForm.globalDiscountPct ?? 0;
+    const lines: InvoiceLine[] = this.linesArray.controls.map((c, idx) => {
+      const val = (c as FormGroup).getRawValue() as InvoiceLine;
+      const config = this.quantityInputConfig(idx);
+      const isDiscrete = config.step === '1';
+      const quantity = isDiscrete
+        ? Math.max(1, Math.round(val.quantity ?? 1))
+        : Math.max(0.001, val.quantity ?? 0.001);
+      const { subtotal, vatAmount, total } = calcLine({ ...val, quantity });
+      return { ...val, quantity, subtotal, vatAmount, total };
+    });
     this.totals.set(calcInvoiceTotals(lines, disc));
+
+    // Auto-sync: si hay exactamente 1 forma de pago, igualarla al total
+    if (this.paymentMethodsArray.length === 1) {
+      const newTotal = this.totals().total;
+      const amountCtrl = this.paymentMethodsArray.at(0).get('amount');
+      if (amountCtrl && Math.abs((parseFloat(amountCtrl.value) || 0) - newTotal) >= 0.01) {
+        amountCtrl.patchValue(newTotal, { emitEvent: false });
+      }
+    }
+
+    this.recalcPaymentTotal();
   }
 
   private loadReferenceData(): void {
@@ -451,7 +501,19 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
     });
 
     this.personasSvc.getPersonas('customer').pipe(take(1)).subscribe({
-      next: list => this.customers.set(list.filter(p => p.isActive).sort((a, b) => a.name.localeCompare(b.name, 'es')))
+      next: list => {
+        const sorted = list.filter(p => p.isActive).sort((a, b) => a.name.localeCompare(b.name, 'es'));
+        this.customers.set(sorted);
+        // Alerta si no hay clientes registrados y es factura nueva
+        if (sorted.length === 0 && this.isNew()) {
+          this.showNoCustomersAlert.set(true);
+        }
+        // Auto-seleccionar cliente por defecto en factura nueva
+        if (this.isNew() && !this.selectedCustomer()) {
+          const def = sorted.find(c => c.customerData?.isDefault === true);
+          if (def) this.selectCustomer(def, false);
+        }
+      }
     });
     this.personasSvc.getPersonas('employee').pipe(take(1)).subscribe({
       next: list => this.agents.set(list.filter(p => p.isActive).sort((a, b) => a.name.localeCompare(b.name, 'es')))
@@ -578,6 +640,7 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
     }
 
     this.refreshTotals();
+    this.recalcPaymentTotal();
   }
 
   // ─── Customer selection ────────────────────────────────────────────────────
@@ -633,6 +696,89 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
     this.selectCustomer(cf, false);
   }
 
+  /** Crea Consumidor Final como cliente real en Firestore (primer cliente de la empresa) */
+  async createConsumidorFinalCustomer(): Promise<void> {
+    this.savingConsumidorFinal.set(true);
+    try {
+      const input: PersonCreateInput = {
+        roles:        ['customer'],
+        taxIdType:    'CI' as TaxIdType,
+        taxId:        '9999999999999',
+        isCompany:    false,
+        name:         'CONSUMIDOR FINAL',
+        legalName:    'CONSUMIDOR FINAL',
+        isActive:     true,
+        addresses:    [],
+        bankAccounts: [],
+        customerData: {
+          currency:        'USD',
+          paymentTermCode: this.paymentTerms()[0]?.code ?? '',
+          vatRegime:       'General',
+          isDefault:       true,
+        }
+      };
+      const id = await this.personasSvc.createPerson(input);
+      // Recargar lista de clientes
+      this.personasSvc.getPersonas('customer').pipe(take(1)).subscribe({
+        next: list => {
+          const updated = list.filter(p => p.isActive).sort((a, b) => a.name.localeCompare(b.name, 'es'));
+          this.customers.set(updated);
+          const cf = updated.find(p => p.id === id);
+          if (cf) this.selectCustomer(cf, false);
+          this.showNoCustomersAlert.set(false);
+          this.notifications.success('Consumidor Final creado y seleccionado');
+        }
+      });
+    } catch (err: any) {
+      this.notifications.error('Error al crear Consumidor Final: ' + (err?.message ?? err));
+    } finally {
+      this.savingConsumidorFinal.set(false);
+    }
+  }
+
+  /** Marca el cliente actualmente seleccionado como predeterminado (o lo desmarca si ya lo era) */
+  async toggleDefaultCustomer(): Promise<void> {
+    const customer = this.selectedCustomer();
+    if (!customer || customer.id === 'consumidor-final') return;
+
+    const isCurrentlyDefault = customer.customerData?.isDefault === true;
+    const newDefault = !isCurrentlyDefault;
+
+    try {
+      // Si hay otro cliente marcado como default, quitarle el flag
+      if (newDefault) {
+        const prev = this.defaultCustomer();
+        if (prev && prev.id !== customer.id) {
+          await this.personasSvc.updatePerson(prev.id, {
+            ...prev,
+            customerData: { ...prev.customerData!, isDefault: false }
+          } as any);
+        }
+      }
+
+      // Actualizar el cliente actual
+      await this.personasSvc.updatePerson(customer.id, {
+        ...customer,
+        customerData: { ...customer.customerData!, isDefault: newDefault }
+      } as any);
+
+      // Actualizar lista local
+      this.personasSvc.getPersonas('customer').pipe(take(1)).subscribe({
+        next: list => {
+          const updated = list.filter(p => p.isActive).sort((a, b) => a.name.localeCompare(b.name, 'es'));
+          this.customers.set(updated);
+          // Re-setear selectedCustomer con datos frescos
+          const fresh = updated.find(p => p.id === customer.id);
+          if (fresh) this.selectedCustomer.set(fresh);
+        }
+      });
+
+      this.notifications.success(newDefault ? 'Cliente marcado como predeterminado' : 'Cliente desmarcado como predeterminado');
+    } catch (err: any) {
+      this.notifications.error('Error: ' + (err?.message ?? err));
+    }
+  }
+
   // ─── Lines ─────────────────────────────────────────────────────────────────
 
   addPaymentMethod(): void {
@@ -641,6 +787,37 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
 
   removePaymentMethod(i: number): void {
     if (this.paymentMethodsArray.length > 1) this.paymentMethodsArray.removeAt(i);
+  }
+
+  /** Cuando el usuario edita el monto de un método de pago, redistribuye
+   *  la diferencia restante entre los demás métodos (coloca todo en el último). */
+  onPaymentAmountChange(editedIdx: number): void {
+    const total = this.totals().total;
+    const n = this.paymentMethodsArray.length;
+    if (n <= 1) return; // auto-sync ya lo maneja refreshTotals
+
+    // Suma de todos los métodos EXCEPTO el editado
+    const editedAmount = parseFloat(this.paymentMethodsArray.at(editedIdx).get('amount')?.value) || 0;
+    const remainder = Math.round((total - editedAmount) * 100) / 100;
+
+    if (n === 2) {
+      // Con 2 métodos: el otro recibe exactamente la diferencia
+      const otherIdx = editedIdx === 0 ? 1 : 0;
+      this.paymentMethodsArray.at(otherIdx).get('amount')?.patchValue(
+        Math.max(0, remainder), { emitEvent: false }
+      );
+    } else {
+      // Con 3+ métodos: distribuir diferencia entre los otros proporcionalmente
+      // Simplificación: colocar todo en el último que no sea el editado
+      const others = Array.from({ length: n }, (_, i) => i).filter(i => i !== editedIdx);
+      const lastOther = others[others.length - 1];
+      const sumOthers = others
+        .filter(i => i !== lastOther)
+        .reduce((s, i) => s + (parseFloat(this.paymentMethodsArray.at(i).get('amount')?.value) || 0), 0);
+      const lastAmount = Math.max(0, Math.round((total - editedAmount - sumOthers) * 100) / 100);
+      this.paymentMethodsArray.at(lastOther).get('amount')?.patchValue(lastAmount, { emitEvent: false });
+    }
+    this.recalcPaymentTotal();
   }
 
   /** Returns the label for a payment method code */
@@ -654,7 +831,7 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
       productId:    [line?.productId ?? ''],
       productSku:   [line?.productSku ?? ''],
       description:  [line?.description ?? '', Validators.required],
-      quantity:     [line?.quantity ?? 1, [Validators.required, Validators.min(0.001)]],
+      quantity:     [line?.quantity ?? 1, [Validators.required, Validators.min(1)]],
       unitPrice:    [line?.unitPrice ?? 0, [Validators.required, Validators.min(0)]],
       discountPct:  [line?.discountPct ?? 0, [Validators.min(0), Validators.max(100)]],
       subtotal:     [line?.subtotal ?? 0],
@@ -662,6 +839,7 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
       vatAmount:    [line?.vatAmount ?? 0],
       total:        [line?.total ?? 0],
       warehouseCode:[line?.warehouseCode ?? ''],
+      unit:         [line?.unit ?? ''],
       notes:        [line?.notes ?? '']
     });
 
@@ -670,35 +848,15 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
       g.get(field)?.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(() => this.recalcLine(g));
     });
 
-    // Reverse calc: total → unitPrice (emitEvent:false avoids loop)
-    g.get('total')?.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(() => this.recalcLineFromTotal(g));
-
     return g;
   }
 
   private recalcLine(g: FormGroup): void {
+    if (this._recalcInProgress) return;
+    this._recalcInProgress = true;
     const { subtotal, vatAmount, total } = calcLine(g.value);
     g.patchValue({ subtotal, vatAmount, total }, { emitEvent: false });
-  }
-
-  /** Reverse-calc: user edits Total → back-calculate unitPrice, keep qty/discount/vat. */
-  private recalcLineFromTotal(g: FormGroup): void {
-    const total = parseFloat(g.get('total')?.value)      || 0;
-    const qty   = parseFloat(g.get('quantity')?.value)   || 0;
-    const disc  = parseFloat(g.get('discountPct')?.value) || 0;
-    const vat   = parseFloat(g.get('vatPct')?.value)     || 0;
-
-    if (qty === 0 || disc >= 100) return; // guard division by zero
-
-    // total = subtotal * (1 + vat/100)
-    // subtotal = qty * unitPrice * (1 - disc/100)
-    // → unitPrice = total / (1 + vat/100) / qty / (1 - disc/100)
-    const r2 = (n: number) => Math.round(n * 100) / 100;
-    const unitPrice = r2(total / (1 + vat / 100) / qty / (1 - disc / 100));
-    const subtotal  = r2(qty * unitPrice * (1 - disc / 100));
-    const vatAmount = r2(subtotal * vat / 100);
-
-    g.patchValue({ unitPrice, subtotal, vatAmount }, { emitEvent: false });
+    this._recalcInProgress = false;
   }
 
   addLine(): void {
@@ -758,6 +916,12 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
     if (!this.selectedCustomer()) {
       this.notifications.error('Seleccione un cliente'); return;
     }
+    if (emitAfter && !this.paymentBalanced()) {
+      const diff = (this.paymentTotal() - this.totals().total).toFixed(2);
+      const sign = parseFloat(diff) > 0 ? '+' : '';
+      this.notifications.error(`Las formas de pago no cuadran con el total (diferencia: ${sign}${diff})`);
+      return;
+    }
 
     this.saving.set(true);
     try {
@@ -765,7 +929,16 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
       const customer = this.selectedCustomer() ?? this.invoice();
       const series   = this.seriesList().find(s => s.code === fv.seriesCode);
 
-      const lines: InvoiceLine[] = this.linesArray.controls.map(c => c.value as InvoiceLine);
+      const lines: InvoiceLine[] = this.linesArray.controls.map((c, idx) => {
+        const val = (c as FormGroup).getRawValue() as InvoiceLine;
+        const config = this.quantityInputConfig(idx);
+        const isDiscrete = config.step === '1';
+        const quantity = isDiscrete
+          ? Math.max(1, Math.round(val.quantity ?? 1))
+          : Math.max(0.001, val.quantity ?? 0.001);
+        const { subtotal, vatAmount, total } = calcLine({ ...val, quantity });
+        return { ...val, quantity, subtotal, vatAmount, total };
+      });
       const totals = calcInvoiceTotals(lines, fv.globalDiscountPct ?? 0);
 
       // Build payment methods from FormArray — ensure amounts sum to total
@@ -980,6 +1153,39 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
     setTimeout(() => this.focusLineField(this.linesArray.length - 1, 'productSku'), 30);
   }
 
+  // ─── Quantity input config by unit ────────────────────────────────────────
+
+  /** Devuelve { step, min } según la unidad del producto en la línea.
+   *  Unidades discretas (UNIDAD, CAJA, PAR, UND, PAQUETE) → enteros.
+   *  Unidades continuas (KG, LT, ML, GR, MT, M2, M3, etc.) → decimales. */
+  quantityInputConfig(idx: number): { step: string; min: string } {
+    const unit = (this.linesArray.at(idx)?.get('unit')?.value ?? '').toString().toUpperCase().trim();
+    const discrete = ['UNIDAD', 'UND', 'UNI', 'CAJA', 'PAR', 'PAQUETE', 'DOCENA', 'JUEGO', 'BLISTER', 'SOBRE'];
+    if (!unit || discrete.includes(unit)) {
+      return { step: '1', min: '1' };
+    }
+    // Unidades continuas: KG, LT, ML, GR, MT, M, M2, M3, etc.
+    return { step: '0.001', min: '0.001' };
+  }
+
+  // ─── Coerce quantity on blur (change event) ────────────────────────────────
+
+  onQuantityChange(idx: number, event: Event): void {
+    if (!this.isEditable()) return;
+    const input = event.target as HTMLInputElement;
+    const raw = parseFloat(input.value);
+    if (isNaN(raw)) return;
+
+    const config = this.quantityInputConfig(idx);
+    const isDiscrete = config.step === '1';
+    const coerced = isDiscrete ? Math.max(1, Math.round(raw)) : Math.max(0.001, raw);
+
+    const ctrl = this.linesArray.at(idx).get('quantity');
+    if (ctrl && Math.abs((ctrl.value ?? 0) - coerced) >= 0.0001) {
+      ctrl.setValue(coerced, { emitEvent: true });
+    }
+  }
+
   // ─── Enter on quantity → addLine, focus SKU ────────────────────────────────
 
   onQuantityEnterKey(idx: number, event: KeyboardEvent): void {
@@ -989,6 +1195,16 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
       this.addLine();
     }
     setTimeout(() => this.focusLineField(this.linesArray.length - 1, 'productSku'), 30);
+  }
+
+  // ─── Focus on quantity → refresh stock (Fase 4-F) ─────────────────────────
+
+  onQuantityFocus(idx: number): void {
+    if (!this.isEditable()) return;
+    const productId = this.linesArray.at(idx)?.get('productId')?.value as string | undefined;
+    if (productId) {
+      void this.loadLineStock(productId, idx);
+    }
   }
 
   back(): void {
@@ -1036,7 +1252,16 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
       this.autoSaveStatus.set('saving');
       try {
         const fv = this.form.value;
-        const lines: InvoiceLine[] = this.linesArray.controls.map(c => c.value as InvoiceLine);
+        const lines: InvoiceLine[] = this.linesArray.controls.map((c, idx) => {
+          const val = (c as FormGroup).getRawValue() as InvoiceLine;
+          const config = this.quantityInputConfig(idx);
+          const isDiscrete = config.step === '1';
+          const quantity = isDiscrete
+            ? Math.max(1, Math.round(val.quantity ?? 1))
+            : Math.max(0.001, val.quantity ?? 0.001);
+          const { subtotal, vatAmount, total } = calcLine({ ...val, quantity });
+          return { ...val, quantity, subtotal, vatAmount, total };
+        });
         const totals = calcInvoiceTotals(lines, fv.globalDiscountPct ?? 0);
         await this.svc.updateInvoice(this.invoiceId()!, {
           date:              Timestamp.fromDate(new Date(fv.date + 'T00:00:00')),
@@ -1071,6 +1296,7 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
       taxId:     ['', [Validators.required, ecuadorTaxIdValidator('taxIdType')]],
       email:     [''],
       phone1:    [''],
+      isDefault: [false],
     });
 
     // When taxIdType changes: re-validate taxId
@@ -1101,7 +1327,7 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
   }
 
   openNewCustomerModal(): void {
-    this.newCustomerForm.reset({ taxIdType: 'RUC' });
+    this.newCustomerForm.reset({ taxIdType: 'RUC', isDefault: false });
     this.showNewCustomerModal.set(true);
   }
 
@@ -1121,6 +1347,16 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
       const resolvedLegalName = isCompany
         ? (fv.legalName?.trim() || fv.name.trim())
         : fv.name.trim();
+      // Si se marca como default, limpiar el anterior
+      if (fv.isDefault) {
+        const prev = this.defaultCustomer();
+        if (prev) {
+          await this.personasSvc.updatePerson(prev.id, {
+            ...prev,
+            customerData: { ...prev.customerData!, isDefault: false }
+          } as any);
+        }
+      }
       const input: PersonCreateInput = {
         roles:        ['customer'],
         taxIdType:    fv.taxIdType,
@@ -1137,6 +1373,7 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
           currency:        'USD',
           paymentTermCode: this.paymentTerms()[0]?.code ?? '',
           vatRegime:       'General',
+          isDefault:       !!fv.isDefault,
         }
       };
       const id = await this.personasSvc.createPerson(input);
@@ -1176,7 +1413,7 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
       const ws = stocks.find(s => s.warehouseCode === warehouseCode);
       this.lineStocks.update(m => ({
         ...m,
-        [lineIdx]: { qty: ws?.qty ?? 0, trackStock: true }
+        [lineIdx]: { available: ws?.available ?? 0, trackStock: true }
       }));
     } catch { /* stock check is best-effort */ }
   }
@@ -1185,16 +1422,16 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
   stockAlert(idx: number): '' | 'ok' | 'warn' | 'out' {
     const s = this.lineStocks()[idx];
     if (!s?.trackStock) return '';
-    if (s.qty <= 0) return 'out';
+    if (s.available <= 0) return 'out';
     const qty = parseFloat(this.linesArray.at(idx).get('quantity')?.value) || 0;
-    if (qty > s.qty) return 'warn';
+    if (qty > s.available) return 'warn';
     return 'ok';
   }
 
-  /** Returns the stock qty for a line, or null if not tracked. */
+  /** Returns the available stock for a line, or null if not tracked. */
   stockAvail(idx: number): number | null {
     const s = this.lineStocks()[idx];
-    return s?.trackStock ? s.qty : null;
+    return s?.trackStock ? s.available : null;
   }
 
   // ─── F3.5 — Duplicate invoice ─────────────────────────────────────────────
@@ -1245,6 +1482,65 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
       this.router.navigate(['/invoices', id, 'edit']);
     } catch (err: any) {
       this.notifications.error('Error al duplicar: ' + (err?.message ?? err));
+    } finally {
+      this.saving.set(false);
+    }
+  }
+
+  /** Crea una Nota de Crédito como borrador a partir de la factura actual emitida. */
+  async createCreditNote(): Promise<void> {
+    const inv = this.invoice();
+    if (!inv) return;
+
+    this.saving.set(true);
+    try {
+      const today = this.toDateInput(new Date());
+      const lines = inv.lines.map(l => ({ ...l, id: crypto.randomUUID() }));
+      const totals = calcInvoiceTotals(lines, inv.globalDiscountPct);
+
+      const input = {
+        seriesCode:                 inv.seriesCode,
+        seriesEstablishment:        inv.seriesEstablishment,
+        seriesEmissionPoint:        inv.seriesEmissionPoint,
+        fiscalYear:                 new Date().getFullYear().toString(),
+        date:                       Timestamp.fromDate(new Date(today + 'T00:00:00')),
+        dueDate:                    Timestamp.fromDate(new Date(today + 'T00:00:00')),
+        customerId:                 inv.customerId,
+        customerCode:               inv.customerCode,
+        customerName:               inv.customerName,
+        customerTaxId:              inv.customerTaxId,
+        customerTaxIdType:          inv.customerTaxIdType,
+        customerAddress:            inv.customerAddress ?? '',
+        customerCity:               inv.customerCity ?? '',
+        customerProvince:           inv.customerProvince ?? '',
+        customerEmail:              inv.customerEmail ?? '',
+        customerReference:          '',
+        warehouseCode:              inv.warehouseCode,
+        paymentTermCode:            inv.paymentTermCode,
+        currency:                   inv.currency,
+        exchangeRate:               inv.exchangeRate,
+        agentCode:                  inv.agentCode ?? '',
+        globalDiscountPct:          inv.globalDiscountPct,
+        lines,
+        status:                     'draft' as InvoiceStatus,
+        isPaid:                     false,
+        isVoid:                     false,
+        isCreditNote:               true,
+        creditNoteMotivo:           '',
+        rectifiedInvoiceId:         inv.id,
+        rectifiedInvoiceNumber:     inv.fullNumber ?? '',
+        rectifiedInvoiceDate:       inv.date,
+        rectifiedInvoiceAuthNumber: inv.authorizationNumber ?? '',
+        notes:                      '',
+        paymentMethods:             inv.paymentMethods ?? [{ code: '01', name: 'Efectivo', amount: totals.total }],
+        ...totals
+      };
+
+      const id = await this.svc.createInvoice(input as any);
+      this.notifications.success('Nota de Crédito creada como borrador — completa el motivo y emite');
+      this.router.navigate(['/invoices', id, 'edit']);
+    } catch (err: any) {
+      this.notifications.error('Error al crear Nota de Crédito: ' + (err?.message ?? err));
     } finally {
       this.saving.set(false);
     }

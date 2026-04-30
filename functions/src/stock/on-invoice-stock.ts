@@ -171,12 +171,12 @@ export const onInvoiceStock = onDocumentWritten(
               lastUpdatedQty: currentQty
             });
           } else {
-            // Warehouse stock doc doesn't exist yet — create it
+            // Warehouse stock doc doesn't exist — create it (never below 0)
             tx.set(stockRef, {
               warehouseCode,
               warehouseName,
-              qty:            delta,
-              available:      delta,
+              qty:            Math.max(0, delta),
+              available:      Math.max(0, delta),
               reserved:       0,
               pendingReceive: 0,
               stockMin:       0,
@@ -184,6 +184,9 @@ export const onInvoiceStock = onDocumentWritten(
               lastUpdatedAt:  now,
               lastUpdatedQty: 0
             });
+            if (delta < 0) {
+              logger.warn('[onInvoiceStock] Venta registrada sin stock previo en almacén.', { productId, warehouseCode, invoiceId });
+            }
           }
 
           // ── Update product aggregate ───────────────────────────────────────

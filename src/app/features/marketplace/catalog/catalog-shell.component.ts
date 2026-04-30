@@ -64,6 +64,11 @@ export class CatalogShellComponent implements OnInit, OnDestroy {
     this.cartOpen.set(true);
   }
 
+  goToCheckout(): void {
+    this.cartOpen.set(false);
+    this.router.navigate(['/', this.catalogSlug(), 'checkout']);
+  }
+
   onSearchChange(q: string): void {
     this.headerSearch.set(q);
     

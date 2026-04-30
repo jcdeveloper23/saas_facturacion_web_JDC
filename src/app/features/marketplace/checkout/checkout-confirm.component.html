@@ -1,0 +1,95 @@
+<div class="ccf-card">
+  <h2 class="ccf-title">Confirmar pedido</h2>
+  <p class="ccf-sub">Revisa los datos antes de finalizar.</p>
+
+  <!-- ── Datos del cliente ────────────────────────────────── -->
+  <div class="ccf-section">
+    <div class="ccf-section__header">
+      <h4 class="ccf-section__title">Datos de contacto</h4>
+      <button type="button" class="ccf-edit" (click)="back.emit(); back.emit()">Editar</button>
+    </div>
+    <dl class="ccf-dl">
+      <dt>Nombre</dt>       <dd>{{ customerData.name }}</dd>
+      <dt>Email</dt>        <dd>{{ customerData.email }}</dd>
+      <dt>Teléfono</dt>     <dd>{{ customerData.phone }}</dd>
+      @if (customerData.address) {
+        <dt>Dirección</dt>  <dd>{{ customerData.address }}</dd>
+      }
+      @if (customerData.notes) {
+        <dt>Notas</dt>      <dd>{{ customerData.notes }}</dd>
+      }
+    </dl>
+  </div>
+
+  <!-- ── Método de pago ───────────────────────────────────── -->
+  <div class="ccf-section">
+    <div class="ccf-section__header">
+      <h4 class="ccf-section__title">Método de pago</h4>
+      <button type="button" class="ccf-edit" (click)="back.emit()">Editar</button>
+    </div>
+    <p class="ccf-payment-method">{{ paymentLabels[paymentMethod] }}</p>
+
+    @if (paymentMethod === 'transfer' && proofFile) {
+      <div class="ccf-proof">
+        @if (getProofPreview(); as previewUrl) {
+          <img class="ccf-proof__img" [src]="previewUrl" alt="Comprobante" />
+        } @else {
+          <div class="ccf-proof__pdf">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9z"/>
+            </svg>
+            {{ proofFile.name }}
+          </div>
+        }
+        <span class="ccf-proof__ok">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5z" clip-rule="evenodd"/>
+          </svg>
+          Comprobante adjunto
+        </span>
+      </div>
+    }
+
+    @if (paymentMethod === 'cash_on_delivery') {
+      <p class="ccf-note">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0zm-7-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM9 9a.75.75 0 0 0 0 1.5h.253a.25.25 0 0 1 .244.304l-.459 2.066A1.75 1.75 0 0 0 10.747 15H11a.75.75 0 0 0 0-1.5h-.253a.25.25 0 0 1-.244-.304l.459-2.066A1.75 1.75 0 0 0 9.253 9H9z" clip-rule="evenodd"/>
+        </svg>
+        Pagarás en efectivo al momento de recibir tu pedido.
+      </p>
+    }
+  </div>
+
+  <!-- ── Error ─────────────────────────────────────────────── -->
+  @if (errorMsg) {
+    <div class="ccf-error">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0zm-8-5a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-1.5 0v-4.5A.75.75 0 0 1 10 5zm0 10a1 1 0 1 0 0-2 1 1 0 0 0 0 2z" clip-rule="evenodd"/>
+      </svg>
+      {{ errorMsg }}
+    </div>
+  }
+
+  <!-- ── Acciones ────────────────────────────────────────── -->
+  <div class="ccf-actions">
+    <button type="button" class="ccf-btn-back" [disabled]="processing" (click)="back.emit()">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M17 10a.75.75 0 0 1-.75.75H5.612l4.158 3.96a.75.75 0 1 1-1.04 1.08l-5.5-5.25a.75.75 0 0 1 0-1.08l5.5-5.25a.75.75 0 1 1 1.04 1.08L4.612 9.25H16.25A.75.75 0 0 1 17 10z" clip-rule="evenodd"/>
+      </svg>
+      Volver
+    </button>
+
+    <button type="button" class="ccf-btn-confirm" [disabled]="processing" (click)="confirm.emit()">
+      @if (processing) {
+        <span class="ccf-spinner"></span>
+        Procesando…
+      } @else {
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143z" clip-rule="evenodd"/>
+        </svg>
+        Confirmar pedido
+      }
+    </button>
+  </div>
+
+</div>

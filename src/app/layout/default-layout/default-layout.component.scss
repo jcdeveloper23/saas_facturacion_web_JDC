@@ -1,3 +1,138 @@
+// ── Account Blocked Overlay ────────────────────────────────────────────────────
+// Cubre toda la pantalla cuando company.status = 'suspended' | 'cancelled'.
+// La sesión permanece activa; solo se bloquea la interacción con el contenido.
+
+.account-blocked-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+
+.account-blocked-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 2.5rem 2rem;
+  max-width: 440px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.28);
+  animation: blocked-appear 0.25s ease-out both;
+
+  // ── Color por estado ──────────────────────────────────────────────────────
+  --blocked-color: #f97316;       // naranja — suspended
+  --blocked-color-bg: #fff7ed;
+  --blocked-color-border: #fed7aa;
+
+  &.is-cancelled {
+    --blocked-color: #ef4444;     // rojo — cancelled
+    --blocked-color-bg: #fef2f2;
+    --blocked-color-border: #fecaca;
+  }
+}
+
+@keyframes blocked-appear {
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+
+.account-blocked-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--blocked-color-bg);
+  border: 2px solid var(--blocked-color-border);
+  margin: 0 auto 1.25rem;
+  color: var(--blocked-color);
+}
+
+.account-blocked-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 0.35rem;
+}
+
+.account-blocked-company {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--blocked-color);
+  margin: 0 0 0.75rem;
+  background: var(--blocked-color-bg);
+  display: inline-block;
+  padding: 0.15rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--blocked-color-border);
+}
+
+.account-blocked-message {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: #4b5563;
+  margin: 0 0 1.75rem;
+}
+
+.account-blocked-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 1.25rem;
+}
+
+.account-blocked-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.25rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: opacity 0.15s;
+
+  &:hover { opacity: 0.85; text-decoration: none; }
+
+  &--wa {
+    background: #25d366;
+    color: #fff;
+  }
+
+  &--email {
+    background: #f3f4f6;
+    color: #374151;
+    border: 1px solid #e5e7eb;
+  }
+}
+
+.account-blocked-logout {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: none;
+  border: none;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8rem;
+  color: #9ca3af;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: color 0.15s, background 0.15s;
+
+  &:hover {
+    color: #374151;
+    background: #f3f4f6;
+  }
+}
+
 // ── Default layout sidebar — diseño compacto ──────────────────────────────────
 ::ng-deep {
   .sidebar-nav .nav-link,

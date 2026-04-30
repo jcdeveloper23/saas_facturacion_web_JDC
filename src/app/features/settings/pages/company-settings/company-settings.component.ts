@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, FormArray, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import {
@@ -47,6 +47,7 @@ export class CompanySettingsComponent implements OnInit, OnDestroy {
 
   loading = signal(true);
   saving = signal(false);
+  readonly isSriEnabled = computed(() => this.tenantSvc.isSriEnabled());
   savingStock = signal(false);
   warehouses = signal<Warehouse[]>([]);
   errorMessage = signal('');
@@ -268,6 +269,7 @@ export class CompanySettingsComponent implements OnInit, OnDestroy {
 
   // ── Submit SRI ambiente ─────────────────────────────────────────────────────
   async onSubmitSri(): Promise<void> {
+    if (!this.isSriEnabled()) return;
     if (this.sriForm.invalid) { this.sriForm.markAllAsTouched(); return; }
     this.savingSri.set(true);
     this.sriErrorMessage.set('');
@@ -303,6 +305,7 @@ export class CompanySettingsComponent implements OnInit, OnDestroy {
 
   // ── Submit XML (infoTributaria) ─────────────────────────────────────────────
   async onSubmitSriXml(): Promise<void> {
+    if (!this.isSriEnabled()) return;
     if (this.sriXmlForm.invalid) { this.sriXmlForm.markAllAsTouched(); return; }
     this.savingSriXml.set(true);
     this.sriXmlErrorMessage.set('');

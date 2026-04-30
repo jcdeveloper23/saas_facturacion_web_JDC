@@ -178,9 +178,27 @@
   </div>
 </form>
 
+<!-- ── Aviso módulo SRI inactivo ──────────────────────────────────────────── -->
+@if (!isSriEnabled()) {
+<c-callout color="secondary" class="bg-body border-start-4 shadow-sm mt-5 mb-2">
+  <div class="d-flex gap-3 align-items-start">
+    <svg cIcon name="cilLockLocked" size="lg" class="text-secondary mt-1"></svg>
+    <div>
+      <p class="mb-1 fw-bold">Facturación Electrónica SRI no activa</p>
+      <p class="mb-0 text-muted small">
+        El módulo de facturación electrónica no está habilitado en tu plan actual.
+        Las facturas se emitirán como documentos internos sin envío al SRI.
+        Para activar la facturación electrónica, contacta a soporte o actualiza tu plan.
+      </p>
+    </div>
+  </div>
+</c-callout>
+}
+
 <!-- ══════════════════════════════════════════════════════════════════════
      SECCIÓN SRI — Facturación Electrónica
      ════════════════════════════════════════════════════════════════════ -->
+@if (isSriEnabled()) {
 <div class="d-flex justify-content-between align-items-center mb-1 mt-5">
   <div class="d-flex align-items-center gap-2">
     <div class="bg-warning bg-opacity-10 p-2 rounded">
@@ -428,10 +446,12 @@
     </button>
   </div>
 </form>
+}
 
 <!-- ══════════════════════════════════════════════════════════════════════
      SECCIÓN XML — Datos para el XML de Factura (infoTributaria)
      ════════════════════════════════════════════════════════════════════ -->
+@if (isSriEnabled()) {
 <div class="d-flex justify-content-between align-items-center mb-1 mt-5">
   <div class="d-flex align-items-center gap-2">
     <div class="bg-info bg-opacity-10 p-2 rounded">
@@ -636,6 +656,7 @@
     </button>
   </div>
 </form>
+}
 
 <!-- ══ CONFIGURACIÓN DE INVENTARIO ══════════════════════════════════════════ -->
 <form [formGroup]="stockForm" (ngSubmit)="onSubmitStock()" class="mt-4 mb-5">

@@ -74,6 +74,7 @@ export interface CustomerData {
   documentSeriesCode?: string;// codserie — serie de documento por defecto
   accountingCode?: string;    // codsubcuenta — código contable
   vatIncluded?: boolean;      // ivaincluido — los precios ya incluyen IVA para este cliente
+  isDefault?: boolean;        // cliente cargado automáticamente al crear nueva factura
 }
 
 export interface SupplierData {

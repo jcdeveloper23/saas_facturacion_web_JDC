@@ -36,5 +36,14 @@ service firebase.storage {
       allow read: if request.auth != null && request.auth.token.companyId == companyId;
       allow write: if false; // Cloud Functions only
     }
+
+    // Comprobantes de pago del marketplace — escritura y lectura públicas (sin auth).
+    // El comprador sube el comprobante sin estar autenticado.
+    // Restricciones: solo imágenes o PDF, máximo 5 MB.
+    match /catalog-orders/{slug}/{orderId}/{file} {
+      allow read: if true;
+      allow write: if request.resource.size <= 5 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*|application/pdf');
+    }
   }
 }

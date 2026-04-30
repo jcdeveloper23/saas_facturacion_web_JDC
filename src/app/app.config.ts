@@ -33,7 +33,7 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideRouter(
       routes,
-      withRouterConfig({ onSameUrlNavigation: 'reload' }),
+      withRouterConfig({ onSameUrlNavigation: 'reload', paramsInheritanceStrategy: 'always' }),
       withInMemoryScrolling({ scrollPositionRestoration: 'top', anchorScrolling: 'enabled' }),
       withEnabledBlockingInitialNavigation(),
       withViewTransitions()

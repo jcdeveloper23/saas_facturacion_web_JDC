@@ -15,6 +15,16 @@ export const MARKETPLACE_ROUTES: Routes = [
         path: 'p/:productId',
         loadComponent: () =>
           import('./catalog/catalog-detail.component').then(m => m.CatalogDetailComponent)
+      },
+      {
+        path: 'checkout',
+        loadComponent: () =>
+          import('./checkout/checkout.component').then(m => m.CheckoutComponent)
+      },
+      {
+        path: 'orden/:orderId',
+        loadComponent: () =>
+          import('./order-status/order-status.component').then(m => m.OrderStatusComponent)
       }
     ]
   }

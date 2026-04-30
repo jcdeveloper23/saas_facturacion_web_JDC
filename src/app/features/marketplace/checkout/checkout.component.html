@@ -1,0 +1,85 @@
+<div class="co-page">
+
+  <!-- ── Stepper header ─────────────────────────────────────────────────── -->
+  <div class="co-stepper">
+    <a class="co-back-link" [routerLink]="['/', slug()]">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M17 10a.75.75 0 0 1-.75.75H5.612l4.158 3.96a.75.75 0 1 1-1.04 1.08l-5.5-5.25a.75.75 0 0 1 0-1.08l5.5-5.25a.75.75 0 1 1 1.04 1.08L4.612 9.25H16.25A.75.75 0 0 1 17 10z" clip-rule="evenodd"/>
+      </svg>
+      Seguir comprando
+    </a>
+
+    <ol class="co-steps">
+      @for (s of steps; track s.key; let i = $index) {
+        <li
+          class="co-step"
+          [class.active]="step() === s.key"
+          [class.done]="stepIndex() > i"
+          [class.clickable]="stepIndex() > i"
+          (click)="goToStep(s.key)"
+        >
+          <span class="co-step__num">
+            @if (stepIndex() > i) {
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143z" clip-rule="evenodd"/>
+              </svg>
+            } @else {
+              {{ i + 1 }}
+            }
+          </span>
+          <span class="co-step__label">{{ s.label }}</span>
+        </li>
+
+        @if (i < steps.length - 1) {
+          <li class="co-step-sep" [class.done]="stepIndex() > i"></li>
+        }
+      }
+    </ol>
+  </div>
+
+  <!-- ── Layout principal ───────────────────────────────────────────────── -->
+  <div class="co-layout">
+
+    <!-- Contenido del paso -->
+    <div class="co-content">
+
+      @if (step() === 'customer') {
+        <app-checkout-customer
+          [initialData]="customerData()"
+          (next)="onCustomerNext($event)"
+        />
+      }
+
+      @if (step() === 'payment') {
+        <app-checkout-payment
+          [paymentMethod]="paymentMethod()"
+          [proofFile]="proofFile()"
+          (back)="step.set('customer')"
+          (next)="onPaymentNext($event)"
+        />
+      }
+
+      @if (step() === 'confirm') {
+        @if (customerData(); as cd) {
+          <app-checkout-confirm
+            [customerData]="cd"
+            [paymentMethod]="paymentMethod()"
+            [proofFile]="proofFile()"
+            [processing]="processing()"
+            [errorMsg]="errorMsg()"
+            (back)="step.set('payment')"
+            (confirm)="onConfirm()"
+          />
+        }
+      }
+
+    </div>
+
+    <!-- Resumen lateral -->
+    <aside class="co-aside">
+      <app-checkout-summary />
+    </aside>
+
+  </div>
+
+</div>

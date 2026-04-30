@@ -96,8 +96,8 @@
   <!-- ── Cart Drawer ───────────────────────────────────────────────────── -->
   @if (cartOpen()) {
     <app-cart-drawer
-      [whatsapp]="catalog()!.whatsapp"
       (close)="cartOpen.set(false)"
+      (checkout)="goToCheckout()"
     />
   }
 

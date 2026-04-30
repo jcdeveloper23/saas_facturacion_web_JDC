@@ -1,0 +1,91 @@
+<div class="cc-card">
+  <h2 class="cc-title">Tus datos de contacto</h2>
+  <p class="cc-sub">Necesitamos estos datos para coordinar la entrega de tu pedido.</p>
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+
+    <!-- Nombre -->
+    <div class="cc-field">
+      <label class="cc-label" for="co-name">Nombre completo <span class="cc-req">*</span></label>
+      <input
+        id="co-name"
+        class="cc-input"
+        [class.error]="isInvalid('name')"
+        type="text"
+        formControlName="name"
+        placeholder="Juan Pérez"
+        autocomplete="name"
+      />
+      @if (isInvalid('name')) {
+        <span class="cc-error">Ingresa tu nombre completo (mínimo 3 caracteres)</span>
+      }
+    </div>
+
+    <!-- Email -->
+    <div class="cc-field">
+      <label class="cc-label" for="co-email">Correo electrónico <span class="cc-req">*</span></label>
+      <input
+        id="co-email"
+        class="cc-input"
+        [class.error]="isInvalid('email')"
+        type="email"
+        formControlName="email"
+        placeholder="juan@correo.com"
+        autocomplete="email"
+      />
+      @if (isInvalid('email')) {
+        <span class="cc-error">Ingresa un correo electrónico válido</span>
+      }
+    </div>
+
+    <!-- Teléfono -->
+    <div class="cc-field">
+      <label class="cc-label" for="co-phone">Teléfono / WhatsApp <span class="cc-req">*</span></label>
+      <input
+        id="co-phone"
+        class="cc-input"
+        [class.error]="isInvalid('phone')"
+        type="tel"
+        formControlName="phone"
+        placeholder="0987654321"
+        autocomplete="tel"
+      />
+      @if (isInvalid('phone')) {
+        <span class="cc-error">Ingresa un número de teléfono válido</span>
+      }
+    </div>
+
+    <!-- Dirección -->
+    <div class="cc-field">
+      <label class="cc-label" for="co-address">Dirección de entrega</label>
+      <input
+        id="co-address"
+        class="cc-input"
+        type="text"
+        formControlName="address"
+        placeholder="Av. Principal 123, Ciudad"
+        autocomplete="street-address"
+      />
+    </div>
+
+    <!-- Notas -->
+    <div class="cc-field">
+      <label class="cc-label" for="co-notes">Notas adicionales</label>
+      <textarea
+        id="co-notes"
+        class="cc-textarea"
+        formControlName="notes"
+        placeholder="Referencias de tu domicilio, instrucciones especiales…"
+        rows="3"
+      ></textarea>
+    </div>
+
+    <button type="submit" class="cc-btn-next">
+      Continuar al pago
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M3 10a.75.75 0 0 1 .75-.75h10.638L10.23 5.29a.75.75 0 1 1 1.04-1.08l5.5 5.25a.75.75 0 0 1 0 1.08l-5.5 5.25a.75.75 0 1 1-1.04-1.08l4.158-3.96H3.75A.75.75 0 0 1 3 10z" clip-rule="evenodd"/>
+      </svg>
+    </button>
+
+  </form>
+</div>

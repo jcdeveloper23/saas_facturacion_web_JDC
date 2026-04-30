@@ -16,6 +16,35 @@ import { Plan } from '../../models/plan.interface';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { ecuadorRucValidator } from '../../../../shared/validators/ruc.validator';
 
+/**
+ * Convierte un Timestamp de Firestore a string 'YYYY-MM-DD' de forma segura.
+ * Acepta tanto instancias reales de Timestamp (con .toDate()) como objetos
+ * planos { seconds, nanoseconds } que llegan cuando el dato fue guardado
+ * con serverTimestamp() o serializado sin hidratación completa.
+ */
+function toDateString(value: any): string {
+  if (!value) return '';
+  let date: Date;
+  if (typeof value.toDate === 'function') {
+    date = value.toDate();
+  } else if (typeof value.seconds === 'number') {
+    date = new Date(value.seconds * 1000);
+  } else {
+    return '';
+  }
+  if (isNaN(date.getTime())) return '';
+  const y   = date.getFullYear();
+  const m   = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+/** Parsea 'YYYY-MM-DD' como medianoche LOCAL (evita desfase UTC). */
+function localDate(s: string): Date {
+  const [y, m, d] = s.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
 @Component({
   selector: 'app-company-form',
   templateUrl: './company-form.component.html',
@@ -104,7 +133,7 @@ export class CompanyFormComponent implements OnInit {
           if (company) {
             this.form.patchValue({
               ...company,
-              subscriptionEnd: company.subscriptionEnd?.toDate().toISOString().split('T')[0] ?? '',
+              subscriptionEnd: toDateString(company.subscriptionEnd),
               sri: company.sri
             } as any);
           }
@@ -139,13 +168,15 @@ export class CompanyFormComponent implements OnInit {
 
     try {
       const raw = this.form.getRawValue() as any;
-      const endDate = new Date(raw.subscriptionEnd);
-
       const id = this.companyId();
 
       if (id) {
-        const { adminPassword, ...updateData } = raw;
-        await this.svc.updateCompany(id, updateData);
+        const { adminPassword, planId, planName, subscriptionEnd, subscriptionStart,
+                planLimits, planFeatures, enabledPackages, enabledModules, ...generalFields } = raw;
+        // 1. Plan + módulos + fechas (recalcula enabledModules desde el plan)
+        await this.svc.assignPlanToCompany(id, planId, localDate(subscriptionEnd));
+        // 2. Campos generales (nombre, RUC, SRI, status, etc.)
+        await this.svc.updateCompany(id, generalFields);
         this.notifications.success('Empresa actualizada correctamente');
         this.router.navigate(['/super-admin/companies']);
       } else {

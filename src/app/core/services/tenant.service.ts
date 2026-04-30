@@ -23,7 +23,8 @@ export interface CompanyConfig {
   vatRate: number;
   fiscalYear: number;
   plan: 'basic' | 'professional' | 'enterprise';
-  status: 'active' | 'suspended' | 'cancelled';
+  status: 'active' | 'trial' | 'suspended' | 'cancelled';
+  subscriptionEnd?: any;
   // Plugin Package management — commercial bundles assigned to this company
   enabledPackages: string[];   // package.code[] active for this company (e.g. ['pkg_base','pkg_sri'])
   // Module management — derived from enabledPackages + manual overrides
@@ -77,6 +78,27 @@ export class TenantService {
   private _managedCompanies = signal<ManagedCompany[]>([]);
   private _switchingCompany = signal(false);
   private _managedLoaded    = false;
+
+  // ─── Company status API ──────────────────────────────────────────────────
+
+  /** Estado actual de la empresa (null mientras no se carga el doc). */
+  readonly companyStatus = computed(() => this._company()?.status ?? null);
+
+  readonly isSubscriptionExpired = computed(() => {
+    const se = this._company()?.subscriptionEnd;
+    if (!se) return false;
+    const d = typeof se.toDate === 'function' ? se.toDate() : new Date((se.seconds ?? 0) * 1000);
+    return !isNaN(d.getTime()) && d < new Date();
+  });
+
+  /**
+   * True cuando la empresa está suspendida o cancelada.
+   * Activa el overlay bloqueante en el layout principal.
+   */
+  readonly isCompanyBlocked = computed(() => {
+    const s = this.companyStatus();
+    return s === 'suspended' || s === 'cancelled' || this.isSubscriptionExpired();
+  });
 
   // ─── Multi-company API ───────────────────────────────────────────────────
 

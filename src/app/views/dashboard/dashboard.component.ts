@@ -1,188 +1,224 @@
-import { Component, DestroyRef, DOCUMENT, effect, inject, OnInit, Renderer2, signal, WritableSignal } from '@angular/core';
-import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { ChartOptions } from 'chart.js';
 import {
-  AvatarComponent,
-  ButtonDirective,
-  ButtonGroupComponent,
-  CardBodyComponent,
-  CardComponent,
-  CardFooterComponent,
-  CardHeaderComponent,
-  ColComponent,
-  FormCheckLabelDirective,
-  GutterDirective,
-  ProgressComponent,
-  RowComponent,
-  TableDirective
+  Component, OnInit, OnDestroy, inject, signal, computed
+} from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
+import { Subject, takeUntil } from 'rxjs';
+import { ChartData } from 'chart.js';
+import {
+  CardComponent, CardBodyComponent, CardHeaderComponent,
+  RowComponent, ColComponent, BadgeComponent, SpinnerComponent,
+  ButtonDirective
 } from '@coreui/angular';
-import { ChartjsComponent } from '@coreui/angular-chartjs';
 import { IconDirective } from '@coreui/icons-angular';
+import { ChartjsComponent } from '@coreui/angular-chartjs';
 
-import { WidgetsBrandComponent } from '../widgets/widgets-brand/widgets-brand.component';
-import { WidgetsDropdownComponent } from '../widgets/widgets-dropdown/widgets-dropdown.component';
-import { DashboardChartsData, IChartProps } from './dashboard-charts-data';
+import { InvoicesService } from '../../features/invoices/services/invoices.service';
+import { PersonasService } from '../../features/personas/services/personas.service';
+import { TenantService }   from '../../core/services/tenant.service';
+import {
+  Invoice,
+  INVOICE_STATUS_LABELS,
+  INVOICE_STATUS_COLORS
+} from '../../features/invoices/models/invoice.interface';
 import { PlanUsageWidgetComponent } from './widgets/plan-usage-widget/plan-usage-widget.component';
-
-interface IUser {
-  name: string;
-  state: string;
-  registered: string;
-  country: string;
-  usage: number;
-  period: string;
-  payment: string;
-  activity: string;
-  avatar: string;
-  status: string;
-  color: string;
-}
 
 @Component({
   templateUrl: 'dashboard.component.html',
   styleUrls: ['dashboard.component.scss'],
-  imports: [WidgetsDropdownComponent, CardComponent, CardBodyComponent, RowComponent, ColComponent, ButtonDirective, IconDirective, ReactiveFormsModule, ButtonGroupComponent, FormCheckLabelDirective, ChartjsComponent, CardFooterComponent, GutterDirective, ProgressComponent, WidgetsBrandComponent, CardHeaderComponent, TableDirective, AvatarComponent, PlanUsageWidgetComponent]
+  standalone: true,
+  imports: [
+    CommonModule, RouterLink,
+    CardComponent, CardBodyComponent, CardHeaderComponent,
+    RowComponent, ColComponent, BadgeComponent, SpinnerComponent,
+    ButtonDirective, IconDirective,
+    ChartjsComponent,
+    PlanUsageWidgetComponent,
+  ]
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent implements OnInit, OnDestroy {
+  private invoicesSvc = inject(InvoicesService);
+  private personasSvc = inject(PersonasService);
+  private tenantSvc   = inject(TenantService);
+  private destroy$    = new Subject<void>();
 
-  readonly #destroyRef: DestroyRef = inject(DestroyRef);
-  readonly #document: Document = inject(DOCUMENT);
-  readonly #renderer: Renderer2 = inject(Renderer2);
-  readonly #chartsData: DashboardChartsData = inject(DashboardChartsData);
+  // ── Date context ─────────────────────────────────────────────────────────────
+  private readonly _now = new Date();
+  readonly currentYear    = String(this._now.getFullYear());
+  readonly currentMonth   = this._now.getMonth();
+  readonly currentYear_n  = this._now.getFullYear();
+  readonly daysInMonth    = new Date(this._now.getFullYear(), this.currentMonth + 1, 0).getDate();
+  readonly monthName      = this._now.toLocaleString('es-EC', { month: 'long', year: 'numeric' });
 
-  public users: IUser[] = [
-    {
-      name: 'Yiorgos Avraamu',
-      state: 'New',
-      registered: 'Jan 1, 2021',
-      country: 'Us',
-      usage: 50,
-      period: 'Jun 11, 2021 - Jul 10, 2021',
-      payment: 'Mastercard',
-      activity: '10 sec ago',
-      avatar: './assets/images/avatars/1.jpg',
-      status: 'success',
-      color: 'success'
-    },
-    {
-      name: 'Avram Tarasios',
-      state: 'Recurring ',
-      registered: 'Jan 1, 2021',
-      country: 'Br',
-      usage: 10,
-      period: 'Jun 11, 2021 - Jul 10, 2021',
-      payment: 'Visa',
-      activity: '5 minutes ago',
-      avatar: './assets/images/avatars/2.jpg',
-      status: 'danger',
-      color: 'info'
-    },
-    {
-      name: 'Quintin Ed',
-      state: 'New',
-      registered: 'Jan 1, 2021',
-      country: 'In',
-      usage: 74,
-      period: 'Jun 11, 2021 - Jul 10, 2021',
-      payment: 'Stripe',
-      activity: '1 hour ago',
-      avatar: './assets/images/avatars/3.jpg',
-      status: 'warning',
-      color: 'warning'
-    },
-    {
-      name: 'Enéas Kwadwo',
-      state: 'Sleep',
-      registered: 'Jan 1, 2021',
-      country: 'Fr',
-      usage: 98,
-      period: 'Jun 11, 2021 - Jul 10, 2021',
-      payment: 'Paypal',
-      activity: 'Last month',
-      avatar: './assets/images/avatars/4.jpg',
-      status: 'secondary',
-      color: 'danger'
-    },
-    {
-      name: 'Agapetus Tadeáš',
-      state: 'New',
-      registered: 'Jan 1, 2021',
-      country: 'Es',
-      usage: 22,
-      period: 'Jun 11, 2021 - Jul 10, 2021',
-      payment: 'ApplePay',
-      activity: 'Last week',
-      avatar: './assets/images/avatars/5.jpg',
-      status: 'success',
-      color: 'primary'
-    },
-    {
-      name: 'Friderik Dávid',
-      state: 'New',
-      registered: 'Jan 1, 2021',
-      country: 'Pl',
-      usage: 43,
-      period: 'Jun 11, 2021 - Jul 10, 2021',
-      payment: 'Amex',
-      activity: 'Yesterday',
-      avatar: './assets/images/avatars/6.jpg',
-      status: 'info',
-      color: 'dark'
-    }
-  ];
+  // ── Raw state ─────────────────────────────────────────────────────────────────
+  loading         = signal(true);
+  invoices        = signal<Invoice[]>([]);
+  customersCount  = signal(0);
 
-  public mainChart: IChartProps = { type: 'line' };
-  public mainChartRef: WritableSignal<any> = signal(undefined);
-  #mainChartRefEffect = effect(() => {
-    if (this.mainChartRef()) {
-      this.setChartStyles();
-    }
+  private _loadedCount = 0;
+  private checkDone() {
+    this._loadedCount++;
+    if (this._loadedCount >= 2) this.loading.set(false);
+  }
+
+  // ── KPIs ──────────────────────────────────────────────────────────────────────
+
+  readonly salesThisMonth = computed(() =>
+    this.invoices()
+      .filter(i => !i.isVoid && !i.isCreditNote &&
+                   ['issued', 'paid'].includes(i.status) &&
+                   this.inMonth(i.date, this.currentMonth, this.currentYear_n))
+      .reduce((s, i) => s + (i.total ?? 0), 0)
+  );
+
+  readonly salesPrevMonth = computed(() => {
+    const m = this.currentMonth === 0 ? 11 : this.currentMonth - 1;
+    const y = this.currentMonth === 0 ? this.currentYear_n - 1 : this.currentYear_n;
+    return this.invoices()
+      .filter(i => !i.isVoid && !i.isCreditNote &&
+                   ['issued', 'paid'].includes(i.status) &&
+                   this.inMonth(i.date, m, y))
+      .reduce((s, i) => s + (i.total ?? 0), 0);
   });
-  public chart: Array<IChartProps> = [];
-  public trafficRadioGroup = new FormGroup({
-    trafficRadio: new FormControl('Month')
+
+  readonly salesDeltaPct = computed(() => {
+    const prev = this.salesPrevMonth();
+    const curr = this.salesThisMonth();
+    if (prev === 0) return curr > 0 ? 100 : 0;
+    return Math.round(((curr - prev) / prev) * 100);
   });
+
+  readonly invoicesThisMonth = computed(() =>
+    this.invoices().filter(
+      i => !i.isVoid && !i.isCreditNote &&
+           ['issued', 'paid'].includes(i.status) &&
+           this.inMonth(i.date, this.currentMonth, this.currentYear_n)
+    ).length
+  );
+
+  readonly invoicesPrevMonth = computed(() => {
+    const m = this.currentMonth === 0 ? 11 : this.currentMonth - 1;
+    const y = this.currentMonth === 0 ? this.currentYear_n - 1 : this.currentYear_n;
+    return this.invoices().filter(
+      i => !i.isVoid && !i.isCreditNote &&
+           ['issued', 'paid'].includes(i.status) &&
+           this.inMonth(i.date, m, y)
+    ).length;
+  });
+
+  readonly invoicesDeltaPct = computed(() => {
+    const prev = this.invoicesPrevMonth();
+    const curr = this.invoicesThisMonth();
+    if (prev === 0) return curr > 0 ? 100 : 0;
+    return Math.round(((curr - prev) / prev) * 100);
+  });
+
+  readonly outstanding = computed(() =>
+    this.invoices()
+      .filter(i => i.status === 'issued' && !i.isVoid && !i.isCreditNote)
+      .reduce((s, i) => s + (i.total ?? 0), 0)
+  );
+
+  readonly outstandingCount = computed(() =>
+    this.invoices().filter(i => i.status === 'issued' && !i.isVoid && !i.isCreditNote).length
+  );
+
+  readonly recentInvoices = computed(() =>
+    this.invoices().filter(i => !i.isVoid).slice(0, 6)
+  );
+
+  // ── Chart ─────────────────────────────────────────────────────────────────────
+
+  readonly chartData = computed<ChartData>(() => {
+    const sums = new Array(this.daysInMonth).fill(0);
+    this.invoices()
+      .filter(i => !i.isVoid && !i.isCreditNote &&
+                   ['issued', 'paid'].includes(i.status) &&
+                   this.inMonth(i.date, this.currentMonth, this.currentYear_n))
+      .forEach(i => {
+        const d = this.tsToDate(i.date);
+        if (d) sums[d.getDate() - 1] += i.total ?? 0;
+      });
+
+    return {
+      labels: Array.from({ length: this.daysInMonth }, (_, k) => String(k + 1)),
+      datasets: [{
+        label: 'Ventas ($)',
+        data: sums,
+        backgroundColor: 'rgba(50, 130, 252, 0.25)',
+        borderColor: 'rgba(50, 130, 252, 0.85)',
+        borderWidth: 1.5,
+        borderRadius: 4,
+      }]
+    };
+  });
+
+  readonly chartOptions: any = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: (ctx: any) => ` $${(ctx.raw as number).toFixed(2)}`
+        }
+      }
+    },
+    scales: {
+      x: { grid: { display: false } },
+      y: {
+        beginAtZero: true,
+        ticks: { callback: (v: any) => `$${v}` }
+      }
+    }
+  };
+
+  // ── Labels/Colors ─────────────────────────────────────────────────────────────
+  readonly STATUS_LABELS = INVOICE_STATUS_LABELS;
+  readonly STATUS_COLORS = INVOICE_STATUS_COLORS;
+
+  // ── Computed company info ─────────────────────────────────────────────────────
+  readonly companyName = computed(() => this.tenantSvc.company?.name ?? '');
+
+  // ── Lifecycle ─────────────────────────────────────────────────────────────────
 
   ngOnInit(): void {
-    this.initCharts();
-    this.updateChartOnColorModeChange();
-  }
-
-  initCharts(): void {
-    this.mainChartRef()?.stop();
-    this.mainChart = this.#chartsData.mainChart;
-  }
-
-  setTrafficPeriod(value: string): void {
-    this.trafficRadioGroup.setValue({ trafficRadio: value });
-    this.#chartsData.initMainChart(value);
-    this.initCharts();
-  }
-
-  handleChartRef($chartRef: any) {
-    if ($chartRef) {
-      this.mainChartRef.set($chartRef);
-    }
-  }
-
-  updateChartOnColorModeChange() {
-    const unListen = this.#renderer.listen(this.#document.documentElement, 'ColorSchemeChange', () => {
-      this.setChartStyles();
-    });
-
-    this.#destroyRef.onDestroy(() => {
-      unListen();
-    });
-  }
-
-  setChartStyles() {
-    if (this.mainChartRef()) {
-      setTimeout(() => {
-        const options: ChartOptions = { ...this.mainChart.options };
-        const scales = this.#chartsData.getScales();
-        this.mainChartRef().options.scales = { ...options.scales, ...scales };
-        this.mainChartRef().update();
+    this.invoicesSvc.getInvoices({ year: this.currentYear })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: list => { this.invoices.set(list); this.checkDone(); },
+        error: ()  => this.checkDone()
       });
-    }
+
+    this.personasSvc.getPersonas('customer')
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: list => { this.customersCount.set(list.length); this.checkDone(); },
+        error: ()  => this.checkDone()
+      });
   }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────────────────
+
+  private tsToDate(ts: any): Date | null {
+    if (!ts) return null;
+    if (typeof ts.toDate === 'function') return ts.toDate();
+    if (typeof ts.seconds === 'number') return new Date(ts.seconds * 1000);
+    return null;
+  }
+
+  private inMonth(ts: any, month: number, year: number): boolean {
+    const d = this.tsToDate(ts);
+    if (!d) return false;
+    return d.getMonth() === month && d.getFullYear() === year;
+  }
+
+  invoiceDate(ts: any): Date | null { return this.tsToDate(ts); }
+
+  trackById(_: number, item: Invoice): string { return item.id; }
 }

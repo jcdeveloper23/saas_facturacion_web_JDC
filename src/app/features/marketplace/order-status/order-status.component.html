@@ -1,0 +1,52 @@
+@if (loading()) {
+  <div class="os-splash">
+    <div class="os-splash__ring"></div>
+    <span>Cargando pedido…</span>
+  </div>
+} @else if (notFound()) {
+  <div class="os-empty">
+    <p class="os-empty__title">Pedido no encontrado</p>
+    <p class="os-empty__sub">Verifica el enlace o regresa al catálogo.</p>
+    <a class="os-btn" [routerLink]="['/', slug]">Ver catálogo</a>
+  </div>
+} @else {
+  @if (order(); as o) {
+    <div class="os-page">
+      <div class="os-success-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5z" clip-rule="evenodd"/>
+        </svg>
+      </div>
+
+      <h2 class="os-title">¡Pedido recibido!</h2>
+      <p class="os-order-num">{{ o.orderNumber }}</p>
+
+      <div class="os-card">
+        <div class="os-row">
+          <span class="os-label">Estado del pedido</span>
+          <span class="os-badge" [ngClass]="'os-badge--' + o.status">
+            {{ statusLabels[o.status] }}
+          </span>
+        </div>
+        <div class="os-row">
+          <span class="os-label">Estado del pago</span>
+          <span class="os-badge" [ngClass]="'os-badge--pay-' + o.paymentStatus">
+            {{ paymentLabels[o.paymentStatus] }}
+          </span>
+        </div>
+        <div class="os-row">
+          <span class="os-label">Método de pago</span>
+          <span class="os-value">{{ methodLabels[o.paymentMethod] }}</span>
+        </div>
+        <div class="os-row">
+          <span class="os-label">Total</span>
+          <span class="os-value os-total">{{ o.total | currency:'USD':'symbol':'1.2-2' }}</span>
+        </div>
+      </div>
+
+      <p class="os-hint">Guarda este enlace para consultar el estado de tu pedido.</p>
+
+      <a class="os-btn" [routerLink]="['/', slug]">Seguir comprando</a>
+    </div>
+  }
+}

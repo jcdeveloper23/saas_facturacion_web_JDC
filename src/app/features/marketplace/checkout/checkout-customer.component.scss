@@ -1,0 +1,102 @@
+:host {
+  --cp: var(--catalog-primary, #e47911);
+  display: block;
+}
+
+.cc-card {
+  background: #fff;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  padding: 1.75rem;
+}
+
+.cc-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 .25rem;
+}
+
+.cc-sub {
+  font-size: .85rem;
+  color: #6b7280;
+  margin: 0 0 1.5rem;
+}
+
+/* ── Campos ────────────────────────────────────────────────── */
+.cc-field {
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+  margin-bottom: 1.1rem;
+}
+
+.cc-label {
+  font-size: .85rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.cc-req {
+  color: #ef4444;
+  margin-left: 2px;
+}
+
+.cc-input,
+.cc-textarea {
+  padding: .6rem .85rem;
+  border: 1.5px solid #d1d5db;
+  border-radius: 7px;
+  font-size: .9rem;
+  color: #111827;
+  background: #fff;
+  transition: border-color .15s, box-shadow .15s;
+  outline: none;
+  font-family: inherit;
+}
+.cc-input:focus,
+.cc-textarea:focus {
+  border-color: var(--cp);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cp) 20%, transparent);
+}
+.cc-input.error,
+.cc-textarea.error {
+  border-color: #ef4444;
+}
+.cc-input.error:focus,
+.cc-textarea.error:focus {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, .2);
+}
+.cc-textarea {
+  resize: vertical;
+  min-height: 72px;
+}
+
+.cc-error {
+  font-size: .78rem;
+  color: #ef4444;
+}
+
+/* ── Botón siguiente ───────────────────────────────────────── */
+.cc-btn-next {
+  margin-top: .5rem;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  padding: .75rem 1.5rem;
+  background: var(--cp);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: .95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .15s, transform .1s;
+}
+.cc-btn-next:hover {
+  background: color-mix(in srgb, var(--cp) 85%, #000);
+  transform: translateY(-1px);
+}
+.cc-btn-next:active { transform: translateY(0); }

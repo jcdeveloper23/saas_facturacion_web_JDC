@@ -1,5 +1,18 @@
-import { Routes } from '@angular/router';
+import { Routes, CanMatchFn } from '@angular/router';
 import { authGuard, loginGuard, roleGuard, moduleGuard, featureFlagGuard } from './core/guards';
+
+// Segmentos reservados de la app — el catálogo público (:slug) no debe
+// interceptar estas rutas cuando el usuario navega dentro del ERP.
+const APP_SEGMENTS = new Set([
+  'login', '404', '500', 'unauthorized', 'super-admin',
+  'dashboard', 'personas', 'customers', 'products', 'invoices',
+  'retentions', 'debit-notes', 'stock', 'purchases', 'team-management',
+  'pos', 'users', 'profiles', 'profile', 'accounting', 'settings',
+  'base', 'forms', 'icons', 'notifications', 'charts', 'widgets', 'legal',
+]);
+
+const catalogSlugGuard: CanMatchFn = (_route, segments) =>
+  !APP_SEGMENTS.has(segments[0]?.path ?? '');
 
 export const routes: Routes = [
   // ─── Landing Page (public root) ─────────────────────────────────────────
@@ -160,6 +173,16 @@ export const routes: Routes = [
       //   loadChildren: () => import('./features/electronic-invoicing/electronic-invoicing.routes').then(m => m.ELECTRONIC_INVOICING_ROUTES)
       // },
 
+      // ── Marketplace Orders ────────────────────────────────────────────
+      {
+        path: 'marketplace-orders',
+        canActivate: [roleGuard, moduleGuard],
+        data: { roles: ['admin', 'seller'], module: 'marketplace', title: 'Pedidos del Catálogo' },
+        loadComponent: () =>
+          import('./features/marketplace/admin/marketplace-orders.component')
+            .then(m => m.MarketplaceOrdersComponent)
+      },
+
       // ── Users ──────────────────────────────────────────────────────────
       {
         path: 'users',
@@ -241,6 +264,19 @@ export const routes: Routes = [
     ]
   },
 
+  // ─── Public catalog ──────────────────────────────────────────────────────
+  // IMPORTANTE: debe estar ANTES del layout autenticado (path:'') porque ese
+  // route hace prefix-match en cualquier URL y, al pasar el authGuard,
+  // Angular no reintenta rutas hermanas si ningún hijo coincide.
+  // canMatch garantiza que :slug no intercepte rutas internas del ERP.
+  {
+    path: ':slug',
+    canMatch: [catalogSlugGuard],
+    loadChildren: () =>
+      import('./features/marketplace/marketplace.routes')
+        .then(m => m.MARKETPLACE_ROUTES)
+  },
+
   // ─── Legal pages (public) ────────────────────────────────────────────────
   {
     path: 'legal/terminos',
@@ -259,14 +295,6 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./views/legal/aviso/aviso.component').then(m => m.AvisoComponent),
     data: { title: 'Aviso Legal — FacturaSec' }
-  },
-
-  // ─── Public catalog (must be last before wildcard) ───────────────────────
-  {
-    path: ':slug',
-    loadChildren: () =>
-      import('./features/marketplace/marketplace.routes')
-        .then(m => m.MARKETPLACE_ROUTES)
   },
 
   { path: '**', redirectTo: 'dashboard' }

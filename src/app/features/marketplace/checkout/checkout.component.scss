@@ -1,0 +1,132 @@
+:host {
+  --cp: var(--catalog-primary, #e47911);
+  --cp-dark: color-mix(in srgb, var(--cp) 75%, #000);
+  --cp-light: color-mix(in srgb, var(--cp) 12%, #fff);
+  --radius: 10px;
+  display: block;
+}
+
+/* ── Page wrapper ──────────────────────────────────────────── */
+.co-page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3rem;
+}
+
+/* ── Stepper header ────────────────────────────────────────── */
+.co-stepper {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.co-back-link {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  color: #6b7280;
+  font-size: .85rem;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color .15s;
+}
+.co-back-link:hover { color: var(--cp); }
+
+.co-steps {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  flex: 1;
+}
+
+.co-step {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  padding: .35rem .5rem;
+  border-radius: 6px;
+  transition: background .15s;
+  cursor: default;
+  white-space: nowrap;
+}
+.co-step.clickable { cursor: pointer; }
+.co-step.clickable:hover { background: #f3f4f6; }
+
+.co-step__num {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  background: #e5e7eb;
+  color: #6b7280;
+  transition: background .2s, color .2s;
+}
+.co-step.active .co-step__num {
+  background: var(--cp);
+  color: #fff;
+}
+.co-step.done .co-step__num {
+  background: #10b981;
+  color: #fff;
+}
+
+.co-step__label {
+  font-size: .85rem;
+  font-weight: 600;
+  color: #9ca3af;
+  transition: color .2s;
+}
+.co-step.active .co-step__label { color: var(--cp); }
+.co-step.done .co-step__label   { color: #10b981; }
+
+.co-step-sep {
+  flex: 1;
+  height: 2px;
+  background: #e5e7eb;
+  min-width: 16px;
+  max-width: 40px;
+  transition: background .2s;
+}
+.co-step-sep.done { background: #10b981; }
+
+/* ── Layout 2 columnas ─────────────────────────────────────── */
+.co-layout {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.co-aside {
+  position: sticky;
+  top: 80px;
+}
+
+/* ── Responsive ────────────────────────────────────────────── */
+@media (max-width: 860px) {
+  .co-layout {
+    grid-template-columns: 1fr;
+  }
+  .co-aside {
+    position: static;
+    order: -1; // Resumen arriba en mobile
+  }
+  .co-steps { flex: 0 0 auto; }
+  .co-step__label { display: none; }
+  .co-step.active .co-step__label { display: inline; }
+}
+
+@media (max-width: 480px) {
+  .co-page { padding: 1rem .75rem 3rem; }
+  .co-stepper { gap: .75rem; }
+}

@@ -46,7 +46,7 @@ import { navItems, filterNav } from './_nav';
   ]
 })
 export class DefaultLayoutComponent {
-  private authService  = inject(AuthService);
+  private authService   = inject(AuthService);
   private tenantService = inject(TenantService);
 
   public navItems = computed<INavData[]>(() =>
@@ -56,4 +56,14 @@ export class DefaultLayoutComponent {
       this.tenantService.activeModules()
     )
   );
+
+  /** Activa el overlay bloqueante cuando la empresa está suspendida o cancelada. */
+  readonly isCompanyBlocked      = computed(() => this.tenantService.isCompanyBlocked());
+  readonly companyStatus         = computed(() => this.tenantService.companyStatus());
+  readonly companyName           = computed(() => this.tenantService.company?.name ?? '');
+  readonly isSubscriptionExpired = computed(() => this.tenantService.isSubscriptionExpired());
+
+  logout(): void {
+    this.authService.logout();
+  }
 }

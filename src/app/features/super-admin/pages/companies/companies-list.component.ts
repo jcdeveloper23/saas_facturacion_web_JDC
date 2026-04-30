@@ -1,6 +1,7 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   CardComponent, CardBodyComponent, CardHeaderComponent,
@@ -8,7 +9,7 @@ import {
   ButtonDirective, SpinnerComponent, RowComponent, ColComponent,
   ModalComponent, ModalHeaderComponent, ModalBodyComponent, ModalFooterComponent,
   ModalTitleDirective, ButtonCloseDirective,
-  FormSelectDirective, FormLabelDirective,
+  FormSelectDirective, FormLabelDirective, FormControlDirective,
   AlertComponent
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
@@ -17,6 +18,21 @@ import { Company, CompanyStatus } from '../../models/company.interface';
 import { Plan } from '../../models/plan.interface';
 import { NotificationService } from '../../../../core/services/notification.service';
 
+/** Formatea una Date como 'YYYY-MM-DD' usando la hora LOCAL (evita desfase UTC). */
+function toInputDate(d: Date | null): string {
+  const dt = d ?? (() => { const f = new Date(); f.setDate(f.getDate() + 30); return f; })();
+  const y  = dt.getFullYear();
+  const m  = String(dt.getMonth() + 1).padStart(2, '0');
+  const day = String(dt.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+/** Parsea 'YYYY-MM-DD' como medianoche LOCAL (sin conversión UTC que resta un día). */
+function localDate(s: string): Date {
+  const [y, m, d] = s.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
 @Component({
   selector: 'app-companies-list',
   templateUrl: './companies-list.component.html',
@@ -24,13 +40,14 @@ import { NotificationService } from '../../../../core/services/notification.serv
   standalone: true,
   imports: [
     CommonModule,
+    ReactiveFormsModule,
     RouterLink,
     CardComponent, CardBodyComponent, CardHeaderComponent,
     TableDirective, BadgeComponent,
     ButtonDirective, SpinnerComponent, RowComponent, ColComponent,
     ModalComponent, ModalHeaderComponent, ModalBodyComponent, ModalFooterComponent,
     ModalTitleDirective, ButtonCloseDirective,
-    FormSelectDirective, FormLabelDirective,
+    FormSelectDirective, FormLabelDirective, FormControlDirective,
     AlertComponent,
     IconDirective
   ]
@@ -38,18 +55,41 @@ import { NotificationService } from '../../../../core/services/notification.serv
 export class CompaniesListComponent implements OnInit {
   private svc = inject(SuperAdminService);
   private notifications = inject(NotificationService);
+  private fb = inject(FormBuilder);
 
   companies = signal<Company[]>([]);
   loading = signal(true);
   actionInProgress = signal<string | null>(null);
 
   // ── Assign Plan Modal ───────────────────────────────────────────────────────
-  showAssignPlanModal = signal(false);
+  showAssignPlanModal    = signal(false);
   selectedCompanyForPlan = signal<Company | null>(null);
-  availablePlans = signal<Plan[]>([]);
-  selectedPlanId = signal<string>('');
-  selectedPlanPreview = signal<Plan | null>(null);
-  assigningPlan = signal(false);
+  availablePlans         = signal<Plan[]>([]);
+  selectedPlanPreview    = signal<Plan | null>(null);
+  assigningPlan          = signal(false);
+
+  modalForm = this.fb.group({
+    planId:          ['', Validators.required],
+    subscriptionEnd: ['', Validators.required]
+  });
+
+  readonly packageLabels: Record<string, string> = {
+    pkg_base:        'Base',
+    pkg_sales:       'Ventas',
+    pkg_sri:         'Facturación Electrónica',
+    pkg_marketplace: 'Catálogo Público',
+    pkg_purchases:   'Compras',
+    pkg_accounting:  'Contabilidad',
+    pkg_stock:       'Inventario',
+    pkg_team_mgmt:   'Gestión de Equipos',
+    pkg_pos:         'Punto de Venta',
+    pkg_personas:    'Personas / Contactos',
+    pkg_hr:          'RRHH'
+  };
+
+  packageLabel(code: string): string {
+    return this.packageLabels[code] ?? code;
+  }
 
   readonly statusColors: Record<CompanyStatus, string> = {
     active:    'success',
@@ -87,24 +127,27 @@ export class CompaniesListComponent implements OnInit {
 
   openAssignPlanModal(company: Company): void {
     this.selectedCompanyForPlan.set(company);
-    this.selectedPlanId.set(company.planId ?? '');
-    this.showAssignPlanModal.set(true);
+    this.modalForm.setValue({
+      planId:          company.planId ?? '',
+      subscriptionEnd: toInputDate(this.safeDate(company.subscriptionEnd))
+    });
     this.onPlanPreviewChange(company.planId ?? '');
+    this.showAssignPlanModal.set(true);
   }
 
   onPlanPreviewChange(planId: string): void {
-    this.selectedPlanId.set(planId);
     const plan = this.availablePlans().find(p => p.id === planId) ?? null;
     this.selectedPlanPreview.set(plan);
   }
 
   async confirmAssignPlan(): Promise<void> {
+    if (this.modalForm.invalid) return;
     const company = this.selectedCompanyForPlan();
-    const planId = this.selectedPlanId();
-    if (!company || !planId) return;
+    const { planId, subscriptionEnd } = this.modalForm.getRawValue();
+    if (!company || !planId || !subscriptionEnd) return;
     this.assigningPlan.set(true);
     try {
-      await this.svc.assignPlanToCompany(company.id, planId);
+      await this.svc.assignPlanToCompany(company.id, planId, localDate(subscriptionEnd));
       this.notifications.success(`Plan asignado correctamente a ${company.name}`);
       this.showAssignPlanModal.set(false);
     } catch (e) {
@@ -119,6 +162,7 @@ export class CompaniesListComponent implements OnInit {
     this.showAssignPlanModal.set(false);
     this.selectedCompanyForPlan.set(null);
     this.selectedPlanPreview.set(null);
+    this.modalForm.reset();
   }
 
   async toggleStatus(company: Company): Promise<void> {
@@ -147,5 +191,10 @@ export class CompaniesListComponent implements OnInit {
     if (ts instanceof Date) return ts;
     const d = new Date(ts);
     return isNaN(d.getTime()) ? null : d;
+  }
+
+  isExpired(company: Company): boolean {
+    const d = this.safeDate(company.subscriptionEnd);
+    return !!d && d < new Date();
   }
 }

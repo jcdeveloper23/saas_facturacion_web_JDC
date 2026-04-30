@@ -1,0 +1,447 @@
+<!-- ── Header ──────────────────────────────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div class="d-flex align-items-center gap-2">
+    <div class="bg-primary bg-opacity-10 p-2 rounded">
+      <svg cIcon name="cilBasket" size="xl" class="text-primary"></svg>
+    </div>
+    <div>
+      <h3 class="mb-0 fw-semibold d-flex align-items-center gap-2">
+        Pedidos del Catálogo
+        @if (slug()) {
+          <c-badge color="secondary" class="fw-normal" style="font-size:.65rem">
+            {{ slug() }}
+          </c-badge>
+        }
+      </h3>
+      <p class="text-muted small mb-0">Gestión de pedidos del catálogo público</p>
+    </div>
+  </div>
+  @if (slug()) {
+    <a [routerLink]="['/', slug()]" target="_blank"
+       cButton color="secondary" variant="outline" size="sm">
+      <svg cIcon name="cilExternalLink" class="me-1"></svg>
+      Ver catálogo
+    </a>
+  }
+</div>
+
+<!-- ── Sin slug configurado ─────────────────────────────────────────────────── -->
+@if (noSlug()) {
+  <c-alert color="warning">
+    <strong>El catálogo público no está configurado.</strong>
+    Debes definir un slug para tu tienda antes de gestionar pedidos.
+    <a routerLink="/settings/marketplace" class="alert-link ms-1">Ir a configuración del catálogo</a>
+  </c-alert>
+}
+
+@if (!noSlug()) {
+
+  <!-- ── Stats pills ──────────────────────────────────────────────────────────── -->
+  @if (!loading()) {
+    <div class="d-flex gap-2 flex-wrap mb-3">
+
+      <!-- Total -->
+      <div class="border rounded px-3 py-2 d-flex align-items-center gap-2 bg-body mko-pill"
+           [class.border-primary]="statusFilter() === '' && payFilter() === ''"
+           (click)="statusFilter.set(''); payFilter.set('')">
+        <svg cIcon name="cilBasket" class="text-muted" size="sm"></svg>
+        <span class="fw-semibold">{{ stats().total }}</span>
+        <span class="text-muted small">Total</span>
+      </div>
+
+      <!-- Nuevos -->
+      <div class="border rounded px-3 py-2 d-flex align-items-center gap-2 bg-body mko-pill"
+           [class.border-info]="statusFilter() === 'new'"
+           (click)="statusFilter.set('new'); payFilter.set('')">
+        <svg cIcon name="cilBell" class="text-info" size="sm"></svg>
+        <span class="fw-semibold text-info">{{ stats().new }}</span>
+        <span class="text-muted small">Nuevos</span>
+      </div>
+
+      <!-- En proceso -->
+      <div class="border rounded px-3 py-2 d-flex align-items-center gap-2 bg-body mko-pill"
+           [class.border-warning]="statusFilter() === 'processing'"
+           (click)="statusFilter.set('processing'); payFilter.set('')">
+        <svg cIcon name="cilSync" class="text-warning" size="sm"></svg>
+        <span class="fw-semibold text-warning">{{ stats().processing }}</span>
+        <span class="text-muted small">En proceso</span>
+      </div>
+
+      <!-- Enviados -->
+      <div class="border rounded px-3 py-2 d-flex align-items-center gap-2 bg-body mko-pill"
+           [class.border-primary]="statusFilter() === 'shipped'"
+           (click)="statusFilter.set('shipped'); payFilter.set('')">
+        <svg cIcon name="cilTruck" class="text-primary" size="sm"></svg>
+        <span class="fw-semibold text-primary">{{ stats().shipped }}</span>
+        <span class="text-muted small">Enviados</span>
+      </div>
+
+      <!-- Completados -->
+      <div class="border rounded px-3 py-2 d-flex align-items-center gap-2 bg-body mko-pill"
+           [class.border-success]="statusFilter() === 'completed'"
+           (click)="statusFilter.set('completed'); payFilter.set('')">
+        <svg cIcon name="cilCheckCircle" class="text-success" size="sm"></svg>
+        <span class="fw-semibold text-success">{{ stats().completed }}</span>
+        <span class="text-muted small">Completados</span>
+      </div>
+
+      <!-- Cancelados -->
+      <div class="border rounded px-3 py-2 d-flex align-items-center gap-2 bg-body mko-pill"
+           [class.border-danger]="statusFilter() === 'cancelled'"
+           (click)="statusFilter.set('cancelled'); payFilter.set('')">
+        <svg cIcon name="cilBan" class="text-danger" size="sm"></svg>
+        <span class="fw-semibold text-danger">{{ stats().cancelled }}</span>
+        <span class="text-muted small">Cancelados</span>
+      </div>
+
+      <!-- Pago pendiente -->
+      <div class="border rounded px-3 py-2 d-flex align-items-center gap-2 bg-body mko-pill"
+           [class.border-warning]="payFilter() === 'pending'"
+           (click)="payFilter.set('pending'); statusFilter.set('')">
+        <svg cIcon name="cilClock" class="text-warning" size="sm"></svg>
+        <span class="fw-semibold text-warning">{{ stats().pending_pay }}</span>
+        <span class="text-muted small">Pago pendiente</span>
+      </div>
+
+      <!-- Comprobante -->
+      <div class="border rounded px-3 py-2 d-flex align-items-center gap-2 bg-body mko-pill"
+           [class.border-info]="payFilter() === 'proof_uploaded'"
+           (click)="payFilter.set('proof_uploaded'); statusFilter.set('')">
+        <svg cIcon name="cilImage" class="text-info" size="sm"></svg>
+        <span class="fw-semibold text-info">{{ stats().proof_uploaded }}</span>
+        <span class="text-muted small">Comprobante</span>
+      </div>
+
+      <!-- Confirmados -->
+      <div class="border rounded px-3 py-2 d-flex align-items-center gap-2 bg-body mko-pill"
+           [class.border-success]="payFilter() === 'confirmed'"
+           (click)="payFilter.set('confirmed'); statusFilter.set('')">
+        <svg cIcon name="cilCheck" class="text-success" size="sm"></svg>
+        <span class="fw-semibold text-success">{{ stats().confirmed }}</span>
+        <span class="text-muted small">Confirmados</span>
+      </div>
+
+    </div>
+  }
+
+  <!-- ── Card principal ──────────────────────────────────────────────────────── -->
+  <c-card class="mb-0">
+
+    <!-- Toolbar -->
+    <div class="px-3 pt-2 pb-1 d-flex gap-2 flex-wrap border-bottom align-items-center">
+
+      <!-- Búsqueda -->
+      <div class="position-relative" style="flex:1; min-width:200px; max-width:340px">
+        <svg cIcon name="cilSearch" size="sm"
+             style="position:absolute; left:.6rem; top:50%; transform:translateY(-50%); color:var(--cui-secondary-color)">
+        </svg>
+        <input class="form-control form-control-sm" style="padding-left:2rem"
+               placeholder="Buscar por nro. pedido, cliente, email..."
+               [(ngModel)]="searchTerm">
+      </div>
+
+      <!-- Filtro estado pedido -->
+      <select class="form-select form-select-sm" style="width:170px"
+              [ngModel]="statusFilter()"
+              (ngModelChange)="statusFilter.set($event)">
+        <option value="">Todos los estados</option>
+        @for (s of orderStatuses; track s) {
+          <option [value]="s">{{ statusLabels[s] }}</option>
+        }
+      </select>
+
+      <!-- Filtro estado pago -->
+      <select class="form-select form-select-sm" style="width:190px"
+              [ngModel]="payFilter()"
+              (ngModelChange)="payFilter.set($event)">
+        <option value="">Todos los pagos</option>
+        <option value="pending">Pago pendiente</option>
+        <option value="proof_uploaded">Comprobante recibido</option>
+        <option value="confirmed">Pago confirmado</option>
+        <option value="rejected">Pago rechazado</option>
+      </select>
+
+      <span class="ms-auto text-secondary" style="font-size:.75rem">
+        {{ filtered().length }} pedido(s)
+      </span>
+    </div>
+
+    <!-- Tabla -->
+    <c-card-body class="p-0">
+      @if (loading()) {
+        <div class="text-center py-4">
+          <c-spinner color="primary" size="sm"></c-spinner>
+        </div>
+      } @else if (filtered().length === 0) {
+        <div class="text-center py-5 text-secondary">
+          <svg cIcon name="cilBasket" size="xl" class="mb-2 text-muted"></svg>
+          <p class="mb-0">No hay pedidos que coincidan con los filtros</p>
+        </div>
+      } @else {
+        <div class="table-responsive">
+          <table class="table table-hover table-sm mb-0" style="font-size:.82rem">
+            <thead class="bg-body-secondary">
+              <tr>
+                <th>N° Pedido</th>
+                <th>Cliente</th>
+                <th class="text-center">Fecha</th>
+                <th class="text-end">Total</th>
+                <th class="text-center">Pago</th>
+                <th class="text-center">Estado</th>
+                <th class="text-center">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (o of filtered(); track trackById($index, o)) {
+                <tr>
+                  <td class="fw-semibold text-nowrap font-monospace" style="font-size:.78rem">
+                    {{ o.orderNumber }}
+                  </td>
+                  <td>
+                    <div class="fw-medium" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:180px">
+                      {{ o.customer.name }}
+                    </div>
+                    <div style="font-size:.71rem; color:var(--cui-secondary-color)">{{ o.customer.email }}</div>
+                  </td>
+                  <td class="text-center text-nowrap">
+                    {{ o.createdAt.toDate() | date:'dd/MM/yyyy HH:mm' }}
+                  </td>
+                  <td class="text-end font-monospace">$ {{ o.total | number:'1.2-2' }}</td>
+                  <td class="text-center">
+                    <c-badge [color]="payColors[o.paymentStatus]">
+                      {{ payLabels[o.paymentStatus] }}
+                    </c-badge>
+                  </td>
+                  <td class="text-center">
+                    <c-badge [color]="statusColors[o.status]">
+                      {{ statusLabels[o.status] }}
+                    </c-badge>
+                  </td>
+                  <td class="text-center">
+                    <button cButton color="primary" variant="outline" size="sm"
+                            title="Ver detalle"
+                            (click)="openDetail(o)">
+                      <svg cIcon name="cilSearch"></svg>
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </c-card-body>
+  </c-card>
+
+}
+
+<!-- ── Modal de detalle ──────────────────────────────────────────────────────── -->
+<c-modal [visible]="showDetail()" (visibleChange)="showDetail.set($event)" size="lg" backdrop="static">
+
+  <c-modal-header>
+    <h5 cModalTitle class="d-flex align-items-center gap-2">
+      @if (selected()) {
+        <span class="font-monospace" style="font-size:.85rem">{{ selected()!.orderNumber }}</span>
+        <c-badge [color]="statusColors[selected()!.status]">
+          {{ statusLabels[selected()!.status] }}
+        </c-badge>
+      }
+    </h5>
+    <button cButtonClose (click)="closeDetail()"></button>
+  </c-modal-header>
+
+  <c-modal-body>
+    @if (selected(); as o) {
+
+      <!-- Datos del cliente -->
+      <div class="mb-3 p-3 border rounded bg-body-secondary">
+        <h6 class="fw-semibold mb-2">
+          <svg cIcon name="cilUser" class="me-1 text-muted" size="sm"></svg>
+          Datos del cliente
+        </h6>
+        <div class="row g-2" style="font-size:.85rem">
+          <div class="col-sm-6">
+            <span class="text-muted">Nombre:</span>
+            <span class="ms-2 fw-medium">{{ o.customer.name }}</span>
+          </div>
+          <div class="col-sm-6">
+            <span class="text-muted">Email:</span>
+            <span class="ms-2">{{ o.customer.email }}</span>
+          </div>
+          <div class="col-sm-6">
+            <span class="text-muted">Teléfono:</span>
+            <span class="ms-2">{{ o.customer.phone }}</span>
+          </div>
+          @if (o.customer.address) {
+            <div class="col-12">
+              <span class="text-muted">Dirección:</span>
+              <span class="ms-2">{{ o.customer.address }}</span>
+            </div>
+          }
+          @if (o.customer.notes) {
+            <div class="col-12">
+              <span class="text-muted">Notas:</span>
+              <span class="ms-2 fst-italic">{{ o.customer.notes }}</span>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Items del pedido -->
+      <div class="mb-3">
+        <h6 class="fw-semibold mb-2">
+          <svg cIcon name="cilList" class="me-1 text-muted" size="sm"></svg>
+          Productos
+        </h6>
+        <div class="table-responsive">
+          <table class="table table-sm mb-1 mko-items-table">
+            <thead class="bg-body-secondary">
+              <tr>
+                <th>Producto</th>
+                <th class="text-center">Cant.</th>
+                <th class="text-end">P. Unit.</th>
+                <th class="text-center">IVA %</th>
+                <th class="text-end">Subtotal</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of o.items; track item.productId) {
+                <tr>
+                  <td>{{ item.productName }}</td>
+                  <td class="text-center">{{ item.qty }}</td>
+                  <td class="text-end font-monospace">$ {{ item.unitPrice | number:'1.2-2' }}</td>
+                  <td class="text-center">{{ item.taxRate }}%</td>
+                  <td class="text-end font-monospace">$ {{ item.lineTotal | number:'1.2-2' }}</td>
+                </tr>
+              }
+            </tbody>
+            <tfoot class="bg-body-secondary fw-semibold">
+              <tr>
+                <td colspan="4" class="text-end">Subtotal:</td>
+                <td class="text-end font-monospace">$ {{ o.subtotal | number:'1.2-2' }}</td>
+              </tr>
+              <tr>
+                <td colspan="4" class="text-end">IVA:</td>
+                <td class="text-end font-monospace">$ {{ o.taxAmount | number:'1.2-2' }}</td>
+              </tr>
+              <tr>
+                <td colspan="4" class="text-end">Total:</td>
+                <td class="text-end font-monospace fw-bold">$ {{ o.total | number:'1.2-2' }}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      <!-- Método de pago + comprobante -->
+      <div class="mb-3 p-3 border rounded">
+        <h6 class="fw-semibold mb-2">
+          <svg cIcon name="cilCreditCard" class="me-1 text-muted" size="sm"></svg>
+          Pago
+        </h6>
+        <div class="d-flex align-items-center gap-2 mb-2" style="font-size:.85rem">
+          <span class="text-muted">Método:</span>
+          <span>{{ methodLabels[o.paymentMethod] }}</span>
+          <c-badge [color]="payColors[o.paymentStatus]">
+            {{ payLabels[o.paymentStatus] }}
+          </c-badge>
+        </div>
+
+        @if (o.paymentProofUrl) {
+          <div class="mt-2">
+            <p class="text-muted small mb-1">Comprobante adjunto:</p>
+            @if (o.paymentProofUrl.includes('.pdf') || o.paymentProofUrl.includes('pdf')) {
+              <div class="mko-proof-pdf">
+                <svg cIcon name="cilFile" class="text-danger"></svg>
+                <a [href]="o.paymentProofUrl" target="_blank" class="text-primary">
+                  Ver comprobante PDF
+                </a>
+              </div>
+            } @else {
+              <img [src]="o.paymentProofUrl" class="mko-proof-img" alt="Comprobante de pago">
+            }
+          </div>
+        }
+      </div>
+
+      <!-- Acciones de pago -->
+      @if (o.paymentStatus === 'pending' || o.paymentStatus === 'proof_uploaded') {
+        <div class="mb-3 p-3 border border-warning rounded">
+          <h6 class="fw-semibold mb-2 text-warning">
+            <svg cIcon name="cilWarning" class="me-1" size="sm"></svg>
+            Acción requerida en el pago
+          </h6>
+          <div class="d-flex gap-2 flex-wrap">
+            <button cButton color="success" size="sm"
+                    [disabled]="processing()"
+                    (click)="confirmPayment()">
+              @if (processing()) {
+                <c-spinner size="sm" class="me-1"></c-spinner>
+              }
+              <svg cIcon name="cilCheckCircle" class="me-1"></svg>
+              Confirmar pago
+            </button>
+            <button cButton color="danger" variant="outline" size="sm"
+                    [disabled]="processing()"
+                    (click)="showRejectForm.set(!showRejectForm())">
+              <svg cIcon name="cilBan" class="me-1"></svg>
+              Rechazar pago
+            </button>
+          </div>
+
+          @if (showRejectForm()) {
+            <div class="mt-2">
+              <label class="form-label small text-muted">Motivo del rechazo:</label>
+              <textarea class="form-control form-control-sm mb-2" rows="2"
+                        placeholder="Ej: Comprobante ilegible, monto incorrecto..."
+                        [ngModel]="rejectReason()"
+                        (ngModelChange)="rejectReason.set($event)">
+              </textarea>
+              <button cButton color="danger" size="sm"
+                      [disabled]="processing() || !rejectReason().trim()"
+                      (click)="rejectPayment()">
+                @if (processing()) {
+                  <c-spinner size="sm" class="me-1"></c-spinner>
+                }
+                Confirmar rechazo
+              </button>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- Cambio de estado del pedido -->
+      <div class="p-3 border rounded">
+        <h6 class="fw-semibold mb-2">
+          <svg cIcon name="cilSync" class="me-1 text-muted" size="sm"></svg>
+          Cambiar estado del pedido
+        </h6>
+        <div class="d-flex gap-2 align-items-center flex-wrap">
+          <select class="form-select form-select-sm" style="width:200px"
+                  [ngModel]="pendingStatus()"
+                  (ngModelChange)="pendingStatus.set($event)">
+            @for (s of orderStatuses; track s) {
+              <option [value]="s">{{ statusLabels[s] }}</option>
+            }
+          </select>
+          <button cButton color="primary" size="sm"
+                  [disabled]="processing() || pendingStatus() === o.status || pendingStatus() === ''"
+                  (click)="applyPendingStatus()">
+            @if (processing()) {
+              <c-spinner size="sm" class="me-1"></c-spinner>
+            }
+            Actualizar estado
+          </button>
+        </div>
+      </div>
+
+    }
+  </c-modal-body>
+
+  <c-modal-footer>
+    <button cButton color="secondary" variant="outline" size="sm" (click)="closeDetail()">
+      Cerrar
+    </button>
+  </c-modal-footer>
+
+</c-modal>

@@ -120,7 +120,7 @@ export class SuperAdminService {
    * Resuelve módulos desde plan.includedPackages, preserva add-ons activos.
    * (Sustituye la CF assignPlanToCompany hasta que esté implementada en backend.)
    */
-  async assignPlanToCompany(companyId: string, planId: string): Promise<void> {
+  async assignPlanToCompany(companyId: string, planId: string, subscriptionEnd: Date): Promise<void> {
     // 1. Leer plan
     const planSnap = await getDoc(doc(this.firestore, `plans/${planId}`));
     if (!planSnap.exists()) throw new Error(`Plan ${planId} no encontrado`);
@@ -162,8 +162,8 @@ export class SuperAdminService {
       planFeatures: plan.features ?? null,
       enabledPackages: [...new Set([...includedPkgCodes, ...addonCodes])],
       enabledModules:  [...new Set([...planModules, ...addonModules])],
-      status:          'active',
       subscriptionStart: Timestamp.now(),
+      subscriptionEnd:   Timestamp.fromDate(subscriptionEnd),
       updatedAt:         Timestamp.now()
     });
   }

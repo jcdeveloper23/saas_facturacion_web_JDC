@@ -1,0 +1,52 @@
+<div class="cs-card">
+  <h3 class="cs-title">Resumen del pedido</h3>
+
+  <ul class="cs-list">
+    @for (item of cart.items(); track item.product.id) {
+      <li class="cs-item">
+        <div class="cs-item__img-wrap">
+          @if (getItemImage(item); as img) {
+            <img class="cs-item__img" [src]="img" [alt]="item.product.name" loading="lazy" />
+          } @else {
+            <div class="cs-item__img-ph">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="#d1d5db" stroke-width="1.2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0z" />
+              </svg>
+            </div>
+          }
+          <span class="cs-item__qty">{{ item.qty }}</span>
+        </div>
+
+        <div class="cs-item__info">
+          <p class="cs-item__name">{{ item.product.name }}</p>
+          @if (item.product.familyName) {
+            <span class="cs-item__family">{{ item.product.familyName }}</span>
+          }
+        </div>
+
+        <span class="cs-item__total">
+          {{ item.product.salePrice * (1 + (item.product.taxRate ?? 0) / 100) * item.qty | currency:'USD':'symbol':'1.2-2' }}
+        </span>
+      </li>
+    }
+  </ul>
+
+  <div class="cs-divider"></div>
+
+  <div class="cs-totals">
+    <div class="cs-row">
+      <span>Subtotal</span>
+      <span>{{ totals().subtotal | currency:'USD':'symbol':'1.2-2' }}</span>
+    </div>
+    @if (totals().taxAmount > 0) {
+      <div class="cs-row">
+        <span>IVA</span>
+        <span>{{ totals().taxAmount | currency:'USD':'symbol':'1.2-2' }}</span>
+      </div>
+    }
+    <div class="cs-row cs-row--total">
+      <span>Total</span>
+      <strong>{{ totals().total | currency:'USD':'symbol':'1.2-2' }}</strong>
+    </div>
+  </div>
+</div>

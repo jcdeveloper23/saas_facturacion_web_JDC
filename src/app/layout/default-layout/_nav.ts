@@ -261,6 +261,19 @@ export const navItems: INavData[] = [
     attributes: { module: 'teamManagement', roles: ['admin'] }
   },
 
+  // ─── Marketplace ─────────────────────────────────────────────────────────
+  {
+    title: true,
+    name: 'Marketplace',
+    attributes: { module: 'marketplace' }
+  },
+  {
+    name: 'Pedidos del Catálogo',
+    url: '/marketplace-orders',
+    iconComponent: { name: 'cil-basket' },
+    attributes: { module: 'marketplace', roles: ['admin', 'seller'] }
+  },
+
   // ─── Administration ──────────────────────────────────────────────────────
   {
     title: true,
