@@ -70,6 +70,7 @@
               </p>
               <!-- Qty stepper -->
               <div class="cdr-item__stepper">
+                <span class="cdr-item__qty-label">Cant.</span>
                 <button class="cdr-stepper__btn" (click)="decrement(item.product.id, item.qty)" aria-label="Disminuir">−</button>
                 <span class="cdr-stepper__val">{{ item.qty }}</span>
                 <button class="cdr-stepper__btn" (click)="increment(item.product.id, item.qty)" aria-label="Aumentar">+</button>

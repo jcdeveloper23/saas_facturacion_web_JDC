@@ -159,6 +159,7 @@
         <!-- Cantidad + Agregar al carrito -->
         @if (product()!.stockAvailable > 0 || product()!.noStock) {
           <div class="cd-cart-row">
+            <span class="cd-qty-label">Cant.</span>
             <div class="cd-qty">
               <button class="cd-qty__btn" (click)="decrementQty()" [disabled]="qty() <= 1" aria-label="Disminuir">−</button>
               <span class="cd-qty__val">{{ qty() }}</span>

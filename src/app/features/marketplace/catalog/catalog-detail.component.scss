@@ -210,6 +210,11 @@
   margin-bottom: 0.5rem; /* Espacio reducido hacia los CTAs inferiores */
 }
 
+.cd-qty-label {
+  font-size: .85rem; font-weight: 600; color: #64748b;
+  margin-right: -.1rem;
+}
+
 .cd-qty {
   display: flex; align-items: center; gap: .3rem;
   border: 1px solid #e5e7eb; border-radius: 6px;

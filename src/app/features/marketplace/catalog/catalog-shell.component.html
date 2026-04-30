@@ -16,7 +16,7 @@
     <div class="cs-header__inner">
 
       <!-- Col 1: Brand -->
-      <a class="cs-brand" href="#">
+      <a class="cs-brand" [routerLink]="['/', catalogSlug()]" aria-label="Ir al inicio del catálogo">
         @if (catalog()!.logoUrl) {
           <img class="cs-brand__logo" [src]="catalog()!.logoUrl" [alt]="catalog()!.companyName" />
         } @else {

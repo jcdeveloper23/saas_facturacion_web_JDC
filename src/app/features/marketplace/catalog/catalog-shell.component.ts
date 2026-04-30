@@ -4,7 +4,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router, RouterOutlet } from '@angular/router';
+import { ActivatedRoute, Router, RouterOutlet, RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { PublicCatalogService } from '../services/public-catalog.service';
 import { PublicCatalog } from '../models/catalog.interface';
@@ -15,7 +15,7 @@ import { CartDrawerComponent } from './cart-drawer.component';
 @Component({
   selector: 'app-catalog-shell',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterOutlet, CartDrawerComponent],
+  imports: [CommonModule, FormsModule, RouterOutlet, RouterLink, CartDrawerComponent],
   templateUrl: './catalog-shell.component.html',
   styleUrl: './catalog-shell.component.scss',
 })
@@ -27,6 +27,7 @@ export class CatalogShellComponent implements OnInit, OnDestroy {
   protected cart     = inject(CartService);
   private subs       = new Subscription();
 
+  catalogSlug   = signal('');
   catalog       = signal<PublicCatalog | null>(null);
   loading       = signal(true);
   cartOpen      = signal(false);
@@ -35,6 +36,7 @@ export class CatalogShellComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     const slug = this.route.snapshot.paramMap.get('slug') ?? '';
+    this.catalogSlug.set(slug);
     this.subs.add(
       this.catalogSvc.getCatalogBySlug(slug).subscribe({
         next: data => {
