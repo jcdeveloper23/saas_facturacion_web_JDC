@@ -35,6 +35,10 @@
 
     <div class="pos-header-right">
       <span class="cashier-label">{{ currentUser?.displayName ?? currentUser?.email }}</span>
+      <button class="hdr-btn" (click)="showCashMovModal.set(true)" title="Movimientos de caja">
+        <svg cIcon name="cilDollar"></svg>
+        <span class="hdr-btn-label">Caja</span>
+      </button>
       <button class="hdr-btn" (click)="goToHistory()" title="Historial de ventas">
         <svg cIcon name="cilHistory"></svg>
       </button>
@@ -231,42 +235,84 @@
 
 <!-- ── MODALES ─────────────────────────────────────────────────────────────── -->
 
+<!-- Modal de movimientos de caja -->
+<c-modal [visible]="showCashMovModal()" (visibleChange)="showCashMovModal.set($event)"
+         alignment="center" size="sm" backdrop="static">
+  <c-modal-header>
+    <h5 cModalTitle class="fw-semibold">
+      <svg cIcon name="cilDollar" size="sm" class="me-1"></svg> Movimiento de caja
+    </h5>
+    <button cButtonClose (click)="showCashMovModal.set(false)"></button>
+  </c-modal-header>
+  <c-modal-body>
+    <c-row class="g-3">
+      <c-col [sm]="12">
+        <label class="form-label">Tipo</label>
+        <select cSelect [(ngModel)]="cashMovType">
+          <option value="cash_in">↑ Ingreso</option>
+          <option value="cash_out">↓ Egreso</option>
+        </select>
+      </c-col>
+      <c-col [sm]="12">
+        <label class="form-label">Monto ($)</label>
+        <input cFormControl type="number" [(ngModel)]="cashMovAmount"
+               min="0.01" step="0.01" placeholder="0.00">
+      </c-col>
+      <c-col [sm]="12">
+        <label class="form-label">Razón / descripción</label>
+        <input cFormControl type="text" [(ngModel)]="cashMovReason"
+               placeholder="Ej: Pago de servicio, fondo de caja...">
+      </c-col>
+    </c-row>
+  </c-modal-body>
+  <c-modal-footer class="d-flex gap-2">
+    <button cButton color="light" class="flex-fill" (click)="showCashMovModal.set(false)">
+      Cancelar
+    </button>
+    <button cButton [color]="cashMovType === 'cash_in' ? 'success' : 'danger'"
+            class="flex-fill" (click)="saveCashMovement()"
+            [disabled]="savingCashMov() || cashMovAmount <= 0 || !cashMovReason.trim()">
+      @if (savingCashMov()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+      {{ cashMovType === 'cash_in' ? 'Registrar ingreso' : 'Registrar egreso' }}
+    </button>
+  </c-modal-footer>
+</c-modal>
+
 <!-- Modal de pago -->
-@if (showPaymentModal()) {
-  <app-pos-payment-modal
-    [total]="totals().total"
-    (confirmed)="onPaymentConfirmed($event)"
-    (cancelled)="showPaymentModal.set(false)"
-  />
-}
+<app-pos-payment-modal
+  [visible]="showPaymentModal()"
+  [total]="totals().total"
+  (confirmed)="onPaymentConfirmed($event)"
+  (cancelled)="showPaymentModal.set(false)"
+/>
 
 <!-- Modal de búsqueda de cliente -->
-@if (showCustomerSearch()) {
-  <app-pos-customer-search
-    [currentCustomerName]="posSession.customerName()"
-    (selected)="onCustomerSelected($event)"
-    (cancelled)="showCustomerSearch.set(false)"
-  />
-}
+<app-pos-customer-search
+  [visible]="showCustomerSearch()"
+  [currentCustomerName]="posSession.customerName()"
+  (selected)="onCustomerSelected($event)"
+  (cancelled)="showCustomerSearch.set(false)"
+/>
 
 <!-- Modal de descuento -->
-@if (showDiscountModal()) {
-  <app-pos-discount-modal
-    [currentDiscount]="posSession.globalDiscountPct()"
-    (applied)="onDiscountApplied($event)"
-    (cancelled)="showDiscountModal.set(false)"
-  />
-}
+<app-pos-discount-modal
+  [visible]="showDiscountModal()"
+  [currentDiscount]="posSession.globalDiscountPct()"
+  (applied)="onDiscountApplied($event)"
+  (cancelled)="showDiscountModal.set(false)"
+/>
 
 <!-- Preview ticket (tras venta exitosa) -->
-@if (showTicketPreview() && lastSale()) {
-  <div class="pos-overlay" (click)="closeTicketPreview()">
-    <div class="ticket-success" (click)="$event.stopPropagation()">
-      <div class="ts-check">
+<c-modal [visible]="showTicketPreview() && !!lastSale()"
+         (visibleChange)="!$event && closeTicketPreview()"
+         alignment="center" size="sm" backdrop="static">
+  <c-modal-body class="text-center px-4 pt-4 pb-2">
+    @if (lastSale()) {
+      <div class="ts-check mx-auto mb-3">
         <svg cIcon name="cilCheckAlt" size="xl"></svg>
       </div>
-      <h4>¡Venta completada!</h4>
-      <div class="ts-detail">
+      <h4 class="fw-800 mb-3">¡Venta completada!</h4>
+      <div class="ts-detail mb-4">
         <div class="ts-row"><span>Ticket</span><strong>#{{ lastSale()!.ticketNumber }}</strong></div>
         <div class="ts-row"><span>Total</span><strong>${{ lastSale()!.total | number:'1.2-2' }}</strong></div>
         <div class="ts-row"><span>Cliente</span><strong>{{ lastSale()!.customerName }}</strong></div>
@@ -277,9 +323,12 @@
           <div class="ts-row highlight"><span>Cambio</span><strong>${{ lastSale()!.change | number:'1.2-2' }}</strong></div>
         }
       </div>
-      <button class="ts-close" (click)="closeTicketPreview()">
-        Continuar <svg cIcon name="cilArrowRight" size="sm"></svg>
-      </button>
-    </div>
-  </div>
-}
+    }
+  </c-modal-body>
+  <c-modal-footer class="border-0 pt-0 px-4 pb-4">
+    <button cButton color="primary" class="w-100 d-flex align-items-center justify-content-center gap-2"
+            (click)="closeTicketPreview()">
+      Continuar <svg cIcon name="cilArrowRight" size="sm"></svg>
+    </button>
+  </c-modal-footer>
+</c-modal>

@@ -81,6 +81,74 @@
 .cl-category-item.active .cl-cat-count { color: var(--cp-dark); font-weight: 600; }
 .cl-category-item:hover .cl-cat-count { color: var(--cp-dark); }
 
+/* Grupo padre con subfamilias */
+.cl-category-group { display: flex; flex-direction: column; }
+
+/* Etiqueta del padre ocupa el espacio restante */
+.cl-cat-label { flex: 1; min-width: 0; }
+
+/* Chevron — va al final, rota al expandir */
+.cl-cat-chevron {
+  flex-shrink: 0;
+  margin-left: .25rem;
+  color: #9ca3af;
+  transition: transform .22s ease, color .15s;
+}
+.cl-category-group.expanded .cl-cat-chevron { transform: rotate(90deg); color: var(--cp); }
+.cl-category-item:hover .cl-cat-chevron { color: var(--cp-dark); }
+.cl-category-item.active .cl-cat-chevron,
+.cl-category-item.parent-active .cl-cat-chevron { color: var(--cp); }
+
+/* Estado "hijo activo" en el padre */
+.cl-category-item.parent-active {
+  color: var(--cp-dark);
+  border-left-color: var(--cp);
+  background: var(--cp-light);
+}
+
+/* Lista de subfamilias — colapsada por defecto, animada */
+.cl-subcategory-list {
+  list-style: none;
+  margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: 2px;
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition: max-height .28s ease, opacity .22s ease, margin .22s ease;
+}
+.cl-category-group.expanded .cl-subcategory-list {
+  max-height: 400px;   /* suficiente para cualquier cantidad de hijos */
+  opacity: 1;
+  margin: 3px 0 4px;
+}
+
+/* Ítem subfamilia — indentado */
+.cl-category-item--sub {
+  padding-left: 1.35rem;
+  font-size: .8rem;
+  font-weight: 400;
+  color: #6b7280;
+  border-left-width: 0;
+  position: relative;
+}
+.cl-category-item--sub::before {
+  content: '';
+  position: absolute;
+  left: .65rem;
+  top: 50%; transform: translateY(-50%);
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: #d1d5db;
+  transition: background .15s;
+}
+.cl-category-item--sub:hover { color: var(--cp-dark); background: #f9fafb; }
+.cl-category-item--sub:hover::before { background: var(--cp); }
+.cl-category-item--sub.active {
+  font-weight: 700; color: var(--cp-dark);
+  background: var(--cp-light);
+}
+.cl-category-item--sub.active::before { background: var(--cp); }
+
 /* Más Vendidos */
 .cl-top-products { display: flex; flex-direction: column; gap: .75rem; }
 .cl-top-item {
@@ -287,11 +355,18 @@
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: .75rem;
 }
+/* ── Card entrance ───────────────────────────────────────────── */
+@keyframes cl-card-in {
+  from { opacity: 0; transform: translateY(20px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+
 .cl-card {
   background: #fff; border-radius: 8px; overflow: hidden;
   box-shadow: 0 1px 3px rgba(0,0,0,.04); border: 1px solid rgba(0,0,0,.04);
   cursor: pointer; transition: transform .18s, box-shadow .18s;
   display: flex; flex-direction: column;
+  animation: cl-card-in 0.38s ease both;
 }
 .cl-card:hover { transform: translateY(-4px); box-shadow: 0 8px 16px rgba(0,0,0,.08); }
 
@@ -394,6 +469,7 @@
 .cl-list-item {
   background: #fff; border-radius: 10px;
   box-shadow: 0 1px 3px rgba(0,0,0,.07);
+  animation: cl-card-in 0.38s ease both;
   display: grid; grid-template-columns: 90px 1fr auto;
   gap: 1rem; align-items: center; padding: .75rem 1rem;
   cursor: pointer; transition: box-shadow .15s;
@@ -431,6 +507,13 @@
 .cl-btn-detail:hover { opacity: .88; }
 
 /* ── Add to cart button ──────────────────────────────────── */
+@keyframes cl-add-pulse {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.06); }
+  65%  { transform: scale(0.97); }
+  100% { transform: scale(1); }
+}
+
 .cl-add-btn {
   display: flex; align-items: center; justify-content: center; gap: .3rem;
   width: 100%; padding: .5rem .75rem;
@@ -441,7 +524,11 @@
   margin-top: .4rem;
 }
 .cl-add-btn:hover:not(:disabled) { background: var(--cp); color: #fff; }
-.cl-add-btn--added { background: #16a34a !important; color: #fff !important; border-color: #16a34a !important; }
+.cl-add-btn--added {
+  background: #16a34a !important; color: #fff !important;
+  border-color: #16a34a !important;
+  animation: cl-add-pulse 0.32s ease;
+}
 .cl-add-btn:disabled { opacity: .4; cursor: not-allowed; }
 
 /* ── Like Button ─────────────────────────────────────────── */
@@ -474,8 +561,17 @@
 }
 
 /* Liked state */
+@keyframes cl-heart-pop {
+  0%   { transform: scale(1); }
+  30%  { transform: scale(1.45); }
+  55%  { transform: scale(0.88); }
+  75%  { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
 .cl-like-btn.liked {
-  color: var(--cp); 
+  color: var(--cp);
+  animation: cl-heart-pop 0.42s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 .cl-like-btn.liked .cl-like-btn__icon {
   fill: var(--cp); stroke: var(--cp);

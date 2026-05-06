@@ -1,24 +1,21 @@
-<div class="pdm-overlay" (click)="cancelled.emit()">
-<div class="pdm-modal" (click)="$event.stopPropagation()">
+<c-modal [visible]="visible" (visibleChange)="onVisibleChange($event)"
+         alignment="center" size="sm" backdrop="static">
 
-  <div class="pdm-header">
-    <h5><svg cIcon name="cilTags" size="sm" class="me-1"></svg> Descuento global</h5>
-    <button class="pdm-close" (click)="cancelled.emit()">×</button>
-  </div>
+  <c-modal-header>
+    <h5 cModalTitle class="fw-semibold">
+      <svg cIcon name="cilTags" size="sm" class="me-1"></svg> Descuento global
+    </h5>
+    <button cButtonClose (click)="cancelled.emit()"></button>
+  </c-modal-header>
 
-  <div class="pdm-body">
+  <c-modal-body>
     <div class="pdm-input-row">
-      <input
-        type="number"
-        class="pdm-input"
-        [(ngModel)]="discountValue"
-        min="0" max="100" step="1"
-        inputmode="numeric"
-        autofocus
-      >
+      <input type="number" class="pdm-input"
+             [(ngModel)]="discountValue"
+             min="0" max="100" step="1"
+             inputmode="numeric" autofocus>
       <span class="pdm-pct">%</span>
     </div>
-
     <div class="pdm-quick">
       @for (q of quickDiscounts; track q) {
         <button class="pdm-chip" [class.active]="discountValue === q" (click)="setQuick(q)">
@@ -26,14 +23,17 @@
         </button>
       }
     </div>
-  </div>
+  </c-modal-body>
 
-  <div class="pdm-actions">
+  <c-modal-footer class="d-flex gap-2 pt-0">
     @if (currentDiscount > 0) {
-      <button class="pdm-remove" (click)="remove()">Quitar descuento</button>
+      <button cButton color="light" variant="outline" class="flex-fill" (click)="remove()">
+        Quitar descuento
+      </button>
     }
-    <button class="pdm-apply" (click)="apply()">Aplicar {{ discountValue }}%</button>
-  </div>
+    <button cButton color="primary" class="flex-fill" (click)="apply()">
+      Aplicar {{ discountValue }}%
+    </button>
+  </c-modal-footer>
 
-</div>
-</div>
+</c-modal>

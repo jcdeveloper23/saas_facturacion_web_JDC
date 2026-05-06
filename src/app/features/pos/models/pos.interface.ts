@@ -137,6 +137,7 @@ export interface PosSale {
   invoiceId?: string;
   invoiceNumber?: string;
   generateInvoice: boolean;
+  invoiceError?: string;    // mensaje de error si la CF falló al generar la factura
   // ── Estado ─────────────────────────────────────────────────────────────────
   seriesCode: string;              // codserie del terminal
   status: PosSaleStatus;

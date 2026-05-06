@@ -1,68 +1,9 @@
-.pdm-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, .5);
-  z-index: 1050;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  backdrop-filter: blur(4px);
-  padding: 1rem;
-}
-
-.pdm-modal {
-  background: var(--cui-card-bg);
-  border-radius: 18px;
-  width: 100%;
-  max-width: 360px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, .2);
-  overflow: hidden;
-}
-
-.pdm-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1.25rem 1.5rem 1rem;
-  border-bottom: 1px solid var(--cui-border-color);
-
-  h5 {
-    margin: 0;
-    font-size: 1.1rem;
-    font-weight: 700;
-  }
-
-  .pdm-close {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    border: none;
-    background: var(--cui-secondary-bg);
-    font-size: 1.3rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    &:hover {
-      background: var(--cui-danger-bg-subtle);
-      color: var(--cui-danger);
-    }
-  }
-}
-
-.pdm-body {
-  padding: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-}
-
 .pdm-input-row {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: .5rem;
+  margin-bottom: 1.25rem;
 
   .pdm-input {
     width: 140px;
@@ -76,9 +17,7 @@
     color: var(--cui-heading-color);
     outline: none;
 
-    &:focus {
-      border-color: var(--cui-primary);
-    }
+    &:focus { border-color: var(--cui-primary); }
   }
 
   .pdm-pct {
@@ -113,47 +52,6 @@
       background: var(--cui-primary);
       border-color: var(--cui-primary);
       color: #fff;
-    }
-  }
-}
-
-.pdm-actions {
-  display: flex;
-  gap: .75rem;
-  padding: 0 1.5rem 1.5rem;
-
-  .pdm-remove {
-    flex: 1;
-    padding: .75rem;
-    border-radius: 10px;
-    border: 2px solid var(--cui-border-color);
-    background: transparent;
-    color: var(--cui-secondary-color);
-    font-size: .875rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all .12s;
-
-    &:hover {
-      border-color: var(--cui-danger);
-      color: var(--cui-danger);
-    }
-  }
-
-  .pdm-apply {
-    flex: 2;
-    padding: .75rem;
-    border-radius: 10px;
-    border: none;
-    background: var(--cui-primary);
-    color: #fff;
-    font-size: .95rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all .12s;
-
-    &:hover {
-      background: var(--cui-primary-text-emphasis);
     }
   }
 }

@@ -176,10 +176,39 @@ export const onMarketplaceSettingsChange = onDocumentWritten(
         await deleteCatalog(slugBefore);
       }
 
+      // ── Build familyTree map: subfamiliaId → { parentId, parentName } ─────────
+      let familyTree: Record<string, { parentId: string; parentName: string }> = {};
+      try {
+        const familiesSnap = await db.collection(`companies/${companyId}/families`)
+          .where('isActive', '==', true)
+          .get();
+
+        // First pass: collect all family names by ID
+        const familyNames: Record<string, string> = {};
+        for (const fDoc of familiesSnap.docs) {
+          familyNames[fDoc.id] = fDoc.data()['name'] ?? '';
+        }
+
+        // Second pass: map each subfamily → parent
+        for (const fDoc of familiesSnap.docs) {
+          const f = fDoc.data();
+          if (f['parentId'] && familyNames[f['parentId']]) {
+            familyTree[fDoc.id] = {
+              parentId:   f['parentId'],
+              parentName: familyNames[f['parentId']],
+            };
+          }
+        }
+        logger.info('[onMarketplaceSettingsChange] familyTree construido:', { count: Object.keys(familyTree).length });
+      } catch (familyErr) {
+        logger.warn('[onMarketplaceSettingsChange] Error construyendo familyTree:', { familyErr });
+        familyTree = {};
+      }
+
       // Write/update /public-catalogs/{slug}
       const catalogRef = db.doc(`public-catalogs/${slug}`);
       await catalogRef.set({
-        companyId, 
+        companyId,
         companyName:      afterData?.['name']    ?? '',
         logoUrl:          afterData?.['logoUrl'] ?? null,
         primaryColor:     afterMarketplace['primaryColor']     ?? null,
@@ -196,6 +225,7 @@ export const onMarketplaceSettingsChange = onDocumentWritten(
         showNotes:        afterMarketplace['showNotes']        ?? true,
         showOutOfStock:   afterMarketplace['showOutOfStock']   ?? false,
         allowedFamilyIds: afterMarketplace['allowedFamilyIds'] ?? [],
+        familyTree,
         updatedAt:        FieldValue.serverTimestamp(),
       }, { merge: true });
 

@@ -241,9 +241,18 @@
   transition: background .2s, box-shadow .2s, transform .12s;
 }
 .cd-btn--cart:hover { filter: brightness(.92); }
+
+@keyframes cd-add-pulse {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.07); }
+  65%  { transform: scale(0.97); }
+  100% { transform: scale(1); }
+}
+
 .cd-btn--added {
   background: #16a34a !important;
   box-shadow: 0 2px 8px rgba(22,163,74,.35) !important;
+  animation: cd-add-pulse 0.32s ease;
 }
 
 /* CTAs */

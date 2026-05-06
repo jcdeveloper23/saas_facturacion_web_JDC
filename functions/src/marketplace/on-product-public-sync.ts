@@ -105,26 +105,52 @@ export const onProductPublicSync = onDocumentWritten(
         return;
       }
 
-      // ── Step 5: Write minimal projection ────────────────────────────────────
+      // ── Step 5: Resolve parent family (if product has a familyId) ──────────
+      let parentFamilyId: string | null = null;
+      let parentFamilyName: string | null = null;
+      const productFamilyId: string | null = product['familyId'] ?? null;
+
+      if (productFamilyId) {
+        try {
+          const familySnap = await db.doc(`companies/${companyId}/families/${productFamilyId}`).get();
+          if (familySnap.exists) {
+            const familyData = familySnap.data() as Record<string, any>;
+            if (familyData['parentId']) {
+              parentFamilyId = familyData['parentId'];
+              // Resolve parent family name
+              const parentSnap = await db.doc(`companies/${companyId}/families/${familyData['parentId']}`).get();
+              if (parentSnap.exists) {
+                parentFamilyName = (parentSnap.data() as Record<string, any>)['name'] ?? null;
+              }
+            }
+          }
+        } catch (familyErr) {
+          logger.warn('[onProductPublicSync] Error al leer familia — continuando sin parentFamily:', { familyErr });
+        }
+      }
+
+      // ── Step 6: Write minimal projection ────────────────────────────────────
       const rawImageUrls: string[] = Array.isArray(product['imageUrls'])
         ? product['imageUrls'].filter((u: any) => typeof u === 'string' && u)
         : product['imageUrl'] ? [product['imageUrl']] : [];
 
-      const projection = {
-        id:             product['id'],
-        name:           product['name'],
-        notes:          product['description'] ?? product['notes'] ?? '',
-        imageUrl:       rawImageUrls[0] ?? null,
-        imageUrls:      rawImageUrls,
-        familyId:       product['familyId']   ?? null,
-        familyName:     product['familyName'] ?? null,
-        salePrice:      product['salePrice']  ?? product['price'] ?? 0,
-        taxRate:        product['taxRate']     ?? product['vatRate'] ?? null,
-        stockAvailable: product['stockAvailable'] ?? product['stockQty'] ?? 0,
-        noStock:        product['noStock'] !== undefined ? product['noStock'] : product['trackInventory'] === false,
-        isPublic:       true,
-        isActive:       true,
-        updatedAt:      FieldValue.serverTimestamp(),
+      const projection: Record<string, any> = {
+        id:               product['id'],
+        name:             product['name'],
+        notes:            product['description'] ?? product['notes'] ?? '',
+        imageUrl:         rawImageUrls[0] ?? null,
+        imageUrls:        rawImageUrls,
+        familyId:         productFamilyId,
+        familyName:       product['familyName'] ?? null,
+        parentFamilyId:   parentFamilyId,
+        parentFamilyName: parentFamilyName,
+        salePrice:        product['salePrice']  ?? product['price'] ?? 0,
+        taxRate:          product['taxRate']     ?? product['vatRate'] ?? null,
+        stockAvailable:   product['stockAvailable'] ?? product['stockQty'] ?? 0,
+        noStock:          product['noStock'] !== undefined ? product['noStock'] : product['trackInventory'] === false,
+        isPublic:         true,
+        isActive:         true,
+        updatedAt:        FieldValue.serverTimestamp(),
       };
 
       await catalogProductRef.set(projection, { merge: true });

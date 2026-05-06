@@ -21,7 +21,7 @@
 
       <!-- Categories -->
       <div class="cl-sidebar__section">
-        <h3 class="cl-sidebar__title">Categorías Populares</h3>
+        <h3 class="cl-sidebar__title">Categorías</h3>
         <ul class="cl-category-list">
           <li>
             <button
@@ -32,15 +32,36 @@
               <span class="cl-cat-count">({{ allProducts().length }})</span>
             </button>
           </li>
-          @for (f of families(); track f.id) {
-            <li>
+          @for (node of categoryTree(); track node.id) {
+            <li class="cl-category-group" [class.expanded]="isNodeExpanded(node.id)">
               <button
                 class="cl-category-item"
-                [class.active]="selectedFamilyId() === f.id"
-                (click)="selectFamily(f.id)">
-                <span>{{ f.name }}</span>
-                <span class="cl-cat-count">({{ f.count }})</span>
+                [class.active]="selectedFamilyId() === node.id"
+                [class.parent-active]="isChildSelected(node)"
+                (click)="node.children.length > 0 ? toggleParent(node) : selectFamily(node.id)">
+                <span class="cl-cat-label">{{ node.name }}</span>
+                <span class="cl-cat-count">({{ node.count }})</span>
+                @if (node.children.length > 0) {
+                  <svg class="cl-cat-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" width="12" height="12">
+                    <path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd"/>
+                  </svg>
+                }
               </button>
+              @if (node.children.length > 0) {
+                <ul class="cl-subcategory-list">
+                  @for (child of node.children; track child.id) {
+                    <li>
+                      <button
+                        class="cl-category-item cl-category-item--sub"
+                        [class.active]="selectedFamilyId() === child.id"
+                        (click)="selectFamily(child.id)">
+                        <span>{{ child.name }}</span>
+                        <span class="cl-cat-count">({{ child.count }})</span>
+                      </button>
+                    </li>
+                  }
+                </ul>
+              }
             </li>
           }
         </ul>
@@ -62,7 +83,7 @@
           @for (tp of topProducts(); track tp.id) {
             <article class="cl-top-item" (click)="openProduct(tp.id)">
               <div class="cl-top-item__img-wrap">
-                <img *ngIf="tp.imageUrl" [src]="tp.imageUrl" [alt]="tp.name" class="cl-top-item__img" />
+                <img *ngIf="tp.imageUrl" [src]="tp.imageUrl" [alt]="tp.name" class="cl-top-item__img" loading="lazy" />
               </div>
               <div class="cl-top-item__info">
                 <h4 class="cl-top-item__name">{{ tp.name }}</h4>
@@ -165,7 +186,7 @@
           <button class="cl-cat-pill" [class.active]="selectedFamilyId() === null" (click)="selectFamily(null)">
             Todos <span class="cl-cat-pill__count">({{ allProducts().length }})</span>
           </button>
-          @for (f of families(); track f.id + '_L') {
+          @for (f of flatCategories(); track f.id + '_L') {
             <button class="cl-cat-pill" [class.active]="selectedFamilyId() === f.id" (click)="selectFamily(f.id)">
               {{ f.name }} <span class="cl-cat-pill__count">({{ f.count }})</span>
             </button>
@@ -175,7 +196,7 @@
           <button class="cl-cat-pill" [class.active]="selectedFamilyId() === null" (click)="selectFamily(null)">
             Todos <span class="cl-cat-pill__count">({{ allProducts().length }})</span>
           </button>
-          @for (f of families(); track f.id) {
+          @for (f of flatCategories(); track f.id) {
             <button class="cl-cat-pill" [class.active]="selectedFamilyId() === f.id" (click)="selectFamily(f.id)">
               {{ f.name }} <span class="cl-cat-pill__count">({{ f.count }})</span>
             </button>
@@ -185,7 +206,7 @@
           <button class="cl-cat-pill" [class.active]="selectedFamilyId() === null" (click)="selectFamily(null)">
             Todos <span class="cl-cat-pill__count">({{ allProducts().length }})</span>
           </button>
-          @for (f of families(); track f.id + '_R') {
+          @for (f of flatCategories(); track f.id + '_R') {
             <button class="cl-cat-pill" [class.active]="selectedFamilyId() === f.id" (click)="selectFamily(f.id)">
               {{ f.name }} <span class="cl-cat-pill__count">({{ f.count }})</span>
             </button>
@@ -254,9 +275,9 @@
       <!-- GRID mode -->
       } @else if (viewMode() === 'grid') {
         <div class="cl-grid">
-          @for (p of filteredProducts(); track p.id) {
+          @for (p of filteredProducts(); track p.id; let i = $index) {
             @let images = getCardImages(p);
-            <article class="cl-card" (click)="openProduct(p.id)">
+            <article class="cl-card" [style.animation-delay]="staggerDelay(i)" (click)="openProduct(p.id)">
               <div class="cl-card__img-wrap">
 
                 @if (images.length > 0) {
@@ -364,8 +385,8 @@
       <!-- LIST mode -->
       } @else {
         <div class="cl-list">
-          @for (p of filteredProducts(); track p.id) {
-            <article class="cl-list-item" (click)="openProduct(p.id)">
+          @for (p of filteredProducts(); track p.id; let i = $index) {
+            <article class="cl-list-item" [style.animation-delay]="staggerDelay(i)" (click)="openProduct(p.id)">
               <div class="cl-list-item__img-wrap">
                 @if (p.imageUrl) {
                   <img class="cl-list-item__img" [src]="p.imageUrl" [alt]="p.name" loading="lazy" />

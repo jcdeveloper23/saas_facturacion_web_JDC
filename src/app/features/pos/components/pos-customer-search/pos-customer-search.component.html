@@ -1,47 +1,54 @@
-<div class="pcs-overlay" (click)="cancelled.emit()">
-<div class="pcs-modal" (click)="$event.stopPropagation()">
+<c-modal [visible]="visible" (visibleChange)="onVisibleChange($event)"
+         alignment="center" scrollable>
 
-  <div class="pcs-header">
-    <h5>Seleccionar cliente</h5>
-    <button class="pcs-close" (click)="cancelled.emit()">×</button>
-  </div>
+  <c-modal-header>
+    <h5 cModalTitle class="fw-semibold">Seleccionar cliente</h5>
+    <button cButtonClose (click)="cancelled.emit()"></button>
+  </c-modal-header>
 
-  <div class="pcs-search">
-    <input
-      type="text"
-      class="pcs-input"
-      placeholder="Buscar por nombre, RUC o cédula..."
-      [(ngModel)]="searchQuery"
-      (ngModelChange)="onSearch($event)"
-      autofocus
-    >
-    @if (loading()) { <c-spinner size="sm" class="pcs-spinner"/> }
-  </div>
+  <c-modal-body class="p-0">
 
-  <div class="pcs-list">
-    <!-- Consumidor Final siempre primero -->
-    <button class="pcs-item pcs-cf" (click)="selectConsumidorFinal()">
-      <div class="pcs-avatar">CF</div>
-      <div class="pcs-info">
-        <span class="pcs-name">Consumidor Final</span>
-        <span class="pcs-tax">9999999999999</span>
+    <!-- Búsqueda -->
+    <div class="pcs-search">
+      <div class="position-relative">
+        <input cFormControl type="text"
+               placeholder="Buscar por nombre, RUC o cédula..."
+               [(ngModel)]="searchQuery"
+               (ngModelChange)="onSearch($event)"
+               autofocus>
+        @if (loading()) {
+          <c-spinner size="sm" class="pcs-spinner"/>
+        }
       </div>
-    </button>
+    </div>
 
-    @for (p of results(); track p.id) {
-      <button class="pcs-item" (click)="selectPerson(p)">
-        <div class="pcs-avatar">{{ p.name.charAt(0).toUpperCase() }}</div>
+    <!-- Lista de clientes -->
+    <div class="pcs-list">
+
+      <!-- Consumidor Final siempre primero -->
+      <button class="pcs-item pcs-cf" (click)="selectConsumidorFinal()">
+        <div class="pcs-avatar">CF</div>
         <div class="pcs-info">
-          <span class="pcs-name">{{ p.name }}</span>
-          <span class="pcs-tax">{{ p.taxIdType }}: {{ p.taxId }}</span>
+          <span class="pcs-name">Consumidor Final</span>
+          <span class="pcs-tax">9999999999999</span>
         </div>
       </button>
-    }
 
-    @if (!loading() && results().length === 0 && searchQuery) {
-      <div class="pcs-empty">Sin resultados para "{{ searchQuery }}"</div>
-    }
-  </div>
+      @for (p of results(); track p.id) {
+        <button class="pcs-item" (click)="selectPerson(p)">
+          <div class="pcs-avatar">{{ p.name.charAt(0).toUpperCase() }}</div>
+          <div class="pcs-info">
+            <span class="pcs-name">{{ p.name }}</span>
+            <span class="pcs-tax">{{ p.taxIdType }}: {{ p.taxId }}</span>
+          </div>
+        </button>
+      }
 
-</div>
-</div>
+      @if (!loading() && results().length === 0 && searchQuery) {
+        <div class="pcs-empty">Sin resultados para "{{ searchQuery }}"</div>
+      }
+
+    </div>
+  </c-modal-body>
+
+</c-modal>

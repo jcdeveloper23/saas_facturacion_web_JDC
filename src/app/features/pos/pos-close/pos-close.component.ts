@@ -5,7 +5,10 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
-import { SpinnerModule, AlertModule, CardModule, BadgeModule } from '@coreui/angular';
+import {
+  SpinnerModule, AlertModule, CardModule, BadgeModule,
+  ButtonModule, GridModule, FormModule, TableModule
+} from '@coreui/angular';
 import { IconModule } from '@coreui/icons-angular';
 
 import { PosCashService }    from '../services/pos-cash.service';
@@ -19,7 +22,8 @@ import { PosCashMovement, PosSale, PosSession } from '../models/pos.interface';
   standalone: true,
   imports: [
     CommonModule, FormsModule,
-    SpinnerModule, AlertModule, CardModule, BadgeModule, IconModule
+    SpinnerModule, AlertModule, CardModule, BadgeModule, IconModule,
+    ButtonModule, GridModule, FormModule, TableModule
   ],
   templateUrl: './pos-close.component.html',
   styleUrl: './pos-close.component.scss'

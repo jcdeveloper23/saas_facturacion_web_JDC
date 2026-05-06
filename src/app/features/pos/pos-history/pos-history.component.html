@@ -1,138 +1,329 @@
-<div class="ph-root">
-
-  <div class="ph-header">
+<!-- ── Page header ────────────────────────────────────────────────────────── -->
+<div class="mb-3">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <div class="d-flex align-items-center gap-2">
+      <div class="page-icon">
+        <svg cIcon name="cilHistory" size="lg" class="text-white"></svg>
+      </div>
+      <div>
+        <h4 class="page-title mb-0">Historial de Ventas POS</h4>
+        <span class="page-subtitle">Tickets emitidos por sesión</span>
+      </div>
+    </div>
     <button cButton color="light" variant="outline" size="sm"
             class="d-flex align-items-center gap-1" (click)="goBack()">
-      <svg cIcon name="cilArrowLeft" size="sm"></svg> Volver
+      <svg cIcon name="cilArrowLeft" size="sm"></svg>
+      <span>Volver</span>
     </button>
-    <h2>Historial de ventas POS</h2>
   </div>
 
   <!-- Selector de sesión -->
-  <div class="ph-session-select">
-    <label class="fw-semibold text-muted small">Sesión:</label>
-    <select cSelect [(ngModel)]="selectedSessionId" (ngModelChange)="onSessionChange($event)">
-      @for (s of sessions(); track s.id) {
-        <option [value]="s.id">
-          {{ s.terminalName }} · {{ s.openedAt.toDate() | date:'dd/MM/yyyy HH:mm' }}
-          {{ s.status === 'open' ? '(Abierta)' : '' }}
-        </option>
-      }
-    </select>
-  </div>
+  <c-row class="g-2 mb-2 align-items-end">
+    <c-col [sm]="12" [md]="5" [lg]="4">
+      <label class="form-label mb-1 ph-select-label">Sesión</label>
+      <select cSelect [(ngModel)]="selectedSessionId" (ngModelChange)="onSessionChange($event)">
+        @for (s of sessions(); track s.id) {
+          <option [value]="s.id">
+            {{ s.terminalName }} · {{ s.openedAt.toDate() | date:'dd/MM/yyyy HH:mm' }}
+            {{ s.status === 'open' ? '(Abierta)' : '' }}
+          </option>
+        }
+      </select>
+    </c-col>
+  </c-row>
 
-  <!-- Resumen -->
-  @if (sales().length > 0) {
-    <div class="ph-summary">
-      <div class="ph-sum-item">
-        <span>Tickets</span>
-        <strong>{{ completedCount() }}</strong>
+  @if (!loading() && sales().length > 0) {
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+      <div class="stat-strip">
+        <div class="stat-item">
+          <span class="stat-value text-success">{{ filteredCompletedCount() }}</span>
+          <span class="stat-label">completados</span>
+        </div>
+        <div class="stat-sep"></div>
+        <div class="stat-item">
+          <span class="stat-value text-danger">{{ filteredSales().length - filteredCompletedCount() }}</span>
+          <span class="stat-label">anulados</span>
+        </div>
+        <div class="stat-sep"></div>
+        <div class="stat-item">
+          <span class="stat-value">${{ filteredTotal() | number:'1.2-2' }}</span>
+          <span class="stat-label">total</span>
+        </div>
+        @if (isFiltered()) {
+          <div class="stat-sep"></div>
+          <div class="stat-item">
+            <span class="stat-value text-muted">{{ filteredSales().length }}/{{ sales().length }}</span>
+            <span class="stat-label">filtrados</span>
+          </div>
+        }
       </div>
-      <div class="ph-sum-item">
-        <span>Total ventas</span>
-        <strong>${{ totalSales(sales()) | number:'1.2-2' }}</strong>
-      </div>
+      @if (isFiltered()) {
+        <button cButton color="light" size="sm" variant="outline" (click)="resetFilters()">
+          <svg cIcon name="cilX" size="sm" class="me-1"></svg> Limpiar filtros
+        </button>
+      }
     </div>
   }
+</div>
 
-  @if (loading()) {
-    <div class="ph-loading"><c-spinner color="primary"/> Cargando...</div>
-  }
+<!-- ── Loading ────────────────────────────────────────────────────────────── -->
+@if (loading()) {
+  <div class="text-center py-5">
+    <c-spinner color="primary"></c-spinner>
+    <p class="text-muted mt-3 small">Cargando ventas...</p>
+  </div>
+}
 
-  <!-- Tabla de ventas -->
-  @if (!loading()) {
-    <c-card class="border-0 shadow-sm overflow-hidden">
-      <c-card-body class="p-0">
-        <div class="table-responsive">
-          <table cTable hover align="middle" class="mb-0">
-            <thead class="bg-body-secondary">
-              <tr>
-                <th>#</th>
-                <th>Hora</th>
-                <th>Cliente</th>
-                <th>Items</th>
-                <th class="text-end">Total</th>
-                <th>Pago</th>
-                <th>Estado</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (sale of sales(); track sale.id) {
-                <tr
-                  class="ph-row"
-                  [class.selected]="selected()?.id === sale.id"
-                  [class.void]="sale.status === 'void'"
-                  (click)="selectSale(sale)"
-                >
-                  <td><strong>#{{ sale.ticketNumber }}</strong></td>
-                  <td class="ph-time">{{ sale.createdAt.toDate() | date:'HH:mm' }}</td>
-                  <td class="ph-customer">{{ sale.customerName }}</td>
-                  <td>{{ sale.lines.length }} items</td>
-                  <td class="text-end"><strong>${{ sale.total | number:'1.2-2' }}</strong></td>
-                  <td>
-                    <div class="ph-payments">
-                      @for (p of sale.payments; track p.method) {
-                        <span class="ph-pay-chip">{{ p.methodLabel }}</span>
-                      }
-                    </div>
-                  </td>
-                  <td>
-                    @if (sale.status === 'completed') {
-                      <c-badge color="success" shape="rounded-pill">Completada</c-badge>
-                    } @else if (sale.status === 'void') {
-                      <c-badge color="danger" shape="rounded-pill">Anulada</c-badge>
-                    } @else {
-                      <c-badge color="secondary" shape="rounded-pill">{{ sale.status }}</c-badge>
+<!-- ── Tabla de ventas ────────────────────────────────────────────────────── -->
+@if (!loading()) {
+  <c-card class="border-0 shadow-sm overflow-hidden">
+
+    <!-- Barra de filtros -->
+    @if (sales().length > 0) {
+      <div class="bg-body-secondary px-3 py-2 border-bottom d-flex align-items-center gap-2 flex-wrap">
+
+        <!-- Búsqueda -->
+        <div class="position-relative ph-search-wrap">
+          <svg cIcon name="cilSearch" size="sm" class="ph-search-icon text-muted"></svg>
+          <input cFormControl type="text" class="ph-search-input"
+                 placeholder="Ticket # o cliente..."
+                 [ngModel]="filterQuery()"
+                 (ngModelChange)="onQueryChange($event)">
+          @if (filterQuery()) {
+            <button class="ph-search-clear" (click)="onQueryChange('')">
+              <svg cIcon name="cilX" size="sm"></svg>
+            </button>
+          }
+        </div>
+
+        <!-- Filtro de estado -->
+        <div class="d-flex gap-1">
+          <button cButton size="sm"
+                  [color]="filterStatus() === 'all' ? 'primary' : 'light'"
+                  [variant]="filterStatus() === 'all' ? undefined : 'outline'"
+                  (click)="setFilter('all')">
+            Todos
+          </button>
+          <button cButton size="sm"
+                  [color]="filterStatus() === 'completed' ? 'success' : 'light'"
+                  [variant]="filterStatus() === 'completed' ? undefined : 'outline'"
+                  (click)="setFilter('completed')">
+            Completados
+          </button>
+          <button cButton size="sm"
+                  [color]="filterStatus() === 'void' ? 'danger' : 'light'"
+                  [variant]="filterStatus() === 'void' ? undefined : 'outline'"
+                  (click)="setFilter('void')">
+            Anulados
+          </button>
+        </div>
+
+      </div>
+    }
+
+    <c-card-body class="p-0">
+      <div class="table-responsive">
+        <table cTable hover align="middle" class="mb-0">
+          <thead class="bg-body-secondary">
+            <tr>
+              <th>#</th>
+              <th>Hora</th>
+              <th>Cliente</th>
+              <th>Items</th>
+              <th class="text-end">Total</th>
+              <th>Pago</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (sale of paginatedSales(); track sale.id) {
+
+              <tr class="row-clickable"
+                  [class.table-active]="selected()?.id === sale.id"
+                  [class.opacity-50]="sale.status === 'void'"
+                  (click)="selectSale(sale)">
+                <td><strong>#{{ sale.ticketNumber }}</strong></td>
+                <td class="text-muted">{{ sale.createdAt.toDate() | date:'HH:mm' }}</td>
+                <td class="fw-semibold text-truncate" style="max-width:160px">{{ sale.customerName }}</td>
+                <td class="text-muted">{{ sale.lines.length }} items</td>
+                <td class="text-end">
+                  <strong [class.text-decoration-line-through]="sale.status === 'void'">
+                    ${{ sale.total | number:'1.2-2' }}
+                  </strong>
+                </td>
+                <td>
+                  <div class="d-flex gap-1 flex-wrap">
+                    @for (p of sale.payments; track p.method) {
+                      <c-badge color="secondary" shape="rounded-pill" class="fw-normal">
+                        {{ p.methodLabel }}
+                      </c-badge>
                     }
-                  </td>
-                </tr>
+                  </div>
+                </td>
+                <td>
+                  @if (sale.status === 'completed') {
+                    <c-badge color="success" shape="rounded-pill">Completada</c-badge>
+                  } @else if (sale.status === 'void') {
+                    <c-badge color="danger" shape="rounded-pill">Anulada</c-badge>
+                  } @else {
+                    <c-badge color="secondary" shape="rounded-pill">{{ sale.status }}</c-badge>
+                  }
+                </td>
+              </tr>
 
-                <!-- Detalle expandido -->
-                @if (selected()?.id === sale.id) {
-                  <tr class="ph-detail-row">
-                    <td colspan="7">
-                      <div class="ph-detail">
-                        <div class="ph-detail-lines">
-                          <h6>Detalle</h6>
+              <!-- Detalle expandido -->
+              @if (selected()?.id === sale.id) {
+                <tr>
+                  <td colspan="7" class="p-0 ph-detail-bg">
+                    <div class="px-4 py-3">
+                      <c-row class="g-3">
+                        <c-col [sm]="12" [md]="8">
+                          <small class="ph-section-label d-block mb-2">Detalle de líneas</small>
                           @for (line of sale.lines; track line.productId) {
-                            <div class="ph-line-row">
-                              <span>{{ line.productName }}</span>
-                              <span>{{ line.quantity }} × ${{ line.salePrice | number:'1.2-2' }}</span>
-                              <strong>${{ line.lineTotal | number:'1.2-2' }}</strong>
+                            <div class="d-flex align-items-center gap-2 py-2 border-bottom small">
+                              <span class="flex-grow-1">{{ line.productName }}</span>
+                              <span class="text-muted">{{ line.quantity }} × ${{ line.salePrice | number:'1.2-2' }}</span>
+                              <strong class="ph-line-amount">${{ line.lineTotal | number:'1.2-2' }}</strong>
                             </div>
                           }
-                          <div class="ph-line-totals">
+                          <div class="d-flex justify-content-between pt-2 small text-muted">
                             <span>IVA: ${{ sale.vatAmount | number:'1.2-2' }}</span>
-                            <strong>Total: ${{ sale.total | number:'1.2-2' }}</strong>
+                            <strong class="text-body">Total: ${{ sale.total | number:'1.2-2' }}</strong>
                           </div>
-                        </div>
-                        @if (sale.change > 0) {
-                          <div class="ph-change">Cambio entregado: ${{ sale.change | number:'1.2-2' }}</div>
-                        }
-                        @if (sale.status === 'completed') {
-                          <button
-                            cButton color="danger" variant="outline" size="sm"
-                            (click)="voidSale(sale); $event.stopPropagation()"
-                            [disabled]="voiding()"
-                          >
-                            Anular ticket
+                        </c-col>
+                        <c-col [sm]="12" [md]="4" class="d-flex flex-column gap-2">
+                          @if (sale.change > 0) {
+                            <c-alert color="info" class="py-2 mb-0">
+                              <small>Cambio entregado: <strong>${{ sale.change | number:'1.2-2' }}</strong></small>
+                            </c-alert>
+                          }
+                          <!-- Reimprimir -->
+                          <button cButton color="light" variant="outline" size="sm"
+                                  class="d-flex align-items-center justify-content-center gap-1"
+                                  (click)="reprintTicket(sale, $event)"
+                                  [disabled]="printing()">
+                            @if (printing()) {
+                              <c-spinner size="sm"></c-spinner>
+                            } @else {
+                              <svg cIcon name="cilPrint" size="sm"></svg>
+                            }
+                            Reimprimir
                           </button>
-                        }
-                      </div>
-                    </td>
-                  </tr>
-                }
-              }
-              @if (sales().length === 0) {
-                <tr>
-                  <td colspan="7" class="ph-empty">Sin ventas en esta sesión</td>
+                          <!-- Anular -->
+                          @if (sale.status === 'completed') {
+                            <button cButton color="danger" variant="outline" size="sm"
+                                    class="d-flex align-items-center justify-content-center gap-1"
+                                    (click)="openVoidModal(sale, $event)"
+                                    [disabled]="voiding()">
+                              <svg cIcon name="cilBan" size="sm"></svg>
+                              Anular ticket
+                            </button>
+                          }
+                        </c-col>
+                      </c-row>
+                    </div>
+                  </td>
                 </tr>
               }
-            </tbody>
-          </table>
-        </div>
-      </c-card-body>
-    </c-card>
-  }
+            }
 
-</div>
+            @if (filteredSales().length === 0) {
+              <tr>
+                <td colspan="7" class="text-center py-5">
+                  @if (sales().length === 0) {
+                    <svg cIcon name="cilHistory" size="3xl"
+                         class="d-block mx-auto mb-3 text-muted opacity-25"></svg>
+                    <span class="text-muted">Sin ventas en esta sesión</span>
+                  } @else {
+                    <svg cIcon name="cilSearch" size="3xl"
+                         class="d-block mx-auto mb-3 text-muted opacity-25"></svg>
+                    <span class="text-muted d-block">Sin resultados para los filtros aplicados</span>
+                    <button cButton color="light" size="sm" variant="outline" class="mt-2"
+                            (click)="resetFilters()">
+                      Limpiar filtros
+                    </button>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Footer: conteo + paginación -->
+      @if (sales().length > 0) {
+        <div class="bg-body-secondary px-3 py-2 border-top d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <small class="text-muted">
+            {{ filteredSales().length }} ticket{{ filteredSales().length !== 1 ? 's' : '' }}
+            @if (isFiltered()) { <span class="text-muted">(filtrados de {{ sales().length }})</span> }
+          </small>
+
+          @if (totalPages() > 1) {
+            <div class="d-flex align-items-center gap-1">
+              <button cButton color="light" size="sm" variant="outline"
+                      [disabled]="currentPage() === 1"
+                      (click)="goToPage(currentPage() - 1)">
+                <svg cIcon name="cilChevronLeft" size="sm"></svg>
+              </button>
+              @for (p of pages; track p) {
+                <button cButton size="sm"
+                        [color]="currentPage() === p ? 'primary' : 'light'"
+                        [variant]="currentPage() === p ? undefined : 'outline'"
+                        (click)="goToPage(p)">
+                  {{ p }}
+                </button>
+              }
+              <button cButton color="light" size="sm" variant="outline"
+                      [disabled]="currentPage() === totalPages()"
+                      (click)="goToPage(currentPage() + 1)">
+                <svg cIcon name="cilChevronRight" size="sm"></svg>
+              </button>
+            </div>
+          } @else {
+            <small class="text-muted fst-italic">Clic en una fila para ver el detalle</small>
+          }
+        </div>
+      }
+
+    </c-card-body>
+  </c-card>
+}
+
+<!-- ── Modal de confirmación de anulación ────────────────────────────────── -->
+<c-modal [visible]="showVoidModal()" (visibleChange)="showVoidModal.set($event)"
+         alignment="center" size="sm" backdrop="static">
+  <c-modal-header>
+    <h5 cModalTitle class="fw-semibold text-danger">
+      <svg cIcon name="cilBan" size="sm" class="me-1"></svg> Anular ticket
+    </h5>
+    <button cButtonClose (click)="cancelVoid()"></button>
+  </c-modal-header>
+  <c-modal-body>
+    @if (saleToVoid()) {
+      <c-alert color="warning" class="mb-3">
+        <strong>Esta acción no se puede deshacer.</strong>
+      </c-alert>
+      <div class="d-flex justify-content-between py-2 border-bottom small">
+        <span class="text-muted">Ticket</span>
+        <strong>#{{ saleToVoid()!.ticketNumber }}</strong>
+      </div>
+      <div class="d-flex justify-content-between py-2 border-bottom small">
+        <span class="text-muted">Cliente</span>
+        <strong>{{ saleToVoid()!.customerName }}</strong>
+      </div>
+      <div class="d-flex justify-content-between py-2 small">
+        <span class="text-muted">Total</span>
+        <strong>${{ saleToVoid()!.total | number:'1.2-2' }}</strong>
+      </div>
+    }
+  </c-modal-body>
+  <c-modal-footer class="d-flex gap-2">
+    <button cButton color="light" class="flex-fill" (click)="cancelVoid()" [disabled]="voiding()">
+      Cancelar
+    </button>
+    <button cButton color="danger" class="flex-fill" (click)="confirmVoid()" [disabled]="voiding()">
+      @if (voiding()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+      Confirmar anulación
+    </button>
+  </c-modal-footer>
+</c-modal>

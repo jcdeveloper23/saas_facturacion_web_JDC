@@ -6,17 +6,20 @@ import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
 import {
-  SpinnerModule, BadgeModule, TooltipModule, AlertModule
+  SpinnerModule, BadgeModule, TooltipModule, AlertModule,
+  ModalModule, ButtonModule, GridModule, FormModule
 } from '@coreui/angular';
 import { IconModule } from '@coreui/icons-angular';
 
 import { PosSessionService } from '../services/pos-session.service';
 import { PosSalesService, CompleteSaleInput } from '../services/pos-sales.service';
+import { PosCashService } from '../services/pos-cash.service';
 import { PosHardwareService } from '../services/pos-hardware.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { ProductsService } from '../../products/services/products.service';
 import { TenantService }   from '../../../core/services/tenant.service';
 import { AuthService }     from '../../../core/services/auth.service';
+import { PlanLimitsService } from '../../../core/services/plan-limits.service';
 import {
   PosPayment, PosCartItem, PosSale
 } from '../models/pos.interface';
@@ -31,6 +34,7 @@ import { PosDiscountModalComponent } from '../components/pos-discount-modal/pos-
   imports: [
     CommonModule, FormsModule,
     SpinnerModule, BadgeModule, TooltipModule, AlertModule,
+    ModalModule, ButtonModule, GridModule, FormModule,
     IconModule,
     PosPaymentModalComponent,
     PosCustomerSearchComponent,
@@ -43,12 +47,14 @@ export class PosMainComponent implements OnInit, OnDestroy {
   private destroy$     = new Subject<void>();
   readonly posSession  = inject(PosSessionService);
   private salesService = inject(PosSalesService);
+  private cashService  = inject(PosCashService);
   private hardware     = inject(PosHardwareService);
   private notify       = inject(NotificationService);
   private productsService = inject(ProductsService);
   private tenantService   = inject(TenantService);
   private router          = inject(Router);
   private auth            = inject(AuthService);
+  private planLimits      = inject(PlanLimitsService);
 
   // ── Products catalog ───────────────────────────────────────────────────────
   readonly allProducts     = signal<Product[]>([]);
@@ -62,6 +68,7 @@ export class PosMainComponent implements OnInit, OnDestroy {
   readonly showCustomerSearch = signal(false);
   readonly showDiscountModal  = signal(false);
   readonly showCashMovModal   = signal(false);
+  readonly savingCashMov      = signal(false);
   readonly processingPayment  = signal(false);
   readonly lastSale           = signal<PosSale | null>(null);
   readonly showTicketPreview  = signal(false);
@@ -244,7 +251,7 @@ export class PosMainComponent implements OnInit, OnDestroy {
         terminalId:   terminal.id,
         terminalName: terminal.name,
         seriesCode:   terminal.seriesCode ?? '',
-        generateInvoice: false
+        generateInvoice: this.planLimits.isFeatureEnabled('electronicInvoicing')
       };
 
       const sale = await this.salesService.completeSale(input);
@@ -304,7 +311,34 @@ export class PosMainComponent implements OnInit, OnDestroy {
 
   // ─── Cash movement ────────────────────────────────────────────────────────
 
-  // (injected separately, managed via modal in the template)
+  async saveCashMovement(): Promise<void> {
+    const session  = this.posSession.activeSession();
+    const terminal = this.posSession.activeTerminal();
+    if (!session || !terminal) return;
+    if (this.cashMovAmount <= 0 || !this.cashMovReason.trim()) return;
+    if (this.savingCashMov()) return;
+
+    this.savingCashMov.set(true);
+    try {
+      await this.cashService.addCashMovement(
+        session.id,
+        terminal.id,
+        this.cashMovType,
+        this.cashMovAmount,
+        this.cashMovReason.trim()
+      );
+      const label = this.cashMovType === 'cash_in' ? 'Ingreso' : 'Egreso';
+      this.notify.success(`${label} registrado`, `$${this.cashMovAmount.toFixed(2)} · ${this.cashMovReason}`);
+      this.cashMovAmount = 0;
+      this.cashMovReason = '';
+      this.cashMovType   = 'cash_in';
+      this.showCashMovModal.set(false);
+    } catch (err: any) {
+      this.notify.error('Error registrando movimiento', err.message ?? 'Error desconocido');
+    } finally {
+      this.savingCashMov.set(false);
+    }
+  }
 
   // ─── Navigation ───────────────────────────────────────────────────────────
 

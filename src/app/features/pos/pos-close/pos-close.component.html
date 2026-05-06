@@ -1,172 +1,246 @@
-<div class="pc-root">
-
-  <div class="pc-header">
+<!-- ── Page header ────────────────────────────────────────────────────────── -->
+<div class="mb-3">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <div class="d-flex align-items-center gap-2">
+      <div class="page-icon">
+        <svg cIcon name="cilLockLocked" size="lg" class="text-white"></svg>
+      </div>
+      <div>
+        <h4 class="page-title mb-0">Cierre de Caja</h4>
+        <span class="page-subtitle">{{ terminal()?.name ?? 'Terminal' }}</span>
+      </div>
+    </div>
     @if (!closed()) {
-      <button class="pc-back" (click)="goBack()">
-        ← Volver al POS
+      <button cButton color="light" variant="outline" size="sm"
+              class="d-flex align-items-center gap-1" (click)="goBack()">
+        <svg cIcon name="cilArrowLeft" size="sm"></svg>
+        <span>Volver al POS</span>
       </button>
     }
-    <h2>Cierre de Caja</h2>
-    <div class="pc-terminal-badge">{{ terminal()?.name ?? 'Terminal' }}</div>
   </div>
 
-  @if (loading()) {
-    <div class="pc-loading">
-      <c-spinner color="primary"/>
-      <p>Cargando datos de la sesión...</p>
+  @if (!loading()) {
+    <div class="stat-strip">
+      <div class="stat-item">
+        <span class="stat-value">{{ sales().length }}</span>
+        <span class="stat-label">tickets</span>
+      </div>
+      <div class="stat-sep"></div>
+      <div class="stat-item">
+        <span class="stat-value text-success">${{ totalSales() | number:'1.2-2' }}</span>
+        <span class="stat-label">total ventas</span>
+      </div>
+      <div class="stat-sep"></div>
+      <div class="stat-item">
+        <span class="stat-value text-primary">${{ expectedBalance() | number:'1.2-2' }}</span>
+        <span class="stat-label">efectivo esperado</span>
+      </div>
+      <div class="stat-sep"></div>
+      <div class="stat-item">
+        <span class="stat-value">{{ movements().length }}</span>
+        <span class="stat-label">movimientos</span>
+      </div>
     </div>
   }
+</div>
 
-  @if (!loading() && !closed()) {
-    <div class="pc-content">
+<!-- ── Loading ────────────────────────────────────────────────────────────── -->
+@if (loading()) {
+  <div class="text-center py-5">
+    <c-spinner color="primary"></c-spinner>
+    <p class="text-muted mt-3">Cargando datos de la sesión...</p>
+  </div>
+}
 
-      <!-- Reporte de la sesión -->
-      <div class="pc-report">
+<!-- ── Contenido principal ────────────────────────────────────────────────── -->
+@if (!loading() && !closed()) {
 
-        <div class="pc-report-header">
-          <h4>Resumen de sesión</h4>
-          <div class="pc-session-meta">
-            <span>Cajero: <strong>{{ session()?.userName }}</strong></span>
-            <span>Apertura: <strong>{{ session()?.openedAt?.toDate() | date:'dd/MM/yyyy HH:mm' }}</strong></span>
-            <span>Tickets: <strong>{{ sales().length }}</strong></span>
+  <!-- Resumen de sesión -->
+  <c-card class="border-0 shadow-sm mb-3">
+    <c-card-header class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <strong>Resumen de sesión</strong>
+      <small class="text-muted">
+        Cajero: <strong class="text-body">{{ session()?.userName }}</strong> ·
+        Apertura: <strong class="text-body">{{ session()?.openedAt?.toDate() | date:'dd/MM/yyyy HH:mm' }}</strong>
+      </small>
+    </c-card-header>
+    <c-card-body>
+      <c-row class="g-2 mb-3">
+        <c-col [sm]="6" [md]="4">
+          <div class="bg-body-secondary rounded-3 p-3">
+            <div class="text-uppercase fw-semibold text-muted pc-stat-label">Ventas totales</div>
+            <div class="fw-bold fs-5 mt-1">${{ totalSales() | number:'1.2-2' }}</div>
           </div>
-        </div>
-
-        <div class="pc-stats-grid">
-          <div class="pc-stat">
-            <span class="pc-stat-label">Ventas totales</span>
-            <span class="pc-stat-value">${{ totalSales() | number:'1.2-2' }}</span>
+        </c-col>
+        <c-col [sm]="6" [md]="4">
+          <div class="bg-body-secondary rounded-3 p-3">
+            <div class="text-uppercase fw-semibold text-muted pc-stat-label">Efectivo ventas</div>
+            <div class="fw-bold fs-5 mt-1">${{ totalCash() | number:'1.2-2' }}</div>
           </div>
-          <div class="pc-stat">
-            <span class="pc-stat-label">Efectivo ventas</span>
-            <span class="pc-stat-value">${{ totalCash() | number:'1.2-2' }}</span>
+        </c-col>
+        <c-col [sm]="6" [md]="4">
+          <div class="bg-body-secondary rounded-3 p-3">
+            <div class="text-uppercase fw-semibold text-muted pc-stat-label">Tarjeta</div>
+            <div class="fw-bold fs-5 mt-1">${{ totalCard() | number:'1.2-2' }}</div>
           </div>
-          <div class="pc-stat">
-            <span class="pc-stat-label">Tarjeta</span>
-            <span class="pc-stat-value">${{ totalCard() | number:'1.2-2' }}</span>
+        </c-col>
+        <c-col [sm]="6" [md]="4">
+          <div class="bg-body-secondary rounded-3 p-3">
+            <div class="text-uppercase fw-semibold text-muted pc-stat-label">Transferencia</div>
+            <div class="fw-bold fs-5 mt-1">${{ totalTransfer() | number:'1.2-2' }}</div>
           </div>
-          <div class="pc-stat">
-            <span class="pc-stat-label">Transferencia</span>
-            <span class="pc-stat-value">${{ totalTransfer() | number:'1.2-2' }}</span>
+        </c-col>
+        <c-col [sm]="6" [md]="4">
+          <div class="bg-body-secondary rounded-3 p-3">
+            <div class="text-uppercase fw-semibold text-muted pc-stat-label">Ingresos manuales</div>
+            <div class="fw-bold fs-5 mt-1 text-success">+${{ totalCashIn() | number:'1.2-2' }}</div>
           </div>
-          <div class="pc-stat">
-            <span class="pc-stat-label">Ingresos manuales</span>
-            <span class="pc-stat-value">${{ totalCashIn() | number:'1.2-2' }}</span>
+        </c-col>
+        <c-col [sm]="6" [md]="4">
+          <div class="bg-body-secondary rounded-3 p-3">
+            <div class="text-uppercase fw-semibold text-muted pc-stat-label">Egresos manuales</div>
+            <div class="fw-bold fs-5 mt-1 text-danger">−${{ totalCashOut() | number:'1.2-2' }}</div>
           </div>
-          <div class="pc-stat">
-            <span class="pc-stat-label">Egresos manuales</span>
-            <span class="pc-stat-value text-danger">−${{ totalCashOut() | number:'1.2-2' }}</span>
-          </div>
+        </c-col>
+      </c-row>
+
+      <c-alert color="primary" class="mb-0 d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+          <div class="fw-semibold">Efectivo esperado en caja</div>
+          <small class="opacity-75">
+            Apertura ${{ session()?.openingBalance | number:'1.2-2' }} + Efectivo ventas + Ingresos − Egresos
+          </small>
         </div>
+        <strong class="fs-4">${{ expectedBalance() | number:'1.2-2' }}</strong>
+      </c-alert>
+    </c-card-body>
+  </c-card>
 
-        <div class="pc-expected">
-          <span>Efectivo esperado en caja</span>
-          <strong class="pc-expected-value">${{ expectedBalance() | number:'1.2-2' }}</strong>
-          <small>(Apertura ${{ session()?.openingBalance | number:'1.2-2' }} + Efectivo ventas + Ingresos − Egresos)</small>
+  <!-- Movimientos de caja -->
+  @if (movements().length > 0) {
+    <c-card class="border-0 shadow-sm mb-3">
+      <c-card-header class="d-flex align-items-center gap-2">
+        <strong>Movimientos de caja</strong>
+        <c-badge color="secondary" shape="rounded-pill">{{ movements().length }}</c-badge>
+      </c-card-header>
+      <c-card-body class="p-0">
+        <div class="table-responsive">
+          <table cTable align="middle" class="mb-0">
+            <tbody>
+              @for (m of movements(); track m.id) {
+                <tr>
+                  <td class="ps-3">
+                    <c-badge [color]="m.type === 'cash_in' ? 'success' : 'danger'" shape="rounded-pill">
+                      {{ m.type === 'cash_in' ? '↑ Ingreso' : '↓ Egreso' }}
+                    </c-badge>
+                  </td>
+                  <td class="text-muted">{{ m.reason }}</td>
+                  <td class="text-end">
+                    <strong [class.text-success]="m.type === 'cash_in'"
+                            [class.text-danger]="m.type === 'cash_out'">
+                      {{ m.type === 'cash_in' ? '+' : '−' }}${{ m.amount | number:'1.2-2' }}
+                    </strong>
+                  </td>
+                  <td class="text-muted pe-3 text-nowrap">
+                    <small>{{ m.createdAt.toDate() | date:'HH:mm' }}</small>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
         </div>
-      </div>
-
-      <!-- Movimientos manuales -->
-      @if (movements().length > 0) {
-        <div class="pc-movements">
-          <h5>Movimientos de caja</h5>
-          @for (m of movements(); track m.id) {
-            <div class="pc-mov-row" [class.cash-in]="m.type === 'cash_in'" [class.cash-out]="m.type === 'cash_out'">
-              <span>{{ m.type === 'cash_in' ? '↑ Ingreso' : '↓ Egreso' }}</span>
-              <span>{{ m.reason }}</span>
-              <strong>{{ m.type === 'cash_in' ? '+' : '−' }}${{ m.amount | number:'1.2-2' }}</strong>
-              <small>{{ m.createdAt.toDate() | date:'HH:mm' }}</small>
-            </div>
-          }
-        </div>
-      }
-
-      <!-- Formulario de cierre -->
-      <div class="pc-close-form">
-        <h4>Conteo de efectivo</h4>
-        <p class="pc-hint">Cuenta el efectivo físico en la caja y regístralo:</p>
-
-        <div class="pc-form-row">
-          <label>Efectivo real contado ($)</label>
-          <input
-            type="number"
-            class="pc-amount-input"
-            [(ngModel)]="closingBalance"
-            min="0"
-            step="0.01"
-            placeholder="0.00"
-          >
-        </div>
-
-        <div class="pc-difference-preview" [class.ok]="closingBalance === expectedBalance()" [class.diff]="closingBalance !== expectedBalance()">
-          <span>Diferencia estimada</span>
-          <strong>{{ closingBalance - expectedBalance() >= 0 ? '+' : '' }}${{ (closingBalance - expectedBalance()) | number:'1.2-2' }}</strong>
-        </div>
-
-        <div class="pc-form-row">
-          <label>Notas de cierre (opcional)</label>
-          <textarea
-            class="pc-notes"
-            [(ngModel)]="closingNotes"
-            rows="2"
-            placeholder="Observaciones..."
-          ></textarea>
-        </div>
-
-        <div class="pc-close-actions">
-          <button class="pc-btn-back" (click)="goBack()">Cancelar</button>
-          <button
-            class="pc-btn-close"
-            (click)="closeSession()"
-            [disabled]="closing()"
-          >
-            @if (closing()) { <c-spinner size="sm" class="me-2"/> }
-            Cerrar caja
-          </button>
-        </div>
-      </div>
-
-    </div>
+      </c-card-body>
+    </c-card>
   }
 
-  <!-- Resultado de cierre -->
-  @if (closed() && closeResult()) {
-    <div class="pc-success">
-      <div class="pc-success-icon">
-        <svg cIcon name="cilLockLocked" class="text-success"></svg>
-      </div>
-      <h3>Caja cerrada exitosamente</h3>
+  <!-- Formulario de cierre -->
+  <c-card class="border-0 shadow-sm">
+    <c-card-header>
+      <strong>Conteo de efectivo</strong>
+    </c-card-header>
+    <c-card-body>
+      <p class="text-muted small mb-3">Cuenta el efectivo físico en la caja y regístralo:</p>
+      <c-row class="g-3">
+        <c-col [sm]="12" [md]="6">
+          <label class="form-label">Efectivo real contado ($)</label>
+          <input cFormControl type="number" [(ngModel)]="closingBalance"
+                 min="0" step="0.01" placeholder="0.00"
+                 class="text-center fs-3 fw-bold">
+        </c-col>
+        <c-col [sm]="12" [md]="6" class="d-flex align-items-end">
+          <c-alert [color]="closingBalance === expectedBalance() ? 'success' : 'warning'"
+                   class="mb-0 w-100 d-flex justify-content-between align-items-center">
+            <span class="small">Diferencia estimada</span>
+            <strong>
+              {{ closingBalance - expectedBalance() >= 0 ? '+' : '' }}${{ (closingBalance - expectedBalance()) | number:'1.2-2' }}
+            </strong>
+          </c-alert>
+        </c-col>
+        <c-col [sm]="12">
+          <label class="form-label">
+            Notas de cierre <span class="text-muted fw-normal">(opcional)</span>
+          </label>
+          <textarea cFormControl [(ngModel)]="closingNotes"
+                    rows="2" placeholder="Observaciones..."></textarea>
+        </c-col>
+      </c-row>
+    </c-card-body>
+    <c-card-footer class="d-flex justify-content-end gap-2">
+      <button cButton color="light" variant="outline" (click)="goBack()">Cancelar</button>
+      <button cButton color="danger" (click)="closeSession()" [disabled]="closing()">
+        @if (closing()) {
+          <c-spinner size="sm" class="me-2"></c-spinner>
+        }
+        Cerrar caja
+      </button>
+    </c-card-footer>
+  </c-card>
 
-      <div class="pc-success-detail">
-        <div class="pc-result-row">
-          <span>Efectivo esperado</span>
+}
+
+<!-- ── Estado: caja cerrada ───────────────────────────────────────────────── -->
+@if (closed() && closeResult()) {
+  <c-card class="border-0 shadow-sm">
+    <c-card-body class="text-center py-5">
+
+      <svg cIcon name="cilLockLocked" class="text-success mb-3 d-block mx-auto"
+           style="width:3.5rem;height:3.5rem"></svg>
+      <h4 class="fw-bold mb-4">Caja cerrada exitosamente</h4>
+
+      <div class="mx-auto mb-4" style="max-width:400px">
+        <div class="d-flex justify-content-between py-2 border-bottom">
+          <span class="text-muted">Efectivo esperado</span>
           <strong>${{ closeResult()!.expectedBalance | number:'1.2-2' }}</strong>
         </div>
-        <div class="pc-result-row">
-          <span>Efectivo contado</span>
+        <div class="d-flex justify-content-between py-2 border-bottom">
+          <span class="text-muted">Efectivo contado</span>
           <strong>${{ closingBalance | number:'1.2-2' }}</strong>
         </div>
-        <div class="pc-result-row" [class.ok]="closeResult()!.difference === 0" [class.diff]="closeResult()!.difference !== 0">
+        <div class="d-flex justify-content-between py-2 border-bottom"
+             [class.text-success]="closeResult()!.difference === 0"
+             [class.text-warning]="closeResult()!.difference !== 0">
           <span>Diferencia</span>
-          <strong>{{ closeResult()!.difference >= 0 ? '+' : '' }}${{ closeResult()!.difference | number:'1.2-2' }}</strong>
+          <strong>
+            {{ closeResult()!.difference >= 0 ? '+' : '' }}${{ closeResult()!.difference | number:'1.2-2' }}
+          </strong>
         </div>
-        <div class="pc-result-row">
-          <span>Total ventas</span>
+        <div class="d-flex justify-content-between py-2 border-bottom">
+          <span class="text-muted">Total ventas</span>
           <strong>${{ totalSales() | number:'1.2-2' }}</strong>
         </div>
-        <div class="pc-result-row">
-          <span>Tickets emitidos</span>
+        <div class="d-flex justify-content-between py-2">
+          <span class="text-muted">Tickets emitidos</span>
           <strong>{{ sales().length }}</strong>
         </div>
       </div>
 
-      <div class="pc-success-actions">
-        <button class="pc-btn-print" (click)="printReport()">
+      <div class="d-flex gap-2 justify-content-center">
+        <button cButton color="light" variant="outline" (click)="printReport()">
           <svg cIcon name="cilPrint" size="sm" class="me-1"></svg> Imprimir reporte
         </button>
-        <button class="pc-btn-exit" (click)="goToLogin()">Salir del POS</button>
+        <button cButton color="primary" (click)="goToLogin()">Salir del POS</button>
       </div>
-    </div>
-  }
 
-</div>
+    </c-card-body>
+  </c-card>
+}

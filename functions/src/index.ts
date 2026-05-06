@@ -37,6 +37,9 @@ export { generateDebitNotePdf }  from './debit-notes/generate-debit-note-pdf';
 export { sendDebitNoteEmail }    from './debit-notes/send-debit-note-email';
 export { onDebitNoteEmit }       from './debit-notes/on-debit-note-emit';
 
+// POS
+export { onPosSaleComplete } from './pos/on-pos-sale-complete';
+
 // Stock
 export { onInvoiceStock }    from './stock/on-invoice-stock';
 export { onPurchaseReceive } from './stock/on-purchase-receive';

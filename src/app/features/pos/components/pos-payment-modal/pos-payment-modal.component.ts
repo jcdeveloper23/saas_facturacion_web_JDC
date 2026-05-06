@@ -1,8 +1,9 @@
 import {
-  Component, Input, Output, EventEmitter, signal, computed, OnInit
+  Component, Input, Output, EventEmitter, signal, computed, OnInit, OnChanges, SimpleChanges
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ModalModule, ButtonModule } from '@coreui/angular';
 import { IconModule } from '@coreui/icons-angular';
 import { PosPayment, PosPaymentMethod, POS_PAYMENT_METHODS } from '../../models/pos.interface';
 
@@ -17,11 +18,12 @@ interface PaymentSlot {
 @Component({
   selector: 'app-pos-payment-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule, IconModule],
+  imports: [CommonModule, FormsModule, ModalModule, ButtonModule, IconModule],
   templateUrl: './pos-payment-modal.component.html',
   styleUrl: './pos-payment-modal.component.scss'
 })
-export class PosPaymentModalComponent implements OnInit {
+export class PosPaymentModalComponent implements OnInit, OnChanges {
+  @Input() visible = false;
   @Input({ required: true }) total = 0;
   @Output() confirmed = new EventEmitter<PosPayment[]>();
   @Output() cancelled = new EventEmitter<void>();
@@ -53,7 +55,17 @@ export class PosPaymentModalComponent implements OnInit {
   );
 
   ngOnInit(): void {
-    // Pre-cargar con el total en efectivo
+    this.resetSlots();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    // Resetear slots cada vez que el modal se abre
+    if (changes['visible']?.currentValue === true) {
+      this.resetSlots();
+    }
+  }
+
+  private resetSlots(): void {
     this.slots.set([
       { method: 'cash', label: 'Efectivo', icon: 'cilCash', amount: this.total, reference: '' }
     ]);
@@ -119,5 +131,9 @@ export class PosPaymentModalComponent implements OnInit {
 
   hasSlot(method: PosPaymentMethod): boolean {
     return this.slots().some(s => s.method === method);
+  }
+
+  onVisibleChange(visible: boolean): void {
+    if (!visible) this.cancelled.emit();
   }
 }

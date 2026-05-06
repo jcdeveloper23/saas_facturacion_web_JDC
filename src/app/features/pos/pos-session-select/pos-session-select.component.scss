@@ -1,11 +1,11 @@
 .pos-session-wrap {
-  min-height: 100vh;
+  min-height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
   background: var(--cui-body-bg);
-  padding: max(2.5rem, 8vh) 1rem 3rem;
+  padding: 2.5rem 1rem 3rem;
   gap: 1rem;
 }
 
@@ -56,7 +56,7 @@
   padding: 1.5rem;
   width: 100%;
   max-width: 620px;
-  box-shadow: 0 2px 16px rgba(0,0,0,.05);
+  box-shadow: 0 2px 16px rgba(var(--cui-dark-rgb, 0,0,0), .06);
 
   &.open-card { max-width: 440px; }
 }
@@ -151,7 +151,7 @@
     border-color: var(--cui-secondary-color);
     background: var(--cui-tertiary-bg);
     transform: translateY(-1px);
-    box-shadow: 0 3px 10px rgba(0, 0, 0, .08);
+    box-shadow: 0 3px 10px rgba(var(--cui-dark-rgb, 0,0,0), .08);
   }
 
   &.occupied {
@@ -244,18 +244,6 @@
   p { margin-bottom: .75rem; font-size: .875rem; }
 }
 
-.pos-link-btn {
-  background: none;
-  border: 1px solid var(--cui-primary);
-  color: var(--cui-primary);
-  border-radius: 6px;
-  padding: .4rem 1rem;
-  font-size: .85rem;
-  cursor: pointer;
-  transition: background .15s, color .15s;
-
-  &:hover { background: var(--cui-primary); color: #fff; }
-}
 
 /* ── Pie ─────────────────────────────────────────────────────────────────── */
 
@@ -269,22 +257,6 @@
 
 
 /* ── Paso 2: apertura ────────────────────────────────────────────────────── */
-
-.back-btn {
-  background: none;
-  border: none;
-  color: var(--cui-secondary-color);
-  display: flex;
-  align-items: center;
-  gap: .4rem;
-  padding: 0;
-  cursor: pointer;
-  font-size: .82rem;
-  margin-bottom: 1rem;
-  transition: color .15s;
-
-  &:hover { color: var(--cui-primary); }
-}
 
 .open-form { }
 

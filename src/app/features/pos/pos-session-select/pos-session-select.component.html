@@ -77,7 +77,7 @@
           <svg cIcon name="cilMonitor" size="3xl" class="text-muted opacity-25 d-block mb-2 mx-auto"></svg>
           <p>No hay terminales activos configurados.</p>
           @if (isAdmin) {
-            <button class="pos-link-btn" (click)="goToTerminals()">
+            <button cButton color="primary" variant="outline" size="sm" (click)="goToTerminals()">
               + Configurar terminales
             </button>
           }
@@ -129,7 +129,8 @@
   @if (!loading() && selectedTerminal()) {
     <div class="pos-session-card open-card">
 
-      <button class="back-btn" (click)="back()">
+      <button cButton color="light" variant="outline" size="sm"
+              class="d-flex align-items-center gap-1 mb-3" (click)="back()">
         <svg cIcon name="cilArrowLeft" size="sm"></svg>
         Volver
       </button>
