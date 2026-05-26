@@ -56,7 +56,7 @@
   padding: 1.5rem;
   width: 100%;
   max-width: 620px;
-  box-shadow: 0 2px 16px rgba(var(--cui-dark-rgb, 0,0,0), .06);
+  box-shadow: 0 2px 16px rgba(var(--cui-dark-rgb), .06);
 
   &.open-card { max-width: 440px; }
 }
@@ -151,7 +151,7 @@
     border-color: var(--cui-secondary-color);
     background: var(--cui-tertiary-bg);
     transform: translateY(-1px);
-    box-shadow: 0 3px 10px rgba(var(--cui-dark-rgb, 0,0,0), .08);
+    box-shadow: 0 3px 10px rgba(var(--cui-dark-rgb), .08);
   }
 
   &.occupied {
@@ -331,4 +331,55 @@
   display: flex;
   justify-content: center;
   margin-top: 1.25rem;
+}
+
+/* ── Responsive móvil ────────────────────────────────────────────────────── */
+
+@media (max-width: 575px) {
+  .pos-session-wrap { padding: 1.25rem .75rem 2rem; }
+
+  .pos-session-card { padding: 1.1rem; }
+
+  .pss-step-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: .6rem;
+  }
+
+  .terminals-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: .5rem;
+  }
+
+  .terminal-card { padding: .75rem .625rem; }
+
+  .pss-info-btn span,
+  .pss-manage-btn span { display: none; }
+
+  .pss-info-btn,
+  .pss-manage-btn { padding: .3rem .5rem; }
+}
+
+/* ── Manage button ───────────────────────────────────────────────────────── */
+.pss-manage-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .35rem .75rem;
+  border-radius: 8px;
+  border: 1.5px solid var(--cui-border-color);
+  background: var(--cui-body-bg);
+  color: var(--cui-body-color);
+  font-size: .78rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all .12s;
+
+  &:hover {
+    border-color: var(--cui-primary);
+    color: var(--cui-primary);
+    background: rgba(var(--cui-primary-rgb), .06);
+  }
 }

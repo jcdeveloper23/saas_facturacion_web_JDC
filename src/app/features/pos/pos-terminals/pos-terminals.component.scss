@@ -2,3 +2,250 @@
 
 .pt-section-label { letter-spacing: .05em; }
 .pt-ref-table      { font-size: .8rem; }
+
+// ── Estados generales ─────────────────────────────────────────────────────
+
+.pt-state-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 1rem;
+  color: var(--cui-secondary-color);
+}
+
+// ── Empty state ───────────────────────────────────────────────────────────
+
+.pt-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 1rem;
+  text-align: center;
+  gap: .5rem;
+}
+
+.pt-empty-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 20px;
+  background: var(--cui-secondary-bg);
+  color: var(--cui-secondary-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: .5rem;
+}
+
+.pt-empty-title {
+  font-weight: 600;
+  color: var(--cui-heading-color);
+  margin: 0;
+}
+
+.pt-empty-sub {
+  font-size: .85rem;
+  color: var(--cui-secondary-color);
+  margin: 0 0 .5rem;
+}
+
+// ── Grid de tarjetas ──────────────────────────────────────────────────────
+
+.pt-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1rem;
+  margin-bottom: .75rem;
+}
+
+.pt-grid-hint {
+  font-size: .75rem;
+  color: var(--cui-secondary-color);
+  text-align: right;
+  margin: 0;
+}
+
+// ── Terminal card ─────────────────────────────────────────────────────────
+
+.pt-card {
+  background: var(--cui-card-bg);
+  border: 1.5px solid var(--cui-border-color);
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color .15s, box-shadow .15s, transform .12s;
+  display: flex;
+  flex-direction: column;
+
+  &:hover {
+    border-color: var(--cui-primary);
+    box-shadow: 0 4px 16px rgba(var(--cui-primary-rgb), .12);
+    transform: translateY(-2px);
+  }
+
+  &--active {
+    border-color: var(--cui-success-border-subtle);
+
+    &:hover {
+      border-color: var(--cui-success);
+      box-shadow: 0 4px 16px rgba(var(--cui-success-rgb), .12);
+    }
+  }
+}
+
+.pt-card-status {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .35rem .75rem;
+  font-size: .72rem;
+  font-weight: 600;
+  background: var(--cui-secondary-bg);
+  color: var(--cui-secondary-color);
+  border-bottom: 1px solid var(--cui-border-color);
+
+  &--active {
+    background: var(--cui-success-bg-subtle);
+    color: var(--cui-success-text-emphasis);
+    border-bottom-color: var(--cui-success-border-subtle);
+  }
+}
+
+.pt-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--cui-secondary-color);
+  flex-shrink: 0;
+
+  &--active {
+    background: var(--cui-success);
+    box-shadow: 0 0 0 2px rgba(var(--cui-success-rgb), .25);
+  }
+}
+
+.pt-card-body {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: .875rem 1rem .6rem;
+}
+
+.pt-card-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(var(--cui-primary-rgb), .08);
+  color: var(--cui-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pt-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: .15rem;
+  min-width: 0;
+}
+
+.pt-card-name {
+  font-weight: 700;
+  font-size: .9rem;
+  color: var(--cui-heading-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pt-card-meta {
+  font-size: .72rem;
+  color: var(--cui-secondary-color);
+}
+
+// ── Chips de hardware ─────────────────────────────────────────────────────
+
+.pt-card-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .3rem;
+  padding: 0 1rem .75rem;
+}
+
+.pt-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .25rem;
+  font-size: .66rem;
+  font-weight: 600;
+  padding: .18rem .5rem;
+  border-radius: 20px;
+  background: var(--cui-secondary-bg);
+  color: var(--cui-secondary-color);
+  border: 1px solid var(--cui-border-color);
+
+  &--paper { color: var(--cui-body-color); }
+  &--tickets { color: var(--cui-body-color); }
+}
+
+// ── Footer de la card ─────────────────────────────────────────────────────
+
+.pt-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: .45rem .75rem;
+  border-top: 1px solid var(--cui-border-color);
+  background: var(--cui-secondary-bg);
+  margin-top: auto;
+}
+
+.pt-edit-hint {
+  display: flex;
+  align-items: center;
+  gap: .3rem;
+  font-size: .72rem;
+  color: var(--cui-secondary-color);
+}
+
+.pt-delete-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--cui-secondary-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background .12s, color .12s;
+  padding: 0;
+
+  &:hover {
+    background: var(--cui-danger-bg-subtle);
+    color: var(--cui-danger);
+  }
+}
+
+// ── Form header ───────────────────────────────────────────────────────────
+
+c-card-header {
+  .form-cancel-btn {
+    border: 1.5px solid var(--cui-border-color);
+    background: transparent;
+    color: var(--cui-body-color);
+    border-radius: 8px;
+    padding: .3rem .75rem;
+    font-size: .82rem;
+    cursor: pointer;
+    transition: all .12s;
+
+    &:hover {
+      border-color: var(--cui-secondary-color);
+      background: var(--cui-secondary-bg);
+    }
+  }
+}

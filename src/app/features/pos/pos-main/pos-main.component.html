@@ -22,7 +22,7 @@
           #searchInput
           type="text"
           class="pos-search"
-          placeholder="Buscar producto (F3) o escanea código..."
+          placeholder="Buscar producto..."
           [value]="searchQuery()"
           (input)="searchQuery.set($any($event.target).value)"
           autocomplete="off"
@@ -39,18 +39,18 @@
         <svg cIcon name="cilDollar"></svg>
         <span class="hdr-btn-label">Caja</span>
       </button>
-      <button class="hdr-btn" (click)="goToHistory()" title="Historial de ventas">
+      <button class="hdr-btn hdr-btn-hide-mobile" (click)="goToHistory()" title="Historial de ventas">
         <svg cIcon name="cilHistory"></svg>
       </button>
       <button class="hdr-btn hdr-btn-danger" (click)="goToClose()" title="Cerrar caja">
         <svg cIcon name="cilLockLocked"></svg>
-        <span class="hdr-btn-label">Cerrar caja</span>
+        <span class="hdr-btn-label">Cerrar</span>
       </button>
     </div>
   </header>
 
   <!-- ── BODY ───────────────────────────────────────────────────────────────── -->
-  <div class="pos-body">
+  <div class="pos-body" [class.show-ticket]="mobileTab() === 'ticket'" [class.show-catalog]="mobileTab() === 'catalog'">
 
     <!-- ════ LEFT: Catálogo ═════════════════════════════════════════════════ -->
     <div class="pos-catalog">
@@ -76,46 +76,48 @@
       </div>
 
       <!-- Grid de productos -->
-      @if (loadingProducts()) {
-        <div class="catalog-loading">
-          <c-spinner color="primary"/>
-          <p>Cargando productos...</p>
-        </div>
-      } @else if (filteredProducts().length === 0) {
-        <div class="catalog-empty">
-          <svg cIcon name="cilSearch" size="xl"></svg>
-          <p>No hay productos</p>
-        </div>
-      } @else {
-        <div class="product-grid">
-          @for (product of filteredProducts(); track product.id; let i = $index) {
-            <button
-              class="product-card"
-              (click)="addToCart(product)"
-              [class.out-of-stock]="!product.noStock && product.stockQty <= 0"
-            >
-              @if (product.imageUrl) {
-                <img [src]="product.imageUrl" [alt]="product.name" class="product-img">
-              } @else {
-                <div class="product-img-placeholder">
-                  <svg cIcon name="cilImage"></svg>
+      <div class="catalog-scroll">
+        @if (loadingProducts()) {
+          <div class="catalog-loading">
+            <c-spinner color="primary"/>
+            <p>Cargando productos...</p>
+          </div>
+        } @else if (filteredProducts().length === 0) {
+          <div class="catalog-empty">
+            <svg cIcon name="cilSearch" size="xl"></svg>
+            <p>No hay productos</p>
+          </div>
+        } @else {
+          <div class="product-grid">
+            @for (product of filteredProducts(); track product.id; let i = $index) {
+              <button
+                class="product-card"
+                (click)="addToCart(product)"
+                [class.out-of-stock]="!product.noStock && product.stockQty <= 0"
+              >
+                @if (product.imageUrl) {
+                  <img [src]="product.imageUrl" [alt]="product.name" class="product-img">
+                } @else {
+                  <div class="product-img-placeholder">
+                    <svg cIcon name="cilImage"></svg>
+                  </div>
+                }
+                <div class="product-info">
+                  <span class="product-name">{{ product.shortName ?? product.name }}</span>
+                  <span class="product-sku">{{ product.sku }}</span>
+                  <span class="product-price">${{ product.salePrice | number:'1.2-2' }}</span>
                 </div>
-              }
-              <div class="product-info">
-                <span class="product-name">{{ product.shortName ?? product.name }}</span>
-                <span class="product-sku">{{ product.sku }}</span>
-                <span class="product-price">${{ product.salePrice | number:'1.2-2' }}</span>
-              </div>
-              @if (!product.noStock && product.stockQty <= 0) {
-                <div class="product-no-stock">Sin stock</div>
-              }
-              @if (!product.noStock && product.stockQty > 0 && product.stockQty <= product.stockMin) {
-                <div class="product-low-stock">Stock bajo</div>
-              }
-            </button>
-          }
-        </div>
-      }
+                @if (!product.noStock && product.stockQty <= 0) {
+                  <div class="product-no-stock">Sin stock</div>
+                }
+                @if (!product.noStock && product.stockQty > 0 && product.stockQty <= product.stockMin) {
+                  <div class="product-low-stock">Stock bajo</div>
+                }
+              </button>
+            }
+          </div>
+        }
+      </div>
     </div>
 
     <!-- ════ RIGHT: Ticket ══════════════════════════════════════════════════ -->
@@ -123,12 +125,17 @@
 
       <!-- Cliente -->
       <div class="ticket-customer" (click)="showCustomerSearch.set(true)">
-        <div class="customer-icon">
-          <svg cIcon name="cilUser"></svg>
+        <div class="customer-icon" [class.customer-icon--set]="posSession.customerName()">
+          <svg cIcon [name]="posSession.customerName() ? 'cilUser' : 'cilUserPlus'"></svg>
         </div>
         <div class="customer-info">
-          <span class="customer-name">{{ posSession.customerName() }}</span>
-          <span class="customer-tax">{{ posSession.customerTaxId() }}</span>
+          @if (posSession.customerName()) {
+            <span class="customer-name">{{ posSession.customerName() }}</span>
+            <span class="customer-tax">{{ posSession.customerTaxIdType() }}: {{ posSession.customerTaxId() }}</span>
+          } @else {
+            <span class="customer-placeholder">Seleccionar cliente</span>
+            <span class="customer-tax">Toca para buscar</span>
+          }
         </div>
         <div class="customer-change">
           <svg cIcon name="cilPencil" size="sm"></svg>
@@ -229,6 +236,41 @@
 
   </div>
   <!-- END BODY -->
+
+  <!-- ── Mobile Bottom Navigation Bar ────────────────────────────────────── -->
+  <nav class="pos-mobile-bar">
+    <button
+      class="pmb-tab"
+      [class.pmb-tab--active]="mobileTab() === 'catalog'"
+      (click)="mobileTab.set('catalog')">
+      <svg cIcon name="cilApps"></svg>
+      <span>Catálogo</span>
+    </button>
+
+    <button
+      class="pmb-tab pmb-tab-ticket"
+      [class.pmb-tab--active]="mobileTab() === 'ticket'"
+      (click)="mobileTab.set('ticket')">
+      <svg cIcon name="cilCart"></svg>
+      <span>Ticket</span>
+      @if (cartCount() > 0) {
+        <span class="pmb-badge">{{ cartCount() }}</span>
+      }
+    </button>
+
+    @if (!isEmpty()) {
+      <button
+        class="pmb-cobrar"
+        [disabled]="processingPayment()"
+        (click)="openPayment()">
+        @if (processingPayment()) {
+          <c-spinner size="sm"></c-spinner>
+        } @else {
+          Cobrar · ${{ totals().total | number:'1.2-2' }}
+        }
+      </button>
+    }
+  </nav>
 
 </div>
 <!-- END POS ROOT -->

@@ -77,14 +77,10 @@ export class PosSessionSelectComponent implements OnInit, OnDestroy {
 
     try {
       const session = await firstValueFrom(this.cashService.getOpenSession(terminal.id));
+      // Siempre mostrar confirmación si hay sesión abierta — nunca navegar silenciosamente.
+      // Esto cubre también sesiones huérfanas (terminal.currentSessionId = null pero
+      // pos-sessions aún tiene status 'open' para este terminal).
       if (session) {
-        // Si la sesión es del usuario actual, entrar directo sin pantalla intermedia
-        if (session.userId === this.currentUser?.uid) {
-          this.posSession.setTerminalAndSession(terminal, session);
-          this.posSession.setDefaultCustomer();
-          await this.router.navigate(['/pos/main']);
-          return;
-        }
         this.existingSession.set(session);
       }
     } catch {
@@ -94,13 +90,29 @@ export class PosSessionSelectComponent implements OnInit, OnDestroy {
     }
   }
 
-  /** Retomar una sesión ya abierta por otro usuario / mismo usuario */
+  /** Retomar una sesión ya abierta (propia o de otro). Repara currentSessionId si es necesario. */
   async resumeSession(): Promise<void> {
     const terminal = this.selectedTerminal()!;
     const session  = this.existingSession()!;
-    this.posSession.setTerminalAndSession(terminal, session);
-    this.posSession.setDefaultCustomer();
-    await this.router.navigate(['/pos/main']);
+    this.saving.set(true);
+    try {
+      // Reparar inconsistencia: terminal puede tener currentSessionId=null pero sesión sigue abierta
+      if (!terminal.currentSessionId) {
+        const user = this.auth.user();
+        await this.cashService.updateTerminal(terminal.id, {
+          currentSessionId: session.id,
+          currentUserId:    user?.uid ?? '',
+          currentUserName:  user?.displayName ?? user?.email ?? '',
+        });
+      }
+      this.posSession.setTerminalAndSession(terminal, session);
+      this.posSession.setDefaultCustomer();
+      await this.router.navigate(['/pos/main']);
+    } catch (err: any) {
+      this.errorMsg.set(err.message ?? 'Error al retomar sesión');
+    } finally {
+      this.saving.set(false);
+    }
   }
 
   /** Abrir nueva sesión de caja */

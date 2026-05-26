@@ -200,3 +200,117 @@
     strong { color: var(--cui-success); font-size: 1rem; }
   }
 }
+
+/* ── Close button ────────────────────────────────────────────────────────── */
+.pos-modal-close {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--cui-secondary-color);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: background .12s, color .12s;
+  margin-left: auto;
+
+  &:hover { background: var(--cui-danger-bg-subtle); color: var(--cui-danger); }
+}
+
+/* ── Responsive móvil ────────────────────────────────────────────────────── */
+
+@media (max-width: 575px) {
+
+  // Métodos: cada botón ocupa espacio igual
+  .pm-methods-bar {
+    padding: .75rem 1rem;
+    gap: .4rem;
+  }
+
+  .pm-method-btn {
+    flex: 1;
+    justify-content: center;
+    padding: .55rem .4rem;
+    font-size: .75rem;
+  }
+
+  // Slots
+  .pm-slots { padding: .75rem 1rem; gap: .75rem; }
+
+  .pm-slot .pm-slot-header { padding: .5rem .875rem; }
+
+  .pm-slot .pm-slot-body { padding: .875rem .875rem .75rem; gap: .6rem; }
+
+  // ── Bloque de monto: display flex column
+  // Fila 1: [ $ ] [ INPUT grande ]
+  // Fila 2: [ Exacto (full width) ]
+  .pm-amount-row {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto;
+    gap: .4rem .35rem;
+    align-items: center;
+
+    .pm-currency {
+      font-size: 1.6rem;
+      font-weight: 800;
+      grid-column: 1;
+      grid-row: 1;
+      line-height: 1;
+    }
+
+    .pm-amount-input {
+      grid-column: 2;
+      grid-row: 1;
+      font-size: 2.25rem;
+      font-weight: 900;
+      padding: .5rem .75rem;
+      min-height: 64px;
+      border-radius: 10px;
+      border-width: 2px;
+      text-align: right;
+
+      &:focus { border-color: var(--cui-primary); }
+    }
+
+    .pm-exact-btn {
+      grid-column: 1 / -1; // ocupa ambas columnas
+      grid-row: 2;
+      padding: .6rem;
+      font-size: .82rem;
+      font-weight: 700;
+      border-radius: 8px;
+      text-align: center;
+      width: 100%;
+    }
+  }
+
+  // Montos rápidos: grid 3 columnas, touch targets más grandes
+  .pm-quick-amounts {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: .4rem;
+
+    .pm-quick {
+      padding: .65rem .25rem;
+      font-size: .8rem;
+      font-weight: 700;
+      text-align: center;
+      border-radius: 8px;
+      min-height: 42px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  }
+
+  // Resumen
+  .pm-summary {
+    margin: 0 1rem .75rem;
+  }
+
+  .pm-sum-row { font-size: .88rem; }
+
+  .pm-sum-row.change strong { font-size: 1.1rem; }
+}

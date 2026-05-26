@@ -3,7 +3,7 @@
 
   <c-modal-header>
     <h5 cModalTitle class="fw-semibold">Seleccionar cliente</h5>
-    <button cButtonClose (click)="cancelled.emit()"></button>
+    <button class="pos-modal-close" type="button" aria-label="Cerrar" (click)="cancelled.emit()"><svg cIcon name="cilX"></svg></button>
   </c-modal-header>
 
   <c-modal-body class="p-0">
@@ -25,14 +25,16 @@
     <!-- Lista de clientes -->
     <div class="pcs-list">
 
-      <!-- Consumidor Final siempre primero -->
-      <button class="pcs-item pcs-cf" (click)="selectConsumidorFinal()">
-        <div class="pcs-avatar">CF</div>
-        <div class="pcs-info">
-          <span class="pcs-name">Consumidor Final</span>
-          <span class="pcs-tax">9999999999999</span>
-        </div>
-      </button>
+      <!-- Cliente por defecto siempre primero (solo si está cargado desde Firestore) -->
+      @if (posSession.defaultCustomer(); as def) {
+        <button class="pcs-item pcs-cf" (click)="selectConsumidorFinal()">
+          <div class="pcs-avatar">{{ def.name.charAt(0) }}</div>
+          <div class="pcs-info">
+            <span class="pcs-name">{{ def.name }}</span>
+            <span class="pcs-tax">{{ def.taxIdType }}: {{ def.taxId }}</span>
+          </div>
+        </button>
+      }
 
       @for (p of results(); track p.id) {
         <button class="pcs-item" (click)="selectPerson(p)">

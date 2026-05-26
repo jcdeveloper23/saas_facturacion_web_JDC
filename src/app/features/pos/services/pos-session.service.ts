@@ -4,6 +4,8 @@ import {
   calcCartTotals, calcCartItem
 } from '../models/pos.interface';
 import { Product } from '../../products/models/product.interface';
+import { Person } from '../../personas/models/person.interface';
+import { PersonasService } from '../../personas/services/personas.service';
 import { AuthService } from '../../../core/services/auth.service';
 
 /**
@@ -13,7 +15,11 @@ import { AuthService } from '../../../core/services/auth.service';
  */
 @Injectable({ providedIn: 'root' })
 export class PosSessionService {
-  private auth = inject(AuthService);
+  private auth         = inject(AuthService);
+  private personasSvc  = inject(PersonasService);
+
+  // ── Cliente por defecto cargado desde Firestore ────────────────────────────
+  readonly defaultCustomer = signal<Person | null>(null);
 
   // ── Company isolation guard ────────────────────────────────────────────────
   // Tracks the last known companyId. When it changes (company switch),
@@ -29,10 +35,8 @@ export class PosSessionService {
         this.activeSession.set(null);
         this.cartItems.set([]);
         this.globalDiscountPct.set(0);
-        this.customerId.set('consumidor_final');
-        this.customerName.set('Consumidor Final');
-        this.customerTaxId.set('9999999999999');
-        this.customerTaxIdType.set('CI');
+        this.defaultCustomer.set(null);
+        this.setDefaultCustomer();
       }
       // Only persist non-empty company ids so logout doesn't reset the reference
       if (companyId) this._lastCompanyId = companyId;
@@ -48,10 +52,10 @@ export class PosSessionService {
   readonly globalDiscountPct = signal<number>(0);
 
   // ── Cliente seleccionado ───────────────────────────────────────────────────
-  readonly customerId      = signal<string>('consumidor_final');
-  readonly customerName    = signal<string>('Consumidor Final');
-  readonly customerTaxId   = signal<string>('9999999999999');
-  readonly customerTaxIdType = signal<string>('CI');
+  readonly customerId        = signal<string>('');
+  readonly customerName      = signal<string>('');
+  readonly customerTaxId     = signal<string>('');
+  readonly customerTaxIdType = signal<string>('');
 
   // ── Computed totals ────────────────────────────────────────────────────────
   readonly cartTotals = computed(() => {
@@ -171,19 +175,42 @@ export class PosSessionService {
     this.customerTaxIdType.set(taxIdType);
   }
 
+  /** Carga desde Firestore el cliente marcado como isDefault y lo almacena en memoria. */
+  async loadDefaultCustomer(): Promise<void> {
+    const customer = await this.personasSvc.getDefaultCustomer();
+    this.defaultCustomer.set(customer);
+    // Si aún no hay cliente seleccionado (inicio de sesión), aplicar de inmediato
+    if (!this.activeTerminal()?.defaultCustomerId) {
+      this.setDefaultCustomer();
+    }
+  }
+
   setDefaultCustomer(): void {
+    // Prioridad 1: cliente por defecto configurado en el terminal
     const terminal = this.activeTerminal();
     if (terminal?.defaultCustomerId) {
       this.customerId.set(terminal.defaultCustomerId);
-      this.customerName.set(terminal.defaultCustomerName ?? 'Consumidor Final');
-      this.customerTaxId.set(terminal.defaultCustomerTaxId ?? '9999999999999');
-      this.customerTaxIdType.set('CI');
-    } else {
-      this.customerId.set('consumidor_final');
-      this.customerName.set('Consumidor Final');
-      this.customerTaxId.set('9999999999999');
-      this.customerTaxIdType.set('CI');
+      this.customerName.set(terminal.defaultCustomerName ?? '');
+      this.customerTaxId.set(terminal.defaultCustomerTaxId ?? '');
+      this.customerTaxIdType.set('');
+      return;
     }
+
+    // Prioridad 2: cliente marcado isDefault en Firestore
+    const def = this.defaultCustomer();
+    if (def) {
+      this.customerId.set(def.id);
+      this.customerName.set(def.name);
+      this.customerTaxId.set(def.taxId);
+      this.customerTaxIdType.set(def.taxIdType);
+      return;
+    }
+
+    // Sin cliente por defecto: limpiar selección
+    this.customerId.set('');
+    this.customerName.set('');
+    this.customerTaxId.set('');
+    this.customerTaxIdType.set('');
   }
 
   // ─── Snapshot for saving ───────────────────────────────────────────────────

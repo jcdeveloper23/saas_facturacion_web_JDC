@@ -5,7 +5,7 @@
     <div class="pos-logo">
       <svg width="28" height="28" viewBox="0 0 36 36" fill="none">
         <rect width="36" height="36" rx="8" fill="var(--cui-primary)"/>
-        <path d="M8 14h4v10H8V14zm8-4h4v14h-4V10zm8 6h4v8h-4v-8z" fill="white"/>
+        <path d="M8 14h4v10H8V14zm8-4h4v14h-4V10zm8 6h4v8h-4v-8z" fill="var(--cui-primary-color, #fff)"/>
       </svg>
       <span>POS</span>
     </div>
@@ -40,10 +40,9 @@
         </div>
         <div class="d-flex align-items-center gap-2">
           @if (isAdmin) {
-            <button cButton color="light" variant="outline" size="sm"
-                    class="d-flex align-items-center gap-1" (click)="goToTerminals()">
+            <button class="pss-manage-btn" (click)="goToTerminals()">
               <svg cIcon name="cilSettings" size="sm"></svg>
-              <span class="d-none d-sm-inline">Gestionar terminales</span>
+              <span>Gestionar terminales</span>
             </button>
           }
           <button class="pss-info-btn" (click)="showTerminalInfo = !showTerminalInfo"
@@ -147,19 +146,27 @@
         </div>
       }
 
-      <!-- Sesión ya abierta por otro -->
+      <!-- Sesión activa encontrada (propia o de otro usuario) -->
       @if (!checkingSession() && existingSession()) {
-        <c-alert color="warning" class="mb-3">
-          <strong>Sesión activa encontrada</strong><br>
-          Abierta por <strong>{{ existingSession()!.userName }}</strong> el
-          {{ existingSession()!.openedAt.toDate() | date:'dd/MM/yyyy HH:mm' }}<br>
-          Efectivo inicial: <strong>$ {{ existingSession()!.openingBalance | number:'1.2-2' }}</strong>
-        </c-alert>
+        @if (existingSession()!.userId === currentUser?.uid) {
+          <c-alert color="info" class="mb-3">
+            <strong>Tienes una caja abierta</strong><br>
+            Abierta el {{ existingSession()!.openedAt.toDate() | date:'dd/MM/yyyy HH:mm' }}<br>
+            Efectivo inicial: <strong>$ {{ existingSession()!.openingBalance | number:'1.2-2' }}</strong>
+          </c-alert>
+        } @else {
+          <c-alert color="warning" class="mb-3">
+            <strong>Sesión activa por otro usuario</strong><br>
+            Abierta por <strong>{{ existingSession()!.userName }}</strong> el
+            {{ existingSession()!.openedAt.toDate() | date:'dd/MM/yyyy HH:mm' }}<br>
+            Efectivo inicial: <strong>$ {{ existingSession()!.openingBalance | number:'1.2-2' }}</strong>
+          </c-alert>
+        }
 
         <div class="open-actions">
           <button cButton color="primary" (click)="resumeSession()" [disabled]="saving()">
             <svg cIcon name="cilMediaPlay" class="me-2"></svg>
-            Retomar sesión
+            Continuar sesión
           </button>
         </div>
       }

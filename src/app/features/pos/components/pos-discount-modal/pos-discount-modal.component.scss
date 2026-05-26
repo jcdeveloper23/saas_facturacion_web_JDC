@@ -55,3 +55,20 @@
     }
   }
 }
+
+/* ── Close button ────────────────────────────────────────────────────────── */
+.pos-modal-close {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--cui-secondary-color);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: background .12s, color .12s;
+  margin-left: auto;
+
+  &:hover { background: var(--cui-danger-bg-subtle); color: var(--cui-danger); }
+}

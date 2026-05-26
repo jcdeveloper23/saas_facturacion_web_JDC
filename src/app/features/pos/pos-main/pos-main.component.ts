@@ -73,6 +73,10 @@ export class PosMainComponent implements OnInit, OnDestroy {
   readonly lastSale           = signal<PosSale | null>(null);
   readonly showTicketPreview  = signal(false);
 
+  // Mobile tab navigation
+  readonly mobileTab = signal<'catalog' | 'ticket'>('catalog');
+  readonly cartCount = computed(() => this.cart().reduce((s, i) => s + i.quantity, 0));
+
   // Cash movement form
   cashMovType: 'cash_in' | 'cash_out' = 'cash_in';
   cashMovAmount = 0;
@@ -103,6 +107,7 @@ export class PosMainComponent implements OnInit, OnDestroy {
       this.router.navigate(['/pos']);
       return;
     }
+    this.posSession.loadDefaultCustomer();
     this.loadCatalog();
     this.hardware.enableBarcodeScanner();
 

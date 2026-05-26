@@ -7,6 +7,7 @@ import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
 import { SpinnerModule, ModalModule, FormModule } from '@coreui/angular';
 
 import { PersonasService } from '../../../personas/services/personas.service';
+import { PosSessionService } from '../../services/pos-session.service';
 import { Person } from '../../../personas/models/person.interface';
 
 @Component({
@@ -24,6 +25,7 @@ export class PosCustomerSearchComponent implements OnInit, OnChanges, OnDestroy 
 
   private destroy$        = new Subject<void>();
   private personasService = inject(PersonasService);
+  readonly posSession     = inject(PosSessionService);
 
   searchQuery  = '';
   readonly results  = signal<Person[]>([]);
@@ -55,15 +57,17 @@ export class PosCustomerSearchComponent implements OnInit, OnChanges, OnDestroy 
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: list => {
+          const defId = this.posSession.defaultCustomer()?.id;
+          const without = list.filter(p => p.id !== defId);
           if (q.trim()) {
             const ql = q.toLowerCase();
-            this.results.set(list.filter(p =>
+            this.results.set(without.filter(p =>
               p.name.toLowerCase().includes(ql) ||
               p.legalName.toLowerCase().includes(ql) ||
               p.taxId.includes(ql)
             ).slice(0, 20));
           } else {
-            this.results.set(list.slice(0, 20));
+            this.results.set(without.slice(0, 20));
           }
           this.loading.set(false);
         },
@@ -81,11 +85,13 @@ export class PosCustomerSearchComponent implements OnInit, OnChanges, OnDestroy 
   }
 
   selectConsumidorFinal(): void {
+    const def = this.posSession.defaultCustomer();
+    if (!def) return;
     this.selected.emit({
-      id:        'consumidor_final',
-      name:      'Consumidor Final',
-      taxId:     '9999999999999',
-      taxIdType: 'CI'
+      id:        def.id,
+      name:      def.name,
+      taxId:     def.taxId,
+      taxIdType: def.taxIdType
     });
   }
 

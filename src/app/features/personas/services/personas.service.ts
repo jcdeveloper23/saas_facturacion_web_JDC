@@ -48,6 +48,22 @@ export class PersonasService {
     return this.fs.getDocumentOnce<Person>('personas', id);
   }
 
+  /** Retorna el cliente marcado como isDefault === true, o null si no existe. */
+  async getDefaultCustomer(): Promise<Person | null> {
+    const companyId = this.tenantService.companyId;
+    const ref = collection(this.firestore, `companies/${companyId}/personas`);
+    const q = query(
+      ref,
+      where('roles', 'array-contains', 'customer'),
+      where('customerData.isDefault', '==', true),
+      limit(1)
+    );
+    const snap = await getDocs(q);
+    if (snap.empty) return null;
+    const doc = snap.docs[0];
+    return { id: doc.id, ...doc.data() } as Person;
+  }
+
   // ─── Write ────────────────────────────────────────────────────────────────
 
   async createPerson(data: PersonCreateInput): Promise<string> {

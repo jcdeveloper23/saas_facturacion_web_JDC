@@ -1,7 +1,221 @@
-.pc-stat-label {
-  font-size: .7rem;
-  letter-spacing: .05em;
+@use '../pos-shared' as *;
+
+// ── Loading / estado vacío ─────────────────────────────────────────────────
+
+.pc-state-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 1rem;
+  gap: .75rem;
+  color: var(--cui-secondary-color);
 }
+
+// ── Meta de sesión en header de card ──────────────────────────────────────
+
+.pc-session-meta {
+  font-size: .78rem;
+  color: var(--cui-secondary-color);
+
+  strong { color: var(--cui-body-color); }
+}
+
+// ── Grid de estadísticas ──────────────────────────────────────────────────
+
+.pc-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: .6rem;
+}
+
+.pc-stat-box {
+  background: var(--cui-tertiary-bg);
+  border: 1px solid var(--cui-border-color);
+  border-radius: 10px;
+  padding: .75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: .25rem;
+}
+
+.pc-stat-box-label {
+  font-size: .68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--cui-secondary-color);
+}
+
+.pc-stat-box-value {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--cui-heading-color);
+
+  &--in  { color: var(--cui-success-text-emphasis); }
+  &--out { color: var(--cui-danger-text-emphasis); }
+}
+
+// ── Banner efectivo esperado ──────────────────────────────────────────────
+
+.pc-expected-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: .875rem 1.125rem;
+  background: rgba(var(--cui-primary-rgb), .06);
+  border: 1px solid rgba(var(--cui-primary-rgb), .2);
+  border-radius: 10px;
+}
+
+.pc-expected-label {
+  font-weight: 600;
+  font-size: .875rem;
+  color: var(--cui-heading-color);
+}
+
+.pc-expected-hint {
+  font-size: .72rem;
+  color: var(--cui-secondary-color);
+}
+
+.pc-expected-value {
+  font-size: 1.375rem;
+  font-weight: 800;
+  color: var(--cui-primary);
+  white-space: nowrap;
+}
+
+// ── Input importe grande ──────────────────────────────────────────────────
+
+.pc-input-amount {
+  width: 100%;
+  padding: .65rem 1rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-align: center;
+  border: 2px solid var(--cui-border-color);
+  border-radius: 10px;
+  background: var(--cui-body-bg);
+  color: var(--cui-body-color);
+  outline: none;
+  transition: border-color .15s;
+
+  &:focus { border-color: var(--cui-primary); box-shadow: none; }
+}
+
+// ── Caja de diferencia ────────────────────────────────────────────────────
+
+.pc-diff-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  padding: .75rem 1rem;
+  border-radius: 10px;
+  border: 1.5px solid var(--cui-border-color);
+  background: var(--cui-tertiary-bg);
+
+  &--ok {
+    border-color: var(--cui-success-border-subtle);
+    background: var(--cui-success-bg-subtle);
+
+    .pc-diff-box-value { color: var(--cui-success-text-emphasis); }
+  }
+
+  &--warn {
+    border-color: var(--cui-warning-border-subtle);
+    background: var(--cui-warning-bg-subtle);
+
+    .pc-diff-box-value { color: var(--cui-warning-text-emphasis); }
+  }
+}
+
+.pc-diff-box-label {
+  font-size: .78rem;
+  color: var(--cui-secondary-color);
+}
+
+.pc-diff-box-value {
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: var(--cui-heading-color);
+}
+
+// ── Estado: éxito ─────────────────────────────────────────────────────────
+
+.pc-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 2.5rem 1.5rem 2rem;
+  gap: 1rem;
+}
+
+.pc-success-icon {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  background: var(--cui-success-bg-subtle);
+  color: var(--cui-success-text-emphasis);
+  border: 2px solid var(--cui-success-border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pc-success-title {
+  font-weight: 800;
+  color: var(--cui-heading-color);
+  margin: 0;
+}
+
+// ── Filas del resultado ───────────────────────────────────────────────────
+
+.pc-result-list {
+  width: 100%;
+  max-width: 380px;
+  border: 1px solid var(--cui-border-color);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.pc-result-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: .6rem 1rem;
+  font-size: .875rem;
+  border-bottom: 1px solid var(--cui-border-color);
+
+  &:last-child { border-bottom: none; }
+
+  span { color: var(--cui-secondary-color); }
+  strong { color: var(--cui-heading-color); }
+
+  &--ok {
+    background: var(--cui-success-bg-subtle);
+    span, strong { color: var(--cui-success-text-emphasis); }
+  }
+
+  &--warn {
+    background: var(--cui-warning-bg-subtle);
+    span, strong { color: var(--cui-warning-text-emphasis); }
+  }
+}
+
+// ── Botones de éxito ──────────────────────────────────────────────────────
+
+.pc-success-actions {
+  display: flex;
+  gap: .75rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+// ── Print ─────────────────────────────────────────────────────────────────
 
 @media print {
   c-card-footer,

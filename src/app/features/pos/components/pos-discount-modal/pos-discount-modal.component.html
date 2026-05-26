@@ -5,7 +5,7 @@
     <h5 cModalTitle class="fw-semibold">
       <svg cIcon name="cilTags" size="sm" class="me-1"></svg> Descuento global
     </h5>
-    <button cButtonClose (click)="cancelled.emit()"></button>
+    <button class="pos-modal-close" type="button" aria-label="Cerrar" (click)="cancelled.emit()"><svg cIcon name="cilX"></svg></button>
   </c-modal-header>
 
   <c-modal-body>
