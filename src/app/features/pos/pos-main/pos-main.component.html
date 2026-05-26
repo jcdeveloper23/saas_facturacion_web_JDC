@@ -105,7 +105,7 @@
                 <div class="product-info">
                   <span class="product-name">{{ product.shortName ?? product.name }}</span>
                   <span class="product-sku">{{ product.sku }}</span>
-                  <span class="product-price">${{ product.salePrice | number:'1.2-2' }}</span>
+                  <span class="product-price">${{ pvpConIva(product) | number:'1.2-2' }}</span>
                 </div>
                 @if (!product.noStock && product.stockQty <= 0) {
                   <div class="product-no-stock">Sin stock</div>
@@ -166,7 +166,7 @@
               <button class="qty-btn" (click)="increaseQty(item.productId)">+</button>
             </div>
             <div class="tl-price">
-              <span class="tl-unit">× ${{ item.salePrice | number:'1.2-2' }}</span>
+              <span class="tl-unit">× ${{ (item.lineTotal / item.quantity) | number:'1.2-2' }}</span>
               <span class="tl-total">${{ item.lineTotal | number:'1.2-2' }}</span>
             </div>
             <button class="tl-remove" (click)="removeItem(item.productId)" title="Eliminar">×</button>

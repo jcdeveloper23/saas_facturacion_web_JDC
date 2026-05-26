@@ -187,13 +187,16 @@ export function buildFullNumber(establishment: string, emissionPoint: string, nu
 }
 
 export function calcLine(line: Partial<InvoiceLine>): Pick<InvoiceLine, 'subtotal' | 'vatAmount' | 'total'> {
-  const qty      = line.quantity    ?? 0;
-  const price    = line.unitPrice   ?? 0;
-  const disc     = line.discountPct ?? 0;
-  const vatPct   = line.vatPct      ?? 0;
-  const subtotal = round2(qty * price * (1 - disc / 100));
-  const vatAmount= round2(subtotal * vatPct / 100);
-  return { subtotal, vatAmount, total: round2(subtotal + vatAmount) };
+  const qty    = line.quantity    ?? 0;
+  const price  = line.unitPrice   ?? 0;
+  const disc   = line.discountPct ?? 0;
+  const vatPct = line.vatPct      ?? 0;
+  // Compute net and vat at full precision before rounding, so that total
+  // reflects the original price without double-rounding artifact.
+  // (same approach as calcCartItem in pos.interface.ts)
+  const net    = qty * price * (1 - disc / 100);
+  const vat    = net * vatPct / 100;
+  return { subtotal: round2(net), vatAmount: round2(vat), total: round2(net + vat) };
 }
 
 export function calcInvoiceTotals(lines: InvoiceLine[], globalDiscountPct: number) {
@@ -205,7 +208,10 @@ export function calcInvoiceTotals(lines: InvoiceLine[], globalDiscountPct: numbe
   const vatMap = new Map<number, VatSummaryLine>();
   for (const l of lines) {
     const base = round2(l.subtotal * factor);
-    const va   = round2(base * l.vatPct / 100);
+    // Use the stored vatAmount (computed from full-precision net) scaled by the
+    // global-discount factor, rather than recomputing from the already-rounded base.
+    // This matches calcCartTotals in pos.interface.ts and avoids double-rounding.
+    const va   = round2(l.vatAmount * factor);
     const entry = vatMap.get(l.vatPct) ?? { vatPct: l.vatPct, taxableBase: 0, vatAmount: 0 };
     entry.taxableBase = round2(entry.taxableBase + base);
     entry.vatAmount   = round2(entry.vatAmount   + va);

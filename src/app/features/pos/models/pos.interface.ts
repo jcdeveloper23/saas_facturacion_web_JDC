@@ -86,6 +86,7 @@ export interface PosCartItem {
   vatPct: number;
   vatCode?: string;               // código SRI
   noStock: boolean;               // services
+  averageCost?: number;           // costemedio — para el movimiento de stock
   subtotal: number;               // qty * salePrice * (1 - discountPct/100)
   vatAmount: number;
   lineTotal: number;
@@ -140,6 +141,7 @@ export interface PosSale {
   invoiceError?: string;    // mensaje de error si la CF falló al generar la factura
   // ── Estado ─────────────────────────────────────────────────────────────────
   seriesCode: string;              // codserie del terminal
+  warehouseCode?: string;          // bodega — necesaria para reponer stock al anular
   status: PosSaleStatus;
   stockProcessed?: boolean;
   ticketNumber: number;           // num_tickets — correlativo global del terminal
@@ -201,7 +203,9 @@ export function calcCartTotals(items: PosCartItem[], globalDiscountPct: number):
   const discAmt      = round2(gross * globalDiscountPct / 100);
   const net          = round2(gross - discAmt);
   const factor       = gross > 0 ? net / gross : 1;
-  const vatAmount    = round2(items.reduce((s, i) => s + round2(i.subtotal * factor * i.vatPct / 100), 0));
+  // Use the stored vatAmount (computed from full-precision net) scaled by the
+  // global-discount factor, rather than recomputing from the already-rounded subtotal.
+  const vatAmount    = round2(items.reduce((s, i) => s + i.vatAmount * factor, 0));
   return {
     subtotal:       gross,
     discountAmount: discAmt,
@@ -211,13 +215,16 @@ export function calcCartTotals(items: PosCartItem[], globalDiscountPct: number):
 }
 
 export function calcCartItem(item: Partial<PosCartItem>): Pick<PosCartItem, 'subtotal' | 'vatAmount' | 'lineTotal'> {
-  const qty      = item.quantity    ?? 1;
-  const price    = item.salePrice   ?? item.unitPrice ?? 0;
-  const disc     = item.discountPct ?? 0;
-  const vatPct   = item.vatPct      ?? 0;
-  const subtotal = round2(qty * price * (1 - disc / 100));
-  const vatAmount = round2(subtotal * vatPct / 100);
-  return { subtotal, vatAmount, lineTotal: round2(subtotal + vatAmount) };
+  const qty    = item.quantity    ?? 1;
+  const price  = item.salePrice   ?? item.unitPrice ?? 0;
+  const disc   = item.discountPct ?? 0;
+  const vatPct = item.vatPct      ?? 0;
+  // Compute net and vat at full precision before rounding, so that lineTotal
+  // reflects the original PVP con IVA without accumulating rounding error.
+  const net       = qty * price * (1 - disc / 100);
+  const vat       = net * vatPct / 100;
+  const lineTotal = round2(net + vat);
+  return { subtotal: round2(net), vatAmount: round2(vat), lineTotal };
 }
 
 function round2(n: number): number { return Math.round(n * 100) / 100; }

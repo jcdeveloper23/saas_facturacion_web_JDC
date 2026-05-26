@@ -438,7 +438,7 @@ export class ProductFormComponent implements OnInit, OnDestroy {
       const taxPct  = this.selectedTaxRatePct();
       const cost    = +(this.form.get('costPrice')?.value ?? 0);
       const spNum   = +sp || 0;
-      const pvpIva  = Math.round(spNum * (1 + taxPct / 100) * 10000) / 10000;
+      const pvpIva  = Math.round(spNum * (1 + taxPct / 100) * 100) / 100;
       const margin  = calcMarginPct(spNum, cost);
       this.form.patchValue({ salePriceWithTax: pvpIva, marginInput: margin }, { emitEvent: false });
       this._priceUpdating = false;
@@ -485,7 +485,7 @@ export class ProductFormComponent implements OnInit, OnDestroy {
       const sp     = marginNum < 100 && cost > 0
         ? Math.round(cost / (1 - marginNum / 100) * 10000) / 10000
         : +(this.form.get('salePrice')?.value ?? 0);
-      const pvpIva = Math.round(sp * (1 + taxPct / 100) * 10000) / 10000;
+      const pvpIva = Math.round(sp * (1 + taxPct / 100) * 100) / 100;
       this.form.patchValue({ salePrice: sp, salePriceWithTax: pvpIva }, { emitEvent: false });
       this._priceUpdating = false;
     });
@@ -499,7 +499,7 @@ export class ProductFormComponent implements OnInit, OnDestroy {
       this._priceUpdating = true;
       const sp     = +(this.form.get('salePrice')?.value ?? 0);
       const taxPct = this.taxRates().find(t => t.code === code)?.rate ?? 0;
-      const pvpIva = Math.round(sp * (1 + taxPct / 100) * 10000) / 10000;
+      const pvpIva = Math.round(sp * (1 + taxPct / 100) * 100) / 100;
       this.form.patchValue({ salePriceWithTax: pvpIva }, { emitEvent: false });
       this._priceUpdating = false;
     });
@@ -676,7 +676,7 @@ export class ProductFormComponent implements OnInit, OnDestroy {
       this.priceUpdatedAt.set((p.priceUpdatedAt as any).toDate?.() ?? null);
     }
     const taxPct     = this.taxRates().find(t => t.code === p.taxRateCode)?.rate ?? 0;
-    const pvpIva     = Math.round(p.salePrice * (1 + taxPct / 100) * 10000) / 10000;
+    const pvpIva     = Math.round(p.salePrice * (1 + taxPct / 100) * 100) / 100;
     const marginVal  = calcMarginPct(p.salePrice, p.costPrice);
     this.form.patchValue({
       sku:            p.sku,

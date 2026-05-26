@@ -253,6 +253,60 @@ export class ProductsService {
   }
 
   /**
+   * Reverses a sale movement (ticket void / return).
+   * Increments stockQty and stockAvailable and writes a 'return_sale' movement.
+   */
+  async recordReturn(payload: StockTransactionPayload): Promise<void> {
+    const stockSnap = await getDocs(
+      query(collection(this.firestore, `${this.colPath(payload.productId)}/stocks`),
+        where('warehouseCode', '==', payload.warehouseCode))
+    );
+    const currentWh: ProductStock | null = stockSnap.empty
+      ? null
+      : (stockSnap.docs[0].data() as ProductStock);
+
+    const batch = writeBatch(this.firestore);
+    const delta = payload.qty;   // return → positive (restores stock)
+
+    if (currentWh) {
+      const stockRef = doc(this.firestore, `${this.colPath(payload.productId)}/stocks/${payload.warehouseCode}`);
+      batch.update(stockRef, {
+        qty:            increment(delta),
+        available:      increment(delta),
+        lastUpdatedAt:  Timestamp.now(),
+        lastUpdatedQty: currentWh.qty
+      });
+    }
+
+    const productRef = doc(this.firestore, this.colPath(payload.productId));
+    batch.update(productRef, {
+      stockQty:       increment(delta),
+      stockAvailable: increment(delta),
+      updatedAt:      Timestamp.now()
+    });
+
+    const movRef = doc(collection(this.firestore, `companies/${this.companyId}/stock-movements`));
+    batch.set(movRef, {
+      type:           'return_sale' as StockMovementType,
+      productId:      payload.productId,
+      productSku:     payload.productSku,
+      productName:    payload.productName,
+      warehouseCode:  payload.warehouseCode,
+      warehouseName:  payload.warehouseName ?? '',
+      qtyBefore:      currentWh?.qty ?? 0,
+      qtyAfter:       (currentWh?.qty ?? 0) + delta,
+      qtyDelta:       delta,
+      unitCost:       payload.unitCost,
+      sourceDocId:    payload.sourceDocId,
+      sourceDocType:  'invoice',
+      userId:         payload.userId,
+      createdAt:      Timestamp.now()
+    } as Omit<StockMovement, 'id'>);
+
+    await batch.commit();
+  }
+
+  /**
    * Records a stock entry due to a purchase order receipt.
    * Increments stockQty (stockFis) and stockAvailable atomically.
    * Updates averageCost (weighted average) when unitCost is provided.

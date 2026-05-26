@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { Auth } from '@angular/fire/auth';
 import { Subject, takeUntil, catchError, of } from 'rxjs';
 import {
   CardModule, ButtonModule, GridModule, BadgeModule, SpinnerModule,
@@ -16,13 +17,36 @@ import { ManufacturersService } from './services/manufacturers.service';
 import { SettingsService }      from '../settings/services/settings.service';
 import { NotificationService }  from '../../core/services/notification.service';
 import {
-  Product, Family, Manufacturer, isLowStock, isOutOfStock
+  Product, Family, Manufacturer, ProductStock, isLowStock, isOutOfStock
 } from './models/product.interface';
 import { TaxRate, Warehouse } from '../settings/models/settings.interfaces';
 
 // ─── Filter types ─────────────────────────────────────────────────────────────
 
 type TypeFilter = 'all' | 'product' | 'service' | 'inactive';
+
+interface ImportResult {
+  ok:          number;
+  updated:     number;
+  errors:      string[];
+  createdSkus: string[];
+  updatedSkus: string[];
+}
+
+interface ImportPreviewRow {
+  rowNum:      number;
+  sku:         string;
+  nombre:      string;
+  tipo:        'product' | 'service';
+  familia:     string;
+  taxCode:     string;
+  salePrice:   number;
+  stockActual: number;
+  status:      'new' | 'update' | 'error';
+  errors:      string[];
+  data:        any;          // payload listo para Firestore (null si error)
+  existingId?: string;       // ID del producto si status === 'update'
+}
 
 /** Filters shown inline (always visible) */
 interface PrimaryFilters {
@@ -332,6 +356,27 @@ const SECONDARY_DEFAULTS: SecondaryFilters = {
     /* Table row */
     .row-clickable { cursor: pointer; }
 
+    /* ── Import preview ───────────────────────────────────────────────── */
+    .preview-table { font-size: .8rem; }
+    .preview-head th {
+      font-size: .68rem; font-weight: 500;
+      text-transform: uppercase; letter-spacing: .05em;
+      color: var(--cui-secondary-color); padding: .5rem .75rem;
+    }
+    .preview-row-new    { background: rgba(var(--cui-success-rgb), .04); }
+    .preview-row-update { background: rgba(var(--cui-primary-rgb), .04); }
+    .preview-row-error  { background: rgba(var(--cui-danger-rgb), .04);  }
+
+    .badge-preview {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: .72rem; font-weight: 500;
+      border-radius: 999px; padding: 3px 10px;
+      border: 1px solid transparent;
+    }
+    .badge-new    { background: var(--cui-success-bg-subtle); color: var(--cui-success-text-emphasis); border-color: var(--cui-success-border-subtle); }
+    .badge-update { background: var(--cui-primary-bg-subtle); color: var(--cui-primary-text-emphasis); border-color: var(--cui-primary-border-subtle); }
+    .badge-error  { background: var(--cui-danger-bg-subtle);  color: var(--cui-danger-text-emphasis);  border-color: var(--cui-danger-border-subtle);  }
+
     /* Image preview */
     .product-img-preview {
       position: fixed; z-index: 9999;
@@ -367,6 +412,7 @@ export class ProductsListComponent implements OnInit, OnDestroy {
   private settingsSvc      = inject(SettingsService);
   private notifications    = inject(NotificationService);
   private router           = inject(Router);
+  private auth             = inject(Auth);
   private destroy$         = new Subject<void>();
 
   // ─── Data ─────────────────────────────────────────────────────────────────
@@ -374,6 +420,7 @@ export class ProductsListComponent implements OnInit, OnDestroy {
   families      = signal<Family[]>([]);
   manufacturers = signal<Manufacturer[]>([]);
   taxRates      = signal<TaxRate[]>([]);
+  warehouses    = signal<Warehouse[]>([]);
   loading       = signal(true);
 
   // ─── Filter state ─────────────────────────────────────────────────────────
@@ -490,6 +537,22 @@ export class ProductsListComponent implements OnInit, OnDestroy {
     };
   });
 
+  // ─── Import / Export ──────────────────────────────────────────────────────
+  importing     = signal(false);   // leyendo/parseando archivo
+  confirming    = signal(false);   // escribiendo en Firestore
+  importPreview = signal<ImportPreviewRow[] | null>(null);
+  importResult  = signal<ImportResult | null>(null);
+
+  previewStats = computed(() => {
+    const rows = this.importPreview() ?? [];
+    return {
+      total:   rows.length,
+      newRows: rows.filter(r => r.status === 'new').length,
+      updates: rows.filter(r => r.status === 'update').length,
+      errors:  rows.filter(r => r.status === 'error').length,
+    };
+  });
+
   // ─── Image hover preview ─────────────────────────────────────────────────
   hoveredProduct = signal<Product | null>(null);
   hoverPos       = signal<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -514,6 +577,9 @@ export class ProductsListComponent implements OnInit, OnDestroy {
 
     this.settingsSvc.getTaxRates().pipe(catchError(() => of([])), takeUntil(this.destroy$))
       .subscribe(list => this.taxRates.set(list));
+
+    this.settingsSvc.getWarehouses().pipe(catchError(() => of([])), takeUntil(this.destroy$))
+      .subscribe(list => this.warehouses.set(list));
   }
 
   ngOnDestroy(): void { this.destroy$.next(); this.destroy$.complete(); }
@@ -559,6 +625,242 @@ export class ProductsListComponent implements OnInit, OnDestroy {
     this.hoverPos.set({ x: (event as any).clientX + 18, y: (event as any).clientY - 90 });
   }
   onImageLeave(): void { this.hoveredProduct.set(null); }
+
+  // ─── Download / Upload inventory ─────────────────────────────────────────
+
+  async downloadInventory(): Promise<void> {
+    const XLSX = await import('xlsx');
+    const rows = this.products().map(p => ({
+      'SKU':              p.sku,
+      'CodigoBarras':     p.barcode ?? '',
+      'Nombre':           p.name,
+      'NombreCorto':      p.shortName ?? '',
+      'Tipo':             p.type,
+      'CodigoFamilia':    p.familyCode ?? '',
+      'Familia':          p.familyName ?? '',
+      'CodigoFabricante': p.manufacturerCode ?? '',
+      'Fabricante':       p.manufacturerName ?? '',
+      'CodigoImpuesto':   p.taxRateCode,
+      'PrecioVenta':      p.salePrice,
+      'PrecioCosto':      p.costPrice,
+      'StockActual':      p.stockQty,
+      'StockMin':         p.stockMin,
+      'StockMax':         p.stockMax,
+      'ControlStock':     p.trackStock ? 'S' : 'N',
+      'SeVende':          p.isSold ? 'S' : 'N',
+      'SeCompra':         p.isPurchased ? 'S' : 'N',
+      'Publico':          p.isPublic ? 'S' : 'N',
+      'Bloqueado':        p.isBlocked ? 'S' : 'N',
+      'Activo':           p.isActive ? 'S' : 'N',
+      'Notas':            p.notes ?? ''
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws['!cols'] = [
+      { wch: 14 }, { wch: 16 }, { wch: 40 }, { wch: 20 }, { wch: 10 },
+      { wch: 14 }, { wch: 22 }, { wch: 16 }, { wch: 22 }, { wch: 14 },
+      { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 10 },
+      { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 },
+      { wch: 10 }, { wch: 40 }
+    ];
+    const wb   = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Inventario');
+    const date = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(wb, `inventario_${date}.xlsx`);
+  }
+
+  // ── Fase 1: lee y valida el archivo → muestra vista previa ───────────────
+  async onImportFile(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file  = input.files?.[0];
+    if (!file) return;
+    input.value = '';
+
+    this.importing.set(true);
+    this.importPreview.set(null);
+    this.importResult.set(null);
+
+    try {
+      const XLSX     = await import('xlsx');
+      const buffer   = await file.arrayBuffer();
+      const workbook = XLSX.read(buffer, { type: 'array' });
+      const sheet    = workbook.Sheets[workbook.SheetNames[0]];
+      const rows: any[] = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+      const existingBySku  = new Map(this.products().map(p => [p.sku.toUpperCase(), p]));
+      const familiesByCode = new Map(this.families().map(f => [f.code.toUpperCase(), f]));
+      const familiesByName = new Map(this.families().map(f => [f.name.toLowerCase(), f]));
+      const mfgByCode      = new Map(this.manufacturers().map(m => [m.code.toUpperCase(), m]));
+      const mfgByName      = new Map(this.manufacturers().map(m => [m.name.toLowerCase(), m]));
+
+      const parseNum = (v: any): number => {
+        const s = String(v ?? '').trim().replace(',', '.');
+        return parseFloat(s) || 0;
+      };
+
+      const boolVal = (v: any, def = false) => {
+        const s = String(v ?? '').trim().toUpperCase();
+        return s === '' ? def : s === 'S';
+      };
+
+      const seenSkus  = new Set<string>();
+      const preview: ImportPreviewRow[] = [];
+
+      for (const [i, row] of rows.entries()) {
+        const rowNum    = i + 2;
+        const rowErrors: string[] = [];
+
+        const sku = String(row['SKU'] ?? '').trim().toUpperCase();
+        if (!sku) {
+          preview.push({ rowNum, sku: '(vacío)', nombre: '', tipo: 'product', familia: '',
+            taxCode: '', salePrice: 0, stockActual: 0, status: 'error',
+            errors: ['SKU vacío'], data: null });
+          continue;
+        }
+        if (seenSkus.has(sku)) {
+          preview.push({ rowNum, sku, nombre: String(row['Nombre'] ?? ''), tipo: 'product',
+            familia: '', taxCode: '', salePrice: 0, stockActual: 0, status: 'error',
+            errors: ['SKU duplicado en el archivo'], data: null });
+          continue;
+        }
+        seenSkus.add(sku);
+
+        const nombre = String(row['Nombre'] ?? '').trim();
+        if (!nombre) rowErrors.push('Nombre requerido');
+
+        const taxRateCode = String(row['CodigoImpuesto'] ?? '').trim();
+        if (!taxRateCode) rowErrors.push('CodigoImpuesto requerido');
+
+        const familyCode = String(row['CodigoFamilia'] ?? '').trim().toUpperCase();
+        const familyName = String(row['Familia']       ?? '').trim();
+        const family     = (familyCode ? familiesByCode.get(familyCode) : undefined)
+                        ?? (familyName ? familiesByName.get(familyName.toLowerCase()) : undefined);
+
+        const mfgCode = String(row['CodigoFabricante'] ?? '').trim().toUpperCase();
+        const mfgName = String(row['Fabricante']       ?? '').trim();
+        const mfg     = (mfgCode ? mfgByCode.get(mfgCode) : undefined)
+                     ?? (mfgName ? mfgByName.get(mfgName.toLowerCase()) : undefined);
+
+        const tipo: 'product' | 'service' = row['Tipo'] === 'service' ? 'service' : 'product';
+        const salePrice   = parseNum(row['PrecioVenta']);
+        const stockActual = parseNum(row['StockActual']);
+        const taxRateObj  = this.taxRates().find(t => t.code === taxRateCode);
+
+        const data: any = rowErrors.length === 0 ? {
+          sku, name: nombre, type: tipo, taxRateCode,
+          taxRate:     taxRateObj?.rate     ?? null,
+          taxRateName: taxRateObj?.name     ?? null,
+          salePrice,
+          costPrice:    parseNum(row['PrecioCosto']),
+          stockMin:     parseNum(row['StockMin']),
+          stockMax:     parseNum(row['StockMax']),
+          trackStock:   boolVal(row['ControlStock'], true),
+          noStock:      tipo === 'service',
+          isSold:       boolVal(row['SeVende'],   true),
+          isPurchased:  boolVal(row['SeCompra'],  true),
+          isPublic:     boolVal(row['Publico'],   false),
+          isBlocked:    boolVal(row['Bloqueado'], false),
+          isActive:     boolVal(row['Activo'],    true),
+          hasVariants:  false,
+          traceable:    false,
+        } : null;
+
+        if (data) {
+          const shortName = String(row['NombreCorto'] ?? '').trim();
+          if (shortName) data['shortName'] = shortName;
+          const barcode = String(row['CodigoBarras'] ?? '').trim();
+          if (barcode)   data['barcode']   = barcode;
+          const notes   = String(row['Notas'] ?? '').trim();
+          if (notes)     data['notes']     = notes;
+          if (family) { data['familyId'] = family.id; data['familyCode'] = family.code; data['familyName'] = family.name; }
+          if (mfg)    { data['manufacturerId'] = mfg.id; data['manufacturerCode'] = mfg.code; data['manufacturerName'] = mfg.name; }
+        }
+
+        const existing = existingBySku.get(sku);
+        const status: 'new' | 'update' | 'error' =
+          rowErrors.length > 0 ? 'error' : existing ? 'update' : 'new';
+
+        preview.push({
+          rowNum, sku,
+          nombre:      nombre || String(row['Nombre'] ?? ''),
+          tipo,
+          familia:     family?.name ?? familyName,
+          taxCode:     taxRateCode,
+          salePrice,
+          stockActual,
+          status,
+          errors:      rowErrors,
+          data,
+          existingId:  existing?.id,
+        });
+      }
+
+      this.importPreview.set(preview);
+    } catch (e: any) {
+      this.notifications.error('Error al leer el archivo: ' + (e?.message ?? e));
+    } finally {
+      this.importing.set(false);
+    }
+  }
+
+  // ── Fase 2: confirma y escribe en Firestore ───────────────────────────────
+  async confirmImport(): Promise<void> {
+    const preview = this.importPreview();
+    if (!preview) return;
+
+    this.confirming.set(true);
+    const uid            = this.auth.currentUser?.uid ?? 'import';
+    const existingBySku  = new Map(this.products().map(p => [p.sku.toUpperCase(), p]));
+    let ok = 0, updated = 0;
+    const errors:      string[] = [];
+    const createdSkus: string[] = [];
+    const updatedSkus: string[] = [];
+
+    for (const row of preview) {
+      if (row.status === 'error' || !row.data) continue;
+      try {
+        if (row.existingId) {
+          await this.svc.updateProduct(row.existingId, row.data);
+          updated++;
+          updatedSkus.push(row.sku);
+        } else {
+          const newId = await this.svc.createProduct(row.data);
+          existingBySku.set(row.sku, { id: newId, sku: row.sku } as any);
+
+          if (row.stockActual > 0 && this.warehouses().length > 0) {
+            const wh = this.warehouses()[0];
+            const baseline: ProductStock = {
+              warehouseCode: wh.code, warehouseName: wh.name,
+              qty: 0, available: 0, reserved: 0, pendingReceive: 0,
+              stockMin: row.data['stockMin'] ?? 0,
+              stockMax: row.data['stockMax'] ?? 0,
+            };
+            await this.svc.adjustStock(newId, row.sku, row.nombre, baseline,
+              row.stockActual, '', 'Importación masiva', uid);
+          } else if (row.stockActual > 0) {
+            errors.push(`${row.sku}: stock ${row.stockActual} no inicializado — configure almacenes primero`);
+          }
+
+          ok++;
+          createdSkus.push(row.sku);
+        }
+      } catch (e: any) {
+        errors.push(`Fila ${row.rowNum} (${row.sku}): ${e?.message ?? 'Error al guardar'}`);
+      }
+    }
+
+    this.importPreview.set(null);
+    this.importResult.set({ ok, updated, errors, createdSkus, updatedSkus });
+    this.confirming.set(false);
+
+    if (ok > 0 || updated > 0) {
+      this.notifications.success(
+        `Importación completada: ${ok} creado${ok !== 1 ? 's' : ''}, ${updated} actualizado${updated !== 1 ? 's' : ''}`
+      );
+    }
+  }
+
+  cancelImport(): void { this.importPreview.set(null); }
 
   // ─── Mutations (used from edit form — kept for service completeness) ──────
   async toggleActive(p: Product): Promise<void> {

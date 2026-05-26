@@ -11,11 +11,37 @@
         <span class="page-subtitle">Catálogo de productos y servicios</span>
       </div>
     </div>
-    <button *hasPermission="'products.create'" cButton color="primary" size="sm" (click)="openNew()"
-            class="d-flex align-items-center gap-1 px-3 shadow-sm">
-      <svg cIcon name="cilPlus" size="sm"></svg>
-      <span>Nuevo Artículo</span>
-    </button>
+    <div class="d-flex align-items-center gap-2">
+      <button cButton color="light" size="sm" variant="outline"
+              class="d-flex align-items-center gap-1 border"
+              [disabled]="loading() || products().length === 0"
+              (click)="downloadInventory()">
+        <svg cIcon name="cilCloudDownload" size="sm"></svg>
+        <span class="d-none d-sm-inline">Exportar</span>
+      </button>
+
+      <label *hasPermission="'products.create'"
+             class="d-flex align-items-center gap-1 btn btn-sm btn-outline-secondary border"
+             [class.disabled]="importing()"
+             style="cursor:pointer; margin-bottom:0">
+        @if (importing()) {
+          <c-spinner size="sm" class="me-1"></c-spinner>
+          <span class="d-none d-sm-inline">Importando...</span>
+        } @else {
+          <svg cIcon name="cilCloudUpload" size="sm"></svg>
+          <span class="d-none d-sm-inline">Importar</span>
+        }
+        <input type="file" accept=".xlsx,.xls,.csv" class="d-none"
+               [disabled]="importing()"
+               (change)="onImportFile($event)">
+      </label>
+
+      <button *hasPermission="'products.create'" cButton color="primary" size="sm" (click)="openNew()"
+              class="d-flex align-items-center gap-1 px-3 shadow-sm">
+        <svg cIcon name="cilPlus" size="sm"></svg>
+        <span>Nuevo Artículo</span>
+      </button>
+    </div>
   </div>
 
   @if (!loading()) {
@@ -62,6 +88,182 @@
     </div>
   }
 </div>
+
+<!-- ══ IMPORT RESULT (después de confirmar) ══════════════════════════════════ -->
+@if (importResult()) {
+  <div class="mb-3 p-3 rounded-3 border d-flex gap-3 align-items-start"
+       [class.border-success]="importResult()!.errors.length === 0"
+       [class.border-warning]="importResult()!.errors.length > 0"
+       style="background: var(--cui-card-bg)">
+    <div class="flex-grow-1">
+      <div class="fw-semibold small mb-1">
+        Importación completada:
+        @if (importResult()!.ok > 0) {
+          <span class="text-success">{{ importResult()!.ok }} creado{{ importResult()!.ok !== 1 ? 's' : '' }}</span>
+        }
+        @if (importResult()!.ok > 0 && importResult()!.updated > 0) { · }
+        @if (importResult()!.updated > 0) {
+          <span class="text-primary">{{ importResult()!.updated }} actualizado{{ importResult()!.updated !== 1 ? 's' : '' }}</span>
+        }
+        @if (importResult()!.errors.length > 0) {
+          · <span class="text-warning">{{ importResult()!.errors.length }} aviso{{ importResult()!.errors.length !== 1 ? 's' : '' }}</span>
+        }
+      </div>
+      @if (importResult()!.errors.length > 0) {
+        <ul class="mb-0 small text-warning ps-3 mt-1" style="max-height:100px; overflow-y:auto">
+          @for (err of importResult()!.errors; track $index) { <li>{{ err }}</li> }
+        </ul>
+      }
+    </div>
+    <button class="btn-close btn-close-sm" aria-label="Cerrar"
+            (click)="importResult.set(null)"></button>
+  </div>
+}
+
+<!-- ══ IMPORT PREVIEW ════════════════════════════════════════════════════════ -->
+@if (importPreview()) {
+  <c-card class="border-0 shadow-sm mb-3 overflow-hidden">
+
+    <!-- Header con resumen y acciones -->
+    <div class="px-3 py-2 d-flex align-items-center gap-3 flex-wrap border-bottom"
+         style="background: var(--cui-card-bg)">
+
+      <div class="d-flex align-items-center gap-2">
+        <svg cIcon name="cilSpreadsheet" class="text-primary"></svg>
+        <div>
+          <div class="fw-semibold" style="font-size:.85rem">Vista previa de importación</div>
+          <div style="font-size:.72rem; color:var(--cui-secondary-color)">
+            {{ previewStats().total }} filas leídas
+          </div>
+        </div>
+      </div>
+
+      <!-- Stat chips -->
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        @if (previewStats().newRows > 0) {
+          <span class="badge-preview badge-new">
+            <svg cIcon name="cilPlus" size="sm"></svg>
+            {{ previewStats().newRows }} nuevo{{ previewStats().newRows !== 1 ? 's' : '' }}
+          </span>
+        }
+        @if (previewStats().updates > 0) {
+          <span class="badge-preview badge-update">
+            <svg cIcon name="cilPencil" size="sm"></svg>
+            {{ previewStats().updates }} actualizar
+          </span>
+        }
+        @if (previewStats().errors > 0) {
+          <span class="badge-preview badge-error">
+            <svg cIcon name="cilWarning" size="sm"></svg>
+            {{ previewStats().errors }} con error
+          </span>
+        }
+      </div>
+
+      <div class="ms-auto d-flex gap-2">
+        <button cButton color="light" size="sm" variant="outline" class="border"
+                [disabled]="confirming()"
+                (click)="cancelImport()">
+          Cancelar
+        </button>
+        <button cButton color="primary" size="sm"
+                [disabled]="confirming() || (previewStats().newRows + previewStats().updates) === 0"
+                (click)="confirmImport()">
+          @if (confirming()) {
+            <c-spinner size="sm" class="me-1"></c-spinner>
+          }
+          Importar {{ previewStats().newRows + previewStats().updates }} artículo{{ (previewStats().newRows + previewStats().updates) !== 1 ? 's' : '' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Tabla de vista previa -->
+    <div class="table-responsive" style="max-height:55vh; overflow-y:auto">
+      <table cTable hover align="middle" class="mb-0 border-0 preview-table">
+        <thead class="bg-body-secondary" style="position:sticky; top:0; z-index:1">
+          <tr class="preview-head">
+            <th class="ps-3 border-0">#</th>
+            <th class="border-0">Estado</th>
+            <th class="border-0">SKU</th>
+            <th class="border-0">Nombre</th>
+            <th class="border-0">Tipo</th>
+            <th class="border-0">Familia</th>
+            <th class="border-0">Imp.</th>
+            <th class="border-0 text-end">P.V.P</th>
+            <th class="border-0 text-end">Stock</th>
+            <th class="border-0">Problemas</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of importPreview()!; track row.rowNum) {
+            <tr class="border-bottom border-body-secondary"
+                [class.preview-row-new]="row.status === 'new'"
+                [class.preview-row-update]="row.status === 'update'"
+                [class.preview-row-error]="row.status === 'error'">
+
+              <td class="ps-3 text-muted" style="font-size:.75rem; width:40px">{{ row.rowNum }}</td>
+
+              <td style="width:90px">
+                @if (row.status === 'new') {
+                  <c-badge color="success" shape="rounded-pill" style="font-size:.65rem">Nuevo</c-badge>
+                } @else if (row.status === 'update') {
+                  <c-badge color="primary" shape="rounded-pill" style="font-size:.65rem">Actualizar</c-badge>
+                } @else {
+                  <c-badge color="danger" shape="rounded-pill" style="font-size:.65rem">Error</c-badge>
+                }
+              </td>
+
+              <td>
+                <span class="sku-badge">{{ row.sku }}</span>
+              </td>
+
+              <td style="max-width:220px">
+                <span class="d-block text-truncate" style="font-size:.82rem">{{ row.nombre || '—' }}</span>
+              </td>
+
+              <td style="font-size:.78rem; color:var(--cui-secondary-color)">
+                {{ row.tipo === 'service' ? 'Servicio' : 'Producto' }}
+              </td>
+
+              <td style="font-size:.78rem; color:var(--cui-secondary-color); max-width:120px">
+                <span class="d-block text-truncate">{{ row.familia || '—' }}</span>
+              </td>
+
+              <td style="font-size:.78rem; color:var(--cui-secondary-color)">{{ row.taxCode || '—' }}</td>
+
+              <td class="text-end" style="font-size:.82rem">
+                {{ row.salePrice | currency:'USD':'symbol':'1.2-2' }}
+              </td>
+
+              <td class="text-end" style="font-size:.82rem">
+                @if (row.stockActual > 0) {
+                  <c-badge color="success" shape="rounded-pill" style="font-size:.65rem">
+                    {{ row.stockActual | number:'1.0-0' }}
+                  </c-badge>
+                } @else {
+                  <span class="text-muted">0</span>
+                }
+              </td>
+
+              <td style="font-size:.75rem; color:var(--cui-danger); max-width:200px">
+                {{ row.errors.join(' · ') }}
+              </td>
+
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    @if (previewStats().errors > 0) {
+      <div class="px-3 py-2 border-top" style="background:var(--cui-danger-bg-subtle); font-size:.75rem; color:var(--cui-danger)">
+        <svg cIcon name="cilWarning" size="sm" class="me-1"></svg>
+        Las filas con error serán omitidas. Corríjalas en el archivo y vuelva a importar.
+      </div>
+    }
+
+  </c-card>
+}
 
 <!-- ══ FILTER PANEL ═════════════════════════════════════════════════════════ -->
 <c-card class="filter-card mb-3 border-0 shadow-sm overflow-hidden">

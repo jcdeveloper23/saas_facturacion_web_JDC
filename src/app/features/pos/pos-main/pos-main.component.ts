@@ -4,7 +4,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { Subject, takeUntil } from 'rxjs';
+import { Subject, takeUntil, take, switchMap } from 'rxjs';
 import {
   SpinnerModule, BadgeModule, TooltipModule, AlertModule,
   ModalModule, ButtonModule, GridModule, FormModule
@@ -17,6 +17,7 @@ import { PosCashService } from '../services/pos-cash.service';
 import { PosHardwareService } from '../services/pos-hardware.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { ProductsService } from '../../products/services/products.service';
+import { SettingsService } from '../../settings/services/settings.service';
 import { TenantService }   from '../../../core/services/tenant.service';
 import { AuthService }     from '../../../core/services/auth.service';
 import { PlanLimitsService } from '../../../core/services/plan-limits.service';
@@ -24,6 +25,7 @@ import {
   PosPayment, PosCartItem, PosSale
 } from '../models/pos.interface';
 import { Product, Family } from '../../products/models/product.interface';
+import { TaxRate } from '../../settings/models/settings.interfaces';
 import { PosPaymentModalComponent } from '../components/pos-payment-modal/pos-payment-modal.component';
 import { PosCustomerSearchComponent } from '../components/pos-customer-search/pos-customer-search.component';
 import { PosDiscountModalComponent } from '../components/pos-discount-modal/pos-discount-modal.component';
@@ -51,10 +53,13 @@ export class PosMainComponent implements OnInit, OnDestroy {
   private hardware     = inject(PosHardwareService);
   private notify       = inject(NotificationService);
   private productsService = inject(ProductsService);
+  private settingsSvc     = inject(SettingsService);
   private tenantService   = inject(TenantService);
   private router          = inject(Router);
   private auth            = inject(AuthService);
   private planLimits      = inject(PlanLimitsService);
+
+  private taxRateMap = new Map<string, number>(); // code → rate %
 
   // ── Products catalog ───────────────────────────────────────────────────────
   readonly allProducts     = signal<Product[]>([]);
@@ -143,31 +148,47 @@ export class PosMainComponent implements OnInit, OnDestroy {
   // ─── Catalog ───────────────────────────────────────────────────────────────
 
   private loadCatalog(): void {
-    this.productsService.getProducts()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: products => {
-          this.allProducts.set(products);
-          this.loadingProducts.set(false);
-          // Extraer familias únicas
-          const familyMap = new Map<string, Family>();
-          products.forEach(p => {
-            if (p.familyId && p.familyName) {
-              familyMap.set(p.familyId, {
-                id: p.familyId,
-                code: p.familyCode ?? '',
-                name: p.familyName,
-                isActive: true
-              } as Family);
-            }
-          });
-          this.allFamilies.set([...familyMap.values()].sort((a, b) => a.name.localeCompare(b.name)));
-        },
-        error: () => {
-          this.loadingProducts.set(false);
-          this.notify.error('Error', 'No se pudo cargar el catálogo de productos');
-        }
-      });
+    // Load tax rates first (take(1) = one-shot), then switch to the live
+    // products stream. This guarantees taxRateMap is populated before the first
+    // products emission, so products without the denormalized taxRate field are
+    // correctly enriched (imported or legacy records).
+    this.settingsSvc.getTaxRates().pipe(
+      take(1),
+      switchMap(rates => {
+        this.taxRateMap = new Map(rates.map((r: TaxRate) => [r.code, r.rate]));
+        return this.productsService.getProducts();
+      }),
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: products => {
+        const enriched = products.map(p =>
+          (p.taxRate != null) ? p : { ...p, taxRate: this.taxRateMap.get(p.taxRateCode) ?? 0 }
+        );
+        this.allProducts.set(enriched);
+        this.loadingProducts.set(false);
+        const familyMap = new Map<string, Family>();
+        enriched.forEach(p => {
+          if (p.familyId && p.familyName) {
+            familyMap.set(p.familyId, {
+              id: p.familyId,
+              code: p.familyCode ?? '',
+              name: p.familyName,
+              isActive: true
+            } as Family);
+          }
+        });
+        this.allFamilies.set([...familyMap.values()].sort((a, b) => a.name.localeCompare(b.name)));
+      },
+      error: () => {
+        this.loadingProducts.set(false);
+        this.notify.error('Error', 'No se pudo cargar el catálogo de productos');
+      }
+    });
+  }
+
+  /** Price shown in the catalog card: salePrice + IVA, rounded to 2dp. */
+  pvpConIva(p: Product): number {
+    return Math.round(p.salePrice * (1 + (p.taxRate ?? 0) / 100) * 100) / 100;
   }
 
   @ViewChild('searchInput') searchInput?: ElementRef<HTMLInputElement>;
@@ -256,6 +277,7 @@ export class PosMainComponent implements OnInit, OnDestroy {
         terminalId:   terminal.id,
         terminalName: terminal.name,
         seriesCode:   terminal.seriesCode ?? '',
+        warehouseCode: terminal.warehouseCode,
         generateInvoice: this.planLimits.isFeatureEnabled('electronicInvoicing')
       };
 

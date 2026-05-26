@@ -1,8 +1,9 @@
 import { Injectable, inject } from '@angular/core';
 import {
-  Firestore, collection, doc, addDoc, updateDoc, onSnapshot,
-  query, where, orderBy, limit, Timestamp, runTransaction, increment
+  Firestore, collection, doc, addDoc, updateDoc, getDoc, onSnapshot,
+  query, where, orderBy, limit, Timestamp, runTransaction
 } from '@angular/fire/firestore';
+import { firstValueFrom, Observable } from 'rxjs';
 
 /** Elimina recursivamente todos los campos `undefined` para que Firestore no los rechace. */
 function stripUndefined(obj: any): any {
@@ -16,39 +17,40 @@ function stripUndefined(obj: any): any {
   }
   return obj;
 }
-import { Observable } from 'rxjs';
 
-import { TenantService }     from '../../../core/services/tenant.service';
-import { AuthService }       from '../../../core/services/auth.service';
-import { PosCashService }    from './pos-cash.service';
-import { PosSessionService } from './pos-session.service';
-import {
-  PosSale, PosPayment, PosCartState, PosCartItem
-} from '../models/pos.interface';
+import { TenantService }   from '../../../core/services/tenant.service';
+import { AuthService }     from '../../../core/services/auth.service';
+import { PosCashService }  from './pos-cash.service';
+import { InvoicesService } from '../../invoices/services/invoices.service';
+import { SettingsService } from '../../settings/services/settings.service';
+import { InvoiceLine, SriDocumentStatus } from '../../invoices/models/invoice.interface';
+import { PosSale, PosPayment, PosCartState } from '../models/pos.interface';
 
 export interface CompleteSaleInput {
-  cartState:    PosCartState;
-  payments:     PosPayment[];
-  totalPaid:    number;
-  change:       number;
-  sessionId:    string;
-  terminalId:   string;
-  terminalName: string;
-  seriesCode:   string;
+  cartState:     PosCartState;
+  payments:      PosPayment[];
+  totalPaid:     number;
+  change:        number;
+  sessionId:     string;
+  terminalId:    string;
+  terminalName:  string;
+  seriesCode:    string;
+  warehouseCode: string;
   generateInvoice: boolean;
 }
 
 @Injectable({ providedIn: 'root' })
 export class PosSalesService {
-  private firestore     = inject(Firestore);
-  private tenantService = inject(TenantService);
-  private authService   = inject(AuthService);
-  private cashService   = inject(PosCashService);
+  private firestore       = inject(Firestore);
+  private tenantService   = inject(TenantService);
+  private authService     = inject(AuthService);
+  private cashService     = inject(PosCashService);
+  private invoicesService = inject(InvoicesService);
+  private settingsService = inject(SettingsService);
 
-  private get companyId():      string { return this.tenantService.companyId; }
-  private get salesPath():      string { return `companies/${this.companyId}/pos-sales`; }
-  private get sessionsPath():   string { return `companies/${this.companyId}/pos-sessions`; }
-  private get terminalsPath():  string { return `companies/${this.companyId}/pos-terminals`; }
+  private get companyId():     string { return this.tenantService.companyId; }
+  private get salesPath():     string { return `companies/${this.companyId}/pos-sales`; }
+  private get terminalsPath(): string { return `companies/${this.companyId}/pos-terminals`; }
 
   // ─── Queries ───────────────────────────────────────────────────────────────
 
@@ -77,46 +79,46 @@ export class PosSalesService {
   // ─── Complete a sale ───────────────────────────────────────────────────────
 
   async completeSale(input: CompleteSaleInput): Promise<PosSale> {
-    const user      = this.authService.user();
-    const now       = Timestamp.now();
+    const user = this.authService.user();
+    const now  = Timestamp.now();
     const { cartState, payments, totalPaid, change } = input;
 
-    // Calcular totales de pago por método
     const cashTotal     = payments.filter(p => p.method === 'cash').reduce((s, p) => s + p.amount, 0);
     const cardTotal     = payments.filter(p => p.method === 'card').reduce((s, p) => s + p.amount, 0);
     const transferTotal = payments.filter(p => p.method === 'transfer').reduce((s, p) => s + p.amount, 0);
 
-    // Obtener correlativo del ticket (num_tickets del terminal, incremento atómico)
     const ticketNumber = await this.getNextTicketNumber(input.terminalId);
 
     const saleData: Omit<PosSale, 'id'> = {
-      sessionId:        input.sessionId,
-      terminalId:       input.terminalId,
-      terminalName:     input.terminalName,
-      seriesCode:       input.seriesCode,
-      userId:           user?.uid ?? '',
-      userName:         user?.displayName ?? user?.email ?? '',
-      customerId:       cartState.customerId,
-      customerName:     cartState.customerName,
-      customerTaxId:    cartState.customerTaxId,
+      sessionId:         input.sessionId,
+      terminalId:        input.terminalId,
+      terminalName:      input.terminalName,
+      seriesCode:        input.seriesCode,
+      warehouseCode:     input.warehouseCode,
+      userId:            user?.uid ?? '',
+      userName:          user?.displayName ?? user?.email ?? '',
+      customerId:        cartState.customerId,
+      customerName:      cartState.customerName,
+      customerTaxId:     cartState.customerTaxId,
       customerTaxIdType: cartState.customerTaxIdType,
-      lines:            cartState.items,
-      subtotal:         cartState.subtotal,
+      lines:             cartState.items,
+      subtotal:          cartState.subtotal,
       globalDiscountPct: cartState.globalDiscountPct,
-      discountAmount:   cartState.discountAmount,
-      vatAmount:        cartState.vatAmount,
-      total:            cartState.total,
+      discountAmount:    cartState.discountAmount,
+      vatAmount:         cartState.vatAmount,
+      total:             cartState.total,
       payments,
       totalPaid,
       change,
-      generateInvoice:  input.generateInvoice,
-      status:           'completed',
+      generateInvoice:   input.generateInvoice,
+      status:            'completed',
       ticketNumber,
-      createdAt:        now,
+      createdAt:         now,
     };
 
-    // Guardar venta (stripUndefined previene el rechazo de Firestore por campos undefined)
     const saleRef = await addDoc(collection(this.firestore, this.salesPath), stripUndefined(saleData));
+    const saleId  = saleRef.id;
+    const sale: PosSale = { id: saleId, ...saleData };
 
     // Actualizar totales de sesión
     await this.cashService.updateSessionAfterSale(input.sessionId, {
@@ -126,18 +128,101 @@ export class PosSalesService {
       transfer: transferTotal,
     });
 
-    return { id: saleRef.id, ...saleData };
+    // ── Factura — se crea siempre (igual que invoices/new → Emitir) ───────────
+    // Stock lo maneja la CF onInvoiceStock al detectar status → 'issued'
+    try {
+      const fiscalYear = new Date().getFullYear().toString();
+      const [seriesList, paymentTerms] = await Promise.all([
+        firstValueFrom(this.settingsService.getDocumentSeries()),
+        firstValueFrom(this.settingsService.getPaymentTerms()),
+      ]);
+      const series          = seriesList.find(s => s.documentType === 'invoice' && s.isActive);
+      const paymentTermCode = paymentTerms.find(t => t.isActive)?.code ?? '';
+
+      if (series) {
+        const lines: InvoiceLine[] = cartState.items.map((item, idx) => ({
+          id:          `${saleId}-${idx + 1}`,
+          productId:   item.productId,
+          productSku:  item.productSku,
+          description: item.productName,
+          quantity:    item.quantity,
+          unitPrice:   item.salePrice,
+          discountPct: item.discountPct,
+          subtotal:    item.subtotal,
+          vatPct:      item.vatPct,
+          vatAmount:   item.vatAmount,
+          total:       item.lineTotal,
+          sriTaxCode:  item.vatCode,
+        }));
+
+        // Mismo patrón que invoice-form: si SRI no está habilitado → marcar not_required
+        const sriEnabled = this.tenantService.isSriEnabled();
+        const sriStatus: SriDocumentStatus | undefined = sriEnabled ? undefined : 'not_required';
+
+        const invoiceId = await this.invoicesService.createInvoice({
+          seriesCode:          series.code,
+          seriesEstablishment: series.establishment,
+          seriesEmissionPoint: series.emissionPoint,
+          fiscalYear,
+          date:                now,
+          dueDate:             now,
+          customerId:          cartState.customerId,
+          customerCode:        '',
+          customerName:        cartState.customerName,
+          customerTaxId:       cartState.customerTaxId,
+          customerTaxIdType:   cartState.customerTaxIdType,
+          warehouseCode:       input.warehouseCode,
+          paymentTermCode,
+          currency:            'USD',
+          exchangeRate:        1,
+          globalDiscountPct:   cartState.globalDiscountPct,
+          lines,
+          status:              'issued',
+          ...(sriStatus ? { sriStatus } : {}),
+          isPaid:              true,
+          isVoid:              false,
+          isCreditNote:        false,
+          paymentMethods:      payments.map(p => ({
+            code:   p.sriCode ?? '20',
+            name:   p.methodLabel,
+            amount: p.amount,
+          })),
+        });
+
+        await updateDoc(doc(this.firestore, `${this.salesPath}/${saleId}`), { invoiceId });
+        sale.invoiceId = invoiceId;
+      }
+    } catch (err: any) {
+      console.error('[POS] Invoice creation failed:', err);
+      const invoiceError = err?.message ?? 'Error al crear factura';
+      await updateDoc(doc(this.firestore, `${this.salesPath}/${saleId}`), { invoiceError });
+      sale.invoiceError = invoiceError;
+    }
+
+    return sale;
   }
 
+  // ─── Void a sale ──────────────────────────────────────────────────────────
+
   async voidSale(saleId: string): Promise<void> {
-    await updateDoc(doc(this.firestore, `${this.salesPath}/${saleId}`), {
-      status: 'void'
-    });
+    const saleSnap = await getDoc(doc(this.firestore, `${this.salesPath}/${saleId}`));
+    if (!saleSnap.exists()) throw new Error('Ticket no encontrado');
+    const sale = { id: saleSnap.id, ...saleSnap.data() } as PosSale;
+
+    if (sale.status === 'void') throw new Error('El ticket ya está anulado');
+
+    // Marcar ticket como anulado
+    await updateDoc(doc(this.firestore, `${this.salesPath}/${saleId}`), { status: 'void' });
+
+    // Anular factura vinculada — la CF onInvoiceStock revierte el stock automáticamente
+    if (sale.invoiceId) {
+      await this.invoicesService.markVoid(sale.invoiceId)
+        .catch(err => console.error('[POS] markVoid failed for invoice', sale.invoiceId, err));
+    }
   }
 
   // ─── Ticket number ─────────────────────────────────────────────────────────
 
-  // Incrementa numTickets en el terminal atómicamente (num_tickets de FacturaScripts)
   private async getNextTicketNumber(terminalId: string): Promise<number> {
     const terminalRef = doc(this.firestore, `${this.terminalsPath}/${terminalId}`);
     let ticketNumber = 1;
