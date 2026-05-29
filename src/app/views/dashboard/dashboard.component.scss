@@ -1,5 +1,9 @@
 // ── KPI Cards ─────────────────────────────────────────────────────────────────
 
+.kpi-card--alert {
+  border-color: rgba(var(--cui-danger-rgb), 0.4) !important;
+}
+
 .kpi-icon {
   display: inline-flex;
   align-items: center;
@@ -13,6 +17,7 @@
   &--primary { background: rgba(var(--cui-primary-rgb), 0.15); color: var(--cui-primary); }
   &--warning { background: rgba(var(--cui-warning-rgb), 0.15); color: var(--cui-warning); }
   &--info    { background: rgba(var(--cui-info-rgb),    0.15); color: var(--cui-info);    }
+  &--danger  { background: rgba(var(--cui-danger-rgb),  0.15); color: var(--cui-danger);  }
 }
 
 .kpi-value {
@@ -49,6 +54,8 @@
 .chart-wrapper {
   position: relative;
   height: 260px;
+
+  &--sm { height: 220px; }
 }
 
 // ── Recent invoices list ──────────────────────────────────────────────────────

@@ -139,6 +139,7 @@ export interface PosSale {
   invoiceNumber?: string;
   generateInvoice: boolean;
   invoiceError?: string;    // mensaje de error si la CF falló al generar la factura
+  hasLinkedInvoice?: boolean;  // true cuando una factura fue generada y vinculada
   // ── Estado ─────────────────────────────────────────────────────────────────
   seriesCode: string;              // codserie del terminal
   warehouseCode?: string;          // bodega — necesaria para reponer stock al anular

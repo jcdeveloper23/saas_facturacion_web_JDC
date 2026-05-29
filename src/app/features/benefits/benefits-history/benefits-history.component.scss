@@ -1,0 +1,180 @@
+// ─── Stat pills ───────────────────────────────────────────────────────────────
+.stat-strip { display: flex; gap: .25rem; flex-wrap: wrap; }
+
+.stat-pill {
+  display: inline-flex; align-items: center; gap: .3rem;
+  padding: .2rem .6rem; border-radius: 99px; cursor: pointer;
+  font-size: .75rem; font-weight: 400;
+  border: 1px solid var(--cui-border-color);
+  color: var(--cui-secondary-color);
+  background: transparent;
+  transition: background .12s, color .12s;
+
+  &:hover { background: var(--cui-tertiary-bg); color: var(--cui-body-color); }
+}
+
+.stat-pill--active {
+  background: var(--cui-primary-bg-subtle);
+  color: var(--cui-primary);
+  border-color: var(--cui-primary-border-subtle);
+}
+
+.stat-pill .count { font-weight: 600; }
+
+// ─── Filters ─────────────────────────────────────────────────────────────────
+.search-input { max-width: 320px; }
+
+// ─── Main table ───────────────────────────────────────────────────────────────
+.hist-table {
+  width: 100%; border-collapse: collapse;
+
+  thead th {
+    font-size: .69rem; font-weight: 500; text-transform: uppercase; letter-spacing: .05em;
+    color: var(--cui-tertiary-color); padding: .35rem .6rem;
+    border-bottom: 1px solid var(--cui-border-color);
+    background: var(--cui-tertiary-bg);
+    white-space: nowrap;
+  }
+
+  tbody td {
+    padding: .42rem .6rem; font-size: .82rem;
+    border-bottom: 1px solid var(--cui-border-color);
+    vertical-align: middle;
+  }
+
+  tbody tr:last-child td { border-bottom: none; }
+}
+
+.dist-row {
+  cursor: pointer;
+  transition: background .1s;
+
+  &:hover td { background: var(--cui-tertiary-bg); }
+
+  &--expanded td {
+    // background: var(--cui-primary-bg-subtle);
+    border-bottom: none;
+  }
+}
+
+.period-label {
+  display: block; font-weight: 600; font-size: .82rem;
+  font-family: monospace;
+}
+
+.period-sub {
+  display: block; font-size: .72rem; color: var(--cui-secondary-color);
+}
+
+.mono { font-family: monospace; }
+
+.date-cell { font-size: .75rem; color: var(--cui-secondary-color); white-space: nowrap; }
+
+.chevron { color: var(--cui-secondary-color); transition: transform .15s; }
+
+// ─── Margin pill ──────────────────────────────────────────────────────────────
+.margin-pill {
+  display: inline-block; padding: .1rem .4rem;
+  border-radius: 4px; font-size: .75rem; font-family: monospace; font-weight: 600;
+
+  &--good { background: rgba(var(--cui-success-rgb), .12); color: var(--cui-success); }
+  &--warn { background: rgba(var(--cui-warning-rgb), .12); color: var(--cui-warning); }
+  &--bad  { background: rgba(var(--cui-danger-rgb),  .12); color: var(--cui-danger); }
+}
+
+// ─── Detail panel ─────────────────────────────────────────────────────────────
+.detail-row td { padding: 0; }
+
+.detail-panel {
+  // background: var(--cui-primary-bg-subtle);
+  border-left: 3px solid var(--cui-primary);
+  padding: .75rem 1rem;
+
+  &__title {
+    font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em;
+    color: var(--cui-secondary-color); margin-bottom: .5rem;
+    display: flex; align-items: center;
+  }
+}
+
+.detail-notes {
+  font-weight: 400; text-transform: none; letter-spacing: 0;
+  color: var(--cui-secondary-color); margin-left: .25rem;
+  font-style: italic;
+}
+
+// ─── Partner table inside detail ──────────────────────────────────────────────
+.partner-table {
+  width: 100%; border-collapse: collapse;
+
+  thead th {
+    font-size: .67rem; font-weight: 500; text-transform: uppercase; letter-spacing: .04em;
+    color: var(--cui-tertiary-color); padding: .25rem .5rem;
+    border-bottom: 1px solid var(--cui-border-color);
+  }
+
+  tbody td {
+    padding: .32rem .5rem; font-size: .8rem;
+    border-bottom: 1px solid var(--cui-border-color);
+    vertical-align: middle;
+  }
+
+  tbody tr:last-child td { border-bottom: none; }
+}
+
+.partner-row--paid td { opacity: .7; }
+
+// ─── Distribution status badge ────────────────────────────────────────────────
+// Usa tokens BASE directamente — nunca c-badge ni --cui-*-emphasis
+.dist-badge {
+  display: inline-flex; align-items: center;
+  padding: .1rem .5rem; border-radius: 4px;
+  font-size: .72rem; font-weight: 500;
+
+  &--pending     { background: rgba(var(--cui-warning-rgb), .12); color: var(--cui-warning); }
+  &--partial     { background: rgba(var(--cui-info-rgb),    .12); color: var(--cui-info); }
+  &--distributed { background: rgba(var(--cui-success-rgb), .12); color: var(--cui-success); }
+}
+
+// ─── Pay badge ────────────────────────────────────────────────────────────────
+.pay-badge {
+  display: inline-flex; align-items: center;
+  padding: .1rem .45rem; border-radius: 4px;
+  font-size: .72rem; font-weight: 500;
+
+  &--paid    { background: rgba(var(--cui-success-rgb), .12); color: var(--cui-success); }
+  &--pending { background: rgba(var(--cui-warning-rgb), .12); color: var(--cui-warning); }
+}
+
+// ─── Table footer ─────────────────────────────────────────────────────────────
+.table-footer {
+  display: flex; align-items: center; gap: .75rem; flex-wrap: wrap;
+  padding: .4rem .6rem; font-size: .75rem; color: var(--cui-secondary-color);
+  border-top: 1px solid var(--cui-border-color);
+}
+
+.footer-sep { color: var(--cui-border-color); }
+.footer-val { font-family: monospace; font-weight: 600; color: var(--cui-body-color); }
+
+// ─── Pay modal summary ────────────────────────────────────────────────────────
+.pay-summary {
+  display: flex; align-items: baseline; justify-content: space-between;
+  padding: .5rem .75rem;
+  background: var(--cui-tertiary-bg);
+  border-radius: var(--cui-border-radius);
+  border: 1px solid var(--cui-border-color);
+
+  &__name   { font-weight: 600; font-size: .9rem; }
+  &__amount { font-family: monospace; font-size: 1rem; font-weight: 700; }
+}
+
+// ─── Inline info notice — sin c-alert ni *-emphasis ──────────────────────────
+.inline-info {
+  display: flex; align-items: center; gap: .35rem; flex-wrap: wrap;
+  padding: .5rem .75rem; border-radius: 8px; font-size: .82rem;
+  background: rgba(var(--cui-info-rgb), .08);
+  border: 1px solid rgba(var(--cui-info-rgb), .2);
+  color: var(--cui-body-color);
+
+  a { color: var(--cui-info); font-weight: 500; }
+}

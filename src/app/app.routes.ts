@@ -8,6 +8,7 @@ const APP_SEGMENTS = new Set([
   'dashboard', 'personas', 'customers', 'products', 'invoices',
   'retentions', 'debit-notes', 'stock', 'purchases', 'team-management',
   'pos', 'users', 'profiles', 'profile', 'accounting', 'settings',
+  'benefits',
   'base', 'forms', 'icons', 'notifications', 'charts', 'widgets', 'legal',
 ]);
 
@@ -213,6 +214,14 @@ export const routes: Routes = [
         data: { roles: ['admin', 'accountant'], module: 'accounting', featureFlag: 'accountingModule', title: 'Contabilidad' },
         loadChildren: () =>
           import('./features/accounting/accounting.routes').then(m => m.ACCOUNTING_ROUTES)
+      },
+
+      // ── Benefits ───────────────────────────────────────────────────────
+      {
+        path: 'benefits',
+        canActivate: [roleGuard, moduleGuard],
+        data: { roles: ['admin'], module: 'benefits', title: 'Beneficios' },
+        loadChildren: () => import('./features/benefits/benefits.routes').then(m => m.BENEFITS_ROUTES)
       },
 
       // ── Settings ───────────────────────────────────────────────────────

@@ -11,6 +11,52 @@
   </c-col>
 </c-row>
 
+<!-- ── Alertas operativas ────────────────────────────────────────────────────── -->
+@if (!loading()) {
+  @if (overdueInvoices().length > 0) {
+    <c-alert color="warning" class="mb-2 py-2 d-flex align-items-center gap-2">
+      <svg cIcon name="cilWarning" size="sm"></svg>
+      <span class="small">
+        <strong>{{ overdueInvoices().length }} factura{{ overdueInvoices().length === 1 ? '' : 's' }} vencida{{ overdueInvoices().length === 1 ? '' : 's' }}.</strong>
+        Tienen fecha de vencimiento superada y siguen en estado "Emitida".
+        <a routerLink="/invoices" class="alert-link ms-1">Ver facturas →</a>
+      </span>
+    </c-alert>
+  }
+  @if (hasModule('stock') && lowStockProducts().length > 0) {
+    <c-alert color="warning" class="mb-2 py-2 d-flex align-items-center gap-2">
+      <svg cIcon name="cilWarning" size="sm"></svg>
+      <span class="small">
+        <strong>{{ lowStockProducts().length }} producto{{ lowStockProducts().length === 1 ? '' : 's' }} bajo stock mínimo.</strong>
+        <a routerLink="/stock" class="alert-link ms-1">Ver stock →</a>
+      </span>
+    </c-alert>
+  }
+  @if (hasModule('pos') && posErrorCount() > 0) {
+    <c-alert color="danger" class="mb-2 py-2 d-flex align-items-center gap-2">
+      <svg cIcon name="cilWarning" size="sm"></svg>
+      <span class="small">
+        <strong>{{ posErrorCount() }} venta{{ posErrorCount() === 1 ? '' : 's' }} POS sin factura vinculada.</strong>
+        El stock de esas ventas no fue descontado.
+      </span>
+    </c-alert>
+  }
+  @if (hasModule('sri') && sriCertDaysLeft() !== null && sriCertDaysLeft()! <= 30) {
+    <c-alert [color]="sriCertDaysLeft()! <= 7 ? 'danger' : 'warning'" class="mb-2 py-2 d-flex align-items-center gap-2">
+      <svg cIcon name="cilWarning" size="sm"></svg>
+      <span class="small">
+        @if (sriCertDaysLeft()! <= 0) {
+          <strong>El certificado SRI ha vencido.</strong> La emisión electrónica está bloqueada.
+        } @else {
+          <strong>Certificado SRI vence en {{ sriCertDaysLeft() }} día{{ sriCertDaysLeft() === 1 ? '' : 's' }}.</strong>
+          Renueva el certificado antes de que expire para evitar interrupciones en la emisión.
+        }
+        <a routerLink="/settings/company" class="alert-link ms-1">Ir a configuración →</a>
+      </span>
+    </c-alert>
+  }
+}
+
 @if (loading()) {
   <div class="text-center py-5">
     <c-spinner color="primary"></c-spinner>
@@ -69,20 +115,35 @@
       </c-card>
     </c-col>
 
-    <!-- Clientes -->
+    <!-- Stock bajo mínimo (si módulo activo) / Clientes (si no) -->
     <c-col xs="12" sm="6" xl="3">
-      <c-card class="kpi-card h-100">
-        <c-card-body>
-          <div class="kpi-icon kpi-icon--info">
-            <svg cIcon name="cilPeople" size="lg"></svg>
-          </div>
-          <div class="kpi-value">{{ customersCount() }}</div>
-          <div class="kpi-label">Clientes registrados</div>
-          <div class="kpi-sub">
-            <a routerLink="/personas" class="text-primary small">Ver directorio →</a>
-          </div>
-        </c-card-body>
-      </c-card>
+      @if (hasModule('stock')) {
+        <c-card class="kpi-card h-100" [class.kpi-card--alert]="lowStockProducts().length > 0">
+          <c-card-body>
+            <div class="kpi-icon" [class.kpi-icon--danger]="lowStockProducts().length > 0" [class.kpi-icon--success]="lowStockProducts().length === 0">
+              <svg cIcon name="cilStorage" size="lg"></svg>
+            </div>
+            <div class="kpi-value">{{ lowStockProducts().length }}</div>
+            <div class="kpi-label">Productos bajo stock mínimo</div>
+            <div class="kpi-sub">
+              <a routerLink="/stock" class="text-primary small">Ver stock →</a>
+            </div>
+          </c-card-body>
+        </c-card>
+      } @else {
+        <c-card class="kpi-card h-100">
+          <c-card-body>
+            <div class="kpi-icon kpi-icon--info">
+              <svg cIcon name="cilPeople" size="lg"></svg>
+            </div>
+            <div class="kpi-value">{{ customersCount() }}</div>
+            <div class="kpi-label">Clientes registrados</div>
+            <div class="kpi-sub">
+              <a routerLink="/personas" class="text-primary small">Ver directorio →</a>
+            </div>
+          </c-card-body>
+        </c-card>
+      }
     </c-col>
 
   </c-row>
@@ -151,6 +212,67 @@
     </c-col>
 
   </c-row>
+
+  <!-- ── Top productos + Ventas por familia ────────────────────────────────── -->
+  @if (topProducts().length > 0) {
+    <c-row class="mb-4 g-3">
+
+      <!-- Top 10 productos del mes -->
+      <c-col xs="12" lg="8">
+        <c-card class="h-100">
+          <c-card-header class="d-flex align-items-center justify-content-between">
+            <strong>Top productos del mes</strong>
+            <a routerLink="/products" class="text-primary small">Ver catálogo →</a>
+          </c-card-header>
+          <c-card-body class="p-0">
+            <table class="table table-sm table-hover mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th class="ps-3">#</th>
+                  <th>Producto</th>
+                  <th class="text-end">Cant.</th>
+                  <th class="text-end pe-3">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (p of topProducts(); track p.sku; let i = $index) {
+                  <tr>
+                    <td class="ps-3 text-muted small">{{ i + 1 }}</td>
+                    <td>
+                      <div class="small fw-medium text-truncate" style="max-width:260px">{{ p.description }}</div>
+                      @if (p.sku) { <div class="text-muted" style="font-size:0.7rem">{{ p.sku }}</div> }
+                    </td>
+                    <td class="text-end small">{{ p.qty | number:'1.0-2' }}</td>
+                    <td class="text-end pe-3 small fw-semibold">${{ p.total | number:'1.2-2' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </c-card-body>
+        </c-card>
+      </c-col>
+
+      <!-- Ventas por familia (doughnut) -->
+      <c-col xs="12" lg="4">
+        <c-card class="h-100">
+          <c-card-header>
+            <strong>Ventas por familia</strong>
+            <span class="text-muted small ms-2">{{ monthName }}</span>
+          </c-card-header>
+          <c-card-body>
+            @if ((salesByFamily().datasets?.[0]?.data ?? []).length === 0) {
+              <div class="text-center py-4 text-muted small">Sin datos de familias.</div>
+            } @else {
+              <div class="chart-wrapper chart-wrapper--sm">
+                <c-chart type="doughnut" [data]="salesByFamily()" [options]="familyChartOptions"></c-chart>
+              </div>
+            }
+          </c-card-body>
+        </c-card>
+      </c-col>
+
+    </c-row>
+  }
 
 } <!-- /loading -->
 

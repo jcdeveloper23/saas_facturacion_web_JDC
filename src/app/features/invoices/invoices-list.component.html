@@ -9,39 +9,15 @@
   </div>
 }
 
-<!-- ── Cabecera ─────────────────────────────────────────────────────────── -->
-<div class="d-flex justify-content-between align-items-start mb-3">
-  <div>
-    <h4 class="mb-1">Facturas de Venta</h4>
-    <div class="stat-strip">
-      <button class="stat-pill" [class.stat-pill--active]="statusFilter() === null"
-              (click)="setStatusFilter(null)">
-        Todas <span class="count">{{ counts().total }}</span>
-      </button>
-      <button class="stat-pill" [class.stat-pill--active]="statusFilter() === 'issued'"
-              (click)="setStatusFilter('issued')">
-        Emitidas <span class="count">{{ counts().issued }}</span>
-      </button>
-      <button class="stat-pill" [class.stat-pill--active]="statusFilter() === 'paid'"
-              (click)="setStatusFilter('paid')">
-        Pagadas <span class="count">{{ counts().paid }}</span>
-      </button>
-      <button class="stat-pill" [class.stat-pill--active]="statusFilter() === 'draft'"
-              (click)="setStatusFilter('draft')">
-        Borradores <span class="count">{{ counts().draft }}</span>
-      </button>
-      @if (counts().void > 0) {
-        <button class="stat-pill" [class.stat-pill--active]="statusFilter() === 'void'"
-                (click)="setStatusFilter('void')">
-          Anuladas <span class="count">{{ counts().void }}</span>
-        </button>
-      }
-      @if (counts().credit_note > 0) {
-        <button class="stat-pill" [class.stat-pill--active]="statusFilter() === 'credit_note'"
-                (click)="setStatusFilter('credit_note')">
-          N. Crédito <span class="count">{{ counts().credit_note }}</span>
-        </button>
-      }
+<!-- ── Cabecera ────────────────────────────────────────────────────────────── -->
+<div class="d-flex align-items-start justify-content-between mb-2">
+  <div class="d-flex align-items-center gap-2">
+    <div class="page-icon">
+      <svg cIcon name="cilDescription" class="text-white"></svg>
+    </div>
+    <div>
+      <h4 class="mb-0">Facturas de Venta</h4>
+      <div class="stat-label-text">{{ DATE_RANGE_LABELS[dateRangeMode()] }}</div>
     </div>
   </div>
   <div class="d-flex gap-2 align-items-center">
@@ -58,67 +34,141 @@
   </div>
 </div>
 
+<!-- ── Stat strip — período + resumen ─────────────────────────────────────── -->
+<div class="stat-strip mb-3">
+  @for (mode of DATE_RANGE_MODES; track mode) {
+    <button class="stat-item stat-item--click" [class.stat-item--active]="dateRangeMode() === mode"
+            (click)="changeDateRangeMode(mode)">
+      {{ DATE_RANGE_LABELS[mode] }}
+    </button>
+  }
+  <div class="stat-sep"></div>
+  <div class="stat-item">
+    <span class="stat-val">{{ counts().total }}</span>
+    <span class="stat-label-text">facturas</span>
+  </div>
+  @if (counts().issued > 0) {
+    <div class="stat-item">
+      <span class="stat-val">{{ counts().issued }}</span>
+      <span class="stat-label-text">emitidas</span>
+    </div>
+  }
+  @if (counts().paid > 0) {
+    <div class="stat-item" style="color:var(--cui-success);border-color:rgba(var(--cui-success-rgb),.3)">
+      <span class="stat-val">{{ counts().paid }}</span>
+      <span style="font-size:.7rem">pagadas</span>
+    </div>
+  }
+  @if (counts().draft > 0) {
+    <div class="stat-item">
+      <span class="stat-val">{{ counts().draft }}</span>
+      <span class="stat-label-text">borradores</span>
+    </div>
+  }
+  @if (overdueCount() > 0) {
+    <div class="stat-item stat-item--click stat-item--warn">
+      <span class="stat-val">{{ overdueCount() }}</span>
+      <span style="font-size:.7rem">vencidas</span>
+    </div>
+  }
+  @if (totalAmount() > 0) {
+    <div class="stat-sep"></div>
+    <div class="stat-item">
+      <span class="stat-val" style="color:var(--cui-primary)">{{ totalAmount() | number:'1.2-2' }}</span>
+      <span class="stat-label-text">USD total</span>
+    </div>
+  }
+</div>
+
 <!-- ── Filtros ─────────────────────────────────────────────────────────────── -->
 <c-card class="border shadow-none mb-3">
   <c-card-body class="py-2 px-3">
+
+    <!-- Fila principal: seg-tabs + search + serie + más filtros -->
     <div class="d-flex gap-2 align-items-center flex-wrap">
 
-      <c-input-group class="search-input flex-grow-1">
-        <span cInputGroupText class="bg-transparent border-end-0">
-          <svg cIcon name="cilSearch" size="sm"></svg>
-        </span>
-        <input cFormControl class="border-start-0 ps-0"
-               placeholder="Número, cliente, RUC/CI, observaciones..."
+      <!-- Seg tabs: estado -->
+      <div class="seg-tabs">
+        <button class="seg-tab" [class.active]="statusFilter() === null"
+                (click)="setStatusFilter(null)">
+          Todas <span class="seg-count">{{ counts().total }}</span>
+        </button>
+        @if (counts().issued > 0 || statusFilter() === 'issued') {
+          <button class="seg-tab" [class.active]="statusFilter() === 'issued'"
+                  (click)="setStatusFilter('issued')">
+            Emitidas <span class="seg-count">{{ counts().issued }}</span>
+          </button>
+        }
+        @if (counts().paid > 0 || statusFilter() === 'paid') {
+          <button class="seg-tab" [class.active]="statusFilter() === 'paid'"
+                  (click)="setStatusFilter('paid')">
+            Pagadas <span class="seg-count">{{ counts().paid }}</span>
+          </button>
+        }
+        @if (counts().draft > 0 || statusFilter() === 'draft') {
+          <button class="seg-tab" [class.active]="statusFilter() === 'draft'"
+                  (click)="setStatusFilter('draft')">
+            Borradores <span class="seg-count">{{ counts().draft }}</span>
+          </button>
+        }
+        @if (counts().void > 0 || statusFilter() === 'void') {
+          <button class="seg-tab" [class.active]="statusFilter() === 'void'"
+                  (click)="setStatusFilter('void')">
+            Anuladas
+          </button>
+        }
+        @if (counts().credit_note > 0 || statusFilter() === 'credit_note') {
+          <button class="seg-tab" [class.active]="statusFilter() === 'credit_note'"
+                  (click)="setStatusFilter('credit_note')">
+            N. Crédito
+          </button>
+        }
+      </div>
+
+      <div class="flex-grow-1"></div>
+
+      <!-- Búsqueda -->
+      <div class="search-wrap">
+        <span class="search-icon"><svg cIcon name="cilSearch" size="sm"></svg></span>
+        <input class="search-input"
+               placeholder="Número, cliente, RUC/CI..."
                [value]="searchTerm()"
                (input)="searchTerm.set($any($event.target).value)">
         @if (searchTerm()) {
-          <button cButton color="secondary" variant="ghost" class="border-start-0"
-                  (click)="searchTerm.set('')">
-            <svg cIcon name="cilX" size="sm"></svg>
-          </button>
+          <button class="search-clear" type="button" (click)="searchTerm.set('')">×</button>
         }
-      </c-input-group>
+      </div>
 
-      <select cSelect class="year-select"
-              [value]="yearFilter()"
-              (change)="changeYear($any($event.target).value)">
-        @for (y of years; track y) {
-          <option [value]="y">{{ y }}</option>
-        }
-      </select>
-
-      <button cButton [color]="showAdvancedFilters() || hasActiveFilters() ? 'primary' : 'secondary'"
-              [variant]="hasActiveFilters() ? undefined : 'outline'"
-              size="sm"
-              (click)="showAdvancedFilters.set(!showAdvancedFilters())">
-        <svg cIcon name="cilOptions" size="sm" class="me-1"></svg>
-        Filtros
-        @if (hasActiveFilters()) { <span class="ms-1 badge bg-white text-primary">•</span> }
-      </button>
-
-      @if (hasActiveFilters()) {
-        <button cButton color="secondary" variant="ghost" size="sm"
-                cTooltip="Limpiar filtros"
-                (click)="clearFilters()">
-          <svg cIcon name="cilX" size="sm"></svg>
-        </button>
+      <!-- Serie (solo si hay más de una) -->
+      @if (series().length > 1) {
+        <div class="filter-select-wrap" [class.active]="!!seriesFilter()">
+          <span class="filter-icon"><svg cIcon name="cilLayers" size="sm"></svg></span>
+          <select class="filter-select" [value]="seriesFilter()"
+                  (change)="seriesFilter.set($any($event.target).value)">
+            <option value="">Todas las series</option>
+            @for (s of series(); track s.id) {
+              <option [value]="s.code">{{ s.name }}</option>
+            }
+          </select>
+        </div>
       }
+
+      <!-- Más filtros -->
+      <button class="more-filters-btn" type="button"
+              [class.open]="showMoreFilters()"
+              (click)="showMoreFilters.set(!showMoreFilters())">
+        <svg cIcon name="cilOptions" size="sm"></svg>
+        Más filtros
+        @if (activeFilterCount() > 0) {
+          <span class="more-count">{{ activeFilterCount() }}</span>
+        }
+      </button>
     </div>
 
-    <!-- Filtros avanzados -->
-    @if (showAdvancedFilters()) {
-      <div class="adv-filters">
+    <!-- Panel expandible: fechas personalizadas -->
+    @if (showMoreFilters()) {
+      <div class="filter-panel px-3 py-2 mt-2 rounded">
         <div class="row g-2">
-          <div class="col-sm-3">
-            <label class="form-label mb-1" style="font-size:.75rem">Serie</label>
-            <select cSelect [value]="seriesFilter()"
-                    (change)="seriesFilter.set($any($event.target).value)">
-              <option value="">Todas las series</option>
-              @for (s of series(); track s.id) {
-                <option [value]="s.code">{{ s.name }} ({{ s.establishment }}-{{ s.emissionPoint }})</option>
-              }
-            </select>
-          </div>
           <div class="col-sm-3">
             <label class="form-label mb-1" style="font-size:.75rem">Desde</label>
             <input cFormControl type="date"
@@ -134,6 +184,35 @@
         </div>
       </div>
     }
+
+    <!-- Chips de filtros activos -->
+    @if (hasActiveFilters()) {
+      <div class="chips-row mt-1">
+        @if (dateFrom()) {
+          <span class="active-chip">
+            Desde: {{ dateFrom() }}
+            <span class="chip-remove" (click)="dateFrom.set('')">×</span>
+          </span>
+        }
+        @if (dateTo()) {
+          <span class="active-chip">
+            Hasta: {{ dateTo() }}
+            <span class="chip-remove" (click)="dateTo.set('')">×</span>
+          </span>
+        }
+        @if (seriesFilter()) {
+          <span class="active-chip">
+            Serie: {{ seriesFilter() }}
+            <span class="chip-remove" (click)="seriesFilter.set('')">×</span>
+          </span>
+        }
+        <button class="filter-clear-btn ms-auto" type="button" (click)="clearFilters()">
+          <svg cIcon name="cilX" size="sm"></svg>
+          Limpiar filtros
+        </button>
+      </div>
+    }
+
   </c-card-body>
 </c-card>
 
@@ -148,9 +227,9 @@
       <div class="text-center py-5">
         <svg cIcon name="cilDescription" size="3xl" class="text-muted mb-3 opacity-25"></svg>
         <p class="text-muted mb-2">
-          {{ searchTerm() || hasActiveFilters()
+          {{ searchTerm() || hasActiveFilters() || statusFilter()
               ? 'Sin resultados con los filtros aplicados'
-              : 'No hay facturas en ' + yearFilter() }}
+              : 'No hay facturas para ' + DATE_RANGE_LABELS[dateRangeMode()] }}
         </p>
         @if (!searchTerm() && !hasActiveFilters()) {
           <button *hasPermission="'invoices.create'" cButton color="primary" size="sm" (click)="openNew()">
@@ -223,13 +302,13 @@
 
                 <!-- Fecha de emisión -->
                 <td>
-                  <div style="font-size:.82rem">{{ formatDate(inv.date) }}</div>
+                  <div class="date-cell">{{ formatDate(inv.date) }}</div>
                 </td>
 
                 <!-- Vencimiento con color -->
                 <td>
                   @if (inv.dueDate) {
-                    <div [class]="dueDateClass(inv)" style="font-size:.82rem">
+                    <div [class]="'date-cell ' + dueDateClass(inv)">
                       {{ formatDate(inv.dueDate) }}
                     </div>
                   } @else {
@@ -239,7 +318,7 @@
 
                 <!-- Cliente -->
                 <td>
-                  <div style="font-size:.83rem; font-weight:500">{{ inv.customerName }}</div>
+                  <div class="inv-name">{{ inv.customerName }}</div>
                   @if (!inv.customerTaxId) {
                     <span class="badge bg-warning text-dark" style="font-size:.65rem">Sin RUC/CI</span>
                   }

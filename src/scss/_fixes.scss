@@ -1,4 +1,31 @@
 // Place for temp fixes
 
+@use "@coreui/coreui/scss/mixins/color-mode" as *;
 
+// ─── Emphasis tokens — fix dark mode purple tint ──────────────────────────────
+//
+// CoreUI 5 genera los tokens *-emphasis y *-text-emphasis en dark mode usando
+// tint-color() sobre el color base. Como el primary de CoreUI es violeta (#321fdb),
+// ese tono contamina la mezcla y produce un violeta inesperado en warning/success/info.
+//
+// Fix: en dark mode los tokens emphasis simplemente usan el color base.
+// En light mode los dejamos como están (son variantes oscuras legibles sobre
+// los fondos *-bg-subtle).
+//
+// Regla de uso: NUNCA usar --cui-*-emphasis en componentes propios;
+// usar --cui-* (base) directamente. Estos overrides cubren los casos de
+// librerías CoreUI que sí los usan.
 
+@include color-mode(dark) {
+  --cui-warning-text-emphasis:  var(--cui-warning);
+  --cui-success-text-emphasis:  var(--cui-success);
+  --cui-danger-text-emphasis:   var(--cui-danger);
+  --cui-primary-text-emphasis:  var(--cui-primary);
+  --cui-info-text-emphasis:     var(--cui-info);
+
+  --cui-warning-emphasis:       var(--cui-warning);
+  --cui-success-emphasis:       var(--cui-success);
+  --cui-danger-emphasis:        var(--cui-danger);
+  --cui-primary-emphasis:       var(--cui-primary);
+  --cui-info-emphasis:          var(--cui-info);
+}

@@ -107,7 +107,7 @@ export class PosSessionService {
         vatPct,
         vatCode:          product.taxRateCode,
         noStock:          product.noStock,
-        averageCost:      product.averageCost,
+        averageCost:      product.averageCost || product.costPrice || 0,
         ...calcCartItem({ quantity, salePrice: product.salePrice, discountPct: 0, vatPct })
       };
       this.cartItems.update(items => [...items, item]);

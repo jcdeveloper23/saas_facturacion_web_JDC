@@ -136,6 +136,23 @@ export const navItems: INavData[] = [
     ]
   },
 
+  // ─── Benefits ─────────────────────────────────────────────────────────────────
+  {
+    title: true,
+    name: 'Analisis'
+  },
+  {
+    name: 'Beneficios',
+    url: '/benefits/__group',
+    iconComponent: { name: 'cil-chart-pie' },
+    attributes: { module: 'benefits', roles: ['admin'] },
+    children: [
+      { name: 'Dashboard',     url: '/benefits/dashboard', icon: 'nav-icon-bullet' },
+      { name: 'Socios',        url: '/benefits/config',    icon: 'nav-icon-bullet' },
+      { name: 'Liquidaciones', url: '/benefits/history',   icon: 'nav-icon-bullet' }
+    ]
+  },
+
   // ─── Contabilidad ─────────────────────────────────────────────────────────
   {
     title: true,

@@ -1,0 +1,139 @@
+<c-row>
+  <c-col>
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h2 class="mb-0">Configuracion de Socios</h2>
+      <a routerLink="/benefits/dashboard" cButton color="secondary" variant="outline" size="sm">
+        Volver al Dashboard
+      </a>
+    </div>
+
+    @if (loading()) {
+      <div class="text-center py-5">
+        <c-spinner color="primary"></c-spinner>
+      </div>
+    } @else {
+      <c-card>
+        <c-card-body>
+          <!-- Config name -->
+          <div class="mb-4">
+            <label cLabel for="configName">Nombre de la configuracion</label>
+            <input
+              cFormControl
+              id="configName"
+              type="text"
+              [ngModel]="configName()"
+              (ngModelChange)="configName.set($event)"
+              placeholder="Ej: Configuracion 2025" />
+          </div>
+
+          <!-- Partners table -->
+          <h5 class="mb-3">Socios</h5>
+
+          @if (partners().length === 0) {
+            <p class="text-muted">No hay socios configurados. Agregue al menos uno.</p>
+          } @else {
+            <div class="table-responsive mb-3">
+              <table class="table table-sm table-bordered align-middle">
+                <thead>
+                  <tr>
+                    <th>Nombre</th>
+                    <th>RUC / CI</th>
+                    <th>Email</th>
+                    <th style="width: 120px">Porcentaje (%)</th>
+                    <th style="width: 60px"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (partner of partners(); track trackById($index, partner)) {
+                    <tr>
+                      <td>
+                        <input
+                          cFormControl
+                          type="text"
+                          [ngModel]="partner.name"
+                          (ngModelChange)="updatePartner(partner.id, 'name', $event)"
+                          placeholder="Nombre del socio" />
+                      </td>
+                      <td>
+                        <input
+                          cFormControl
+                          type="text"
+                          [ngModel]="partner.taxId"
+                          (ngModelChange)="updatePartner(partner.id, 'taxId', $event)"
+                          placeholder="0912345678" />
+                      </td>
+                      <td>
+                        <input
+                          cFormControl
+                          type="email"
+                          [ngModel]="partner.email"
+                          (ngModelChange)="updatePartner(partner.id, 'email', $event)"
+                          placeholder="socio@empresa.com" />
+                      </td>
+                      <td>
+                        <input
+                          cFormControl
+                          type="number"
+                          min="0.01"
+                          max="100"
+                          step="0.01"
+                          [ngModel]="partner.percentage"
+                          (ngModelChange)="updatePartner(partner.id, 'percentage', +$event)"
+                          placeholder="50.00" />
+                      </td>
+                      <td class="text-center">
+                        <button
+                          cButton
+                          color="danger"
+                          variant="ghost"
+                          size="sm"
+                          (click)="removePartner(partner.id)">
+                          &times;
+                        </button>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+
+          <!-- Total percentage badge -->
+          <div class="d-flex align-items-center gap-2 mb-4">
+            <span class="fw-semibold">Total:</span>
+            <span class="pct-badge"
+                  [class.pct-badge--ok]="totalPct() === 100"
+                  [class.pct-badge--over]="totalPct() > 100"
+                  [class.pct-badge--under]="totalPct() < 100">
+              {{ totalPct() }}%
+            </span>
+            @if (totalPct() !== 100) {
+              <span class="pct-warn">
+                Los porcentajes deben sumar 100%. Diferencia: {{ (100 - totalPct()).toFixed(2) }}%
+              </span>
+            }
+          </div>
+
+          <!-- Actions -->
+          <div class="d-flex gap-3">
+            <button cButton color="secondary" variant="outline" (click)="addPartner()">
+              + Agregar Socio
+            </button>
+
+            <button
+              cButton
+              color="primary"
+              [disabled]="!isValid() || saving()"
+              (click)="save()">
+              @if (saving()) {
+                <c-spinner size="sm" class="me-1"></c-spinner>
+              }
+              Guardar Configuracion
+            </button>
+          </div>
+        </c-card-body>
+      </c-card>
+    }
+  </c-col>
+</c-row>

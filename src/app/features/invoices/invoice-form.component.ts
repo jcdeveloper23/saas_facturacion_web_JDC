@@ -239,8 +239,9 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
 
   // ── State ─────────────────────────────────────────────────────────────────
   invoiceId   = signal<string | null>(null);
-  loading     = signal(true);
-  saving      = signal(false);
+  loading        = signal(true);
+  saving         = signal(false);
+  editUnlocked   = signal(false);
   isNew       = signal(true);
   invoice     = signal<Invoice | null>(null);
 
@@ -702,7 +703,7 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
     try {
       const input: PersonCreateInput = {
         roles:        ['customer'],
-        taxIdType:    'CI' as TaxIdType,
+        taxIdType:    '07' as TaxIdType,
         taxId:        '9999999999999',
         isCompany:    false,
         name:         'CONSUMIDOR FINAL',
@@ -840,7 +841,8 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
       total:        [line?.total ?? 0],
       warehouseCode:[line?.warehouseCode ?? ''],
       unit:         [line?.unit ?? ''],
-      notes:        [line?.notes ?? '']
+      notes:        [line?.notes ?? ''],
+      averageCost:  [line?.averageCost ?? 0]
     });
 
     // Forward calc: qty / price / discount / vat → total
@@ -895,7 +897,8 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
       productSku:  p.sku ?? '',
       description: p.name,
       unitPrice:   p.salePrice ?? 0,
-      vatPct:      p.taxRate ?? 15
+      vatPct:      p.taxRate ?? 15,
+      averageCost: p.averageCost || p.costPrice || 0
     });
     this.recalcLine(g);
     void this.loadLineStock(p.id, idx);
@@ -1094,7 +1097,8 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
       productSku:  p.sku ?? '',
       description: p.name,
       unitPrice:   p.salePrice ?? 0,
-      vatPct:      p.taxRate ?? 15
+      vatPct:      p.taxRate ?? 15,
+      averageCost: p.averageCost || p.costPrice || 0
     });
     this.recalcLine(g);
     void this.loadLineStock(p.id, idx);
@@ -1230,7 +1234,17 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
   }
 
   isEditable(): boolean {
-    return this.isNew() || this.invoice()?.status === 'draft';
+    return this.isNew() || this.invoice()?.status === 'draft' || this.editUnlocked();
+  }
+
+  unlockEdit(): void {
+    this.editUnlocked.set(true);
+    this.form.enable();
+    // Recargar stock de líneas para que los indicadores de disponibilidad funcionen
+    this.linesArray.controls.forEach((c, idx) => {
+      const productId = c.get('productId')?.value as string | undefined;
+      if (productId) void this.loadLineStock(productId, idx);
+    });
   }
 
   lineCtrl(idx: number, field: string): AbstractControl {
@@ -1251,7 +1265,7 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
       if (this.form.invalid) return;
       this.autoSaveStatus.set('saving');
       try {
-        const fv = this.form.value;
+        const fv = this.form.getRawValue();
         const lines: InvoiceLine[] = this.linesArray.controls.map((c, idx) => {
           const val = (c as FormGroup).getRawValue() as InvoiceLine;
           const config = this.quantityInputConfig(idx);

@@ -29,6 +29,15 @@
       "collectionGroup": "invoices",
       "queryScope": "COLLECTION",
       "fields": [
+        { "fieldPath": "status",       "order": "ASCENDING" },
+        { "fieldPath": "isCreditNote", "order": "ASCENDING" },
+        { "fieldPath": "date",         "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "invoices",
+      "queryScope": "COLLECTION",
+      "fields": [
         { "fieldPath": "status",     "order": "ASCENDING" },
         { "fieldPath": "date",       "order": "DESCENDING" }
       ]
@@ -40,6 +49,31 @@
         { "fieldPath": "fiscalYear", "order": "ASCENDING" },
         { "fieldPath": "status",     "order": "ASCENDING" },
         { "fieldPath": "date",       "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "invoices",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "fiscalYear", "order": "ASCENDING" },
+        { "fieldPath": "number",     "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "invoices",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status",     "order": "ASCENDING" },
+        { "fieldPath": "number",     "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "invoices",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "fiscalYear", "order": "ASCENDING" },
+        { "fieldPath": "status",     "order": "ASCENDING" },
+        { "fieldPath": "number",     "order": "DESCENDING" }
       ]
     },
     {
@@ -370,6 +404,14 @@
       "fields": [
         { "fieldPath": "sessionId", "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "pos-sales",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status",    "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "ASCENDING" }
       ]
     },
 

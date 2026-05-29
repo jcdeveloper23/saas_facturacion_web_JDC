@@ -30,12 +30,37 @@ export class InvoicesService {
 
   // ─── List ────────────────────────────────────────────────────────────────
 
-  getInvoices(filters: { year?: string; status?: InvoiceStatus } = {}): Observable<Invoice[]> {
+  /**
+   * Load invoices within a date range.
+   * Uses `where('date', '>=', from) + where('date', '<=', to) + orderBy('date', 'desc')`.
+   * When `filters.year` is supplied (legacy / full-year mode) it falls back to the
+   * old `where('fiscalYear', '==', year) + orderBy('number', 'desc')` query so that
+   * existing indexes are reused without extra reads.
+   */
+  getInvoices(filters: {
+    year?: string;
+    status?: InvoiceStatus;
+    dateFrom?: Timestamp;
+    dateTo?:   Timestamp;
+  } = {}): Observable<Invoice[]> {
     return new Observable<Invoice[]>(observer => {
       const ref = collection(this.firestore, this.colPath);
-      const constraints: any[] = [orderBy('date', 'desc')];
-      if (filters.year)   constraints.unshift(where('fiscalYear', '==', filters.year));
-      if (filters.status) constraints.unshift(where('status', '==', filters.status));
+      let constraints: any[];
+
+      if (filters.dateFrom && filters.dateTo) {
+        // Date-range mode — primary path going forward
+        constraints = [
+          where('date', '>=', filters.dateFrom),
+          where('date', '<=', filters.dateTo),
+          orderBy('date', 'desc'),
+        ];
+      } else if (filters.year) {
+        // Full-year fallback (legacy)
+        constraints = [orderBy('number', 'desc'), where('fiscalYear', '==', filters.year)];
+      } else {
+        constraints = [orderBy('number', 'desc')];
+      }
+
       return onSnapshot(query(ref, ...constraints), {
         next:  snap => observer.next(snap.docs.map(d => ({ id: d.id, ...d.data() } as Invoice))),
         error: err  => { console.error('[InvoicesService] getInvoices error:', err); observer.error(err); }

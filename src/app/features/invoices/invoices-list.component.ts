@@ -23,7 +23,10 @@ import {
   calcInvoiceTotals
 } from './models/invoice.interface';
 import { Timestamp } from '@angular/fire/firestore';
+
 import { DocumentSeries } from '../settings/models/settings.interfaces';
+
+export type DateRangeMode = 'today' | 'week' | 'month' | 'year';
 
 export interface Gap       { seriesCode: string; number: number; }
 export interface LineMatch { invoice: Invoice; lineDesc: string; lineSku: string; }
@@ -33,19 +36,119 @@ export interface LineMatch { invoice: Invoice; lineDesc: string; lineSku: string
   standalone: true,
   templateUrl: './invoices-list.component.html',
   styles: [`
-    .stat-strip { display:flex; gap:.25rem; flex-wrap:wrap; }
-    .stat-pill {
-      display:inline-flex; align-items:center; gap:.3rem;
-      padding:.2rem .6rem; border-radius:99px; cursor:pointer;
-      font-size:.75rem; font-weight:400;
-      border:1px solid var(--cui-border-color);
-      color:var(--cui-secondary-color);
-      background:transparent; transition:background .12s, color .12s;
+    /* ── Page icon ─────────────────────────────────────────────────────── */
+    .page-icon {
+      width:36px; height:36px; border-radius:10px; flex-shrink:0;
+      background:linear-gradient(135deg,#321fdb 0%,#4638c2 100%);
+      box-shadow:0 2px 8px rgba(50,31,219,.4);
+      display:flex; align-items:center; justify-content:center;
     }
-    .stat-pill:hover { background:var(--cui-tertiary-bg); color:var(--cui-body-color); }
-    .stat-pill--active { background:var(--cui-primary-bg-subtle); color:var(--cui-primary); border-color:var(--cui-primary-border-subtle); }
-    .stat-pill .count { font-weight:600; }
 
+    /* ── Stat strip ──────────────────────────────────────────────────── */
+    .stat-strip { display:flex; gap:.25rem; flex-wrap:wrap; align-items:center; }
+    .stat-item {
+      display:inline-flex; align-items:center; gap:.3rem;
+      padding:.2rem .65rem; border-radius:99px;
+      font-size:.75rem; border:1px solid var(--cui-border-color);
+      color:var(--cui-secondary-color); background:transparent;
+      transition:background .12s, color .12s;
+    }
+    .stat-item--click { cursor:pointer; }
+    .stat-item--click:hover { background:var(--cui-tertiary-bg); color:var(--cui-body-color); }
+    .stat-item--active { background:var(--cui-primary-bg-subtle); color:var(--cui-primary); border-color:var(--cui-primary-border-subtle); }
+    .stat-item--warn { color:var(--cui-warning); border-color:rgba(var(--cui-warning-rgb),.3); }
+    .stat-item--warn.stat-item--click:hover { background:var(--cui-warning-bg-subtle); }
+    .stat-val { font-weight:600; }
+    .stat-label-text { font-size:.7rem; color:var(--cui-secondary-color); }
+    .stat-sep { width:1px; height:14px; background:var(--cui-border-color); margin:0 .15rem; flex-shrink:0; }
+
+    /* ── Seg tabs ────────────────────────────────────────────────────── */
+    .seg-tabs {
+      display:flex; gap:2px;
+      background:var(--cui-tertiary-bg);
+      border:1px solid var(--cui-border-color);
+      border-radius:9px; padding:3px; flex-shrink:0;
+    }
+    .seg-tab {
+      font-size:.78rem; padding:4px 12px; border-radius:6px;
+      border:1px solid transparent; background:transparent;
+      color:var(--cui-secondary-color);
+      cursor:pointer; transition:all .15s;
+      display:flex; align-items:center; gap:5px; white-space:nowrap;
+    }
+    .seg-tab:hover { color:var(--cui-body-color); }
+    .seg-tab.active { background:var(--cui-card-bg); border-color:var(--cui-border-color); color:var(--cui-primary); font-weight:500; }
+    .seg-count {
+      font-size:.65rem; font-weight:700;
+      background:var(--cui-secondary-bg); color:var(--cui-secondary-color);
+      border-radius:999px; padding:0 5px; min-width:18px;
+      text-align:center; line-height:1.6;
+    }
+
+    /* ── Search ──────────────────────────────────────────────────────── */
+    .search-wrap { position:relative; display:flex; align-items:center; flex:1; min-width:200px; max-width:320px; }
+    .search-icon { position:absolute; left:10px; color:var(--cui-secondary-color); pointer-events:none; display:flex; }
+    .search-input {
+      width:100%; padding:6px 28px 6px 32px;
+      border:1px solid var(--cui-border-color); border-radius:8px; font-size:.83rem;
+      background:var(--cui-input-bg); color:var(--cui-body-color);
+      outline:none; transition:border-color .15s, box-shadow .15s;
+    }
+    .search-input:focus { border-color:var(--cui-primary); box-shadow:0 0 0 3px rgba(var(--cui-primary-rgb),.15); }
+    .search-clear { position:absolute; right:8px; background:none; border:none; padding:2px; color:var(--cui-secondary-color); cursor:pointer; }
+    .search-clear:hover { color:var(--cui-danger); }
+
+    /* ── Filter select wrap ──────────────────────────────────────────── */
+    .filter-select-wrap {
+      display:flex; align-items:center; gap:4px;
+      border:1px solid var(--cui-border-color); border-radius:8px;
+      background:var(--cui-input-bg); padding:0 8px;
+      transition:border-color .15s, box-shadow .15s;
+    }
+    .filter-select-wrap:focus-within { border-color:var(--cui-primary); box-shadow:0 0 0 3px rgba(var(--cui-primary-rgb),.15); }
+    .filter-select-wrap.active { border-color:var(--cui-primary); background:var(--cui-primary-bg-subtle); }
+    .filter-select {
+      border:none; background:transparent; outline:none;
+      font-size:.82rem; padding:6px 2px; color:var(--cui-body-color);
+      cursor:pointer; -webkit-appearance:none; appearance:none;
+      min-width:110px; max-width:180px;
+    }
+    .filter-icon { color:var(--cui-secondary-color); flex-shrink:0; display:flex; }
+
+    /* ── More filters button ─────────────────────────────────────────── */
+    .more-filters-btn {
+      display:flex; align-items:center; gap:5px;
+      font-size:.82rem; padding:6px 12px; border-radius:8px;
+      border:1px solid var(--cui-border-color); background:var(--cui-input-bg);
+      color:var(--cui-body-color); cursor:pointer; transition:all .15s; white-space:nowrap;
+    }
+    .more-filters-btn:hover, .more-filters-btn.open { border-color:var(--cui-primary); color:var(--cui-primary); background:var(--cui-primary-bg-subtle); }
+    .more-count {
+      background:var(--cui-primary); color:#fff; font-size:.65rem; font-weight:700;
+      border-radius:999px; padding:0 6px; min-width:18px; text-align:center; line-height:1.6;
+    }
+
+    /* ── Expandable filter panel ─────────────────────────────────────── */
+    .filter-panel { border-top:1px solid var(--cui-border-color); background:var(--cui-tertiary-bg); animation:slideDown .18s ease; }
+    @keyframes slideDown { from{opacity:0;transform:translateY(-4px)} to{opacity:1;transform:translateY(0)} }
+
+    /* ── Active chips ────────────────────────────────────────────────── */
+    .chips-row { display:flex; align-items:center; gap:.3rem; flex-wrap:wrap; padding:.35rem .75rem; border-top:1px solid var(--cui-border-color); background:var(--cui-tertiary-bg); }
+    .active-chip {
+      display:inline-flex; align-items:center; gap:4px; font-size:.72rem;
+      background:var(--cui-primary-bg-subtle); color:var(--cui-primary);
+      border:1px solid var(--cui-primary-border-subtle); border-radius:999px; padding:2px 10px;
+    }
+    .chip-remove { cursor:pointer; opacity:.7; font-size:.9rem; line-height:1; }
+    .chip-remove:hover { opacity:1; }
+    .filter-clear-btn {
+      font-size:.75rem; color:var(--cui-danger); background:var(--cui-danger-bg-subtle);
+      border:1px solid var(--cui-danger-border-subtle); border-radius:6px; padding:3px 10px;
+      cursor:pointer; display:flex; align-items:center; gap:4px; transition:filter .15s;
+    }
+    .filter-clear-btn:hover { filter:brightness(.95); }
+
+    /* ── Table ───────────────────────────────────────────────────────── */
     .inv-table { width:100%; border-collapse:collapse; }
     .inv-table thead th {
       font-size:.69rem; font-weight:500; text-transform:uppercase; letter-spacing:.05em;
@@ -61,48 +164,32 @@ export interface LineMatch { invoice: Invoice; lineDesc: string; lineSku: string
 
     .inv-num  { font-family:monospace; font-size:.78rem; font-weight:500; }
     .inv-sub  { font-size:.72rem; color:var(--cui-secondary-color); }
+    .inv-name { font-size:.83rem; font-weight:500; }
+    .inv-meta { font-size:.75rem; color:var(--cui-secondary-color); }
     .inv-amt  { font-family:monospace; font-size:.82rem; text-align:right; white-space:nowrap; }
     .inv-amt--total { font-weight:600; }
-    .p-dot   { width:7px; height:7px; border-radius:50%; display:inline-block; }
+    .date-cell { font-size:.82rem; white-space:nowrap; }
 
-    /* Row indicators */
     .row-indicators { display:flex; gap:2px; align-items:center; flex-wrap:nowrap; }
-    .row-ind {
-      display:inline-flex; align-items:center; justify-content:center;
-      width:18px; height:18px; border-radius:4px; font-size:.7rem;
-    }
+    .row-ind { display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:4px; font-size:.7rem; }
     .row-ind--paid    { background:rgba(var(--cui-success-rgb),.12); color:var(--cui-success); }
     .row-ind--void    { background:rgba(var(--cui-danger-rgb),.12);  color:var(--cui-danger); }
     .row-ind--cn      { background:rgba(var(--cui-warning-rgb),.12); color:var(--cui-warning); }
     .row-ind--overdue { background:rgba(var(--cui-danger-rgb),.12);  color:var(--cui-danger); }
 
-    /* Due-date coloring */
     .due-today   { color:var(--cui-warning); font-weight:600; }
     .due-overdue { color:var(--cui-danger);  font-weight:600; }
+    .notes-cell  { max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:.76rem; color:var(--cui-secondary-color); }
 
-    /* Notes cell */
-    .notes-cell { max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:.76rem; color:var(--cui-secondary-color); }
-
-    /* Totals / footer */
-    .table-footer { padding:.4rem .75rem; font-size:.75rem; color:var(--cui-secondary-color); border-top:1px solid var(--cui-border-color); }
+    /* ── Table footer ────────────────────────────────────────────────── */
+    .table-footer { display:flex; justify-content:space-between; align-items:center; padding:.4rem .75rem; font-size:.75rem; color:var(--cui-secondary-color); border-top:1px solid var(--cui-border-color); }
     .table-footer-totals { display:flex; gap:1.5rem; flex-wrap:wrap; }
     .table-footer-total { font-family:monospace; font-weight:600; color:var(--cui-body-color); }
 
-    /* Filters */
-    .search-input { max-width:280px; }
-    .year-select  { font-size:.82rem; max-width:100px; }
-    .adv-filters  { border-top:1px solid var(--cui-border-color); padding-top:.75rem; margin-top:.5rem; }
+    /* ── Gaps alert ──────────────────────────────────────────────────── */
+    .gaps-alert { display:flex; align-items:center; gap:.5rem; padding:.45rem .75rem; background:rgba(var(--cui-warning-rgb),.08); border:1px solid rgba(var(--cui-warning-rgb),.3); border-radius:8px; margin-bottom:.75rem; font-size:.82rem; }
 
-    /* Gaps alert */
-    .gaps-alert {
-      display:flex; align-items:center; gap:.5rem;
-      padding:.45rem .75rem; background:rgba(var(--cui-warning-rgb),.08);
-      border:1px solid rgba(var(--cui-warning-rgb),.3); border-radius:8px;
-      margin-bottom:.75rem; font-size:.82rem;
-    }
-    .gaps-alert svg { color:var(--cui-warning); flex-shrink:0; }
-
-    /* Line search results */
+    /* ── Line search / modal ─────────────────────────────────────────── */
     .line-result-row { padding:.45rem .75rem; cursor:pointer; border-bottom:1px solid var(--cui-border-color); }
     .line-result-row:last-child { border-bottom:none; }
     .line-result-row:hover { background:var(--cui-tertiary-bg); }
@@ -127,14 +214,15 @@ export class InvoicesListComponent implements OnInit, OnDestroy {
   private destroy$      = new Subject<void>();
 
   // ── Core state ────────────────────────────────────────────────────────────
-  invoices     = signal<Invoice[]>([]);
-  loading      = signal(true);
-  searchTerm   = signal('');
-  statusFilter = signal<InvoiceStatus | null>(null);
-  yearFilter   = signal(new Date().getFullYear().toString());
+  invoices        = signal<Invoice[]>([]);
+  loading         = signal(true);
+  searchTerm      = signal('');
+  statusFilter    = signal<InvoiceStatus | null>(null);
+  yearFilter      = signal(new Date().getFullYear().toString());
+  dateRangeMode   = signal<DateRangeMode>('today');
 
   // ── Advanced filters ──────────────────────────────────────────────────────
-  showAdvancedFilters = signal(false);
+  showMoreFilters = signal(false);
   dateFrom            = signal('');
   dateTo              = signal('');
   seriesFilter        = signal('');
@@ -156,6 +244,13 @@ export class InvoicesListComponent implements OnInit, OnDestroy {
   readonly SRI_STATUS_LABELS  = SRI_STATUS_LABELS;
   readonly SRI_STATUS_COLORS  = SRI_STATUS_COLORS;
   readonly years              = Array.from({ length: 5 }, (_, i) => String(new Date().getFullYear() - i));
+  readonly DATE_RANGE_MODES: DateRangeMode[] = ['today', 'week', 'month', 'year'];
+  readonly DATE_RANGE_LABELS: Record<DateRangeMode, string> = {
+    today: 'Hoy',
+    week:  'Esta semana',
+    month: 'Este mes',
+    year:  'Este año',
+  };
 
   // ── Computed: filtered list ────────────────────────────────────────────────
   filtered = computed(() => {
@@ -199,7 +294,11 @@ export class InvoicesListComponent implements OnInit, OnDestroy {
   totalNet      = computed(() => this.filtered().filter(i => !i.isVoid).reduce((s, i) => s + (i.netAmount ?? 0), 0));
   totalVat      = computed(() => this.filtered().filter(i => !i.isVoid).reduce((s, i) => s + (i.vatAmount ?? 0), 0));
 
-  hasActiveFilters = computed(() => !!this.dateFrom() || !!this.dateTo() || !!this.seriesFilter());
+  hasActiveFilters = computed(() => this.activeFilterCount() > 0);
+  activeFilterCount = computed(() =>
+    [!!this.dateFrom(), !!this.dateTo(), !!this.seriesFilter()].filter(Boolean).length
+  );
+  overdueCount = computed(() => this.invoices().filter(i => this.isOverdue(i)).length);
 
   // ── Computed: line search results (client-side) ───────────────────────────
   lineResults = computed<LineMatch[]>(() => {
@@ -256,10 +355,43 @@ export class InvoicesListComponent implements OnInit, OnDestroy {
   }
 
   // ── Data loading ──────────────────────────────────────────────────────────
+
+  /** Returns the Firestore Timestamp boundaries for the active date range mode. */
+  private dateRangeTimestamps(): { dateFrom: Timestamp; dateTo: Timestamp } {
+    const now   = new Date();
+    const mode  = this.dateRangeMode();
+
+    let from: Date;
+    let to: Date;
+
+    if (mode === 'today') {
+      from = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+      to   = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    } else if (mode === 'week') {
+      // Monday as first day of week
+      const day  = now.getDay(); // 0=Sun
+      const diff = (day === 0 ? -6 : 1 - day);
+      from = new Date(now.getFullYear(), now.getMonth(), now.getDate() + diff, 0, 0, 0, 0);
+      to   = new Date(from.getFullYear(), from.getMonth(), from.getDate() + 6, 23, 59, 59, 999);
+    } else if (mode === 'month') {
+      from = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+      to   = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    } else {
+      // year — use full fiscal year
+      from = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
+      to   = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+    }
+
+    return { dateFrom: Timestamp.fromDate(from), dateTo: Timestamp.fromDate(to) };
+  }
+
   private loadInvoices(): void {
     this.loading.set(true);
     this.invoices.set([]);
-    this.svc.getInvoices({ year: this.yearFilter() }).pipe(
+
+    const { dateFrom, dateTo } = this.dateRangeTimestamps();
+
+    this.svc.getInvoices({ dateFrom, dateTo }).pipe(
       catchError(err => {
         console.error('[InvoicesList] error:', err);
         this.notifications.error('Error cargando facturas: ' + (err?.message ?? err));
@@ -271,12 +403,16 @@ export class InvoicesListComponent implements OnInit, OnDestroy {
       next: list => {
         this.invoices.set(list);
         this.loading.set(false);
-        console.log(`*** this.invoices ${JSON.stringify(this.invoices(), null, 3)} ***`);
       }
-    }); 
+    });
+  }
 
-    
-
+  changeDateRangeMode(mode: DateRangeMode): void {
+    this.dateRangeMode.set(mode);
+    // Update yearFilter to keep the year-based fallback in sync for credit note creation
+    this.yearFilter.set(new Date().getFullYear().toString());
+    this.destroy$.next();
+    this.loadInvoices();
   }
 
   changeYear(year: string): void {

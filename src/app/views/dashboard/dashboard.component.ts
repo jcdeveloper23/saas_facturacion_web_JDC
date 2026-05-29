@@ -8,19 +8,22 @@ import { ChartData } from 'chart.js';
 import {
   CardComponent, CardBodyComponent, CardHeaderComponent,
   RowComponent, ColComponent, BadgeComponent, SpinnerComponent,
-  ButtonDirective
+  ButtonDirective, AlertComponent
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 import { ChartjsComponent } from '@coreui/angular-chartjs';
 
-import { InvoicesService } from '../../features/invoices/services/invoices.service';
-import { PersonasService } from '../../features/personas/services/personas.service';
-import { TenantService }   from '../../core/services/tenant.service';
+import { InvoicesService }  from '../../features/invoices/services/invoices.service';
+import { PersonasService }  from '../../features/personas/services/personas.service';
+import { ProductsService }  from '../../features/products/services/products.service';
+import { PosSalesService }  from '../../features/pos/services/pos-sales.service';
+import { TenantService }    from '../../core/services/tenant.service';
 import {
   Invoice,
   INVOICE_STATUS_LABELS,
   INVOICE_STATUS_COLORS
 } from '../../features/invoices/models/invoice.interface';
+import { Product } from '../../features/products/models/product.interface';
 import { PlanUsageWidgetComponent } from './widgets/plan-usage-widget/plan-usage-widget.component';
 
 @Component({
@@ -31,16 +34,20 @@ import { PlanUsageWidgetComponent } from './widgets/plan-usage-widget/plan-usage
     CommonModule, RouterLink,
     CardComponent, CardBodyComponent, CardHeaderComponent,
     RowComponent, ColComponent, BadgeComponent, SpinnerComponent,
-    ButtonDirective, IconDirective,
+    ButtonDirective, AlertComponent, IconDirective,
     ChartjsComponent,
     PlanUsageWidgetComponent,
   ]
 })
 export class DashboardComponent implements OnInit, OnDestroy {
-  private invoicesSvc = inject(InvoicesService);
-  private personasSvc = inject(PersonasService);
-  private tenantSvc   = inject(TenantService);
-  private destroy$    = new Subject<void>();
+  private invoicesSvc  = inject(InvoicesService);
+  private personasSvc  = inject(PersonasService);
+  private productsSvc  = inject(ProductsService);
+  private posSalesSvc  = inject(PosSalesService);
+  private tenantSvc    = inject(TenantService);
+  private destroy$     = new Subject<void>();
+
+  readonly hasModule = (m: string) => this.tenantSvc.hasModule(m);
 
   // ── Date context ─────────────────────────────────────────────────────────────
   private readonly _now = new Date();
@@ -54,6 +61,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   loading         = signal(true);
   invoices        = signal<Invoice[]>([]);
   customersCount  = signal(0);
+  products        = signal<Product[]>([]);
+  posErrorCount   = signal(0);
 
   private _loadedCount = 0;
   private checkDone() {
@@ -127,6 +136,25 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.invoices().filter(i => !i.isVoid).slice(0, 6)
   );
 
+  // ── Alerts ────────────────────────────────────────────────────────────────────
+
+  readonly lowStockProducts = computed(() =>
+    this.products().filter(p =>
+      p.isActive && p.trackStock && !p.noStock &&
+      p.stockMin > 0 && p.stockAvailable <= p.stockMin
+    )
+  );
+
+  readonly overdueInvoices = computed(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return this.invoices().filter(i => {
+      if (i.status !== 'issued' || i.isVoid || i.isCreditNote) return false;
+      const due = this.tsToDate(i.dueDate);
+      return due !== null && due < today;
+    });
+  });
+
   // ── Chart ─────────────────────────────────────────────────────────────────────
 
   readonly chartData = computed<ChartData>(() => {
@@ -173,6 +201,81 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
   };
 
+  // ── Top 10 productos del mes ─────────────────────────────────────────────────
+
+  readonly topProducts = computed(() => {
+    const map = new Map<string, { description: string; sku: string; qty: number; total: number }>();
+    this.invoices()
+      .filter(i => !i.isVoid && !i.isCreditNote &&
+                   ['issued', 'paid'].includes(i.status) &&
+                   this.inMonth(i.date, this.currentMonth, this.currentYear_n))
+      .forEach(inv => {
+        (inv.lines ?? []).forEach(line => {
+          const key = line.productId ?? line.description;
+          const cur = map.get(key);
+          if (cur) { cur.qty += line.quantity; cur.total += line.total; }
+          else map.set(key, { description: line.description, sku: line.productSku ?? '', qty: line.quantity, total: line.total });
+        });
+      });
+    return [...map.values()].sort((a, b) => b.total - a.total).slice(0, 10);
+  });
+
+  // ── Ventas por familia (pie/doughnut) ────────────────────────────────────────
+
+  private readonly _familyColors = [
+    'rgba(50,130,252,0.8)', 'rgba(46,213,115,0.8)', 'rgba(255,165,2,0.8)',
+    'rgba(255,71,87,0.8)',  'rgba(165,94,234,0.8)', 'rgba(24,220,255,0.8)',
+    'rgba(255,127,80,0.8)', 'rgba(100,200,200,0.8)','rgba(255,200,100,0.8)',
+  ];
+
+  readonly salesByFamily = computed<ChartData>(() => {
+    const familyMap = new Map<string, string>();
+    this.products().forEach(p => familyMap.set(p.id, p.familyName ?? 'Sin familia'));
+
+    const totals = new Map<string, number>();
+    this.invoices()
+      .filter(i => !i.isVoid && !i.isCreditNote &&
+                   ['issued', 'paid'].includes(i.status) &&
+                   this.inMonth(i.date, this.currentMonth, this.currentYear_n))
+      .forEach(inv => {
+        (inv.lines ?? []).forEach(line => {
+          const family = (line.productId ? familyMap.get(line.productId) : null) ?? 'Sin familia';
+          totals.set(family, (totals.get(family) ?? 0) + line.total);
+        });
+      });
+
+    const entries = [...totals.entries()].sort((a, b) => b[1] - a[1]);
+    return {
+      labels: entries.map(e => e[0]),
+      datasets: [{
+        data:            entries.map(e => Math.round(e[1] * 100) / 100),
+        backgroundColor: entries.map((_, i) => this._familyColors[i % this._familyColors.length]),
+        borderWidth: 1,
+      }]
+    };
+  });
+
+  readonly familyChartOptions: any = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } },
+      tooltip: { callbacks: { label: (ctx: any) => ` $${(ctx.raw as number).toFixed(2)}` } }
+    }
+  };
+
+  // ── Alerta certificado SRI ───────────────────────────────────────────────────
+
+  readonly sriCertDaysLeft = computed<number | null>(() => {
+    const expiry = (this.tenantSvc.company as any)?.sri?.certificateExpiry;
+    if (!expiry) return null;
+    const expiryDate: Date = typeof expiry.toDate === 'function'
+      ? expiry.toDate()
+      : new Date(expiry.seconds * 1000);
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    return Math.ceil((expiryDate.getTime() - today.getTime()) / 86_400_000);
+  });
+
   // ── Labels/Colors ─────────────────────────────────────────────────────────────
   readonly STATUS_LABELS = INVOICE_STATUS_LABELS;
   readonly STATUS_COLORS = INVOICE_STATUS_COLORS;
@@ -196,6 +299,18 @@ export class DashboardComponent implements OnInit, OnDestroy {
         next: list => { this.customersCount.set(list.length); this.checkDone(); },
         error: ()  => this.checkDone()
       });
+
+    // Non-blocking: products (stock alerts + family chart)
+    this.productsSvc.getActiveProducts()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({ next: list => this.products.set(list) });
+
+    // Non-blocking: POS sales with invoice errors
+    if (this.tenantSvc.hasModule('pos')) {
+      this.posSalesSvc.getSalesWithInvoiceError()
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({ next: list => this.posErrorCount.set(list.length) });
+    }
   }
 
   ngOnDestroy(): void {

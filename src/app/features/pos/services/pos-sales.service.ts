@@ -76,6 +76,17 @@ export class PosSalesService {
     });
   }
 
+  getSalesWithInvoiceError(limitN = 20): Observable<PosSale[]> {
+    return new Observable(observer => {
+      const ref = collection(this.firestore, this.salesPath);
+      const q   = query(ref, where('invoiceError', '!=', null), orderBy('invoiceError'), orderBy('createdAt', 'desc'), limit(limitN));
+      return onSnapshot(q, {
+        next:  snap => observer.next(snap.docs.map(d => ({ id: d.id, ...d.data() }) as PosSale)),
+        error: err  => observer.error(err)
+      });
+    });
+  }
+
   // ─── Complete a sale ───────────────────────────────────────────────────────
 
   async completeSale(input: CompleteSaleInput): Promise<PosSale> {
@@ -153,6 +164,7 @@ export class PosSalesService {
           vatAmount:   item.vatAmount,
           total:       item.lineTotal,
           sriTaxCode:  item.vatCode,
+          averageCost: item.averageCost,
         }));
 
         // Mismo patrón que invoice-form: si SRI no está habilitado → marcar not_required
@@ -189,7 +201,7 @@ export class PosSalesService {
           })),
         });
 
-        await updateDoc(doc(this.firestore, `${this.salesPath}/${saleId}`), { invoiceId });
+        await updateDoc(doc(this.firestore, `${this.salesPath}/${saleId}`), { invoiceId, hasLinkedInvoice: true });
         sale.invoiceId = invoiceId;
       }
     } catch (err: any) {

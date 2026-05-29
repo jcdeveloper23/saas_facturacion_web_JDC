@@ -58,6 +58,7 @@ export interface InvoiceLine {
   warehouseCode?: string;    // override por línea si es necesario
   notes?: string;
   sriTaxCode?: string;  // código SRI: '2'=IVA 0%, '3'=IVA 15%, '5'=IVA 5%, '6'=Exento
+  averageCost?: number; // costo promedio al momento de la venta — para COGS
   unit?: string;        // unidad de medida (ej: 'UNIDAD', 'KG', 'LT', 'CAJA') — default 'UNIDAD'
   skuAlt?: string;      // código adicional (código de barras, referencia del proveedor, etc.)
 }

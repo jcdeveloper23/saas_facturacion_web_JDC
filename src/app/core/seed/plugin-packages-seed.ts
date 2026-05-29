@@ -22,7 +22,8 @@
  *           │     └── pkg_accounting ($29/mes add-on)
  *           ├── pkg_purchases        ($19/mes add-on)
  *           ├── pkg_reports          ($9/mes add-on)
- *           └── pkg_marketplace      ($15/mes add-on)
+ *           ├── pkg_marketplace      ($15/mes add-on)
+ *           └── pkg_benefits         ($19/mes add-on) (dashboard socios, liquidaciones)
  *
  * NOTA: pkg_stock está separado de pkg_sales para permitir planes con
  * facturación sin inventario (ej. Plan Emprendedor: features.stockModule = false).
@@ -215,6 +216,23 @@ export const PLUGIN_PACKAGES_SEED: PackageSeed[] = [
     color:         'dark',
     isSystem:      false,
     order:         8,
+    state:         true
+  },
+
+  // ─── BENEFICIOS ───────────────────────────────────────────────────────────
+  {
+    code:          'pkg_benefits',
+    name:          'Módulo de Beneficios',
+    description:   'Dashboard de beneficios por socio, gestión de socios y liquidaciones. Ideal para empresas con programas de fidelización o distribución de utilidades.',
+    modules:       ['benefits'],
+    dependencies:  ['pkg_sales'],
+    price:         19,
+    currency:      'USD',
+    billingPeriod: 'monthly',
+    icon:          'cil-chart-pie',
+    color:         'success',
+    isSystem:      false,
+    order:         9,
     state:         true
   },
 

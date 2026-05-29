@@ -248,6 +248,7 @@ export const MODULE_METADATA: Record<string, { name: string; icon: string; order
   retentions:      { name: 'Retenciones',           icon: 'cilFile',        order: 71 },
   debit_notes:     { name: 'Notas de Débito',      icon: 'cilNotes',       order: 72 },
   accounting:      { name: 'Contabilidad',         icon: 'cilSpreadsheet', order: 75 },
+  benefits:        { name: 'Beneficios',           icon: 'cilChartPie',    order: 77 },
   team_management: { name: 'Gestión de Equipo',    icon: 'cilPeople',      order: 80 },
   personas:        { name: 'Personas',             icon: 'cilUser',        order: 85 },
   users:           { name: 'Usuarios',             icon: 'cilLockLocked',  order: 90 },

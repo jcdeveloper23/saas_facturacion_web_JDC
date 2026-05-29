@@ -1,0 +1,257 @@
+<!-- ── Cabecera ──────────────────────────────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-start mb-3">
+  <div>
+    <h4 class="mb-1">Liquidaciones</h4>
+    <div class="stat-strip">
+      <button class="stat-pill" [class.stat-pill--active]="statusFilter() === ''"
+              (click)="statusFilter.set('')">
+        Todas <span class="count">{{ distributions().length }}</span>
+      </button>
+      @for (s of statusKeys; track s) {
+        <button class="stat-pill" [class.stat-pill--active]="statusFilter() === s"
+                (click)="statusFilter.set(s)">
+          {{ statusLabels[s] }}
+          <span class="count">{{ countByStatus(s) }}</span>
+        </button>
+      }
+    </div>
+  </div>
+  <a routerLink="/benefits/dashboard" cButton color="primary" size="sm">
+    <svg cIcon name="cilPlus" size="sm" class="me-1"></svg>
+    Nueva liquidación
+  </a>
+</div>
+
+<!-- ── Filtros ────────────────────────────────────────────────────────────────── -->
+<c-card class="border shadow-none mb-3">
+  <c-card-body class="py-2 px-3">
+    <div class="d-flex gap-2 align-items-center flex-wrap">
+      <c-input-group class="search-input flex-grow-1">
+        <span cInputGroupText class="bg-transparent border-end-0">
+          <svg cIcon name="cilSearch" size="sm"></svg>
+        </span>
+        <input cFormControl class="border-start-0 ps-0"
+               placeholder="Período, configuración..."
+               [value]="searchTerm()"
+               (input)="searchTerm.set($any($event.target).value)">
+        @if (searchTerm()) {
+          <button cButton color="secondary" variant="ghost" class="border-start-0"
+                  (click)="searchTerm.set('')">
+            <svg cIcon name="cilX" size="sm"></svg>
+          </button>
+        }
+      </c-input-group>
+      @if (hasActiveFilters()) {
+        <button cButton color="secondary" variant="ghost" size="sm" (click)="clearFilters()">
+          <svg cIcon name="cilX" size="sm"></svg>
+        </button>
+      }
+    </div>
+  </c-card-body>
+</c-card>
+
+<!-- ── Cargando ───────────────────────────────────────────────────────────────── -->
+@if (loading()) {
+  <div class="text-center py-5">
+    <c-spinner color="primary"></c-spinner>
+  </div>
+} @else if (distributions().length === 0) {
+  <div class="inline-info mb-0">
+    <svg cIcon name="cilInfo" size="sm" class="me-1"></svg>
+    No hay liquidaciones registradas. Cree una desde el
+    <a routerLink="/benefits/dashboard">dashboard</a>.
+  </div>
+} @else {
+
+  <!-- ── Tabla ─────────────────────────────────────────────────────────────── -->
+  <c-card class="border shadow-none">
+    <c-card-body class="p-0">
+      <div class="table-responsive">
+        <table class="hist-table">
+          <thead>
+            <tr>
+              <th>Período</th>
+              <th class="text-end">Ventas</th>
+              <th class="text-end">COGS</th>
+              <th class="text-end">Ganancia</th>
+              <th class="text-end">Margen</th>
+              <th>Estado</th>
+              <th>Creado</th>
+              <th style="width:28px"></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (dist of filteredDistributions(); track trackById($index, dist)) {
+
+              <!-- Fila principal -->
+              <tr class="dist-row" [class.dist-row--expanded]="isExpanded(dist.id)"
+                  (click)="toggleExpand(dist.id)">
+                <td>
+                  <span class="period-label">{{ dist.periodLabel }}</span>
+                  <span class="period-sub">{{ dist.configName }}</span>
+                </td>
+                <td class="text-end mono">{{ formatCurrency(dist.totalRevenue) }}</td>
+                <td class="text-end mono text-danger">{{ formatCurrency(dist.totalCogs) }}</td>
+                <td class="text-end mono fw-semibold text-success">{{ formatCurrency(dist.grossProfit) }}</td>
+                <td class="text-end">
+                  <span class="margin-pill"
+                        [class.margin-pill--good]="dist.grossMarginPct >= 30"
+                        [class.margin-pill--warn]="dist.grossMarginPct > 0 && dist.grossMarginPct < 30"
+                        [class.margin-pill--bad]="dist.grossMarginPct <= 0">
+                    {{ formatPct(dist.grossMarginPct) }}
+                  </span>
+                </td>
+                <td>
+                  <span class="dist-badge"
+                        [class.dist-badge--pending]="dist.status === 'pending'"
+                        [class.dist-badge--partial]="dist.status === 'partially_paid'"
+                        [class.dist-badge--distributed]="dist.status === 'distributed'">
+                    {{ statusLabels[dist.status] }}
+                  </span>
+                </td>
+                <td class="date-cell">{{ formatDate(dist.createdAt) }}</td>
+                <td class="text-center">
+                  <svg cIcon [name]="isExpanded(dist.id) ? 'cilChevronTop' : 'cilChevronBottom'"
+                       size="sm" class="chevron"></svg>
+                </td>
+              </tr>
+
+              <!-- Panel de detalle -->
+              @if (isExpanded(dist.id)) {
+                <tr class="detail-row">
+                  <td colspan="8" class="p-0">
+                    <div class="detail-panel">
+
+                      <div class="detail-panel__title">
+                        <svg cIcon name="cilPeople" size="sm" class="me-1"></svg>
+                        Pagos por Socio
+                        @if (dist.notes) {
+                          <span class="detail-notes">· {{ dist.notes }}</span>
+                        }
+                      </div>
+
+                      <table class="partner-table">
+                        <thead>
+                          <tr>
+                            <th>Socio</th>
+                            <th>RUC / CI</th>
+                            <th class="text-end">%</th>
+                            <th class="text-end">Monto</th>
+                            <th>Estado</th>
+                            <th>Pagado</th>
+                            <th>Método</th>
+                            <th></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          @for (pp of dist.partnerPayments; track trackByPartnerId($index, pp)) {
+                            <tr [class.partner-row--paid]="pp.status === 'paid'">
+                              <td class="fw-medium">{{ pp.partnerName }}</td>
+                              <td class="text-body-secondary">{{ pp.taxId ?? '—' }}</td>
+                              <td class="text-end text-body-secondary">{{ formatPct(pp.percentage) }}</td>
+                              <td class="text-end fw-semibold mono">{{ formatCurrency(pp.amount) }}</td>
+                              <td>
+                                @if (pp.status === 'paid') {
+                                  <span class="pay-badge pay-badge--paid">
+                                    <svg cIcon name="cilCheckCircle" size="sm" class="me-1"></svg>
+                                    Pagado
+                                  </span>
+                                } @else {
+                                  <span class="pay-badge pay-badge--pending">Pendiente</span>
+                                }
+                              </td>
+                              <td class="text-body-secondary">
+                                {{ pp.paidAt ? formatDate(pp.paidAt) : '—' }}
+                              </td>
+                              <td class="text-body-secondary text-capitalize">
+                                {{ pp.paymentMethod ?? '—' }}
+                              </td>
+                              <td>
+                                @if (pp.status === 'pending') {
+                                  <button cButton color="success" variant="outline" size="sm"
+                                          (click)="$event.stopPropagation(); openPayModal(dist, pp)">
+                                    Registrar pago
+                                  </button>
+                                }
+                              </td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    </div>
+                  </td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Footer totalizador -->
+      @if (filteredDistributions().length > 0) {
+        <div class="table-footer">
+          <span>{{ totals().count }} liquidación{{ totals().count !== 1 ? 'es' : '' }}</span>
+          <span class="footer-sep">·</span>
+          <span>Ventas: <span class="footer-val">{{ formatCurrency(totals().revenue) }}</span></span>
+          <span class="footer-sep">·</span>
+          <span>Ganancia total: <span class="footer-val text-success">{{ formatCurrency(totals().grossProfit) }}</span></span>
+        </div>
+      }
+    </c-card-body>
+  </c-card>
+
+  @if (filteredDistributions().length === 0 && hasActiveFilters()) {
+    <div class="text-center py-4 text-body-secondary small">
+      Sin resultados para los filtros aplicados.
+    </div>
+  }
+}
+
+<!-- ── Modal de pago ─────────────────────────────────────────────────────────── -->
+<c-modal [visible]="showPayModal()" (visibleChange)="showPayModal.set($event)" alignment="center">
+  <c-modal-header>
+    <h5 cModalTitle>Registrar Pago</h5>
+    <button cButtonClose (click)="closePayModal()"></button>
+  </c-modal-header>
+  <c-modal-body>
+    @if (payingPartner()) {
+      <div class="pay-summary mb-3">
+        <span class="pay-summary__name">{{ payingPartner()!.partnerName }}</span>
+        <span class="pay-summary__amount text-success">{{ formatCurrency(payingPartner()!.amount) }}</span>
+      </div>
+
+      <div class="mb-2">
+        <label cLabel class="form-label-sm mb-1">Método de pago</label>
+        <select cFormSelect [ngModel]="paymentMethod()" (ngModelChange)="paymentMethod.set($event)">
+          <option value="cash">Efectivo</option>
+          <option value="transfer">Transferencia</option>
+          <option value="check">Cheque</option>
+          <option value="other">Otro</option>
+        </select>
+      </div>
+
+      <div class="mb-2">
+        <label cLabel class="form-label-sm mb-1">Referencia</label>
+        <input cFormControl type="text"
+               [ngModel]="paymentReference()" (ngModelChange)="paymentReference.set($event)"
+               placeholder="N° transferencia, cheque, etc." />
+      </div>
+
+      <div class="mb-0">
+        <label cLabel class="form-label-sm mb-1">Notas</label>
+        <textarea cFormControl rows="2"
+                  [ngModel]="paymentNotes()" (ngModelChange)="paymentNotes.set($event)"
+                  placeholder="Observaciones opcionales"></textarea>
+      </div>
+    }
+  </c-modal-body>
+  <c-modal-footer>
+    <button cButton color="secondary" variant="outline" size="sm" (click)="closePayModal()">
+      Cancelar
+    </button>
+    <button cButton color="success" size="sm" [disabled]="savingPay()" (click)="confirmPay()">
+      @if (savingPay()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+      Confirmar pago
+    </button>
+  </c-modal-footer>
+</c-modal>

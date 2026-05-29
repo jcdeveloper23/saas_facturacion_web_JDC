@@ -145,9 +145,10 @@ service cloud.firestore {
       match /invoices/{id} {
         allow read: if isAuthenticated() && belongsToCompany(companyId);
         allow create: if isAuthenticated() && belongsToCompany(companyId) && canWrite();
-        // Cannot edit a cancelled invoice
+        // Cannot edit a cancelled invoice; only admin can void
         allow update: if isAuthenticated() && belongsToCompany(companyId) && canWrite()
-                       && resource.data.status != 'cancelled';
+                       && resource.data.status != 'cancelled'
+                       && (request.resource.data.status != 'void' || isAdmin());
         allow delete: if false; // NEVER delete invoices
       }
 

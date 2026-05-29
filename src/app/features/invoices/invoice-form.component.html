@@ -51,6 +51,13 @@
             {{ STATUS_LABELS[currentStatus()] }}
           </c-badge>
           }
+          @if (!isNew() && !isEditable()) {
+          <button type="button" cButton color="warning" variant="outline" size="sm"
+                  (click)="unlockEdit()">
+            <svg cIcon name="cilPencil" size="sm" class="me-1"></svg>
+            Editar
+          </button>
+          }
           <button type="button" cButton color="secondary" variant="ghost" size="sm" (click)="back()">
             <svg cIcon name="cilArrowLeft" size="sm" class="me-1"></svg>
             Volver

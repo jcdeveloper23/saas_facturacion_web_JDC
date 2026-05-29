@@ -1,0 +1,24 @@
+table input.form-control {
+  min-width: 0;
+  font-size: 0.875rem;
+}
+
+// ─── Percentage badge & warning — tokens base, sin c-badge ni *-emphasis ──────
+.pct-badge {
+  display: inline-flex; align-items: center;
+  padding: .1rem .5rem; border-radius: 4px;
+  font-size: .78rem; font-weight: 600;
+
+  &--ok    { background: rgba(var(--cui-success-rgb), .12); color: var(--cui-success); }
+  &--over  { background: rgba(var(--cui-danger-rgb),  .12); color: var(--cui-danger); }
+  &--under { background: rgba(var(--cui-warning-rgb), .12); color: var(--cui-warning); }
+}
+
+.pct-warn {
+  font-size: .78rem;
+  color: var(--cui-warning);
+  background: rgba(var(--cui-warning-rgb), .08);
+  border: 1px solid rgba(var(--cui-warning-rgb), .25);
+  border-radius: 6px;
+  padding: .2rem .6rem;
+}

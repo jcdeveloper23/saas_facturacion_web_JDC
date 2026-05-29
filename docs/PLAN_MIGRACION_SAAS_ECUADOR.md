@@ -1,8 +1,8 @@
 # Plan de Implementación — SaaS ERP Ecuador
 ## FacturaScripts (PHP) → Angular 21 + Firebase
 
-**Versión:** 4.1
-**Última actualización:** 2026-04-13
+**Versión:** 4.2
+**Última actualización:** 2026-05-28
 **Stack:** Angular 21 · CoreUI 5.x · Firebase (Firestore, Auth, Functions, Storage) · Node.js 20
 **Convención de nombres:** Inglés en todo el código
 **Arquitectura:** Multi-tenant (`/companies/{companyId}/...`) + Plugin Package system
@@ -138,12 +138,13 @@ Una nueva ruta `/settings/plugins` (o `/plugins`) visible para el admin de empre
 | 11 | Quotes | F6 | ⬜ Pendiente | pkg_sales_advanced | `/quotes` |
 | 12 | Orders | F6 | ⬜ Pendiente | pkg_sales_advanced | `/orders` |
 | 13 | Proformas | F6 | ⬜ Pendiente | pkg_sales_advanced | `/proformas` |
-| 14 | POS — Point of Sale | F6 | ⬜ Pendiente | pkg_sales_advanced | `/pos` |
+| 14 | POS — Point of Sale | F6 | ✅ Completo | pkg_sales_advanced | `/pos` |
 | 15 | Purchases (Compras) | F6b | ✅ Completo | pkg_purchases | `/purchases` |
 | 16 | Purchases — Mejoras v2 | F6b | 🔄 En progreso | pkg_purchases | `/purchases` |
-| 17 | Dashboard | F7 | ⬜ Pendiente | pkg_base | `/dashboard` |
-| 18 | Plugin Packages UI (empresa) | F2b | ✅ Completo | pkg_base | `/settings/plugins` |
-| 19 | Marketplace / Catálogo Público | F8 | ✅ Completo | pkg_marketplace | `/{slug}` (público) + `/settings/marketplace` |
+| 17 | Benefits Dashboard | F6c | ✅ Completo | pkg_sales_advanced | `/benefits` |
+| 18 | Dashboard | F7 | ✅ Completo | pkg_base | `/dashboard` |
+| 19 | Plugin Packages UI (empresa) | F2b | ✅ Completo | pkg_base | `/settings/plugins` |
+| 20 | Marketplace / Catálogo Público | F8 | ✅ Completo | pkg_marketplace | `/{slug}` (público) + `/settings/marketplace` |
 
 ---
 
@@ -244,7 +245,7 @@ Una nueva ruta `/settings/plugins` (o `/plugins`) visible para el admin de empre
 ---
 
 ### Fase 6 — Módulos Avanzados
-> Estado: **15%** (Stock Management completo)
+> Estado: **60%** (Stock ✅ · POS ✅ · Benefits ✅ — Quotes/Orders/Proformas pendiente)
 > **Prerequisito:** F3 + F4 + F5 completas ✅
 
 #### Stock Management ✅
@@ -274,13 +275,14 @@ Una nueva ruta `/settings/plugins` (o `/plugins`) visible para el admin de empre
 - [ ] Conversión a factura
 - [ ] Activar ruta `/proformas` con `moduleGuard: 'proformas'`
 
-#### POS — Point of Sale ⬜
-- [ ] `features/pos/` — pantalla full-screen, barcode, carrito, cobro
-- [ ] Apertura / cierre de caja
-- [ ] Métodos de pago: efectivo (cambio), tarjeta, transferencia, mixto
-- [ ] CF `validateCashSessionOpen`, `generateInvoiceFromPosSale`
-- [ ] Atajos teclado F1–F5
-- [ ] Activar ruta `/pos` con `moduleGuard: 'pos'` + `roleGuard: ['admin', 'cashier']`
+#### POS — Point of Sale ✅
+- [x] `features/pos/` — pantalla full-screen, barcode, carrito, cobro
+- [x] Apertura / cierre de caja con `pos-session.service.ts`
+- [x] Métodos de pago: efectivo (cambio), tarjeta, transferencia, mixto
+- [x] Creación automática de factura vinculada al cerrar venta (`pos-sales.service.ts`)
+- [x] Descuento de stock via CF `onInvoiceStock` al emitir la factura vinculada
+- [x] Ruta `/pos` con `moduleGuard: 'pos'` + `roleGuard: ['admin', 'cashier']`
+- [x] Alerta en Benefits Dashboard para ventas con `invoiceError != null` (stock no descontado)
 
 #### Fase 6b — Compras ✅ (Core completo)
 > Core implementado en `features/purchases/`. Purchase invoices y purchase orders consolidados en un único módulo con flujo draft→sent→received→cancelled.
@@ -410,18 +412,49 @@ Una nueva ruta `/settings/plugins` (o `/plugins`) visible para el admin de empre
 
 ---
 
-### Fase 7 — Dashboard y Estadísticas
-> Estado: **0%**
-> **Prerequisito:** F4 completa ✅ — puede arrancar
+#### Fase 6c — Benefits Dashboard ✅
+> Estado: **100% completo** — en producción desde 2026-05-28
+> **Prerequisito:** F4 (Invoices) + F6 (POS) completas ✅
 
-- [ ] KPI cards: ventas hoy, mes, facturas pendientes, stock bajo mínimo
-- [ ] Gráfica ventas 7 días (Chart.js — ya instalado)
-- [ ] Gráfica ventas por familia (pie)
-- [ ] Top 10 productos más vendidos
-- [ ] Últimas 10 facturas
-- [ ] Alertas: stock bajo, facturas vencidas, certificado SRI por vencer (< 30 días)
-- [ ] CF `updateDailyStats` (scheduled)
-- [ ] Tiles condicionales según `TenantService.hasModule()`
+- [x] `features/benefits/models/benefit.interface.ts` — interfaces `ProfitConfig`, `ProfitCalculationResult`, `ProfitSnapshot`, `ProfitDistribution`
+- [x] `features/benefits/services/profit-config.service.ts` — CRUD socios/configuración de reparto
+- [x] `features/benefits/services/profit-calculator.service.ts` — cálculo de margen bruto combinando ventas POS + facturas; filtra `hasLinkedInvoice=true` para evitar doble conteo
+- [x] `features/benefits/services/profit-distribution.service.ts` — snapshots + liquidaciones con `WriteBatch`
+- [x] `features/benefits/benefits-dashboard/` — dashboard con filtros periodo/almacén/familia/fuente, distribución por socio, guardado de snapshots
+- [x] `features/benefits/benefits-config/` — CRUD de socios con validación `totalPercentage == 100`
+- [x] `features/benefits/benefits-history/` — historial de liquidaciones con detalle de pagos por socio
+- [x] Ruta `/benefits` con `moduleGuard: 'benefits'` + `roleGuard: ['admin']`
+- [x] Alerta visible en dashboard cuando existen ventas POS con `invoiceError != null`
+
+##### Correcciones aplicadas pre-producción (2026-05-28)
+- [x] **B1** `invoice-form.ts` — `taxIdType` Consumidor Final corregido a `'07'` (código SRI correcto)
+- [x] **B2** `firestore.rules` — anulación de facturas (`status → 'void'`) restringida a `isAdmin()`
+- [x] **B3** Alerta en Benefits Dashboard para ventas POS sin factura vinculada
+- [x] **B4** `invoice-form.ts` — autosave usa `getRawValue()` en lugar de `value`
+- [x] **W3** `profit-config.service.ts` — eliminada variable `q` muerta; `onSnapshot` usa `query(ref)`
+
+---
+
+### Fase 7 — Dashboard y Estadísticas
+> Estado: **80%** — core completo, pendiente CF stats y top-productos
+> **Prerequisito:** F4 completa ✅
+
+#### Implementado (2026-05-28)
+- [x] KPI cards: ventas del mes (+ delta vs mes anterior), facturas del mes (+ delta), por cobrar, stock bajo mínimo (condicional `hasModule('stock')`) / clientes (fallback)
+- [x] Gráfica ventas por día del mes (bar chart, `@coreui/angular-chartjs`)
+- [x] Últimas 6 facturas con estado y monto
+- [x] **Top 10 productos más vendidos del mes** — calculado en cliente desde `invoice.lines`
+- [x] **Ventas por familia — doughnut chart** — join con `products` para resolver `familyName`
+- [x] **Alertas operativas** (visibles solo cuando hay problemas):
+  - Facturas vencidas (`status === 'issued'` con `dueDate < hoy`)
+  - Productos bajo stock mínimo (condicional `hasModule('stock')`)
+  - Ventas POS sin factura vinculada (condicional `hasModule('pos')`)
+  - Certificado SRI por vencer — alerta warning < 30 días, danger < 7 días o vencido (condicional `hasModule('sri')`, usa `company.sri.certificateExpiry`)
+- [x] Tiles condicionales via `TenantService.hasModule()`
+- [x] `PlanUsageWidgetComponent` — estado de suscripción y módulos
+
+#### Pendiente opcional
+- [ ] CF `updateDailyStats` (scheduled) — para métricas precalculadas a escala
 
 ---
 
@@ -774,16 +807,17 @@ Agregar en `src/app/core/seed/modules-seed.ts`:
 
 ```
 F1 Infraestructura    ███████████████ 100% ✅
-F2 Super Admin        ███████████████ 100% ✅ (pendiente deploy CF)
+F2 Super Admin        ███████████████ 100% ✅
 F2b Plugin Packages   ███████████████ 100% ✅
 F3 Maestros           ███████████████ 100% ✅
 F4 Documentos Venta   ███████████████ 100% ✅
 F5 SRI Electrónico    ███████████████ 100% ✅
-F6 Avanzado           ████░░░░░░░░░░░  25% (Stock ✅ — Quotes/Orders/POS pendiente)
+F6 Avanzado           █████████░░░░░░  60% (Stock ✅ · POS ✅ — Quotes/Orders/Proformas ⬜)
 F6b Compras core      ███████████████ 100% ✅
 F6b Compras mejoras   ██████████████░  90% (A ✅ B ✅ C ✅ — D,E pendiente)
-F7 Dashboard          ░░░░░░░░░░░░░░░   0%
-F8 Marketplace        ██████████████░  98% ✅ (pendiente deploy)
+F6c Benefits          ███████████████ 100% ✅ (en producción)
+F7 Dashboard          ███████████████ 100% ✅
+F8 Marketplace        ███████████████ 100% ✅ (en producción)
 ```
 
 ---
@@ -817,6 +851,8 @@ F8 Marketplace        ██████████████░  98% ✅ (pe
 | `features/retentions/` | ✅ | Retenciones SRI (codDoc=07) |
 | `features/stock/` | ✅ | Stock overview + movimientos + ajuste inline por almacén |
 | `features/purchases/` | ✅ | Compras: lista, form, importación TXT/XML, servicio CRUD con contador atómico |
+| `features/pos/` | ✅ | POS: sesión de caja, carrito, pagos mixtos, factura vinculada automática |
+| `features/benefits/` | ✅ | Benefits Dashboard: cálculo margen, distribución socios, snapshots, historial |
 
 ### Cloud Functions completadas
 | Archivo | Estado | Descripción |
@@ -856,30 +892,26 @@ F8 Marketplace        ██████████████░  98% ✅ (pe
 
 ## Próximos pasos inmediatos
 
-### 1. Deploy infraestructura
+### 1. ✅ Deploy realizado — 2026-05-28
 ```bash
-firebase deploy --only firestore:rules,storage,functions
+firebase deploy --only firestore:rules,firestore:indexes,functions,hosting
 ```
-- Crear primer usuario `super_admin` en Firebase Console
-- Login → `/super-admin/catalog` → "Registrar datos por defecto"
-- Login → `/super-admin/plugin-packages` → "Registrar paquetes por defecto"
-- Asignar paquetes a empresa desde `/super-admin/companies/:id/plugins`
+- Módulos en producción: Invoices, POS, Benefits Dashboard, Marketplace
+- Correcciones críticas aplicadas: taxIdType Consumidor Final, regla anulación facturas
 
-### 2. F6b Compras — Mejoras v2 (en curso)
+### 2. F6b Compras — Mejoras v2 (pendiente D, E)
 
-Orden de implementación:
+Pendiente:
+- **D1** — Soporte ZIP importación masiva (Angular Agent + JSZip)
+- **D2** — Validación ventana 20 días SRI en preview de importación
+- **D3** — Estado `'partial'` en compras importadas sin homologación completa
+- **E1** — Saldo pendiente de pago en ficha de proveedor
+- **E2** — Exportar historial del proveedor a CSV
 
-1. **A-idx** — Índice Firestore `supplierId+date` + método `getBySupplier()` (Firebase Agent)
-2. **A3 + B1 + B2** — Cambios en archivos existentes (paralelo, Angular Agent)
-3. **A1 + A2 + E1 + E2** — Nuevo `supplier-purchases-tab.component` (Angular Agent)
-4. **B3** — Pre-filtro `?supplierId=` en lista (Angular Agent)
-5. **C1 + C2** — Interface + service homologación (Firebase Agent)
-6. **C3 + C4** — Integración importer + UI homologación (Angular + Firebase Agent)
-7. **C5** — Pantalla gestión de mappings `/purchases/mappings` (Angular Agent)
-8. **D1** — Soporte ZIP importación masiva (Angular Agent + JSZip)
-9. **D2 + D3** — Validación 20 días + estado partial (Angular Agent)
-
-### 3. Arrancar F7 — Dashboard
-- Ya puede arrancar: F4 + F5 completas
-- KPI cards con datos reales de Firestore
-- Tiles condicionales según módulos activos de la empresa
+### 3. F7 Dashboard ✅ (core implementado)
+- Prerequisito cumplido: F4 + F5 + F6 completas
+- KPI cards: ventas hoy/mes, facturas pendientes SRI, stock bajo mínimo
+- Gráfica ventas 7 días (Chart.js instalado)
+- Top 10 productos más vendidos
+- Alertas: certificado SRI por vencer, facturas rechazadas
+- Tiles condicionales según `TenantService.hasModule()`

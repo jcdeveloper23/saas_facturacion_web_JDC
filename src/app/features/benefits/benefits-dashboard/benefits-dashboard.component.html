@@ -1,0 +1,247 @@
+<!-- ── Cabecera ─────────────────────────────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-start mb-3">
+  <div>
+    <h4 class="mb-1">Beneficios</h4>
+    <div class="stat-strip">
+      @for (period of periods; track period) {
+        <button class="stat-pill"
+                [class.stat-pill--active]="selectedPeriod() === period"
+                (click)="onPeriodChange(period)">
+          {{ periodLabels[period] }}
+        </button>
+      }
+    </div>
+  </div>
+  <div class="d-flex gap-2 align-items-center">
+    <a routerLink="/benefits/config" cButton color="secondary" variant="outline" size="sm">
+      Socios
+    </a>
+    <a routerLink="/benefits/history" cButton color="secondary" variant="outline" size="sm">
+      Historial
+    </a>
+  </div>
+</div>
+
+<!-- ── Alerta ventas POS sin factura ────────────────────────────────────────── -->
+@if (posInvoiceErrorCount() > 0) {
+  <c-alert color="warning" class="mb-3 d-flex align-items-center gap-2">
+    <svg cIcon name="cilWarning"></svg>
+    <span>
+      <strong>{{ posInvoiceErrorCount() }} venta{{ posInvoiceErrorCount() === 1 ? '' : 's' }} POS sin factura vinculada.</strong>
+      El stock de esas ventas no fue descontado. Revisa el historial POS para corregirlas.
+    </span>
+  </c-alert>
+}
+
+<!-- ── Rango personalizado ──────────────────────────────────────────────────── -->
+@if (selectedPeriod() === 'custom') {
+  <c-card class="border shadow-none mb-3">
+    <c-card-body class="py-2 px-3">
+      <div class="d-flex gap-2 align-items-end flex-wrap">
+        <div>
+          <label class="filter-label">Desde</label>
+          <input type="date" class="form-control form-control-sm"
+                 [ngModel]="customStart()" (ngModelChange)="customStart.set($event)" />
+        </div>
+        <div>
+          <label class="filter-label">Hasta</label>
+          <input type="date" class="form-control form-control-sm"
+                 [ngModel]="customEnd()" (ngModelChange)="customEnd.set($event)" />
+        </div>
+        <button cButton color="primary" size="sm" (click)="applyCustomRange()">
+          Calcular
+        </button>
+      </div>
+    </c-card-body>
+  </c-card>
+}
+
+<!-- ── Filtros ─────────────────────────────────────────────────────────────── -->
+<c-card class="border shadow-none mb-3">
+  <c-card-body class="py-2 px-3">
+    <div class="d-flex gap-2 align-items-center flex-wrap">
+
+      <!-- Fuente -->
+      <select cSelect class="filter-select"
+              [value]="sourceFilter()"
+              (change)="sourceFilter.set($any($event.target).value)">
+        <option value="all">Todas las fuentes</option>
+        <option value="pos">Solo POS</option>
+        <option value="invoice">Solo Facturas</option>
+      </select>
+
+      <!-- Almacén -->
+      @if (warehouses().length > 0) {
+        <select cSelect class="filter-select"
+                [value]="warehouseFilter()"
+                (change)="warehouseFilter.set($any($event.target).value)">
+          <option value="">Todos los almacenes</option>
+          @for (w of warehouses(); track w.id) {
+            <option [value]="w.code">{{ w.name }}</option>
+          }
+        </select>
+      }
+
+      <!-- Familia -->
+      @if (families().length > 0) {
+        <select cSelect class="filter-select"
+                [value]="familyFilter()"
+                (change)="familyFilter.set($any($event.target).value)">
+          <option value="">Todas las familias</option>
+          @for (f of families(); track f.id) {
+            <option [value]="f.id">{{ f.name }}</option>
+          }
+        </select>
+      }
+
+      <!-- Recalcular si hay filtros de Firestore activos -->
+      @if (warehouseFilter() || familyFilter()) {
+        <button cButton color="primary" size="sm" (click)="recalculate()">
+          <svg cIcon name="cilReload" size="sm" class="me-1"></svg>
+          Recalcular
+        </button>
+      }
+
+      @if (hasActiveFilters()) {
+        <button cButton color="secondary" variant="ghost" size="sm"
+                (click)="clearFilters()">
+          <svg cIcon name="cilX" size="sm"></svg>
+        </button>
+      }
+    </div>
+  </c-card-body>
+</c-card>
+
+<!-- ── Calculando ──────────────────────────────────────────────────────────── -->
+@if (calculating()) {
+  <div class="text-center py-5">
+    <c-spinner color="primary"></c-spinner>
+    <p class="mt-2 text-body-secondary small">Calculando beneficios...</p>
+  </div>
+}
+
+@if (!calculating() && filteredResult(); as res) {
+
+  <!-- ── Alerta sin costo ──────────────────────────────────────────────────── -->
+  @if (hasWarnings()) {
+    <div class="warn-strip mb-3">
+      <svg cIcon name="cilWarning" size="sm"></svg>
+      <span>
+        <strong>{{ res.linesWithoutCost }}</strong> línea{{ res.linesWithoutCost !== 1 ? 's' : '' }}
+        sin costo registrado — ganancia puede estar sobreestimada
+        (revenue afectado: {{ formatCurrency(res.revenueWithoutCost) }}).
+      </span>
+    </div>
+  }
+
+  <!-- ── KPI cards ──────────────────────────────────────────────────────────── -->
+  <c-row class="g-3 mb-3">
+    <c-col xs="12" sm="6" xl="3">
+      <c-card class="kpi-card h-100">
+        <c-card-body>
+          <div class="kpi-label">Ventas Netas</div>
+          <div class="kpi-value text-primary">{{ formatCurrency(res.totalRevenue) }}</div>
+          <div class="kpi-meta text-body-secondary">
+            <span class="kpi-source">POS {{ res.posSalesCount }}</span>
+            <span class="kpi-sep">·</span>
+            <span class="kpi-source">Fact. {{ res.invoicesCount }}</span>
+          </div>
+        </c-card-body>
+      </c-card>
+    </c-col>
+    <c-col xs="12" sm="6" xl="3">
+      <c-card class="kpi-card h-100">
+        <c-card-body>
+          <div class="kpi-label">Costo de Ventas</div>
+          <div class="kpi-value text-danger">{{ formatCurrency(res.totalCogs) }}</div>
+          <div class="kpi-meta text-body-secondary">COGS — costo promedio × cant.</div>
+        </c-card-body>
+      </c-card>
+    </c-col>
+    <c-col xs="12" sm="6" xl="3">
+      <c-card class="kpi-card h-100">
+        <c-card-body>
+          <div class="kpi-label">Ganancia Bruta</div>
+          <div class="kpi-value text-success">{{ formatCurrency(res.grossProfit) }}</div>
+          <div class="kpi-meta text-body-secondary">Ventas netas − COGS</div>
+        </c-card-body>
+      </c-card>
+    </c-col>
+    <c-col xs="12" sm="6" xl="3">
+      <c-card class="kpi-card h-100">
+        <c-card-body>
+          <div class="kpi-label">Margen Bruto</div>
+          <div class="kpi-value"
+               [class.text-success]="res.grossMarginPct >= 30"
+               [class.text-warning]="res.grossMarginPct > 0 && res.grossMarginPct < 30"
+               [class.text-danger]="res.grossMarginPct <= 0">
+            {{ formatPct(res.grossMarginPct) }}
+          </div>
+          <div class="kpi-meta text-body-secondary">Ganancia / Ventas netas</div>
+        </c-card-body>
+      </c-card>
+    </c-col>
+  </c-row>
+
+  <!-- ── Distribución por socio ────────────────────────────────────────────── -->
+  @if (activeConfig() && distribution().length > 0) {
+    <c-card class="border shadow-none mb-3">
+      <c-card-body class="py-2 px-3">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <span class="section-title">Distribución — {{ activeConfig()!.name }}</span>
+        </div>
+        <table class="dist-table">
+          <thead>
+            <tr>
+              <th>Socio</th>
+              <th class="text-end">Porcentaje</th>
+              <th class="text-end">Monto</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (line of distribution(); track line.partnerId) {
+              <tr>
+                <td>{{ line.partnerName }}</td>
+                <td class="text-end text-body-secondary">{{ formatPct(line.percentage) }}</td>
+                <td class="text-end fw-semibold text-success">{{ formatCurrency(line.amount) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </c-card-body>
+    </c-card>
+  }
+
+  @if (!activeConfig()) {
+    <div class="inline-info mb-3">
+      <svg cIcon name="cilInfo" size="sm" class="me-1"></svg>
+      No hay configuración de socios activa.
+      <a routerLink="/benefits/config">Configurar socios</a>
+      para ver la distribución.
+    </div>
+  }
+
+  <!-- ── Acciones ──────────────────────────────────────────────────────────── -->
+  <div class="d-flex gap-2 justify-content-end">
+    <button cButton color="secondary" variant="outline" size="sm"
+            [disabled]="savingSnap()"
+            (click)="saveSnapshot()">
+      @if (savingSnap()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+      Guardar Snapshot
+    </button>
+    @if (activeConfig()) {
+      <button cButton color="success" size="sm"
+              [disabled]="creatingDist()"
+              (click)="createDistribution()">
+        @if (creatingDist()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+        Crear Liquidación
+      </button>
+    }
+  </div>
+}
+
+@if (!calculating() && !filteredResult()) {
+  <div class="text-center py-5 text-body-secondary">
+    <p class="mb-0">Seleccione un periodo para calcular los beneficios.</p>
+  </div>
+}
