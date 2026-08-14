@@ -65,5 +65,11 @@ export { createCompanyUser } from './users/create-company-user';
 export { updateCompanyUser } from './users/update-company-user';
 export { deleteCompanyUser } from './users/delete-company-user';
 
+// School Bar
+export { schoolGenerateStudentQr } from './school-bar/school-generate-student-qr';
+export { schoolProcessPurchase }   from './school-bar/school-process-purchase';
+export { schoolConfirmRecharge }   from './school-bar/school-confirm-recharge';
+export { schoolScanQr }            from './school-bar/school-scan-qr';
+
 // Utils
 export { downloadDocument } from './utils/download-document';

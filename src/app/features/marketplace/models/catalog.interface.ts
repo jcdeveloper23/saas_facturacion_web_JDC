@@ -37,7 +37,8 @@ export interface PublicProduct {
   salePrice: number;
   taxRate?: number;
   stockAvailable: number;
-  noStock: boolean;         // true = producto de servicio sin gestión de inventario
+  noStock: boolean;         // true = servicio: sin gestión de inventario, siempre disponible
+  trackStock: boolean;      // false = producto físico sin control de stock, también siempre disponible
   isPublic: boolean;
   isActive: boolean;
 }

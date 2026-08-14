@@ -4,7 +4,7 @@ import { Timestamp } from '@angular/fire/firestore';
 
 export type TaxIdType    = 'RUC' | 'CI' | 'PASAPORTE' | 'EXTERIOR';
 export type VatRegime    = 'General' | 'Especial' | 'Exportador' | 'No sujeto';
-export type PersonRole   = 'customer' | 'supplier' | 'employee' | 'contact' | 'other';
+export type PersonRole   = 'customer' | 'supplier' | 'employee' | 'contact' | 'other' | 'student' | 'teacher';
 export type ContractType = 'indefinido' | 'plazo_fijo' | 'honorarios' | 'obra_cierta';
 
 export const ROLE_LABELS: Record<PersonRole, string> = {
@@ -12,7 +12,9 @@ export const ROLE_LABELS: Record<PersonRole, string> = {
   supplier: 'Proveedor',
   employee: 'Empleado',
   contact:  'Contacto',
-  other:    'Otro'
+  other:    'Otro',
+  student:  'Estudiante',
+  teacher:  'Profesor',
 };
 
 export const ROLE_PLURAL_LABELS: Record<PersonRole, string> = {
@@ -20,7 +22,9 @@ export const ROLE_PLURAL_LABELS: Record<PersonRole, string> = {
   supplier: 'Proveedores',
   employee: 'Empleados',
   contact:  'Contactos',
-  other:    'Otros'
+  other:    'Otros',
+  student:  'Estudiantes',
+  teacher:  'Profesores',
 };
 
 export const ROLE_COLORS: Record<PersonRole, string> = {
@@ -28,10 +32,20 @@ export const ROLE_COLORS: Record<PersonRole, string> = {
   supplier: 'warning',
   employee: 'success',
   contact:  'secondary',
-  other:    'dark'
+  other:    'dark',
+  student:  'primary',
+  teacher:  'success',
 };
 
-export const ALL_ROLES: PersonRole[] = ['customer', 'supplier', 'employee', 'contact', 'other'];
+/** Roles base del sistema (sin extensiones de paquetes). */
+export const BASE_ROLES: PersonRole[] = ['customer', 'supplier', 'employee', 'contact', 'other'];
+
+/**
+ * @deprecated Usa PersonaExtensionsService.allAvailableRoles() para obtener
+ * la lista completa incluyendo roles de paquetes activos (ej. student, teacher).
+ * ALL_ROLES se mantiene por compatibilidad con código existente.
+ */
+export const ALL_ROLES: PersonRole[] = BASE_ROLES;
 
 // ─── Shared embedded sub-models ─────────────────────────────────────────────
 
@@ -100,6 +114,25 @@ export interface EmployeeData {
   contractType?: ContractType;
 }
 
+// ── Extension role data (pkg_school_bar) ─────────────────────────────────────
+// Presentes solo cuando el tenant tiene pkg_school_bar activo y la persona
+// tiene el rol correspondiente. Vinculan la persona con el módulo escolar.
+
+export interface StudentPersonaData {
+  code: string;            // código de estudiante (secuencia independiente por empresa)
+  gradeId?: string;        // ref a /companies/{id}/school_grades/{gradeId}
+  gradeName?: string;      // denormalizado para lectura rápida
+  section?: string;        // 'A', 'B', 'C', 'Única'
+  allergenIds?: string[];  // IDs de /companies/{id}/school_allergens seleccionados
+}
+
+export interface TeacherPersonaData {
+  code: string;              // código de profesor
+  gradeId?: string;          // grado principal asignado
+  gradeName?: string;
+  specialization?: string;   // materia o área principal
+}
+
 // ─── Main Person document ─────────────────────────────────────────────────────
 // Stored at: /companies/{companyId}/personas/{personId}
 
@@ -129,6 +162,9 @@ export interface Person {
   customerData?: CustomerData;
   supplierData?: SupplierData;
   employeeData?: EmployeeData;
+  // Extension roles (pkg_school_bar)
+  studentData?: StudentPersonaData;
+  teacherData?: TeacherPersonaData;
 
   // ── Embedded collections (shared across roles) ──────────────────────────────
   addresses: PersonAddress[];
@@ -152,5 +188,12 @@ export function getPersonCode(p: Person, preferRole?: PersonRole | null): string
   if (preferRole === 'customer') return p.customerData?.code ?? '—';
   if (preferRole === 'supplier') return p.supplierData?.code ?? '—';
   if (preferRole === 'employee') return p.employeeData?.code ?? '—';
-  return p.customerData?.code ?? p.supplierData?.code ?? p.employeeData?.code ?? '—';
+  if (preferRole === 'student')  return p.studentData?.code  ?? '—';
+  if (preferRole === 'teacher')  return p.teacherData?.code  ?? '—';
+  return p.customerData?.code
+      ?? p.supplierData?.code
+      ?? p.employeeData?.code
+      ?? p.studentData?.code
+      ?? p.teacherData?.code
+      ?? '—';
 }

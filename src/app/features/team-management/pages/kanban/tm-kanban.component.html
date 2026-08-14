@@ -10,17 +10,34 @@
     </div>
   </div>
 
-  <!-- Selector de proyecto -->
-  <div class="d-flex align-items-center gap-2">
-    <label class="text-muted small mb-0" style="white-space:nowrap">Proyecto:</label>
-    <select class="form-select form-select-sm" style="width:220px"
-            [ngModel]="selectedProjectId()"
-            (ngModelChange)="setProject($event)">
-      <option value="all">Todos los proyectos</option>
-      @for (p of projects(); track trackById($index, p)) {
-        <option [value]="p.id">{{ p.name }}</option>
-      }
-    </select>
+  <!-- Selectores de filtrado -->
+  <div class="d-flex align-items-center gap-3">
+    <!-- Selector de proyecto -->
+    <div class="d-flex align-items-center gap-2">
+      <label class="text-muted small mb-0" style="white-space:nowrap">Proyecto:</label>
+      <select class="form-select form-select-sm" style="width:180px"
+              [ngModel]="selectedProjectId()"
+              (ngModelChange)="setProject($event)">
+        <option value="all">Todos los proyectos</option>
+        @for (p of projects(); track trackById($index, p)) {
+          <option [value]="p.id">{{ p.name }}</option>
+        }
+      </select>
+    </div>
+
+    <!-- Selector de asignado -->
+    <div class="d-flex align-items-center gap-2">
+      <label class="text-muted small mb-0" style="white-space:nowrap">Asignado:</label>
+      <select class="form-select form-select-sm" style="width:180px"
+              [ngModel]="assigneeFilter()"
+              (ngModelChange)="assigneeFilter.set($event)">
+        <option value="all">Todos</option>
+        <option value="mine">Mis tareas</option>
+        @for (m of members(); track trackById($index, m)) {
+          <option [value]="m.userId">{{ m.displayName }}</option>
+        }
+      </select>
+    </div>
   </div>
 </div>
 
@@ -87,9 +104,13 @@
               </div>
 
               <!-- Título -->
-              <div class="fw-semibold mb-1 lh-sm" style="font-size:.82rem; word-break:break-word">
+              <a [routerLink]="['/team-management/tasks', task.id, 'edit']"
+                 [queryParams]="{back: 'kanban'}"
+                 class="fw-semibold mb-1 lh-sm text-decoration-none text-body d-block"
+                 style="font-size:.82rem; word-break:break-word"
+                 (click)="$event.stopPropagation()">
                 {{ task.title }}
-              </div>
+              </a>
 
               <!-- Proyecto (si filtro 'all') -->
               @if (selectedProjectId() === 'all') {

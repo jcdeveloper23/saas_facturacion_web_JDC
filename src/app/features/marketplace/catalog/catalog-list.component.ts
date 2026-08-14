@@ -69,7 +69,9 @@ export class CatalogListComponent implements OnInit, OnDestroy, AfterViewInit {
     for (const p of this.allProducts()) {
       if (!p.familyId || !p.familyName) continue;
 
-      const parentInfo = familyTree[p.familyId];
+      // Primero buscar en familyTree; si no existe, usar parentFamilyId/parentFamilyName del propio producto
+      const parentInfo = familyTree[p.familyId]
+        ?? (p.parentFamilyId ? { parentId: p.parentFamilyId, parentName: p.parentFamilyName ?? '' } : null);
 
       if (parentInfo) {
         // Producto en subfamilia — agrupar bajo el padre
@@ -138,13 +140,15 @@ export class CatalogListComponent implements OnInit, OnDestroy, AfterViewInit {
     const qTerms = q.split(/\s+/).filter(t => t.length > 0);
 
     let list = this.allProducts().filter(p => {
-      if (cat && !cat.showOutOfStock && p.stockAvailable === 0 && !p.noStock) return false;
-      if (stockOnly && p.stockAvailable === 0 && !p.noStock) return false;
+      if (cat && !cat.showOutOfStock && this.isOutOfStock(p)) return false;
+      if (stockOnly && this.isOutOfStock(p)) return false;
       if (familyId) {
         if (this.parentFamilyIds().has(familyId)) {
           // Padre seleccionado: incluir productos de hijos (cuyo padre = familyId) + directos
           const familyTree = this.catalog()?.familyTree ?? {};
-          const productParentId = p.familyId ? (familyTree[p.familyId]?.parentId ?? null) : null;
+          const productParentId = p.familyId
+            ? (familyTree[p.familyId]?.parentId ?? p.parentFamilyId ?? null)
+            : null;
           if (productParentId !== familyId && p.familyId !== familyId) return false;
         } else {
           // Subfamilia seleccionada: solo coincidencia exacta
@@ -256,9 +260,13 @@ export class CatalogListComponent implements OnInit, OnDestroy, AfterViewInit {
 
   addedFeedback = signal<string | null>(null);
 
+  isOutOfStock(p: PublicProduct): boolean {
+    return p.trackStock && !p.noStock && p.stockAvailable === 0;
+  }
+
   addToCart(e: Event, product: PublicProduct): void {
     e.stopPropagation();
-    if (product.stockAvailable === 0 && !product.noStock) return;
+    if (this.isOutOfStock(product)) return;
     this.cartSvc.addItem(product, this.catalogSlug);
     this.addedFeedback.set(product.id);
     this.flyToCart(e.currentTarget as HTMLElement, product);

@@ -12,7 +12,7 @@ export class FamiliesService {
   private fs = inject(FirestoreService);
 
   getAll(): Observable<Family[]> {
-    return this.fs.getCollectionQuery<Family>('families', where('isActive', '==', true));
+    return this.fs.getCollectionQuery<Family>('families');
   }
 
   async getOnce(): Promise<Family[]> {

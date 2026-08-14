@@ -27,8 +27,15 @@
   <div class="text-center py-5">
     <c-spinner color="primary"></c-spinner>
   </div>
-} @else {
   <form [formGroup]="form" (ngSubmit)="save()">
+    @if (prefilledRequestId()) {
+      <c-alert color="info" class="mb-3 d-flex align-items-center gap-2 py-2 shadow-sm border-0">
+        <svg cIcon name="cilInbox" class="text-info"></svg>
+        <div style="font-size:.82rem">
+          Creando tarea vinculada a una solicitud de cliente. El proyecto y título han sido pre-poblados.
+        </div>
+      </c-alert>
+    }
     <c-row>
       <!-- ── Columna principal ─────────────────────────────────────────────── -->
       <c-col xs="12" lg="8">

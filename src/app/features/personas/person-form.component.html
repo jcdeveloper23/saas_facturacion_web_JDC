@@ -76,20 +76,22 @@
             Roles de la Persona
           </p>
           <div class="d-flex flex-wrap gap-2">
-            @for (role of ALL_ROLES; track role) {
+            @for (meta of personaExtensions.allAvailableRoles(); track meta.role) {
             <button type="button" class="role-toggle"
-              [class.role-toggle--active-customer]="role === 'customer' && selectedRoles().includes(role)"
-              [class.role-toggle--active-supplier]="role === 'supplier' && selectedRoles().includes(role)"
-              [class.role-toggle--active-employee]="role === 'employee' && selectedRoles().includes(role)"
-              [class.role-toggle--active-contact]="role === 'contact'  && selectedRoles().includes(role)"
-              [class.role-toggle--active-other]="role === 'other'    && selectedRoles().includes(role)"
-              (click)="toggleRole(role)">
-              @if (selectedRoles().includes(role)) {
+              [class.role-toggle--active-customer]="meta.role === 'customer' && hasRole(meta.role)"
+              [class.role-toggle--active-supplier]="meta.role === 'supplier' && hasRole(meta.role)"
+              [class.role-toggle--active-employee]="meta.role === 'employee' && hasRole(meta.role)"
+              [class.role-toggle--active-contact] ="meta.role === 'contact'  && hasRole(meta.role)"
+              [class.role-toggle--active-other]   ="meta.role === 'other'    && hasRole(meta.role)"
+              [class.role-toggle--active-student] ="meta.role === 'student'  && hasRole(meta.role)"
+              [class.role-toggle--active-teacher] ="meta.role === 'teacher'  && hasRole(meta.role)"
+              (click)="toggleRole(meta.role)">
+              @if (hasRole(meta.role)) {
               <svg cIcon name="cilCheckCircle" size="sm"></svg>
               } @else {
               <svg cIcon name="cilCircle" size="sm"></svg>
               }
-              {{ ROLE_LABELS[role] }}
+              {{ meta.label }}
             </button>
             }
           </div>
@@ -557,6 +559,102 @@
               </c-input-group>
             </c-col>
             }
+          </c-row>
+        </c-col>
+        }
+
+        <!-- ── Panel Estudiante (extensión pkg_school_bar) ─────────────── -->
+        @if (hasStudentRole()) {
+        <c-col [sm]="12" formGroupName="studentData">
+          <p class="section-title">
+            <svg cIcon name="cilBook" class="me-1"></svg>
+            Datos de Estudiante — Bar Escolar
+          </p>
+          <c-row class="g-3">
+            @if (schoolGrades().length > 0) {
+            <c-col md="6">
+              <label cLabel>Grado / Curso</label>
+              <select cSelect [value]="form.get('studentData.gradeId')?.value"
+                      (change)="onStudentGradeSelect($event)">
+                <option value="">— Sin asignar —</option>
+                @for (g of schoolGrades(); track g.id) {
+                  <option [value]="g.id" [selected]="form.get('studentData.gradeId')?.value === g.id">
+                    {{ g.name }}@if (g.section !== 'Única') { — {{ g.section }}}
+                  </option>
+                }
+              </select>
+              <div class="form-text">Grados activos del bar escolar</div>
+            </c-col>
+            } @else {
+            <c-col md="5">
+              <label cLabel>Grado</label>
+              <input cFormControl formControlName="gradeName" placeholder="Ej: Tercero de Básica">
+            </c-col>
+            <c-col md="3">
+              <label cLabel>Sección</label>
+              <input cFormControl formControlName="section" placeholder="A, B, C…">
+            </c-col>
+            }
+
+            <!-- ── Selector de alérgenos ────────────────────────────────── -->
+            @if (schoolAllergens().length > 0) {
+            <c-col xs="12">
+              <p class="section-title mt-2">
+                Alergias e intolerancias alimentarias del estudiante
+              </p>
+              <div class="d-flex flex-wrap gap-2">
+                @for (a of schoolAllergens(); track a.id) {
+                  <button type="button"
+                          class="allergen-chip"
+                          [class.allergen-chip--active]="isAllergenActive(a.id)"
+                          (click)="toggleStudentAllergen(a.id)">
+                    {{ a.name }}
+                  </button>
+                }
+              </div>
+              <div class="form-text mt-2">
+                ℹ Las alergias registradas son visibles para la cafetería al atender pedidos;
+                sin embargo, corresponde a la cafetería revisar y respetar estas restricciones
+                al momento de vender productos al estudiante.
+              </div>
+            </c-col>
+            }
+          </c-row>
+        </c-col>
+        }
+
+        <!-- ── Panel Profesor (extensión pkg_school_bar) ─────────────────── -->
+        @if (hasTeacherRole()) {
+        <c-col [sm]="12" formGroupName="teacherData">
+          <p class="section-title">
+            <svg cIcon name="cilEducation" class="me-1"></svg>
+            Datos de Profesor — Bar Escolar
+          </p>
+          <c-row class="g-3">
+            @if (schoolGrades().length > 0) {
+            <c-col md="5">
+              <label cLabel>Curso / Grado a cargo</label>
+              <select cSelect [value]="form.get('teacherData.gradeId')?.value"
+                      (change)="onTeacherGradeSelect($event)">
+                <option value="">— Sin asignar —</option>
+                @for (g of schoolGrades(); track g.id) {
+                  <option [value]="g.id" [selected]="form.get('teacherData.gradeId')?.value === g.id">
+                    {{ g.name }}@if (g.section !== 'Única') { — {{ g.section }}}
+                  </option>
+                }
+              </select>
+            </c-col>
+            } @else {
+            <c-col md="4">
+              <label cLabel>Grado Asignado</label>
+              <input cFormControl formControlName="gradeName" placeholder="Ej: Tercero de Básica">
+            </c-col>
+            }
+            <c-col md="7">
+              <label cLabel>Especialización / Materia Principal</label>
+              <input cFormControl formControlName="specialization"
+                     placeholder="Ej: Matemáticas, Ciencias Naturales">
+            </c-col>
           </c-row>
         </c-col>
         }

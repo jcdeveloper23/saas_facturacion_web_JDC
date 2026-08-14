@@ -1,0 +1,86 @@
+<c-row>
+  <c-col xs="12">
+    <c-card>
+      <c-card-header>
+        <strong>Accesorios NFC — Pendientes</strong>
+      </c-card-header>
+      <c-card-body>
+        @if (errorMsg()) {
+          <c-alert color="danger" dismissible>{{ errorMsg() }}</c-alert>
+        }
+
+        <table cTable responsive hover>
+          <thead>
+            <tr>
+              <th>Estudiante</th>
+              <th>Tipo</th>
+              <th>Precio</th>
+              <th>Estado</th>
+              <th>UID NFC</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (acc of accessories(); track acc.id) {
+              <tr>
+                <td>{{ acc.studentName }}</td>
+                <td>{{ acc.typeName }}</td>
+                <td>${{ acc.unitPrice.toFixed(2) }}</td>
+                <td>
+                  <c-badge [color]="statusColor[acc.status]">
+                    {{ statusLabel[acc.status] }}
+                  </c-badge>
+                </td>
+                <td class="font-monospace small">{{ acc.nfcUid ?? '—' }}</td>
+                <td>
+                  <div class="d-flex gap-1 flex-wrap">
+                    @if (acc.status === 'requested') {
+                      <button cButton color="success" size="sm"
+                              [disabled]="processingId() === acc.id"
+                              (click)="confirmPayment(acc)">
+                        Confirmar pago
+                      </button>
+                    }
+                    @if (acc.status === 'paid') {
+                      <button cButton color="info" size="sm"
+                              [disabled]="processingId() === acc.id"
+                              (click)="configureNfc(acc)">
+                        Config. NFC
+                      </button>
+                    }
+                    @if (acc.status === 'configured') {
+                      <button cButton color="primary" size="sm"
+                              [disabled]="processingId() === acc.id"
+                              (click)="deliver(acc)">
+                        Entregar
+                      </button>
+                    }
+                  </div>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="6" class="text-center text-muted">
+                  Sin accesorios pendientes de gestión.
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+
+        <!-- Catálogo de referencia -->
+        <hr />
+        <h6 class="text-muted">Catálogo de accesorios</h6>
+        <div class="d-flex gap-3 flex-wrap">
+          @for (c of catalog; track c.type) {
+            <div class="border rounded p-2 text-center" style="min-width:120px">
+              <div class="fw-semibold">{{ c.label }}</div>
+              <div class="text-muted small">{{ c.description }}</div>
+              <div class="fw-bold">${{ prices[c.type].toFixed(2) }}</div>
+            </div>
+          }
+        </div>
+      </c-card-body>
+    </c-card>
+  </c-col>
+</c-row>

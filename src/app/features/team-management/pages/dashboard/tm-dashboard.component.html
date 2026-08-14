@@ -20,7 +20,7 @@
   <c-row class="mb-4 g-3">
 
     <!-- Proyectos Activos -->
-    <c-col xs="12" sm="6" xl="3">
+    <c-col xs="12" sm="6" md="4" class="col-xl">
       <c-card class="h-100 border-start border-primary border-3">
         <c-card-body class="d-flex align-items-center gap-3">
           <div class="bg-primary bg-opacity-10 p-3 rounded-circle">
@@ -35,7 +35,7 @@
     </c-col>
 
     <!-- Tareas Bloqueadas -->
-    <c-col xs="12" sm="6" xl="3">
+    <c-col xs="12" sm="6" md="4" class="col-xl">
       <c-card class="h-100 border-start border-danger border-3">
         <c-card-body class="d-flex align-items-center gap-3">
           <div class="bg-danger bg-opacity-10 p-3 rounded-circle">
@@ -50,7 +50,7 @@
     </c-col>
 
     <!-- Tareas Vencidas -->
-    <c-col xs="12" sm="6" xl="3">
+    <c-col xs="12" sm="6" md="4" class="col-xl">
       <c-card class="h-100 border-start border-warning border-3">
         <c-card-body class="d-flex align-items-center gap-3">
           <div class="bg-warning bg-opacity-10 p-3 rounded-circle">
@@ -64,8 +64,23 @@
       </c-card>
     </c-col>
 
+    <!-- Solicitudes Pendientes -->
+    <c-col xs="12" sm="6" md="4" class="col-xl">
+      <c-card class="h-100 border-start border-info border-3">
+        <c-card-body class="d-flex align-items-center gap-3">
+          <div class="bg-info bg-opacity-10 p-3 rounded-circle">
+            <svg cIcon name="cilInbox" size="lg" class="text-info"></svg>
+          </div>
+          <div>
+            <div class="fs-2 fw-bold text-info">{{ pendingRequests().length }}</div>
+            <div class="text-muted small">Solicitudes Pendientes</div>
+          </div>
+        </c-card-body>
+      </c-card>
+    </c-col>
+
     <!-- Miembros Activos -->
-    <c-col xs="12" sm="6" xl="3">
+    <c-col xs="12" sm="6" md="4" class="col-xl">
       <c-card class="h-100 border-start border-success border-3">
         <c-card-body class="d-flex align-items-center gap-3">
           <div class="bg-success bg-opacity-10 p-3 rounded-circle">

@@ -3,6 +3,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import {
   CdkDragDrop, moveItemInArray, transferArrayItem, DragDropModule
@@ -16,6 +17,7 @@ import { ProjectsService }    from '../../services/projects.service';
 import { TasksService }       from '../../services/tasks.service';
 import { TeamMembersService } from '../../services/team-members.service';
 import { NotificationService } from '../../../../core/services/notification.service';
+import { AuthService }        from '../../../../core/services/auth.service';
 
 import {
   Task, TaskStatus,
@@ -31,7 +33,7 @@ import { TeamMember } from '../../models/team-member.interface';
   standalone: true,
   templateUrl: './tm-kanban.component.html',
   imports: [
-    CommonModule, FormsModule,
+    CommonModule, FormsModule, RouterLink,
     DragDropModule,
     CardModule, GridModule, BadgeModule, SpinnerModule, ButtonModule,
     IconModule,
@@ -42,6 +44,7 @@ export class TmKanbanComponent implements OnInit, OnDestroy {
   private tasksSvc      = inject(TasksService);
   private membersSvc    = inject(TeamMembersService);
   private notifications = inject(NotificationService);
+  private authSvc       = inject(AuthService);
   private destroy$      = new Subject<void>();
 
   // ── Labels / Colors ──────────────────────────────────────────────────────────
@@ -58,14 +61,28 @@ export class TmKanbanComponent implements OnInit, OnDestroy {
   tasks             = signal<Task[]>([]);
   members           = signal<TeamMember[]>([]);
   selectedProjectId = signal<string>('all');
+  assigneeFilter    = signal<string>('all');
 
   // ── Computed ─────────────────────────────────────────────────────────────────
 
+  currentUserId = computed(() => this.authSvc.user()?.uid ?? '');
+
   tasksByColumn = computed(() => {
     const pid      = this.selectedProjectId();
-    const filtered = pid === 'all'
-      ? this.tasks()
-      : this.tasks().filter(t => t.projectId === pid);
+    const aid      = this.assigneeFilter();
+    const uid      = this.currentUserId();
+    
+    let filtered = this.tasks();
+    
+    if (pid !== 'all') {
+      filtered = filtered.filter(t => t.projectId === pid);
+    }
+    
+    if (aid === 'mine') {
+      filtered = filtered.filter(t => t.assigneeIds && t.assigneeIds.includes(uid));
+    } else if (aid !== 'all') {
+      filtered = filtered.filter(t => t.assigneeIds && t.assigneeIds.includes(aid));
+    }
 
     return TASK_KANBAN_COLUMNS.reduce((acc, col) => {
       acc[col] = filtered.filter(t => t.status === col);

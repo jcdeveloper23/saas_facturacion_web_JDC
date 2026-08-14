@@ -221,9 +221,13 @@ export class CompanyPluginsComponent implements OnInit {
 
   cancelAddon(): void {
     this.showAddonModal.set(false);
-    this.pendingAddonPkg.set(null);
-    this.addonAgreedPrice.set(0);
-    this.addonNotes.set('');
+    // Clear internal state after CoreUI's modal close animation (~300 ms)
+    // so the backdrop is removed before the content disappears.
+    setTimeout(() => {
+      this.pendingAddonPkg.set(null);
+      this.addonAgreedPrice.set(0);
+      this.addonNotes.set('');
+    }, 350);
   }
 
   async confirmAddon(): Promise<void> {
@@ -282,7 +286,8 @@ export class CompanyPluginsComponent implements OnInit {
       this.error.set('Error guardando cambios.');
     } finally {
       this.saving.set(null);
-      this.pendingAddonPkg.set(null);
+      // Delay clearing content so CoreUI's backdrop animation finishes before DOM updates
+      setTimeout(() => this.pendingAddonPkg.set(null), 350);
     }
   }
 

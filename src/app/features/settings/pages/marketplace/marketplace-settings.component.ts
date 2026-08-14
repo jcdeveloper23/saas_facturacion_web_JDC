@@ -40,6 +40,7 @@ function reservedSlugValidator(control: AbstractControl): ValidationErrors | nul
 interface Family {
   id: string;
   name: string;
+  parentId?: string;
 }
 
 @Component({
@@ -191,7 +192,7 @@ export class MarketplaceSettingsComponent implements OnInit, OnDestroy {
     const ref = collection(this.firestore, `companies/${companyId}/families`);
     const families$ = new Observable<Family[]>(observer => {
       return onSnapshot(ref, {
-        next: snap => observer.next(snap.docs.map(d => ({ id: d.id, ...d.data() }) as Family)),
+        next: snap => observer.next(snap.docs.map(d => ({ id: d.id, name: d.data()['name'], parentId: d.data()['parentId'] ?? null }) as Family)),
         error: err => observer.error(err)
       });
     });
@@ -246,6 +247,19 @@ export class MarketplaceSettingsComponent implements OnInit, OnDestroy {
     this.savedOk.set(false);
 
     const val = this.form.getRawValue();
+
+    // Construir familyTree: subfamilyId → { parentId, parentName }
+    const familyMap = new Map(this.families().map(f => [f.id, f]));
+    const familyTree: Record<string, { parentId: string; parentName: string }> = {};
+    for (const f of this.families()) {
+      if (f.parentId) {
+        const parent = familyMap.get(f.parentId);
+        if (parent) {
+          familyTree[f.id] = { parentId: parent.id, parentName: parent.name };
+        }
+      }
+    }
+
     const marketplaceData = {
       enabled:          val.enabled,
       slug:             val.slug,
@@ -263,12 +277,22 @@ export class MarketplaceSettingsComponent implements OnInit, OnDestroy {
       showNotes:        val.showNotes ?? true,
       showOutOfStock:   val.showOutOfStock,
       allowedFamilyIds: val.allowedFamilyIds ?? [],
+      familyTree,
       updatedAt:        Timestamp.now()
     };
 
     try {
-      const ref = doc(this.firestore, `companies/${companyId}`);
-      await updateDoc(ref, { marketplace: marketplaceData } as any);
+      const companyRef  = doc(this.firestore, `companies/${companyId}`);
+      await updateDoc(companyRef, { marketplace: marketplaceData } as any);
+
+      // Sincronizar familyTree en el documento público del catálogo
+      if (val.slug) {
+        const catalogRef = doc(this.firestore, `public-catalogs/${val.slug}`);
+        await updateDoc(catalogRef, { familyTree } as any).catch(() => {
+          // El doc puede no existir aún (catálogo no publicado todavía) — ignorar
+        });
+      }
+
       this.savedOk.set(true);
       this.notifications.success('Configuración del catálogo guardada.');
       setTimeout(() => this.savedOk.set(false), 4000);

@@ -1,11 +1,10 @@
 <!-- ── Page header ──────────────────────────────────────────────────────────── -->
-<div class="d-flex align-items-center gap-2 mb-3">
-  <div class="bg-primary bg-opacity-10 p-2 rounded">
-    <svg cIcon name="cilFolder" size="lg" class="text-primary"></svg>
+<div class="d-flex align-items-center gap-2 mb-4">
+  <div class="pf-header-icon">
+    <svg cIcon name="cilFolder" size="lg"></svg>
   </div>
   <div class="flex-grow-1">
-    <!-- Breadcrumb -->
-    <nav aria-label="breadcrumb" style="font-size:.8rem">
+    <nav aria-label="breadcrumb" style="font-size:.78rem">
       <ol class="breadcrumb mb-0">
         <li class="breadcrumb-item">
           <a routerLink="/team-management/projects" class="text-decoration-none">Proyectos</a>
@@ -26,213 +25,517 @@
     <p class="text-muted mt-2 small">Cargando proyecto...</p>
   </div>
 } @else {
-  <form [formGroup]="form" (ngSubmit)="submit()">
-    <c-row class="g-3">
+<form [formGroup]="form" (ngSubmit)="submit()">
+  <c-row class="g-3">
 
-      <!-- ── Columna principal ─────────────────────────────────────────────── -->
-      <c-col md="8">
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <!--  COLUMNA PRINCIPAL                                                     -->
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <c-col md="8">
 
-        <!-- Información general -->
-        <c-card class="mb-3">
-          <c-card-body>
-            <p class="text-uppercase fw-semibold mb-3"
-               style="font-size:.68rem; letter-spacing:.07em; color:var(--cui-tertiary-color)">
-              Información general
-            </p>
+      <!-- ── 1. Identidad del Proyecto ──────────────────────────────────────── -->
+      <c-card class="pf-card mb-3">
+        <c-card-body>
+          <p class="pf-section-title">Identidad del Proyecto</p>
 
-            <!-- Nombre -->
-            <div class="mb-3">
-              <label cLabel for="name" class="fw-medium">
-                Nombre del proyecto <span class="text-danger">*</span>
-              </label>
-              <input cFormControl id="name" formControlName="name"
-                     placeholder="Ej: Portal de clientes v2.0"
-                     [class.is-invalid]="hasError('name')">
-              @if (hasError('name')) {
-                <div class="invalid-feedback">
-                  @if (form.get('name')?.errors?.['required']) { El nombre es obligatorio. }
-                  @else if (form.get('name')?.errors?.['minlength']) { Mínimo 3 caracteres. }
+          <!-- Emoji + Color + Nombre en una fila -->
+          <div class="pf-identity-row mb-3">
+
+            <!-- Emoji picker trigger -->
+            <div class="pf-emoji-wrap" (click)="$event.stopPropagation()">
+              <button type="button" class="pf-emoji-btn"
+                      [style.border-color]="form.get('color')?.value"
+                      (click)="showEmojiPicker.set(!showEmojiPicker())">
+                {{ form.get('emoji')?.value || '📁' }}
+              </button>
+              @if (showEmojiPicker()) {
+                <div class="pf-emoji-popup" (click)="$event.stopPropagation()">
+                  <div class="pf-emoji-grid">
+                    @for (e of DEFAULT_EMOJIS; track e) {
+                      <button type="button" class="pf-emoji-option"
+                              [class.selected]="form.get('emoji')?.value === e"
+                              (click)="form.get('emoji')?.setValue(e); showEmojiPicker.set(false)">
+                        {{ e }}
+                      </button>
+                    }
+                  </div>
                 </div>
               }
             </div>
 
-            <!-- Descripción -->
-            <div class="mb-3">
-              <label cLabel for="description" class="fw-medium">Descripción</label>
-              <textarea cFormControl id="description" formControlName="description"
-                        rows="3"
-                        placeholder="Describe el alcance y objetivos del proyecto..."></textarea>
-            </div>
-
-            <!-- Tags -->
-            <div class="mb-0">
-              <label cLabel for="tags" class="fw-medium">Tags</label>
-              <input cFormControl id="tags" formControlName="tags"
-                     placeholder="Angular, Firebase, API (separados por comas)">
-              <div class="form-text">Separe las etiquetas con comas.</div>
-            </div>
-          </c-card-body>
-        </c-card>
-
-        <!-- Fechas y estimación -->
-        <c-card class="mb-3">
-          <c-card-body>
-            <p class="text-uppercase fw-semibold mb-3"
-               style="font-size:.68rem; letter-spacing:.07em; color:var(--cui-tertiary-color)">
-              Fechas y estimación
-            </p>
-
-            <c-row class="g-3">
-              <c-col sm="6">
-                <label cLabel for="startDate" class="fw-medium">
-                  Fecha de inicio <span class="text-danger">*</span>
-                </label>
-                <input cFormControl type="date" id="startDate" formControlName="startDate"
-                       [class.is-invalid]="hasError('startDate')">
-                @if (hasError('startDate')) {
-                  <div class="invalid-feedback">La fecha de inicio es obligatoria.</div>
-                }
-              </c-col>
-              <c-col sm="6">
-                <label cLabel for="dueDate" class="fw-medium">
-                  Fecha límite <span class="text-danger">*</span>
-                </label>
-                <input cFormControl type="date" id="dueDate" formControlName="dueDate"
-                       [class.is-invalid]="hasError('dueDate')">
-                @if (hasError('dueDate')) {
-                  <div class="invalid-feedback">La fecha límite es obligatoria.</div>
-                }
-              </c-col>
-              <c-col sm="6">
-                <label cLabel for="estimatedHours" class="fw-medium">
-                  Horas estimadas <span class="text-danger">*</span>
-                </label>
-                <input cFormControl type="number" id="estimatedHours"
-                       formControlName="estimatedHours"
-                       min="0" step="1"
-                       [class.is-invalid]="hasError('estimatedHours')">
-                @if (hasError('estimatedHours')) {
-                  <div class="invalid-feedback">
-                    @if (form.get('estimatedHours')?.errors?.['required']) { Campo obligatorio. }
-                    @else { El valor debe ser mayor o igual a 0. }
-                  </div>
-                }
-              </c-col>
-            </c-row>
-          </c-card-body>
-        </c-card>
-
-        <!-- Equipo -->
-        <c-card>
-          <c-card-body>
-            <p class="text-uppercase fw-semibold mb-3"
-               style="font-size:.68rem; letter-spacing:.07em; color:var(--cui-tertiary-color)">
-              Equipo
-            </p>
-
-            <c-row class="g-3">
-              <c-col sm="6">
-                <label cLabel for="leadId" class="fw-medium">UID del responsable (Lead)</label>
-                <input cFormControl id="leadId" formControlName="leadId"
-                       placeholder="UID de Firebase Auth del lead">
-                <div class="form-text">Identificador único del usuario responsable.</div>
-              </c-col>
-            </c-row>
-          </c-card-body>
-        </c-card>
-
-      </c-col>
-
-      <!-- ── Columna lateral ───────────────────────────────────────────────── -->
-      <c-col md="4">
-
-        <!-- Configuración -->
-        <c-card class="mb-3">
-          <c-card-body>
-            <p class="text-uppercase fw-semibold mb-3"
-               style="font-size:.68rem; letter-spacing:.07em; color:var(--cui-tertiary-color)">
-              Configuración
-            </p>
-
-            <!-- Prioridad -->
-            <div class="mb-3">
-              <label cLabel for="priority" class="fw-medium">
-                Prioridad <span class="text-danger">*</span>
-              </label>
-              <select cSelect id="priority" formControlName="priority"
-                      [class.is-invalid]="hasError('priority')">
-                @for (opt of priorityOptions; track opt) {
-                  <option [value]="opt">{{ PRIORITY_LABELS[opt] }}</option>
-                }
-              </select>
-              @if (hasError('priority')) {
-                <div class="invalid-feedback">Seleccione una prioridad.</div>
+            <!-- Nombre del proyecto -->
+            <div class="flex-grow-1">
+              <input cFormControl formControlName="name"
+                     placeholder="Nombre del proyecto..."
+                     class="pf-name-input"
+                     [class.is-invalid]="hasError('name')">
+              @if (hasError('name')) {
+                <div class="invalid-feedback d-block">
+                  @if (form.get('name')?.errors?.['required']) { Nombre obligatorio. }
+                  @else if (form.get('name')?.errors?.['minlength']) { Mínimo 3 caracteres. }
+                </div>
               }
             </div>
+          </div>
 
-            <!-- Estado -->
-            <div class="mb-0">
-              <label cLabel for="status" class="fw-medium">
-                Estado <span class="text-danger">*</span>
-              </label>
-              <select cSelect id="status" formControlName="status"
-                      [class.is-invalid]="hasError('status')">
-                @for (opt of statusOptions; track opt) {
-                  <option [value]="opt">{{ STATUS_LABELS[opt] }}</option>
+          <!-- Paleta de colores -->
+          <div class="mb-3">
+            <label class="pf-label mb-2">Color del proyecto</label>
+            <div class="pf-color-palette">
+              @for (c of PROJECT_COLORS; track c) {
+                <button type="button" class="pf-color-swatch"
+                        [style.background]="c"
+                        [class.selected]="form.get('color')?.value === c"
+                        (click)="form.get('color')?.setValue(c)"
+                        [title]="c">
+                </button>
+              }
+              <!-- Preview bar -->
+              <div class="pf-color-preview" [style.background]="form.get('color')?.value"></div>
+            </div>
+          </div>
+
+          <!-- Descripción -->
+          <div class="mb-0">
+            <label class="pf-label">Descripción</label>
+            <textarea cFormControl formControlName="description"
+                      rows="3"
+                      placeholder="Describe el alcance, objetivos y entregables del proyecto..."></textarea>
+          </div>
+        </c-card-body>
+      </c-card>
+
+      <!-- ── 2. Equipo ───────────────────────────────────────────────────────── -->
+      <c-card class="pf-card mb-3">
+        <c-card-body>
+          <p class="pf-section-title">Equipo</p>
+
+          <!-- Lead (responsable) -->
+          <div class="mb-3">
+            <label class="pf-label">Responsable (Lead)</label>
+            <div class="pf-lead-row">
+              <!-- Avatar del lead seleccionado -->
+              @if (currentLead) {
+                <div class="pf-lead-avatar"
+                     [style.background]="memberBgColor(currentLead)">
+                  @if (currentLead.avatarUrl) {
+                    <img [src]="currentLead.avatarUrl" [alt]="currentLead.displayName">
+                  } @else {
+                    {{ getInitials(currentLead.displayName) }}
+                  }
+                </div>
+              } @else {
+                <div class="pf-lead-avatar pf-lead-empty">
+                  <svg cIcon name="cilUser" size="sm"></svg>
+                </div>
+              }
+              <select cSelect formControlName="leadId" class="flex-grow-1">
+                <option value="">— Sin responsable —</option>
+                @for (m of members(); track m.id) {
+                  <option [value]="m.userId">{{ m.displayName }} · {{ m.role }}</option>
                 }
               </select>
-              @if (hasError('status')) {
-                <div class="invalid-feedback">Seleccione un estado.</div>
+            </div>
+          </div>
+
+          <!-- Miembros del equipo -->
+          <div>
+            <label class="pf-label mb-2">
+              Miembros del equipo
+              @if (selectedMemberIds().size > 0) {
+                <span class="pf-member-count">{{ selectedMemberIds().size }} seleccionados</span>
+              }
+            </label>
+
+            @if (members().length === 0) {
+              <p class="text-secondary small mb-0">No hay miembros activos en el equipo.</p>
+            } @else {
+              <div class="pf-members-grid">
+                @for (m of members(); track m.id) {
+                  <label class="pf-member-item" [class.selected]="isMemberSelected(m.userId)">
+                    <input type="checkbox"
+                           [checked]="isMemberSelected(m.userId)"
+                           (change)="toggleMember(m.userId)"
+                           class="visually-hidden">
+                    <div class="pf-member-avatar" [style.background]="memberBgColor(m)">
+                      @if (m.avatarUrl) {
+                        <img [src]="m.avatarUrl" [alt]="m.displayName">
+                      } @else {
+                        {{ getInitials(m.displayName) }}
+                      }
+                    </div>
+                    <div class="pf-member-info">
+                      <span class="pf-member-name">{{ m.displayName }}</span>
+                      <span class="pf-member-role">{{ m.role }}</span>
+                    </div>
+                    @if (isMemberSelected(m.userId)) {
+                      <svg cIcon name="cilCheckCircle" size="sm" class="pf-member-check"></svg>
+                    }
+                  </label>
+                }
+              </div>
+            }
+          </div>
+        </c-card-body>
+      </c-card>
+
+      <!-- ── 3. Milestones ──────────────────────────────────────────────────── -->
+      <c-card class="pf-card">
+        <c-card-body>
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <p class="pf-section-title mb-0">Milestones</p>
+            <button type="button" cButton color="primary" variant="outline" size="sm"
+                    (click)="addMilestone()">
+              <svg cIcon name="cilPlus" size="sm" class="me-1"></svg> Añadir
+            </button>
+          </div>
+
+          @if (milestonesArray.length === 0) {
+            <div class="pf-milestones-empty">
+              <svg cIcon name="cilFlag" size="xl" class="opacity-25 mb-2"></svg>
+              <p class="small text-secondary mb-0">Sin milestones. Añade hitos clave del proyecto.</p>
+            </div>
+          }
+
+          <div formArrayName="milestones" class="pf-milestones-list">
+            @for (ctrl of milestonesArray.controls; track $index) {
+              <div class="pf-milestone-row" [formGroupName]="$index">
+                <!-- Check completado -->
+                <button type="button" class="pf-ms-check"
+                        [class.done]="asGroup(ctrl).get('completed')?.value"
+                        (click)="asGroup(ctrl).get('completed')?.setValue(!asGroup(ctrl).get('completed')?.value)">
+                  @if (asGroup(ctrl).get('completed')?.value) {
+                    <svg cIcon name="cilCheckCircle" size="sm"></svg>
+                  } @else {
+                    <svg cIcon name="cilCircle" size="sm"></svg>
+                  }
+                </button>
+
+                <!-- Nombre -->
+                <input cFormControl formControlName="name"
+                       placeholder="Nombre del milestone"
+                       class="pf-ms-name"
+                       [class.is-invalid]="asGroup(ctrl).get('name')?.invalid && asGroup(ctrl).get('name')?.touched"
+                       [class.ms-done]="asGroup(ctrl).get('completed')?.value">
+
+                <!-- Fecha -->
+                <input cFormControl type="date" formControlName="dueDate"
+                       class="pf-ms-date">
+
+                <!-- Eliminar -->
+                <button type="button" class="pf-ms-remove"
+                        (click)="removeMilestone($index)" title="Eliminar milestone">
+                  <svg cIcon name="cilX" size="sm"></svg>
+                </button>
+              </div>
+            }
+          </div>
+        </c-card-body>
+      </c-card>
+
+    </c-col>
+
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <!--  COLUMNA LATERAL                                                       -->
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <c-col md="4">
+
+      <!-- ── Configuración ──────────────────────────────────────────────────── -->
+      <c-card class="pf-card mb-3">
+        <c-card-body>
+          <p class="pf-section-title">Configuración</p>
+
+          <!-- Prioridad -->
+          <div class="mb-3">
+            <label class="pf-label">Prioridad <span class="text-danger">*</span></label>
+            <div class="pf-option-group">
+              @for (opt of priorityOptions; track opt) {
+                <button type="button" class="pf-option-btn"
+                        [class.active]="form.get('priority')?.value === opt"
+                        [class]="'pf-option-btn pf-priority-' + opt + (form.get('priority')?.value === opt ? ' active' : '')"
+                        (click)="form.get('priority')?.setValue(opt)">
+                  {{ PRIORITY_LABELS[opt] }}
+                </button>
               }
             </div>
-          </c-card-body>
-        </c-card>
+          </div>
 
-        <!-- Cliente (opcional) -->
-        <c-card class="mb-3">
-          <c-card-body>
-            <p class="text-uppercase fw-semibold mb-3"
-               style="font-size:.68rem; letter-spacing:.07em; color:var(--cui-tertiary-color)">
-              Cliente (opcional)
-            </p>
-
-            <div class="mb-3">
-              <label cLabel for="clientName" class="fw-medium">Nombre del cliente</label>
-              <input cFormControl id="clientName" formControlName="clientName"
-                     placeholder="Nombre de la empresa o persona">
+          <!-- Estado -->
+          <div class="mb-0">
+            <label class="pf-label">Estado <span class="text-danger">*</span></label>
+            <div class="d-flex flex-column gap-1">
+              @for (opt of statusOptions; track opt) {
+                <label class="pf-status-option" [class.selected]="form.get('status')?.value === opt">
+                  <input type="radio" formControlName="status" [value]="opt" class="visually-hidden">
+                  <span class="pf-status-dot pf-status-dot-{{ opt }}"></span>
+                  <span>{{ STATUS_LABELS[opt] }}</span>
+                  @if (form.get('status')?.value === opt) {
+                    <svg cIcon name="cilCheck" size="sm" class="ms-auto text-primary"></svg>
+                  }
+                </label>
+              }
             </div>
-            <div class="mb-0">
-              <label cLabel for="clientId" class="fw-medium">ID del cliente</label>
-              <input cFormControl id="clientId" formControlName="clientId"
-                     placeholder="ID del documento en Firestore">
-              <div class="form-text">Referencia al documento en /personas.</div>
-            </div>
-          </c-card-body>
-        </c-card>
+          </div>
+        </c-card-body>
+      </c-card>
 
-        <!-- Acciones -->
-        <c-card>
-          <c-card-body>
-            <div class="d-grid gap-2">
-              <button cButton color="primary" type="submit" [disabled]="saving()">
-                @if (saving()) {
-                  <c-spinner size="sm" class="me-1"></c-spinner>
-                } @else {
-                  <svg cIcon name="cilSave" class="me-1"></svg>
-                }
-                {{ isEditing() ? 'Guardar cambios' : 'Crear proyecto' }}
-              </button>
-              <button cButton color="secondary" variant="outline" type="button"
-                      [disabled]="saving()"
-                      (click)="cancel()">
-                <svg cIcon name="cilArrowLeft" class="me-1"></svg>
-                Cancelar
-              </button>
-            </div>
-          </c-card-body>
-        </c-card>
+      <!-- ── Fechas ──────────────────────────────────────────────────────────── -->
+      <c-card class="pf-card mb-3">
+        <c-card-body>
+          <p class="pf-section-title">Fechas y Alcance</p>
 
-      </c-col>
-    </c-row>
-  </form>
+          <div class="mb-3">
+            <label class="pf-label">Inicio <span class="text-danger">*</span></label>
+            <input cFormControl type="date" formControlName="startDate"
+                   [class.is-invalid]="hasError('startDate')">
+            @if (hasError('startDate')) {
+              <div class="invalid-feedback">Obligatorio.</div>
+            }
+          </div>
+
+          <div class="mb-3">
+            <label class="pf-label">Fecha límite <span class="text-danger">*</span></label>
+            <input cFormControl type="date" formControlName="dueDate"
+                   [class.is-invalid]="hasError('dueDate')">
+            @if (hasError('dueDate')) {
+              <div class="invalid-feedback">Obligatorio.</div>
+            }
+          </div>
+
+          <div class="mb-3">
+            <label class="pf-label">Horas estimadas <span class="text-danger">*</span></label>
+            <input cFormControl type="number" formControlName="estimatedHours"
+                   min="0" step="1"
+                   [class.is-invalid]="hasError('estimatedHours')">
+            @if (hasError('estimatedHours')) {
+              <div class="invalid-feedback">Valor ≥ 0 requerido.</div>
+            }
+          </div>
+
+          <div class="mb-0">
+            <label class="pf-label">Tags</label>
+            <input cFormControl formControlName="tags"
+                   placeholder="Angular, Firebase, API...">
+            <div class="form-text">Separar con comas.</div>
+          </div>
+        </c-card-body>
+      </c-card>
+
+      <!-- ── Cliente ────────────────────────────────────────────────────────── -->
+      <c-card class="pf-card mb-3">
+        <c-card-body>
+          <p class="pf-section-title">Cliente <span class="text-secondary fw-normal">(opcional)</span></p>
+
+          <div class="mb-3">
+            <label class="pf-label">Nombre</label>
+            <input cFormControl formControlName="clientName"
+                   placeholder="Nombre de la empresa o persona">
+          </div>
+          <div class="mb-0">
+            <label class="pf-label">ID en Firestore</label>
+            <input cFormControl formControlName="clientId"
+                   placeholder="ID del documento /personas/...">
+            <div class="form-text">Referencia al documento en /personas.</div>
+          </div>
+        </c-card-body>
+      </c-card>
+
+      <!-- ── Acciones ───────────────────────────────────────────────────────── -->
+      <c-card class="pf-card">
+        <c-card-body>
+          <div class="d-grid gap-2">
+            <button cButton color="primary" type="submit" [disabled]="saving()">
+              @if (saving()) {
+                <c-spinner size="sm" class="me-1"></c-spinner>
+              } @else {
+                <svg cIcon name="cilSave" class="me-1"></svg>
+              }
+              {{ isEditing() ? 'Guardar cambios' : 'Crear proyecto' }}
+            </button>
+            <button cButton color="secondary" variant="outline" type="button"
+                    [disabled]="saving()" (click)="cancel()">
+              <svg cIcon name="cilArrowLeft" class="me-1"></svg> Cancelar
+            </button>
+          </div>
+        </c-card-body>
+      </c-card>
+
+    </c-col>
+  </c-row>
+</form>
 }
+
+<!-- ── Overlay para cerrar emoji picker ─────────────────────────────────────── -->
+@if (showEmojiPicker()) {
+  <div class="pf-overlay" (click)="showEmojiPicker.set(false)"></div>
+}
+
+<!-- ── Estilos scoped ──────────────────────────────────────────────────────── -->
+<style>
+/* ── Header ─── */
+.pf-header-icon {
+  width: 44px; height: 44px; border-radius: 12px;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; box-shadow: 0 4px 12px rgba(99,102,241,.25); flex-shrink: 0;
+}
+
+/* ── Cards ─── */
+.pf-card { border-radius: 14px; border: 1.5px solid var(--cui-border-color); box-shadow: 0 2px 8px rgba(0,0,0,.04); }
+.pf-section-title {
+  font-size: .68rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .07em; color: var(--cui-tertiary-color);
+  margin-bottom: .85rem;
+}
+.pf-label { display: block; font-size: .82rem; font-weight: 500; margin-bottom: .3rem; }
+
+/* ── Identity row ─── */
+.pf-identity-row { display: flex; align-items: flex-start; gap: .75rem; }
+.pf-name-input { font-size: 1rem; font-weight: 600; }
+
+/* ── Emoji picker ─── */
+.pf-emoji-wrap { position: relative; flex-shrink: 0; }
+.pf-emoji-btn {
+  width: 48px; height: 48px; border-radius: 12px; font-size: 1.5rem;
+  background: var(--cui-tertiary-bg); border: 2px solid var(--cui-border-color);
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: border-color .15s, transform .1s;
+}
+.pf-emoji-btn:hover { transform: scale(1.05); }
+.pf-emoji-popup {
+  position: absolute; left: 0; top: calc(100% + 6px); z-index: 1060;
+  background: var(--cui-body-bg); border: 1.5px solid var(--cui-border-color);
+  border-radius: 12px; padding: .5rem; box-shadow: 0 8px 24px rgba(0,0,0,.12);
+  width: 220px;
+}
+.pf-emoji-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 2px; }
+.pf-emoji-option {
+  width: 100%; aspect-ratio: 1; border-radius: 8px; border: 1.5px solid transparent;
+  background: transparent; font-size: 1.1rem; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .12s;
+}
+.pf-emoji-option:hover { background: var(--cui-tertiary-bg); }
+.pf-emoji-option.selected { border-color: #6366f1; background: rgba(99,102,241,.1); }
+.pf-overlay { position: fixed; inset: 0; z-index: 1055; }
+
+/* ── Color palette ─── */
+.pf-color-palette { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; }
+.pf-color-swatch {
+  width: 24px; height: 24px; border-radius: 50%; border: 2.5px solid transparent;
+  cursor: pointer; transition: transform .12s, border-color .12s; flex-shrink: 0;
+}
+.pf-color-swatch:hover { transform: scale(1.2); }
+.pf-color-swatch.selected { border-color: #fff; box-shadow: 0 0 0 2px currentColor, 0 0 0 4px rgba(0,0,0,.12); }
+.pf-color-preview {
+  width: 36px; height: 10px; border-radius: 999px; margin-left: .25rem;
+  transition: background .2s;
+}
+
+/* ── Lead selector ─── */
+.pf-lead-row { display: flex; align-items: center; gap: .5rem; }
+.pf-lead-avatar {
+  width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+  font-size: .7rem; font-weight: 700; color: #fff;
+  display: flex; align-items: center; justify-content: center; overflow: hidden;
+}
+.pf-lead-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.pf-lead-empty { background: var(--cui-tertiary-bg); color: var(--cui-secondary-color); }
+
+/* ── Members grid ─── */
+.pf-member-count {
+  display: inline-flex; align-items: center; justify-content: center;
+  background: #6366f1; color: #fff; border-radius: 999px;
+  font-size: .65rem; font-weight: 700; padding: 0 6px; min-width: 18px;
+  margin-left: .35rem; line-height: 1.6;
+}
+.pf-members-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: .4rem;
+}
+.pf-member-item {
+  display: flex; align-items: center; gap: .5rem;
+  padding: .45rem .6rem; border-radius: 10px; cursor: pointer;
+  border: 1.5px solid var(--cui-border-color); background: var(--cui-body-bg);
+  transition: all .15s;
+}
+.pf-member-item:hover { border-color: #6366f1; background: rgba(99,102,241,.04); }
+.pf-member-item.selected { border-color: #6366f1; background: rgba(99,102,241,.08); }
+.pf-member-avatar {
+  width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+  font-size: .62rem; font-weight: 700; color: #fff;
+  display: flex; align-items: center; justify-content: center; overflow: hidden;
+}
+.pf-member-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.pf-member-info { display: flex; flex-direction: column; min-width: 0; flex-grow: 1; }
+.pf-member-name { font-size: .78rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pf-member-role { font-size: .65rem; color: var(--cui-secondary-color); }
+.pf-member-check { color: #6366f1; flex-shrink: 0; }
+
+/* ── Milestones ─── */
+.pf-milestones-empty {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 1.5rem; color: var(--cui-secondary-color);
+  border: 2px dashed var(--cui-border-color); border-radius: 10px;
+}
+.pf-milestones-list { display: flex; flex-direction: column; gap: .4rem; }
+.pf-milestone-row {
+  display: flex; align-items: center; gap: .4rem;
+  background: var(--cui-tertiary-bg); border-radius: 8px; padding: .3rem .5rem;
+  border: 1.5px solid var(--cui-border-color); transition: border-color .15s;
+}
+.pf-milestone-row:focus-within { border-color: #6366f1; }
+.pf-ms-check {
+  background: none; border: none; cursor: pointer; padding: .1rem;
+  color: var(--cui-secondary-color); display: flex; align-items: center; flex-shrink: 0;
+  transition: color .12s;
+}
+.pf-ms-check.done { color: #22c55e; }
+.pf-ms-name {
+  flex-grow: 1; border: none; background: transparent; outline: none;
+  font-size: .82rem; min-width: 0; padding: .2rem .3rem;
+}
+.pf-ms-name.ms-done { text-decoration: line-through; color: var(--cui-secondary-color); }
+.pf-ms-date {
+  border: none; background: transparent; outline: none;
+  font-size: .76rem; color: var(--cui-secondary-color);
+  width: 130px; flex-shrink: 0; padding: .2rem .3rem;
+}
+.pf-ms-remove {
+  background: none; border: none; cursor: pointer; padding: .1rem .2rem;
+  color: var(--cui-secondary-color); border-radius: 4px; display: flex; align-items: center;
+  transition: color .12s, background .12s; flex-shrink: 0;
+}
+.pf-ms-remove:hover { color: #ef4444; background: rgba(239,68,68,.08); }
+
+/* ── Priority option group ─── */
+.pf-option-group { display: flex; gap: .3rem; flex-wrap: wrap; }
+.pf-option-btn {
+  padding: .3rem .75rem; border-radius: 8px; font-size: .76rem; font-weight: 500;
+  border: 1.5px solid var(--cui-border-color); background: var(--cui-body-bg);
+  color: var(--cui-body-color); cursor: pointer; transition: all .12s;
+}
+.pf-option-btn:hover { border-color: #6366f1; }
+.pf-priority-low.active      { background: rgba(107,114,128,.15); color: #6b7280; border-color: #6b7280; }
+.pf-priority-medium.active   { background: rgba(6,182,212,.12);   color: #0891b2; border-color: #0891b2; }
+.pf-priority-high.active     { background: rgba(245,158,11,.12);  color: #d97706; border-color: #d97706; }
+.pf-priority-critical.active { background: rgba(239,68,68,.12);   color: #dc2626; border-color: #dc2626; }
+
+/* ── Status radio options ─── */
+.pf-status-option {
+  display: flex; align-items: center; gap: .5rem;
+  padding: .4rem .65rem; border-radius: 8px; cursor: pointer;
+  border: 1.5px solid var(--cui-border-color); background: var(--cui-body-bg);
+  font-size: .82rem; transition: all .12s;
+}
+.pf-status-option:hover { border-color: #6366f1; }
+.pf-status-option.selected { border-color: #6366f1; background: rgba(99,102,241,.06); }
+.pf-status-dot {
+  width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0;
+}
+.pf-status-dot-planning  { background: #6b7280; }
+.pf-status-dot-active    { background: #6366f1; }
+.pf-status-dot-on_hold   { background: #f59e0b; }
+.pf-status-dot-completed { background: #22c55e; }
+.pf-status-dot-cancelled { background: #ef4444; }
+</style>

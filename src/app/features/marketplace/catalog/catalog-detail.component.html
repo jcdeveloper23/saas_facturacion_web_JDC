@@ -47,12 +47,13 @@
 
           @if (productImages().length > 0) {
             <img
-              class="cd-gallery__img"
+              class="cd-gallery__img cd-gallery__img--zoomable"
               [class.slide-left]="slideDir() === 'left'"
               [class.slide-right]="slideDir() === 'right'"
               [src]="productImages()[activeImageIdx()]"
               [alt]="product()!.name"
               loading="lazy"
+              (click)="openZoom()"
             />
           } @else {
             <div class="cd-gallery__ph">
@@ -78,7 +79,7 @@
           }
 
           <!-- Agotado ribbon -->
-          @if (product()!.stockAvailable === 0 && !product()!.noStock) {
+          @if (isOutOfStock(product()!)) {
             <span class="cd-gallery__ribbon">Agotado</span>
           }
         </div>
@@ -113,6 +114,10 @@
           @if (product()!.noStock) {
             <span class="cd-pill cd-pill--service">
               <span class="cd-pill__dot"></span> Servicio disponible
+            </span>
+          } @else if (!product()!.trackStock) {
+            <span class="cd-pill cd-pill--service">
+              <span class="cd-pill__dot"></span> Disponible
             </span>
           } @else if (product()!.stockAvailable > 0) {
             <span class="cd-pill cd-pill--in">
@@ -158,7 +163,7 @@
         }
 
         <!-- Cantidad + Agregar al carrito -->
-        @if (product()!.stockAvailable > 0 || product()!.noStock) {
+        @if (!isOutOfStock(product()!)) {
           <div class="cd-cart-row">
             <span class="cd-qty-label">Cant.</span>
             <div class="cd-qty">
@@ -213,6 +218,75 @@
 
       </div>
     </div>
+
+    <!-- ══ LIGHTBOX ZOOM ════════════════════════════════════════════════ -->
+    @if (zoomOpen() && productImages().length > 0) {
+      <div class="cd-lb" (click)="closeZoom()">
+
+        <!-- Botón cerrar -->
+        <button class="cd-lb__close" (click)="closeZoom()" aria-label="Cerrar">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+
+        <!-- Indicador de zoom -->
+        <span class="cd-lb__hint">
+          @if (zoomScale() > 1) { Arrastra para mover · Scroll para zoom · Clic para alejar }
+          @else { Clic para hacer zoom · Scroll para zoom }
+        </span>
+
+        <!-- Imagen con zoom -->
+        <div class="cd-lb__stage" (click)="$event.stopPropagation()">
+          <img
+            class="cd-lb__img"
+            [class.cd-lb__img--zoomed]="zoomScale() > 1"
+            [src]="productImages()[activeImageIdx()]"
+            [alt]="product()!.name"
+            [style.transform]="'translate(' + zoomTx() + 'px, ' + zoomTy() + 'px) scale(' + zoomScale() + ')'"
+            (click)="onLbImgClick($event)"
+            (mousedown)="onLbMouseDown($event)"
+            (mousemove)="onLbMouseMove($event)"
+            (mouseup)="onLbMouseUp()"
+            (mouseleave)="onLbMouseUp()"
+            (wheel)="onLbWheel($event)"
+            (touchstart)="onLbTouchStart($event)"
+            (touchmove)="onLbTouchMove($event)"
+            (touchend)="onLbTouchEnd()"
+            draggable="false"
+          />
+        </div>
+
+        <!-- Flechas de navegación -->
+        @if (productImages().length > 1) {
+          <button class="cd-lb__arrow cd-lb__arrow--l"
+                  (click)="$event.stopPropagation(); prevImage(); zoomScale.set(1); zoomTx.set(0); zoomTy.set(0)"
+                  aria-label="Anterior">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M11.78 5.22a.75.75 0 0 1 0 1.06L8.06 10l3.72 3.72a.75.75 0 1 1-1.06 1.06l-4.25-4.25a.75.75 0 0 1 0-1.06l4.25-4.25a.75.75 0 0 1 1.06 0z" clip-rule="evenodd"/>
+            </svg>
+          </button>
+          <button class="cd-lb__arrow cd-lb__arrow--r"
+                  (click)="$event.stopPropagation(); nextImage(); zoomScale.set(1); zoomTx.set(0); zoomTy.set(0)"
+                  aria-label="Siguiente">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M8.22 5.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L11.94 10 8.22 6.28a.75.75 0 0 1 0-1.06z" clip-rule="evenodd"/>
+            </svg>
+          </button>
+          <span class="cd-lb__count">{{ activeImageIdx() + 1 }} / {{ productImages().length }}</span>
+
+          <!-- Miniaturas en lightbox -->
+          <div class="cd-lb__thumbs" (click)="$event.stopPropagation()">
+            @for (img of productImages(); track $index) {
+              <button class="cd-lb__thumb" [class.active]="activeImageIdx() === $index"
+                      (click)="goToImage($index); zoomScale.set(1); zoomTx.set(0); zoomTy.set(0)">
+                <img [src]="img" [alt]="'img ' + ($index + 1)" loading="lazy">
+              </button>
+            }
+          </div>
+        }
+      </div>
+    }
 
     <!-- ══ PRODUCTOS RELACIONADOS ════════════════════════════════════════ -->
     @if (relatedProducts().length > 0) {

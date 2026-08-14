@@ -36,7 +36,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.setUserCustomClaims = void 0;
 const https_1 = require("firebase-functions/v2/https");
 const admin = __importStar(require("firebase-admin"));
-const VALID_ROLES = ['admin', 'seller', 'cashier', 'read_only', 'super_admin'];
+// Solo super_admin puede asignar este rol.
+const SUPER_ADMIN_ONLY_ROLES = ['super_admin'];
+/**
+ * Valida que un código de rol sea sintácticamente correcto.
+ * No usa whitelist para no bloquear roles creados dinámicamente desde la UI.
+ */
+function isValidRoleCode(role) {
+    return typeof role === 'string' && /^[a-z][a-z0-9_]{0,49}$/.test(role);
+}
 /**
  * setUserCustomClaims
  *
@@ -61,12 +69,12 @@ exports.setUserCustomClaims = (0, https_1.onCall)(async (request) => {
     if (!targetUid || !companyId || !role) {
         throw new https_1.HttpsError('invalid-argument', 'targetUid, companyId and role are required.');
     }
-    if (!VALID_ROLES.includes(role)) {
-        throw new https_1.HttpsError('invalid-argument', `Invalid role: ${role}. Must be one of: ${VALID_ROLES.join(', ')}`);
+    if (!isValidRoleCode(role)) {
+        throw new https_1.HttpsError('invalid-argument', `Código de rol inválido: "${role}". Solo se permiten letras minúsculas, dígitos y guiones bajos (máx. 50 caracteres).`);
     }
-    // Only super_admin can assign super_admin role or manage other companies
-    if (role === 'super_admin' && callerRole !== 'super_admin') {
-        throw new https_1.HttpsError('permission-denied', 'Only super_admin can assign the super_admin role.');
+    // Only super_admin can assign protected roles (super_admin itself)
+    if (SUPER_ADMIN_ONLY_ROLES.includes(role) && callerRole !== 'super_admin') {
+        throw new https_1.HttpsError('permission-denied', `Solo super_admin puede asignar el rol '${role}'.`);
     }
     // Admin can only manage users within their own company
     if (callerRole === 'admin' && callerCompanyId !== companyId) {

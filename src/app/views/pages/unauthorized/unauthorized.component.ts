@@ -5,7 +5,7 @@ import {
   ColComponent, ContainerComponent, RowComponent, BadgeComponent
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
-import { AuthService, UserRole } from '../../../core/services/auth.service';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-unauthorized',
@@ -28,29 +28,34 @@ export class UnauthorizedComponent {
 
   readonly userRole = computed(() => this.authService.user()?.role ?? null);
 
+  // Nombres de los roles del sistema. Roles dinámicos muestran su código como fallback.
+  private readonly _systemRoleNames: { [code: string]: string } = {
+    super_admin:   'Super Administrador',
+    admin:         'Administrador',
+    accountant:    'Contador',
+    seller:        'Vendedor',
+    cashier:       'Cajero',
+    read_only:     'Solo Lectura',
+    padre_familia: 'Representante',
+  };
+
+  private readonly _systemRoleColors: { [code: string]: string } = {
+    super_admin: 'danger',
+    admin:       'primary',
+    accountant:  'warning',
+    seller:      'success',
+    cashier:     'info',
+    read_only:   'secondary',
+  };
+
   readonly roleName = computed(() => {
-    const names: Record<UserRole, string> = {
-      super_admin: 'Super Administrador',
-      admin:       'Administrador',
-      accountant:  'Contador',
-      seller:      'Vendedor',
-      cashier:     'Cajero',
-      read_only:   'Solo Lectura',
-    };
     const r = this.userRole();
-    return r ? (names[r] ?? r) : '';
+    return r ? (this._systemRoleNames[r] ?? r) : '';
   });
 
   readonly roleColor = computed(() => {
-    switch (this.userRole()) {
-      case 'super_admin': return 'danger';
-      case 'admin':       return 'primary';
-      case 'accountant':  return 'warning';
-      case 'seller':      return 'success';
-      case 'cashier':     return 'info';
-      case 'read_only':   return 'secondary';
-      default:            return 'dark';
-    }
+    const r = this.userRole();
+    return r ? (this._systemRoleColors[r] ?? 'dark') : 'dark';
   });
 
   goBack(): void {

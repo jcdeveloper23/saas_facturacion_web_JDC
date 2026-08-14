@@ -1,6 +1,6 @@
 import { Injectable, inject, computed, signal } from '@angular/core';
 import { Observable, of, tap } from 'rxjs';
-import { AuthService, UserRole } from './auth.service';
+import { AuthService } from './auth.service';
 import { RolesService } from './roles.service';
 import { PermissionsCatalogService } from './permissions-catalog.service';
 import { TenantService } from './tenant.service';
@@ -15,10 +15,12 @@ type CrudAction = 'read' | 'create' | 'update' | 'delete';
 type ModulePermissions = Partial<Record<CrudAction, boolean>>;
 
 // ─── Role matrix ─────────────────────────────────────────────────────────────
-// Source of truth for runtime permission checks until the Firestore RBAC catalog
-// is fully seeded and connected (Phase 5).
+// Source of truth for runtime permission checks for the built-in system roles.
+// Roles creados dinámicamente desde la UI de administración no están aquí —
+// su acceso se controlará vía el catálogo RBAC de Firestore (Phase 5).
+// Usar { [role: string]: ... } para aceptar roles dinámicos sin errores de compilación.
 
-const ROLE_MATRIX: Record<UserRole, Record<string, ModulePermissions>> = {
+const ROLE_MATRIX: { [role: string]: Record<string, ModulePermissions> } = {
   // super_admin: acceso total — nunca debe tener menos permisos que admin.
   // Incluye todos los módulos de plataforma + todos los de empresa.
   // can() saltea la verificación de tenant para este rol.
@@ -116,17 +118,25 @@ const ROLE_MATRIX: Record<UserRole, Record<string, ModulePermissions>> = {
     sri:             { read: true },
     settings:        { read: true },
   },
+  // padre_familia: acceso exclusivo al bar escolar desde la app de representantes.
+  // No tiene acceso a ningún módulo de la plataforma principal.
+  padre_familia: {
+    school_wallet:      { read: true, create: true },
+    school_accessories: { read: true, create: true },
+  },
 };
 
 // Level by role — used to filter assignable roles.
 // Lower = more privilege. super_admin(0) can assign everyone.
-export const ROLE_LEVEL: Record<UserRole, number> = {
-  super_admin: 0,
-  admin:       1,
-  accountant:  2,
-  seller:      2,
-  cashier:     3,
-  read_only:   4,
+// Roles dinámicos no listados aquí reciben nivel 3 por defecto (igual a cashier).
+export const ROLE_LEVEL: { [role: string]: number } = {
+  super_admin:   0,
+  admin:         1,
+  accountant:    2,
+  seller:        2,
+  cashier:       3,
+  read_only:     4,
+  padre_familia: 5,
 };
 
 // Standard action labels for static permission generation.
@@ -267,7 +277,7 @@ export class PermissionsService {
    * - company users: consulta companies/{companyId}/roles (roles de la empresa)
    */
   getAssignableRolesQuery(): Observable<Role[]> {
-    const role      = this.role() as UserRole | null;
+    const role      = this.role();
     const level     = role ? (ROLE_LEVEL[role] ?? 99) : 99;
     const companyId = this.authService.user()?.companyId;
 
@@ -296,7 +306,7 @@ export class PermissionsService {
    * Se pasa la lista completa de roles para evitar una segunda llamada al API.
    */
   getAssignableRoles(allRoles: Role[]): Role[] {
-    const currentRole  = this.role() as UserRole | null;
+    const currentRole  = this.role();
     const currentLevel = currentRole ? (ROLE_LEVEL[currentRole] ?? 99) : 99;
     return this.rolesSvc.getAssignableRoles(allRoles, currentLevel);
   }

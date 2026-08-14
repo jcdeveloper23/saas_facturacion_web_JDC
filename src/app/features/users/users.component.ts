@@ -21,7 +21,7 @@ import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { HasPermissionDirective } from '../../shared/directives/has-permission.directive';
 import { CompanyUsersService } from '../../core/services/company-users.service';
 import { PermissionsService } from '../../core/services/permissions.service';
-import { AuthService, UserRole } from '../../core/services/auth.service';
+import { AuthService } from '../../core/services/auth.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { CompanyUser } from '../../core/interfaces/company-user.interface';
 import { Role } from '../../core/interfaces/permission.interface';
@@ -67,7 +67,7 @@ export class UsersComponent implements OnInit, OnDestroy {
     // Filters
     searchControl = new FormControl('');
     searchTerm = signal('');
-    roleFilter = signal<UserRole | undefined>(undefined);
+    roleFilter = signal<string | undefined>(undefined);
     stateFilter = signal<boolean | 'all'>('all');
 
     // Super admin check
@@ -157,7 +157,7 @@ export class UsersComponent implements OnInit, OnDestroy {
     }
 
     onRoleFilterChange(value: string): void {
-        this.roleFilter.set(value ? value as UserRole : undefined);
+        this.roleFilter.set(value || undefined);
     }
 
     onStateFilterChange(value: string): void {
@@ -186,28 +186,38 @@ export class UsersComponent implements OnInit, OnDestroy {
             .catch(() => this.notification.error(`Error al ${action} el usuario`));
     }
 
-    getRoleColor(platformRole?: UserRole): string {
-        switch (platformRole) {
-            case 'super_admin': return 'danger';
-            case 'admin':       return 'primary';
-            case 'accountant':  return 'warning';
-            case 'seller':      return 'info';
-            case 'cashier':     return 'success';
-            case 'read_only':   return 'secondary';
-            default:            return 'dark';
-        }
+    getRoleColor(platformRole?: string): string {
+        // Buscar primero en los roles cargados de Firestore (roles dinámicos)
+        const dynamic = this.roles().find(r => r.code === platformRole);
+        if (dynamic?.color) return dynamic.color;
+
+        // Fallback: colores de los roles del sistema
+        const systemColors: { [code: string]: string } = {
+            super_admin:   'danger',
+            admin:         'primary',
+            accountant:    'warning',
+            seller:        'info',
+            cashier:       'success',
+            read_only:     'secondary',
+        };
+        return systemColors[platformRole ?? ''] ?? 'dark';
     }
 
     getRoleName(user: CompanyUser): string {
-        const names: Record<UserRole, string> = {
-            super_admin: 'Super Admin',
-            admin:       'Administrador',
-            accountant:  'Contador',
-            seller:      'Vendedor',
-            cashier:     'Cajero',
-            read_only:   'Solo lectura'
+        // Buscar primero en los roles cargados de Firestore (roles dinámicos)
+        const dynamic = this.roles().find(r => r.code === user.platformRole);
+        if (dynamic?.name) return dynamic.name;
+
+        // Fallback: nombres de los roles del sistema
+        const systemNames: { [code: string]: string } = {
+            super_admin:   'Super Admin',
+            admin:         'Administrador',
+            accountant:    'Contador',
+            seller:        'Vendedor',
+            cashier:       'Cajero',
+            read_only:     'Solo lectura',
         };
-        return names[user.platformRole] ?? 'Sin rol';
+        return systemNames[user.platformRole] ?? user.platformRole ?? 'Sin rol';
     }
 
     getStateColor(isActive: boolean): string {

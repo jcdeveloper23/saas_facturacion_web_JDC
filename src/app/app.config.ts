@@ -19,6 +19,8 @@ import { routes } from './app.routes';
 import { loadingInterceptor } from './core/interceptors';
 import { environment } from '../environments/environment';
 import { AuthService } from './core/services/auth.service';
+import { PERSONA_ROLE_EXTENSIONS_TOKEN } from './core/tokens/persona-extensions.token';
+import { SCHOOL_BAR_PERSONA_EXTENSIONS } from './features/school-bar/extensions/school-bar-persona-extensions';
 
 /**
  * Wait for Firebase Auth to resolve its initial state before navigation.
@@ -51,6 +53,14 @@ export const appConfig: ApplicationConfig = {
     {
       provide: APP_INITIALIZER,
       useFactory: initializeAuth,
+      multi: true
+    },
+    // ── Persona role extensions (plugin architecture) ──────────────────────
+    // Cada paquete que añade roles registra sus extensiones aquí con multi:true.
+    // PersonaExtensionsService las recoge y filtra por paquetes activos del tenant.
+    {
+      provide: PERSONA_ROLE_EXTENSIONS_TOKEN,
+      useValue: SCHOOL_BAR_PERSONA_EXTENSIONS,
       multi: true
     }
   ]

@@ -1,0 +1,103 @@
+<c-row>
+  <!-- Recargas pendientes -->
+  <c-col md="7">
+    <c-card class="mb-4">
+      <c-card-header>
+        <strong>Recargas Pendientes</strong>
+      </c-card-header>
+      <c-card-body>
+        <table cTable responsive hover>
+          <thead>
+            <tr>
+              <th>Estudiante</th><th>Monto</th><th>Método</th><th>Fecha</th><th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (r of pendingRecharges(); track r.id) {
+              <tr>
+                <td>{{ r.studentName }}</td>
+                <td class="fw-bold">${{ r.amount.toFixed(2) }}</td>
+                <td>{{ r.methodLabel }}</td>
+                <td>{{ r.createdAt.toDate() | date:'dd/MM HH:mm' }}</td>
+                <td>
+                  <div class="d-flex gap-1">
+                    <button cButton color="success" size="sm" (click)="confirmRecharge(r)">
+                      Confirmar
+                    </button>
+                    <button cButton color="danger" size="sm" variant="outline"
+                            (click)="rejectRecharge(r.id!)">
+                      Rechazar
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            } @empty {
+              <tr><td colspan="5" class="text-center text-muted">Sin recargas pendientes.</td></tr>
+            }
+          </tbody>
+        </table>
+      </c-card-body>
+    </c-card>
+
+    <!-- Lista de estudiantes -->
+    <c-card>
+      <c-card-header><strong>Seleccionar Estudiante</strong></c-card-header>
+      <c-card-body>
+        <table cTable responsive hover small>
+          <thead>
+            <tr><th>Nombre</th><th>Grado</th><th>Wallet</th></tr>
+          </thead>
+          <tbody>
+            @for (s of students(); track s.id) {
+              <tr (click)="selectStudent(s)" style="cursor:pointer"
+                  [class.table-active]="selectedStudent()?.id === s.id">
+                <td>{{ s.lastName }}, {{ s.firstName }}</td>
+                <td>{{ s.gradeName }}</td>
+                <td class="fw-bold">${{ s.walletBalance.toFixed(2) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </c-card-body>
+    </c-card>
+  </c-col>
+
+  <!-- Historial de transacciones -->
+  <c-col md="5">
+    <c-card>
+      <c-card-header>
+        <strong>
+          {{ selectedStudent() ? 'Transacciones — ' + selectedStudent()!.firstName : 'Seleccionar estudiante' }}
+        </strong>
+      </c-card-header>
+      <c-card-body>
+        @if (!selectedStudent()) {
+          <p class="text-muted">Haz clic en un estudiante para ver su historial.</p>
+        } @else {
+          <table cTable responsive small>
+            <thead>
+              <tr><th>Tipo</th><th>Monto</th><th>Saldo</th><th>Fecha</th></tr>
+            </thead>
+            <tbody>
+              @for (tx of transactions(); track tx.id) {
+                <tr>
+                  <td>
+                    <c-badge [color]="txColor(tx.type)">{{ txTypeLabel(tx.type) }}</c-badge>
+                  </td>
+                  <td [class.text-danger]="tx.type === 'purchase'"
+                      [class.text-success]="tx.type !== 'purchase'">
+                    {{ tx.type === 'purchase' ? '-' : '+' }}${{ tx.amount.toFixed(2) }}
+                  </td>
+                  <td>${{ tx.balanceAfter.toFixed(2) }}</td>
+                  <td class="small">{{ tx.createdAt.toDate() | date:'dd/MM HH:mm' }}</td>
+                </tr>
+              } @empty {
+                <tr><td colspan="4" class="text-muted small text-center">Sin transacciones.</td></tr>
+              }
+            </tbody>
+          </table>
+        }
+      </c-card-body>
+    </c-card>
+  </c-col>
+</c-row>

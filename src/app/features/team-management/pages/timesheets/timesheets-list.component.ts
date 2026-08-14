@@ -4,7 +4,9 @@ import {
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { Subject, takeUntil } from 'rxjs';
+import { toObservable } from '@angular/core/rxjs-interop';
+import { Subject, takeUntil, switchMap } from 'rxjs';
+import { Timestamp } from '@angular/fire/firestore';
 import {
   CardModule, ButtonModule, GridModule, BadgeModule, SpinnerModule, AlertModule
 } from '@coreui/angular';
@@ -37,10 +39,11 @@ export class TimesheetsListComponent implements OnInit, OnDestroy {
   readonly TYPE_COLORS = TIMESHEET_TYPE_COLORS;
 
   // ── State ───────────────────────────────────────────────────────────────────
-  loading       = signal(true);
-  all           = signal<TimesheetEntry[]>([]);
-  userFilter    = signal<string>('all');
-  projectFilter = signal<string>('all');
+  loading           = signal(true);
+  all               = signal<TimesheetEntry[]>([]);
+  userFilter        = signal<string>('all');
+  projectFilter     = signal<string>('all');
+  selectedWeekStart = signal<Date>(this.getMonday(new Date()));
 
   // ── Computed ────────────────────────────────────────────────────────────────
   filtered = computed(() => {
@@ -48,6 +51,14 @@ export class TimesheetsListComponent implements OnInit, OnDestroy {
     if (this.userFilter()    !== 'all') list = list.filter(t => t.userId    === this.userFilter());
     if (this.projectFilter() !== 'all') list = list.filter(t => t.projectId === this.projectFilter());
     return list;
+  });
+
+  selectedWeekEnd = computed(() => this.getWeekEnd(this.selectedWeekStart()));
+
+  weekLabel = computed(() => {
+    const s = this.selectedWeekStart();
+    const e = this.selectedWeekEnd();
+    return `${s.getDate()} ${s.toLocaleString('es', { month: 'short' })} – ${e.getDate()} ${e.toLocaleString('es', { month: 'short' })}`;
   });
 
   weeklyTotal   = computed(() => this.filtered().reduce((s, t) => s + t.hours, 0));
@@ -70,12 +81,53 @@ export class TimesheetsListComponent implements OnInit, OnDestroy {
 
   // ── Lifecycle ────────────────────────────────────────────────────────────────
   ngOnInit(): void {
-    this.svc.getAll()
-      .pipe(takeUntil(this.destroy$))
+    toObservable(this.selectedWeekStart)
+      .pipe(
+        switchMap(startDate => {
+          this.loading.set(true);
+          const start = Timestamp.fromDate(startDate);
+          const end   = Timestamp.fromDate(this.getWeekEnd(startDate));
+          return this.svc.getAllByDateRange(start, end);
+        }),
+        takeUntil(this.destroy$)
+      )
       .subscribe({
         next:  list => { this.all.set(list); this.loading.set(false); },
         error: ()   => this.loading.set(false),
       });
+  }
+
+  // ── Week navigation helpers ─────────────────────────────────────────────────
+  prevWeek(): void {
+    this.selectedWeekStart.update(d => {
+      const n = new Date(d);
+      n.setDate(n.getDate() - 7);
+      return n;
+    });
+  }
+
+  nextWeek(): void {
+    this.selectedWeekStart.update(d => {
+      const n = new Date(d);
+      n.setDate(n.getDate() + 7);
+      return n;
+    });
+  }
+
+  private getMonday(d: Date): Date {
+    const date = new Date(d);
+    const day = date.getDay();
+    const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+    date.setDate(diff);
+    date.setHours(0, 0, 0, 0);
+    return date;
+  }
+
+  private getWeekEnd(startDate: Date): Date {
+    const end = new Date(startDate);
+    end.setDate(end.getDate() + 6);
+    end.setHours(23, 59, 59, 999);
+    return end;
   }
 
   ngOnDestroy(): void {

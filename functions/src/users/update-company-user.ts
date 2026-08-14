@@ -2,15 +2,22 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import { Timestamp } from 'firebase-admin/firestore';
 
-type UserRole = 'admin' | 'seller' | 'cashier' | 'read_only' | 'accountant';
+// Roles que no pueden asignarse desde esta función.
+const PROTECTED_ROLES = ['super_admin'];
 
-const ASSIGNABLE_ROLES: UserRole[] = ['admin', 'seller', 'cashier', 'read_only', 'accountant'];
+/**
+ * Valida que un código de rol sea sintácticamente correcto.
+ * Formato: solo letras minúsculas, dígitos y guiones bajos. 1–50 caracteres.
+ */
+function isValidRoleCode(role: unknown): role is string {
+  return typeof role === 'string' && /^[a-z][a-z0-9_]{0,49}$/.test(role);
+}
 
 interface UpdateCompanyUserData {
   uid:           string;
   companyId:     string;
   displayName?:  string;
-  platformRole?: UserRole;
+  platformRole?: string;
   isActive?:     boolean;
   personaId?:    string;
 }
@@ -52,11 +59,16 @@ export const updateCompanyUser = onCall(async (request) => {
     throw new HttpsError('permission-denied', 'Admin solo puede modificar usuarios de su propia empresa.');
   }
 
-  if (platformRole !== undefined && !ASSIGNABLE_ROLES.includes(platformRole)) {
-    throw new HttpsError(
-      'invalid-argument',
-      `Rol inválido: ${platformRole}. Debe ser uno de: ${ASSIGNABLE_ROLES.join(', ')}`
-    );
+  if (platformRole !== undefined) {
+    if (!isValidRoleCode(platformRole)) {
+      throw new HttpsError(
+        'invalid-argument',
+        `Código de rol inválido: "${platformRole}". Solo se permiten letras minúsculas, dígitos y guiones bajos (máx. 50 caracteres).`
+      );
+    }
+    if (PROTECTED_ROLES.includes(platformRole)) {
+      throw new HttpsError('permission-denied', `El rol '${platformRole}' no puede asignarse desde aquí.`);
+    }
   }
 
   const auth = admin.auth();

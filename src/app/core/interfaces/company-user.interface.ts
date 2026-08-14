@@ -1,5 +1,3 @@
-import { UserRole } from '../services/auth.service';
-
 /**
  * CompanyUser — usuario de la plataforma dentro de un tenant.
  * Stored in: companies/{companyId}/company-users/{uid}
@@ -7,13 +5,16 @@ import { UserRole } from '../services/auth.service';
  *
  * Puente entre Firebase Auth (claims) y Firestore multi-tenant.
  * Equivale a fs_users del sistema legacy PHP.
+ *
+ * platformRole es string para soportar roles dinámicos creados desde la UI de administración.
+ * Los roles del sistema ('admin', 'seller', etc.) siguen siendo válidos como valores.
  */
 export interface CompanyUser {
   uid: string;           // Firebase Auth UID (= Firestore doc ID)
   email: string;
   displayName: string;
   photoURL?: string;
-  platformRole: UserRole; // 'admin' | 'seller' | 'cashier' | 'read_only' | 'super_admin'
+  platformRole: string;  // Código del rol; puede ser un rol del sistema o uno personalizado
   isActive: boolean;
   personaId?: string;    // ref a companies/{cId}/personas/{id}
   restUserId?: number;   // id en el REST API legacy (si aplica)
@@ -25,7 +26,7 @@ export interface CompanyUser {
 }
 
 export interface CompanyUserFilters {
-  platformRole?: UserRole;
+  platformRole?: string;
   isActive?: boolean;
   search?: string;
 }

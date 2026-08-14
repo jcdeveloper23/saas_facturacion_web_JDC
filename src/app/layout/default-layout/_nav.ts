@@ -278,6 +278,49 @@ export const navItems: INavData[] = [
     attributes: { module: 'teamManagement', roles: ['admin'] }
   },
 
+  // ─── Bar Escolar ──────────────────────────────────────────────────────────
+  {
+    title: true,
+    name: 'Bar Escolar',
+    attributes: { module: 'school_setup' }
+  },
+  {
+    name: 'Menú del Día',
+    url: '/school-bar/menus',
+    iconComponent: { name: 'cil-restaurant' },
+    attributes: { module: 'school_menus', roles: ['admin'] }
+  },
+  {
+    name: 'Órdenes',
+    url: '/school-bar/orders',
+    iconComponent: { name: 'cil-list' },
+    attributes: { module: 'school_orders', roles: ['admin', 'cashier'] }
+  },
+  {
+    name: 'POS Bar',
+    url: '/school-bar/pos',
+    iconComponent: { name: 'cil-calculator' },
+    attributes: { module: 'school_pos', roles: ['admin', 'cashier'] }
+  },
+  {
+    name: 'Wallet & Recargas',
+    url: '/school-bar/wallet',
+    iconComponent: { name: 'cil-wallet' },
+    attributes: { module: 'school_wallet', roles: ['admin'] }
+  },
+  {
+    name: 'Accesorios NFC',
+    url: '/school-bar/accessories',
+    iconComponent: { name: 'cil-credit-card' },
+    attributes: { module: 'school_accessories', roles: ['admin'] }
+  },
+  {
+    name: 'Configuración Bar',
+    url: '/school-bar/setup',
+    iconComponent: { name: 'cil-settings' },
+    attributes: { module: 'school_setup', roles: ['admin'] }
+  },
+
   // ─── Marketplace ─────────────────────────────────────────────────────────
   {
     title: true,

@@ -12,14 +12,18 @@ import { Functions, httpsCallable } from '@angular/fire/functions';
 import { Router } from '@angular/router';
 import { TenantService } from './tenant.service';
 
-export type UserRole = 'admin' | 'seller' | 'cashier' | 'read_only' | 'super_admin' | 'accountant';
+/**
+ * Roles del sistema (built-in). Los roles personalizados creados desde la UI
+ * de administración son válidos pero no están listados aquí — se aceptan como string.
+ */
+export type UserRole = 'admin' | 'seller' | 'cashier' | 'read_only' | 'super_admin' | 'accountant' | 'padre_familia';
 
 export interface AuthUser {
   uid: string;
   email: string;
   displayName: string;
   companyId: string;
-  role: UserRole;
+  role: string; // UserRole o cualquier rol personalizado
 }
 
 /**
@@ -143,7 +147,7 @@ export class AuthService {
 
   hasRole(...roles: UserRole[]): boolean {
     const user = this._currentUser();
-    return user ? roles.includes(user.role) : false;
+    return user ? (roles as string[]).includes(user.role) : false;
   }
 
   isAdmin(): boolean {

@@ -21,28 +21,38 @@
   @if (!loading()) {
     <div class="stat-strip">
       <div class="stat-item" (click)="typeFilter.set('all')" role="button">
-        <span class="stat-value text-info">{{ stats().total }}</span>
+        <span class="stat-value text-info">{{ stats()['total'] }}</span>
         <span class="stat-label">activos</span>
       </div>
       <div class="stat-sep"></div>
       <div class="stat-item" (click)="typeFilter.set('customer')" role="button">
-        <span class="stat-value">{{ stats().customer }}</span>
+        <span class="stat-value">{{ stats()['customer'] }}</span>
         <span class="stat-label">clientes</span>
       </div>
       <div class="stat-sep"></div>
       <div class="stat-item" (click)="typeFilter.set('supplier')" role="button">
-        <span class="stat-value">{{ stats().supplier }}</span>
+        <span class="stat-value">{{ stats()['supplier'] }}</span>
         <span class="stat-label">proveedores</span>
       </div>
       <div class="stat-sep"></div>
       <div class="stat-item" (click)="typeFilter.set('employee')" role="button">
-        <span class="stat-value">{{ stats().employee }}</span>
+        <span class="stat-value">{{ stats()['employee'] }}</span>
         <span class="stat-label">empleados</span>
       </div>
-      @if (stats().inactive > 0) {
+      <!-- Roles de extensión activos (ej. estudiantes, profesores cuando pkg_school_bar está activo) -->
+      @for (ext of personaExtensions.activeRoleExtensions(); track ext.role) {
+        @if (stats()[ext.role]) {
+          <div class="stat-sep"></div>
+          <div class="stat-item" (click)="typeFilter.set(ext.role)" role="button">
+            <span class="stat-value">{{ stats()[ext.role] }}</span>
+            <span class="stat-label">{{ ext.labelPlural | lowercase }}</span>
+          </div>
+        }
+      }
+      @if (stats()['inactive'] > 0) {
         <div class="stat-sep"></div>
         <div class="stat-item" (click)="typeFilter.set('inactive')" role="button">
-          <span class="stat-value text-muted">{{ stats().inactive }}</span>
+          <span class="stat-value text-muted">{{ stats()['inactive'] }}</span>
           <span class="stat-label">inactivos</span>
         </div>
       }
@@ -57,7 +67,7 @@
   <div class="filter-top px-3 pt-2 pb-0">
     <div class="d-flex align-items-center gap-3 flex-wrap">
       <div class="seg-tabs">
-        @for (opt of typeOptions; track opt.value) {
+        @for (opt of typeOptions(); track opt.value) {
           <button class="seg-tab" [class.active]="typeFilter() === opt.value"
                   (click)="typeFilter.set(opt.value)">
             {{ opt.label }}
@@ -288,8 +298,8 @@
       <div class="bg-body-secondary px-4 py-2 border-top d-flex justify-content-between align-items-center">
         <small class="text-muted">
           {{ filtered().length }} persona{{ filtered().length !== 1 ? 's' : '' }}
-          @if (filtered().length !== stats().total && typeFilter() !== 'inactive') {
-            <span class="text-muted"> de {{ stats().total }}</span>
+          @if (filtered().length !== stats()['total'] && typeFilter() !== 'inactive') {
+            <span class="text-muted"> de {{ stats()['total'] }}</span>
           }
         </small>
         <small class="text-muted fst-italic">Clic en una fila para editar</small>

@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.downloadDocument = exports.deleteCompanyUser = exports.updateCompanyUser = exports.createCompanyUser = exports.closeAccountingPeriod = exports.generateJournalEntryFromRetention = exports.generateJournalEntryFromInvoice = exports.generateWeeklyReport = exports.detectOverdueTasksScheduled = exports.onTaskStatusChanged = exports.onTimesheetDeleted = exports.onTimesheetCreated = exports.onProductPublicSync = exports.onMarketplaceSettingsChange = exports.onPurchaseReceive = exports.onInvoiceStock = exports.onPosSaleComplete = exports.onDebitNoteEmit = exports.sendDebitNoteEmail = exports.generateDebitNotePdf = exports.generateDebitNoteXml = exports.onRetentionEmit = exports.sendRetentionEmail = exports.generateRetentionPdf = exports.generateRetentionXml = exports.onInvoiceEmit = exports.sendCreditNoteEmail = exports.generateCreditNotePdf = exports.sendInvoiceEmail = exports.generatePdf = exports.checkSriStatus = exports.sendToSri = exports.signXml = exports.generateCreditNoteXml = exports.generateInvoiceXml = exports.uploadCertificate = exports.checkPlanLimit = exports.onPlanUpdated = exports.assignPlanToCompany = exports.setupCompany = exports.setupFirstAdmin = exports.setUserCustomClaims = void 0;
+exports.downloadDocument = exports.schoolScanQr = exports.schoolConfirmRecharge = exports.schoolProcessPurchase = exports.schoolGenerateStudentQr = exports.deleteCompanyUser = exports.updateCompanyUser = exports.createCompanyUser = exports.closeAccountingPeriod = exports.generateJournalEntryFromRetention = exports.generateJournalEntryFromInvoice = exports.generateWeeklyReport = exports.detectOverdueTasksScheduled = exports.onTaskStatusChanged = exports.onTimesheetDeleted = exports.onTimesheetCreated = exports.onProductPublicSync = exports.onMarketplaceSettingsChange = exports.onPurchaseReceive = exports.onInvoiceStock = exports.onPosSaleComplete = exports.onDebitNoteEmit = exports.sendDebitNoteEmail = exports.generateDebitNotePdf = exports.generateDebitNoteXml = exports.onRetentionEmit = exports.sendRetentionEmail = exports.generateRetentionPdf = exports.generateRetentionXml = exports.onInvoiceEmit = exports.sendCreditNoteEmail = exports.generateCreditNotePdf = exports.sendInvoiceEmail = exports.generatePdf = exports.checkSriStatus = exports.sendToSri = exports.signXml = exports.generateCreditNoteXml = exports.generateInvoiceXml = exports.uploadCertificate = exports.checkPlanLimit = exports.onPlanUpdated = exports.assignPlanToCompany = exports.setupCompany = exports.setupFirstAdmin = exports.setUserCustomClaims = void 0;
 const admin = __importStar(require("firebase-admin"));
 admin.initializeApp();
 // Auth
@@ -129,6 +129,15 @@ var update_company_user_1 = require("./users/update-company-user");
 Object.defineProperty(exports, "updateCompanyUser", { enumerable: true, get: function () { return update_company_user_1.updateCompanyUser; } });
 var delete_company_user_1 = require("./users/delete-company-user");
 Object.defineProperty(exports, "deleteCompanyUser", { enumerable: true, get: function () { return delete_company_user_1.deleteCompanyUser; } });
+// School Bar
+var school_generate_student_qr_1 = require("./school-bar/school-generate-student-qr");
+Object.defineProperty(exports, "schoolGenerateStudentQr", { enumerable: true, get: function () { return school_generate_student_qr_1.schoolGenerateStudentQr; } });
+var school_process_purchase_1 = require("./school-bar/school-process-purchase");
+Object.defineProperty(exports, "schoolProcessPurchase", { enumerable: true, get: function () { return school_process_purchase_1.schoolProcessPurchase; } });
+var school_confirm_recharge_1 = require("./school-bar/school-confirm-recharge");
+Object.defineProperty(exports, "schoolConfirmRecharge", { enumerable: true, get: function () { return school_confirm_recharge_1.schoolConfirmRecharge; } });
+var school_scan_qr_1 = require("./school-bar/school-scan-qr");
+Object.defineProperty(exports, "schoolScanQr", { enumerable: true, get: function () { return school_scan_qr_1.schoolScanQr; } });
 // Utils
 var download_document_1 = require("./utils/download-document");
 Object.defineProperty(exports, "downloadDocument", { enumerable: true, get: function () { return download_document_1.downloadDocument; } });

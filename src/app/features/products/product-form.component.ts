@@ -736,8 +736,9 @@ export class ProductFormComponent implements OnInit, OnDestroy {
       }
 
       // Resolve denormalized family/manufacturer names
-      const family       = this.families().find(f => f.id === v.familyId);
-      const manufacturer = this.manufacturers().find(m => m.id === v.manufacturerId);
+      const family        = this.families().find(f => f.id === v.familyId);
+      const parentFamily  = family?.parentId ? this.families().find(f => f.id === family.parentId) : null;
+      const manufacturer  = this.manufacturers().find(m => m.id === v.manufacturerId);
       const taxRate      = this.taxRates().find(t => t.code === v.taxRateCode);
 
       // Build payload — exclude UI-only computed fields
@@ -751,8 +752,10 @@ export class ProductFormComponent implements OnInit, OnDestroy {
         ...vClean,
         sku:              v.sku.trim().toUpperCase(),
         name:             v.name.trim(),
-        familyCode:       family?.code        ?? null,
-        familyName:       family?.name        ?? null,
+        familyCode:        family?.code         ?? null,
+        familyName:        family?.name         ?? null,
+        parentFamilyId:    parentFamily?.id     ?? null,
+        parentFamilyName:  parentFamily?.name   ?? null,
         manufacturerCode: manufacturer?.code  ?? null,
         manufacturerName: manufacturer?.name  ?? null,
         taxRateName:      taxRate?.name       ?? null,

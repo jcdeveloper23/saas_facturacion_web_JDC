@@ -1,12 +1,11 @@
 import { Injectable, inject } from '@angular/core';
 import { Functions, httpsCallable } from '@angular/fire/functions';
-import { UserRole } from './auth.service';
 
 export interface CreateCompanyUserPayload {
   email:        string;
   password:     string;
   displayName:  string;
-  platformRole: UserRole;
+  platformRole: string;
   companyId:    string;
   personaId?:   string;
 }
@@ -15,14 +14,14 @@ export interface CreateCompanyUserResult {
   uid:          string;
   email:        string;
   displayName:  string;
-  platformRole: UserRole;
+  platformRole: string;
 }
 
 export interface UpdateCompanyUserPayload {
   uid:           string;
   companyId:     string;
   displayName?:  string;
-  platformRole?: UserRole;
+  platformRole?: string;
   isActive?:     boolean;
   personaId?:    string;
 }

@@ -1,239 +1,752 @@
-<!-- ── Cabecera ──────────────────────────────────────────────────────────────── -->
+<!-- ── Cabecera ─────────────────────────────────────────────────────────────── -->
 <div class="d-flex justify-content-between align-items-center mb-3">
   <div class="d-flex align-items-center gap-2">
-    <div class="bg-primary bg-opacity-10 p-2 rounded">
-      <svg cIcon name="cilFolder" size="xl" class="text-primary"></svg>
+    <div class="project-header-icon">
+      <svg cIcon name="cilFolder" size="xl"></svg>
     </div>
     <div>
-      <h3 class="mb-0 fw-semibold">Proyectos</h3>
-      <p class="text-muted small mb-0">Gestión de proyectos del equipo</p>
+      <h3 class="mb-0 fw-bold">Proyectos</h3>
+      <p class="text-secondary small mb-0">Gestión de proyectos del equipo</p>
     </div>
   </div>
-  <button cButton color="primary" size="sm"
-          (click)="router.navigate(['/team-management/projects/new'])">
-    <svg cIcon name="cilPlus" class="me-1"></svg> Nuevo Proyecto
-  </button>
+  <div class="d-flex gap-2 align-items-center">
+    <!-- Toggle view -->
+    <button class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1" (click)="toggleView()"
+      [title]="viewMode() === 'cards' ? 'Vista tabla' : 'Vista tarjetas'">
+      @if (viewMode() === 'cards') {
+      <svg cIcon name="cilList" size="sm"></svg>
+      } @else {
+      <svg cIcon name="cilGrid" size="sm"></svg>
+      }
+    </button>
+    <button cButton color="primary" size="sm" (click)="router.navigate(['/team-management/projects/new'])">
+      <svg cIcon name="cilPlus" class="me-1"></svg> Nuevo Proyecto
+    </button>
+  </div>
 </div>
 
-<!-- ── Stats strip ──────────────────────────────────────────────────────────── -->
+<!-- ── Stats strip ─────────────────────────────────────────────────────────── -->
 @if (!loading()) {
-  <div class="d-flex gap-2 mb-3 flex-wrap">
-    <!-- Total -->
-    <div class="border rounded px-3 py-2 d-flex align-items-center gap-2 bg-body"
-         style="cursor:pointer"
-         [class.border-primary]="statusFilter() === 'all'"
-         (click)="setStatusFilter('all')">
-      <svg cIcon name="cilFolder" class="text-muted" size="sm"></svg>
-      <span class="fw-semibold">{{ stats().total }}</span>
-      <span class="text-muted small">Total</span>
-    </div>
-    <!-- Activos -->
-    <div class="border rounded px-3 py-2 d-flex align-items-center gap-2 bg-body"
-         style="cursor:pointer"
-         [class.border-primary]="statusFilter() === 'active'"
-         (click)="setStatusFilter('active')">
-      <svg cIcon name="cilMediaPlay" class="text-primary" size="sm"></svg>
-      <span class="fw-semibold text-primary">{{ stats().active }}</span>
-      <span class="text-muted small">Activos</span>
-    </div>
-    <!-- Completados -->
-    <div class="border rounded px-3 py-2 d-flex align-items-center gap-2 bg-body"
-         style="cursor:pointer"
-         [class.border-success]="statusFilter() === 'completed'"
-         (click)="setStatusFilter('completed')">
-      <svg cIcon name="cilCheckCircle" class="text-success" size="sm"></svg>
-      <span class="fw-semibold text-success">{{ stats().completed }}</span>
-      <span class="text-muted small">Completados</span>
-    </div>
-    <!-- Vencidos (solo si hay alguno) -->
-    @if (stats().overdue > 0) {
-      <div class="border border-danger rounded px-3 py-2 d-flex align-items-center gap-2 bg-body">
-        <svg cIcon name="cilWarning" class="text-danger" size="sm"></svg>
-        <span class="fw-semibold text-danger">{{ stats().overdue }}</span>
-        <span class="text-muted small">Vencidos</span>
-      </div>
-    }
+<div class="stats-strip mb-4">
+  <div class="stat-pill" [class.active]="statusFilter() === 'all'" (click)="setStatusFilter('all')">
+    <span class="stat-dot" style="background:#6366f1"></span>
+    <span class="stat-num">{{ stats().total }}</span>
+    <span class="stat-label">Total</span>
   </div>
+  <div class="stat-pill" [class.active]="statusFilter() === 'active'" (click)="setStatusFilter('active')">
+    <span class="stat-dot" style="background:#22c55e"></span>
+    <span class="stat-num text-success">{{ stats().active }}</span>
+    <span class="stat-label">Activos</span>
+  </div>
+  <div class="stat-pill" [class.active]="statusFilter() === 'on_hold'" (click)="setStatusFilter('on_hold')">
+    <span class="stat-dot" style="background:#f59e0b"></span>
+    <span class="stat-num" style="color:#f59e0b">{{ stats().onHold }}</span>
+    <span class="stat-label">En Espera</span>
+  </div>
+  <div class="stat-pill" [class.active]="statusFilter() === 'completed'" (click)="setStatusFilter('completed')">
+    <span class="stat-dot" style="background:#14b8a6"></span>
+    <span class="stat-num" style="color:#14b8a6">{{ stats().completed }}</span>
+    <span class="stat-label">Completados</span>
+  </div>
+  @if (stats().overdue > 0) {
+  <div class="stat-pill stat-danger">
+    <span class="stat-dot" style="background:#ef4444"></span>
+    <span class="stat-num text-danger">{{ stats().overdue }}</span>
+    <span class="stat-label">Vencidos</span>
+  </div>
+  }
+</div>
 }
 
-<!-- ── Filtros + Tabla ──────────────────────────────────────────────────────── -->
-<c-card class="mb-0">
-  <div class="px-3 pt-2 pb-1 d-flex gap-2 flex-wrap align-items-center border-bottom">
-    <!-- Buscador -->
-    <div class="position-relative" style="flex:1; min-width:200px; max-width:340px">
-      <svg cIcon name="cilSearch" size="sm"
-           style="position:absolute; left:.6rem; top:50%; transform:translateY(-50%); color:var(--cui-secondary-color)">
-      </svg>
-      <input class="form-control form-control-sm" style="padding-left:2rem"
-             placeholder="Buscar por nombre o cliente..."
-             [value]="searchTerm()"
-             (input)="searchTerm.set($any($event.target).value)">
-    </div>
-    <!-- Filtro status -->
-    <select class="form-select form-select-sm" style="width:180px"
-            [value]="statusFilter()"
-            (change)="setStatusFilter($any($event.target).value)">
-      <option value="all">Todos los estados</option>
-      <option value="planning">Planificación</option>
-      <option value="active">Activo</option>
-      <option value="on_hold">En Espera</option>
-      <option value="completed">Completado</option>
-      <option value="cancelled">Cancelado</option>
-    </select>
-    <span class="ms-auto text-secondary" style="font-size:.75rem">
-      {{ filtered().length }} proyecto(s)
-    </span>
+<!-- ── Toolbar de filtros ──────────────────────────────────────────────────── -->
+<div class="filter-toolbar mb-3">
+  <div class="search-wrap">
+    <svg cIcon name="cilSearch" size="sm" class="search-icon"></svg>
+    <input class="form-control form-control-sm search-input" placeholder="Buscar por nombre o cliente..."
+      [value]="searchTerm()" (input)="searchTerm.set($any($event.target).value)">
   </div>
+  <select class="form-select form-select-sm" style="width:180px" [value]="statusFilter()"
+    (change)="setStatusFilter($any($event.target).value)">
+    <option value="all">Todos los estados</option>
+    <option value="planning">Planificación</option>
+    <option value="active">Activo</option>
+    <option value="on_hold">En Espera</option>
+    <option value="completed">Completado</option>
+    <option value="cancelled">Cancelado</option>
+  </select>
+  <span class="ms-auto text-secondary" style="font-size:.75rem; white-space:nowrap">
+    {{ filtered().length }} proyecto(s)
+  </span>
+</div>
 
-  <!-- ── Tabla ─────────────────────────────────────────────────────────────── -->
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<!--  VISTA CARDS                                                              -->
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+@if (viewMode() === 'cards') {
+@if (loading()) {
+<div class="text-center py-5">
+  <c-spinner color="primary"></c-spinner>
+  <p class="text-muted mt-2 small">Cargando proyectos...</p>
+</div>
+} @else if (filtered().length === 0) {
+<div class="empty-state">
+  <div class="empty-icon">📁</div>
+  <h5>No hay proyectos</h5>
+  <p class="text-secondary">Crea tu primer proyecto para comenzar a organizar tu equipo</p>
+  <button cButton color="primary" size="sm" (click)="router.navigate(['/team-management/projects/new'])">
+    <svg cIcon name="cilPlus" class="me-1"></svg> Crear primer proyecto
+  </button>
+</div>
+} @else {
+<!-- Click fuera para cerrar menús -->
+<div class="projects-grid" (click)="closeMenu()">
+  @for (p of filtered(); track trackById($index, p)) {
+  @let vis = visibleMembers(p, 4);
+  @let days = daysLeft(p);
+  <div class="project-card" [class.overdue]="isOverdue(p)">
+    <!-- Color bar lateral -->
+    <div class="project-color-bar" [style.background]="p.color || '#6366f1'"></div>
+
+    <!-- Contenido -->
+    <div class="project-card-body">
+      <!-- Header de la card -->
+      <div class="d-flex align-items-start justify-content-between mb-2">
+        <div class="d-flex align-items-center gap-2 flex-grow-1 min-w-0">
+          <span class="project-emoji">{{ p.emoji || '📁' }}</span>
+          <div class="min-w-0">
+            <div class="project-name text-truncate">{{ p.name }}</div>
+            @if (p.clientName) {
+            <div class="project-client text-truncate">
+              <svg cIcon name="cilBuilding" size="sm" class="me-1 opacity-50"></svg>
+              {{ p.clientName }}
+            </div>
+            }
+          </div>
+        </div>
+        <!-- Kebab menu -->
+        <div class="project-menu-wrap" (click)="$event.stopPropagation()">
+          <button class="btn-kebab" (click)="toggleMenu(p.id, $event)" title="Acciones">⋮</button>
+          @if (openMenuId() === p.id) {
+          <div class="dropdown-menu show project-dropdown">
+            <button class="dropdown-item"
+              (click)="router.navigate(['/team-management/projects', p.id, 'edit']); closeMenu()">
+              <svg cIcon name="cilPencil" size="sm" class="me-2"></svg> Editar
+            </button>
+            <button class="dropdown-item"
+              (click)="router.navigate(['/team-management/tasks'], { queryParams: { projectId: p.id } }); closeMenu()">
+              <svg cIcon name="cilTask" size="sm" class="me-2"></svg> Ver tareas
+            </button>
+            <div class="dropdown-divider"></div>
+            @if (p.status === 'planning' || p.status === 'on_hold') {
+            <button class="dropdown-item text-success" (click)="changeProjectStatus(p, 'active')">
+              <svg cIcon name="cilMediaPlay" size="sm" class="me-2"></svg> Activar
+            </button>
+            }
+            @if (p.status === 'active') {
+            <button class="dropdown-item text-warning" (click)="changeProjectStatus(p, 'on_hold')">
+              <svg cIcon name="cilMediaPause" size="sm" class="me-2"></svg> Poner en Espera
+            </button>
+            }
+            @if (p.status === 'active' || p.status === 'on_hold') {
+            <button class="dropdown-item text-info" (click)="changeProjectStatus(p, 'completed')">
+              <svg cIcon name="cilCheck" size="sm" class="me-2"></svg> Completar
+            </button>
+            }
+            <div class="dropdown-divider"></div>
+            <button class="dropdown-item text-danger" (click)="softDelete(p)">
+              <svg cIcon name="cilTrash" size="sm" class="me-2"></svg> Eliminar
+            </button>
+          </div>
+          }
+        </div>
+      </div>
+
+      <!-- Descripción -->
+      @if (p.description) {
+      <p class="project-desc text-truncate-2 mb-2">{{ p.description }}</p>
+      }
+
+      <!-- Tags -->
+      @if (p.tags?.length) {
+      <div class="d-flex flex-wrap gap-1 mb-2">
+        @for (tag of p.tags.slice(0, 3); track tag) {
+        <span class="tag-chip">{{ tag }}</span>
+        }
+        @if (p.tags.length > 3) {
+        <span class="tag-chip tag-chip-more">+{{ p.tags.length - 3 }}</span>
+        }
+      </div>
+      }
+
+      <!-- Progreso -->
+      <div class="progress-section mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+          <span class="progress-label">Progreso</span>
+          <span class="progress-pct" [style.color]="progressColor(p.completionPct)">
+            {{ p.completionPct }}%
+          </span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" [style.width]="p.completionPct + '%'"
+            [style.background]="progressColor(p.completionPct)">
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer de la card -->
+      <div class="card-footer-row">
+        <!-- Badges -->
+        <div class="d-flex gap-1 align-items-center flex-wrap">
+          <span class="status-badge status-{{ p.status }}">
+            {{ STATUS_LABELS[p.status] }}
+          </span>
+          <span class="priority-badge priority-{{ p.priority }}">
+            {{ PRIORITY_LABELS[p.priority] }}
+          </span>
+          @if (isOverdue(p)) {
+          <span class="overdue-badge">⚠ Vencido</span>
+          }
+        </div>
+
+        <!-- Fecha + Avatares -->
+        <div class="d-flex align-items-center gap-2">
+          @if (p.dueDate) {
+          <span class="due-date" [class.text-danger]="isOverdue(p)"
+            [class.text-warning]="!isOverdue(p) && days <= 7 && days > 0">
+            <svg cIcon name="cilCalendar" size="sm" class="me-1 opacity-60"></svg>
+            {{ p.dueDate.toDate() | date:'dd MMM' }}
+          </span>
+          }
+          <!-- Avatar stack -->
+          @if (vis.members.length > 0) {
+          <div class="avatar-stack">
+            @for (m of vis.members; track m.id) {
+            <div class="avatar-mini" [title]="m.displayName" [style.background]="getMemberColor(m)">
+              @if (m.avatarUrl) {
+              <img [src]="m.avatarUrl" [alt]="m.displayName">
+              } @else {
+              {{ getInitials(m.displayName) }}
+              }
+            </div>
+            }
+            @if (vis.overflow > 0) {
+            <div class="avatar-mini avatar-overflow">+{{ vis.overflow }}</div>
+            }
+          </div>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+  }
+</div>
+}
+}
+
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<!--  VISTA TABLA (modo compacto)                                              -->
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+@if (viewMode() === 'table') {
+<c-card class="mb-0">
   <c-card-body class="p-0">
     @if (loading()) {
-      <div class="text-center py-4">
-        <c-spinner color="primary" size="sm"></c-spinner>
-      </div>
+    <div class="text-center py-4">
+      <c-spinner color="primary" size="sm"></c-spinner>
+    </div>
     } @else if (filtered().length === 0) {
-      <div class="text-center py-5 text-secondary">
-        <svg cIcon name="cilFolder" size="xl" class="mb-2 text-muted"></svg>
-        <p class="mb-1">No hay proyectos registrados</p>
-        <button cButton color="primary" variant="outline" size="sm"
-                (click)="router.navigate(['/team-management/projects/new'])">
-          Crear primer proyecto
-        </button>
-      </div>
+    <div class="text-center py-5 text-secondary">
+      <svg cIcon name="cilFolder" size="xl" class="mb-2 text-muted"></svg>
+      <p class="mb-1">No hay proyectos registrados</p>
+      <button cButton color="primary" variant="outline" size="sm"
+        (click)="router.navigate(['/team-management/projects/new'])">
+        Crear primer proyecto
+      </button>
+    </div>
     } @else {
-      <div class="table-responsive">
-        <table class="table table-hover table-sm mb-0" style="font-size:.82rem">
-          <thead class="table-light">
-            <tr>
-              <th>Proyecto</th>
-              <th>Cliente</th>
-              <th class="text-center">Prioridad</th>
-              <th class="text-center">Estado</th>
-              <th style="min-width:130px">% Completado</th>
-              <th class="text-center">Fecha límite</th>
-              <th class="text-center">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (p of filtered(); track trackById($index, p)) {
-              <tr [class.table-danger]="isOverdue(p)">
-
-                <!-- Proyecto -->
-                <td>
+    <div class="table-responsive">
+      <table class="table table-hover table-sm mb-0" style="font-size:.82rem">
+        <thead class="table-light">
+          <tr>
+            <th>Proyecto</th>
+            <th>Cliente</th>
+            <th class="text-center">Prioridad</th>
+            <th class="text-center">Estado</th>
+            <th style="min-width:130px">% Completado</th>
+            <th class="text-center">Fecha límite</th>
+            <th class="text-center">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (p of filtered(); track trackById($index, p)) {
+          <tr [class.table-danger]="isOverdue(p)">
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <span class="small-color-dot" [style.background]="p.color || '#6366f1'"></span>
+                <span>{{ p.emoji || '📁' }}</span>
+                <div>
                   <div class="fw-semibold"
-                       style="max-width:220px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">
+                    style="max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">
                     {{ p.name }}
                   </div>
-                  @if (p.description) {
-                    <div style="font-size:.71rem; color:var(--cui-secondary-color); max-width:220px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">
-                      {{ p.description }}
-                    </div>
-                  }
                   @if (p.tags?.length) {
-                    <div class="d-flex flex-wrap gap-1 mt-1">
-                      @for (tag of p.tags; track tag) {
-                        <span class="badge text-bg-secondary fw-normal"
-                              style="font-size:.65rem; font-weight:400">{{ tag }}</span>
-                      }
-                    </div>
-                  }
-                </td>
-
-                <!-- Cliente -->
-                <td class="text-nowrap" style="max-width:140px; overflow:hidden; text-overflow:ellipsis">
-                  {{ p.clientName ?? '—' }}
-                </td>
-
-                <!-- Prioridad -->
-                <td class="text-center">
-                  <c-badge [color]="PRIORITY_COLORS[p.priority]">
-                    {{ PRIORITY_LABELS[p.priority] }}
-                  </c-badge>
-                </td>
-
-                <!-- Estado -->
-                <td class="text-center">
-                  <c-badge [color]="STATUS_COLORS[p.status]">
-                    {{ STATUS_LABELS[p.status] }}
-                  </c-badge>
-                  @if (isOverdue(p)) {
-                    <c-badge color="danger" class="ms-1" title="Proyecto vencido">
-                      <svg cIcon name="cilWarning" size="sm"></svg>
-                    </c-badge>
-                  }
-                </td>
-
-                <!-- % Completado -->
-                <td>
-                  <div class="d-flex align-items-center gap-1">
-                    <c-progress class="flex-grow-1" [value]="p.completionPct" color="primary" [thin]="true"></c-progress>
-                    <span style="font-size:.75rem; min-width:32px; text-align:right">
-                      {{ p.completionPct }}%
-                    </span>
+                  <div class="d-flex flex-wrap gap-1 mt-1">
+                    @for (tag of p.tags.slice(0,2); track tag) {
+                    <span class="tag-chip">{{ tag }}</span>
+                    }
                   </div>
-                </td>
-
-                <!-- Fecha límite -->
-                <td class="text-center text-nowrap">
-                  {{ p.dueDate?.toDate() | date:'dd/MM/yyyy' }}
-                </td>
-
-                <!-- Acciones -->
-                <td class="text-center text-nowrap">
-                  <!-- Editar -->
-                  <button cButton color="secondary" variant="outline" size="sm"
-                          title="Editar proyecto"
-                          (click)="router.navigate(['/team-management/projects', p.id, 'edit'])">
-                    <svg cIcon name="cilPencil"></svg>
-                  </button>
-
-                  <!-- Ver tareas del proyecto -->
-                  <button cButton color="info" variant="outline" size="sm"
-                          class="ms-1" title="Ver tareas del proyecto"
-                          (click)="router.navigate(['/team-management/tasks'], { queryParams: { projectId: p.id } })">
-                    <svg cIcon name="cilTask"></svg>
-                  </button>
-
-                  <!-- Activar (si está en planning u on_hold) -->
-                  @if (p.status === 'planning' || p.status === 'on_hold') {
-                    <button cButton color="primary" variant="outline" size="sm"
-                            class="ms-1" title="Activar proyecto"
-                            (click)="changeProjectStatus(p, 'active')">
-                      <svg cIcon name="cilMediaPlay"></svg>
-                    </button>
                   }
-
-                  <!-- Poner en espera (si está activo) -->
-                  @if (p.status === 'active') {
-                    <button cButton color="warning" variant="outline" size="sm"
-                            class="ms-1" title="Poner en espera"
-                            (click)="changeProjectStatus(p, 'on_hold')">
-                      <svg cIcon name="cilMediaPause"></svg>
-                    </button>
-                  }
-
-                  <!-- Completar (si está activo o en espera) -->
-                  @if (p.status === 'active' || p.status === 'on_hold') {
-                    <button cButton color="success" variant="outline" size="sm"
-                            class="ms-1" title="Marcar como completado"
-                            (click)="changeProjectStatus(p, 'completed')">
-                      <svg cIcon name="cilCheck"></svg>
-                    </button>
-                  }
-
-                  <!-- Eliminar -->
-                  <button cButton color="danger" variant="outline" size="sm"
-                          class="ms-1" title="Eliminar proyecto"
-                          (click)="softDelete(p)">
-                    <svg cIcon name="cilTrash"></svg>
-                  </button>
-                </td>
-
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
+                </div>
+              </div>
+            </td>
+            <td class="text-nowrap">{{ p.clientName ?? '—' }}</td>
+            <td class="text-center">
+              <span class="priority-badge priority-{{ p.priority }}">{{ PRIORITY_LABELS[p.priority] }}</span>
+            </td>
+            <td class="text-center">
+              <span class="status-badge status-{{ p.status }}">{{ STATUS_LABELS[p.status] }}</span>
+              @if (isOverdue(p)) {
+              <span class="overdue-badge ms-1">⚠</span>
+              }
+            </td>
+            <td>
+              <div class="d-flex align-items-center gap-1">
+                <div class="progress-track flex-grow-1">
+                  <div class="progress-fill" [style.width]="p.completionPct + '%'"
+                    [style.background]="progressColor(p.completionPct)">
+                  </div>
+                </div>
+                <span style="font-size:.75rem; min-width:32px; text-align:right">
+                  {{ p.completionPct }}%
+                </span>
+              </div>
+            </td>
+            <td class="text-center text-nowrap" [class.text-danger]="isOverdue(p)">
+              {{ p.dueDate?.toDate() | date:'dd/MM/yyyy' }}
+            </td>
+            <td class="text-center text-nowrap">
+              <button cButton color="secondary" variant="outline" size="sm" title="Editar"
+                (click)="router.navigate(['/team-management/projects', p.id, 'edit'])">
+                <svg cIcon name="cilPencil"></svg>
+              </button>
+              <button cButton color="info" variant="outline" size="sm" class="ms-1" title="Ver tareas"
+                (click)="router.navigate(['/team-management/tasks'], { queryParams: { projectId: p.id } })">
+                <svg cIcon name="cilTask"></svg>
+              </button>
+              @if (p.status === 'planning' || p.status === 'on_hold') {
+              <button cButton color="primary" variant="outline" size="sm" class="ms-1" title="Activar"
+                (click)="changeProjectStatus(p, 'active')">
+                <svg cIcon name="cilMediaPlay"></svg>
+              </button>
+              }
+              @if (p.status === 'active') {
+              <button cButton color="warning" variant="outline" size="sm" class="ms-1" title="Poner en espera"
+                (click)="changeProjectStatus(p, 'on_hold')">
+                <svg cIcon name="cilMediaPause"></svg>
+              </button>
+              }
+              @if (p.status === 'active' || p.status === 'on_hold') {
+              <button cButton color="success" variant="outline" size="sm" class="ms-1" title="Completar"
+                (click)="changeProjectStatus(p, 'completed')">
+                <svg cIcon name="cilCheck"></svg>
+              </button>
+              }
+              <button cButton color="danger" variant="outline" size="sm" class="ms-1" title="Eliminar"
+                (click)="softDelete(p)">
+                <svg cIcon name="cilTrash"></svg>
+              </button>
+            </td>
+          </tr>
+          }
+        </tbody>
+      </table>
+    </div>
     }
   </c-card-body>
 </c-card>
+}
+
+<!-- ── Estilos scoped ──────────────────────────────────────────────────────── -->
+<style>
+  /* ── Header icon ─── */
+  .project-header-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, .25);
+  }
+
+  /* ── Stats strip ─── */
+  .stats-strip {
+    display: flex;
+    gap: .5rem;
+    flex-wrap: wrap;
+  }
+
+  .stat-pill {
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+    padding: .45rem .85rem;
+    border-radius: 999px;
+    border: 1.5px solid var(--cui-border-color);
+    background: var(--cui-body-bg);
+    cursor: pointer;
+    transition: all .18s ease;
+    font-size: .8rem;
+  }
+
+  .stat-pill:hover,
+  .stat-pill.active {
+    border-color: #6366f1;
+    background: rgba(99, 102, 241, .07);
+  }
+
+  .stat-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .stat-num {
+    font-weight: 700;
+    font-size: .9rem;
+  }
+
+  .stat-label {
+    color: var(--cui-secondary-color);
+  }
+
+  .stat-danger.active {
+    border-color: #ef4444;
+    background: rgba(239, 68, 68, .07);
+  }
+
+  /* ── Filter toolbar ─── */
+  .filter-toolbar {
+    display: flex;
+    gap: .6rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .search-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 200px;
+    max-width: 340px;
+  }
+
+  .search-icon {
+    position: absolute;
+    left: .6rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--cui-secondary-color);
+  }
+
+  .search-input {
+    padding-left: 2rem;
+  }
+
+  /* ── Projects grid ─── */
+  .projects-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1rem;
+  }
+
+  /* ── Project card ─── */
+  .project-card {
+    position: relative;
+    display: flex;
+    border-radius: 14px;
+    border: 1.5px solid var(--cui-border-color);
+    background: var(--cui-body-bg);
+    overflow: hidden;
+    transition: box-shadow .2s, transform .2s;
+  }
+
+  .project-card:hover {
+    box-shadow: 0 8px 28px rgba(0, 0, 0, .1);
+    transform: translateY(-2px);
+  }
+
+  .project-card.overdue {
+    border-color: rgba(239, 68, 68, .4);
+  }
+
+  .project-color-bar {
+    width: 5px;
+    flex-shrink: 0;
+  }
+
+  .project-card-body {
+    flex: 1;
+    padding: 1rem 1rem 1rem .85rem;
+    min-width: 0;
+  }
+
+  /* ── Card header ─── */
+  .project-emoji {
+    font-size: 1.4rem;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  .project-name {
+    font-weight: 700;
+    font-size: .95rem;
+    line-height: 1.3;
+  }
+
+  .project-client {
+    font-size: .74rem;
+    color: var(--cui-secondary-color);
+  }
+
+  .project-desc {
+    font-size: .8rem;
+    color: var(--cui-secondary-color);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .text-truncate-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* ── Tags ─── */
+  .tag-chip {
+    display: inline-block;
+    padding: .15rem .5rem;
+    border-radius: 999px;
+    font-size: .66rem;
+    font-weight: 500;
+    background: rgba(99, 102, 241, .1);
+    color: #6366f1;
+    border: 1px solid rgba(99, 102, 241, .2);
+  }
+
+  .tag-chip-more {
+    background: var(--cui-tertiary-bg);
+    color: var(--cui-secondary-color);
+    border-color: var(--cui-border-color);
+  }
+
+  /* ── Progress ─── */
+  .progress-section {}
+
+  .progress-label {
+    font-size: .72rem;
+    color: var(--cui-secondary-color);
+  }
+
+  .progress-pct {
+    font-size: .78rem;
+    font-weight: 700;
+  }
+
+  .progress-track {
+    height: 6px;
+    border-radius: 999px;
+    background: var(--cui-tertiary-bg);
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    border-radius: 999px;
+    transition: width .4s ease;
+  }
+
+  /* ── Card footer ─── */
+  .card-footer-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: .5rem;
+    flex-wrap: wrap;
+  }
+
+  .due-date {
+    font-size: .74rem;
+    color: var(--cui-secondary-color);
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+  }
+
+  /* ── Status / Priority badges ─── */
+  .status-badge,
+  .priority-badge,
+  .overdue-badge {
+    display: inline-block;
+    padding: .2rem .5rem;
+    border-radius: 6px;
+    font-size: .66rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .status-planning {
+    background: rgba(107, 114, 128, .12);
+    color: #6b7280;
+  }
+
+  .status-active {
+    background: rgba(99, 102, 241, .12);
+    color: #6366f1;
+  }
+
+  .status-on_hold {
+    background: rgba(245, 158, 11, .12);
+    color: #d97706;
+  }
+
+  .status-completed {
+    background: rgba(20, 184, 166, .12);
+    color: #0d9488;
+  }
+
+  .status-cancelled {
+    background: rgba(239, 68, 68, .12);
+    color: #dc2626;
+  }
+
+  .priority-low {
+    background: rgba(107, 114, 128, .1);
+    color: #6b7280;
+  }
+
+  .priority-medium {
+    background: rgba(6, 182, 212, .1);
+    color: #0891b2;
+  }
+
+  .priority-high {
+    background: rgba(245, 158, 11, .1);
+    color: #d97706;
+  }
+
+  .priority-critical {
+    background: rgba(239, 68, 68, .1);
+    color: #dc2626;
+  }
+
+  .overdue-badge {
+    background: rgba(239, 68, 68, .1);
+    color: #dc2626;
+  }
+
+  /* ── Kebab menu ─── */
+  .project-menu-wrap {
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .btn-kebab {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.2rem;
+    line-height: 1;
+    color: var(--cui-secondary-color);
+    padding: .1rem .4rem;
+    border-radius: 6px;
+    transition: background .15s;
+  }
+
+  .btn-kebab:hover {
+    background: var(--cui-tertiary-bg);
+  }
+
+  .project-dropdown {
+    position: absolute;
+    right: 0;
+    top: 100%;
+    z-index: 1050;
+    min-width: 180px;
+    border-radius: 10px;
+    border: 1.5px solid var(--cui-border-color);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .12);
+    background: var(--cui-body-bg);
+    padding: .35rem 0;
+  }
+
+  .project-dropdown .dropdown-item {
+    font-size: .82rem;
+    padding: .45rem 1rem;
+    display: flex;
+    align-items: center;
+  }
+
+  /* ── Avatar stack ─── */
+  .avatar-stack {
+    display: flex;
+  }
+
+  .avatar-mini {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 2px solid var(--cui-body-bg);
+    font-size: .6rem;
+    font-weight: 700;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    margin-left: -6px;
+    flex-shrink: 0;
+  }
+
+  .avatar-mini:first-child {
+    margin-left: 0;
+  }
+
+  .avatar-mini img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .avatar-overflow {
+    background: var(--cui-tertiary-bg);
+    color: var(--cui-secondary-color);
+    font-size: .58rem;
+  }
+
+  /* ── Table view extras ─── */
+  .small-color-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: inline-block;
+  }
+
+  /* ── Empty state ─── */
+  .empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    border: 2px dashed var(--cui-border-color);
+    border-radius: 14px;
+  }
+
+  .empty-icon {
+    font-size: 3rem;
+    margin-bottom: .75rem;
+  }
+</style>

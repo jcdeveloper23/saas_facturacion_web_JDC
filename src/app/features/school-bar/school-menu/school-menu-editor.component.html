@@ -1,0 +1,133 @@
+<c-row>
+  <c-col xs="12">
+    <c-card>
+      <c-card-header class="d-flex justify-content-between align-items-center">
+        <strong>Menú del Día</strong>
+        <button cButton color="primary" size="sm" (click)="openNewMenu()">+ Nuevo Menú</button>
+      </c-card-header>
+      <c-card-body>
+        @if (errorMsg()) {
+          <c-alert color="danger" dismissible>{{ errorMsg() }}</c-alert>
+        }
+
+        <table cTable responsive hover>
+          <thead>
+            <tr>
+              <th>Fecha</th><th>Ítems</th><th>Estado</th><th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (menu of menus(); track menu.id) {
+              <tr>
+                <td>{{ menu.date }}</td>
+                <td>{{ menu.items.length }} platos</td>
+                <td>
+                  <c-badge [color]="menu.published ? 'success' : 'secondary'">
+                    {{ menu.published ? 'Publicado' : 'Borrador' }}
+                  </c-badge>
+                </td>
+                <td>
+                  <div class="d-flex gap-1">
+                    @if (!menu.published) {
+                      <button cButton color="success" size="sm" (click)="publishMenu(menu)">
+                        Publicar
+                      </button>
+                    }
+                    <button cButton color="danger" size="sm" variant="outline"
+                            (click)="deleteMenu(menu.id!)">
+                      Eliminar
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            } @empty {
+              <tr><td colspan="4" class="text-center text-muted">Sin menús registrados.</td></tr>
+            }
+          </tbody>
+        </table>
+      </c-card-body>
+    </c-card>
+
+    <!-- Modal nuevo menú -->
+    @if (showModal()) {
+      <div class="modal d-block" tabindex="-1" style="background:rgba(0,0,0,.5)">
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Crear Menú</h5>
+              <button type="button" class="btn-close" (click)="showModal.set(false)"></button>
+            </div>
+            <div class="modal-body">
+              <form [formGroup]="menuForm">
+                <c-row class="g-3 mb-3">
+                  <c-col md="4">
+                    <label cLabel>Fecha *</label>
+                    <input cFormControl formControlName="date" type="date" />
+                  </c-col>
+                  <c-col md="4">
+                    <label cLabel>Cierre de pedidos</label>
+                    <input cFormControl formControlName="orderCutoff" type="time" />
+                  </c-col>
+                  <c-col md="12">
+                    <label cLabel>Notas</label>
+                    <input cFormControl formControlName="notes" placeholder="Ej: Menú saludable semana 1" />
+                  </c-col>
+                </c-row>
+
+                <h6>Ítems del menú</h6>
+                @for (item of itemsArray.controls; track $index; let i = $index) {
+                  <div [formGroup]="$any(item)" class="border rounded p-2 mb-2">
+                    <c-row class="g-2 align-items-center">
+                      <c-col md="4">
+                        <label cLabel class="small">Producto del catálogo *</label>
+                        <select cSelect formControlName="productId"
+                                (change)="onProductSelect(i, $any($event.target).value)">
+                          <option value="">— Seleccionar producto —</option>
+                          @for (p of products(); track p.id) {
+                            <option [value]="p.id">{{ p.name }} (${{ p.salePrice.toFixed(2) }})</option>
+                          }
+                        </select>
+                      </c-col>
+                      <c-col md="3">
+                        <label cLabel class="small">Nombre en menú</label>
+                        <input cFormControl formControlName="name" placeholder="Nombre visible *" />
+                      </c-col>
+                      <c-col md="2">
+                        <label cLabel class="small">Categoría</label>
+                        <select cSelect formControlName="category">
+                          <option value="almuerzo">Almuerzo</option>
+                          <option value="snack">Snack</option>
+                          <option value="bebida">Bebida</option>
+                          <option value="postre">Postre</option>
+                          <option value="otro">Otro</option>
+                        </select>
+                      </c-col>
+                      <c-col md="2">
+                        <label cLabel class="small">Precio</label>
+                        <input cFormControl formControlName="price" type="number" step="0.01"
+                               placeholder="Precio" [attr.readonly]="isPriceDisabled(i) || null" />
+                      </c-col>
+                      <c-col md="1" class="d-flex align-items-end">
+                        <button cButton color="danger" size="sm" variant="ghost"
+                                (click)="removeItem(i)" type="button">×</button>
+                      </c-col>
+                    </c-row>
+                  </div>
+                }
+                <button cButton color="secondary" size="sm" variant="outline"
+                        (click)="addItem()" type="button">+ Agregar ítem</button>
+              </form>
+            </div>
+            <div class="modal-footer">
+              <button cButton color="secondary" variant="outline" (click)="showModal.set(false)">Cancelar</button>
+              <button cButton color="primary" (click)="saveMenu()"
+                      [disabled]="saving() || menuForm.invalid">
+                {{ saving() ? 'Guardando…' : 'Guardar menú' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+  </c-col>
+</c-row>

@@ -50,7 +50,7 @@ export class PublicCatalogService {
         ref,
         where('isActive', '==', true),
         orderBy('name'),
-        limit(200)
+        limit(1000)
       );
       return onSnapshot(q, {
         next: snap => observer.next(

@@ -2,19 +2,28 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import { Timestamp } from 'firebase-admin/firestore';
 
-type UserRole = 'admin' | 'seller' | 'cashier' | 'read_only' | 'accountant';
+// Roles del sistema que solo super_admin puede asignar.
+// Agregar aquí solo roles de plataforma que requieren protección especial.
+const PROTECTED_ROLES = ['super_admin'];
 
-// super_admin: nunca asignable desde aquí (es rol de sistema, se setea manualmente)
-// admin: solo super_admin puede asignarlo (es el rol del primer usuario de empresa, creado
-//        automáticamente por setupCompany; los admin de empresa NO pueden crear otros admin)
-const ROLES_SUPER_ADMIN_ONLY: UserRole[] = ['admin'];
-const ASSIGNABLE_ROLES: UserRole[] = ['admin', 'seller', 'cashier', 'read_only', 'accountant'];
+// Roles que solo super_admin puede asignar (ej: admin es el dueño de empresa)
+const ROLES_SUPER_ADMIN_ONLY = ['admin'];
+
+/**
+ * Valida que un código de rol sea sintácticamente correcto.
+ * Formato: solo letras minúsculas, dígitos y guiones bajos. 1–50 caracteres.
+ * Esto no reemplaza la validación de negocio (que el rol exista en Firestore),
+ * pero previene inputs malformados sin necesidad de mantener un whitelist en código.
+ */
+function isValidRoleCode(role: unknown): role is string {
+  return typeof role === 'string' && /^[a-z][a-z0-9_]{0,49}$/.test(role);
+}
 
 interface CreateCompanyUserData {
   email:        string;
   password:     string;
   displayName:  string;
-  platformRole: UserRole;
+  platformRole: string;
   companyId:    string;
   personaId?:   string;
 }
@@ -23,7 +32,7 @@ interface CreateCompanyUserResult {
   uid:          string;
   email:        string;
   displayName:  string;
-  platformRole: UserRole;
+  platformRole: string;
 }
 
 /**
@@ -65,11 +74,16 @@ export const createCompanyUser = onCall(async (request): Promise<CreateCompanyUs
     );
   }
 
-  if (!ASSIGNABLE_ROLES.includes(platformRole)) {
+  if (!isValidRoleCode(platformRole)) {
     throw new HttpsError(
       'invalid-argument',
-      `Rol inválido: ${platformRole}. Debe ser uno de: ${ASSIGNABLE_ROLES.join(', ')}`
+      `Código de rol inválido: "${platformRole}". Solo se permiten letras minúsculas, dígitos y guiones bajos (máx. 50 caracteres).`
     );
+  }
+
+  // Nadie puede asignarse ni asignar el rol super_admin desde esta función.
+  if (PROTECTED_ROLES.includes(platformRole)) {
+    throw new HttpsError('permission-denied', `El rol '${platformRole}' no puede asignarse desde aquí.`);
   }
 
   // El rol 'admin' es exclusivo del primer usuario de empresa (creado por setupCompany).

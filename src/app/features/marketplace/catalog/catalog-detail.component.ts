@@ -1,5 +1,5 @@
 import {
-  Component, OnInit, OnDestroy,
+  Component, OnInit, OnDestroy, HostListener,
   inject, signal, computed, ViewChild, ElementRef
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -38,7 +38,18 @@ export class CatalogDetailComponent implements OnInit, OnDestroy {
   productId      = signal<string | null>(null);
   likesCounts    = signal<Record<string, number>>({});
 
-  // Touch swipe
+  // Lightbox / zoom
+  zoomOpen   = signal(false);
+  zoomScale  = signal(1);
+  zoomTx     = signal(0);
+  zoomTy     = signal(0);
+
+  private _lbDragging  = false;
+  private _lbDidDrag   = false;
+  private _lbLastX     = 0;
+  private _lbLastY     = 0;
+
+  // Touch swipe (gallery)
   private _touchStartX = 0;
 
   product = computed<PublicProduct | null>(() => {
@@ -114,9 +125,14 @@ export class CatalogDetailComponent implements OnInit, OnDestroy {
   decrementQty(): void { this.qty.update(q => Math.max(1, q - 1)); }
   incrementQty(): void { this.qty.update(q => q + 1); }
 
+  isOutOfStock(p: { stockAvailable: number; noStock: boolean; trackStock: boolean }): boolean {
+    // Solo está agotado si controla stock Y no es servicio Y no hay unidades disponibles
+    return p.trackStock && !p.noStock && p.stockAvailable === 0;
+  }
+
   addToCart(e: MouseEvent): void {
     const p = this.product();
-    if (!p || (p.stockAvailable === 0 && !p.noStock)) return;
+    if (!p || this.isOutOfStock(p)) return;
     this.cartSvc.addItem(p, this.slug, this.qty());
     this.addedFeedback.set(true);
     this.flyToCart(e.currentTarget as HTMLElement, p);
@@ -281,6 +297,117 @@ export class CatalogDetailComponent implements OnInit, OnDestroy {
     el.scrollBy({ left: dir * scrollAmount, behavior: 'smooth' });
   }
 
+  // ─── Lightbox zoom ────────────────────────────────────────────────────────
+
+  openZoom(): void {
+    this.zoomOpen.set(true);
+    this.zoomScale.set(1);
+    this.zoomTx.set(0);
+    this.zoomTy.set(0);
+    document.body.style.overflow = 'hidden';
+  }
+
+  closeZoom(): void {
+    this.zoomOpen.set(false);
+    this._lbDragging = false;
+    this._lbDidDrag  = false;
+    document.body.style.overflow = '';
+  }
+
+  @HostListener('document:keydown.escape')
+  onEsc(): void { if (this.zoomOpen()) this.closeZoom(); }
+
+  onLbImgClick(e: MouseEvent): void {
+    e.stopPropagation();
+    if (this._lbDidDrag) return;
+    const img  = e.currentTarget as HTMLImageElement;
+    const rect = img.getBoundingClientRect();
+    if (this.zoomScale() > 1) {
+      this.zoomScale.set(1);
+      this.zoomTx.set(0);
+      this.zoomTy.set(0);
+    } else {
+      const s  = 2.8;
+      const cx = e.clientX - (rect.left + rect.width  / 2);
+      const cy = e.clientY - (rect.top  + rect.height / 2);
+      this.zoomScale.set(s);
+      this.zoomTx.set(-cx * (s - 1));
+      this.zoomTy.set(-cy * (s - 1));
+    }
+  }
+
+  onLbMouseDown(e: MouseEvent): void {
+    if (this.zoomScale() <= 1) return;
+    this._lbDragging = true;
+    this._lbDidDrag  = false;
+    this._lbLastX    = e.clientX;
+    this._lbLastY    = e.clientY;
+    e.preventDefault();
+  }
+
+  onLbMouseMove(e: MouseEvent): void {
+    if (!this._lbDragging) return;
+    const dx = e.clientX - this._lbLastX;
+    const dy = e.clientY - this._lbLastY;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) this._lbDidDrag = true;
+    this._lbLastX = e.clientX;
+    this._lbLastY = e.clientY;
+    this.zoomTx.update(v => v + dx);
+    this.zoomTy.update(v => v + dy);
+  }
+
+  onLbMouseUp(): void { this._lbDragging = false; }
+
+  onLbWheel(e: WheelEvent): void {
+    e.preventDefault();
+    const delta    = e.deltaY > 0 ? -0.35 : 0.35;
+    const newScale = Math.max(1, Math.min(5, this.zoomScale() + delta));
+    if (newScale === 1) { this.zoomTx.set(0); this.zoomTy.set(0); }
+    this.zoomScale.set(newScale);
+  }
+
+  // Touch pinch-to-zoom in lightbox
+  private _lbPinchDist = 0;
+
+  onLbTouchStart(e: TouchEvent): void {
+    if (e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      this._lbPinchDist = Math.hypot(dx, dy);
+    } else if (e.touches.length === 1 && this.zoomScale() > 1) {
+      this._lbDragging = true;
+      this._lbDidDrag  = false;
+      this._lbLastX    = e.touches[0].clientX;
+      this._lbLastY    = e.touches[0].clientY;
+    }
+  }
+
+  onLbTouchMove(e: TouchEvent): void {
+    e.preventDefault();
+    if (e.touches.length === 2) {
+      const dx   = e.touches[0].clientX - e.touches[1].clientX;
+      const dy   = e.touches[0].clientY - e.touches[1].clientY;
+      const dist = Math.hypot(dx, dy);
+      const ratio = dist / (this._lbPinchDist || dist);
+      const newScale = Math.max(1, Math.min(5, this.zoomScale() * ratio));
+      if (newScale === 1) { this.zoomTx.set(0); this.zoomTy.set(0); }
+      this.zoomScale.set(newScale);
+      this._lbPinchDist = dist;
+    } else if (e.touches.length === 1 && this._lbDragging) {
+      const ddx = e.touches[0].clientX - this._lbLastX;
+      const ddy = e.touches[0].clientY - this._lbLastY;
+      if (Math.abs(ddx) > 3 || Math.abs(ddy) > 3) this._lbDidDrag = true;
+      this._lbLastX = e.touches[0].clientX;
+      this._lbLastY = e.touches[0].clientY;
+      this.zoomTx.update(v => v + ddx);
+      this.zoomTy.update(v => v + ddy);
+    }
+  }
+
+  onLbTouchEnd(): void { this._lbDragging = false; }
+
+  // ─────────────────────────────────────────────────────────────────────────
+
   ngOnInit(): void {
     this.subs.add(this.route.paramMap.subscribe(params => {
       this.productId.set(params.get('productId'));
@@ -304,7 +431,10 @@ export class CatalogDetailComponent implements OnInit, OnDestroy {
     }));
   }
 
-  ngOnDestroy(): void { this.subs.unsubscribe(); }
+  ngOnDestroy(): void {
+    this.subs.unsubscribe();
+    document.body.style.overflow = '';
+  }
 
   private get slug(): string {
     return this.route.parent?.snapshot.paramMap.get('slug') ?? '';

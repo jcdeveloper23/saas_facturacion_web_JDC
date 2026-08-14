@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy, inject, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, LowerCasePipe } from '@angular/common';
 import { Router } from '@angular/router';
 import { catchError, of, Subject, takeUntil } from 'rxjs';
 import {
@@ -13,6 +13,7 @@ import { HasPermissionDirective } from '../../shared/directives/has-permission.d
 import { PersonasService }    from './services/personas.service';
 import { SettingsService }    from '../settings/services/settings.service';
 import { NotificationService } from '../../core/services/notification.service';
+import { PersonaExtensionsService } from '../../core/services/persona-extensions.service';
 import {
   Person, PersonRole, TaxIdType,
   ROLE_LABELS, ROLE_PLURAL_LABELS, ROLE_COLORS,
@@ -22,7 +23,7 @@ import { PaymentTerm } from '../settings/models/settings.interfaces';
 
 // ─── Filter types ─────────────────────────────────────────────────────────────
 
-type TypeFilter = 'all' | PersonRole | 'inactive';
+type TypeFilter = 'all' | PersonRole | 'inactive' | (string & {});
 
 interface PrimaryFilters {
   taxIdType: '' | TaxIdType;
@@ -271,7 +272,7 @@ const SECONDARY_DEFAULTS: SecondaryFilters = { isCompany: '', hasEmail: '', hasP
     .td-meta { font-size: .78rem; color: var(--cui-secondary-color); }
   `],
   imports: [
-    CommonModule,
+    CommonModule, LowerCasePipe,
     CardModule, ButtonModule, GridModule, BadgeModule, SpinnerModule,
     TableModule, FormModule, IconModule,
     HasPermissionDirective
@@ -283,6 +284,7 @@ export class PersonasListComponent implements OnInit, OnDestroy {
   private notifications = inject(NotificationService);
   private router        = inject(Router);
   private destroy$      = new Subject<void>();
+  readonly personaExtensions = inject(PersonaExtensionsService);
 
   // ─── Data ─────────────────────────────────────────────────────────────────
   personas     = signal<Person[]>([]);
@@ -299,15 +301,18 @@ export class PersonasListComponent implements OnInit, OnDestroy {
   readonly ROLE_LABELS = ROLE_LABELS;
   readonly ROLE_COLORS = ROLE_COLORS;
 
-  readonly typeOptions: { value: TypeFilter; label: string }[] = [
-    { value: 'all',      label: 'Todos' },
-    { value: 'customer', label: 'Clientes' },
-    { value: 'supplier', label: 'Proveedores' },
-    { value: 'employee', label: 'Empleados' },
-    { value: 'contact',  label: 'Contactos' },
-    { value: 'other',    label: 'Otros' },
-    { value: 'inactive', label: 'Inactivos' }
-  ];
+  /**
+   * Opciones del filtro de tipo. Incluye roles base + roles activos de paquetes.
+   * Se recalcula automáticamente cuando cambia el tenant o sus paquetes activos.
+   */
+  readonly typeOptions = computed(() => [
+    { value: 'all' as TypeFilter,      label: 'Todos' },
+    ...this.personaExtensions.allAvailableRoles().map(meta => ({
+      value: meta.role as TypeFilter,
+      label: meta.labelPlural
+    })),
+    { value: 'inactive' as TypeFilter, label: 'Inactivos' }
+  ]);
 
   readonly taxIdOptions: { value: '' | TaxIdType; label: string }[] = [
     { value: '',          label: 'Identificación' },
@@ -338,14 +343,21 @@ export class PersonasListComponent implements OnInit, OnDestroy {
   // ─── Stats ────────────────────────────────────────────────────────────────
 
   stats = computed(() => {
-    const all = this.personas();
-    return {
+    const all        = this.personas();
+    const extensions = this.personaExtensions.activeRoleExtensions();
+    const base = {
       total:    all.filter(p => p.isActive).length,
       customer: all.filter(p => p.isActive && p.roles.includes('customer')).length,
       supplier: all.filter(p => p.isActive && p.roles.includes('supplier')).length,
       employee: all.filter(p => p.isActive && p.roles.includes('employee')).length,
-      inactive: all.filter(p => !p.isActive).length
-    };
+      inactive: all.filter(p => !p.isActive).length,
+    } as Record<string, number>;
+
+    // Agrega conteos dinámicos para roles de extensión activos
+    for (const ext of extensions) {
+      base[ext.role] = all.filter(p => p.isActive && p.roles.includes(ext.role as PersonRole)).length;
+    }
+    return base;
   });
 
   // ─── Filtered list ────────────────────────────────────────────────────────

@@ -1,0 +1,532 @@
+<c-row>
+  <c-col xs="12">
+    <c-card>
+
+      <!-- ── Card header with tab navigation ──────────────────────────────── -->
+      <c-card-header class="pb-0 border-bottom-0">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+          <strong>Bar Escolar — Configuración</strong>
+          <ul class="nav nav-tabs border-0 card-header-tabs">
+            <li class="nav-item">
+              <button class="nav-link px-3" [class.active]="activeTab() === 'institution'"
+                      (click)="setTab('institution')">
+                Institución
+              </button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link px-3" [class.active]="activeTab() === 'grades'"
+                      (click)="setTab('grades')">
+                Grados y Cursos
+                @if (totalGrades() > 0) {
+                  <c-badge color="primary" class="ms-1">{{ totalGrades() }}</c-badge>
+                }
+              </button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link px-3" [class.active]="activeTab() === 'bar-config'"
+                      (click)="setTab('bar-config')">
+                Config. del Bar
+              </button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link px-3" [class.active]="activeTab() === 'allergens'"
+                      (click)="setTab('allergens')">
+                Alérgenos
+                @if (allergens().length > 0) {
+                  <c-badge color="warning" class="ms-1">{{ allergens().length }}</c-badge>
+                }
+              </button>
+            </li>
+          </ul>
+        </div>
+      </c-card-header>
+
+      <c-card-body>
+
+        <!-- Alerts -->
+        @if (errorMsg()) {
+          <c-alert color="danger" [dismissible]="true" (dismissibleChange)="errorMsg.set(null)">
+            {{ errorMsg() }}
+          </c-alert>
+        }
+        @if (successMsg()) {
+          <c-alert color="success">{{ successMsg() }}</c-alert>
+        }
+
+        <!-- ════════════════════════════════════════════════════════════════════
+             TAB: INSTITUCIÓN
+             ════════════════════════════════════════════════════════════════════ -->
+        @if (activeTab() === 'institution') {
+          <form [formGroup]="settingsForm" (ngSubmit)="saveSettings()">
+            <c-row class="g-3 mb-4">
+              <c-col md="3">
+                <label cLabel>Código AMIE</label>
+                <input cFormControl formControlName="amieCode" placeholder="Ej: 17H00001" />
+                <div class="form-text">Registro MINEDUC (opcional)</div>
+              </c-col>
+              <c-col md="3">
+                <label cLabel>Período escolar *</label>
+                <input cFormControl formControlName="currentPeriod" placeholder="2025-2026" />
+              </c-col>
+              <c-col md="6">
+                <label cLabel>Nombre del bar *</label>
+                <input cFormControl formControlName="barName" placeholder="Ej: Bar Escolar Unidad Educativa San Juan" />
+              </c-col>
+              <c-col xs="12">
+                <c-form-check [switch]="true">
+                  <input cFormCheckInput id="instState" type="checkbox" formControlName="state" />
+                  <label cFormCheckLabel for="instState">Bar activo y operativo</label>
+                </c-form-check>
+              </c-col>
+            </c-row>
+            <button cButton color="primary" type="submit" [disabled]="saving() || settingsForm.invalid">
+              {{ saving() ? 'Guardando…' : 'Guardar datos de institución' }}
+            </button>
+          </form>
+        }
+
+        <!-- ════════════════════════════════════════════════════════════════════
+             TAB: GRADOS Y CURSOS
+             ════════════════════════════════════════════════════════════════════ -->
+        @if (activeTab() === 'grades') {
+
+          <!-- Header: stats + actions -->
+          <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+            <div class="d-flex gap-2 align-items-center">
+              <c-badge color="secondary" class="fs-6 fw-normal">
+                {{ totalGrades() }} curso(s)
+              </c-badge>
+              <c-badge color="success" class="fs-6 fw-normal">
+                {{ activeGrades() }} activo(s)
+              </c-badge>
+            </div>
+            <div class="d-flex gap-2">
+              <button cButton color="secondary" variant="outline" size="sm"
+                      (click)="showBulkPanel.set(!showBulkPanel())">
+                ⚡ Generación rápida
+              </button>
+              <button cButton color="primary" size="sm" (click)="openNewGrade()">
+                + Nuevo curso
+              </button>
+            </div>
+          </div>
+
+          <!-- Bulk create panel -->
+          @if (showBulkPanel()) {
+            <div class="border rounded p-3 mb-3 bg-body-secondary">
+              <h6 class="mb-1">Generación rápida — Modelo educativo Ecuador (MINEDUC)</h6>
+              <p class="text-muted small mb-3">
+                Selecciona un nivel, las secciones y la jornada para crear múltiples cursos de una sola vez.
+                Se omiten los que ya existen.
+              </p>
+              <form [formGroup]="bulkForm">
+                <c-row class="g-3 mb-3">
+                  <c-col md="5">
+                    <label cLabel>Nivel educativo *</label>
+                    <select cSelect formControlName="levelIndex">
+                      <option value="">— Seleccionar nivel —</option>
+                      @for (group of eduLevelGroups; track group.subnivel) {
+                        <optgroup [label]="group.label">
+                          @for (lvl of group.levels; track lvl.idx) {
+                            <option [value]="lvl.idx">{{ lvl.name }}</option>
+                          }
+                        </optgroup>
+                      }
+                    </select>
+                  </c-col>
+                  <c-col md="3">
+                    <label cLabel>Jornada</label>
+                    <select cSelect formControlName="schedule">
+                      <option value="morning">Matutina</option>
+                      <option value="afternoon">Vespertina</option>
+                      <option value="full">Completa</option>
+                    </select>
+                  </c-col>
+                  <c-col md="4">
+                    <label cLabel class="d-block">Secciones a crear</label>
+                    <div class="d-flex flex-wrap gap-1 mt-1">
+                      @for (sec of allSections; track sec) {
+                        <button type="button" cButton size="sm"
+                                [color]="isSectionSelected(sec) ? 'primary' : 'secondary'"
+                                [variant]="isSectionSelected(sec) ? undefined : 'outline'"
+                                (click)="toggleSection(sec)">
+                          {{ sec }}
+                        </button>
+                      }
+                    </div>
+                    <div class="form-text">{{ bulkSections().length }} sección(es) seleccionada(s)</div>
+                  </c-col>
+                </c-row>
+              </form>
+              <div class="d-flex gap-2">
+                <button cButton color="success" size="sm"
+                        [disabled]="bulkForm.invalid || !bulkSections().length || saving()"
+                        (click)="executeBulkCreate()">
+                  {{ saving() ? 'Generando…' : 'Generar cursos' }}
+                </button>
+                <button cButton color="secondary" size="sm" variant="outline"
+                        (click)="showBulkPanel.set(false)">
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          }
+
+          <!-- Grades table -->
+          @if (grades().length === 0) {
+            <div class="text-center py-5 text-muted">
+              <div class="fs-1 mb-3">🏫</div>
+              <p class="mb-1">No hay cursos registrados.</p>
+              <p class="small">
+                Usa <strong>Generación rápida</strong> para crear cursos desde el modelo
+                estándar Ecuador (MINEDUC), o <strong>+ Nuevo curso</strong> para crear uno manualmente.
+              </p>
+            </div>
+          } @else {
+            <div class="table-responsive">
+              <table cTable hover class="mb-0 align-middle">
+                <thead class="bg-body-secondary text-uppercase small fw-bold">
+                  <tr>
+                    <th style="width:140px">Subnivel</th>
+                    <th>Nombre del curso</th>
+                    <th>Sec.</th>
+                    <th>Jornada</th>
+                    <th>Docente</th>
+                    <th class="text-center" style="width:80px">Alumnos</th>
+                    <th class="text-center" style="width:90px">Estado</th>
+                    <th style="width:100px"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (group of gradesBySubnivel(); track group.key) {
+                    <!-- Sub-level group header -->
+                    <tr class="table-secondary">
+                      <td colspan="8" class="py-1 px-3">
+                        <c-badge [color]="group.color" class="me-2">{{ group.label }}</c-badge>
+                        <small class="text-muted">{{ group.items.length }} curso(s)</small>
+                      </td>
+                    </tr>
+                    @for (g of group.items; track g.id) {
+                      <tr [style.opacity]="g.state ? 1 : 0.55">
+                        <td>
+                          <c-badge [color]="group.color" class="me-1">Niv. {{ g.level }}</c-badge>
+                          <span class="text-muted small">{{ g.shortName }}</span>
+                        </td>
+                        <td>{{ g.name }}</td>
+                        <td><strong>{{ g.section }}</strong></td>
+                        <td>
+                          <c-badge [color]="scheduleColor(g.schedule)">
+                            {{ scheduleLabels[g.schedule] }}
+                          </c-badge>
+                        </td>
+                        <td class="text-muted small">{{ g.teacherName || '—' }}</td>
+                        <td class="text-center">
+                          <span class="badge bg-body-secondary text-body">
+                            {{ g.studentCount }}
+                          </span>
+                        </td>
+                        <td class="text-center">
+                          <div class="form-check form-switch d-flex justify-content-center mb-0">
+                            <input class="form-check-input" type="checkbox" role="switch"
+                                   [checked]="g.state"
+                                   (change)="toggleGradeState(g, $event)" />
+                          </div>
+                        </td>
+                        <td>
+                          <div class="d-flex gap-1">
+                            <button cButton color="primary" size="sm" variant="ghost"
+                                    title="Editar" (click)="openEditGrade(g)">
+                              Editar
+                            </button>
+                            <button cButton color="danger" size="sm" variant="ghost"
+                                    title="Eliminar" (click)="deleteGrade(g.id!)">
+                              ✕
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    }
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        }
+
+        <!-- ════════════════════════════════════════════════════════════════════
+             TAB: CONFIGURACIÓN DEL BAR
+             ════════════════════════════════════════════════════════════════════ -->
+        @if (activeTab() === 'bar-config') {
+          <form [formGroup]="barConfigForm" (ngSubmit)="saveBarConfig()">
+
+            <h6 class="text-uppercase text-muted small mb-3">Límites de Wallet</h6>
+            <c-row class="g-3 mb-4">
+              <c-col md="3">
+                <label cLabel>Saldo máximo (USD) *</label>
+                <div class="input-group">
+                  <span class="input-group-text">$</span>
+                  <input cFormControl formControlName="maxWalletBalance" type="number" step="0.01" min="0.01" />
+                </div>
+                <div class="form-text">Tope de recarga por alumno</div>
+              </c-col>
+              <c-col md="3">
+                <label cLabel>Límite diario (USD)</label>
+                <div class="input-group">
+                  <span class="input-group-text">$</span>
+                  <input cFormControl formControlName="dailySpendLimit" type="number" step="0.01" min="0" />
+                </div>
+                <div class="form-text">0 = sin límite</div>
+              </c-col>
+              <c-col md="3">
+                <label cLabel>Límite semanal (USD)</label>
+                <div class="input-group">
+                  <span class="input-group-text">$</span>
+                  <input cFormControl formControlName="weeklySpendLimit" type="number" step="0.01" min="0" />
+                </div>
+              </c-col>
+              <c-col md="3">
+                <label cLabel>Crédito emergencia (USD)</label>
+                <div class="input-group">
+                  <span class="input-group-text">$</span>
+                  <input cFormControl formControlName="emergencyCreditLimit" type="number" step="0.01" min="0" />
+                </div>
+                <div class="form-text">Saldo negativo máx. permitido</div>
+              </c-col>
+            </c-row>
+
+            <h6 class="text-uppercase text-muted small mb-3">Pedidos Anticipados</h6>
+            <c-row class="g-3 mb-4">
+              <c-col md="2">
+                <label cLabel>Hora de corte</label>
+                <input cFormControl formControlName="orderCutoffHour" type="number" min="0" max="23" placeholder="7" />
+                <div class="form-text">Hora (0–23)</div>
+              </c-col>
+              <c-col md="2">
+                <label cLabel>Minuto de corte</label>
+                <input cFormControl formControlName="orderCutoffMinute" type="number" min="0" max="59" placeholder="30" />
+                <div class="form-text">Minuto (0–59)</div>
+              </c-col>
+            </c-row>
+
+            <h6 class="text-uppercase text-muted small mb-3">Entrega en Aula</h6>
+            <c-row class="g-3 mb-4">
+              <c-col xs="12">
+                <c-form-check [switch]="true">
+                  <input cFormCheckInput id="allowDelivery" type="checkbox" formControlName="allowClassroomDelivery" />
+                  <label cFormCheckLabel for="allowDelivery">Permitir entrega de pedidos en el aula</label>
+                </c-form-check>
+              </c-col>
+              <c-col md="3">
+                <label cLabel>Costo de entrega (USD)</label>
+                <div class="input-group">
+                  <span class="input-group-text">$</span>
+                  <input cFormControl formControlName="deliveryFee" type="number" step="0.01" min="0" />
+                </div>
+                <div class="form-text">0 = sin costo adicional</div>
+              </c-col>
+            </c-row>
+
+            <button cButton color="primary" type="submit" [disabled]="saving() || barConfigForm.invalid">
+              {{ saving() ? 'Guardando…' : 'Guardar configuración del bar' }}
+            </button>
+          </form>
+        }
+
+        <!-- ════════════════════════════════════════════════════════════════════
+             TAB: ALÉRGENOS
+             ════════════════════════════════════════════════════════════════════ -->
+        @if (activeTab() === 'allergens') {
+
+          <!-- Header -->
+          <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+            <div>
+              <c-badge color="warning" class="fs-6 fw-normal me-2">{{ allergens().length }} en catálogo</c-badge>
+              <c-badge color="success" class="fs-6 fw-normal">{{ defaultAllergenCount() }} predeterminados</c-badge>
+            </div>
+            <button cButton color="secondary" variant="outline" size="sm"
+                    [disabled]="seeding()"
+                    (click)="seedAllergens()">
+              {{ seeding() ? 'Cargando…' : '⬇ Cargar lista predeterminada' }}
+            </button>
+          </div>
+
+          <!-- Info callout -->
+          <div class="border rounded p-3 mb-3 bg-body-secondary d-flex gap-2 align-items-start">
+            <span class="text-warning fw-bold flex-shrink-0">ℹ</span>
+            <small class="text-muted">
+              Las alergias registradas aquí son visibles para la cafetería al atender pedidos;
+              sin embargo, corresponde a la cafetería revisar y respetar estas restricciones
+              al vender productos a los estudiantes.
+              Los alérgenos marcados como <strong>predeterminados</strong> aparecerán preseleccionados
+              cuando un padre registre las restricciones de su hijo desde la aplicación.
+            </small>
+          </div>
+
+          <!-- Add new allergen -->
+          <div class="d-flex gap-2 mb-3">
+            <input cFormControl [value]="newAllergenName()"
+                   (input)="newAllergenName.set($any($event.target).value)"
+                   (keydown.enter)="addAllergen()"
+                   placeholder="Nombre del alérgeno personalizado…"
+                   style="max-width:300px" />
+            <button cButton color="primary" size="sm"
+                    [disabled]="!newAllergenName().trim() || saving()"
+                    (click)="addAllergen()">
+              + Agregar
+            </button>
+          </div>
+
+          <!-- Allergen list -->
+          @if (allergens().length === 0) {
+            <div class="text-center py-5 text-muted">
+              <div class="fs-1 mb-3">🌿</div>
+              <p class="mb-1">No hay alérgenos en el catálogo.</p>
+              <p class="small">
+                Usa <strong>Cargar lista predeterminada</strong> para importar
+                los alérgenos comunes, o agrega uno personalizado arriba.
+              </p>
+            </div>
+          } @else {
+            <div class="table-responsive">
+              <table cTable hover class="mb-0 align-middle">
+                <thead class="bg-body-secondary text-uppercase small fw-bold">
+                  <tr>
+                    <th>Nombre</th>
+                    <th class="text-center" style="width:140px">
+                      Predeterminado
+                      <div class="fw-normal text-muted" style="font-size:.65rem;text-transform:none">
+                        Preseleccionado para nuevos alumnos
+                      </div>
+                    </th>
+                    <th class="text-center" style="width:110px">Activo</th>
+                    <th style="width:60px"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (a of allergens(); track a.id) {
+                    <tr [style.opacity]="a.state ? 1 : 0.5">
+                      <td>{{ a.name }}</td>
+                      <td class="text-center">
+                        <div class="form-check form-switch d-flex justify-content-center mb-0">
+                          <input class="form-check-input" type="checkbox" role="switch"
+                                 [checked]="a.isDefault"
+                                 (change)="toggleAllergenDefault(a)" />
+                        </div>
+                      </td>
+                      <td class="text-center">
+                        <div class="form-check form-switch d-flex justify-content-center mb-0">
+                          <input class="form-check-input" type="checkbox" role="switch"
+                                 [checked]="a.state"
+                                 (change)="toggleAllergenState(a)" />
+                        </div>
+                      </td>
+                      <td>
+                        <button cButton color="danger" size="sm" variant="ghost"
+                                (click)="deleteAllergen(a.id)">
+                          ✕
+                        </button>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        }
+
+      </c-card-body>
+    </c-card>
+  </c-col>
+</c-row>
+
+<!-- ════════════════════════════════════════════════════════════════════════════
+     MODAL: Nuevo / Editar curso
+     ════════════════════════════════════════════════════════════════════════════ -->
+@if (showGradeModal()) {
+  <div class="modal d-block" tabindex="-1" style="background:rgba(0,0,0,.5)">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            {{ editGradeId() ? 'Editar curso' : 'Nuevo curso' }}
+          </h5>
+          <button type="button" class="btn-close" (click)="showGradeModal.set(false)"></button>
+        </div>
+        <div class="modal-body">
+          <form [formGroup]="gradeForm">
+            <c-row class="g-3">
+
+              <!-- Quick-fill from Ecuador model -->
+              <c-col xs="12">
+                <label cLabel>Autocompletar desde modelo MINEDUC</label>
+                <select cSelect (change)="onLevelTemplateChange($event)">
+                  <option value="">— Seleccionar nivel para autocompletar —</option>
+                  @for (group of eduLevelGroups; track group.subnivel) {
+                    <optgroup [label]="group.label">
+                      @for (lvl of group.levels; track lvl.idx) {
+                        <option [value]="lvl.idx">{{ lvl.name }}</option>
+                      }
+                    </optgroup>
+                  }
+                </select>
+                <div class="form-text">Al seleccionar, se completan automáticamente los campos abajo.</div>
+              </c-col>
+
+              <c-col xs="12"><hr class="my-1" /></c-col>
+
+              <c-col md="6">
+                <label cLabel>Nombre completo *</label>
+                <input cFormControl formControlName="name" placeholder="Ej: Tercero de Básica" />
+              </c-col>
+              <c-col md="3">
+                <label cLabel>Nombre corto *</label>
+                <input cFormControl formControlName="shortName" placeholder="Ej: 3ro EGB" />
+              </c-col>
+              <c-col md="3">
+                <label cLabel>Nivel (orden) *</label>
+                <input cFormControl formControlName="level" type="number" min="1" />
+                <div class="form-text">Para ordenar en listados</div>
+              </c-col>
+
+              <c-col md="4">
+                <label cLabel>Sección *</label>
+                <select cSelect formControlName="section">
+                  @for (sec of allSections; track sec) {
+                    <option [value]="sec">{{ sec }}</option>
+                  }
+                </select>
+              </c-col>
+              <c-col md="4">
+                <label cLabel>Jornada *</label>
+                <select cSelect formControlName="schedule">
+                  <option value="morning">Matutina</option>
+                  <option value="afternoon">Vespertina</option>
+                  <option value="full">Completa</option>
+                </select>
+              </c-col>
+              <c-col md="4">
+                <label cLabel>Docente tutor</label>
+                <input cFormControl formControlName="teacherName" placeholder="Nombre del docente" />
+              </c-col>
+
+              <c-col xs="12">
+                <c-form-check [switch]="true">
+                  <input cFormCheckInput id="gradeState" type="checkbox" formControlName="state" />
+                  <label cFormCheckLabel for="gradeState">Curso activo</label>
+                </c-form-check>
+              </c-col>
+            </c-row>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button cButton color="secondary" variant="outline" (click)="showGradeModal.set(false)">
+            Cancelar
+          </button>
+          <button cButton color="primary" [disabled]="gradeForm.invalid || saving()" (click)="saveGrade()">
+            {{ saving() ? 'Guardando…' : (editGradeId() ? 'Guardar cambios' : 'Crear curso') }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}

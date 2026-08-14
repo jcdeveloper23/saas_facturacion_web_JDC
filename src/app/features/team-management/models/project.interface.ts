@@ -61,6 +61,8 @@ export interface Project extends BaseDocument {
   estimatedHours: number;
   loggedHours: number;        // actualizado por Cloud Function
   completionPct: number;      // 0-100, calculado por Cloud Function
+  color?: string;             // hex color para identificación visual, ej: '#6366f1'
+  emoji?: string;             // emoji/ícono del proyecto, ej: '🚀'
 }
 
 export type ProjectCreateInput = Omit<Project,

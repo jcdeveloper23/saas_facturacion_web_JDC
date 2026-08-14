@@ -57,6 +57,7 @@ export class TaskFormComponent implements OnInit, OnDestroy {
   isEditing = computed(() => !!this.taskId());
   saving    = signal(false);
   loading   = signal(false);
+  prefilledRequestId = signal<string | null>(null);
 
   // ── Reference data ──────────────────────────────────────────────────────────
   projects = signal<Project[]>([]);
@@ -94,6 +95,19 @@ export class TaskFormComponent implements OnInit, OnDestroy {
     if (id && id !== 'new') {
       this.taskId.set(id);
       this.loadTask(id);
+    } else {
+      const params = this.route.snapshot.queryParamMap;
+      const requestId    = params.get('requestId');
+      const requestTitle = params.get('requestTitle');
+      const projectId    = params.get('projectId');
+
+      if (requestId) {
+        this.form.patchValue({
+          title:     requestTitle ? `[Solicitud] ${requestTitle}` : '',
+          projectId: projectId ?? '',
+        });
+        this.prefilledRequestId.set(requestId);
+      }
     }
   }
 
@@ -180,7 +194,12 @@ export class TaskFormComponent implements OnInit, OnDestroy {
       } else {
         const id = await this.tasksSvc.create(payload);
         this.notifications.success('Tarea creada correctamente');
-        this.router.navigate(['/team-management/tasks', id, 'edit']);
+        const back = this.route.snapshot.queryParamMap.get('back');
+        if (back === 'kanban') {
+          this.router.navigate(['/team-management/kanban']);
+        } else {
+          this.router.navigate(['/team-management/tasks', id, 'edit']);
+        }
         return;
       }
     } catch (err: any) {
@@ -211,6 +230,7 @@ export class TaskFormComponent implements OnInit, OnDestroy {
       blockedReason:  v.status === 'blocked' ? (v.blockedReason ?? '') : undefined,
       tags,
       comments:       this.task()?.comments ?? [],
+      requestId:      this.prefilledRequestId() ?? this.task()?.requestId ?? undefined,
     };
   }
 
@@ -247,6 +267,11 @@ export class TaskFormComponent implements OnInit, OnDestroy {
   }
 
   goBack(): void {
-    this.router.navigate(['/team-management/tasks']);
+    const back = this.route.snapshot.queryParamMap.get('back');
+    if (back === 'kanban') {
+      this.router.navigate(['/team-management/kanban']);
+    } else {
+      this.router.navigate(['/team-management/tasks']);
+    }
   }
 }

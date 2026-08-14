@@ -17,6 +17,10 @@ import { SettingsService }    from '../settings/services/settings.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { TenantService }       from '../../core/services/tenant.service';
 import { FormConfigService }   from '../../core/services/form-config.service';
+import { PersonaExtensionsService } from '../../core/services/persona-extensions.service';
+import { SchoolInstitutionService } from '../school-bar/services/school-institution.service';
+import { SchoolAllergenService }    from '../school-bar/services/school-allergen.service';
+import { SchoolGrade, SchoolAllergen } from '../school-bar/models';
 import {
   Person, PersonAddress, PersonBankAccount,
   PersonRole, TaxIdType, VatRegime, ContractType,
@@ -73,11 +77,29 @@ const CONTRACT_TYPES: { value: ContractType; label: string }[] = [
       background:transparent; color:var(--cui-secondary-color);
       transition:all .12s;
     }
-    .role-toggle--active-customer { background:var(--cui-info-bg-subtle); color:var(--cui-info); border-color:var(--cui-info-border-subtle); }
-    .role-toggle--active-supplier { background:var(--cui-warning-bg-subtle); color:var(--cui-warning); border-color:var(--cui-warning-border-subtle); }
-    .role-toggle--active-employee { background:var(--cui-success-bg-subtle); color:var(--cui-success); border-color:var(--cui-success-border-subtle); }
-    .role-toggle--active-contact  { background:var(--cui-info-bg-subtle);    color:var(--cui-info);    border-color:var(--cui-info-border-subtle); }
-    .role-toggle--active-other    { background:var(--cui-secondary-bg);      color:var(--cui-body-color); border-color:var(--cui-border-color); }
+    .role-toggle--active-customer { background:var(--cui-info-bg-subtle);      color:var(--cui-info);        border-color:var(--cui-info-border-subtle); }
+    .role-toggle--active-supplier { background:var(--cui-warning-bg-subtle);   color:var(--cui-warning);     border-color:var(--cui-warning-border-subtle); }
+    .role-toggle--active-employee { background:var(--cui-success-bg-subtle);   color:var(--cui-success);     border-color:var(--cui-success-border-subtle); }
+    .role-toggle--active-contact  { background:var(--cui-info-bg-subtle);      color:var(--cui-info);        border-color:var(--cui-info-border-subtle); }
+    .role-toggle--active-other    { background:var(--cui-secondary-bg);        color:var(--cui-body-color);  border-color:var(--cui-border-color); }
+    /* Roles de extensión (pkg_school_bar) */
+    .role-toggle--active-student  { background:var(--cui-primary-bg-subtle);   color:var(--cui-primary);     border-color:var(--cui-primary-border-subtle); }
+    .role-toggle--active-teacher  { background:var(--cui-success-bg-subtle);   color:var(--cui-success);     border-color:var(--cui-success-border-subtle); }
+
+    /* ── Allergen chips ─────────────────────────────────────────── */
+    .allergen-chip {
+      padding:.3rem .75rem; border-radius:99px; font-size:.8rem;
+      border:1px solid var(--cui-border-color);
+      background:transparent; color:var(--cui-body-color);
+      cursor:pointer; transition:all .12s;
+    }
+    .allergen-chip:hover { border-color:var(--cui-warning); color:var(--cui-warning); }
+    .allergen-chip--active {
+      background:var(--cui-warning-bg-subtle);
+      color:var(--cui-warning-emphasis);
+      border-color:var(--cui-warning-border-subtle);
+      font-weight:500;
+    }
   `],
   imports: [
     CommonModule, ReactiveFormsModule, RouterLink,
@@ -89,14 +111,17 @@ const CONTRACT_TYPES: { value: ContractType; label: string }[] = [
   ]
 })
 export class PersonFormComponent implements OnInit {
-  private svc           = inject(PersonasService);
-  private settingsSvc   = inject(SettingsService);
-  private notifications = inject(NotificationService);
-  private tenantSvc     = inject(TenantService);
-  private formConfigSvc = inject(FormConfigService);
-  private fb            = inject(FormBuilder);
-  private router        = inject(Router);
-  private route         = inject(ActivatedRoute);
+  private svc             = inject(PersonasService);
+  private settingsSvc     = inject(SettingsService);
+  private notifications   = inject(NotificationService);
+  private tenantSvc       = inject(TenantService);
+  private formConfigSvc   = inject(FormConfigService);
+  readonly personaExtensions = inject(PersonaExtensionsService);
+  private schoolInstitution  = inject(SchoolInstitutionService);
+  private schoolAllergenSvc  = inject(SchoolAllergenService);
+  private fb              = inject(FormBuilder);
+  private router          = inject(Router);
+  private route           = inject(ActivatedRoute);
 
   // ─── State ──────────────────────────────────────────────────────────────
 
@@ -111,12 +136,21 @@ export class PersonFormComponent implements OnInit {
   currencies     = signal<Currency[]>([]);
   documentSeries = signal<DocumentSeries[]>([]);
   selectedRoles  = signal<PersonRole[]>(['customer']);
-  existingCodes  = signal<{ customer?: string; supplier?: string; employee?: string }>({});
+  existingCodes  = signal<{ customer?: string; supplier?: string; employee?: string; student?: string; teacher?: string }>({});
 
   // Computed role flags used in template
   hasCustomerRole = computed(() => this.selectedRoles().includes('customer'));
   hasSupplierRole = computed(() => this.selectedRoles().includes('supplier'));
   hasEmployeeRole = computed(() => this.selectedRoles().includes('employee'));
+  // Extension role flags (pkg_school_bar)
+  hasStudentRole  = computed(() => this.selectedRoles().includes('student'));
+  hasTeacherRole  = computed(() => this.selectedRoles().includes('teacher'));
+
+  // School bar: grados y alérgenos para roles student / teacher
+  schoolGrades    = signal<SchoolGrade[]>([]);
+  schoolAllergens = signal<SchoolAllergen[]>([]);
+  // IDs de alérgenos activos para el estudiante en edición (fuera del FormGroup)
+  studentAllergenIds = signal<string[]>([]);
 
   // ─── Inline address management ───────────────────────────────────────────
   addresses       = signal<PersonAddress[]>([]);
@@ -164,7 +198,7 @@ export class PersonFormComponent implements OnInit {
 
     // Pre-select role from query param: /personas/new?role=supplier
     const queryRole = this.route.snapshot.queryParamMap.get('role') as PersonRole | null;
-    if (queryRole && ALL_ROLES.includes(queryRole)) {
+    if (queryRole && this.personaExtensions.isRoleAvailable(queryRole)) {
       this.selectedRoles.set([queryRole]);
       this.syncRoleValidators();
     }
@@ -184,6 +218,18 @@ export class PersonFormComponent implements OnInit {
       this.applyDynamicValidators(cfg);
     });
 
+    // Cargar grados y alérgenos del bar escolar
+    if (this.personaExtensions.isRoleAvailable('student') || this.personaExtensions.isRoleAvailable('teacher')) {
+      this.schoolInstitution.getGrades().subscribe(g => this.schoolGrades.set(g.filter(gr => gr.state)));
+      this.schoolAllergenSvc.getActiveAllergens().subscribe(a => {
+        this.schoolAllergens.set(a);
+        // Si es nuevo estudiante, preseleccionar los alérgenos marcados isDefault
+        if (!this.personId()) {
+          this.studentAllergenIds.set(a.filter(x => x.isDefault).map(x => x.id));
+        }
+      });
+    }
+
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
       this.personId.set(id);
@@ -199,28 +245,34 @@ export class PersonFormComponent implements OnInit {
 
   // ─── Role management ─────────────────────────────────────────────────────
 
-  toggleRole(role: PersonRole): void {
+  hasRole(role: string): boolean {
+    return this.selectedRoles().includes(role as PersonRole);
+  }
+
+  toggleRole(role: string): void {
+    const r = role as PersonRole;
     const current = this.selectedRoles();
-    if (current.includes(role)) {
+    if (current.includes(r)) {
       if (current.length === 1) return; // at least one role required
-      this.selectedRoles.update(r => r.filter(x => x !== role));
+      this.selectedRoles.update(list => list.filter(x => x !== r));
     } else {
-      this.selectedRoles.update(r => [...r, role]);
+      this.selectedRoles.update(list => [...list, r]);
     }
     this.syncRoleValidators();
   }
 
   private syncRoleValidators(): void {
     const roles = this.selectedRoles();
-    const cg = this.form?.get('customerData');
-    const sg = this.form?.get('supplierData');
-    const eg = this.form?.get('employeeData');
-    if (roles.includes('customer')) cg?.enable({ emitEvent: false });
-    else cg?.disable({ emitEvent: false });
-    if (roles.includes('supplier')) sg?.enable({ emitEvent: false });
-    else sg?.disable({ emitEvent: false });
-    if (roles.includes('employee')) eg?.enable({ emitEvent: false });
-    else eg?.disable({ emitEvent: false });
+    const toggle = (key: string, active: boolean) => {
+      const ctrl = this.form?.get(key);
+      if (active) ctrl?.enable({ emitEvent: false });
+      else        ctrl?.disable({ emitEvent: false });
+    };
+    toggle('customerData', roles.includes('customer'));
+    toggle('supplierData', roles.includes('supplier'));
+    toggle('employeeData', roles.includes('employee'));
+    toggle('studentData',  roles.includes('student'));
+    toggle('teacherData',  roles.includes('teacher'));
   }
 
   // ─── Form config helpers ──────────────────────────────────────────────────
@@ -306,6 +358,18 @@ export class PersonFormComponent implements OnInit {
         hireDate:     [''],
         endDate:      [''],
         contractType: ['indefinido']
+      }),
+      // ── Extension: Estudiante (pkg_school_bar) ───────────────────────────
+      studentData: this.fb.group({
+        gradeId:   [''],
+        gradeName: [''],
+        section:   ['']
+      }),
+      // ── Extension: Profesor (pkg_school_bar) ────────────────────────────
+      teacherData: this.fb.group({
+        gradeId:        [''],
+        gradeName:      [''],
+        specialization: ['']
       })
     });
 
@@ -363,8 +427,10 @@ export class PersonFormComponent implements OnInit {
     this.existingCodes.set({
       customer: p.customerData?.code,
       supplier: p.supplierData?.code,
-      employee: p.employeeData?.code
-    });
+      employee: p.employeeData?.code,
+      student:  p.studentData?.code,
+      teacher:  p.teacherData?.code,
+    } as any);
 
     // Common fields
     this.form.patchValue({
@@ -386,6 +452,11 @@ export class PersonFormComponent implements OnInit {
     if (p.customerData) this.form.get('customerData')?.patchValue(p.customerData);
     if (p.supplierData) this.form.get('supplierData')?.patchValue(p.supplierData);
     if (p.employeeData) this.form.get('employeeData')?.patchValue(p.employeeData);
+    if (p.studentData) {
+      this.form.get('studentData')?.patchValue(p.studentData);
+      this.studentAllergenIds.set(p.studentData.allergenIds ?? []);
+    }
+    if (p.teacherData)  this.form.get('teacherData')?.patchValue(p.teacherData);
     // Don't auto-sync legalName while patching — person already has their own legalName stored
 
     this.addresses.set([...(p.addresses    ?? [])]);
@@ -448,6 +519,12 @@ export class PersonFormComponent implements OnInit {
           } : {}),
           ...(roles.includes('employee') && v.employeeData ? {
             employeeData: { code: codes.employee ?? '', ...this.cleanRoleValues(v.employeeData) }
+          } : {}),
+          ...(roles.includes('student') && v.studentData ? {
+            studentData: { code: codes.student ?? '', ...this.cleanRoleValues(v.studentData), allergenIds: this.studentAllergenIds() }
+          } : {}),
+          ...(roles.includes('teacher') && v.teacherData ? {
+            teacherData: { code: codes.teacher ?? '', ...this.cleanRoleValues(v.teacherData) }
           } : {})
         } as PersonUpdateInput;
 
@@ -465,6 +542,12 @@ export class PersonFormComponent implements OnInit {
           } : {}),
           ...(roles.includes('employee') && v.employeeData ? {
             employeeData: this.cleanRoleValues(v.employeeData)
+          } : {}),
+          ...(roles.includes('student') && v.studentData ? {
+            studentData: { ...this.cleanRoleValues(v.studentData), allergenIds: this.studentAllergenIds() }
+          } : {}),
+          ...(roles.includes('teacher') && v.teacherData ? {
+            teacherData: this.cleanRoleValues(v.teacherData)
           } : {})
         } as PersonCreateInput;
 
@@ -491,6 +574,40 @@ export class PersonFormComponent implements OnInit {
       result[k] = typeof v === 'string' ? v.trim() : v;
     }
     return result;
+  }
+
+  // ─── School grade selection helpers ─────────────────────────────────────
+
+  toggleStudentAllergen(id: string): void {
+    const current = this.studentAllergenIds();
+    this.studentAllergenIds.set(
+      current.includes(id) ? current.filter(x => x !== id) : [...current, id]
+    );
+  }
+
+  isAllergenActive(id: string): boolean {
+    return this.studentAllergenIds().includes(id);
+  }
+
+  onStudentGradeSelect(event: Event): void {
+    const gradeId = (event.target as HTMLSelectElement).value;
+    const grade   = this.schoolGrades().find(g => g.id === gradeId);
+    if (!grade) return;
+    this.form.get('studentData')?.patchValue({
+      gradeId:   grade.id,
+      gradeName: grade.name,
+      section:   grade.section
+    });
+  }
+
+  onTeacherGradeSelect(event: Event): void {
+    const gradeId = (event.target as HTMLSelectElement).value;
+    const grade   = this.schoolGrades().find(g => g.id === gradeId);
+    if (!grade) return;
+    this.form.get('teacherData')?.patchValue({
+      gradeId:   grade.id,
+      gradeName: grade.name
+    });
   }
 
   cancel(): void {

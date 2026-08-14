@@ -218,70 +218,73 @@
 </c-container>
 
 <!-- ── Add-on activation / deactivation modal ─────────────────────────────── -->
-@if (showAddonModal() && pendingAddonPkg()) {
+<!-- NOTE: No @if wrapper — CoreUI needs the component in the DOM to clean up
+     its backdrop. Visibility is controlled exclusively via [visible]. -->
 <c-modal [visible]="showAddonModal()" (visibleChange)="$event || cancelAddon()" alignment="center">
   <c-modal-header>
     <h5 class="modal-title">
       @if (isAddonAction() === 'activate') {
         <svg cIcon name="cil-plus" class="me-2 text-success"></svg>
-        Activar add-on: {{ pendingAddonPkg()!.name }}
+        Activar add-on: {{ pendingAddonPkg()?.name }}
       } @else {
         <svg cIcon name="cil-trash" class="me-2 text-danger"></svg>
-        Desactivar add-on: {{ pendingAddonPkg()!.name }}
+        Desactivar add-on: {{ pendingAddonPkg()?.name }}
       }
     </h5>
   </c-modal-header>
   <c-modal-body>
-    @if (isAddonAction() === 'activate') {
-      <p class="text-muted small mb-3">
-        Este paquete <strong>no está incluido en el plan {{ company()?.planName }}</strong>.
-        Registrar como add-on genera un acuerdo comercial para facturación manual.
-      </p>
+    @if (pendingAddonPkg()) {
+      @if (isAddonAction() === 'activate') {
+        <p class="text-muted small mb-3">
+          Este paquete <strong>no está incluido en el plan {{ company()?.planName }}</strong>.
+          Registrar como add-on genera un acuerdo comercial para facturación manual.
+        </p>
 
-      <div class="mb-3">
-        <label class="form-label fw-semibold">Precio acordado (USD/mes)</label>
-        <input
-          type="number"
-          class="form-control"
-          min="0"
-          step="1"
-          [ngModel]="addonAgreedPrice()"
-          (ngModelChange)="addonAgreedPrice.set($event)"
-          placeholder="0" />
-        <small class="text-muted">Precio de referencia del paquete: {{ pendingAddonPkg()!.price | currency:'USD':'symbol':'1.0-0' }}/mes</small>
-      </div>
-
-      <div class="mb-3">
-        <label class="form-label fw-semibold">Notas / motivo</label>
-        <textarea
-          class="form-control"
-          rows="2"
-          [ngModel]="addonNotes()"
-          (ngModelChange)="addonNotes.set($event)"
-          placeholder="cortesía, plan personalizado, piloto 3 meses..."></textarea>
-      </div>
-
-      <div class="border rounded p-2 bg-light">
-        <small class="text-muted fw-semibold d-block mb-1">Módulos que se habilitarán</small>
-        <div class="d-flex flex-wrap gap-1">
-          @for (mod of pendingAddonPkg()!.modules; track mod) {
-          <c-badge color="success" variant="outline" shape="rounded-pill" style="font-size:.68rem">{{ mod }}</c-badge>
-          }
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Precio acordado (USD/mes)</label>
+          <input
+            type="number"
+            class="form-control"
+            min="0"
+            step="1"
+            [ngModel]="addonAgreedPrice()"
+            (ngModelChange)="addonAgreedPrice.set($event)"
+            placeholder="0" />
+          <small class="text-muted">Precio de referencia del paquete: {{ pendingAddonPkg()!.price | currency:'USD':'symbol':'1.0-0' }}/mes</small>
         </div>
-      </div>
-    } @else {
-      <p class="text-muted small mb-3">
-        Se eliminará el registro del add-on y se desactivarán sus módulos.
-        Esta acción es reversible (se puede volver a activar).
-      </p>
-      <div class="border rounded p-2 bg-light">
-        <small class="text-muted fw-semibold d-block mb-1">Módulos que se desactivarán</small>
-        <div class="d-flex flex-wrap gap-1">
-          @for (mod of pendingAddonPkg()!.modules; track mod) {
-          <c-badge color="danger" variant="outline" shape="rounded-pill" style="font-size:.68rem">{{ mod }}</c-badge>
-          }
+
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Notas / motivo</label>
+          <textarea
+            class="form-control"
+            rows="2"
+            [ngModel]="addonNotes()"
+            (ngModelChange)="addonNotes.set($event)"
+            placeholder="cortesía, plan personalizado, piloto 3 meses..."></textarea>
         </div>
-      </div>
+
+        <div class="border rounded p-2 bg-light">
+          <small class="text-muted fw-semibold d-block mb-1">Módulos que se habilitarán</small>
+          <div class="d-flex flex-wrap gap-1">
+            @for (mod of pendingAddonPkg()!.modules; track mod) {
+            <c-badge color="success" variant="outline" shape="rounded-pill" style="font-size:.68rem">{{ mod }}</c-badge>
+            }
+          </div>
+        </div>
+      } @else {
+        <p class="text-muted small mb-3">
+          Se eliminará el registro del add-on y se desactivarán sus módulos.
+          Esta acción es reversible (se puede volver a activar).
+        </p>
+        <div class="border rounded p-2 bg-light">
+          <small class="text-muted fw-semibold d-block mb-1">Módulos que se desactivarán</small>
+          <div class="d-flex flex-wrap gap-1">
+            @for (mod of pendingAddonPkg()!.modules; track mod) {
+            <c-badge color="danger" variant="outline" shape="rounded-pill" style="font-size:.68rem">{{ mod }}</c-badge>
+            }
+          </div>
+        </div>
+      }
     }
   </c-modal-body>
   <c-modal-footer>
@@ -297,4 +300,3 @@
     </button>
   </c-modal-footer>
 </c-modal>
-}

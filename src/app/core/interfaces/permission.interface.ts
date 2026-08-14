@@ -253,6 +253,18 @@ export const MODULE_METADATA: Record<string, { name: string; icon: string; order
   personas:        { name: 'Personas',             icon: 'cilUser',        order: 85 },
   users:           { name: 'Usuarios',             icon: 'cilLockLocked',  order: 90 },
   settings:        { name: 'Configuración',        icon: 'cilSettings',    order: 99 },
+  // ── pkg_school_bar ──────────────────────────────────────────────────────
+  school_setup:        { name: 'Bar · Configuración',   icon: 'cilBuilding',    order: 100 },
+  school_students:     { name: 'Bar · Estudiantes',     icon: 'cilPeople',      order: 101 },
+  school_parents:      { name: 'Bar · Representantes',  icon: 'cilUser',        order: 102 },
+  school_menus:        { name: 'Bar · Menús',           icon: 'cilRestaurant',  order: 103 },
+  school_orders:       { name: 'Bar · Órdenes',         icon: 'cilCart',        order: 104 },
+  school_wallet:       { name: 'Bar · Billeteras',      icon: 'cilWallet',      order: 105 },
+  school_pos:          { name: 'Bar · Caja (POS)',       icon: 'cilCalculator',  order: 106 },
+  school_accessories:  { name: 'Bar · Accesorios NFC',  icon: 'cilNfc',         order: 107 },
+  school_delivery:     { name: 'Bar · Entrega en Aula', icon: 'cilTruck',       order: 108 },
+  school_nutrition:    { name: 'Bar · Nutrición',       icon: 'cilLeaf',        order: 109 },
+  school_reports_bar:  { name: 'Bar · Reportes',        icon: 'cilChartPie',    order: 110 },
 };
 
 // ============================================================================

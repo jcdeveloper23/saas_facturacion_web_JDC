@@ -1,0 +1,139 @@
+<c-row class="g-3">
+  <!-- Catálogo de productos -->
+  <c-col md="8">
+    <!-- Menú del día (opcional) -->
+    @if (menu()) {
+      <c-card class="mb-3">
+        <c-card-header>
+          <strong>Menú del día — {{ today }}</strong>
+          <c-badge color="success" class="ms-2">Publicado</c-badge>
+        </c-card-header>
+        <c-card-body>
+          <c-row class="g-2">
+            @for (item of menu()!.items; track item.id) {
+              <c-col md="4">
+                <div class="border rounded p-2 h-100 d-flex flex-column"
+                     [class.opacity-50]="!item.available">
+                  <div class="fw-semibold small">{{ item.name }}</div>
+                  <div class="text-muted small mb-auto">{{ item.category }}</div>
+                  <div class="d-flex justify-content-between align-items-center mt-2">
+                    <span class="fw-bold">${{ item.price.toFixed(2) }}</span>
+                    <button cButton color="primary" size="sm" variant="outline"
+                            [disabled]="!item.available"
+                            (click)="addMenuItemToCart(item)">+</button>
+                  </div>
+                </div>
+              </c-col>
+            }
+          </c-row>
+        </c-card-body>
+      </c-card>
+    }
+
+    <!-- Catálogo completo (siempre visible) -->
+    <c-card>
+      <c-card-header>
+        <strong>Catálogo activo</strong>
+        <span class="text-muted small ms-2">{{ products().length }} productos</span>
+      </c-card-header>
+      <c-card-body>
+        @if (products().length === 0) {
+          <p class="text-muted">Sin productos activos en el catálogo.</p>
+        } @else {
+          <c-row class="g-2">
+            @for (p of products(); track p.id) {
+              <c-col md="3" sm="4" xs="6">
+                <div class="border rounded p-2 h-100 d-flex flex-column text-center"
+                     style="cursor:pointer" (click)="addProductToCart(p)">
+                  <div class="fw-semibold small">{{ p.name }}</div>
+                  <div class="fw-bold mt-auto text-primary">${{ p.salePrice.toFixed(2) }}</div>
+                </div>
+              </c-col>
+            }
+          </c-row>
+        }
+      </c-card-body>
+    </c-card>
+  </c-col>
+
+  <!-- Venta -->
+  <c-col md="4">
+    <c-card class="sticky-top" style="top:1rem">
+      <c-card-header><strong>Venta</strong></c-card-header>
+      <c-card-body>
+        @if (errorMsg()) {
+          <c-alert color="danger" dismissible>{{ errorMsg() }}</c-alert>
+        }
+        @if (successMsg()) {
+          <c-alert color="success" dismissible>{{ successMsg() }}</c-alert>
+        }
+
+        <!-- Búsqueda de estudiante -->
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">ID Estudiante</label>
+          <div class="input-group">
+            <input cFormControl placeholder="Ingresar o escanear ID"
+                   [value]="studentInput()"
+                   (input)="studentInput.set($any($event.target).value)"
+                   (keydown.enter)="lookupStudent()" />
+            <button cButton color="secondary" size="sm"
+                    [disabled]="studentLoading()"
+                    (click)="lookupStudent()">
+              {{ studentLoading() ? '…' : 'Buscar' }}
+            </button>
+          </div>
+          @if (studentError()) {
+            <div class="text-danger small mt-1">{{ studentError() }}</div>
+          }
+        </div>
+
+        <!-- Info del estudiante -->
+        @if (student()) {
+          <div class="rounded p-2 mb-3 bg-light">
+            <div class="fw-semibold">{{ student()!.fullName }}</div>
+            <div class="small text-muted">{{ student()!.gradeName }} — {{ student()!.section }}</div>
+            <div class="d-flex align-items-center gap-1 mt-1">
+              <span class="small">Wallet:</span>
+              <c-badge [color]="walletColor(student()!.walletBalance)">
+                ${{ student()!.walletBalance.toFixed(2) }}
+              </c-badge>
+            </div>
+          </div>
+        }
+
+        <!-- Ítems en carrito -->
+        @if (cart().length === 0) {
+          <p class="text-muted small">Sin ítems en la venta.</p>
+        } @else {
+          @for (ci of cart(); track ci.productId) {
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <span class="small">{{ ci.quantity }}× {{ ci.name }}</span>
+              <div class="d-flex align-items-center gap-1">
+                <span class="small">${{ (ci.price * ci.quantity).toFixed(2) }}</span>
+                <button cButton color="danger" size="sm" variant="ghost"
+                        (click)="removeFromCart(ci.productId)">×</button>
+              </div>
+            </div>
+          }
+          <hr />
+          <div class="d-flex justify-content-between fw-bold">
+            <span>Total</span>
+            <span>${{ total().toFixed(2) }}</span>
+          </div>
+        }
+
+        <div class="d-flex gap-2 mt-3">
+          <button cButton color="secondary" variant="outline" size="sm"
+                  (click)="clearCart()" [disabled]="processing()">
+            Limpiar
+          </button>
+          <button cButton color="success" class="flex-grow-1"
+                  (click)="checkout()"
+                  [disabled]="processing() || cart().length === 0 || !student()">
+            {{ processing() ? 'Procesando…' : 'Cobrar (Wallet)' }}
+          </button>
+        </div>
+      </c-card-body>
+    </c-card>
+  </c-col>
+</c-row>

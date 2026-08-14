@@ -14,6 +14,7 @@
  * DEPENDENCY TREE:
  *   pkg_base (always active, price: 0)
  *     ├── pkg_team_mgmt              ($49/mes add-on)
+ *     ├── pkg_school_bar             ($89-$249/mes vertical escolar)
  *     └── pkg_sales                  ($29/mes add-on)
  *           ├── pkg_stock            ($19/mes add-on) ← inventario separado
  *           ├── pkg_sales_advanced   ($19/mes add-on) (quotes, orders, proformas)
@@ -250,6 +251,43 @@ export const PLUGIN_PACKAGES_SEED: PackageSeed[] = [
     color:         'info',
     isSystem:      false,
     order:         7,
+    state:         true
+  },
+
+  // ─── BAR ESCOLAR ──────────────────────────────────────────────────────────
+  // Vertical independiente — solo requiere pkg_base.
+  // Gestión completa de bares escolares: wallet estudiantil por alumno,
+  // identificación QR/NFC, órdenes anticipadas, entrega en aula,
+  // control nutricional MINEDUC y accesorios NFC (tarjeta, manilla, llavero).
+  // Los representantes se vinculan con sus hijos escaneando el QR del alumno
+  // tras autenticarse con Google Sign-In (onboarding < 2 minutos).
+  // Se integra opcionalmente con pkg_sri (facturación del concesionario),
+  // pkg_stock (inventario de ingredientes) y pkg_purchases (compras a proveedores).
+  {
+    code:          'pkg_school_bar',
+    name:          'Bar Escolar',
+    description:   'Administración completa de bar escolar: wallet estudiantil, identificación QR/NFC, órdenes anticipadas, control nutricional MINEDUC y entrega en aula. Representantes se vinculan escaneando el QR del alumno con Google Sign-In.',
+    modules:       [
+      'school_setup',
+      'school_students',
+      'school_parents',
+      'school_menus',
+      'school_orders',
+      'school_wallet',
+      'school_pos',
+      'school_accessories',
+      'school_delivery',
+      'school_nutrition',
+      'school_reports_bar'
+    ],
+    dependencies:  ['pkg_base'],
+    price:         159,
+    currency:      'USD',
+    billingPeriod: 'monthly',
+    icon:          'cil-restaurant',
+    color:         'warning',
+    isSystem:      false,
+    order:         10,
     state:         true
   }
 

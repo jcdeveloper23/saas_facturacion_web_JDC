@@ -1,0 +1,111 @@
+<c-row class="mb-3">
+  <c-col>
+    <strong>Tablero de Órdenes</strong>
+  </c-col>
+  <c-col md="auto" class="d-flex gap-2 flex-wrap">
+    <input type="date" class="form-control" style="max-width:160px"
+           [value]="selectedDate()"
+           (change)="onDateChange($any($event.target).value)" />
+  </c-col>
+</c-row>
+
+<c-row class="g-3">
+  <!-- Pendientes -->
+  <c-col md="3">
+    <c-card>
+      <c-card-header class="bg-secondary text-white">
+        Pendientes <c-badge color="light" textColor="dark">{{ pending().length }}</c-badge>
+      </c-card-header>
+      <c-card-body>
+        @for (o of pending(); track o.id) {
+          <div class="border rounded p-2 mb-2">
+            <div class="fw-semibold">{{ o.studentName }}</div>
+            <div class="text-muted small">{{ o.gradeName }}</div>
+            @for (item of o.items; track item.menuItemId) {
+              <div class="small">{{ item.quantity }}× {{ item.name }}</div>
+            }
+            <div class="fw-bold mt-1">${{ o.total.toFixed(2) }}</div>
+            <button cButton color="info" size="sm" class="mt-1 w-100"
+                    [disabled]="processingId() === o.id"
+                    (click)="advance(o)">Confirmar</button>
+          </div>
+        } @empty {
+          <p class="text-muted small">Sin órdenes pendientes.</p>
+        }
+      </c-card-body>
+    </c-card>
+  </c-col>
+
+  <!-- Confirmadas -->
+  <c-col md="3">
+    <c-card>
+      <c-card-header class="bg-info text-white">
+        Confirmadas <c-badge color="light" textColor="dark">{{ confirmed().length }}</c-badge>
+      </c-card-header>
+      <c-card-body>
+        @for (o of confirmed(); track o.id) {
+          <div class="border rounded p-2 mb-2">
+            <div class="fw-semibold">{{ o.studentName }}</div>
+            @for (item of o.items; track item.menuItemId) {
+              <div class="small">{{ item.quantity }}× {{ item.name }}</div>
+            }
+            <button cButton color="warning" size="sm" class="mt-1 w-100"
+                    [disabled]="processingId() === o.id"
+                    (click)="advance(o)">Preparar</button>
+          </div>
+        } @empty {
+          <p class="text-muted small">Sin órdenes.</p>
+        }
+      </c-card-body>
+    </c-card>
+  </c-col>
+
+  <!-- En preparación -->
+  <c-col md="3">
+    <c-card>
+      <c-card-header class="bg-warning">
+        En Preparación <c-badge color="light" textColor="dark">{{ preparing().length }}</c-badge>
+      </c-card-header>
+      <c-card-body>
+        @for (o of preparing(); track o.id) {
+          <div class="border rounded p-2 mb-2">
+            <div class="fw-semibold">{{ o.studentName }}</div>
+            @for (item of o.items; track item.menuItemId) {
+              <div class="small">{{ item.quantity }}× {{ item.name }}</div>
+            }
+            <button cButton color="success" size="sm" class="mt-1 w-100"
+                    [disabled]="processingId() === o.id"
+                    (click)="advance(o)">Lista</button>
+          </div>
+        } @empty {
+          <p class="text-muted small">Sin órdenes.</p>
+        }
+      </c-card-body>
+    </c-card>
+  </c-col>
+
+  <!-- Listas para entrega -->
+  <c-col md="3">
+    <c-card>
+      <c-card-header class="bg-success text-white">
+        Listas <c-badge color="light" textColor="dark">{{ ready().length }}</c-badge>
+      </c-card-header>
+      <c-card-body>
+        @for (o of ready(); track o.id) {
+          <div class="border rounded p-2 mb-2">
+            <div class="fw-semibold">{{ o.studentName }}</div>
+            <div class="text-muted small">{{ o.gradeName }}</div>
+            @for (item of o.items; track item.menuItemId) {
+              <div class="small">{{ item.quantity }}× {{ item.name }}</div>
+            }
+            <button cButton color="primary" size="sm" class="mt-1 w-100"
+                    [disabled]="processingId() === o.id"
+                    (click)="advance(o)">Entregar</button>
+          </div>
+        } @empty {
+          <p class="text-muted small">Sin órdenes listas.</p>
+        }
+      </c-card-body>
+    </c-card>
+  </c-col>
+</c-row>

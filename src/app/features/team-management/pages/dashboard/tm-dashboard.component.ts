@@ -14,6 +14,7 @@ import { ProjectsService }     from '../../services/projects.service';
 import { TasksService }        from '../../services/tasks.service';
 import { TeamMembersService }  from '../../services/team-members.service';
 import { TimesheetsService }   from '../../services/timesheets.service';
+import { RequestsService }     from '../../services/requests.service';
 
 import { Project, PROJECT_PRIORITY_LABELS, PROJECT_PRIORITY_COLORS } from '../../models/project.interface';
 import { Task, TASK_STATUS_LABELS, TASK_STATUS_COLORS }               from '../../models/task.interface';
@@ -21,6 +22,7 @@ import {
   TeamMember, MEMBER_ROLE_LABELS, MEMBER_ROLE_COLORS
 } from '../../models/team-member.interface';
 import { TimesheetEntry } from '../../models/timesheet.interface';
+import { ClientRequest } from '../../models/request.interface';
 
 @Component({
   selector: 'app-tm-dashboard',
@@ -37,6 +39,7 @@ export class TmDashboardComponent implements OnInit, OnDestroy {
   private tasksSvc      = inject(TasksService);
   private membersSvc    = inject(TeamMembersService);
   private timesheetsSvc = inject(TimesheetsService);
+  private requestsSvc   = inject(RequestsService);
   private destroy$      = new Subject<void>();
 
   // ── Labels / Colors ──────────────────────────────────────────────────────────
@@ -53,6 +56,7 @@ export class TmDashboardComponent implements OnInit, OnDestroy {
   tasks      = signal<Task[]>([]);
   members    = signal<TeamMember[]>([]);
   timesheets = signal<TimesheetEntry[]>([]);
+  requests   = signal<ClientRequest[]>([]);
 
   // ── Computed KPIs ────────────────────────────────────────────────────────────
   activeProjects = computed(() => this.projects().filter(p => p.status === 'active'));
@@ -64,6 +68,8 @@ export class TmDashboardComponent implements OnInit, OnDestroy {
   );
 
   blockedTasks = computed(() => this.tasks().filter(t => t.status === 'blocked'));
+
+  pendingRequests = computed(() => this.requests().filter(r => r.status === 'new'));
 
   completedThisMonth = computed(() => {
     const now   = new Date();
@@ -106,7 +112,7 @@ export class TmDashboardComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     let loaded = 0;
-    const checkDone = () => { loaded++; if (loaded >= 4) this.loading.set(false); };
+    const checkDone = () => { loaded++; if (loaded >= 5) this.loading.set(false); };
 
     this.projectsSvc.getAll()
       .pipe(takeUntil(this.destroy$))
@@ -119,6 +125,10 @@ export class TmDashboardComponent implements OnInit, OnDestroy {
     this.membersSvc.getAll()
       .pipe(takeUntil(this.destroy$))
       .subscribe({ next: list => { this.members.set(list); checkDone(); }, error: () => checkDone() });
+
+    this.requestsSvc.getAll()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({ next: list => { this.requests.set(list); checkDone(); }, error: () => checkDone() });
 
     const weekStart = Timestamp.fromDate(this.getWeekStart());
     const weekEnd   = Timestamp.fromMillis(Date.now());

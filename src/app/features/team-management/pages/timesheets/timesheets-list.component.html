@@ -66,6 +66,19 @@
 <c-card class="mb-0">
   <div class="px-3 pt-2 pb-1 d-flex gap-2 flex-wrap align-items-center border-bottom">
 
+    <!-- Navegador de semana -->
+    <div class="d-flex align-items-center gap-1 me-2 border-end pe-3">
+      <button cButton color="secondary" variant="ghost" size="sm" (click)="prevWeek()">
+        <svg cIcon name="cilChevronLeft"></svg>
+      </button>
+      <span class="fw-semibold font-monospace small px-1 text-nowrap" style="min-width:145px; text-align:center">
+        {{ weekLabel() }}
+      </span>
+      <button cButton color="secondary" variant="ghost" size="sm" (click)="nextWeek()">
+        <svg cIcon name="cilChevronRight"></svg>
+      </button>
+    </div>
+
     <!-- Filtro usuario -->
     <select class="form-select form-select-sm" style="width:200px"
             [ngModel]="userFilter()"
