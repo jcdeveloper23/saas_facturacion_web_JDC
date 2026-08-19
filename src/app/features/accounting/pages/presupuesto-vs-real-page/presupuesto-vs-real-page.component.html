@@ -1,0 +1,181 @@
+<!-- ── Header ──────────────────────────────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0">Presupuesto vs Real</h4>
+  @if (searched()) {
+    <div class="d-flex gap-2">
+      <button cButton color="secondary" variant="outline" size="sm" (click)="printReport()">
+        <svg cIcon name="cilPrint" size="sm" class="me-1"></svg>
+        Imprimir
+      </button>
+      <button cButton color="primary" variant="outline" size="sm"
+              [disabled]="downloadingPdf()" (click)="downloadPdf()">
+        @if (downloadingPdf()) {
+          <c-spinner size="sm" class="me-1"></c-spinner>
+        } @else {
+          <svg cIcon name="cilCloudDownload" size="sm" class="me-1"></svg>
+        }
+        PDF
+      </button>
+    </div>
+  }
+</div>
+
+<!-- ── Filters ────────────────────────────────────────────────────────────── -->
+<c-card class="mb-3 no-print">
+  <c-card-body>
+    <div class="d-flex gap-3 align-items-end flex-wrap">
+      <div>
+        <label cLabel>Período Contable</label>
+        <select cFormSelect class="select-period"
+                [ngModel]="selectedPeriod()" (ngModelChange)="selectedPeriod.set($event)">
+          <option value="">— Seleccione un período —</option>
+          @for (p of periods(); track p.id) {
+            <option [value]="p.id">{{ p.name }}</option>
+          }
+        </select>
+      </div>
+      <button cButton color="primary"
+              [disabled]="searching() || !selectedPeriod()" (click)="generate()">
+        @if (searching()) {
+          <c-spinner size="sm" class="me-1"></c-spinner>
+          Generando...
+        } @else {
+          <svg cIcon name="cilChart" size="sm" class="me-1"></svg>
+          Generar
+        }
+      </button>
+    </div>
+  </c-card-body>
+</c-card>
+
+<!-- ── Report ─────────────────────────────────────────────────────────────── -->
+@if (searched()) {
+  <div class="report-header mb-3">
+    <div class="report-title">PRESUPUESTO VS REAL</div>
+    <div class="report-period">{{ getPeriodName() }}</div>
+  </div>
+
+  <!-- INGRESOS -->
+  <c-card class="mb-3">
+    <c-card-body class="p-0">
+      <table class="vs-table">
+        <thead>
+          <tr class="section-header ingresos-header">
+            <th class="code-col">Código</th>
+            <th>Cuenta</th>
+            <th class="num-col">Presupuestado</th>
+            <th class="num-col">Real</th>
+            <th class="num-col">Variación</th>
+            <th class="pct-col">%</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (line of incomeLines(); track trackByCode($index, line)) {
+            <tr>
+              <td class="code-cell">{{ line.accountCode }}</td>
+              <td>{{ line.accountName }}</td>
+              <td class="num-col mono">{{ round2(line.budgeted) | number:'1.2-2' }}</td>
+              <td class="num-col mono">{{ round2(line.actual)   | number:'1.2-2' }}</td>
+              <td class="num-col mono" [class.text-success]="line.variance >= 0" [class.text-danger]="line.variance < 0">
+                {{ round2(line.variance) | number:'1.2-2' }}
+              </td>
+              <td class="pct-col">
+                @if (line.variancePct !== null) {
+                  <c-badge [color]="badgeColor(line.variancePct)">
+                    {{ line.variancePct | number:'1.1-1' }}%
+                  </c-badge>
+                } @else {
+                  <span class="text-secondary">—</span>
+                }
+              </td>
+            </tr>
+          }
+          @if (incomeLines().length === 0) {
+            <tr>
+              <td colspan="6" class="text-center text-secondary py-3">Sin datos de ingresos</td>
+            </tr>
+          }
+        </tbody>
+        <tfoot>
+          <tr class="subtotal-row">
+            <td colspan="2">TOTAL INGRESOS</td>
+            <td class="num-col mono">{{ round2(totalIncomeBudgeted()) | number:'1.2-2' }}</td>
+            <td class="num-col mono">{{ round2(totalIncomeActual())   | number:'1.2-2' }}</td>
+            <td class="num-col mono"
+                [class.text-success]="totalIncomeVariance() >= 0"
+                [class.text-danger]="totalIncomeVariance() < 0">
+              {{ round2(totalIncomeVariance()) | number:'1.2-2' }}
+            </td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </c-card-body>
+  </c-card>
+
+  <!-- COSTOS Y GASTOS -->
+  <c-card class="mb-3">
+    <c-card-body class="p-0">
+      <table class="vs-table">
+        <thead>
+          <tr class="section-header costos-header">
+            <th class="code-col">Código</th>
+            <th>Cuenta</th>
+            <th class="num-col">Presupuestado</th>
+            <th class="num-col">Real</th>
+            <th class="num-col">Variación</th>
+            <th class="pct-col">%</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (line of expenseLines(); track trackByCode($index, line)) {
+            <tr>
+              <td class="code-cell">{{ line.accountCode }}</td>
+              <td>{{ line.accountName }}</td>
+              <td class="num-col mono">{{ round2(line.budgeted) | number:'1.2-2' }}</td>
+              <td class="num-col mono">{{ round2(line.actual)   | number:'1.2-2' }}</td>
+              <td class="num-col mono" [class.text-danger]="line.variance > 0" [class.text-success]="line.variance < 0">
+                {{ round2(line.variance) | number:'1.2-2' }}
+              </td>
+              <td class="pct-col">
+                @if (line.variancePct !== null) {
+                  <c-badge [color]="badgeColor(line.variancePct)">
+                    {{ line.variancePct | number:'1.1-1' }}%
+                  </c-badge>
+                } @else {
+                  <span class="text-secondary">—</span>
+                }
+              </td>
+            </tr>
+          }
+          @if (expenseLines().length === 0) {
+            <tr>
+              <td colspan="6" class="text-center text-secondary py-3">Sin datos de costos/gastos</td>
+            </tr>
+          }
+        </tbody>
+        <tfoot>
+          <tr class="subtotal-row">
+            <td colspan="2">TOTAL COSTOS Y GASTOS</td>
+            <td class="num-col mono">{{ round2(totalExpenseBudgeted()) | number:'1.2-2' }}</td>
+            <td class="num-col mono">{{ round2(totalExpenseActual())   | number:'1.2-2' }}</td>
+            <td class="num-col mono"
+                [class.text-danger]="totalExpenseVariance() > 0"
+                [class.text-success]="totalExpenseVariance() < 0">
+              {{ round2(totalExpenseVariance()) | number:'1.2-2' }}
+            </td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </c-card-body>
+  </c-card>
+}
+
+<!-- ── Empty state ────────────────────────────────────────────────────────── -->
+@if (!searched() && !searching()) {
+  <div class="text-center py-5 text-secondary">
+    <svg cIcon name="cilChart" size="xl" class="mb-3 opacity-25"></svg>
+    <p>Seleccione el período y haga clic en "Generar"</p>
+  </div>
+}

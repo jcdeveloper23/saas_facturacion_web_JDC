@@ -33,7 +33,8 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.downloadDocument = exports.schoolScanQr = exports.schoolConfirmRecharge = exports.schoolProcessPurchase = exports.schoolGenerateStudentQr = exports.deleteCompanyUser = exports.updateCompanyUser = exports.createCompanyUser = exports.closeAccountingPeriod = exports.generateJournalEntryFromRetention = exports.generateJournalEntryFromInvoice = exports.generateWeeklyReport = exports.detectOverdueTasksScheduled = exports.onTaskStatusChanged = exports.onTimesheetDeleted = exports.onTimesheetCreated = exports.onProductPublicSync = exports.onMarketplaceSettingsChange = exports.onPurchaseReceive = exports.onInvoiceStock = exports.onPosSaleComplete = exports.onDebitNoteEmit = exports.sendDebitNoteEmail = exports.generateDebitNotePdf = exports.generateDebitNoteXml = exports.onRetentionEmit = exports.sendRetentionEmail = exports.generateRetentionPdf = exports.generateRetentionXml = exports.onInvoiceEmit = exports.sendCreditNoteEmail = exports.generateCreditNotePdf = exports.sendInvoiceEmail = exports.generatePdf = exports.checkSriStatus = exports.sendToSri = exports.signXml = exports.generateCreditNoteXml = exports.generateInvoiceXml = exports.uploadCertificate = exports.checkPlanLimit = exports.onPlanUpdated = exports.assignPlanToCompany = exports.setupCompany = exports.setupFirstAdmin = exports.setUserCustomClaims = void 0;
+exports.createCompanyUser = exports.generateAccountingPdf = exports.generateOpeningEntry = exports.closeAccountingPeriod = exports.generateJournalEntryFromPurchase = exports.generateReversalFromPurchase = exports.generateReversalFromRetention = exports.generateReversalFromDebitNote = exports.generateReversalFromInvoice = exports.generateJournalEntryFromDebitNote = exports.generateJournalEntryFromCreditNote = exports.generateJournalEntryFromRetention = exports.generateJournalEntryFromInvoice = exports.runDepreciationForMonth = exports.runMonthlyDepreciation = exports.generateWeeklyReport = exports.detectOverdueTasksScheduled = exports.onTaskStatusChanged = exports.onTimesheetDeleted = exports.onTimesheetCreated = exports.onProductPublicSync = exports.onMarketplaceSettingsChange = exports.onPurchaseReceive = exports.onInvoiceStock = exports.onPosSaleComplete = exports.onDebitNoteEmit = exports.sendDebitNoteEmail = exports.generateDebitNotePdf = exports.generateDebitNoteXml = exports.onRetentionEmit = exports.sendRetentionEmail = exports.generateRetentionPdf = exports.generateRetentionXml = exports.onInvoiceEmit = exports.sendCreditNoteEmail = exports.generateCreditNotePdf = exports.sendInvoiceEmail = exports.generatePdf = exports.checkSriStatus = exports.sendToSri = exports.signXml = exports.generateCreditNoteXml = exports.generateInvoiceXml = exports.uploadCertificate = exports.checkPlanLimit = exports.onPlanUpdated = exports.assignPlanToCompany = exports.setupCompany = exports.setupFirstAdmin = exports.setUserCustomClaims = void 0;
+exports.downloadDocument = exports.schoolScanQr = exports.schoolConfirmRecharge = exports.schoolProcessPurchase = exports.schoolGenerateStudentQr = exports.deleteCompanyUser = exports.updateCompanyUser = void 0;
 const admin = __importStar(require("firebase-admin"));
 admin.initializeApp();
 // Auth
@@ -116,12 +117,31 @@ Object.defineProperty(exports, "detectOverdueTasksScheduled", { enumerable: true
 var generate_weekly_report_1 = require("./team-management/generate-weekly-report");
 Object.defineProperty(exports, "generateWeeklyReport", { enumerable: true, get: function () { return generate_weekly_report_1.generateWeeklyReport; } });
 // Accounting
+var run_monthly_depreciation_1 = require("./accounting/run-monthly-depreciation");
+Object.defineProperty(exports, "runMonthlyDepreciation", { enumerable: true, get: function () { return run_monthly_depreciation_1.runMonthlyDepreciation; } });
+var run_depreciation_for_month_1 = require("./accounting/run-depreciation-for-month");
+Object.defineProperty(exports, "runDepreciationForMonth", { enumerable: true, get: function () { return run_depreciation_for_month_1.runDepreciationForMonth; } });
 var generate_journal_entry_from_invoice_1 = require("./accounting/generate-journal-entry-from-invoice");
 Object.defineProperty(exports, "generateJournalEntryFromInvoice", { enumerable: true, get: function () { return generate_journal_entry_from_invoice_1.generateJournalEntryFromInvoice; } });
 var generate_journal_entry_from_retention_1 = require("./accounting/generate-journal-entry-from-retention");
 Object.defineProperty(exports, "generateJournalEntryFromRetention", { enumerable: true, get: function () { return generate_journal_entry_from_retention_1.generateJournalEntryFromRetention; } });
+var generate_journal_entry_from_credit_note_1 = require("./accounting/generate-journal-entry-from-credit-note");
+Object.defineProperty(exports, "generateJournalEntryFromCreditNote", { enumerable: true, get: function () { return generate_journal_entry_from_credit_note_1.generateJournalEntryFromCreditNote; } });
+var generate_journal_entry_from_debit_note_1 = require("./accounting/generate-journal-entry-from-debit-note");
+Object.defineProperty(exports, "generateJournalEntryFromDebitNote", { enumerable: true, get: function () { return generate_journal_entry_from_debit_note_1.generateJournalEntryFromDebitNote; } });
+var generate_reversal_entry_1 = require("./accounting/generate-reversal-entry");
+Object.defineProperty(exports, "generateReversalFromInvoice", { enumerable: true, get: function () { return generate_reversal_entry_1.generateReversalFromInvoice; } });
+Object.defineProperty(exports, "generateReversalFromDebitNote", { enumerable: true, get: function () { return generate_reversal_entry_1.generateReversalFromDebitNote; } });
+Object.defineProperty(exports, "generateReversalFromRetention", { enumerable: true, get: function () { return generate_reversal_entry_1.generateReversalFromRetention; } });
+Object.defineProperty(exports, "generateReversalFromPurchase", { enumerable: true, get: function () { return generate_reversal_entry_1.generateReversalFromPurchase; } });
+var generate_journal_entry_from_purchase_1 = require("./accounting/generate-journal-entry-from-purchase");
+Object.defineProperty(exports, "generateJournalEntryFromPurchase", { enumerable: true, get: function () { return generate_journal_entry_from_purchase_1.generateJournalEntryFromPurchase; } });
 var close_accounting_period_1 = require("./accounting/close-accounting-period");
 Object.defineProperty(exports, "closeAccountingPeriod", { enumerable: true, get: function () { return close_accounting_period_1.closeAccountingPeriod; } });
+var generate_opening_entry_1 = require("./accounting/generate-opening-entry");
+Object.defineProperty(exports, "generateOpeningEntry", { enumerable: true, get: function () { return generate_opening_entry_1.generateOpeningEntry; } });
+var generate_accounting_pdf_1 = require("./accounting/generate-accounting-pdf");
+Object.defineProperty(exports, "generateAccountingPdf", { enumerable: true, get: function () { return generate_accounting_pdf_1.generateAccountingPdf; } });
 // Users
 var create_company_user_1 = require("./users/create-company-user");
 Object.defineProperty(exports, "createCompanyUser", { enumerable: true, get: function () { return create_company_user_1.createCompanyUser; } });

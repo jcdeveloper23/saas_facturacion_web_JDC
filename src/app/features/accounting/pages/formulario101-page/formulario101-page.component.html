@@ -1,0 +1,191 @@
+<!-- ── Header ──────────────────────────────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h4 class="mb-0">Formulario 101</h4>
+    <small class="text-secondary">Declaración anual de Impuesto a la Renta (ayuda para declaración)</small>
+  </div>
+  @if (generated()) {
+    <button cButton color="secondary" variant="outline" size="sm" (click)="printReport()">
+      <svg cIcon name="cilPrint" size="sm" class="me-1"></svg>
+      Imprimir
+    </button>
+  }
+</div>
+
+<!-- ── Info alert ──────────────────────────────────────────────────────────── -->
+<c-alert color="info" class="mb-3 no-print">
+  <svg cIcon name="cilInfo" size="sm" class="me-1"></svg>
+  Ayuda para la declaración anual de IR (sociedades). Los valores se calculan desde los asientos
+  contables contabilizados del ejercicio seleccionado. La tarifa aplicada es del 22%.
+  Verifique con su asesor tributario antes de declarar.
+</c-alert>
+
+<!-- ── Filters ─────────────────────────────────────────────────────────────── -->
+<c-card class="mb-3 no-print">
+  <c-card-body>
+    <div class="d-flex gap-3 align-items-end flex-wrap">
+      <div>
+        <label cLabel>Ejercicio Contable</label>
+        <select cFormSelect class="select-period"
+                [ngModel]="selectedPeriod()" (ngModelChange)="selectedPeriod.set($event)">
+          <option value="">Todos los períodos</option>
+          @for (p of periods(); track p.id) {
+            <option [value]="p.id">{{ p.name }}</option>
+          }
+        </select>
+      </div>
+      <button cButton color="primary" (click)="generate()" [disabled]="generating()">
+        @if (generating()) {
+          <c-spinner size="sm" class="me-1"></c-spinner>
+          Calculando...
+        } @else {
+          <svg cIcon name="cilCalculator" size="sm" class="me-1"></svg>
+          Calcular
+        }
+      </button>
+    </div>
+  </c-card-body>
+</c-card>
+
+<!-- ── Report ──────────────────────────────────────────────────────────────── -->
+@if (generated() && form101(); as f) {
+  <div class="report-header mb-3">
+    <div class="report-title">FORMULARIO 101 — DECLARACIÓN DE IMPUESTO A LA RENTA</div>
+    <div class="report-period">{{ getPeriodName() }}</div>
+  </div>
+
+  <c-card class="mb-3">
+    <c-card-body>
+
+      <!-- INGRESOS -->
+      <div class="form-section">
+        <div class="section-title">Ingresos de la Actividad Empresarial</div>
+        <table class="casilla-table">
+          <tr class="row-total">
+            <td class="casilla-num">701</td>
+            <td class="casilla-desc">Total ingresos de actividad empresarial (cuentas grupo 4)</td>
+            <td class="casilla-val">{{ fmt(f.c701) }}</td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- COSTOS Y GASTOS -->
+      <div class="form-section">
+        <div class="section-title">Costos y Gastos</div>
+        <table class="casilla-table">
+          <tr>
+            <td class="casilla-num">7102</td>
+            <td class="casilla-desc">Costo de ventas y producción (cuentas 5.1.x)</td>
+            <td class="casilla-val">{{ fmt(f.c7102) }}</td>
+          </tr>
+          <tr>
+            <td class="casilla-num">7199</td>
+            <td class="casilla-desc">Gastos operacionales y otros (cuentas 5.2.x y siguientes)</td>
+            <td class="casilla-val">{{ fmt(f.c7199) }}</td>
+          </tr>
+          <tr class="row-total">
+            <td class="casilla-num">7999</td>
+            <td class="casilla-desc">TOTAL COSTOS Y GASTOS</td>
+            <td class="casilla-val">{{ fmt(f.c7999) }}</td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- UTILIDAD / PÉRDIDA -->
+      <div class="form-section">
+        <div class="section-title">Resultado del Ejercicio</div>
+        <table class="casilla-table">
+          @if (f.c801 >= 0) {
+            <tr class="row-ganancia">
+              <td class="casilla-num">801</td>
+              <td class="casilla-desc">UTILIDAD ANTES DE PARTICIPACIÓN E IR</td>
+              <td class="casilla-val">{{ fmt(f.c801) }}</td>
+            </tr>
+          } @else {
+            <tr class="row-perdida">
+              <td class="casilla-num">801</td>
+              <td class="casilla-desc">PÉRDIDA DEL EJERCICIO</td>
+              <td class="casilla-val">{{ fmt(f.c801) }}</td>
+            </tr>
+          }
+        </table>
+      </div>
+
+      <!-- IMPUESTO A LA RENTA -->
+      <div class="form-section">
+        <div class="section-title">Impuesto a la Renta Causado</div>
+        <table class="casilla-table">
+          <tr class="row-total">
+            <td class="casilla-num">839</td>
+            <td class="casilla-desc">
+              IR causado (tarifa 22% sobre utilidad)
+              @if (f.c801 <= 0) {
+                <span class="text-secondary"> — no aplica por pérdida</span>
+              }
+            </td>
+            <td class="casilla-val">{{ fmt(f.c839) }}</td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- RETENCIONES -->
+      <div class="form-section">
+        <div class="section-title">Retenciones en la Fuente a Favor</div>
+        <table class="casilla-table">
+          <tr>
+            <td class="casilla-num">879</td>
+            <td class="casilla-desc">Retenciones en la fuente a favor (cuenta 1.1.05.003)</td>
+            <td class="casilla-val">{{ fmt(f.c879) }}</td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- SALDO FINAL -->
+      <div class="form-section">
+        <div class="section-title">Impuesto a Liquidar</div>
+        <table class="casilla-table">
+          @if (f.c899 > 0) {
+            <tr class="row-pagar">
+              <td class="casilla-num">899</td>
+              <td class="casilla-desc">IMPUESTO A LA RENTA A PAGAR</td>
+              <td class="casilla-val">{{ fmt(f.c899) }}</td>
+            </tr>
+          } @else {
+            <tr>
+              <td class="casilla-num">899</td>
+              <td class="casilla-desc">Impuesto a la Renta a pagar</td>
+              <td class="casilla-val">0.00</td>
+            </tr>
+          }
+          @if (f.c903 > 0) {
+            <tr class="row-favor">
+              <td class="casilla-num">903</td>
+              <td class="casilla-desc">SALDO A FAVOR (CRÉDITO TRIBUTARIO IR)</td>
+              <td class="casilla-val">{{ fmt(f.c903) }}</td>
+            </tr>
+          } @else {
+            <tr>
+              <td class="casilla-num">903</td>
+              <td class="casilla-desc">Saldo a favor</td>
+              <td class="casilla-val">0.00</td>
+            </tr>
+          }
+        </table>
+      </div>
+
+      <p class="note-text mt-2">
+        * Esta herramienta aplica la tarifa general del 22%. Verifique si aplica alguna tarifa
+        preferencial, participación de trabajadores (15%), o ajustes por activos diferidos
+        antes de declarar en el formulario oficial del SRI (www.sri.gob.ec).
+      </p>
+
+    </c-card-body>
+  </c-card>
+}
+
+@if (!generated() && !generating()) {
+  <div class="text-center py-5 text-secondary">
+    <svg cIcon name="cilFile" size="xl" class="mb-3 opacity-25"></svg>
+    <p>Seleccione el ejercicio contable y haga clic en "Calcular"</p>
+  </div>
+}

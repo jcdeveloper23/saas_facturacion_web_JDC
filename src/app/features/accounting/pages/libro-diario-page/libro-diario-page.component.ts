@@ -15,6 +15,8 @@ import { IconModule } from '@coreui/icons-angular';
 
 import { JournalEntriesService }    from '../../services/journal-entries.service';
 import { AccountingPeriodsService } from '../../services/accounting-periods.service';
+import { AccountingPdfService }     from '../../services/accounting-pdf.service';
+import { TenantService }            from '../../../../core/services/tenant.service';
 import { NotificationService }      from '../../../../core/services/notification.service';
 import {
   JournalEntry, JournalEntryType,
@@ -38,11 +40,14 @@ import { AccountingPeriod } from '../../models/accounting-period.interface';
 export class LibroDiarioPageComponent implements OnInit, OnDestroy {
   private svc           = inject(JournalEntriesService);
   private periodsSvc    = inject(AccountingPeriodsService);
+  private pdfSvc        = inject(AccountingPdfService);
+  private tenantSvc     = inject(TenantService);
   private notifications = inject(NotificationService);
   private destroy$      = new Subject<void>();
 
   // ── State ─────────────────────────────────────────────────────────────────
-  entries      = signal<JournalEntry[]>([]);
+  entries        = signal<JournalEntry[]>([]);
+  downloadingPdf = signal(false);
   periods      = signal<AccountingPeriod[]>([]);
   loading      = signal(true);
   periodFilter = signal('');
@@ -123,6 +128,36 @@ export class LibroDiarioPageComponent implements OnInit, OnDestroy {
   }
 
   printReport(): void { window.print(); }
+
+  async downloadPdf(): Promise<void> {
+    this.downloadingPdf.set(true);
+    try {
+      const periodName = this.periodFilter()
+        ? this.periods().find(p => p.id === this.periodFilter())?.name ?? String(this.yearFilter())
+        : String(this.yearFilter());
+      await this.pdfSvc.downloadPdf({
+        reportType: 'libro-diario',
+        companyId:  this.tenantSvc.companyId,
+        periodName,
+        data: this.filtered().map(e => ({
+          number:      e.number,
+          date:        this.formatDate(e.date),
+          description: e.description,
+          reference:   e.reference ?? '',
+          totalDebit:  e.totalDebit,
+          totalCredit: e.totalCredit
+        })),
+        extraData: {
+          totalDebit:  this.grandTotalDebit(),
+          totalCredit: this.grandTotalCredit()
+        }
+      });
+    } catch (err: any) {
+      this.notifications.error('Error generando PDF: ' + (err?.message ?? err));
+    } finally {
+      this.downloadingPdf.set(false);
+    }
+  }
 
   // ── Formatters ────────────────────────────────────────────────────────────
   formatDate(ts: any): string {

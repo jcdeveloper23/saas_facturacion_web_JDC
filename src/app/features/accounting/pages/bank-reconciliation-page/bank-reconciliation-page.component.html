@@ -1,0 +1,407 @@
+<!-- ── Header ──────────────────────────────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0">Conciliación Bancaria</h4>
+  @if (currentStatement()) {
+    <div class="d-flex gap-2">
+      @if (currentStatement()!.status !== 'reconciled') {
+        <button cButton color="success" size="sm" (click)="markReconciled()">
+          <svg cIcon name="cilCheckCircle" class="me-1"></svg>
+          Marcar Conciliado
+        </button>
+      }
+      <button cButton color="danger" variant="outline" size="sm" (click)="deleteStatement()">
+        <svg cIcon name="cilTrash" class="me-1"></svg>
+        Eliminar Estado
+      </button>
+    </div>
+  }
+</div>
+
+<!-- ── Filters card ────────────────────────────────────────────────────────── -->
+<c-card class="mb-3">
+  <c-card-body class="py-2">
+    <div class="d-flex gap-3 align-items-end flex-wrap">
+
+      <!-- Bank account selector -->
+      <div>
+        <label class="form-label mb-1 text-xs-muted">Cuenta Bancaria</label>
+        <select class="form-select select-sm"
+                [ngModel]="selectedBankAccountId()"
+                (ngModelChange)="onBankAccountChange($event)">
+          <option value="">— Seleccionar banco —</option>
+          @for (acc of bankAccounts(); track acc.id) {
+            <option [value]="acc.id">{{ acc.bankName }} — {{ acc.accountNumber }}</option>
+          }
+        </select>
+      </div>
+
+      <!-- Statement selector -->
+      @if (selectedBankAccountId()) {
+        <div>
+          <label class="form-label mb-1 text-xs-muted">Estado de Cuenta</label>
+          <select class="form-select select-sm"
+                  [ngModel]="selectedStatementId()"
+                  (ngModelChange)="onStatementChange($event)">
+            <option value="">— Seleccionar estado —</option>
+            @for (stmt of statements(); track stmt.id) {
+              <option [value]="stmt.id">
+                {{ formatDate(stmt.periodFrom) }} → {{ formatDate(stmt.periodTo) }}
+                ({{ stmt.transactionCount }} tx)
+              </option>
+            }
+          </select>
+        </div>
+      }
+
+      <!-- Import CSV button -->
+      @if (selectedBankAccountId()) {
+        <div>
+          <label class="form-label mb-1 text-xs-muted">&nbsp;</label>
+          <button cButton color="primary" size="sm" (click)="openImportModal()">
+            <svg cIcon name="cilCloudUpload" class="me-1"></svg>
+            Importar CSV
+          </button>
+        </div>
+      }
+
+      <!-- Period filter for GL -->
+      @if (selectedStatementId()) {
+        <div class="ms-auto d-flex gap-2 align-items-end">
+          <div>
+            <label class="form-label mb-1 text-xs-muted">Período GL</label>
+            <select class="form-select select-sm"
+                    [ngModel]="selectedPeriodId()"
+                    (ngModelChange)="selectedPeriodId.set($event)">
+              <option value="">— Todos los períodos —</option>
+              @for (p of periods(); track p.id) {
+                <option [value]="p.id">{{ p.year }}</option>
+              }
+            </select>
+          </div>
+          <button cButton color="secondary" size="sm" (click)="loadGlLines()"
+                  [disabled]="loadingGl()">
+            @if (loadingGl()) {
+              <c-spinner size="sm" class="me-1"></c-spinner>
+            } @else {
+              <svg cIcon name="cilSync" class="me-1"></svg>
+            }
+            Cargar GL
+          </button>
+        </div>
+      }
+
+    </div>
+  </c-card-body>
+</c-card>
+
+<!-- ── Summary bar ─────────────────────────────────────────────────────────── -->
+@if (currentStatement()) {
+  <c-card class="mb-3 summary-card">
+    <c-card-body class="py-2">
+      <div class="d-flex gap-4 align-items-center flex-wrap">
+        <div class="summary-item">
+          <div class="summary-label">Período</div>
+          <div class="summary-value" style="font-size:.95rem">
+            {{ formatDate(currentStatement()!.periodFrom) }} → {{ formatDate(currentStatement()!.periodTo) }}
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-label">Saldo Apertura</div>
+          <div class="summary-value">{{ currentStatement()!.openingBalance | number:'1.2-2' }}</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-label">Saldo Cierre Banco</div>
+          <div class="summary-value">{{ currentStatement()!.closingBalance | number:'1.2-2' }}</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-label">Saldo GL</div>
+          <div class="summary-value">{{ glBalance() | number:'1.2-2' }}</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-label">Diferencia</div>
+          <div class="summary-value" [class.text-danger]="glDifference() !== 0" [class.text-success]="glDifference() === 0">
+            {{ glDifference() | number:'1.2-2' }}
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-label">Conciliados</div>
+          <div class="summary-value text-success">{{ matchedTxCount() }} / {{ transactions().length }}</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-label">Estado</div>
+          <div>
+            @if (currentStatement()!.status === 'reconciled') {
+              <c-badge color="success" shape="rounded-pill">Conciliado</c-badge>
+            } @else if (currentStatement()!.status === 'in_progress') {
+              <c-badge color="warning" shape="rounded-pill">En Proceso</c-badge>
+            } @else {
+              <c-badge color="secondary" shape="rounded-pill">Borrador</c-badge>
+            }
+          </div>
+        </div>
+      </div>
+    </c-card-body>
+  </c-card>
+}
+
+<!-- ── Match action alert ──────────────────────────────────────────────────── -->
+@if (canMatch()) {
+  <c-alert color="info" class="mb-3 py-2">
+    <div class="d-flex align-items-center gap-3">
+      <div>
+        Banco: <strong>{{ selectedTx()?.description }}</strong>
+        &nbsp;|&nbsp;
+        GL: <strong>{{ selectedGlLine()?.description }}</strong>
+        <small class="text-secondary ms-1">#{{ selectedGlLine()?.entryNumber }}</small>
+      </div>
+      <button cButton color="success" size="sm" (click)="matchSelected()">
+        <svg cIcon name="cilLink" class="me-1"></svg>
+        Vincular
+      </button>
+    </div>
+  </c-alert>
+}
+
+<!-- ── Two-panel layout ────────────────────────────────────────────────────── -->
+@if (selectedStatementId()) {
+  <c-row>
+
+    <!-- Left panel: Bank transactions -->
+    <c-col [sm]="6">
+      <c-card>
+        <c-card-header class="d-flex align-items-center gap-2 py-2">
+          <strong>Movimientos del Banco</strong>
+          <c-badge color="secondary">{{ transactions().length }}</c-badge>
+          @if (unmatchedTxCount() > 0) {
+            <c-badge color="warning">{{ unmatchedTxCount() }} pendientes</c-badge>
+          }
+        </c-card-header>
+        <div class="table-responsive">
+          <table class="recon-table">
+            <thead>
+              <tr>
+                <th class="col-date">Fecha</th>
+                <th>Descripción</th>
+                <th class="text-end col-amt">Débito</th>
+                <th class="text-end col-amt">Crédito</th>
+                <th>Estado</th>
+                <th class="col-action"></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (tx of transactions(); track tx.id) {
+                <tr [class.selected]="selectedTxId() === tx.id"
+                    [class.matched]="tx.status === 'matched'"
+                    [class.ignored]="tx.status === 'ignored'"
+                    (click)="selectTransaction(tx)">
+                  <td class="date-cell">{{ formatDate(tx.date) }}</td>
+                  <td class="desc-cell">
+                    {{ tx.description }}
+                    @if (tx.matchedDescription) {
+                      <div class="match-ref">GL: {{ tx.matchedDescription }}</div>
+                    }
+                  </td>
+                  <td class="amt-cell text-end">{{ tx.debit > 0 ? (tx.debit | number:'1.2-2') : '' }}</td>
+                  <td class="amt-cell text-end">{{ tx.credit > 0 ? (tx.credit | number:'1.2-2') : '' }}</td>
+                  <td>
+                    @if (tx.status === 'matched') {
+                      <c-badge color="success" shape="rounded-pill">Conciliado</c-badge>
+                    } @else if (tx.status === 'ignored') {
+                      <c-badge color="secondary" shape="rounded-pill">Ignorado</c-badge>
+                    } @else {
+                      <c-badge color="warning" shape="rounded-pill">Pendiente</c-badge>
+                    }
+                  </td>
+                  <td>
+                    @if (tx.status === 'matched') {
+                      <button cButton size="sm" color="secondary" variant="ghost"
+                              cTooltip="Desvincular"
+                              (click)="unmatch(tx, $event)">
+                        <svg cIcon name="cilX" size="sm"></svg>
+                      </button>
+                    } @else if (tx.status === 'unmatched') {
+                      <button cButton size="sm" color="secondary" variant="ghost"
+                              cTooltip="Ignorar"
+                              (click)="ignore(tx, $event)">
+                        <svg cIcon name="cilBan" size="sm"></svg>
+                      </button>
+                    }
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="6" class="text-center text-secondary py-3">
+                    Sin transacciones cargadas
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </c-card>
+    </c-col>
+
+    <!-- Right panel: GL movements -->
+    <c-col [sm]="6">
+      <c-card>
+        <c-card-header class="d-flex align-items-center gap-2 py-2">
+          <strong>Movimientos Contables</strong>
+          @if (selectedBankAccount()) {
+            <small class="text-secondary font-mono-sm">{{ selectedBankAccount()!.linkedGlCode }}</small>
+          }
+          <c-badge color="secondary">{{ glLines().length }}</c-badge>
+        </c-card-header>
+        <div class="table-responsive">
+          <table class="recon-table">
+            <thead>
+              <tr>
+                <th class="col-date">Fecha</th>
+                <th>Descripción</th>
+                <th class="text-end col-amt">Débito</th>
+                <th class="text-end col-amt">Crédito</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              @if (loadingGl()) {
+                <tr>
+                  <td colspan="5" class="text-center py-3">
+                    <c-spinner size="sm"></c-spinner>
+                  </td>
+                </tr>
+              } @else {
+                @for (line of glLinesWithStatus(); track line.entryId) {
+                  <tr [class.selected]="selectedGlLineKey() === line.entryId"
+                      [class.matched]="line.isMatched"
+                      (click)="selectGlLine(line)">
+                    <td class="date-cell">{{ formatDate(line.date) }}</td>
+                    <td class="desc-cell">
+                      {{ line.description }}
+                      <small class="text-secondary ms-1">#{{ line.entryNumber }}</small>
+                    </td>
+                    <td class="amt-cell text-end">{{ line.debit > 0 ? (line.debit | number:'1.2-2') : '' }}</td>
+                    <td class="amt-cell text-end">{{ line.credit > 0 ? (line.credit | number:'1.2-2') : '' }}</td>
+                    <td>
+                      @if (line.isMatched) {
+                        <c-badge color="success" shape="rounded-pill">Conciliado</c-badge>
+                      } @else {
+                        <c-badge color="warning" shape="rounded-pill">Pendiente</c-badge>
+                      }
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="5" class="text-center text-secondary py-3">
+                      Sin movimientos. Seleccione período y cargue el libro mayor.
+                    </td>
+                  </tr>
+                }
+              }
+            </tbody>
+          </table>
+        </div>
+      </c-card>
+    </c-col>
+
+  </c-row>
+}
+
+<!-- ── CSV Import Modal ────────────────────────────────────────────────────── -->
+<c-modal [visible]="showImportModal()" (visibleChange)="showImportModal.set($event)"
+         backdrop="static" size="lg">
+  <c-modal-header>
+    <h5 cModalTitle>Importar Estado de Cuenta (CSV)</h5>
+    <button type="button" class="btn-close" (click)="closeImportModal()"></button>
+  </c-modal-header>
+  <c-modal-body>
+    <div class="row g-3">
+
+      <!-- File input -->
+      <div class="col-12">
+        <label class="form-label">Archivo CSV <span class="text-danger">*</span></label>
+        <input type="file" class="form-control" accept=".csv,.txt"
+               (change)="handleFileUpload($event)" />
+        <div class="form-text">
+          Columnas detectadas automáticamente: fecha, descripción, débito, crédito, saldo, referencia.
+          Soporta separador coma (,) o punto y coma (;).
+        </div>
+      </div>
+
+      <!-- Period from -->
+      <div class="col-md-4">
+        <label class="form-label">Período Desde <span class="text-danger">*</span></label>
+        <input type="date" class="form-control"
+               [ngModel]="importPeriodFrom()"
+               (ngModelChange)="importPeriodFrom.set($event)" />
+      </div>
+
+      <!-- Period to -->
+      <div class="col-md-4">
+        <label class="form-label">Período Hasta <span class="text-danger">*</span></label>
+        <input type="date" class="form-control"
+               [ngModel]="importPeriodTo()"
+               (ngModelChange)="importPeriodTo.set($event)" />
+      </div>
+
+      <!-- Opening balance -->
+      <div class="col-md-4">
+        <label class="form-label">Saldo de Apertura</label>
+        <input type="number" class="form-control" step="0.01"
+               [ngModel]="importOpeningBalance()"
+               (ngModelChange)="importOpeningBalance.set(+$event)" />
+      </div>
+
+      <!-- Error message -->
+      @if (csvError()) {
+        <div class="col-12">
+          <c-alert color="danger" class="mb-0 py-2">{{ csvError() }}</c-alert>
+        </div>
+      }
+
+      <!-- Preview -->
+      @if (parsedRows().length > 0) {
+        <div class="col-12">
+          <div class="text-sm-muted mb-1">
+            Vista previa ({{ parsedRows().length }} transacciones encontradas — mostrando primeras 5):
+          </div>
+          <div class="table-responsive">
+            <table class="recon-table preview-table">
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Descripción</th>
+                  <th>Referencia</th>
+                  <th class="text-end">Débito</th>
+                  <th class="text-end">Crédito</th>
+                  <th class="text-end">Saldo</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of parsedPreviewRows(); track $index) {
+                  <tr>
+                    <td class="date-cell">{{ row.date | date:'dd/MM/yyyy' }}</td>
+                    <td class="desc-cell">{{ row.description }}</td>
+                    <td class="text-sm-muted">{{ row.reference || '—' }}</td>
+                    <td class="amt-cell text-end">{{ row.debit > 0 ? (row.debit | number:'1.2-2') : '' }}</td>
+                    <td class="amt-cell text-end">{{ row.credit > 0 ? (row.credit | number:'1.2-2') : '' }}</td>
+                    <td class="amt-cell text-end">{{ row.balance | number:'1.2-2' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+
+    </div>
+  </c-modal-body>
+  <c-modal-footer>
+    <button cButton color="secondary" variant="outline" (click)="closeImportModal()">Cancelar</button>
+    <button cButton color="primary"
+            [disabled]="parsedRows().length === 0 || importing() || !importPeriodFrom() || !importPeriodTo()"
+            (click)="saveImport()">
+      @if (importing()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+      Importar {{ parsedRows().length }} transacciones
+    </button>
+  </c-modal-footer>
+</c-modal>

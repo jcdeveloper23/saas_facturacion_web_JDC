@@ -1,0 +1,59 @@
+@use '../../accounting-shared' as *;
+
+.select-period { min-width: 220px; }
+
+/* ── Budget table ─────────────────────────────────────────────────────────── */
+.budget-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  .section-header th {
+    font-size: .7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    padding: .45rem .75rem;
+    border-bottom: 2px solid var(--cui-border-color);
+  }
+
+  .ingresos-header th { background: rgba(var(--cui-success-rgb), .08); color: var(--cui-success); }
+  .costos-header   th { background: rgba(var(--cui-danger-rgb),  .06); color: var(--cui-danger);  }
+
+  tbody tr {
+    border-bottom: 1px solid var(--cui-border-color-translucent);
+    &:hover { background: var(--cui-tertiary-bg); }
+  }
+
+  tbody td {
+    padding: .3rem .75rem;
+    font-size: .82rem;
+    vertical-align: middle;
+  }
+
+  .subtotal-row td {
+    font-weight: 700;
+    font-size: .82rem;
+    padding: .45rem .75rem;
+    background: var(--cui-tertiary-bg);
+    border-top: 2px solid var(--cui-border-color);
+    font-family: monospace;
+  }
+
+  .code-col { width: 140px; }
+  .amt-col  { width: 180px; text-align: right; }
+}
+
+.code-cell {
+  font-family: monospace;
+  font-size: .78rem;
+  color: var(--cui-tertiary-color);
+}
+
+.amount-input {
+  text-align: right;
+  font-family: monospace;
+  max-width: 160px;
+  margin-left: auto;
+}
+
+.mono { font-family: monospace; }

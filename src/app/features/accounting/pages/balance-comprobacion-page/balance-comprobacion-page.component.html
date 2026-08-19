@@ -2,10 +2,19 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h4 class="mb-0">Balance de Comprobación (Sumas y Saldos)</h4>
   @if (searched()) {
-    <button cButton color="secondary" variant="outline" size="sm" (click)="printReport()">
-      <svg cIcon name="cilPrint" size="sm" class="me-1"></svg>
-      Imprimir
-    </button>
+    <div class="d-flex gap-2">
+      <button cButton color="secondary" variant="outline" size="sm" (click)="printReport()">
+        <svg cIcon name="cilPrint" size="sm" class="me-1"></svg>
+        Imprimir
+      </button>
+      <button cButton color="primary" variant="outline" size="sm"
+              [disabled]="downloadingPdf()" (click)="downloadPdf()">
+        @if (downloadingPdf()) { <c-spinner size="sm" class="me-1"></c-spinner> } @else {
+          <svg cIcon name="cilCloudDownload" size="sm" class="me-1"></svg>
+        }
+        PDF
+      </button>
+    </div>
   }
 </div>
 
@@ -23,6 +32,18 @@
           }
         </select>
       </div>
+      @if (costCenters().length > 0) {
+        <div>
+          <label cLabel>Centro de Costo</label>
+          <select cFormSelect class="select-period"
+                  [ngModel]="selectedCostCenter()" (ngModelChange)="selectedCostCenter.set($event)">
+            <option value="">Todos</option>
+            @for (cc of costCenters(); track cc.id) {
+              <option [value]="cc.id">{{ cc.code }} — {{ cc.name }}</option>
+            }
+          </select>
+        </div>
+      }
       <button cButton color="primary" (click)="generate()" [disabled]="searching()">
         @if (searching()) {
           <c-spinner size="sm" class="me-1"></c-spinner>

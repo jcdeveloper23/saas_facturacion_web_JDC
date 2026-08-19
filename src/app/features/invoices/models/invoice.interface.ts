@@ -5,7 +5,9 @@ export type SriDocumentStatus =
   | 'pending'        // emitida, pendiente de envío a SRI
   | 'authorized'     // autorizada por SRI, tiene authorizationNumber
   | 'rejected'       // rechazada por SRI, ver sriError
-  | 'not_required';  // borrador o estado que no requiere SRI
+  | 'not_required'   // borrador o estado que no requiere SRI
+  | 'xml_generated'  // XML generado, pendiente de firma
+  | 'signed';        // XML firmado, pendiente de envío a SRI
 
 // ─── Status ──────────────────────────────────────────────────────────────────
 
@@ -28,17 +30,21 @@ export const INVOICE_STATUS_COLORS: Record<InvoiceStatus, string> = {
 };
 
 export const SRI_STATUS_LABELS: Record<SriDocumentStatus, string> = {
-  pending:      'Pendiente SRI',
-  authorized:   'Autorizada',
-  rejected:     'Rechazada SRI',
-  not_required: '—'
+  pending:       'Pendiente SRI',
+  authorized:    'Autorizada',
+  rejected:      'Rechazada SRI',
+  not_required:  '—',
+  xml_generated: 'XML generado',
+  signed:        'Firmado'
 };
 
 export const SRI_STATUS_COLORS: Record<SriDocumentStatus, string> = {
-  pending:      'warning',
-  authorized:   'success',
-  rejected:     'danger',
-  not_required: 'secondary'
+  pending:       'warning',
+  authorized:    'success',
+  rejected:      'danger',
+  not_required:  'secondary',
+  xml_generated: 'secondary',
+  signed:        'secondary'
 };
 
 // ─── Line ─────────────────────────────────────────────────────────────────────

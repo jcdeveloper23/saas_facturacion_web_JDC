@@ -56,9 +56,17 @@ export { detectOverdueTasksScheduled } from './team-management/detect-overdue-ta
 export { generateWeeklyReport }        from './team-management/generate-weekly-report';
 
 // Accounting
-export { generateJournalEntryFromInvoice }   from './accounting/generate-journal-entry-from-invoice';
-export { generateJournalEntryFromRetention } from './accounting/generate-journal-entry-from-retention';
-export { closeAccountingPeriod }             from './accounting/close-accounting-period';
+export { runMonthlyDepreciation }               from './accounting/run-monthly-depreciation';
+export { runDepreciationForMonth }              from './accounting/run-depreciation-for-month';
+export { generateJournalEntryFromInvoice }      from './accounting/generate-journal-entry-from-invoice';
+export { generateJournalEntryFromRetention }    from './accounting/generate-journal-entry-from-retention';
+export { generateJournalEntryFromCreditNote }   from './accounting/generate-journal-entry-from-credit-note';
+export { generateJournalEntryFromDebitNote }    from './accounting/generate-journal-entry-from-debit-note';
+export { generateReversalFromInvoice, generateReversalFromDebitNote, generateReversalFromRetention, generateReversalFromPurchase } from './accounting/generate-reversal-entry';
+export { generateJournalEntryFromPurchase }     from './accounting/generate-journal-entry-from-purchase';
+export { closeAccountingPeriod }                from './accounting/close-accounting-period';
+export { generateOpeningEntry }                 from './accounting/generate-opening-entry';
+export { generateAccountingPdf }                from './accounting/generate-accounting-pdf';
 
 // Users
 export { createCompanyUser } from './users/create-company-user';

@@ -107,6 +107,18 @@
                   <svg cIcon name="cilPencil" size="sm"></svg>
                 </button>
                 @if (p.status === 'open') {
+                  @if (!p.openingEntryId) {
+                    <button cButton color="info" variant="ghost" size="sm"
+                            cTooltip="Generar asiento de apertura"
+                            [disabled]="generatingOpening() === p.id"
+                            (click)="generateOpening(p, $event)">
+                      @if (generatingOpening() === p.id) {
+                        <c-spinner size="sm"></c-spinner>
+                      } @else {
+                        <svg cIcon name="cilMediaPlay" size="sm"></svg>
+                      }
+                    </button>
+                  }
                   <button cButton color="warning" variant="ghost" size="sm"
                           cTooltip="Cerrar ejercicio" (click)="closePeriod(p, $event)">
                     <svg cIcon name="cilLockLocked" size="sm"></svg>

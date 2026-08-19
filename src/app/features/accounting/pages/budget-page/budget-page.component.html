@@ -1,0 +1,154 @@
+<!-- ── Header ──────────────────────────────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0">Definir Presupuesto</h4>
+  @if (hasBudget()) {
+    <c-badge color="success">Presupuesto guardado</c-badge>
+  }
+</div>
+
+<!-- ── Period selector ────────────────────────────────────────────────────── -->
+<c-card class="mb-3">
+  <c-card-body>
+    <div class="d-flex gap-3 align-items-end flex-wrap">
+      <div>
+        <label cLabel>Período Contable</label>
+        <select cFormSelect class="select-period"
+                [ngModel]="selectedPeriod()"
+                (ngModelChange)="onPeriodChange($event)">
+          <option value="">— Seleccione un período —</option>
+          @for (p of periods(); track p.id) {
+            <option [value]="p.id">{{ p.name }}</option>
+          }
+        </select>
+      </div>
+    </div>
+  </c-card-body>
+</c-card>
+
+<!-- ── Loading spinner ────────────────────────────────────────────────────── -->
+@if (loading()) {
+  <div class="text-center py-5">
+    <c-spinner color="primary"></c-spinner>
+    <p class="mt-2 text-secondary">Cargando presupuesto...</p>
+  </div>
+}
+
+<!-- ── Budget table ───────────────────────────────────────────────────────── -->
+@if (!loading() && selectedPeriod()) {
+  <!-- INGRESOS -->
+  <c-card class="mb-3">
+    <c-card-body class="p-0">
+      <table class="budget-table">
+        <thead>
+          <tr class="section-header ingresos-header">
+            <th class="code-col">Código</th>
+            <th>Cuenta</th>
+            <th class="amt-col">Presupuesto ($)</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (acc of incomeAccounts(); track trackByCode($index, acc)) {
+            <tr>
+              <td class="code-cell">{{ acc.code }}</td>
+              <td>{{ acc.name }}</td>
+              <td class="amt-col">
+                <input type="number" min="0" step="0.01"
+                       class="form-control form-control-sm amount-input"
+                       [value]="getAmount(acc.code)"
+                       (change)="setAmount(acc.code, $any($event.target).value)" />
+              </td>
+            </tr>
+          }
+          @if (incomeAccounts().length === 0) {
+            <tr>
+              <td colspan="3" class="text-center text-secondary py-3">
+                Sin cuentas de ingreso con movimiento activo
+              </td>
+            </tr>
+          }
+        </tbody>
+        <tfoot>
+          <tr class="subtotal-row">
+            <td colspan="2">TOTAL INGRESOS</td>
+            <td class="amt-col mono">{{ round2(totalIncome()) | number:'1.2-2' }}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </c-card-body>
+  </c-card>
+
+  <!-- COSTOS Y GASTOS -->
+  <c-card class="mb-3">
+    <c-card-body class="p-0">
+      <table class="budget-table">
+        <thead>
+          <tr class="section-header costos-header">
+            <th class="code-col">Código</th>
+            <th>Cuenta</th>
+            <th class="amt-col">Presupuesto ($)</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (acc of expenseAccounts(); track trackByCode($index, acc)) {
+            <tr>
+              <td class="code-cell">{{ acc.code }}</td>
+              <td>{{ acc.name }}</td>
+              <td class="amt-col">
+                <input type="number" min="0" step="0.01"
+                       class="form-control form-control-sm amount-input"
+                       [value]="getAmount(acc.code)"
+                       (change)="setAmount(acc.code, $any($event.target).value)" />
+              </td>
+            </tr>
+          }
+          @if (expenseAccounts().length === 0) {
+            <tr>
+              <td colspan="3" class="text-center text-secondary py-3">
+                Sin cuentas de costo/gasto con movimiento activo
+              </td>
+            </tr>
+          }
+        </tbody>
+        <tfoot>
+          <tr class="subtotal-row">
+            <td colspan="2">TOTAL COSTOS Y GASTOS</td>
+            <td class="amt-col mono">{{ round2(totalExpense()) | number:'1.2-2' }}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </c-card-body>
+  </c-card>
+
+  <!-- Actions -->
+  <div class="d-flex gap-2 justify-content-end mb-4">
+    @if (hasBudget()) {
+      <button cButton color="danger" variant="outline"
+              [disabled]="deleting()" (click)="deleteBudget()">
+        @if (deleting()) {
+          <c-spinner size="sm" class="me-1"></c-spinner>
+        } @else {
+          <svg cIcon name="cilTrash" size="sm" class="me-1"></svg>
+        }
+        Eliminar Presupuesto
+      </button>
+    }
+    <button cButton color="primary"
+            [disabled]="saving() || !selectedPeriod()" (click)="save()">
+      @if (saving()) {
+        <c-spinner size="sm" class="me-1"></c-spinner>
+        Guardando...
+      } @else {
+        <svg cIcon name="cilSave" size="sm" class="me-1"></svg>
+        Guardar Presupuesto
+      }
+    </button>
+  </div>
+}
+
+<!-- ── Empty state ────────────────────────────────────────────────────────── -->
+@if (!selectedPeriod() && !loading()) {
+  <div class="text-center py-5 text-secondary">
+    <svg cIcon name="cilMoney" size="xl" class="mb-3 opacity-25"></svg>
+    <p>Seleccione un período contable para definir el presupuesto</p>
+  </div>
+}

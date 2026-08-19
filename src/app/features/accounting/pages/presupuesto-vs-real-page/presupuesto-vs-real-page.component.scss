@@ -1,0 +1,65 @@
+@use '../../accounting-shared' as *;
+
+.select-period { min-width: 220px; }
+
+/* ── Report header ────────────────────────────────────────────────────────── */
+.report-header {
+  text-align: center;
+  .report-title  { font-size: 1rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+  .report-period { font-size: .82rem; color: var(--cui-secondary-color); }
+}
+
+/* ── Vs table ─────────────────────────────────────────────────────────────── */
+.vs-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  .section-header th {
+    font-size: .7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    padding: .45rem .75rem;
+    border-bottom: 2px solid var(--cui-border-color);
+  }
+
+  .ingresos-header th { background: rgba(var(--cui-success-rgb), .08); color: var(--cui-success); }
+  .costos-header   th { background: rgba(var(--cui-danger-rgb),  .06); color: var(--cui-danger);  }
+
+  tbody tr {
+    border-bottom: 1px solid var(--cui-border-color-translucent);
+    &:hover { background: var(--cui-tertiary-bg); }
+  }
+
+  tbody td {
+    padding: .3rem .75rem;
+    font-size: .82rem;
+    vertical-align: middle;
+  }
+
+  .subtotal-row td {
+    font-weight: 700;
+    font-size: .82rem;
+    padding: .45rem .75rem;
+    background: var(--cui-tertiary-bg);
+    border-top: 2px solid var(--cui-border-color);
+    font-family: monospace;
+  }
+
+  .code-col { width: 130px; }
+  .num-col  { width: 140px; text-align: right; }
+  .pct-col  { width: 90px;  text-align: center; }
+}
+
+.code-cell {
+  font-family: monospace;
+  font-size: .78rem;
+  color: var(--cui-tertiary-color);
+}
+
+.mono { font-family: monospace; }
+
+/* ── Print ────────────────────────────────────────────────────────────────── */
+@media print {
+  .no-print { display: none !important; }
+}

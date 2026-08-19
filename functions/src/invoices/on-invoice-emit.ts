@@ -1,4 +1,4 @@
-import { onDocumentUpdated } from 'firebase-functions/v2/firestore';
+import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import * as admin from 'firebase-admin';
 
 import { generateInvoiceXmlInternal }    from './generate-invoice-xml';
@@ -27,18 +27,20 @@ import { sendCreditNoteEmailInternal }   from './send-credit-note-email';
  * On any error: sets sriStatus: 'rejected' with the error message so the UI
  * can surface it. Errors are NOT re-thrown (would cause infinite Firestore retries).
  */
-export const onInvoiceEmit = onDocumentUpdated(
+export const onInvoiceEmit = onDocumentWritten(
   'companies/{companyId}/invoices/{invoiceId}',
   async (event) => {
-    const before = event.data?.before.data() as Record<string, any> | undefined;
-    const after  = event.data?.after.data()  as Record<string, any> | undefined;
+    // after must exist (not a delete)
+    if (!event.data?.after.exists) return;
 
-    if (!before || !after) {
-      console.warn('[onInvoiceEmit] Evento sin datos before/after — ignorado.');
-      return;
-    }
+    const before = event.data.before.exists
+      ? event.data.before.data() as Record<string, any>
+      : null;
+    const after  = event.data.after.data() as Record<string, any>;
 
-    const statusChangedToIssued = before['status'] !== 'issued' && after['status'] === 'issued';
+    // Trigger when status becomes 'issued' — handles both create-as-issued and draft→issued update
+    const prevStatus            = before?.['status'] ?? null;
+    const statusChangedToIssued = prevStatus !== 'issued' && after['status'] === 'issued';
     const sriNotYetStarted      = !after['sriStatus'];
 
     if (!statusChangedToIssued || !sriNotYetStarted) {

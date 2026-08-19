@@ -1,0 +1,113 @@
+@use '../../accounting-shared' as *;
+
+.select-period { min-width: 220px; }
+
+/* ── Status indicators ────────────────────────────────────────────────────── */
+.ok   { color: var(--cui-success); font-weight: 600; display: flex; align-items: center; }
+.fail { color: var(--cui-danger);  font-weight: 600; display: flex; align-items: center; }
+
+/* ── Report header ────────────────────────────────────────────────────────── */
+.report-header {
+  text-align: center;
+  .report-title  { font-size: 1rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+  .report-period { font-size: .82rem; color: var(--cui-secondary-color); }
+}
+
+/* ── Balance General table ────────────────────────────────────────────────── */
+.bg-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  .side-header td {
+    font-size: .7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    padding: .45rem .75rem;
+    border-bottom: 1px solid var(--cui-border-color);
+  }
+
+  .activos-header td  { background: rgba(var(--cui-primary-rgb), .08); color: var(--cui-primary); }
+  .pasivos-header td  { background: rgba(var(--cui-warning-rgb), .08); color: var(--cui-warning-text-emphasis); }
+
+  .subsection-header td {
+    font-size: .69rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    padding: .3rem .75rem;
+    background: var(--cui-tertiary-bg);
+    color: var(--cui-secondary-color);
+    border-top: 1px solid var(--cui-border-color);
+  }
+
+  .patrimonio-sub td { background: rgba(var(--cui-success-rgb), .05); color: var(--cui-success); }
+
+  tbody tr {
+    border-bottom: 1px solid var(--cui-border-color-translucent);
+    &:hover { background: var(--cui-tertiary-bg); }
+  }
+
+  tbody td { padding: .28rem .75rem; font-size: .8rem; }
+
+  .subtotal-row td {
+    font-size: .78rem;
+    font-weight: 600;
+    padding: .32rem .75rem;
+    background: var(--cui-secondary-bg);
+    border-top: 1px solid var(--cui-border-color);
+    font-family: monospace;
+    color: var(--cui-secondary-color);
+  }
+
+  .total-row td {
+    font-weight: 700;
+    font-size: .88rem;
+    padding: .5rem .75rem;
+    border-top: 3px double var(--cui-border-color);
+    font-family: monospace;
+  }
+
+  .activos-total td { color: var(--cui-primary); background: rgba(var(--cui-primary-rgb), .05); }
+  .pasivos-total td { color: var(--cui-warning-text-emphasis); background: rgba(var(--cui-warning-rgb), .05); }
+
+  .cuadre-row td {
+    font-size: .78rem;
+    padding: .3rem .75rem;
+    font-family: monospace;
+    font-weight: 600;
+  }
+
+  .cuadre-row.ok   td { color: var(--cui-success); background: rgba(var(--cui-success-rgb), .05); }
+  .cuadre-row.fail td { color: var(--cui-danger);  background: rgba(var(--cui-danger-rgb),  .05); }
+}
+
+.acc-cell {
+  .acc-code {
+    font-family: monospace;
+    font-size: .73rem;
+    font-weight: 600;
+    color: var(--cui-tertiary-color);
+    margin-right: .4rem;
+  }
+}
+
+.amt-cell {
+  text-align: right;
+  font-family: monospace;
+  white-space: nowrap;
+  width: 120px;
+}
+
+.empty-row {
+  text-align: center;
+  color: var(--cui-secondary-color);
+  font-size: .78rem;
+  padding: .35rem .75rem;
+  font-style: italic;
+}
+
+/* ── Print ────────────────────────────────────────────────────────────────── */
+@media print {
+  .no-print { display: none !important; }
+}

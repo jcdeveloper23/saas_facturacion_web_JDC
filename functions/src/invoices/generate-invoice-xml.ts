@@ -376,7 +376,7 @@ export async function generateInvoiceXmlInternal(
       detalle.ele('codigoAdicional').txt(line.skuAlt);
     }
     detalle.ele('descripcion').txt(line.description);
-    detalle.ele('unidadMedida').txt(line.unit ?? 'UNIDAD');
+    detalle.ele('unidadMedida').txt(line.unit || 'UNIDAD');
     detalle.ele('cantidad').txt(Number(line.quantity).toFixed(6));      // SRI XSD: fractionDigits=6
     detalle.ele('precioUnitario').txt(Number(line.unitPrice).toFixed(2)); // SRI XSD: fractionDigits=2 (Xerces normaliza y rechaza >2 dígitos significativos)
     detalle.ele('descuento').txt(lineDisc.toFixed(2));

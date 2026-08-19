@@ -45,20 +45,20 @@ export class SettingsService {
     }, { merge: true });
   }
 
-  // ── SRI Config (Company root document) ────────────────────────────────────
+  // ── SRI Config — configuration/sri-main (subcollection con permisos de admin) ──
   getSriConfig(): Observable<Company['sri'] | null> {
     return new Observable(observer => {
-      const ref = doc(this.firestore, `companies/${this.tenantService.companyId}`);
+      const ref = doc(this.firestore, `companies/${this.tenantService.companyId}/configuration/sri-main`);
       return onSnapshot(ref, {
-        next: snap => observer.next(snap.exists() ? (snap.data() as any)['sri'] ?? null : null),
+        next: snap => observer.next(snap.exists() ? (snap.data() as any) : null),
         error: err => observer.error(err)
       });
     });
   }
 
   async saveSriConfig(sri: Partial<Company['sri']>): Promise<void> {
-    const ref = doc(this.firestore, `companies/${this.tenantService.companyId}`);
-    await updateDoc(ref, { sri: sri, updatedAt: Timestamp.now() });
+    const ref = doc(this.firestore, `companies/${this.tenantService.companyId}/configuration/sri-main`);
+    await setDoc(ref, { ...sri, updatedAt: Timestamp.now() }, { merge: true });
   }
 
   // ── SRI Company Config (datos XML por empresa) ─────────────────────────────

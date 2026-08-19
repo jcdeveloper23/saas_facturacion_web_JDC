@@ -1,0 +1,145 @@
+<!-- ── Header ──────────────────────────────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0">Estado de Resultados</h4>
+  @if (searched()) {
+    <div class="d-flex gap-2">
+      <button cButton color="secondary" variant="outline" size="sm" (click)="printReport()">
+        <svg cIcon name="cilPrint" size="sm" class="me-1"></svg>
+        Imprimir
+      </button>
+      <button cButton color="primary" variant="outline" size="sm"
+              [disabled]="downloadingPdf()" (click)="downloadPdf()">
+        @if (downloadingPdf()) { <c-spinner size="sm" class="me-1"></c-spinner> } @else {
+          <svg cIcon name="cilCloudDownload" size="sm" class="me-1"></svg>
+        }
+        PDF
+      </button>
+    </div>
+  }
+</div>
+
+<!-- ── Filters ────────────────────────────────────────────────────────────── -->
+<c-card class="mb-3 no-print">
+  <c-card-body>
+    <div class="d-flex gap-3 align-items-end flex-wrap">
+      <div>
+        <label cLabel>Período Contable</label>
+        <select cFormSelect class="select-period"
+                [ngModel]="selectedPeriod()" (ngModelChange)="selectedPeriod.set($event)">
+          <option value="">Todos los períodos</option>
+          @for (p of periods(); track p.id) {
+            <option [value]="p.id">{{ p.name }}</option>
+          }
+        </select>
+      </div>
+      @if (costCenters().length > 0) {
+        <div>
+          <label cLabel>Centro de Costo</label>
+          <select cFormSelect class="select-period"
+                  [ngModel]="selectedCostCenter()" (ngModelChange)="selectedCostCenter.set($event)">
+            <option value="">Todos</option>
+            @for (cc of costCenters(); track cc.id) {
+              <option [value]="cc.id">{{ cc.code }} — {{ cc.name }}</option>
+            }
+          </select>
+        </div>
+      }
+      <button cButton color="primary" (click)="generate()" [disabled]="searching()">
+        @if (searching()) {
+          <c-spinner size="sm" class="me-1"></c-spinner>
+          Generando...
+        } @else {
+          <svg cIcon name="cilChartLine" size="sm" class="me-1"></svg>
+          Generar Reporte
+        }
+      </button>
+    </div>
+  </c-card-body>
+</c-card>
+
+<!-- ── Report ─────────────────────────────────────────────────────────────── -->
+@if (searched()) {
+  <div class="report-header mb-3">
+    <div class="report-title">ESTADO DE RESULTADOS</div>
+    <div class="report-period">{{ getPeriodName() }}</div>
+  </div>
+
+  <c-card class="mb-3">
+    <c-card-body class="p-0">
+      <table class="er-table">
+        <!-- ── INGRESOS ── -->
+        <thead>
+          <tr class="section-header ingresos-header">
+            <td colspan="2">INGRESOS</td>
+          </tr>
+        </thead>
+        <tbody>
+          @for (line of ingresos(); track line.accountCode) {
+            <tr>
+              <td class="acc-cell">
+                <span class="acc-code">{{ line.accountCode }}</span>
+                {{ line.accountName }}
+              </td>
+              <td class="amt-cell">{{ round2(line.netBalance) | number:'1.2-2' }}</td>
+            </tr>
+          }
+          @if (ingresos().length === 0) {
+            <tr>
+              <td colspan="2" class="text-center text-secondary py-2">Sin movimientos</td>
+            </tr>
+          }
+        </tbody>
+        <tfoot>
+          <tr class="subtotal-row">
+            <td>TOTAL INGRESOS</td>
+            <td class="amt-cell">{{ round2(totalIngresos()) | number:'1.2-2' }}</td>
+          </tr>
+        </tfoot>
+
+        <!-- ── COSTOS Y GASTOS ── -->
+        <thead>
+          <tr class="section-header costos-header">
+            <td colspan="2">COSTOS Y GASTOS</td>
+          </tr>
+        </thead>
+        <tbody>
+          @for (line of costos(); track line.accountCode) {
+            <tr>
+              <td class="acc-cell">
+                <span class="acc-code">{{ line.accountCode }}</span>
+                {{ line.accountName }}
+              </td>
+              <td class="amt-cell">{{ round2(line.netBalance) | number:'1.2-2' }}</td>
+            </tr>
+          }
+          @if (costos().length === 0) {
+            <tr>
+              <td colspan="2" class="text-center text-secondary py-2">Sin movimientos</td>
+            </tr>
+          }
+        </tbody>
+        <tfoot>
+          <tr class="subtotal-row">
+            <td>TOTAL COSTOS Y GASTOS</td>
+            <td class="amt-cell">{{ round2(totalCostos()) | number:'1.2-2' }}</td>
+          </tr>
+        </tfoot>
+
+        <!-- ── UTILIDAD / PÉRDIDA ── -->
+        <tfoot>
+          <tr class="result-row" [class.ganancia]="isGanancia()" [class.perdida]="!isGanancia()">
+            <td>{{ isGanancia() ? 'UTILIDAD DEL EJERCICIO' : 'PÉRDIDA DEL EJERCICIO' }}</td>
+            <td class="amt-cell">{{ round2(utilidad()) | number:'1.2-2' }}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </c-card-body>
+  </c-card>
+}
+
+@if (!searched() && !searching()) {
+  <div class="text-center py-5 text-secondary">
+    <svg cIcon name="cilChartLine" size="xl" class="mb-3 opacity-25"></svg>
+    <p>Seleccione el período y haga clic en "Generar Reporte"</p>
+  </div>
+}

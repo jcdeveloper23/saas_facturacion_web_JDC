@@ -7,6 +7,7 @@ import { FormBuilder, FormGroup, FormArray, Validators, ReactiveFormsModule, Abs
 import { Subject, takeUntil, take, firstValueFrom } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { Timestamp } from '@angular/fire/firestore';
+import { Functions, httpsCallable } from '@angular/fire/functions';
 import {
   CardModule, ButtonModule, GridModule, BadgeModule,
   SpinnerModule, FormModule, TooltipModule, AlertModule,
@@ -226,6 +227,7 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
   private settingsSvc   = inject(SettingsService);
   private notifications = inject(NotificationService);
   private tenantSvc     = inject(TenantService);
+  private functions     = inject(Functions);
   private router        = inject(Router);
   private route         = inject(ActivatedRoute);
   private fb            = inject(FormBuilder);
@@ -244,6 +246,12 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
   editUnlocked   = signal(false);
   isNew       = signal(true);
   invoice     = signal<Invoice | null>(null);
+
+  // ── SRI actions ───────────────────────────────────────────────────────────
+  checkingSri  = signal(false);
+  resendingSri = signal(false);
+  readonly openUrl = (url: string) => window.open(url, '_blank');
+  readonly copyToClipboard = (text: string) => navigator.clipboard?.writeText(text);
 
   // ── Reference data ────────────────────────────────────────────────────────
   customers     = signal<Person[]>([]);
@@ -1557,6 +1565,51 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
       this.notifications.error('Error al crear Nota de Crédito: ' + (err?.message ?? err));
     } finally {
       this.saving.set(false);
+    }
+  }
+
+  // ── SRI: Consultar estado ─────────────────────────────────────────────────
+  async checkSriStatus(): Promise<void> {
+    if (!this.invoiceId()) return;
+    this.checkingSri.set(true);
+    try {
+      const fn = httpsCallable(this.functions, 'checkSriStatus');
+      const result = await fn({
+        documentId:   this.invoiceId(),
+        companyId:    this.tenantSvc.companyId,
+        documentType: 'invoice'
+      });
+      const data = result.data as any;
+      if (data?.status === 'authorized') {
+        this.notifications.success('Factura autorizada por SRI');
+      } else {
+        this.notifications.warning('Estado SRI: ' + (data?.status ?? 'desconocido'));
+      }
+    } catch (err: any) {
+      this.notifications.error('Error consultando SRI: ' + (err?.message ?? err));
+    } finally {
+      this.checkingSri.set(false);
+    }
+  }
+
+  // ── SRI: Reenviar al SRI ──────────────────────────────────────────────────
+  async resendToSri(): Promise<void> {
+    if (!this.invoiceId()) return;
+    this.resendingSri.set(true);
+    try {
+      const inv = this.invoice();
+      if (inv?.accessKey && inv?.sriStatus === 'pending') {
+        // Ya fue enviado — solo consultar estado
+        await this.checkSriStatus();
+      } else {
+        // Resetear sriStatus para que onDocumentWritten vuelva a disparar el pipeline
+        await this.svc.updateInvoice(this.invoiceId()!, { sriStatus: undefined } as any);
+        this.notifications.info('Reenvío iniciado — el proceso puede tardar unos segundos');
+      }
+    } catch (err: any) {
+      this.notifications.error('Error reenviando: ' + (err?.message ?? err));
+    } finally {
+      this.resendingSri.set(false);
     }
   }
 }

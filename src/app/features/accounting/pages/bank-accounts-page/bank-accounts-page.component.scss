@@ -1,0 +1,26 @@
+@use '../../_accounting-shared' as *;
+
+/* ── Bank accounts table ───────────────────────────────────────────────────── */
+.ba-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  thead th {
+    @extend %acc-thead-th;
+  }
+
+  tbody {
+    tr {
+      cursor: pointer;
+      &:hover td { background: var(--cui-tertiary-bg); }
+      &.row-inactive td { opacity: .5; }
+    }
+    td {
+      @extend %acc-tbody-td;
+    }
+  }
+}
+
+.bank-name { font-weight: 600; }
+
+.table-footer { @extend %table-footer; }

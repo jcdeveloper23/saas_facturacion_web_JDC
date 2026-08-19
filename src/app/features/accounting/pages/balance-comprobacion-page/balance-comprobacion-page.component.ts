@@ -13,10 +13,14 @@ import { IconModule } from '@coreui/icons-angular';
 import { JournalEntriesService }    from '../../services/journal-entries.service';
 import { AccountingPeriodsService } from '../../services/accounting-periods.service';
 import { ChartOfAccountsService }   from '../../services/chart-of-accounts.service';
+import { CostCentersService }       from '../../services/cost-centers.service';
+import { AccountingPdfService }     from '../../services/accounting-pdf.service';
+import { TenantService }            from '../../../../core/services/tenant.service';
 import { NotificationService }      from '../../../../core/services/notification.service';
 import { JournalEntry }             from '../../models/journal-entry.interface';
 import { Account, AccountType, ACCOUNT_TYPE_LABELS } from '../../models/account.interface';
 import { AccountingPeriod }         from '../../models/accounting-period.interface';
+import { CostCenter }               from '../../models/cost-center.interface';
 
 export interface BalanceLine {
   accountCode: string;
@@ -38,19 +42,25 @@ export interface BalanceLine {
   ]
 })
 export class BalanceComprobacionPageComponent implements OnInit, OnDestroy {
-  private svc           = inject(JournalEntriesService);
-  private periodsSvc    = inject(AccountingPeriodsService);
-  private accountsSvc   = inject(ChartOfAccountsService);
-  private notifications = inject(NotificationService);
-  private destroy$      = new Subject<void>();
+  private svc            = inject(JournalEntriesService);
+  private periodsSvc     = inject(AccountingPeriodsService);
+  private accountsSvc    = inject(ChartOfAccountsService);
+  private costCentersSvc = inject(CostCentersService);
+  private pdfSvc         = inject(AccountingPdfService);
+  private tenantSvc      = inject(TenantService);
+  private notifications  = inject(NotificationService);
+  private destroy$       = new Subject<void>();
 
   // ── State ─────────────────────────────────────────────────────────────────
-  accounts       = signal<Account[]>([]);
-  periods        = signal<AccountingPeriod[]>([]);
-  lines          = signal<BalanceLine[]>([]);
-  selectedPeriod = signal('');
-  searching      = signal(false);
-  searched       = signal(false);
+  downloadingPdf     = signal(false);
+  accounts           = signal<Account[]>([]);
+  periods            = signal<AccountingPeriod[]>([]);
+  costCenters        = signal<CostCenter[]>([]);
+  lines              = signal<BalanceLine[]>([]);
+  selectedPeriod     = signal('');
+  selectedCostCenter = signal('');
+  searching          = signal(false);
+  searched           = signal(false);
 
   readonly ACC_TYPES = ACCOUNT_TYPE_LABELS;
 
@@ -73,6 +83,9 @@ export class BalanceComprobacionPageComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.accountsSvc.getAccounts().pipe(take(1)).subscribe(a => this.accounts.set(a));
     this.periodsSvc.getPeriods().pipe(take(1)).subscribe(p => this.periods.set(p));
+    this.costCentersSvc.getCostCenters().pipe(take(1)).subscribe(cc =>
+      this.costCenters.set(cc.filter(c => c.isActive))
+    );
   }
 
   ngOnDestroy(): void {
@@ -105,8 +118,10 @@ export class BalanceComprobacionPageComponent implements OnInit, OnDestroy {
             // Aggregate movements per account
             const map = new Map<string, BalanceLine>();
 
+            const costCenterFilter = this.selectedCostCenter();
             for (const entry of entries) {
               for (const line of entry.lines) {
+                if (costCenterFilter && line.costCenterId !== costCenterFilter) continue;
                 const existing = map.get(line.accountCode);
                 const acc      = this.accounts().find(a => a.code === line.accountCode);
 
@@ -142,6 +157,30 @@ export class BalanceComprobacionPageComponent implements OnInit, OnDestroy {
   }
 
   printReport(): void { window.print(); }
+
+  async downloadPdf(): Promise<void> {
+    if (!this.lines().length) return;
+    this.downloadingPdf.set(true);
+    try {
+      await this.pdfSvc.downloadPdf({
+        reportType: 'balance-comprobacion',
+        companyId:  this.tenantSvc.companyId,
+        periodName: this.getPeriodName(),
+        data: this.lines().map(l => ({
+          accountCode: l.accountCode,
+          accountName: l.accountName,
+          accountType: this.ACC_TYPES[l.accountType] ?? l.accountType,
+          sumDebit:    l.sumDebit,
+          sumCredit:   l.sumCredit
+        })),
+        extraData: { totalDebit: this.totalDebit(), totalCredit: this.totalCredit() }
+      });
+    } catch (err: any) {
+      this.notifications.error('Error generando PDF: ' + (err?.message ?? err));
+    } finally {
+      this.downloadingPdf.set(false);
+    }
+  }
 
   getPeriodName(): string {
     if (!this.selectedPeriod()) return 'Todos los períodos';

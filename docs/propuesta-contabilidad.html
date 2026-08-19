@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FacturaSec — Contabilidad Integrada</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --ink:        #0a0f1e;
+      --ink-2:      #1e293b;
+      --muted:      #64748b;
+      --muted-2:    #94a3b8;
+      --border:     #e2e8f0;
+      --border-2:   #f1f5f9;
+      --surface:    #ffffff;
+      --bg:         #f8fafc;
+      --blue:       #2563eb;
+      --blue-d:     #1d4ed8;
+      --blue-l:     #eff6ff;
+      --blue-m:     #bfdbfe;
+      --green:      #16a34a;
+      --green-l:    #f0fdf4;
+      --green-m:    #bbf7d0;
+      --radius-sm:  6px;
+      --radius:     10px;
+      --radius-lg:  16px;
+      --shadow-sm:  0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+      --shadow:     0 4px 16px rgba(0,0,0,.06), 0 2px 6px rgba(0,0,0,.04);
+      --shadow-lg:  0 16px 48px rgba(0,0,0,.1), 0 4px 16px rgba(0,0,0,.06);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── UTIL ─────────────────────────────────────────── */
+    .container { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+    .container-sm { max-width: 720px; margin: 0 auto; padding: 0 24px; }
+
+    .label {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: .7rem; font-weight: 600; letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--blue); background: var(--blue-l);
+      padding: 4px 12px; border-radius: 999px;
+      border: 1px solid var(--blue-m);
+    }
+    .label.green { color: var(--green); background: var(--green-l); border-color: var(--green-m); }
+
+    h1, h2, h3, h4 { line-height: 1.2; font-weight: 800; color: var(--ink); }
+    h2 { font-size: clamp(1.75rem, 3.5vw, 2.5rem); }
+    h3 { font-size: 1.05rem; font-weight: 700; }
+    p.lead { font-size: 1.05rem; color: var(--muted); line-height: 1.7; }
+
+    .divider { border: none; border-top: 1px solid var(--border); margin: 0; }
+
+    /* ─── NAV ──────────────────────────────────────────── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(255,255,255,.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 0;
+    }
+    .nav-inner {
+      max-width: 1080px; margin: 0 auto; padding: 0 24px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-logo {
+      font-size: .95rem; font-weight: 800; color: var(--ink);
+      text-decoration: none; letter-spacing: -.02em;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .nav-logo-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--blue); display: inline-block;
+    }
+    .nav-links { display: flex; align-items: center; gap: 28px; list-style: none; }
+    .nav-links a {
+      font-size: .83rem; font-weight: 500; color: var(--muted);
+      text-decoration: none; transition: color .15s;
+    }
+    .nav-links a:hover { color: var(--ink); }
+    .btn-nav {
+      background: var(--blue); color: #fff;
+      padding: 8px 18px; border-radius: var(--radius-sm);
+      font-size: .83rem; font-weight: 600; text-decoration: none;
+      transition: background .15s, transform .1s;
+      display: inline-block;
+    }
+    .btn-nav:hover { background: var(--blue-d); transform: translateY(-1px); }
+
+    /* ─── HERO ─────────────────────────────────────────── */
+    .hero {
+      background: var(--ink);
+      padding: 96px 24px 80px;
+      position: relative; overflow: hidden;
+    }
+    .hero-grid {
+      position: absolute; inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+    .hero-glow {
+      position: absolute; top: -120px; right: -80px;
+      width: 600px; height: 600px; border-radius: 50%;
+      background: radial-gradient(ellipse, rgba(37,99,235,.18) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-glow-2 {
+      position: absolute; bottom: -100px; left: -60px;
+      width: 400px; height: 400px; border-radius: 50%;
+      background: radial-gradient(ellipse, rgba(14,165,233,.1) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-content { position: relative; text-align: center; max-width: 800px; margin: 0 auto; }
+    .hero-eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1);
+      color: #93c5fd; padding: 6px 16px; border-radius: 999px;
+      font-size: .72rem; font-weight: 600; letter-spacing: .08em;
+      text-transform: uppercase; margin-bottom: 32px;
+    }
+    .hero-eyebrow-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: #3b82f6;
+    }
+    .hero h1 {
+      font-size: clamp(2.2rem, 5vw, 3.8rem);
+      color: #fff; font-weight: 800; letter-spacing: -.03em;
+      margin-bottom: 20px;
+    }
+    .hero h1 em {
+      font-style: normal;
+      background: linear-gradient(135deg, #60a5fa, #38bdf8);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .hero-sub {
+      font-size: 1.05rem; color: #94a3b8; margin-bottom: 40px; max-width: 560px; margin-left: auto; margin-right: auto;
+    }
+    .hero-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--blue); color: #fff;
+      padding: 13px 24px; border-radius: var(--radius-sm);
+      font-size: .9rem; font-weight: 600; text-decoration: none;
+      transition: background .15s, transform .1s; border: none; cursor: pointer;
+    }
+    .btn-primary:hover { background: var(--blue-d); transform: translateY(-1px); }
+    .btn-ghost {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: transparent; color: #cbd5e1;
+      padding: 13px 24px; border-radius: var(--radius-sm);
+      font-size: .9rem; font-weight: 500; text-decoration: none;
+      border: 1px solid rgba(255,255,255,.12); transition: all .15s;
+    }
+    .btn-ghost:hover { background: rgba(255,255,255,.06); color: #fff; }
+
+    /* ─── STATS ────────────────────────────────────────── */
+    .stats {
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      padding: 40px 0;
+    }
+    .stats-row {
+      display: flex; align-items: center; justify-content: center;
+      gap: 0; flex-wrap: wrap;
+    }
+    .stat {
+      padding: 0 48px; text-align: center;
+      border-right: 1px solid var(--border);
+    }
+    .stat:last-child { border-right: none; }
+    .stat-value {
+      font-size: 2rem; font-weight: 800; letter-spacing: -.04em;
+      color: var(--ink); line-height: 1;
+    }
+    .stat-value span { color: var(--blue); }
+    .stat-label { font-size: .78rem; color: var(--muted); margin-top: 6px; }
+    @media(max-width:600px) {
+      .stat { padding: 16px 24px; border-right: none; border-bottom: 1px solid var(--border); width: 50%; }
+    }
+
+    /* ─── SECTION ──────────────────────────────────────── */
+    .section { padding: 88px 0; }
+    .section-white { background: var(--surface); }
+    .section-header { margin-bottom: 56px; }
+    .section-header .label { margin-bottom: 14px; }
+    .section-header p { color: var(--muted); margin-top: 12px; max-width: 520px; }
+    .section-header.center { text-align: center; }
+    .section-header.center p { margin-left: auto; margin-right: auto; }
+
+    /* ─── INTEGRATION HIGHLIGHT ────────────────────────── */
+    .split { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; }
+    @media(max-width:768px) { .split { grid-template-columns: 1fr; gap: 40px; } }
+
+    .checklist { list-style: none; margin-top: 28px; }
+    .checklist li {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 12px 0; border-bottom: 1px solid var(--border-2);
+      font-size: .88rem; color: var(--ink-2); line-height: 1.55;
+    }
+    .checklist li:last-child { border-bottom: none; }
+    .checklist .ic {
+      width: 20px; height: 20px; border-radius: 50%;
+      background: var(--green-l); border: 1px solid var(--green-m);
+      flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+      margin-top: 1px;
+    }
+    .checklist .ic svg { width: 10px; height: 10px; color: var(--green); }
+
+    /* ─── SCREEN MOCK ──────────────────────────────────── */
+    .screen {
+      background: #0f172a; border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg), 0 0 0 1px rgba(255,255,255,.06);
+      overflow: hidden;
+    }
+    .screen-bar {
+      background: #1e293b; padding: 12px 16px;
+      display: flex; align-items: center; gap: 6px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .screen-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .screen-title {
+      font-size: .7rem; color: #475569; margin-left: 10px;
+      font-weight: 500; letter-spacing: .03em;
+    }
+    .screen-body { padding: 20px; }
+
+    .kpi-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 16px; }
+    @media(max-width:480px) { .kpi-row { grid-template-columns: repeat(2,1fr); } }
+    .kpi {
+      background: #1e293b; border: 1px solid rgba(255,255,255,.06);
+      border-radius: 8px; padding: 10px 12px;
+    }
+    .kpi-v { font-size: .95rem; font-weight: 700; color: #f1f5f9; }
+    .kpi-l { font-size: .62rem; color: #475569; margin-top: 3px; }
+
+    .data-table { width: 100%; border-collapse: collapse; }
+    .data-table th {
+      text-align: left; font-size: .63rem; color: #475569;
+      font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+      padding: 6px 10px; border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .data-table td {
+      font-size: .73rem; color: #94a3b8;
+      padding: 9px 10px; border-bottom: 1px solid rgba(255,255,255,.04);
+    }
+    .data-table tr:last-child td { border-bottom: none; }
+    .tag {
+      display: inline-flex; align-items: center;
+      padding: 2px 8px; border-radius: 4px; font-size: .62rem; font-weight: 600;
+    }
+    .tag-green  { background: rgba(22,163,74,.15);  color: #4ade80; }
+    .tag-blue   { background: rgba(37,99,235,.2);   color: #60a5fa; }
+    .tag-yellow { background: rgba(234,179,8,.15);  color: #facc15; }
+    .tag-gray   { background: rgba(100,116,139,.15); color: #94a3b8; }
+
+    /* ─── FLOW ─────────────────────────────────────────── */
+    .flow-track {
+      display: grid; grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr auto 1fr;
+      gap: 0; align-items: center; margin: 56px 0;
+    }
+    @media(max-width:768px) {
+      .flow-track { grid-template-columns: 1fr; gap: 4px; }
+      .flow-arrow-cell { transform: rotate(90deg); text-align: center; padding: 4px 0; }
+    }
+    .flow-node {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px 16px; text-align: center;
+      position: relative; transition: box-shadow .2s;
+    }
+    .flow-node:hover { box-shadow: var(--shadow); }
+    .flow-node.highlight { border-color: var(--blue-m); background: var(--blue-l); }
+    .flow-node.highlight .flow-node-title { color: var(--blue-d); }
+    .flow-auto {
+      position: absolute; top: -11px; left: 50%; transform: translateX(-50%);
+      background: var(--blue); color: #fff;
+      font-size: .58rem; font-weight: 700; padding: 2px 8px;
+      border-radius: 999px; white-space: nowrap; letter-spacing: .04em; text-transform: uppercase;
+    }
+    .flow-icon {
+      width: 40px; height: 40px; border-radius: 8px;
+      background: var(--bg); border: 1px solid var(--border);
+      margin: 0 auto 10px; display: flex; align-items: center; justify-content: center;
+    }
+    .flow-icon svg { width: 18px; height: 18px; color: var(--blue); }
+    .flow-node-title { font-size: .8rem; font-weight: 700; color: var(--ink-2); }
+    .flow-node-sub   { font-size: .68rem; color: var(--muted); margin-top: 3px; }
+    .flow-arrow-cell { text-align: center; color: var(--muted-2); padding: 0 4px; }
+    .flow-arrow-cell svg { width: 16px; height: 16px; }
+
+    /* ─── TIMELINE ─────────────────────────────────────── */
+    .timeline { padding-left: 24px; border-left: 2px solid var(--border); }
+    .tl-item { position: relative; padding-bottom: 32px; padding-left: 24px; }
+    .tl-item:last-child { padding-bottom: 0; }
+    .tl-dot {
+      position: absolute; left: -32px; top: 4px;
+      width: 14px; height: 14px; border-radius: 50%;
+      background: var(--blue); border: 3px solid var(--surface);
+      box-shadow: 0 0 0 1px var(--blue-m);
+    }
+    .tl-dot.green { background: var(--green); box-shadow: 0 0 0 1px var(--green-m); }
+    .tl-item h4 { font-size: .9rem; font-weight: 700; color: var(--ink); }
+    .tl-auto-badge {
+      display: inline-block; background: var(--blue-l); color: var(--blue);
+      font-size: .6rem; font-weight: 700; padding: 1px 7px;
+      border-radius: 999px; margin-left: 8px; letter-spacing: .04em;
+      text-transform: uppercase; vertical-align: middle;
+    }
+    .tl-auto-badge.green { background: var(--green-l); color: var(--green); }
+    .tl-item p { font-size: .83rem; color: var(--muted); margin-top: 5px; line-height: 1.6; }
+
+    /* ─── FEATURE GRID ─────────────────────────────────── */
+    .feat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px,1fr)); gap: 20px; }
+    .feat-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 28px;
+      transition: box-shadow .2s, border-color .2s;
+    }
+    .feat-card:hover { box-shadow: var(--shadow); border-color: var(--blue-m); }
+    .feat-icon {
+      width: 44px; height: 44px; border-radius: 8px;
+      background: var(--bg); border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 18px;
+    }
+    .feat-icon svg { width: 20px; height: 20px; color: var(--blue); }
+    .feat-card h3 { font-size: .95rem; font-weight: 700; margin-bottom: 8px; }
+    .feat-card p  { font-size: .83rem; color: var(--muted); line-height: 1.6; }
+    .feat-list { list-style: none; margin-top: 14px; }
+    .feat-list li {
+      font-size: .8rem; color: var(--muted); padding: 4px 0;
+      display: flex; align-items: flex-start; gap: 8px;
+    }
+    .feat-list li::before { content: '—'; color: var(--blue); font-weight: 700; flex-shrink: 0; }
+
+    /* ─── REPORT GRID ──────────────────────────────────── */
+    .report-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap: 16px; }
+    .report-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 22px;
+    }
+    .report-card .ri { width: 36px; height: 36px; border-radius: 7px; background: var(--bg); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; margin-bottom: 12px; }
+    .report-card .ri svg { width: 16px; height: 16px; color: var(--blue); }
+    .report-card h4 { font-size: .85rem; font-weight: 700; margin-bottom: 6px; }
+    .report-card p  { font-size: .76rem; color: var(--muted); line-height: 1.55; }
+    .report-tag {
+      display: inline-block; margin-top: 12px;
+      background: var(--blue-l); color: var(--blue);
+      font-size: .62rem; font-weight: 700; padding: 2px 8px;
+      border-radius: 4px; letter-spacing: .03em;
+    }
+    .report-tag.green { background: var(--green-l); color: var(--green); }
+
+    /* ─── PILLS ────────────────────────────────────────── */
+    .pill-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 20px; }
+    .pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--surface); border: 1px solid var(--border);
+      color: var(--ink-2); padding: 6px 14px; border-radius: 999px;
+      font-size: .78rem; font-weight: 500;
+    }
+    .pill svg { width: 12px; height: 12px; color: var(--blue); }
+
+    /* ─── CTA ──────────────────────────────────────────── */
+    .cta-section {
+      background: var(--ink); padding: 96px 24px;
+      text-align: center; position: relative; overflow: hidden;
+    }
+    .cta-glow {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+      width: 700px; height: 400px;
+      background: radial-gradient(ellipse, rgba(37,99,235,.2) 0%, transparent 65%);
+      pointer-events: none;
+    }
+    .cta-section h2 { color: #fff; font-size: clamp(1.8rem,4vw,2.8rem); margin-bottom: 16px; position: relative; }
+    .cta-section p  { color: #94a3b8; max-width: 500px; margin: 0 auto 40px; position: relative; }
+    .cta-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; position: relative; }
+    .btn-white {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: #fff; color: var(--blue);
+      padding: 13px 24px; border-radius: var(--radius-sm);
+      font-size: .9rem; font-weight: 600; text-decoration: none;
+      transition: background .15s, transform .1s;
+    }
+    .btn-white:hover { background: #f1f5f9; transform: translateY(-1px); }
+    .btn-outline-white {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: transparent; color: #cbd5e1;
+      padding: 13px 24px; border-radius: var(--radius-sm);
+      font-size: .9rem; font-weight: 500; text-decoration: none;
+      border: 1px solid rgba(255,255,255,.15); transition: all .15s;
+    }
+    .btn-outline-white:hover { background: rgba(255,255,255,.07); color: #fff; }
+
+    /* ─── FOOTER ───────────────────────────────────────── */
+    footer {
+      background: #060a14; color: #334155;
+      padding: 40px 24px; text-align: center;
+    }
+    .footer-logo { font-size: .9rem; font-weight: 800; color: #475569; margin-bottom: 8px; }
+    footer p { font-size: .75rem; line-height: 1.7; }
+
+    @media(max-width:768px) {
+      .nav-links { display: none; }
+      .section { padding: 64px 0; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══ NAV ════════════════════════════════════════════════════════════════════ -->
+<nav>
+  <div class="nav-inner">
+    <a href="#" class="nav-logo">
+      <span class="nav-logo-dot"></span>
+      FacturaSec
+    </a>
+    <ul class="nav-links">
+      <li><a href="#integracion">Integración</a></li>
+      <li><a href="#contabilidad">Contabilidad</a></li>
+      <li><a href="#reportes">Reportes</a></li>
+      <li><a href="#contacto" class="btn-nav">Solicitar demo</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- ══ HERO ═══════════════════════════════════════════════════════════════════ -->
+<section class="hero">
+  <div class="hero-grid"></div>
+  <div class="hero-glow"></div>
+  <div class="hero-glow-2"></div>
+  <div class="hero-content">
+    <div class="hero-eyebrow">
+      <span class="hero-eyebrow-dot"></span>
+      Módulo de contabilidad · Disponible ahora
+    </div>
+    <h1>Facturación electrónica<br>y <em>contabilidad unificada</em></h1>
+    <p class="hero-sub">
+      Cada comprobante que emites o recibes genera su asiento contable de forma automática.
+      Sin doble digitación, sin exportar archivos, sin errores de transcripción.
+    </p>
+    <div class="hero-actions">
+      <a href="#integracion" class="btn-primary">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/></svg>
+        Ver cómo funciona
+      </a>
+      <a href="#contacto" class="btn-ghost">Solicitar demostración</a>
+    </div>
+  </div>
+</section>
+
+<!-- ══ STATS ══════════════════════════════════════════════════════════════════ -->
+<div class="stats">
+  <div class="stats-row">
+    <div class="stat">
+      <div class="stat-value"><span>0</span></div>
+      <div class="stat-label">Asientos ingresados manualmente</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">&lt;<span>5</span>s</div>
+      <div class="stat-label">De comprobante a asiento contable</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value"><span>15</span>+</div>
+      <div class="stat-label">Reportes contables incluidos</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value"><span>100</span>%</div>
+      <div class="stat-label">Compatible normativa SRI Ecuador</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PARA QUIEN YA FACTURA ══════════════════════════════════════════════════ -->
+<section class="section section-white" id="integracion">
+  <div class="container">
+    <div class="split">
+      <div>
+        <div class="label">Para empresas que ya facturan electrónicamente</div>
+        <h2 style="margin-top:14px">La contabilidad que<br>faltaba en tu sistema</h2>
+        <p style="color:var(--muted); margin-top:12px; font-size:.9rem; line-height:1.7">
+          Si ya emites facturas electrónicas autorizadas por el SRI y llevas la contabilidad en un sistema separado o en Excel, FacturaSec cierra esa brecha. Ambos módulos comparten la misma base de datos: lo que ocurre en facturación se refleja inmediatamente en contabilidad.
+        </p>
+        <ul class="checklist">
+          <li>
+            <span class="ic"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg></span>
+            <span>Cada factura autorizada genera el asiento de <strong>ingresos, IVA cobrado y cuentas por cobrar</strong> de forma inmediata</span>
+          </li>
+          <li>
+            <span class="ic"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg></span>
+            <span>Las notas de crédito, notas de débito y retenciones también se contabilizan automáticamente</span>
+          </li>
+          <li>
+            <span class="ic"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg></span>
+            <span>Al anular un documento, el sistema genera el <strong>asiento de reversa</strong> sin intervención</span>
+          </li>
+          <li>
+            <span class="ic"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg></span>
+            <span>Las compras registran inventario, IVA en compras y cuentas por pagar automáticamente</span>
+          </li>
+          <li>
+            <span class="ic"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg></span>
+            <span>El contador puede revisar, ajustar y aprobar asientos desde el mismo sistema</span>
+          </li>
+        </ul>
+      </div>
+      <div class="screen">
+        <div class="screen-bar">
+          <div class="screen-dot" style="background:#ef4444"></div>
+          <div class="screen-dot" style="background:#f59e0b"></div>
+          <div class="screen-dot" style="background:#22c55e"></div>
+          <span class="screen-title">Libro Diario — Agosto 2026</span>
+        </div>
+        <div class="screen-body">
+          <div class="kpi-row">
+            <div class="kpi"><div class="kpi-v">$14,820</div><div class="kpi-l">Ingresos del mes</div></div>
+            <div class="kpi"><div class="kpi-v">$2,223</div><div class="kpi-l">IVA generado</div></div>
+            <div class="kpi"><div class="kpi-v">52</div><div class="kpi-l">Asientos</div></div>
+            <div class="kpi"><div class="kpi-v" style="color:#4ade80">Cuadrado</div><div class="kpi-l">Balance</div></div>
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr><th>N°</th><th>Origen</th><th>Monto</th><th>Tipo</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="color:#f1f5f9; font-weight:600">#052</td>
+                <td>Factura 001-001-000000052</td>
+                <td style="color:#f1f5f9">$1,240.00</td>
+                <td><span class="tag tag-blue">Automático</span></td>
+              </tr>
+              <tr>
+                <td style="color:#f1f5f9; font-weight:600">#051</td>
+                <td>Retención 001-001-000000018</td>
+                <td style="color:#f1f5f9">$32.00</td>
+                <td><span class="tag tag-blue">Automático</span></td>
+              </tr>
+              <tr>
+                <td style="color:#f1f5f9; font-weight:600">#050</td>
+                <td>Nota de Crédito 001-001-000000004</td>
+                <td style="color:#f1f5f9">$185.00</td>
+                <td><span class="tag tag-blue">Automático</span></td>
+              </tr>
+              <tr>
+                <td style="color:#f1f5f9; font-weight:600">#049</td>
+                <td>Compra — Proveedor Industrial S.A.</td>
+                <td style="color:#f1f5f9">$3,600.00</td>
+                <td><span class="tag tag-blue">Automático</span></td>
+              </tr>
+              <tr>
+                <td style="color:#f1f5f9; font-weight:600">#048</td>
+                <td>Ajuste inventario — Bodega principal</td>
+                <td style="color:#f1f5f9">$420.00</td>
+                <td><span class="tag tag-green">Aprobado</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ FLUJO AUTOMÁTICO ════════════════════════════════════════════════════════ -->
+<section class="section">
+  <div class="container">
+    <div class="section-header center">
+      <div class="label green">Integración automática</div>
+      <h2 style="margin-top:14px">Del comprobante al libro mayor<br>en segundos</h2>
+      <p>El sistema procesa cada evento fiscal y genera la contabilidad correspondiente sin intervención del usuario.</p>
+    </div>
+
+    <div class="flow-track">
+      <div class="flow-node">
+        <div class="flow-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/></svg>
+        </div>
+        <div class="flow-node-title">Comprobante emitido</div>
+        <div class="flow-node-sub">SRI autoriza</div>
+      </div>
+      <div class="flow-arrow-cell">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/></svg>
+      </div>
+      <div class="flow-node highlight">
+        <span class="flow-auto">Automático</span>
+        <div class="flow-icon" style="background:var(--blue-l); border-color:var(--blue-m)">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m3.75 13.5 10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z"/></svg>
+        </div>
+        <div class="flow-node-title">Asiento generado</div>
+        <div class="flow-node-sub">Débito y crédito</div>
+      </div>
+      <div class="flow-arrow-cell">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/></svg>
+      </div>
+      <div class="flow-node">
+        <div class="flow-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25"/></svg>
+        </div>
+        <div class="flow-node-title">Libro Diario</div>
+        <div class="flow-node-sub">Registrado</div>
+      </div>
+      <div class="flow-arrow-cell">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/></svg>
+      </div>
+      <div class="flow-node">
+        <div class="flow-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"/></svg>
+        </div>
+        <div class="flow-node-title">Reportes</div>
+        <div class="flow-node-sub">Mayor · Balance</div>
+      </div>
+      <div class="flow-arrow-cell">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/></svg>
+      </div>
+      <div class="flow-node">
+        <div class="flow-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25ZM6.75 12h.008v.008H6.75V12Zm0 3h.008v.008H6.75V15Zm0 3h.008v.008H6.75V18Z"/></svg>
+        </div>
+        <div class="flow-node-title">Form. 104 · 101</div>
+        <div class="flow-node-sub">IVA e IR calculados</div>
+      </div>
+    </div>
+
+    <div style="max-width:600px; margin:0 auto">
+      <div class="timeline">
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <h4>Factura de venta autorizada <span class="tl-auto-badge">Automático</span></h4>
+          <p>Se registra el asiento: Débito Cuentas por Cobrar / Crédito Ingresos + IVA Ventas. Compatible con tarifas 0%, 5%, 8% y 15%.</p>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <h4>Nota de crédito o nota de débito <span class="tl-auto-badge">Automático</span></h4>
+          <p>El asiento se genera en el momento en que el SRI autoriza el documento, sin pasos adicionales.</p>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <h4>Retención emitida a proveedor <span class="tl-auto-badge">Automático</span></h4>
+          <p>Débito Cuentas por Pagar / Crédito Retenciones en la Fuente e IVA por Pagar.</p>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <h4>Compra registrada en inventario <span class="tl-auto-badge">Automático</span></h4>
+          <p>Débito Inventario de Mercaderías + IVA en Compras / Crédito Cuentas por Pagar Proveedores.</p>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot green"></div>
+          <h4>Anulación de cualquier documento <span class="tl-auto-badge green">Automático</span></h4>
+          <p>El sistema detecta la anulación y genera el asiento de reversa correspondiente, manteniendo el historial íntegro y auditable.</p>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot" style="background:var(--muted); box-shadow:none"></div>
+          <h4>Asientos manuales</h4>
+          <p>Para depreciaciones, nómina, ajustes de cierre y cualquier movimiento que no provenga de un documento fiscal.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ MÓDULO CONTABLE ═════════════════════════════════════════════════════════ -->
+<section class="section section-white" id="contabilidad">
+  <div class="container">
+    <div class="section-header">
+      <div class="label">Módulo contable completo</div>
+      <h2 style="margin-top:14px">Todo lo que necesita<br>su contador</h2>
+      <p>Plan de cuentas configurable bajo normativa ecuatoriana, períodos contables, centros de costo y los reportes requeridos para el cumplimiento tributario.</p>
+    </div>
+    <div class="feat-grid">
+
+      <div class="feat-card">
+        <div class="feat-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0ZM3.75 12h.007v.008H3.75V12Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm-.375 5.25h.007v.008H3.75v-.008Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"/></svg>
+        </div>
+        <h3>Plan de Cuentas</h3>
+        <p>Catálogo estructurado en cinco grupos (Activos, Pasivos, Patrimonio, Ingresos, Gastos) según normativa ecuatoriana.</p>
+        <ul class="feat-list">
+          <li>Personalizable por empresa</li>
+          <li>Cuentas de agrupación y de movimiento</li>
+          <li>Mapeo automático a documentos SRI</li>
+          <li>Inactivación sin eliminación</li>
+        </ul>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"/></svg>
+        </div>
+        <h3>Períodos Contables</h3>
+        <p>Control completo del ejercicio fiscal: apertura con saldos iniciales, cierre y bloqueo de períodos.</p>
+        <ul class="feat-list">
+          <li>Apertura automática del ejercicio</li>
+          <li>Cierre con asiento de resultados</li>
+          <li>Períodos bloqueados e inmutables</li>
+          <li>Historial completo de auditoría</li>
+        </ul>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21"/></svg>
+        </div>
+        <h3>Centros de Costo</h3>
+        <p>Asigne movimientos a departamentos, proyectos o sucursales para un análisis detallado de la rentabilidad.</p>
+        <ul class="feat-list">
+          <li>Múltiples centros activos</li>
+          <li>Filtro por centro en todos los reportes</li>
+          <li>Análisis de rentabilidad por área</li>
+          <li>Código y descripción configurables</li>
+        </ul>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25"/></svg>
+        </div>
+        <h3>Libro Diario y Mayor</h3>
+        <p>Registro cronológico completo y mayor analítico con saldo acumulado por cuenta.</p>
+        <ul class="feat-list">
+          <li>Filtro por período, tipo y estado</li>
+          <li>Trazabilidad al documento de origen</li>
+          <li>Exportación en PDF</li>
+          <li>Visualización de saldo progresivo</li>
+        </ul>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z"/></svg>
+        </div>
+        <h3>Conciliación Bancaria</h3>
+        <p>Importe el estado de cuenta de su banco y concilie contra el Libro Mayor de forma visual.</p>
+        <ul class="feat-list">
+          <li>Importación de CSV (compatible con cualquier banco)</li>
+          <li>Matching por monto, fecha y referencia</li>
+          <li>Registro de partidas no conciliadas</li>
+          <li>Estado de conciliación por período</li>
+        </ul>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"/></svg>
+        </div>
+        <h3>Presupuesto vs Ejecución</h3>
+        <p>Defina el presupuesto anual por cuenta y compare en tiempo real contra los movimientos reales del período.</p>
+        <ul class="feat-list">
+          <li>Definición por período contable</li>
+          <li>Indicador de variación porcentual</li>
+          <li>Semáforo por nivel de desviación</li>
+          <li>Reporte exportable en PDF</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ══ REPORTES ════════════════════════════════════════════════════════════════ -->
+<section class="section" id="reportes">
+  <div class="container">
+    <div class="section-header">
+      <div class="label">Reportes y declaraciones</div>
+      <h2 style="margin-top:14px">Los informes que su contador<br>necesita cada mes</h2>
+      <p>Generados con un clic, exportables en PDF. Sin descargar datos ni calcular manualmente.</p>
+    </div>
+    <div class="report-grid">
+      <div class="report-card">
+        <div class="ri">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v17.25m0 0c-1.472 0-2.882.265-4.185.75M12 20.25c1.472 0 2.882.265 4.185.75M18.75 4.97A48.416 48.416 0 0 0 12 4.5c-2.291 0-4.545.16-6.75.47m13.5 0c1.01.143 2.01.317 3 .52m-3-.52 2.62 10.726c.122.499-.106 1.028-.589 1.202a5.988 5.988 0 0 1-2.031.352 5.988 5.988 0 0 1-2.031-.352c-.483-.174-.711-.703-.59-1.202L18.75 4.971Zm-16.5.52c.99-.203 1.99-.377 3-.52m0 0 2.62 10.726c.122.499-.106 1.028-.59 1.202a5.989 5.989 0 0 1-2.031.352 5.989 5.989 0 0 1-2.031-.352c-.483-.174-.711-.703-.59-1.202L5.25 4.971Z"/></svg>
+        </div>
+        <h4>Balance de Comprobación</h4>
+        <p>Sumas y saldos por cuenta. Verificación automática de que débitos igualan créditos.</p>
+        <span class="report-tag">PDF</span>
+      </div>
+      <div class="report-card">
+        <div class="ri">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941"/></svg>
+        </div>
+        <h4>Estado de Resultados</h4>
+        <p>Ingresos contra costos y gastos. Utilidad o pérdida del período seleccionado.</p>
+        <span class="report-tag">PDF</span>
+      </div>
+      <div class="report-card">
+        <div class="ri">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0 0 12 9.75c-2.551 0-5.056.2-7.5.582V21M3 21h18M12 6.75h.008v.008H12V6.75Z"/></svg>
+        </div>
+        <h4>Balance General</h4>
+        <p>Activos, pasivos y patrimonio con verificación automática de la ecuación contable.</p>
+        <span class="report-tag">PDF</span>
+      </div>
+      <div class="report-card">
+        <div class="ri">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25ZM6.75 12h.008v.008H6.75V12Zm0 3h.008v.008H6.75V15Zm0 3h.008v.008H6.75V18Z"/></svg>
+        </div>
+        <h4>Formulario 104 — IVA</h4>
+        <p>Casillas de ventas, compras y crédito tributario calculadas automáticamente desde los asientos.</p>
+        <span class="report-tag green">SRI</span>
+      </div>
+      <div class="report-card">
+        <div class="ri">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 0 0 6 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0 1 18 16.5h-2.25m-7.5 0h7.5m-7.5 0-1 3m8.5-3 1 3m0 0 .5 1.5m-.5-1.5h-9.5m0 0-.5 1.5m.75-9 3-3 2.148 2.148A12.061 12.061 0 0 1 16.5 7.605"/></svg>
+        </div>
+        <h4>Formulario 101 — IR</h4>
+        <p>Resumen anual de ingresos, costos, gastos y base imponible de Impuesto a la Renta.</p>
+        <span class="report-tag green">SRI</span>
+      </div>
+      <div class="report-card">
+        <div class="ri">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 14.25v2.25m3-4.5v4.5m3-6.75v6.75m3-9v9M6 20.25h12A2.25 2.25 0 0 0 20.25 18V6A2.25 2.25 0 0 0 18 3.75H6A2.25 2.25 0 0 0 3.75 6v12A2.25 2.25 0 0 0 6 20.25Z"/></svg>
+        </div>
+        <h4>Libro Diario y Mayor</h4>
+        <p>Historial cronológico completo con trazabilidad al comprobante de origen.</p>
+        <span class="report-tag">PDF</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ CTA ════════════════════════════════════════════════════════════════════ -->
+<section class="cta-section" id="contacto">
+  <div class="cta-glow"></div>
+  <div class="container-sm">
+    <h2>¿Listo para integrar su contabilidad?</h2>
+    <p>Agendemos una demostración de 30 minutos. Le mostramos cómo sus comprobantes actuales se convierten en asientos contables de forma automática.</p>
+    <div class="cta-row">
+      <a href="mailto:contacto@facturasec.ec" class="btn-white">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75"/></svg>
+        Enviar correo
+      </a>
+      <a href="https://wa.me/593XXXXXXXXX" class="btn-outline-white">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z"/></svg>
+        WhatsApp
+      </a>
+    </div>
+    <p style="margin-top:28px; font-size:.75rem; color:rgba(255,255,255,.35); position:relative">
+      Sin costo · Sin compromiso · Adaptado a su empresa
+    </p>
+  </div>
+</section>
+
+<!-- ══ FOOTER ══════════════════════════════════════════════════════════════════ -->
+<footer>
+  <div class="footer-logo">FacturaSec</div>
+  <p>
+    Facturación Electrónica y Contabilidad para Ecuador<br>
+    Normativa SRI · Firma electrónica XAdES-BES · Contabilidad bajo NEC
+  </p>
+</footer>
+
+</body>
+</html>

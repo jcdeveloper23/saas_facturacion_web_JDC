@@ -590,37 +590,157 @@
           }
           }
 
-          <!-- Estado SRI — solo lectura, solo cuando módulo SRI está activo -->
+          <!-- Estado SRI — panel expandido, solo cuando módulo SRI está activo -->
           @if (isSriEnabled() && invoice()) {
           <div class="mt-2 p-2 rounded" style="font-size:.75rem; background:var(--cui-tertiary-bg)">
-            <div class="d-flex justify-content-between">
-              <span class="text-muted">Estado SRI:</span>
-              @switch (invoice()!.sriStatus) {
+
+            <!-- 1. Cabecera: ícono + badge de estado -->
+            <div class="d-flex align-items-center gap-2">
+              @switch (invoice()!.sriStatus ?? '') {
                 @case ('authorized') {
-                  <span class="text-success fw-bold">Autorizado</span>
+                  <svg cIcon name="cilCheckCircle" size="sm" class="text-success flex-shrink-0"></svg>
+                  <c-badge color="success">Autorizado por SRI</c-badge>
                 }
                 @case ('rejected') {
-                  <span class="text-danger fw-bold">Rechazado</span>
+                  <svg cIcon name="cilXCircle" size="sm" class="text-danger flex-shrink-0"></svg>
+                  <c-badge color="danger">Rechazado por SRI</c-badge>
                 }
                 @case ('pending') {
-                  <span class="text-warning fw-bold">Pendiente</span>
+                  <svg cIcon name="cilClock" size="sm" class="text-warning flex-shrink-0"></svg>
+                  <c-badge color="warning">Pendiente SRI</c-badge>
                 }
                 @case ('not_required') {
-                  <span class="text-muted">No aplica</span>
+                  <c-badge color="light">No aplica SRI</c-badge>
+                }
+                @case ('xml_generated') {
+                  <c-badge color="secondary">XML generado</c-badge>
+                }
+                @case ('signed') {
+                  <c-badge color="secondary">Firmado</c-badge>
                 }
                 @default {
-                  <span class="text-muted">—</span>
+                  <c-badge color="light">Sin procesar</c-badge>
                 }
               }
             </div>
-            @if (invoice()!.authorizationNumber) {
-            <div class="d-flex justify-content-between mt-1">
-              <span class="text-muted">N° Autorización:</span>
-              <span class="font-monospace text-truncate ms-2" style="max-width:140px" [title]="invoice()!.authorizationNumber!">
-                {{ invoice()!.authorizationNumber!.substring(0, 10) }}…
-              </span>
+
+            <!-- 2. Timeline de progreso (solo si hay sriStatus y no es not_required) -->
+            @if (invoice()!.sriStatus && invoice()!.sriStatus !== 'not_required') {
+            <div class="d-flex justify-content-between mt-2 px-1">
+              @for (step of [
+                { label: 'XML',      done: ['xml_generated','signed','pending','authorized','rejected'].includes(invoice()!.sriStatus!), fail: false },
+                { label: 'Firmado',  done: ['signed','pending','authorized','rejected'].includes(invoice()!.sriStatus!), fail: false },
+                { label: 'Enviado',  done: ['pending','authorized','rejected'].includes(invoice()!.sriStatus!), fail: false },
+                { label: 'Autorizado', done: invoice()!.sriStatus === 'authorized', fail: invoice()!.sriStatus === 'rejected' }
+              ]; track $index) {
+              <div class="d-flex flex-column align-items-center" style="flex:1">
+                <span style="font-size:.8rem; line-height:1">
+                  @if (step.fail) { <span class="text-danger">✗</span> }
+                  @else if (step.done) { <span class="text-success">✓</span> }
+                  @else { <span class="text-muted">⏳</span> }
+                </span>
+                <span class="text-muted" style="font-size:.65rem; margin-top:.1rem">{{ step.label }}</span>
+              </div>
+              }
             </div>
             }
+
+            <!-- 3. Datos de autorización (solo si authorized) -->
+            @if (invoice()!.sriStatus === 'authorized') {
+            <div class="mt-2 pt-1 border-top" style="border-color:var(--cui-border-color) !important">
+              <!-- N° Autorización con botón copiar -->
+              @if (invoice()!.authorizationNumber) {
+              <div class="d-flex align-items-center justify-content-between mt-1">
+                <span class="text-muted">N° Autorización:</span>
+                <div class="d-flex align-items-center gap-1 ms-2">
+                  <span class="font-monospace" style="font-size:.7rem">
+                    {{ invoice()!.authorizationNumber }}
+                  </span>
+                  <button type="button" class="btn btn-sm p-0 border-0 text-muted"
+                    style="line-height:1; font-size:.7rem"
+                    title="Copiar número de autorización"
+                    (click)="copyToClipboard(invoice()!.authorizationNumber!)">
+                    <svg cIcon name="cilCopy" size="sm"></svg>
+                  </button>
+                </div>
+              </div>
+              }
+              <!-- Clave de acceso -->
+              @if (invoice()!.accessKey) {
+              <div class="d-flex align-items-center justify-content-between mt-1">
+                <span class="text-muted">Clave acceso:</span>
+                <span class="font-monospace ms-2 text-truncate" style="max-width:140px; font-size:.7rem"
+                  [title]="invoice()!.accessKey!">
+                  {{ invoice()!.accessKey!.substring(0, 20) }}…
+                </span>
+              </div>
+              }
+              <!-- Fecha autorización -->
+              @if (invoice()!.authorizedAt) {
+              <div class="d-flex justify-content-between mt-1">
+                <span class="text-muted">Fecha aut.:</span>
+                <span class="ms-2">{{ invoice()!.authorizedAt!.toDate() | date:'dd/MM/yyyy HH:mm' }}</span>
+              </div>
+              }
+            </div>
+            }
+
+            <!-- 4. Error SRI (rejected o pending con sriError) -->
+            @if ((invoice()!.sriStatus === 'rejected' || invoice()!.sriStatus === 'pending') && invoice()!.sriError) {
+            <div class="mt-2 p-1 rounded"
+              [style.background]="invoice()!.sriStatus === 'rejected' ? 'var(--cui-danger-bg-subtle)' : 'var(--cui-warning-bg-subtle)'"
+              [style.color]="invoice()!.sriStatus === 'rejected' ? 'var(--cui-danger-emphasis)' : 'var(--cui-warning-emphasis)'">
+              <strong>Error SRI:</strong> {{ invoice()!.sriError }}
+            </div>
+            }
+
+            <!-- 5. Botones de acción (rejected / pending / sin sriStatus, y no es void ni not_required) -->
+            @if (
+              !isNew() &&
+              invoice()!.status !== 'void' &&
+              invoice()!.sriStatus !== 'not_required' &&
+              invoice()!.sriStatus !== 'authorized'
+            ) {
+            <div class="d-flex gap-1 mt-2">
+              <button type="button" cButton color="secondary" variant="outline" size="sm"
+                class="flex-fill"
+                [disabled]="checkingSri() || resendingSri()"
+                (click)="checkSriStatus()">
+                @if (checkingSri()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+                Consultar SRI
+              </button>
+              <button type="button" cButton color="primary" variant="outline" size="sm"
+                class="flex-fill"
+                [disabled]="resendingSri() || checkingSri()"
+                (click)="resendToSri()">
+                @if (resendingSri()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+                Reenviar SRI
+              </button>
+            </div>
+            }
+
+            <!-- 6. Links a documentos XML / PDF -->
+            @if (invoice()!.xmlUrl || invoice()!.pdfUrl) {
+            <div class="d-flex gap-1 mt-1">
+              @if (invoice()!.xmlUrl) {
+              <button type="button" cButton color="secondary" variant="ghost" size="sm"
+                class="flex-fill"
+                (click)="openUrl(invoice()!.xmlUrl!)">
+                <svg cIcon name="cilCode" size="sm" class="me-1"></svg>
+                Ver XML
+              </button>
+              }
+              @if (invoice()!.pdfUrl) {
+              <button type="button" cButton color="secondary" variant="ghost" size="sm"
+                class="flex-fill"
+                (click)="openUrl(invoice()!.pdfUrl!)">
+                <svg cIcon name="cilFile" size="sm" class="me-1"></svg>
+                Ver RIDE
+              </button>
+              }
+            </div>
+            }
+
           </div>
           }
 

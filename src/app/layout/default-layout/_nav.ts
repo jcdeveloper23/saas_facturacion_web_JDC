@@ -178,7 +178,39 @@ export const navItems: INavData[] = [
     children: [
       { name: 'Libro Diario',              url: '/accounting/libro-diario',            icon: 'nav-icon-bullet' },
       { name: 'Libro Mayor',               url: '/accounting/libro-mayor',             icon: 'nav-icon-bullet' },
-      { name: 'Balance de Comprobación',   url: '/accounting/balance-comprobacion',    icon: 'nav-icon-bullet' }
+      { name: 'Balance de Comprobación',   url: '/accounting/balance-comprobacion',    icon: 'nav-icon-bullet' },
+      { name: 'Estado de Resultados',      url: '/accounting/estado-resultados',       icon: 'nav-icon-bullet' },
+      { name: 'Balance General',           url: '/accounting/balance-general',         icon: 'nav-icon-bullet' }
+    ]
+  },
+  {
+    name: 'Declaraciones SRI',
+    url: '/accounting/__sri',
+    iconComponent: { name: 'cil-file' },
+    attributes: { module: 'accounting', roles: ['admin', 'accountant'] },
+    children: [
+      { name: 'Formulario 104 (IVA)', url: '/accounting/formulario-104', icon: 'nav-icon-bullet' },
+      { name: 'Formulario 101 (IR)',  url: '/accounting/formulario-101', icon: 'nav-icon-bullet' }
+    ]
+  },
+  {
+    name: 'Conciliación Bancaria',
+    url: '/accounting/__banking',
+    iconComponent: { name: 'cil-bank' },
+    attributes: { module: 'accounting', roles: ['admin', 'accountant'] },
+    children: [
+      { name: 'Cuentas Bancarias', url: '/accounting/bank-accounts',      icon: 'nav-icon-bullet' },
+      { name: 'Conciliar',         url: '/accounting/bank-reconciliation', icon: 'nav-icon-bullet' }
+    ]
+  },
+  {
+    name: 'Presupuesto',
+    url: '/accounting/__budget',
+    iconComponent: { name: 'cil-money' },
+    attributes: { module: 'accounting', roles: ['admin', 'accountant'] },
+    children: [
+      { name: 'Definir Presupuesto',  url: '/accounting/budget',               icon: 'nav-icon-bullet' },
+      { name: 'Presupuesto vs Real',  url: '/accounting/presupuesto-vs-real',  icon: 'nav-icon-bullet' }
     ]
   },
   {
@@ -192,6 +224,12 @@ export const navItems: INavData[] = [
     url: '/accounting/periods',
     iconComponent: { name: 'cil-calendar' },
     attributes: { module: 'accounting', roles: ['admin', 'accountant'] }
+  },
+  {
+    name: 'Configuración Contable',
+    url: '/accounting/settings',
+    iconComponent: { name: 'cil-settings' },
+    attributes: { module: 'accounting', roles: ['admin'] }
   },
 
   // ─── Reports ─────────────────────────────────────────────────────────────

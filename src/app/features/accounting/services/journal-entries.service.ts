@@ -67,7 +67,7 @@ export class JournalEntriesService {
 
   // ─── Libro Mayor: all entries for a given account code ───────────────────
 
-  async getLibroMayor(accountCode: string, periodId?: string): Promise<LibroMayorLine[]> {
+  async getLibroMayor(accountCode: string, periodId?: string, costCenterId?: string): Promise<LibroMayorLine[]> {
     const ref = collection(this.firestore, this.colPath);
     const constraints: any[] = [where('status', '==', 'posted'), orderBy('date', 'asc'), orderBy('number', 'asc')];
     if (periodId) constraints.unshift(where('periodId', '==', periodId));
@@ -79,20 +79,21 @@ export class JournalEntriesService {
     for (const d of snap.docs) {
       const entry = { id: d.id, ...d.data() } as JournalEntry;
       for (const line of entry.lines) {
-        if (line.accountCode === accountCode) {
-          balance += (line.debit ?? 0) - (line.credit ?? 0);
-          result.push({
-            entryId:     entry.id,
-            entryNumber: entry.number,
-            date:        entry.date,
-            description: entry.description,
-            reference:   entry.reference ?? '',
-            debit:       line.debit,
-            credit:      line.credit,
-            balance:     Math.round(balance * 100) / 100,
-            type:        entry.type
-          });
-        }
+        if (line.accountCode !== accountCode) continue;
+        if (costCenterId && line.costCenterId !== costCenterId) continue;
+
+        balance += (line.debit ?? 0) - (line.credit ?? 0);
+        result.push({
+          entryId:     entry.id,
+          entryNumber: entry.number,
+          date:        entry.date,
+          description: entry.description,
+          reference:   entry.reference ?? '',
+          debit:       line.debit,
+          credit:      line.credit,
+          balance:     Math.round(balance * 100) / 100,
+          type:        entry.type
+        });
       }
     }
 

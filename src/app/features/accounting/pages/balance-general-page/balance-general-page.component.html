@@ -1,0 +1,243 @@
+<!-- ── Header ──────────────────────────────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0">Balance General</h4>
+  @if (searched()) {
+    <div class="d-flex gap-2 align-items-center">
+      @if (isCuadrado()) {
+        <span class="ok"><svg cIcon name="cilCheckCircle" size="sm" class="me-1"></svg>Cuadrado</span>
+      } @else {
+        <span class="fail"><svg cIcon name="cilWarning" size="sm" class="me-1"></svg>Descuadrado (dif: {{ diferencia() | number:'1.2-2' }})</span>
+      }
+      <button cButton color="secondary" variant="outline" size="sm" (click)="printReport()">
+        <svg cIcon name="cilPrint" size="sm" class="me-1"></svg>
+        Imprimir
+      </button>
+      <button cButton color="primary" variant="outline" size="sm"
+              [disabled]="downloadingPdf()" (click)="downloadPdf()">
+        @if (downloadingPdf()) { <c-spinner size="sm" class="me-1"></c-spinner> } @else {
+          <svg cIcon name="cilCloudDownload" size="sm" class="me-1"></svg>
+        }
+        PDF
+      </button>
+    </div>
+  }
+</div>
+
+<!-- ── Filters ────────────────────────────────────────────────────────────── -->
+<c-card class="mb-3 no-print">
+  <c-card-body>
+    <div class="d-flex gap-3 align-items-end flex-wrap">
+      <div>
+        <label cLabel>Período Contable</label>
+        <select cFormSelect class="select-period"
+                [ngModel]="selectedPeriod()" (ngModelChange)="selectedPeriod.set($event)">
+          <option value="">Todos los períodos</option>
+          @for (p of periods(); track p.id) {
+            <option [value]="p.id">{{ p.name }}</option>
+          }
+        </select>
+      </div>
+      @if (costCenters().length > 0) {
+        <div>
+          <label cLabel>Centro de Costo</label>
+          <select cFormSelect class="select-period"
+                  [ngModel]="selectedCostCenter()" (ngModelChange)="selectedCostCenter.set($event)">
+            <option value="">Todos</option>
+            @for (cc of costCenters(); track cc.id) {
+              <option [value]="cc.id">{{ cc.code }} — {{ cc.name }}</option>
+            }
+          </select>
+        </div>
+      }
+      <button cButton color="primary" (click)="generate()" [disabled]="searching()">
+        @if (searching()) {
+          <c-spinner size="sm" class="me-1"></c-spinner>
+          Generando...
+        } @else {
+          <svg cIcon name="cilSpreadsheet" size="sm" class="me-1"></svg>
+          Generar Balance
+        }
+      </button>
+    </div>
+  </c-card-body>
+</c-card>
+
+<!-- ── Report ─────────────────────────────────────────────────────────────── -->
+@if (searched()) {
+  <div class="report-header mb-3">
+    <div class="report-title">BALANCE GENERAL</div>
+    <div class="report-period">{{ getPeriodName() }}</div>
+  </div>
+
+  <c-row>
+    <!-- ── ACTIVOS ── -->
+    <c-col [sm]="6">
+      <c-card class="mb-3">
+        <c-card-body class="p-0">
+          <table class="bg-table">
+            <thead>
+              <tr class="side-header activos-header">
+                <td colspan="2">ACTIVOS</td>
+              </tr>
+            </thead>
+
+            <!-- Activo Corriente -->
+            <tbody>
+              <tr class="subsection-header">
+                <td colspan="2">Activo Corriente</td>
+              </tr>
+              @for (line of activoCorriente(); track line.accountCode) {
+                <tr>
+                  <td class="acc-cell">
+                    <span class="acc-code">{{ line.accountCode }}</span>
+                    {{ line.accountName }}
+                  </td>
+                  <td class="amt-cell">{{ round2(line.netBalance) | number:'1.2-2' }}</td>
+                </tr>
+              }
+              @if (activoCorriente().length === 0) {
+                <tr><td colspan="2" class="empty-row">Sin movimientos</td></tr>
+              }
+              <tr class="subtotal-row">
+                <td>Subtotal Activo Corriente</td>
+                <td class="amt-cell">{{ round2(totalActivoCorriente()) | number:'1.2-2' }}</td>
+              </tr>
+            </tbody>
+
+            <!-- Activo No Corriente -->
+            <tbody>
+              <tr class="subsection-header">
+                <td colspan="2">Activo No Corriente</td>
+              </tr>
+              @for (line of activoNoCorriente(); track line.accountCode) {
+                <tr>
+                  <td class="acc-cell">
+                    <span class="acc-code">{{ line.accountCode }}</span>
+                    {{ line.accountName }}
+                  </td>
+                  <td class="amt-cell">{{ round2(line.netBalance) | number:'1.2-2' }}</td>
+                </tr>
+              }
+              @if (activoNoCorriente().length === 0) {
+                <tr><td colspan="2" class="empty-row">Sin movimientos</td></tr>
+              }
+              <tr class="subtotal-row">
+                <td>Subtotal Activo No Corriente</td>
+                <td class="amt-cell">{{ round2(totalActivoNoCorriente()) | number:'1.2-2' }}</td>
+              </tr>
+            </tbody>
+
+            <tfoot>
+              <tr class="total-row activos-total">
+                <td>TOTAL ACTIVOS</td>
+                <td class="amt-cell">{{ round2(totalActivos()) | number:'1.2-2' }}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </c-card-body>
+      </c-card>
+    </c-col>
+
+    <!-- ── PASIVOS + PATRIMONIO ── -->
+    <c-col [sm]="6">
+      <c-card class="mb-3">
+        <c-card-body class="p-0">
+          <table class="bg-table">
+            <thead>
+              <tr class="side-header pasivos-header">
+                <td colspan="2">PASIVOS Y PATRIMONIO</td>
+              </tr>
+            </thead>
+
+            <!-- Pasivo Corriente -->
+            <tbody>
+              <tr class="subsection-header">
+                <td colspan="2">Pasivo Corriente</td>
+              </tr>
+              @for (line of pasivoCorriente(); track line.accountCode) {
+                <tr>
+                  <td class="acc-cell">
+                    <span class="acc-code">{{ line.accountCode }}</span>
+                    {{ line.accountName }}
+                  </td>
+                  <td class="amt-cell">{{ round2(line.netBalance) | number:'1.2-2' }}</td>
+                </tr>
+              }
+              @if (pasivoCorriente().length === 0) {
+                <tr><td colspan="2" class="empty-row">Sin movimientos</td></tr>
+              }
+              <tr class="subtotal-row">
+                <td>Subtotal Pasivo Corriente</td>
+                <td class="amt-cell">{{ round2(totalPasivoCorriente()) | number:'1.2-2' }}</td>
+              </tr>
+            </tbody>
+
+            <!-- Pasivo No Corriente -->
+            <tbody>
+              <tr class="subsection-header">
+                <td colspan="2">Pasivo No Corriente</td>
+              </tr>
+              @for (line of pasivoNoCorriente(); track line.accountCode) {
+                <tr>
+                  <td class="acc-cell">
+                    <span class="acc-code">{{ line.accountCode }}</span>
+                    {{ line.accountName }}
+                  </td>
+                  <td class="amt-cell">{{ round2(line.netBalance) | number:'1.2-2' }}</td>
+                </tr>
+              }
+              @if (pasivoNoCorriente().length === 0) {
+                <tr><td colspan="2" class="empty-row">Sin movimientos</td></tr>
+              }
+              <tr class="subtotal-row">
+                <td>Subtotal Pasivo No Corriente</td>
+                <td class="amt-cell">{{ round2(totalPasivoNoCorriente()) | number:'1.2-2' }}</td>
+              </tr>
+            </tbody>
+
+            <!-- Patrimonio -->
+            <tbody>
+              <tr class="subsection-header patrimonio-sub">
+                <td colspan="2">Patrimonio</td>
+              </tr>
+              @for (line of patrimonio(); track line.accountCode) {
+                <tr>
+                  <td class="acc-cell">
+                    <span class="acc-code">{{ line.accountCode }}</span>
+                    {{ line.accountName }}
+                  </td>
+                  <td class="amt-cell">{{ round2(line.netBalance) | number:'1.2-2' }}</td>
+                </tr>
+              }
+              @if (patrimonio().length === 0) {
+                <tr><td colspan="2" class="empty-row">Sin movimientos</td></tr>
+              }
+              <tr class="subtotal-row">
+                <td>Subtotal Patrimonio</td>
+                <td class="amt-cell">{{ round2(totalPatrimonio()) | number:'1.2-2' }}</td>
+              </tr>
+            </tbody>
+
+            <tfoot>
+              <tr class="total-row pasivos-total">
+                <td>TOTAL PASIVOS + PATRIMONIO</td>
+                <td class="amt-cell">{{ round2(totalPasivoPatrimonio()) | number:'1.2-2' }}</td>
+              </tr>
+              <tr class="cuadre-row" [class.ok]="isCuadrado()" [class.fail]="!isCuadrado()">
+                <td>Diferencia (Activos − Pasivos+Patrimonio)</td>
+                <td class="amt-cell">{{ round2(totalActivos() - totalPasivoPatrimonio()) | number:'1.2-2' }}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </c-card-body>
+      </c-card>
+    </c-col>
+  </c-row>
+}
+
+@if (!searched() && !searching()) {
+  <div class="text-center py-5 text-secondary">
+    <svg cIcon name="cilSpreadsheet" size="xl" class="mb-3 opacity-25"></svg>
+    <p>Seleccione el período y haga clic en "Generar Balance"</p>
+  </div>
+}

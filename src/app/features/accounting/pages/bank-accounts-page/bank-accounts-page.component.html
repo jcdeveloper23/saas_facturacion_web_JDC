@@ -1,0 +1,180 @@
+<!-- ── Header ──────────────────────────────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0">Cuentas Bancarias</h4>
+  <button cButton color="primary" size="sm" (click)="openNew()">
+    <svg cIcon name="cilPlus" class="me-1"></svg>
+    Nueva Cuenta
+  </button>
+</div>
+
+<!-- ── Search ─────────────────────────────────────────────────────────────── -->
+<c-card class="mb-3">
+  <c-card-body class="py-2 px-3">
+    <c-input-group class="search-wrap-md">
+      <span cInputGroupText>
+        <svg cIcon name="cilSearch" size="sm"></svg>
+      </span>
+      <input cFormControl type="text" placeholder="Buscar por banco o número..."
+             [ngModel]="searchTerm()" (ngModelChange)="searchTerm.set($event)" />
+    </c-input-group>
+  </c-card-body>
+</c-card>
+
+<!-- ── Table ──────────────────────────────────────────────────────────────── -->
+<c-card>
+  @if (loading()) {
+    <c-card-body class="text-center py-5">
+      <c-spinner color="primary"></c-spinner>
+      <p class="mt-2 text-secondary">Cargando cuentas bancarias...</p>
+    </c-card-body>
+  } @else {
+    <div class="table-responsive">
+      <table class="ba-table">
+        <thead>
+          <tr>
+            <th>Banco</th>
+            <th>Número</th>
+            <th>Tipo</th>
+            <th>Cuenta GL</th>
+            <th>Moneda</th>
+            <th>Estado</th>
+            <th class="text-end">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (acc of filtered(); track acc.id) {
+            <tr [class.row-inactive]="!acc.isActive" (click)="openEdit(acc, $event)">
+              <td class="bank-name">{{ acc.bankName }}</td>
+              <td class="font-mono-sm">{{ acc.accountNumber }}</td>
+              <td>
+                <c-badge color="info" shape="rounded-pill">
+                  {{ TYPE_LABELS[acc.accountType] }}
+                </c-badge>
+              </td>
+              <td class="font-mono-sm">
+                {{ acc.linkedGlCode }}
+                <div class="text-xs-muted">{{ acc.linkedGlName }}</div>
+              </td>
+              <td class="text-sm-muted">{{ acc.currency }}</td>
+              <td>
+                @if (acc.isActive) {
+                  <c-badge color="success" shape="rounded-pill">Activa</c-badge>
+                } @else {
+                  <c-badge color="secondary" shape="rounded-pill">Inactiva</c-badge>
+                }
+              </td>
+              <td class="text-end" (click)="$event.stopPropagation()">
+                <button cButton color="secondary" variant="ghost" size="sm"
+                        cTooltip="Editar" (click)="openEdit(acc, $event)">
+                  <svg cIcon name="cilPencil" size="sm"></svg>
+                </button>
+                <button cButton [color]="acc.isActive ? 'warning' : 'success'" variant="ghost" size="sm"
+                        [cTooltip]="acc.isActive ? 'Inactivar' : 'Activar'"
+                        (click)="toggleActive(acc, $event)">
+                  <svg cIcon [name]="acc.isActive ? 'cilBan' : 'cilCheckCircle'" size="sm"></svg>
+                </button>
+                <button cButton color="danger" variant="ghost" size="sm"
+                        cTooltip="Eliminar"
+                        [disabled]="deleting() === acc.id"
+                        (click)="deleteAccount(acc, $event)">
+                  @if (deleting() === acc.id) {
+                    <c-spinner size="sm"></c-spinner>
+                  } @else {
+                    <svg cIcon name="cilTrash" size="sm"></svg>
+                  }
+                </button>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="7" class="text-center text-secondary py-4">
+                No hay cuentas bancarias registradas
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <div class="table-footer">{{ filtered().length }} cuenta(s) bancaria(s)</div>
+  }
+</c-card>
+
+<!-- ── Modal ──────────────────────────────────────────────────────────────── -->
+<c-modal [visible]="showModal()" (visibleChange)="showModal.set($event)" backdrop="static" size="lg">
+  <c-modal-header>
+    <h5 cModalTitle>{{ editingId() ? 'Editar Cuenta Bancaria' : 'Nueva Cuenta Bancaria' }}</h5>
+    <button type="button" class="btn-close" (click)="closeModal()"></button>
+  </c-modal-header>
+  <c-modal-body>
+    <form [formGroup]="form">
+      <div class="row g-3">
+        <!-- Banco -->
+        <div class="col-md-6">
+          <label cLabel>Banco <span class="text-danger">*</span></label>
+          <input cFormControl formControlName="bankName"
+                 placeholder="Ej: Banco Pichincha"
+                 [class.is-invalid]="form.get('bankName')?.invalid && form.get('bankName')?.touched" />
+          @if (form.get('bankName')?.invalid && form.get('bankName')?.touched) {
+            <div class="invalid-feedback">Nombre del banco requerido</div>
+          }
+        </div>
+        <!-- Número de cuenta -->
+        <div class="col-md-6">
+          <label cLabel>Número de Cuenta <span class="text-danger">*</span></label>
+          <input cFormControl formControlName="accountNumber"
+                 placeholder="Ej: ****1234"
+                 [class.is-invalid]="form.get('accountNumber')?.invalid && form.get('accountNumber')?.touched" />
+          @if (form.get('accountNumber')?.invalid && form.get('accountNumber')?.touched) {
+            <div class="invalid-feedback">Número de cuenta requerido</div>
+          }
+        </div>
+        <!-- Tipo de cuenta -->
+        <div class="col-md-4">
+          <label cLabel>Tipo de Cuenta <span class="text-danger">*</span></label>
+          <select cFormSelect formControlName="accountType">
+            @for (t of accountTypes; track t) {
+              <option [value]="t">{{ TYPE_LABELS[t] }}</option>
+            }
+          </select>
+        </div>
+        <!-- Moneda -->
+        <div class="col-md-2">
+          <label cLabel>Moneda</label>
+          <input cFormControl formControlName="currency" placeholder="USD" />
+        </div>
+        <!-- Cuenta GL -->
+        <div class="col-md-6">
+          <label cLabel>Cuenta Contable (GL) <span class="text-danger">*</span></label>
+          <select cFormSelect formControlName="linkedGlCode"
+                  (change)="onGlAccountChange($any($event.target).value)"
+                  [class.is-invalid]="form.get('linkedGlCode')?.invalid && form.get('linkedGlCode')?.touched">
+            <option value="">— Seleccionar cuenta —</option>
+            @for (gl of glAccounts(); track gl.id) {
+              <option [value]="gl.code">{{ gl.code }} — {{ gl.name }}</option>
+            }
+          </select>
+          @if (form.get('linkedGlCode')?.invalid && form.get('linkedGlCode')?.touched) {
+            <div class="invalid-feedback">Cuenta contable requerida</div>
+          }
+        </div>
+        <!-- GL Name (hidden field kept in sync) -->
+        <input type="hidden" formControlName="linkedGlName" />
+        <!-- Active toggle -->
+        <div class="col-12">
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" role="switch" id="baIsActive"
+                   formControlName="isActive" />
+            <label class="form-check-label" for="baIsActive">Cuenta Activa</label>
+          </div>
+        </div>
+      </div>
+    </form>
+  </c-modal-body>
+  <c-modal-footer>
+    <button cButton color="secondary" variant="outline" (click)="closeModal()">Cancelar</button>
+    <button cButton color="primary" (click)="save()" [disabled]="form.invalid || saving()">
+      @if (saving()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+      {{ editingId() ? 'Actualizar' : 'Crear' }}
+    </button>
+  </c-modal-footer>
+</c-modal>

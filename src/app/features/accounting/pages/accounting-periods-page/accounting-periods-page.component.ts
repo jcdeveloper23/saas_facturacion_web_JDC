@@ -37,11 +37,12 @@ export class AccountingPeriodsPageComponent implements OnInit, OnDestroy {
   private destroy$      = new Subject<void>();
 
   // ── State ─────────────────────────────────────────────────────────────────
-  periods   = signal<AccountingPeriod[]>([]);
-  loading   = signal(true);
-  showModal = signal(false);
-  editingId = signal<string | null>(null);
-  saving    = signal(false);
+  periods          = signal<AccountingPeriod[]>([]);
+  loading          = signal(true);
+  showModal        = signal(false);
+  editingId        = signal<string | null>(null);
+  saving           = signal(false);
+  generatingOpening = signal<string | null>(null);  // periodId en proceso
 
   // ── Form ──────────────────────────────────────────────────────────────────
   form = this.fb.group({
@@ -213,6 +214,20 @@ export class AccountingPeriodsPageComponent implements OnInit, OnDestroy {
       this.notifications.success('Ejercicio reabierto');
     } catch (err: any) {
       this.notifications.error('Error: ' + (err?.message ?? err));
+    }
+  }
+
+  async generateOpening(p: AccountingPeriod, event: Event): Promise<void> {
+    event.stopPropagation();
+    if (!confirm(`¿Generar asiento de apertura para "${p.name}"? Se tomarán los saldos del ejercicio anterior.`)) return;
+    this.generatingOpening.set(p.id);
+    try {
+      const result = await this.svc.generateOpeningEntry(p.id);
+      this.notifications.success(result.message);
+    } catch (err: any) {
+      this.notifications.error('Error al generar apertura: ' + (err?.message ?? err));
+    } finally {
+      this.generatingOpening.set(null);
     }
   }
 

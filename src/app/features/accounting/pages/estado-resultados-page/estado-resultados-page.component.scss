@@ -1,0 +1,80 @@
+@use '../../accounting-shared' as *;
+
+.select-period { min-width: 220px; }
+
+/* ── Report header ────────────────────────────────────────────────────────── */
+.report-header {
+  text-align: center;
+  .report-title  { font-size: 1rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+  .report-period { font-size: .82rem; color: var(--cui-secondary-color); }
+}
+
+/* ── Estado de Resultados table ───────────────────────────────────────────── */
+.er-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  .section-header td {
+    font-size: .7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    padding: .45rem .75rem;
+    border-top: 2px solid var(--cui-border-color);
+    border-bottom: 1px solid var(--cui-border-color);
+  }
+
+  .ingresos-header td { background: rgba(var(--cui-success-rgb), .08); color: var(--cui-success); }
+  .costos-header td   { background: rgba(var(--cui-danger-rgb),  .06); color: var(--cui-danger);  }
+
+  tbody tr {
+    border-bottom: 1px solid var(--cui-border-color-translucent);
+
+    &:hover { background: var(--cui-tertiary-bg); }
+  }
+
+  tbody td { padding: .3rem .75rem; font-size: .82rem; }
+
+  .subtotal-row td {
+    font-weight: 700;
+    font-size: .82rem;
+    padding: .4rem .75rem;
+    background: var(--cui-tertiary-bg);
+    border-top: 1px solid var(--cui-border-color);
+    font-family: monospace;
+  }
+
+  .result-row td {
+    font-weight: 700;
+    font-size: .95rem;
+    padding: .6rem .75rem;
+    border-top: 3px double var(--cui-border-color);
+    font-family: monospace;
+    letter-spacing: .02em;
+  }
+
+  .result-row.ganancia td { color: var(--cui-success); background: rgba(var(--cui-success-rgb), .06); }
+  .result-row.perdida  td { color: var(--cui-danger);  background: rgba(var(--cui-danger-rgb),  .06); }
+}
+
+.acc-cell {
+  .acc-code {
+    font-family: monospace;
+    font-size: .75rem;
+    font-weight: 600;
+    color: var(--cui-tertiary-color);
+    margin-right: .4rem;
+  }
+}
+
+.amt-cell {
+  text-align: right;
+  font-family: monospace;
+  white-space: nowrap;
+  width: 140px;
+}
+
+/* ── Print ────────────────────────────────────────────────────────────────── */
+@media print {
+  .no-print { display: none !important; }
+}

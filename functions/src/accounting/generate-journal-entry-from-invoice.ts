@@ -1,5 +1,6 @@
 import { onDocumentUpdated } from 'firebase-functions/v2/firestore';
 import * as admin from 'firebase-admin';
+import { getAccountMapping } from './utils/get-account-mapping';
 
 // ─── Types (mirrored from frontend models to avoid cross-module imports) ──────
 
@@ -11,6 +12,7 @@ interface InvoiceLine {
   vatPct: number;
   vatAmount: number;
   total: number;
+  averageCost?: number;  // costo promedio del producto al momento de la venta
 }
 
 interface VatSummaryLine {
@@ -32,7 +34,8 @@ interface InvoiceDoc {
   vatSummary: VatSummaryLine[];
   lines: InvoiceLine[];
   fiscalYear: string;
-  accountingEntryId?: string; // set when journal entry is created
+  accountingEntryId?: string;
+  isCreditNote?: boolean;
 }
 
 interface JournalEntryLine {
@@ -46,23 +49,14 @@ interface JournalEntryLine {
   description: string;
 }
 
-// ─── Default account mapping for invoice journal entries ─────────────────────
-// These codes assume the Ecuador standard chart of accounts.
-// Companies can override them via platform/defaults/accountingConfig.
-
-const DEFAULT_ACCOUNTS = {
-  accountsReceivable: { code: '1.1.02.001', name: 'Cuentas por Cobrar Clientes' },
-  sales15:            { code: '4.1.01.001', name: 'Ventas 15% IVA' },
-  sales0:             { code: '4.1.01.002', name: 'Ventas 0% IVA' },
-  salesExempt:        { code: '4.1.01.003', name: 'Ventas Exentas de IVA' },
-  ivaCollected:       { code: '2.1.04.001', name: 'IVA en Ventas' },
-};
+// Account mapping is resolved per-company from companies/{id}/settings/accounting
+// falling back to Ecuador standard codes. See utils/get-account-mapping.ts
 
 function round2(n: number): number { return Math.round(n * 100) / 100; }
 
 // ─── Build journal entry lines for an invoice ─────────────────────────────────
 
-function buildInvoiceLines(invoice: InvoiceDoc, accounts: typeof DEFAULT_ACCOUNTS): JournalEntryLine[] {
+function buildInvoiceLines(invoice: InvoiceDoc, accounts: { sales15: { code: string; name: string }; sales0: { code: string; name: string }; salesExempt: { code: string; name: string }; ivaCollected: { code: string; name: string }; accountsReceivable: { code: string; name: string }; cogs: { code: string; name: string }; inventory: { code: string; name: string } }): JournalEntryLine[] {
   const lines: JournalEntryLine[] = [];
 
   // Debit: Accounts Receivable (total including IVA)
@@ -142,6 +136,34 @@ function buildInvoiceLines(invoice: InvoiceDoc, accounts: typeof DEFAULT_ACCOUNT
     }
   }
 
+  // COGS: Costo de Ventas por cada línea con averageCost > 0 (productos con inventario)
+  for (const invLine of (invoice.lines ?? [])) {
+    if (!invLine.averageCost || invLine.averageCost <= 0) continue;
+    const cogs = round2(invLine.quantity * invLine.averageCost);
+    if (cogs <= 0) continue;
+
+    lines.push({
+      id:            crypto.randomUUID(),
+      accountCode:   accounts.cogs.code,
+      accountName:   accounts.cogs.name,
+      debit:         cogs,
+      credit:        0,
+      costCenterId:  null,
+      costCenterName:null,
+      description:   `COGS: ${invLine.description} — ${invoice.fullNumber}`
+    });
+    lines.push({
+      id:            crypto.randomUUID(),
+      accountCode:   accounts.inventory.code,
+      accountName:   accounts.inventory.name,
+      debit:         0,
+      credit:        cogs,
+      costCenterId:  null,
+      costCenterName:null,
+      description:   `Salida inventario: ${invLine.description} — ${invoice.fullNumber}`
+    });
+  }
+
   return lines;
 }
 
@@ -154,12 +176,24 @@ export const generateJournalEntryFromInvoice = onDocumentUpdated(
     const after  = event.data?.after.data()  as InvoiceDoc | undefined;
     if (!before || !after) return;
 
-    // Trigger: invoice status changed to 'issued' AND sriStatus is 'authorized' or not required
-    const statusChangedToIssued = before.status !== 'issued' && after.status === 'issued';
-    const sriAuthorized         = after.sriStatus === 'authorized' || after.sriStatus === 'not_required';
-    const entryAlreadyCreated   = !!after.accountingEntryId;
+    // Skip credit notes — handled by generateJournalEntryFromCreditNote
+    if (after.isCreditNote) return;
 
-    if (!statusChangedToIssued || !sriAuthorized || entryAlreadyCreated) return;
+    const SRI_DONE = (s?: string) => s === 'authorized' || s === 'not_required';
+
+    // Case A: status transitions to 'issued' AND sriStatus already resolved
+    //   (manual invoices authorized at the same time)
+    const statusChangedToIssued = before.status !== 'issued' && after.status === 'issued' && SRI_DONE(after.sriStatus);
+
+    // Case B: invoice was already 'issued' (e.g. created by POS) and sriStatus
+    //   just transitioned to authorized/not_required
+    const sriJustResolved = after.status === 'issued'
+      && !SRI_DONE(before.sriStatus)
+      && SRI_DONE(after.sriStatus);
+
+    const entryAlreadyCreated = !!after.accountingEntryId;
+
+    if ((!statusChangedToIssued && !sriJustResolved) || entryAlreadyCreated) return;
 
     const { companyId, invoiceId } = event.params;
     const db  = admin.firestore();
@@ -197,8 +231,8 @@ export const generateJournalEntryFromInvoice = onDocumentUpdated(
         tx.set(counterRef, { [key]: entryNumber }, { merge: true });
       });
 
-      // Resolve account codes (use defaults, could be extended to read company overrides)
-      const accounts = DEFAULT_ACCOUNTS;
+      // Resolve account codes from company-level settings (falls back to defaults)
+      const accounts = await getAccountMapping(companyId);
       const lines    = buildInvoiceLines(after, accounts);
 
       const totalDebit  = round2(lines.reduce((s, l) => s + l.debit,  0));

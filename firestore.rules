@@ -76,11 +76,12 @@ service cloud.firestore {
     match /companies/{companyId} {
       allow read: if isAuthenticated() && (isSuperAdmin() || belongsToCompany(companyId));
       allow write: if isSuperAdmin();
-      // Company admin can update only the marketplace config field (catalog settings)
+      // Company admin can update marketplace config and SRI settings
       allow update: if isAuthenticated()
                     && belongsToCompany(companyId)
                     && isAdmin()
-                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['marketplace']);
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                       .hasOnly(['marketplace', 'sri', 'updatedAt']);
 
       // ─── All tenant sub-collections ─────────────────────────────────
       match /personas/{id} {
@@ -382,6 +383,51 @@ service cloud.firestore {
         allow delete: if isAuthenticated() && belongsToCompany(companyId) && isAdmin()
                       && resource.data.status == 'draft'
                       && resource.data.get('type', 'manual') == 'manual';
+      }
+
+      // ─── Bank Accounts ────────────────────────────────────────────────────
+      match /bank_accounts/{accountId} {
+        allow read:          if isAuthenticated() && belongsToCompany(companyId)
+                             && (isAdmin() || isAccountant());
+        allow create, update: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
+        allow delete:         if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
+      }
+
+      // ─── Bank Statements + Transactions (subcollection) ───────────────────
+      match /bank_statements/{statementId} {
+        allow read:   if isAuthenticated() && belongsToCompany(companyId)
+                      && (isAdmin() || isAccountant());
+        allow create: if isAuthenticated() && belongsToCompany(companyId)
+                      && (isAdmin() || isAccountant());
+        allow update: if isAuthenticated() && belongsToCompany(companyId)
+                      && (isAdmin() || isAccountant());
+        allow delete: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
+
+        match /transactions/{txId} {
+          allow read:          if isAuthenticated() && belongsToCompany(companyId)
+                               && (isAdmin() || isAccountant());
+          allow create, update: if isAuthenticated() && belongsToCompany(companyId)
+                               && (isAdmin() || isAccountant());
+          allow delete:         if false; // immutable audit trail
+        }
+      }
+
+      // ─── Budgets ──────────────────────────────────────────────────────────
+      match /budgets/{periodId} {
+        allow read:          if isAuthenticated() && belongsToCompany(companyId)
+                             && (isAdmin() || isAccountant());
+        allow create, update: if isAuthenticated() && belongsToCompany(companyId)
+                             && (isAdmin() || isAccountant());
+        allow delete:         if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
+      }
+
+      // ─── Fixed Assets ─────────────────────────────────────────────────────
+      match /fixed_assets/{assetId} {
+        allow read:          if isAuthenticated() && belongsToCompany(companyId)
+                             && (isAdmin() || isAccountant());
+        allow create, update: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
+        // Assets are never deleted — only deactivated via update.
+        allow delete:         if false;
       }
 
       // ─── Monthly usage counters ───────────────────────────────────────────

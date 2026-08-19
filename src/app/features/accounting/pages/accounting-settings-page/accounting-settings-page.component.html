@@ -1,0 +1,144 @@
+<!-- ── Header ──────────────────────────────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h4 class="mb-0">Configuración Contable</h4>
+    <small class="text-secondary">Mapa de cuentas para asientos automáticos</small>
+  </div>
+  <div class="d-flex gap-2">
+    <button cButton color="secondary" variant="outline" size="sm"
+            cTooltip="Restablecer valores por defecto"
+            (click)="resetToDefaults()">
+      <svg cIcon name="cilReload" size="sm" class="me-1"></svg>
+      Restablecer
+    </button>
+    <button cButton color="primary" size="sm"
+            [disabled]="form.invalid || saving() || !isModified()"
+            (click)="save()">
+      @if (saving()) {
+        <c-spinner size="sm" class="me-1"></c-spinner>
+      } @else {
+        <svg cIcon name="cilSave" size="sm" class="me-1"></svg>
+      }
+      Guardar
+    </button>
+  </div>
+</div>
+
+@if (loading()) {
+  <div class="text-center py-5">
+    <c-spinner color="primary"></c-spinner>
+  </div>
+} @else {
+  <c-alert color="info" class="mb-3">
+    <svg cIcon name="cilInfo" size="sm" class="me-1"></svg>
+    Estos códigos de cuenta se usan en los asientos contables generados automáticamente al emitir facturas,
+    notas de crédito y retenciones. Modifíquelos solo si su plan de cuentas difiere del estándar Ecuador.
+  </c-alert>
+
+  <form [formGroup]="form">
+    <c-card>
+      <c-card-body>
+
+        <!-- ── INGRESOS ── -->
+        <div class="section-title">Cuentas de Ingresos</div>
+
+        @for (key of ingresoKeys; track key) {
+          <div class="mapping-row">
+            <div class="mapping-label">
+              <strong>{{ LABELS[key] }}</strong>
+              @if (!isDefault(key)) {
+                <span class="badge-custom">Personalizado</span>
+              }
+            </div>
+            <div class="mapping-control">
+              <select cFormSelect [formControlName]="key">
+                @for (acc of accounts(); track acc.id) {
+                  <option [value]="acc.code">{{ acc.code }} — {{ acc.name }}</option>
+                }
+              </select>
+            </div>
+            <div class="mapping-default">
+              <small class="text-secondary">Por defecto: <code>{{ DEFAULTS[key] }}</code></small>
+            </div>
+          </div>
+        }
+
+        <!-- ── IVA ── -->
+        <div class="section-title mt-3">Cuentas de IVA</div>
+
+        <div class="mapping-row">
+          <div class="mapping-label">
+            <strong>{{ LABELS.ivaCollected }}</strong>
+            @if (!isDefault('ivaCollected')) {
+              <span class="badge-custom">Personalizado</span>
+            }
+          </div>
+          <div class="mapping-control">
+            <select cFormSelect formControlName="ivaCollected">
+              @for (acc of accounts(); track acc.id) {
+                <option [value]="acc.code">{{ acc.code }} — {{ acc.name }}</option>
+              }
+            </select>
+          </div>
+          <div class="mapping-default">
+            <small class="text-secondary">Por defecto: <code>{{ DEFAULTS.ivaCollected }}</code></small>
+          </div>
+        </div>
+
+        <!-- ── ACTIVOS ── -->
+        <div class="section-title mt-3">Cuentas de Activo</div>
+
+        @for (key of activoKeys; track key) {
+          <div class="mapping-row">
+            <div class="mapping-label">
+              <strong>{{ LABELS[key] }}</strong>
+              @if (!isDefault(key)) {
+                <span class="badge-custom">Personalizado</span>
+              }
+            </div>
+            <div class="mapping-control">
+              <select cFormSelect [formControlName]="key">
+                @for (acc of accounts(); track acc.id) {
+                  <option [value]="acc.code">{{ acc.code }} — {{ acc.name }}</option>
+                }
+              </select>
+            </div>
+            <div class="mapping-default">
+              <small class="text-secondary">Por defecto: <code>{{ DEFAULTS[key] }}</code></small>
+            </div>
+          </div>
+        }
+
+        <!-- ── COSTOS ── -->
+        <div class="section-title mt-3">Cuentas de Costo</div>
+
+        <div class="mapping-row">
+          <div class="mapping-label">
+            <strong>{{ LABELS.cogs }}</strong>
+            @if (!isDefault('cogs')) {
+              <span class="badge-custom">Personalizado</span>
+            }
+          </div>
+          <div class="mapping-control">
+            <select cFormSelect formControlName="cogs">
+              @for (acc of accounts(); track acc.id) {
+                <option [value]="acc.code">{{ acc.code }} — {{ acc.name }}</option>
+              }
+            </select>
+          </div>
+          <div class="mapping-default">
+            <small class="text-secondary">Por defecto: <code>{{ DEFAULTS.cogs }}</code></small>
+          </div>
+        </div>
+
+      </c-card-body>
+    </c-card>
+  </form>
+
+  @if (isModified()) {
+    <div class="unsaved-notice">
+      <svg cIcon name="cilWarning" size="sm" class="me-1"></svg>
+      Hay cambios sin guardar
+    </div>
+  }
+}

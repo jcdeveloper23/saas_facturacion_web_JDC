@@ -15,10 +15,14 @@ import { IconModule } from '@coreui/icons-angular';
 import { JournalEntriesService }    from '../../services/journal-entries.service';
 import { AccountingPeriodsService } from '../../services/accounting-periods.service';
 import { ChartOfAccountsService }   from '../../services/chart-of-accounts.service';
+import { CostCentersService }       from '../../services/cost-centers.service';
+import { AccountingPdfService }     from '../../services/accounting-pdf.service';
+import { TenantService }            from '../../../../core/services/tenant.service';
 import { NotificationService }      from '../../../../core/services/notification.service';
 import { LibroMayorLine, JOURNAL_ENTRY_TYPE_LABELS } from '../../models/journal-entry.interface';
 import { Account, ACCOUNT_TYPE_LABELS, ACCOUNT_NATURE_LABELS } from '../../models/account.interface';
 import { AccountingPeriod } from '../../models/accounting-period.interface';
+import { CostCenter } from '../../models/cost-center.interface';
 
 @Component({
   selector: 'app-libro-mayor-page',
@@ -33,22 +37,28 @@ import { AccountingPeriod } from '../../models/accounting-period.interface';
   ]
 })
 export class LibroMayorPageComponent implements OnInit, OnDestroy {
-  private svc           = inject(JournalEntriesService);
-  private periodsSvc    = inject(AccountingPeriodsService);
-  private accountsSvc   = inject(ChartOfAccountsService);
-  private notifications = inject(NotificationService);
-  private destroy$      = new Subject<void>();
+  private svc            = inject(JournalEntriesService);
+  private periodsSvc     = inject(AccountingPeriodsService);
+  private accountsSvc    = inject(ChartOfAccountsService);
+  private costCentersSvc = inject(CostCentersService);
+  private pdfSvc         = inject(AccountingPdfService);
+  private tenantSvc      = inject(TenantService);
+  private notifications  = inject(NotificationService);
+  private destroy$       = new Subject<void>();
 
   // ── State ─────────────────────────────────────────────────────────────────
-  accounts        = signal<Account[]>([]);
-  periods         = signal<AccountingPeriod[]>([]);
-  lines           = signal<LibroMayorLine[]>([]);
-  selectedAccount = signal<Account | null>(null);
-  selectedPeriod  = signal('');
-  selectedCode    = signal('');
-  loading         = signal(false);
-  searching       = signal(false);
-  accountSearch   = signal('');
+  downloadingPdf      = signal(false);
+  accounts            = signal<Account[]>([]);
+  periods             = signal<AccountingPeriod[]>([]);
+  costCenters         = signal<CostCenter[]>([]);
+  lines               = signal<LibroMayorLine[]>([]);
+  selectedAccount     = signal<Account | null>(null);
+  selectedPeriod      = signal('');
+  selectedCode        = signal('');
+  selectedCostCenter  = signal('');
+  loading             = signal(false);
+  searching           = signal(false);
+  accountSearch       = signal('');
 
   readonly TYPE_LABELS  = JOURNAL_ENTRY_TYPE_LABELS;
   readonly ACC_TYPES    = ACCOUNT_TYPE_LABELS;
@@ -57,10 +67,10 @@ export class LibroMayorPageComponent implements OnInit, OnDestroy {
   // ── Computed ──────────────────────────────────────────────────────────────
   filteredAccounts = computed(() => {
     const t = this.accountSearch().toLowerCase().trim();
-    if (!t) return this.accounts().slice(0, 80);
+    if (!t) return this.accounts().slice(0, 100);
     return this.accounts().filter(a =>
       a.code.includes(t) || a.name.toLowerCase().includes(t)
-    ).slice(0, 80);
+    );
   });
 
   totalDebit  = computed(() => this.lines().reduce((s, l) => s + l.debit,  0));
@@ -74,6 +84,9 @@ export class LibroMayorPageComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.accountsSvc.getActiveMovementAccounts().pipe(take(1)).subscribe(a => this.accounts.set(a));
     this.periodsSvc.getPeriods().pipe(take(1)).subscribe(p => this.periods.set(p));
+    this.costCentersSvc.getCostCenters().pipe(take(1)).subscribe(cc =>
+      this.costCenters.set(cc.filter(c => c.isActive))
+    );
   }
 
   ngOnDestroy(): void {
@@ -92,8 +105,9 @@ export class LibroMayorPageComponent implements OnInit, OnDestroy {
     this.lines.set([]);
 
     try {
-      const periodId = this.selectedPeriod() || undefined;
-      const result   = await this.svc.getLibroMayor(code, periodId);
+      const periodId     = this.selectedPeriod()     || undefined;
+      const costCenterId = this.selectedCostCenter() || undefined;
+      const result       = await this.svc.getLibroMayor(code, periodId, costCenterId);
       this.lines.set(result);
     } catch (err: any) {
       this.notifications.error('Error cargando libro mayor: ' + (err?.message ?? err));
@@ -103,6 +117,40 @@ export class LibroMayorPageComponent implements OnInit, OnDestroy {
   }
 
   printReport(): void { window.print(); }
+
+  async downloadPdf(): Promise<void> {
+    if (!this.lines().length) return;
+    this.downloadingPdf.set(true);
+    try {
+      const acc        = this.selectedAccount();
+      const periodName = this.getPeriodName(this.selectedPeriod());
+      await this.pdfSvc.downloadPdf({
+        reportType: 'libro-mayor',
+        companyId:  this.tenantSvc.companyId,
+        periodName,
+        data: this.lines().map(l => ({
+          entryNumber: l.entryNumber,
+          date:        this.formatDate(l.date),
+          description: l.description,
+          type:        this.TYPE_LABELS[l.type] ?? l.type,
+          debit:       l.debit,
+          credit:      l.credit,
+          balance:     l.balance
+        })),
+        extraData: {
+          accountCode:  acc?.code ?? '',
+          accountName:  acc?.name ?? '',
+          totalDebit:   this.totalDebit(),
+          totalCredit:  this.totalCredit(),
+          finalBalance: this.finalBalance()
+        }
+      });
+    } catch (err: any) {
+      this.notifications.error('Error generando PDF: ' + (err?.message ?? err));
+    } finally {
+      this.downloadingPdf.set(false);
+    }
+  }
 
   balanceClass(bal: number): string {
     if (bal > 0)  return 'bal-positive';

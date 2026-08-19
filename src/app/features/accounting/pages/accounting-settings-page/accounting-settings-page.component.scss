@@ -1,0 +1,68 @@
+@use '../../accounting-shared' as *;
+
+/* ── Section titles ───────────────────────────────────────────────────────── */
+.section-title {
+  font-size: .68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--cui-tertiary-color);
+  margin-bottom: .5rem;
+  padding-bottom: .25rem;
+  border-bottom: 1px solid var(--cui-border-color);
+}
+
+/* ── Mapping rows ─────────────────────────────────────────────────────────── */
+.mapping-row {
+  display: grid;
+  grid-template-columns: 220px 1fr 160px;
+  gap: .75rem;
+  align-items: center;
+  padding: .45rem 0;
+  border-bottom: 1px solid var(--cui-border-color-translucent);
+
+  &:last-of-type { border-bottom: none; }
+}
+
+.mapping-label {
+  font-size: .82rem;
+  display: flex;
+  flex-direction: column;
+  gap: .15rem;
+}
+
+.mapping-control select {
+  font-size: .8rem;
+}
+
+.mapping-default {
+  font-size: .72rem;
+  code {
+    font-size: .72rem;
+    background: var(--cui-tertiary-bg);
+    padding: .1rem .3rem;
+    border-radius: 3px;
+  }
+}
+
+/* ── Custom badge ─────────────────────────────────────────────────────────── */
+.badge-custom {
+  display: inline-block;
+  font-size: .6rem;
+  font-weight: 600;
+  background: rgba(var(--cui-warning-rgb), .15);
+  color: var(--cui-warning-text-emphasis);
+  padding: .05rem .35rem;
+  border-radius: 10px;
+  letter-spacing: .03em;
+}
+
+/* ── Unsaved notice ───────────────────────────────────────────────────────── */
+.unsaved-notice {
+  display: flex;
+  align-items: center;
+  margin-top: .75rem;
+  font-size: .8rem;
+  color: var(--cui-warning-text-emphasis);
+  font-weight: 500;
+}

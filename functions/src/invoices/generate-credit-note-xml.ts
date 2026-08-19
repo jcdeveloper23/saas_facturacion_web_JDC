@@ -326,7 +326,7 @@ export async function generateCreditNoteXmlInternal(
       detalle.ele('codigoAdicional').txt(line.skuAlt);
     }
     detalle.ele('descripcion').txt(line.description);
-    detalle.ele('unidadMedida').txt(line.unit ?? 'UNIDAD');
+    detalle.ele('unidadMedida').txt(line.unit || 'UNIDAD');
     detalle.ele('cantidad').txt(line.quantity.toFixed(6));
     detalle.ele('precioUnitario').txt(line.unitPrice.toFixed(6));
     detalle.ele('descuento').txt(line.discount.toFixed(2));

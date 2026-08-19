@@ -1,0 +1,82 @@
+@use '../../_accounting-shared' as *;
+
+/* ── Summary card ─────────────────────────────────────────────────────────── */
+.summary-card { background: var(--cui-tertiary-bg); }
+
+.summary-item {
+  min-width: 120px;
+
+  .summary-label {
+    font-size: .72rem;
+    color: var(--cui-secondary-color);
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    white-space: nowrap;
+  }
+
+  .summary-value {
+    font-size: 1.15rem;
+    font-weight: 700;
+    font-family: monospace;
+  }
+}
+
+/* ── Reconciliation table ─────────────────────────────────────────────────── */
+.recon-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .875rem;
+
+  th, td {
+    padding: .38rem .6rem;
+    border-bottom: 1px solid var(--cui-border-color);
+  }
+
+  th {
+    @extend %acc-thead-th;
+  }
+
+  tbody tr {
+    cursor: pointer;
+    transition: background .1s;
+
+    &:hover { background: var(--cui-tertiary-bg); }
+    &.selected { background: #cfe2ff !important; }
+    &.matched  { background: #d1e7dd; cursor: default; }
+    &.ignored  { background: var(--cui-tertiary-bg); opacity: .6; cursor: default; }
+  }
+
+  &.preview-table tbody tr {
+    cursor: default;
+    &:hover { background: transparent; }
+  }
+}
+
+/* ── Cell helpers ─────────────────────────────────────────────────────────── */
+.date-cell {
+  white-space: nowrap;
+  width: 90px;
+  color: var(--cui-secondary-color);
+  font-size: .82rem;
+}
+
+.desc-cell {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.amt-cell {
+  font-family: monospace;
+  white-space: nowrap;
+  width: 90px;
+}
+
+.match-ref {
+  font-size: .72rem;
+  color: #198754;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

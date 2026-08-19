@@ -3,6 +3,7 @@ import {
   Firestore, collection, doc, onSnapshot,
   addDoc, updateDoc, query, orderBy, where, Timestamp, getDocs
 } from '@angular/fire/firestore';
+import { Functions, httpsCallable } from '@angular/fire/functions';
 import { Observable } from 'rxjs';
 
 import { TenantService } from '../../../core/services/tenant.service';
@@ -16,6 +17,7 @@ export type PeriodCreateInput = Omit<AccountingPeriod,
 @Injectable({ providedIn: 'root' })
 export class AccountingPeriodsService {
   private firestore     = inject(Firestore);
+  private functions     = inject(Functions);
   private tenantService = inject(TenantService);
   private authService   = inject(AuthService);
 
@@ -71,6 +73,20 @@ export class AccountingPeriodsService {
   // ─── Create ───────────────────────────────────────────────────────────────
 
   async createPeriod(input: PeriodCreateInput): Promise<string> {
+    // Guard: no two 'open' periods for the same year
+    if (input.status === 'open') {
+      const existing = await getDocs(
+        query(
+          collection(this.firestore, this.colPath),
+          where('year',   '==', input.year),
+          where('status', '==', 'open')
+        )
+      );
+      if (!existing.empty) {
+        throw new Error(`Ya existe un ejercicio abierto para el año ${input.year}. Ciérrelo antes de crear uno nuevo.`);
+      }
+    }
+
     const userId = this.authService.user()?.uid ?? 'unknown';
     const now    = Timestamp.now();
 
@@ -96,12 +112,16 @@ export class AccountingPeriodsService {
   // ─── Status transitions ───────────────────────────────────────────────────
 
   async closePeriod(id: string): Promise<void> {
-    const userId = this.authService.user()?.uid ?? 'unknown';
-    await this.updatePeriod(id, {
-      status:   'closed',
-      closedAt: Timestamp.now(),
-      closedBy: userId
-    });
+    const fn = httpsCallable(this.functions, 'closeAccountingPeriod');
+    await fn({ companyId: this.companyId, periodId: id });
+  }
+
+  async generateOpeningEntry(newPeriodId: string): Promise<{ entryId: string; message: string }> {
+    const fn = httpsCallable<{ companyId: string; newPeriodId: string }, { entryId: string; message: string }>(
+      this.functions, 'generateOpeningEntry'
+    );
+    const result = await fn({ companyId: this.companyId, newPeriodId });
+    return result.data;
   }
 
   async lockPeriod(id: string): Promise<void> {
