@@ -62,8 +62,10 @@ export class CompanySettingsComponent implements OnInit, OnDestroy {
   certUploadError = signal('');
 
   // Certificate info from Firestore (updated after upload)
-  certThumbprint = signal<string | null>(null);
-  certExpiry = signal<Date | null>(null);
+  certThumbprint    = signal<string | null>(null);
+  certExpiry        = signal<Date | null>(null);
+  certOwnerTaxId    = signal<string | null>(null);
+  certOwnerName     = signal<string | null>(null);
   readonly today = new Date();
   private destroy$ = new Subject<void>();
 
@@ -339,6 +341,19 @@ export class CompanySettingsComponent implements OnInit, OnDestroy {
     }
   }
 
+  // ── Sync from company form → sriXmlForm ─────────────────────────────────────
+  syncFromCompany(): void {
+    const fv = this.form.getRawValue();
+    this.sriXmlForm.patchValue({
+      razonSocial:              fv.companyName ?? '',
+      direccionMatriz:          fv.fiscalAddress ?? '',
+      direccionEstablecimiento: fv.fiscalAddress ?? '',
+      telefono:                 fv.phone ?? '',
+      correo:                   fv.email ?? '',
+    });
+    this.notifications.success('Datos sincronizados. Revisa y guarda cuando estés listo.');
+  }
+
   // ── Additional fields helpers ───────────────────────────────────────────────
   addAdditionalField(): void {
     if (this.additionalFields.length >= 15) { return; }
@@ -373,7 +388,7 @@ export class CompanySettingsComponent implements OnInit, OnDestroy {
       const base64 = await this.fileToBase64(file);
       const fn = httpsCallable<
         { companyId: string; certificateBase64: string; password: string },
-        { success: boolean; thumbprint: string; subject: string; expiresAt: string; expiresIn: number }
+        { success: boolean; thumbprint: string; subject: string; expiresAt: string; expiresIn: number; certOwnerTaxId: string; certOwnerName: string }
       >(this.functions, 'uploadCertificate');
       const result = await fn({
         companyId: this.tenantSvc.companyId,
@@ -383,6 +398,8 @@ export class CompanySettingsComponent implements OnInit, OnDestroy {
       const data = result.data;
       this.certThumbprint.set(data.thumbprint);
       this.certExpiry.set(new Date(data.expiresAt));
+      this.certOwnerTaxId.set(data.certOwnerTaxId || null);
+      this.certOwnerName.set(data.certOwnerName || null);
       this.certificateFile.set(null);
       this.certificateFileName.set(null);
       this.certPassword.set('');

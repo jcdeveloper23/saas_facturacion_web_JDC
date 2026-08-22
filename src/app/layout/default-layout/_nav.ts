@@ -408,6 +408,12 @@ export const navItems: INavData[] = [
     iconComponent: { name: 'cil-lock-locked' },
     attributes: { module: 'users', roles: ['admin', 'super_admin'] }
   },
+  {
+    name: 'API Docs',
+    url: '/api-docs',
+    iconComponent: { name: 'cil-code' },
+    attributes: { roles: ['admin', 'super_admin'] }
+  },
 
   // ─── CoreUI reference (remove after development) ─────────────────────────
   // {

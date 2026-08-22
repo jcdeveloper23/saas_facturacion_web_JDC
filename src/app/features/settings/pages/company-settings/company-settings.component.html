@@ -413,6 +413,20 @@
                 <c-badge color="secondary">Sin configurar</c-badge>
               }
             </div>
+            @if (certOwnerTaxId()) {
+              <div class="d-flex justify-content-between small">
+                <span class="text-muted">RUC/Cédula cert.:</span>
+                <span class="font-monospace fw-bold text-success">{{ certOwnerTaxId() }}</span>
+              </div>
+            }
+            @if (certOwnerName()) {
+              <div class="d-flex justify-content-between small align-items-start">
+                <span class="text-muted flex-shrink-0">Titular:</span>
+                <span class="text-truncate ms-2 text-end" style="max-width:140px" [title]="certOwnerName()!">
+                  {{ certOwnerName() }}
+                </span>
+              </div>
+            }
             @if (certThumbprint()) {
               <div class="d-flex justify-content-between small">
                 <span class="text-muted">Huella (SHA1):</span>
@@ -471,12 +485,16 @@
 <c-callout color="info" class="bg-body border-start-4 shadow-sm mb-4">
   <div class="d-flex gap-3 align-items-start">
     <svg cIcon name="cilInfo" size="lg" class="text-info mt-1"></svg>
-    <div>
+    <div class="flex-grow-1">
       <p class="mb-1 fw-bold">Datos infoTributaria del XML</p>
-      <p class="mb-0 text-muted small">
+      <p class="mb-1 text-muted small">
         Estos datos se insertan directamente en el XML de los comprobantes electrónicos que se envían al SRI.
         La <strong>Razón Social</strong> y las <strong>Direcciones</strong> deben coincidir con los registros del SRI.
       </p>
+      <button cButton color="outline-info" size="sm" type="button" (click)="syncFromCompany()">
+        <svg cIcon name="cilSync" size="sm" class="me-1"></svg>
+        Sincronizar desde datos de empresa
+      </button>
     </div>
   </div>
 </c-callout>

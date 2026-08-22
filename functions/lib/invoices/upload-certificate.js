@@ -112,40 +112,47 @@ exports.uploadCertificate = (0, https_1.onCall)(async (request) => {
     console.log('[uploadCertificate] Thumbprint:', thumbprint);
     console.log('[uploadCertificate] Subject:', subject);
     console.log('[uploadCertificate] Expiry:', expiryDate.toISOString());
-    // ── Read company document to validate RUC ────────────────────────────────
+    // ── Read company taxId from configuration/general ────────────────────────
     const db = admin.firestore();
     const companySnap = await db.collection('companies').doc(data.companyId).get();
     if (!companySnap.exists) {
         throw new https_1.HttpsError('not-found', `No se encontró la empresa con ID: ${data.companyId}`);
     }
-    const companyDoc = companySnap.data();
-    const sri = companyDoc['sri'];
-    const companyRuc = sri?.ruc;
-    // ── Validate RUC against certificate subject ──────────────────────────────
-    if (companyRuc) {
-        // RUC can appear in CN or SERIALNUMBER fields of the subject
-        const cnField = cert.subject.getField('CN');
-        const serialField = cert.subject.getField('SERIALNUMBER');
-        const cnValue = typeof cnField?.value === 'string' ? cnField.value : '';
-        const serialValue = typeof serialField?.value === 'string' ? serialField.value : '';
-        const subjectLower = subject.toLowerCase();
-        const rucInCn = cnValue.includes(companyRuc);
-        const rucInSerial = serialValue.includes(companyRuc);
-        const rucInSubject = subjectLower.includes(companyRuc.toLowerCase());
-        if (!rucInCn && !rucInSerial && !rucInSubject) {
-            // RUC not found in certificate — warn but allow (format varies by CA in Ecuador)
-            console.warn('[uploadCertificate] WARNING: RUC de la empresa no encontrado en el certificado.', { companyRuc, subject });
+    const configSnap = await db
+        .collection('companies').doc(data.companyId)
+        .collection('configuration').doc('general')
+        .get();
+    const companyTaxId = configSnap.exists
+        ? configSnap.data()['taxId'] ?? ''
+        : '';
+    // ── Extract RUC/cédula from certificate subject ───────────────────────────
+    // BCE Ecuador embeds the RUC in SERIALNUMBER field (most reliable).
+    // Some CAs also include it inside CN: "APELLIDO NOMBRE - 1234567890001".
+    const cnField = cert.subject.getField('CN');
+    const serialField = cert.subject.getField('SERIALNUMBER');
+    const certSerial = typeof serialField?.value === 'string' ? serialField.value.trim() : '';
+    const certCn = typeof cnField?.value === 'string' ? cnField.value.trim() : '';
+    // Attempt to pull a 10- or 13-digit number from SERIALNUMBER or CN
+    const taxIdPattern = /\b(\d{10}|\d{13})\b/;
+    const certTaxId = certSerial.match(taxIdPattern)?.[1] ??
+        certCn.match(taxIdPattern)?.[1] ??
+        '';
+    console.log('[uploadCertificate] certTaxId extraído:', certTaxId, '| companyTaxId:', companyTaxId);
+    // ── Validate cert identity against company taxId ──────────────────────────
+    if (companyTaxId && certTaxId) {
+        if (certTaxId !== companyTaxId) {
+            throw new https_1.HttpsError('invalid-argument', `El certificado pertenece al RUC/cédula ${certTaxId}, ` +
+                `pero la empresa tiene registrado ${companyTaxId}. ` +
+                'Sube el certificado que corresponde a esta empresa.');
         }
-        else {
-            // RUC found — confirm it matches (redundant but explicit)
-            if (!rucInCn && !rucInSerial && !rucInSubject) {
-                throw new https_1.HttpsError('invalid-argument', 'El RUC del certificado no coincide con el RUC de la empresa.');
-            }
-            console.log('[uploadCertificate] RUC validado en el certificado.');
-        }
+        console.log('[uploadCertificate] RUC/cédula validado correctamente:', certTaxId);
+    }
+    else if (companyTaxId && !certTaxId) {
+        // Could not extract a tax ID from the cert — allow but warn
+        console.warn('[uploadCertificate] No se pudo extraer RUC/cédula del certificado. Subject:', subject);
     }
     else {
-        console.warn('[uploadCertificate] WARNING: La empresa no tiene RUC configurado en sri.ruc — saltando validación de RUC.');
+        console.warn('[uploadCertificate] Empresa sin taxId configurado — saltando validación.');
     }
     // ── Validate certificate is not expired ───────────────────────────────────
     const now = new Date();
@@ -198,6 +205,8 @@ exports.uploadCertificate = (0, https_1.onCall)(async (request) => {
         subject,
         expiresAt: expiryDate.toISOString(),
         expiresIn,
+        certOwnerTaxId: certTaxId,
+        certOwnerName: certCn,
     };
 });
 //# sourceMappingURL=upload-certificate.js.map

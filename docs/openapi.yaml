@@ -1,0 +1,3353 @@
+openapi: "3.0.3"
+info:
+  title: "SaasFacturacion — Referencia de Cloud Functions"
+  description: |
+    Documentación completa de todas las Firebase Cloud Functions del proyecto SaasFacturacion Ecuador.
+
+    ## Protocolo Firebase Callable
+    Todas las funciones marcadas como "Callable" siguen el protocolo Firebase Cloud Functions:
+    - **Método:** siempre POST
+    - **URL:** https://us-central1-facturasproec.cloudfunctions.net/{functionName}
+    - **Request body:** siempre `{ "data": { ...parámetros } }`
+    - **Response:** siempre `{ "result": { ...respuesta } }` en éxito
+    - **Auth:** Bearer token de Firebase ID Token en header Authorization
+
+    ## Funciones Background (Triggers y Scheduled)
+    Las funciones de tipo Trigger y Scheduled no tienen endpoint HTTP directo.
+    Se documentan aquí como referencia de cuándo se ejecutan y qué hacen.
+
+    ## Roles del sistema
+    - `super_admin` — Acceso total a la plataforma. Sin companyId.
+    - `admin` — Administrador de una empresa. companyId en claims.
+    - `seller`, `accountant`, `cashier`, `read_only` — Roles de empresa con permisos acotados.
+  version: "1.0.0"
+  contact:
+    email: "jrodriguez@dycotein.com"
+
+servers:
+  - url: "https://us-central1-facturasproec.cloudfunctions.net"
+    description: "Producción"
+  - url: "http://localhost:5001/facturasproec/us-central1"
+    description: "Emuladores locales (firebase emulators:start)"
+
+security:
+  - FirebaseIdToken: []
+
+components:
+  securitySchemes:
+    FirebaseIdToken:
+      type: http
+      scheme: bearer
+      description: "Firebase ID Token. Obtener con: firebase.auth().currentUser.getIdToken()"
+
+  schemas:
+    # ── Error genérico Firebase Callable ─────────────────────────────────────────
+    CallableError:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            status:
+              type: string
+              enum:
+                - INVALID_ARGUMENT
+                - NOT_FOUND
+                - PERMISSION_DENIED
+                - UNAUTHENTICATED
+                - INTERNAL
+                - ALREADY_EXISTS
+                - RESOURCE_EXHAUSTED
+                - FAILED_PRECONDITION
+                - UNAVAILABLE
+            message:
+              type: string
+            details:
+              type: object
+
+    # ── Auth ──────────────────────────────────────────────────────────────────────
+    SetUserCustomClaimsRequest:
+      type: object
+      required: [targetUid, companyId, role]
+      properties:
+        targetUid:
+          type: string
+          description: "UID del usuario de Firebase Auth al que asignar los claims."
+        companyId:
+          type: string
+          description: "ID de la empresa que se asociará al usuario."
+        role:
+          type: string
+          description: "Código de rol. Solo letras minúsculas, dígitos y guiones bajos (máx. 50 chars). Ejemplo: seller, accountant, cashier."
+          pattern: "^[a-z][a-z0-9_]{0,49}$"
+
+    SetUserCustomClaimsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        uid:
+          type: string
+        companyId:
+          type: string
+        role:
+          type: string
+
+    SetupFirstAdminRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          description: "Email del primer super_admin."
+        password:
+          type: string
+          minLength: 8
+          description: "Contraseña (mínimo 8 caracteres)."
+
+    SetupFirstAdminResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        uid:
+          type: string
+          description: "UID del super_admin creado en Firebase Auth."
+        message:
+          type: string
+          example: "Super administrador creado correctamente. Ya puedes iniciar sesión."
+
+    # ── Tenants ───────────────────────────────────────────────────────────────────
+    SriSetupInput:
+      type: object
+      required: [environment, ruc, businessName, establishment, emissionPoint, contributorType, accountingRequired]
+      properties:
+        environment:
+          type: string
+          enum: [testing, production]
+        ruc:
+          type: string
+          description: "RUC de 13 dígitos."
+        businessName:
+          type: string
+        establishment:
+          type: string
+          example: "001"
+        emissionPoint:
+          type: string
+          example: "001"
+        contributorType:
+          type: string
+          enum: [natural, juridica]
+        accountingRequired:
+          type: boolean
+        contribuyenteEspecial:
+          type: string
+          nullable: true
+          description: "Número de resolución de contribuyente especial. Opcional."
+        microempresa:
+          type: boolean
+          nullable: true
+        regimen:
+          type: string
+          nullable: true
+          enum: [general, rimpe_negocio_popular, rimpe_emprendedor]
+
+    SetupCompanyRequest:
+      type: object
+      required: [name, taxId, fiscalAddress, city, phone, email, planId, planName, status, subscriptionEnd, sri]
+      properties:
+        name:
+          type: string
+          description: "Razón social de la empresa."
+        taxId:
+          type: string
+          description: "RUC de la empresa."
+        fiscalAddress:
+          type: string
+        city:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+          format: email
+          description: "Email corporativo. Si se proporciona adminPassword, también es el email del usuario admin."
+        adminPassword:
+          type: string
+          nullable: true
+          description: "Si se proporciona, crea un usuario admin en Firebase Auth con este email y contraseña."
+        planId:
+          type: string
+          description: "ID del plan en /plans/{planId}."
+        planName:
+          type: string
+        status:
+          type: string
+          example: "active"
+        subscriptionEnd:
+          type: string
+          format: date-time
+          description: "Fecha ISO de fin de suscripción."
+        sri:
+          $ref: '#/components/schemas/SriSetupInput'
+
+    SetupCompanyResponse:
+      type: object
+      properties:
+        companyId:
+          type: string
+          description: "ID del documento recién creado en /companies/{companyId}."
+
+    AssignPlanToCompanyRequest:
+      type: object
+      required: [companyId, planId]
+      properties:
+        companyId:
+          type: string
+        planId:
+          type: string
+
+    AssignPlanToCompanyResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        companyId:
+          type: string
+        planId:
+          type: string
+
+    CheckPlanLimitRequest:
+      type: object
+      required: [companyId, limitType]
+      properties:
+        companyId:
+          type: string
+        limitType:
+          type: string
+          enum:
+            - invoices
+            - creditNotes
+            - debitNotes
+            - retentions
+            - totalSriDocs
+            - personas
+            - customers
+            - products
+            - warehouses
+            - users
+            - customRoles
+            - activeProjects
+            - exports
+            - tasks
+          description: |
+            Tipo de límite a verificar:
+            - `invoices` / `creditNotes` / `debitNotes` / `retentions` / `totalSriDocs` — documentos SRI por mes (fuente: usage/{YYYY-MM})
+            - `personas` / `customers` / `products` / `warehouses` / `users` / `customRoles` / `activeProjects` — campos del documento de empresa
+            - `exports` / `tasks` — contadores de uso mensual
+
+    CheckPlanLimitResponse:
+      type: object
+      properties:
+        allowed:
+          type: boolean
+          description: "true si se puede continuar la operación."
+        current:
+          type: integer
+          description: "Uso actual."
+        limit:
+          type: integer
+          description: "-1 = ilimitado, 0 = deshabilitado, >0 = límite concreto."
+        limitType:
+          type: string
+
+    # ── Invoices / SRI ────────────────────────────────────────────────────────────
+    UploadCertificateRequest:
+      type: object
+      required: [companyId, certificateBase64, password]
+      properties:
+        companyId:
+          type: string
+        certificateBase64:
+          type: string
+          description: "Contenido del archivo .p12 en Base64."
+        password:
+          type: string
+          description: "Contraseña del certificado .p12."
+
+    UploadCertificateResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        thumbprint:
+          type: string
+          description: "SHA1 fingerprint del certificado."
+        subject:
+          type: string
+          description: "Subject DN del certificado X.509."
+        expiresAt:
+          type: string
+          format: date-time
+          description: "Fecha de expiración del certificado."
+        expiresIn:
+          type: integer
+          description: "Días hasta la expiración."
+
+    GenerateInvoiceXmlRequest:
+      type: object
+      required: [invoiceId, companyId]
+      properties:
+        invoiceId:
+          type: string
+          description: "ID del documento en companies/{companyId}/invoices/{invoiceId}."
+        companyId:
+          type: string
+
+    GenerateInvoiceXmlResponse:
+      type: object
+      properties:
+        invoiceId:
+          type: string
+        accessKey:
+          type: string
+          description: "Clave de acceso SRI de 49 dígitos."
+        xmlUrl:
+          type: string
+          format: uri
+          description: "URL pública del XML en Cloud Storage."
+        sriStatus:
+          type: string
+          example: "xml_generated"
+        fullNumber:
+          type: string
+          description: "Número completo estab-ptoEmi-secuencial. Ejemplo: 001-001-000000001."
+        nextStep:
+          type: string
+          example: "signXml"
+
+    GenerateCreditNoteXmlRequest:
+      type: object
+      required: [creditNoteId, companyId]
+      properties:
+        creditNoteId:
+          type: string
+          description: "ID del documento de nota de crédito en companies/{companyId}/invoices/{creditNoteId} (isCreditNote=true)."
+        companyId:
+          type: string
+
+    GenerateCreditNoteXmlResponse:
+      type: object
+      properties:
+        accessKey:
+          type: string
+          description: "Clave de acceso SRI de 49 dígitos."
+        xmlUrl:
+          type: string
+          format: uri
+
+    SignXmlRequest:
+      type: object
+      required: [invoiceId, companyId]
+      properties:
+        invoiceId:
+          type: string
+          description: "ID del documento (factura o nota de crédito). La función obtiene la contraseña del certificado desde Firestore."
+        companyId:
+          type: string
+
+    SignXmlResponse:
+      type: object
+      properties:
+        invoiceId:
+          type: string
+        accessKey:
+          type: string
+        sriStatus:
+          type: string
+          example: "signed"
+        signedXmlUrl:
+          type: string
+          format: uri
+          description: "URL pública del XML firmado con XAdES-BES en Cloud Storage."
+        nextStep:
+          type: string
+          example: "sendToSri"
+
+    SendToSriRequest:
+      type: object
+      required: [companyId]
+      properties:
+        documentId:
+          type: string
+          description: "ID del documento. Acepta también `invoiceId` para compatibilidad retroactiva."
+        invoiceId:
+          type: string
+          description: "Alias retroactivo de documentId."
+        documentType:
+          type: string
+          enum: [invoice, retention, debitNote, creditNote]
+          default: invoice
+          description: "Tipo de documento a enviar al SRI."
+        companyId:
+          type: string
+
+    SendToSriResponse:
+      type: object
+      properties:
+        documentId:
+          type: string
+        companyId:
+          type: string
+        sriStatus:
+          type: string
+          enum: [authorized, rejected, pending]
+        authorizationNumber:
+          type: string
+          nullable: true
+          description: "Número de autorización SRI (49 dígitos). Solo presente si authorized."
+        authorizedAt:
+          type: string
+          format: date-time
+          nullable: true
+        estado:
+          type: string
+          description: "Estado SOAP devuelto por el SRI."
+        mensaje:
+          type: string
+          nullable: true
+        detalle:
+          type: string
+          nullable: true
+        sriError:
+          type: string
+          nullable: true
+        nextStep:
+          type: string
+          nullable: true
+          example: "generatePdf"
+
+    CheckSriStatusRequest:
+      type: object
+      required: [companyId]
+      properties:
+        documentId:
+          type: string
+          description: "ID del documento. También acepta `invoiceId` para compatibilidad retroactiva."
+        invoiceId:
+          type: string
+          description: "Alias retroactivo de documentId."
+        companyId:
+          type: string
+        documentType:
+          type: string
+          enum: [invoice, retention, debitNote]
+          default: invoice
+
+    CheckSriStatusResponse:
+      type: object
+      properties:
+        sriStatus:
+          type: string
+          enum: [authorized, rejected, pending, xml_generated, signed]
+        authorizationNumber:
+          type: string
+          nullable: true
+        estado:
+          type: string
+          description: "Estado SOAP directo del SRI: AUTORIZADO | NO AUTORIZADO | RECHAZADO | PENDIENTE."
+        mensaje:
+          type: string
+
+    GeneratePdfRequest:
+      type: object
+      required: [invoiceId, companyId]
+      properties:
+        invoiceId:
+          type: string
+        companyId:
+          type: string
+
+    GeneratePdfResponse:
+      type: object
+      properties:
+        pdfUrl:
+          type: string
+          format: uri
+          description: "URL pública del PDF RIDE generado en Cloud Storage."
+
+    SendInvoiceEmailRequest:
+      type: object
+      required: [invoiceId, companyId]
+      properties:
+        invoiceId:
+          type: string
+        companyId:
+          type: string
+
+    SendInvoiceEmailResponse:
+      type: object
+      properties:
+        sent:
+          type: boolean
+          description: "false si la factura no tiene email de cliente registrado."
+        to:
+          type: string
+          description: "Dirección de email a la que se envió. Vacío si sent=false."
+
+    GenerateCreditNotePdfRequest:
+      type: object
+      required: [creditNoteId, companyId]
+      properties:
+        creditNoteId:
+          type: string
+        companyId:
+          type: string
+
+    GenerateCreditNotePdfResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+
+    SendCreditNoteEmailRequest:
+      type: object
+      required: [creditNoteId, companyId]
+      properties:
+        creditNoteId:
+          type: string
+        companyId:
+          type: string
+
+    SendCreditNoteEmailResponse:
+      type: object
+      properties:
+        sent:
+          type: boolean
+        to:
+          type: string
+
+    # ── Retentions ────────────────────────────────────────────────────────────────
+    GenerateRetentionXmlRequest:
+      type: object
+      required: [retentionId, companyId]
+      properties:
+        retentionId:
+          type: string
+          description: "ID del documento en companies/{companyId}/retentions/{retentionId}."
+        companyId:
+          type: string
+
+    GenerateRetentionXmlResponse:
+      type: object
+      properties:
+        accessKey:
+          type: string
+          description: "Clave de acceso SRI de 49 dígitos."
+        xmlUrl:
+          type: string
+          format: uri
+
+    GenerateRetentionPdfRequest:
+      type: object
+      required: [retentionId, companyId]
+      properties:
+        retentionId:
+          type: string
+        companyId:
+          type: string
+
+    GenerateRetentionPdfResponse:
+      type: object
+      properties:
+        pdfUrl:
+          type: string
+          format: uri
+
+    SendRetentionEmailRequest:
+      type: object
+      required: [retentionId, companyId]
+      properties:
+        retentionId:
+          type: string
+        companyId:
+          type: string
+
+    SendRetentionEmailResponse:
+      type: object
+      properties:
+        sent:
+          type: boolean
+        to:
+          type: string
+
+    # ── Debit Notes ───────────────────────────────────────────────────────────────
+    GenerateDebitNoteXmlRequest:
+      type: object
+      required: [debitNoteId, companyId]
+      properties:
+        debitNoteId:
+          type: string
+          description: "ID del documento en companies/{companyId}/debitNotes/{debitNoteId}."
+        companyId:
+          type: string
+
+    GenerateDebitNoteXmlResponse:
+      type: object
+      properties:
+        accessKey:
+          type: string
+        xmlUrl:
+          type: string
+          format: uri
+
+    GenerateDebitNotePdfRequest:
+      type: object
+      required: [debitNoteId, companyId]
+      properties:
+        debitNoteId:
+          type: string
+        companyId:
+          type: string
+
+    GenerateDebitNotePdfResponse:
+      type: object
+      properties:
+        pdfUrl:
+          type: string
+          format: uri
+
+    SendDebitNoteEmailRequest:
+      type: object
+      required: [debitNoteId, companyId]
+      properties:
+        debitNoteId:
+          type: string
+        companyId:
+          type: string
+
+    SendDebitNoteEmailResponse:
+      type: object
+      properties:
+        sent:
+          type: boolean
+        to:
+          type: string
+
+    # ── Accounting ────────────────────────────────────────────────────────────────
+    CloseAccountingPeriodRequest:
+      type: object
+      required: [companyId, periodId]
+      properties:
+        companyId:
+          type: string
+        periodId:
+          type: string
+          description: "ID del período contable en companies/{companyId}/accounting_periods/{periodId}. Debe tener status='open'."
+
+    CloseAccountingPeriodResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        entryId:
+          type: string
+          nullable: true
+          description: "ID del asiento de cierre creado. null si el período no tenía movimientos."
+        totalIncome:
+          type: number
+          nullable: true
+        totalExpense:
+          type: number
+          nullable: true
+        netResult:
+          type: number
+          nullable: true
+          description: "Resultado neto: positivo=utilidad, negativo=pérdida."
+        message:
+          type: string
+
+    RunDepreciationForMonthRequest:
+      type: object
+      required: [companyId, year, month]
+      properties:
+        companyId:
+          type: string
+        year:
+          type: integer
+          description: "Año a procesar. Ejemplo: 2025."
+        month:
+          type: integer
+          minimum: 1
+          maximum: 12
+          description: "Mes a procesar (1-12)."
+
+    RunDepreciationForMonthResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        assetsProcessed:
+          type: integer
+          description: "Cantidad de activos fijos depreciados."
+        entryId:
+          type: string
+          nullable: true
+          description: "ID del journal_entry de depreciación creado."
+        skipped:
+          type: boolean
+          nullable: true
+          description: "true si ya existía un asiento de depreciación para ese mes o si no hay activos que depreciar."
+        message:
+          type: string
+
+    GenerateOpeningEntryRequest:
+      type: object
+      required: [companyId, newPeriodId]
+      properties:
+        companyId:
+          type: string
+        newPeriodId:
+          type: string
+          description: "ID del período contable de destino (el nuevo ejercicio). Debe tener status='open' y no tener openingEntryId."
+
+    GenerateOpeningEntryResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        entryId:
+          type: string
+          description: "ID del asiento de apertura creado."
+        linesCount:
+          type: integer
+          nullable: true
+          description: "Número de líneas del asiento de apertura."
+        totalDebit:
+          type: number
+        totalCredit:
+          type: number
+        message:
+          type: string
+
+    ReportLine:
+      type: object
+      description: "Fila de datos pre-calculada por el frontend para incluir en el PDF."
+      additionalProperties:
+        oneOf:
+          - type: string
+          - type: number
+
+    GenerateAccountingPdfRequest:
+      type: object
+      required: [reportType, companyId, periodName, data]
+      properties:
+        reportType:
+          type: string
+          enum:
+            - libro-diario
+            - libro-mayor
+            - balance-comprobacion
+            - estado-resultados
+            - balance-general
+        companyId:
+          type: string
+        periodName:
+          type: string
+          description: "Nombre del período para el encabezado del PDF. Ejemplo: 'Enero 2025'."
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReportLine'
+          description: "Filas pre-calculadas por el frontend."
+        extraData:
+          type: object
+          description: "Totales, secciones y datos adicionales dependiendo del tipo de reporte."
+          nullable: true
+          additionalProperties: true
+
+    GenerateAccountingPdfResponse:
+      type: object
+      properties:
+        pdf:
+          type: string
+          description: "Contenido del PDF en Base64."
+        filename:
+          type: string
+          description: "Nombre de archivo sugerido. Ejemplo: libro-diario-Enero_2025.pdf."
+
+    # ── Users ─────────────────────────────────────────────────────────────────────
+    CreateCompanyUserRequest:
+      type: object
+      required: [email, password, displayName, platformRole, companyId]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 6
+        displayName:
+          type: string
+        platformRole:
+          type: string
+          description: "Código de rol. No puede ser super_admin. Para asignar admin solo super_admin puede hacerlo."
+          pattern: "^[a-z][a-z0-9_]{0,49}$"
+        companyId:
+          type: string
+        personaId:
+          type: string
+          nullable: true
+          description: "ID de persona asociada (opcional). Vincula el usuario a un documento en personas."
+
+    CreateCompanyUserResponse:
+      type: object
+      properties:
+        uid:
+          type: string
+        email:
+          type: string
+        displayName:
+          type: string
+        platformRole:
+          type: string
+
+    UpdateCompanyUserRequest:
+      type: object
+      required: [uid, companyId]
+      properties:
+        uid:
+          type: string
+          description: "UID del usuario a modificar."
+        companyId:
+          type: string
+        displayName:
+          type: string
+          nullable: true
+        platformRole:
+          type: string
+          nullable: true
+          description: "Nuevo rol. Si se cambia, actualiza los custom claims JWT. No puede ser super_admin."
+        isActive:
+          type: boolean
+          nullable: true
+          description: "false deshabilita la cuenta en Firebase Auth."
+        personaId:
+          type: string
+          nullable: true
+
+    UpdateCompanyUserResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        uid:
+          type: string
+
+    DeleteCompanyUserRequest:
+      type: object
+      required: [uid, companyId]
+      properties:
+        uid:
+          type: string
+          description: "UID del usuario a eliminar permanentemente. No puede ser el mismo caller."
+        companyId:
+          type: string
+
+    DeleteCompanyUserResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        uid:
+          type: string
+
+    # ── School Bar ────────────────────────────────────────────────────────────────
+    SchoolScanQrRequest:
+      type: object
+      required: [token, companyId]
+      properties:
+        token:
+          type: string
+          description: "Token QR del alumno. Formato: base64url(payload).hmacHex. Generado automáticamente al crear el alumno."
+        companyId:
+          type: string
+
+    SchoolScanQrResponse:
+      type: object
+      properties:
+        studentId:
+          type: string
+        fullName:
+          type: string
+        code:
+          type: string
+          description: "Código interno del alumno."
+        gradeId:
+          type: string
+        gradeName:
+          type: string
+        section:
+          type: string
+        walletBalance:
+          type: number
+          description: "Saldo actual del monedero escolar en USD."
+
+    # ── Utils ─────────────────────────────────────────────────────────────────────
+    DownloadDocumentRequest:
+      type: object
+      required: [documentType, documentId, companyId, fileType]
+      properties:
+        documentType:
+          type: string
+          enum: [invoice, creditNote, retention, debitNote]
+        documentId:
+          type: string
+        companyId:
+          type: string
+        fileType:
+          type: string
+          enum: [xml, pdf]
+
+    DownloadDocumentResponse:
+      type: object
+      properties:
+        url:
+          type: string
+          format: uri
+          description: "URL pública de Cloud Storage del archivo solicitado."
+
+tags:
+  - name: Auth
+    description: "Autenticación y asignación de roles custom claims."
+  - name: Tenants
+    description: "Setup y configuración de empresas (tenants). Acceso restringido a super_admin."
+  - name: Invoices
+    description: "Pipeline SRI para facturas electrónicas: XML, firma XAdES-BES, envío al SRI, PDF RIDE, email."
+  - name: CreditNotes
+    description: "Pipeline SRI para notas de crédito electrónicas (codDoc=04). Los documentos se almacenan en la misma colección que facturas con isCreditNote=true."
+  - name: DebitNotes
+    description: "Pipeline SRI para notas de débito electrónicas (codDoc=05)."
+  - name: Retentions
+    description: "Pipeline SRI para comprobantes de retención electrónicos (codDoc=07)."
+  - name: Accounting
+    description: "Módulo contable: cierre de ejercicio, depreciaciones, asientos de apertura y PDFs de reportes financieros."
+  - name: Users
+    description: "Gestión de usuarios de empresa. Las operaciones de creación y eliminación usan Firebase Admin SDK para no autenticar al nuevo usuario en el proceso."
+  - name: SchoolBar
+    description: "Módulo de bar escolar: validación de QR, procesamiento de compras y recargas de monedero."
+  - name: Utils
+    description: "Utilidades generales."
+  - name: Triggers
+    description: "Funciones background disparadas por cambios en Firestore. Sin endpoint HTTP directo. Solo referencia."
+  - name: Scheduled
+    description: "Funciones que corren en horario automático (Cloud Scheduler). Sin endpoint HTTP directo. Solo referencia."
+
+paths:
+  # ────────────────────────────────────────────────────────────────────────────────
+  # AUTH
+  # ────────────────────────────────────────────────────────────────────────────────
+  /setUserCustomClaims:
+    post:
+      tags: [Auth]
+      summary: "Asignar companyId y rol (custom claims) a un usuario"
+      description: |
+        Asigna los custom claims `companyId` y `role` a un usuario de Firebase Auth existente.
+        Estos claims quedan disponibles en el JWT en requests posteriores.
+
+        **Permisos:**
+        - `admin` puede gestionar usuarios de su propia empresa únicamente.
+        - `super_admin` puede gestionar cualquier usuario y asignar el rol `super_admin`.
+        - Ningún otro rol puede llamar esta función.
+
+        **Efectos secundarios:** actualiza `companies/{companyId}/users/{targetUid}` y `users/{targetUid}` en Firestore.
+      security:
+        - FirebaseIdToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: '#/components/schemas/SetUserCustomClaimsRequest'
+      responses:
+        '200':
+          description: Claims asignados correctamente.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    $ref: '#/components/schemas/SetUserCustomClaimsResponse'
+        '400':
+          description: Argumento inválido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '401':
+          description: No autenticado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '403':
+          description: Sin permisos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '500':
+          description: Error interno.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+
+  /setupFirstAdmin:
+    post:
+      tags: [Auth]
+      summary: "Crear el primer super_admin (bootstrap inicial)"
+      description: |
+        Crea el primer usuario `super_admin` del sistema. Solo funciona cuando no existe
+        ningún super_admin en la colección `users`. Una vez creado el primer super_admin,
+        esta función devuelve `ALREADY_EXISTS`.
+
+        **IMPORTANTE:** Esta función no requiere autenticación (bootstrap). Debe deshabilitarse
+        después de la configuración inicial del sistema.
+
+        **Efectos secundarios:** crea el usuario en Firebase Auth, asigna claims `role: super_admin`,
+        y escribe el documento en `users/{uid}`.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: '#/components/schemas/SetupFirstAdminRequest'
+      responses:
+        '200':
+          description: Super admin creado.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    $ref: '#/components/schemas/SetupFirstAdminResponse'
+        '400':
+          description: Argumento inválido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '409':
+          description: Ya existe un super admin (ALREADY_EXISTS).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '500':
+          description: Error interno.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+
+  # ────────────────────────────────────────────────────────────────────────────────
+  # TENANTS
+  # ────────────────────────────────────────────────────────────────────────────────
+  /setupCompany:
+    post:
+      tags: [Tenants]
+      summary: "Crear una nueva empresa (tenant) con datos por defecto"
+      description: |
+        Llamada por `super_admin` para crear un nuevo tenant. Lee los datos por defecto de
+        `platform/defaults` y los copia a la empresa. Si no existen datos en platform, usa
+        valores hardcodeados como fallback.
+
+        **Crea en Firestore:**
+        - `companies/{companyId}` — documento principal
+        - `companies/{companyId}/configuration/sri` — configuración SRI
+        - `companies/{companyId}/configuration/general` — configuración general
+        - `companies/{companyId}/warehouses/*` — bodegas
+        - `companies/{companyId}/taxRates/*` — tasas de impuesto
+        - `companies/{companyId}/paymentTerms/*` — condiciones de pago
+        - `companies/{companyId}/documentSeries/*` — series de documentos
+        - `companies/{companyId}/currencies/*` — monedas
+        - `companies/{companyId}/countries/*` — países
+        - `companies/{companyId}/roles/*` — roles de empresa (seller, accountant, cashier, read_only)
+        - `companies/{companyId}/company-users/{adminUid}` — si se proporciona adminPassword
+
+        Si se proporciona `adminPassword`, también crea el usuario en Firebase Auth y asigna claims `role: admin`.
+      security:
+        - FirebaseIdToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: '#/components/schemas/SetupCompanyRequest'
+      responses:
+        '200':
+          description: Empresa creada.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    $ref: '#/components/schemas/SetupCompanyResponse'
+        '400':
+          description: Argumento inválido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '401':
+          description: No autenticado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '403':
+          description: Sin permisos (requiere super_admin).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '409':
+          description: El email corporativo ya está registrado como usuario (ALREADY_EXISTS).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '500':
+          description: Error interno.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+
+  /assignPlanToCompany:
+    post:
+      tags: [Tenants]
+      summary: "Asignar un plan a una empresa existente"
+      description: |
+        Solo `super_admin`. Lee el plan de `/plans/{planId}`, calcula los `enabledModules`
+        (unión del plan + paquetes adicionales ya habilitados), y desnormaliza
+        `planLimits`, `planFeatures` y `enabledModules` en el documento de la empresa.
+        También calcula y actualiza `subscriptionEnd` basado en el `billingPeriod` del plan
+        (monthly=30 días, yearly=365 días).
+      security:
+        - FirebaseIdToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: '#/components/schemas/AssignPlanToCompanyRequest'
+      responses:
+        '200':
+          description: Plan asignado.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    $ref: '#/components/schemas/AssignPlanToCompanyResponse'
+        '400':
+          description: Argumento inválido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '401':
+          description: No autenticado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '403':
+          description: Sin permisos (requiere super_admin).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '404':
+          description: Plan o empresa no encontrados.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '500':
+          description: Error interno.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+
+  /checkPlanLimit:
+    post:
+      tags: [Tenants]
+      summary: "Verificar si una empresa ha alcanzado un límite de su plan"
+      description: |
+        Cualquier usuario autenticado puede llamar esta función.
+        Consulta el documento de la empresa y (para límites basados en uso) el documento
+        `companies/{companyId}/usage/{YYYY-MM}` para comparar el uso actual vs el límite del plan.
+
+        **Convenciones de respuesta:**
+        - `limit = -1` → ilimitado, siempre `allowed: true`
+        - `limit = 0` → deshabilitado, siempre `allowed: false`
+        - `limit > 0` → `allowed = current < limit`
+        - Si la empresa no tiene `planLimits` (empresa legacy), devuelve `allowed: true` sin bloquear.
+      security:
+        - FirebaseIdToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: '#/components/schemas/CheckPlanLimitRequest'
+      responses:
+        '200':
+          description: Resultado de la verificación.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    $ref: '#/components/schemas/CheckPlanLimitResponse'
+        '400':
+          description: Argumento inválido o limitType no reconocido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '401':
+          description: No autenticado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '404':
+          description: Empresa no encontrada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '500':
+          description: Error interno.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+
+  # ────────────────────────────────────────────────────────────────────────────────
+  # INVOICES / SRI
+  # ────────────────────────────────────────────────────────────────────────────────
+  /uploadCertificate:
+    post:
+      tags: [Invoices]
+      summary: "Subir certificado de firma electrónica .p12"
+      description: |
+        Valida el certificado .p12 con node-forge (parsea el archivo, extrae el certificado X.509,
+        verifica que no esté vencido, valida el RUC contra el subject si está configurado).
+        Guarda el .p12 en Cloud Storage en `companies/{companyId}/certificates/signing.p12`
+        y actualiza los campos `sri.certificate*` en el documento de la empresa.
+
+        **Permisos:** `admin` de la empresa o `super_admin`.
+
+        **ADVERTENCIA DE SEGURIDAD:** La contraseña del certificado se almacena en Firestore
+        para que las funciones de firma puedan accederla en tiempo de ejecución sin exposición
+        al frontend.
+      security:
+        - FirebaseIdToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: '#/components/schemas/UploadCertificateRequest'
+      responses:
+        '200':
+          description: Certificado validado y guardado.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    $ref: '#/components/schemas/UploadCertificateResponse'
+        '400':
+          description: Certificado inválido, contraseña incorrecta o certificado vencido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '401':
+          description: No autenticado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '403':
+          description: Sin permisos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '404':
+          description: Empresa no encontrada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '500':
+          description: Error interno.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+
+  /generateInvoiceXml:
+    post:
+      tags: [Invoices]
+      summary: "Generar XML SRI de una factura (paso 1/4 del pipeline)"
+      description: |
+        Lee la factura de Firestore, lee la configuración SRI de la empresa y genera el XML
+        según la Ficha Técnica SRI v2.32. Calcula la clave de acceso de 49 dígitos con el
+        dígito verificador por módulo 11. Soporta IVA 15%, 5%, 0% y exento.
+
+        El XML se sube a Cloud Storage en `companies/{companyId}/xml/{invoiceId}.xml`
+        y se actualiza `sriStatus: 'xml_generated'` en el documento de la factura.
+
+        **Normalmente llamado automáticamente por `onInvoiceEmit` trigger.**
+        También puede llamarse manualmente para reprocesar.
+
+        **Permisos:** usuario de la empresa o `super_admin`.
+      security:
+        - FirebaseIdToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: '#/components/schemas/GenerateInvoiceXmlRequest'
+      responses:
+        '200':
+          description: XML generado y subido a Storage.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    $ref: '#/components/schemas/GenerateInvoiceXmlResponse'
+        '400':
+          description: Argumento inválido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '401':
+          description: No autenticado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '403':
+          description: Sin permisos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '500':
+          description: Error interno (factura no encontrada, empresa sin configuración SRI, error de Storage).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+
+  /generateCreditNoteXml:
+    post:
+      tags: [CreditNotes]
+      summary: "Generar XML SRI de una nota de crédito (paso 1/4)"
+      description: |
+        Lee el documento de nota de crédito (almacenado en `companies/{companyId}/invoices/` con
+        `isCreditNote=true`) y genera el XML `<notaCredito>` según la Ficha Técnica SRI v2.32
+        (codDoc=04). El XML se sube a `companies/{companyId}/xml/cn-{creditNoteId}.xml`.
+
+        **Requiere que la nota de crédito tenga `isCreditNote=true`, de lo contrario retorna error.**
+
+        **Permisos:** usuario de la empresa o `super_admin`.
+      security:
+        - FirebaseIdToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: '#/components/schemas/GenerateCreditNoteXmlRequest'
+      responses:
+        '200':
+          description: XML de nota de crédito generado.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    $ref: '#/components/schemas/GenerateCreditNoteXmlResponse'
+        '400':
+          description: Argumento inválido o documento no es nota de crédito.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '401':
+          description: No autenticado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '403':
+          description: Sin permisos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '500':
+          description: Error interno.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+
+  /signXml:
+    post:
+      tags: [Invoices]
+      summary: "Firmar XML con XAdES-BES usando el certificado .p12 de la empresa (paso 2/4)"
+      description: |
+        Descarga el XML sin firmar de Storage, descarga el certificado .p12 de Storage,
+        lee la contraseña desde Firestore (campo `sri.certificatePassword` en el documento
+        de la empresa), y aplica la firma XAdES-BES (XML Advanced Electronic Signatures –
+        Basic Electronic Signature) según los requisitos del SRI Ecuador.
+
+        El XML firmado se guarda en `companies/{companyId}/xml/{invoiceId}-signed.xml`.
+
+        Para notas de crédito, el trigger `onInvoiceEmit` llama esta función con el
+        nombre de archivo `cn-{invoiceId}.xml`.
+
+        **Permisos:** usuario de la empresa o `super_admin`.
+      security:
+        - FirebaseIdToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: '#/components/schemas/SignXmlRequest'
+      responses:
+        '200':
+          description: XML firmado y guardado en Storage.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    $ref: '#/components/schemas/SignXmlResponse'
+        '400':
+          description: Argumento inválido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '401':
+          description: No autenticado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '403':
+          description: Sin permisos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '500':
+          description: Error interno (XML no encontrado, certificado no encontrado, error de firma).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+
+  /sendToSri:
+    post:
+      tags: [Invoices]
+      summary: "Enviar documento firmado al SRI mediante SOAP (paso 3/4)"
+      description: |
+        Función unificada para todos los tipos de documentos electrónicos.
+        Descarga el XML firmado de Storage, lo convierte a Base64 y lo envía al
+        web service SOAP del SRI (`RecepcionComprobantesOffline`). Implementa retry
+        con backoff exponencial (3 intentos: 1s, 2s, 4s).
+
+        Tras recepción exitosa (`RECIBIDA`), espera 5 segundos y consulta la autorización
+        (`AutorizacionComprobantesOffline`) con 1 reintento a los 5s.
+
+        Los endpoints del SRI se leen de `platform/defaults/sriConfig/data`; si no existe,
+        usa las URLs por defecto hardcodeadas (testing/producción).
+
+        **Actualiza en Firestore:** `sriStatus`, `authorizationNumber`, `authorizedAt`, `sriError`.
+      security:
+        - FirebaseIdToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: '#/components/schemas/SendToSriRequest'
+      responses:
+        '200':
+          description: Resultado del envío al SRI (puede ser authorized, rejected o pending).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    $ref: '#/components/schemas/SendToSriResponse'
+        '400':
+          description: Argumento inválido o documentType no reconocido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '401':
+          description: No autenticado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '403':
+          description: Sin permisos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '500':
+          description: Error interno.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+
+  /checkSriStatus:
+    post:
+      tags: [Invoices]
+      summary: "Consultar el estado de autorización en el SRI en tiempo real"
+      description: |
+        Consulta directamente el WS SOAP del SRI (`AutorizacionComprobantesOffline`)
+        usando la clave de acceso almacenada en el documento. Actualiza el estado en
+        Firestore si el SRI devuelve AUTORIZADO o NO AUTORIZADO.
+
+        Útil para documentos en estado `pending` que quedaron sin respuesta de autorización.
+
+        **Permisos:** usuario de la empresa o `super_admin`.
+      security:
+        - FirebaseIdToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: '#/components/schemas/CheckSriStatusRequest'
+      responses:
+        '200':
+          description: Estado de autorización del SRI.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    $ref: '#/components/schemas/CheckSriStatusResponse'
+        '400':
+          description: Argumento inválido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '401':
+          description: No autenticado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '403':
+          description: Sin permisos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '404':
+          description: Documento no encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '503':
+          description: Error de red al consultar el SRI (UNAVAILABLE).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+
+  /generatePdf:
+    post:
+      tags: [Invoices]
+      summary: "Generar PDF RIDE de una factura (paso 4/4)"
+      description: |
+        Genera el Representación Impresa del Documento Electrónico (RIDE) de una factura
+        usando PDFKit. Incluye QR code de la clave de acceso.
+        El PDF se guarda en `companies/{companyId}/pdf/{invoiceId}.pdf` y se actualiza
+        `pdfUrl` en el documento de la factura.
+
+        **Permisos:** usuario de la empresa o `super_admin`.
+      security:
+        - FirebaseIdToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: '#/components/schemas/GeneratePdfRequest'
+      responses:
+        '200':
+          description: PDF generado y subido a Storage.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    $ref: '#/components/schemas/GeneratePdfResponse'
+        '400':
+          description: Argumento inválido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '401':
+          description: No autenticado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '403':
+          description: Sin permisos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '500':
+          description: Error interno.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+
+  /sendInvoiceEmail:
+    post:
+      tags: [Invoices]
+      summary: "Enviar factura autorizada por email al cliente"
+      description: |
+        Envía un email HTML con los datos de la factura y links de descarga al email
+        del cliente (`invoice.customerEmail`). Solo funciona si `sriStatus === 'authorized'`.
+
+        Si la factura no tiene email de cliente registrado, devuelve `{ sent: false, to: '' }`
+        sin error.
+
+        El email se envía via SMTP configurado en los secrets del proyecto.
+
+        **Permisos:** usuario de la empresa o `super_admin`.
+      security:
+        - FirebaseIdToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: '#/components/schemas/SendInvoiceEmailRequest'
+      responses:
+        '200':
+          description: Email enviado o skipped (sin email de cliente).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    $ref: '#/components/schemas/SendInvoiceEmailResponse'
+        '400':
+          description: Argumento inválido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '401':
+          description: No autenticado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '403':
+          description: Sin permisos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '500':
+          description: Error interno (factura no autorizada o error SMTP).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+
+  /generateCreditNotePdf:
+    post:
+      tags: [CreditNotes]
+      summary: "Generar PDF RIDE de una nota de crédito"
+      description: |
+        Genera el RIDE de la nota de crédito. El PDF incluye los datos del comprobante
+        modificado (factura original) y el motivo de la nota. Se guarda en
+        `companies/{companyId}/pdf/cn-{creditNoteId}.pdf`.
+
+        **Permisos:** usuario de la empresa o `super_admin`.
+      security:
+        - FirebaseIdToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: '#/components/schemas/GenerateCreditNotePdfRequest'
+      responses:
+        '200':
+          description: PDF generado.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    $ref: '#/components/schemas/GenerateCreditNotePdfResponse'
+        '400':
+          description: Argumento inválido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '401':
+          description: No autenticado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '403':
+          description: Sin permisos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '500':
+          description: Error interno.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+
+  /sendCreditNoteEmail:
+    post:
+      tags: [CreditNotes]
+      summary: "Enviar nota de crédito autorizada por email"
+      description: |
+        Envía email con los datos de la nota de crédito al cliente. El email se resuelve
+        primero desde `personas/{customerId}`, y si no existe, desde `invoice.customerEmail`.
+
+        Solo funciona si `sriStatus === 'authorized'`.
+
+        **Permisos:** usuario de la empresa o `super_admin`.
+      security:
+        - FirebaseIdToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: '#/components/schemas/SendCreditNoteEmailRequest'
+      responses:
+        '200':
+          description: Email enviado o skipped.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    $ref: '#/components/schemas/SendCreditNoteEmailResponse'
+        '400':
+          description: Argumento inválido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '401':
+          description: No autenticado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '403':
+          description: Sin permisos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '500':
+          description: Error interno.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+
+  # ────────────────────────────────────────────────────────────────────────────────
+  # RETENTIONS
+  # ────────────────────────────────────────────────────────────────────────────────
+  /generateRetentionXml:
+    post:
+      tags: [Retentions]
+      summary: "Generar XML SRI de un comprobante de retención (codDoc=07)"
+      description: |
+        Genera el XML `<comprobanteRetencion>` versión 2.0.0 según la Ficha Técnica SRI v2.32.
+        Los impuestos van dentro de `<docsSustento><docSustento><retenciones>`.
+        El XML se sube a `companies/{companyId}/xml/ret-{retentionId}.xml`.
+
+        **Permisos:** usuario de la empresa o `super_admin`.
+      security:
+        - FirebaseIdToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: '#/components/schemas/GenerateRetentionXmlRequest'
+      responses:
+        '200':
+          description: XML de retención generado.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    $ref: '#/components/schemas/GenerateRetentionXmlResponse'
+        '400':
+          description: Argumento inválido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '401':
+          description: No autenticado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '403':
+          description: Sin permisos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '500':
+          description: Error interno.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+
+  /generateRetentionPdf:
+    post:
+      tags: [Retentions]
+      summary: "Generar PDF RIDE de un comprobante de retención"
+      description: |
+        Genera el RIDE del comprobante de retención con tabla de impuestos retenidos.
+        Se guarda en `companies/{companyId}/pdf/ret-{retentionId}.pdf`.
+
+        **Permisos:** usuario de la empresa o `super_admin`.
+      security:
+        - FirebaseIdToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: '#/components/schemas/GenerateRetentionPdfRequest'
+      responses:
+        '200':
+          description: PDF de retención generado.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    $ref: '#/components/schemas/GenerateRetentionPdfResponse'
+        '400':
+          description: Argumento inválido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '401':
+          description: No autenticado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '403':
+          description: Sin permisos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '500':
+          description: Error interno.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+
+  /sendRetentionEmail:
+    post:
+      tags: [Retentions]
+      summary: "Enviar comprobante de retención autorizado por email al proveedor"
+      description: |
+        Envía el comprobante de retención al proveedor. El email del proveedor se resuelve
+        desde `companies/{companyId}/personas/{supplierId}` (campos `email` o `primaryEmail`),
+        con fallback a `retention.supplierEmail`.
+
+        Solo funciona si `sriStatus === 'authorized'`.
+
+        **Permisos:** usuario de la empresa o `super_admin`.
+      security:
+        - FirebaseIdToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: '#/components/schemas/SendRetentionEmailRequest'
+      responses:
+        '200':
+          description: Email enviado o skipped.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    $ref: '#/components/schemas/SendRetentionEmailResponse'
+        '400':
+          description: Argumento inválido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '401':
+          description: No autenticado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '403':
+          description: Sin permisos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '500':
+          description: Error interno.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+
+  # ────────────────────────────────────────────────────────────────────────────────
+  # DEBIT NOTES
+  # ────────────────────────────────────────────────────────────────────────────────
+  /generateDebitNoteXml:
+    post:
+      tags: [DebitNotes]
+      summary: "Generar XML SRI de una nota de débito (codDoc=05)"
+      description: |
+        Genera el XML `<notaDebito>` según la Ficha Técnica SRI v2.32. El XML se sube a
+        `companies/{companyId}/xml/dn-{debitNoteId}.xml`.
+
+        **Permisos:** usuario de la empresa o `super_admin`.
+      security:
+        - FirebaseIdToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: '#/components/schemas/GenerateDebitNoteXmlRequest'
+      responses:
+        '200':
+          description: XML de nota de débito generado.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    $ref: '#/components/schemas/GenerateDebitNoteXmlResponse'
+        '400':
+          description: Argumento inválido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '401':
+          description: No autenticado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '403':
+          description: Sin permisos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '500':
+          description: Error interno.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+
+  /generateDebitNotePdf:
+    post:
+      tags: [DebitNotes]
+      summary: "Generar PDF RIDE de una nota de débito"
+      description: |
+        Genera el RIDE de la nota de débito con tabla de motivos. Se guarda en
+        `companies/{companyId}/pdf/dn-{debitNoteId}.pdf`.
+
+        **Permisos:** usuario de la empresa o `super_admin`.
+      security:
+        - FirebaseIdToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: '#/components/schemas/GenerateDebitNotePdfRequest'
+      responses:
+        '200':
+          description: PDF de nota de débito generado.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    $ref: '#/components/schemas/GenerateDebitNotePdfResponse'
+        '400':
+          description: Argumento inválido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '401':
+          description: No autenticado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '403':
+          description: Sin permisos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '500':
+          description: Error interno.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+
+  /sendDebitNoteEmail:
+    post:
+      tags: [DebitNotes]
+      summary: "Enviar nota de débito autorizada por email al cliente"
+      description: |
+        Envía el email de la nota de débito. El email del cliente se resuelve desde
+        `companies/{companyId}/personas/{customerId}` (campos `email` o `primaryEmail`),
+        con fallback a `debitNote.customerEmail`.
+
+        Solo funciona si `sriStatus === 'authorized'`.
+
+        **Permisos:** usuario de la empresa o `super_admin`.
+      security:
+        - FirebaseIdToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: '#/components/schemas/SendDebitNoteEmailRequest'
+      responses:
+        '200':
+          description: Email enviado o skipped.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    $ref: '#/components/schemas/SendDebitNoteEmailResponse'
+        '400':
+          description: Argumento inválido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '401':
+          description: No autenticado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '403':
+          description: Sin permisos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '500':
+          description: Error interno.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+
+  # ────────────────────────────────────────────────────────────────────────────────
+  # ACCOUNTING
+  # ────────────────────────────────────────────────────────────────────────────────
+  /closeAccountingPeriod:
+    post:
+      tags: [Accounting]
+      summary: "Cerrar un período contable y generar el asiento de cierre"
+      description: |
+        Agrega todos los asientos `status='posted'` del período, identifica las cuentas
+        de ingresos (grupo 4) y gastos (grupo 5), y crea el asiento de cierre que salda
+        estas cuentas contra Utilidad/Pérdida del ejercicio (cuentas 3.3.02.001 / 3.3.02.002).
+
+        El período se actualiza a `status: 'closed'`. Si el período no tiene movimientos,
+        cierra sin asiento de cierre.
+
+        **Validaciones:**
+        - El período debe existir y tener `status: 'open'`.
+        - El asiento de cierre debe cuadrar (débito = crédito). Si no cuadra, devuelve INTERNAL.
+
+        **Efectos secundarios:** crea `companies/{companyId}/journal_entries/{entryId}`,
+        actualiza `companies/{companyId}/accounting_periods/{periodId}`.
+      security:
+        - FirebaseIdToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: '#/components/schemas/CloseAccountingPeriodRequest'
+      responses:
+        '200':
+          description: Período cerrado.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    $ref: '#/components/schemas/CloseAccountingPeriodResponse'
+        '400':
+          description: Argumento inválido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '401':
+          description: No autenticado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '404':
+          description: Período no encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '428':
+          description: El período no está abierto (FAILED_PRECONDITION).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '500':
+          description: Error interno (asiento descuadrado).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+
+  /runDepreciationForMonth:
+    post:
+      tags: [Accounting]
+      summary: "Ejecutar depreciación manual para un mes específico"
+      description: |
+        Permite al usuario ejecutar la depreciación de activos fijos desde el frontend
+        para un mes y año concretos. Usa la misma lógica que el scheduled
+        `runMonthlyDepreciation`.
+
+        **Idempotente:** si ya existe un asiento de depreciación para ese mes y empresa,
+        devuelve `skipped: true` sin crear duplicados.
+
+        El caller debe pertenecer a la empresa (`callerCompanyId === companyId`).
+
+        **Efectos secundarios:** crea `journal_entry` de tipo `depreciation`, actualiza
+        `accumulatedDepreciation`, `remainingValue` y `lastDepreciationMonthKey` en cada activo.
+      security:
+        - FirebaseIdToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: '#/components/schemas/RunDepreciationForMonthRequest'
+      responses:
+        '200':
+          description: Depreciación procesada o skipped.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    $ref: '#/components/schemas/RunDepreciationForMonthResponse'
+        '400':
+          description: Argumento inválido (month fuera de rango, year no entero, companyId vacío).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '401':
+          description: No autenticado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '403':
+          description: Sin permisos (el caller no pertenece a la empresa).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '500':
+          description: Error interno.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+
+  /generateOpeningEntry:
+    post:
+      tags: [Accounting]
+      summary: "Generar asiento de apertura para un nuevo ejercicio contable"
+      description: |
+        Lee los saldos de las cuentas de Balance General (grupos 1, 2, 3) del período
+        anterior (`year - 1`, estado `closed` o `locked`) y crea el asiento de apertura
+        para el nuevo período.
+
+        **Validaciones:**
+        - `newPeriodId` debe existir con `status: 'open'` y sin `openingEntryId` ya asignado.
+        - Si no existe período anterior cerrado, crea un asiento de apertura vacío
+          (primer ejercicio de la empresa).
+
+        **Efectos secundarios:** crea `journal_entry` de tipo `opening`, actualiza
+        `openingEntryId` en el período.
+      security:
+        - FirebaseIdToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: '#/components/schemas/GenerateOpeningEntryRequest'
+      responses:
+        '200':
+          description: Asiento de apertura creado.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    $ref: '#/components/schemas/GenerateOpeningEntryResponse'
+        '400':
+          description: Argumento inválido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '401':
+          description: No autenticado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '404':
+          description: Período no encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '409':
+          description: El período ya tiene un asiento de apertura (ALREADY_EXISTS).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '428':
+          description: El período destino no está abierto o no hay saldos en el período anterior (FAILED_PRECONDITION).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '500':
+          description: Error interno (asiento descuadrado).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+
+  /generateAccountingPdf:
+    post:
+      tags: [Accounting]
+      summary: "Generar PDF de reporte contable (Libro Diario, Mayor, Balance, etc.)"
+      description: |
+        Genera el PDF de un reporte contable en memoria y lo devuelve como Base64.
+        El frontend pre-calcula las filas y las envía en `data`; la función solo se
+        encarga del formato y la renderización PDF.
+
+        **Tipos de reporte soportados:**
+        - `libro-diario` — Libro Diario con totales de débito/crédito.
+        - `libro-mayor` — Libro Mayor por cuenta con saldo acumulado.
+        - `balance-comprobacion` — Balance de Comprobación con saldos deudores/acreedores.
+        - `estado-resultados` — Estado de Resultados (ingresos y costos/gastos).
+        - `balance-general` — Balance General en dos columnas (Activos | Pasivos+Patrimonio).
+
+        Para `estado-resultados` y `balance-general`, los datos principales van en `extraData`.
+
+        **Timeout:** 60 segundos. Memoria: 512 MiB.
+      security:
+        - FirebaseIdToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: '#/components/schemas/GenerateAccountingPdfRequest'
+      responses:
+        '200':
+          description: PDF generado como Base64.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    $ref: '#/components/schemas/GenerateAccountingPdfResponse'
+        '400':
+          description: Argumento inválido (reportType o companyId faltantes).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '401':
+          description: No autenticado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '500':
+          description: Error interno.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+
+  # ────────────────────────────────────────────────────────────────────────────────
+  # USERS
+  # ────────────────────────────────────────────────────────────────────────────────
+  /createCompanyUser:
+    post:
+      tags: [Users]
+      summary: "Crear un usuario de empresa en Firebase Auth + Firestore"
+      description: |
+        Crea el usuario en Firebase Auth (Admin SDK), le asigna custom claims
+        `{ companyId, role: platformRole }` y escribe el perfil en
+        `companies/{companyId}/company-users/{uid}`.
+
+        **Por qué Cloud Function:** el SDK de Firebase Client autentica al nuevo usuario
+        como efecto secundario al crearlo, lo que no es deseable. El Admin SDK no tiene
+        este problema.
+
+        **Permisos:**
+        - `admin` puede crear usuarios en su propia empresa (no puede asignar rol `admin`).
+        - `super_admin` puede crear usuarios en cualquier empresa, incluyendo rol `admin`.
+        - Nadie puede asignar `super_admin` desde esta función.
+
+        **Rollback:** si `setCustomUserClaims` falla tras crear el doc en Firestore,
+        se borra el doc para mantener consistencia.
+      security:
+        - FirebaseIdToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: '#/components/schemas/CreateCompanyUserRequest'
+      responses:
+        '200':
+          description: Usuario creado.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    $ref: '#/components/schemas/CreateCompanyUserResponse'
+        '400':
+          description: Argumento inválido (email inválido, contraseña débil, rol inválido).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '401':
+          description: No autenticado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '403':
+          description: Sin permisos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '409':
+          description: Ya existe un usuario con ese email (ALREADY_EXISTS).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '500':
+          description: Error interno.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+
+  /updateCompanyUser:
+    post:
+      tags: [Users]
+      summary: "Actualizar perfil, rol o estado de un usuario de empresa"
+      description: |
+        Actualiza `displayName`, `platformRole` (y sus custom claims), `isActive`
+        (habilita/deshabilita en Firebase Auth) y `personaId`. Solo se actualizan
+        los campos que se envíen (parcial).
+
+        **Rollback:** si actualizar claims falla, revierte el `platformRole` en Firestore.
+
+        **Permisos:**
+        - `admin` puede modificar usuarios de su propia empresa.
+        - `super_admin` puede modificar cualquier usuario.
+        - No puede asignarse el rol `super_admin`.
+      security:
+        - FirebaseIdToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: '#/components/schemas/UpdateCompanyUserRequest'
+      responses:
+        '200':
+          description: Usuario actualizado.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    $ref: '#/components/schemas/UpdateCompanyUserResponse'
+        '400':
+          description: Argumento inválido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '401':
+          description: No autenticado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '403':
+          description: Sin permisos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '404':
+          description: Usuario no encontrado en Firebase Auth.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '500':
+          description: Error interno.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+
+  /deleteCompanyUser:
+    post:
+      tags: [Users]
+      summary: "Eliminar permanentemente un usuario de empresa"
+      description: |
+        Solo `super_admin`. Elimina el documento en `companies/{companyId}/company-users/{uid}`
+        y el usuario de Firebase Auth.
+
+        **Orden de operaciones:** Firestore primero, Auth después. Si Auth falla, el usuario
+        queda sin acceso a la empresa (se loguea para limpieza manual).
+
+        **No permite auto-eliminación** (el caller no puede eliminarse a sí mismo).
+
+        Para desactivar temporalmente, usar `updateCompanyUser` con `isActive: false`.
+      security:
+        - FirebaseIdToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: '#/components/schemas/DeleteCompanyUserRequest'
+      responses:
+        '200':
+          description: Usuario eliminado.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    $ref: '#/components/schemas/DeleteCompanyUserResponse'
+        '400':
+          description: Argumento inválido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '401':
+          description: No autenticado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '403':
+          description: Sin permisos (requiere super_admin) o intento de auto-eliminación.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '404':
+          description: Usuario no encontrado en Firebase Auth.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '500':
+          description: Error interno (error al eliminar de Auth tras borrar de Firestore).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+
+  # ────────────────────────────────────────────────────────────────────────────────
+  # SCHOOL BAR
+  # ────────────────────────────────────────────────────────────────────────────────
+  /schoolScanQr:
+    post:
+      tags: [SchoolBar]
+      summary: "Validar token QR de un alumno y obtener sus datos para el POS"
+      description: |
+        Valida la firma HMAC-SHA256 del token QR del alumno (timing-safe compare para
+        prevenir timing attacks). El token tiene el formato:
+        `base64url(payload_json).hmacHex`
+
+        Donde `payload_json = { studentId, companyId, version }`.
+
+        El secret HMAC se configura en la variable de entorno `SCHOOL_QR_SECRET`.
+
+        **Validaciones:**
+        1. El caller está autenticado y pertenece a la empresa del QR.
+        2. La firma HMAC es válida.
+        3. El `companyId` del payload coincide con el solicitado.
+        4. El alumno existe en `companies/{companyId}/school_students/{studentId}`.
+        5. El alumno tiene `state: true` (activo).
+
+        Devuelve solo los campos necesarios para el POS (sin datos sensibles).
+      security:
+        - FirebaseIdToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: '#/components/schemas/SchoolScanQrRequest'
+      responses:
+        '200':
+          description: Token válido. Datos del alumno para el POS.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    $ref: '#/components/schemas/SchoolScanQrResponse'
+        '400':
+          description: Token con formato inválido o payload incompleto.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '401':
+          description: No autenticado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '403':
+          description: Firma HMAC inválida o QR no pertenece a esta empresa.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '404':
+          description: Alumno no encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '428':
+          description: Alumno inactivo (FAILED_PRECONDITION).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+
+  # ────────────────────────────────────────────────────────────────────────────────
+  # UTILS
+  # ────────────────────────────────────────────────────────────────────────────────
+  /downloadDocument:
+    post:
+      tags: [Utils]
+      summary: "Obtener URL pública de descarga de un documento (XML o PDF)"
+      description: |
+        Resuelve el path de Storage según el tipo de documento y tipo de archivo,
+        verifica que el archivo exista y devuelve la URL pública de Cloud Storage.
+
+        **Paths de Storage por tipo:**
+        - `invoice` XML: `companies/{cid}/xml/{id}-signed.xml`
+        - `invoice` PDF: `companies/{cid}/pdf/{id}.pdf`
+        - `creditNote` XML: `companies/{cid}/xml/{id}-signed.xml`
+        - `creditNote` PDF: `companies/{cid}/pdf/cn-{id}.pdf`
+        - `retention` XML: `companies/{cid}/xml/ret-{id}-signed.xml`
+        - `retention` PDF: `companies/{cid}/pdf/ret-{id}.pdf`
+        - `debitNote` XML: `companies/{cid}/xml/dn-{id}-signed.xml`
+        - `debitNote` PDF: `companies/{cid}/pdf/dn-{id}.pdf`
+
+        **Permisos:** usuario de la empresa o `super_admin`.
+      security:
+        - FirebaseIdToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: '#/components/schemas/DownloadDocumentRequest'
+      responses:
+        '200':
+          description: URL de descarga generada.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    $ref: '#/components/schemas/DownloadDocumentResponse'
+        '400':
+          description: Argumento inválido (documentType o fileType no reconocidos).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '401':
+          description: No autenticado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '403':
+          description: Sin permisos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '404':
+          description: Archivo no encontrado en Cloud Storage.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '500':
+          description: Error interno.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+
+  # ────────────────────────────────────────────────────────────────────────────────
+  # TRIGGERS (sin endpoint HTTP — solo referencia)
+  # ────────────────────────────────────────────────────────────────────────────────
+  /onInvoiceEmit:
+    post:
+      tags: [Triggers]
+      summary: "TRIGGER — Orquestador del pipeline SRI para facturas y notas de crédito"
+      description: |
+        **Tipo:** `onDocumentWritten`
+        **Path Firestore:** `companies/{companyId}/invoices/{invoiceId}`
+        **Sin endpoint HTTP directo.**
+
+        Se activa cuando un documento de la colección `invoices` cambia. Solo procesa
+        cuando `status` cambia a `'issued'` y `sriStatus` no está aún establecido
+        (evita doble procesamiento).
+
+        **Pipeline para facturas (codDoc=01):**
+        1. Marca `sriStatus: 'pending'` (barrera de idempotencia).
+        2. Incrementa contadores de uso en `companies/{companyId}/usage/{YYYY-MM}`.
+        3. Verifica límites del plan (`electronicInvoicing` feature y `invoicesPerMonth`).
+        4. `generateInvoiceXmlInternal` — genera XML.
+        5. `signXmlInternal` — firma XAdES-BES.
+        6. `sendToSriInternal` — envía al SRI SOAP.
+        7. `generatePdfInternal` — genera RIDE PDF.
+        8. `sendInvoiceEmailInternal` — envía email si está autorizada.
+
+        **Pipeline para notas de crédito (isCreditNote=true, codDoc=04):**
+        Mismo flujo pero usando `generateCreditNoteXmlInternal`, `cn-{id}.xml` como
+        nombre de archivo, `sendToSriInternal` con `docType='creditNote'`,
+        `generateCreditNotePdfInternal` y `sendCreditNoteEmailInternal`.
+
+        **Errores:** no re-lanza excepciones. En caso de error, actualiza
+        `sriStatus: 'rejected'` con el mensaje de error para que el UI lo muestre.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Solo referencia — esta función no tiene endpoint HTTP directo.
+
+  /onRetentionEmit:
+    post:
+      tags: [Triggers]
+      summary: "TRIGGER — Orquestador del pipeline SRI para retenciones"
+      description: |
+        **Tipo:** `onDocumentWritten`
+        **Path Firestore:** `companies/{companyId}/retentions/{retentionId}`
+        **Sin endpoint HTTP directo.**
+
+        Pipeline análogo a `onInvoiceEmit` para comprobantes de retención:
+        XML → firma → SRI → PDF → email.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Solo referencia — esta función no tiene endpoint HTTP directo.
+
+  /onDebitNoteEmit:
+    post:
+      tags: [Triggers]
+      summary: "TRIGGER — Orquestador del pipeline SRI para notas de débito"
+      description: |
+        **Tipo:** `onDocumentWritten`
+        **Path Firestore:** `companies/{companyId}/debitNotes/{debitNoteId}`
+        **Sin endpoint HTTP directo.**
+
+        Pipeline análogo a `onInvoiceEmit` para notas de débito (codDoc=05):
+        XML → firma → SRI → PDF → email.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Solo referencia — esta función no tiene endpoint HTTP directo.
+
+  /onPosSaleComplete:
+    post:
+      tags: [Triggers]
+      summary: "TRIGGER — Procesar venta del punto de venta completada"
+      description: |
+        **Tipo:** `onDocumentWritten`
+        **Path Firestore:** `companies/{companyId}/pos_sales/{saleId}`
+        **Sin endpoint HTTP directo.**
+
+        Se activa cuando una venta POS cambia a estado completado. Genera la factura
+        electrónica y actualiza el stock de los productos vendidos.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Solo referencia — esta función no tiene endpoint HTTP directo.
+
+  /onInvoiceStock:
+    post:
+      tags: [Triggers]
+      summary: "TRIGGER — Descontar stock al emitir factura"
+      description: |
+        **Tipo:** `onDocumentWritten`
+        **Path Firestore:** `companies/{companyId}/invoices/{invoiceId}`
+        **Sin endpoint HTTP directo.**
+
+        Se activa cuando una factura pasa a estado `issued`. Descuenta el stock de
+        cada línea de la factura en `companies/{companyId}/warehouses/{warehouseId}/stock/{productId}`.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Solo referencia — esta función no tiene endpoint HTTP directo.
+
+  /onPurchaseReceive:
+    post:
+      tags: [Triggers]
+      summary: "TRIGGER — Incrementar stock al recibir una compra"
+      description: |
+        **Tipo:** `onDocumentWritten`
+        **Path Firestore:** `companies/{companyId}/purchases/{purchaseId}`
+        **Sin endpoint HTTP directo.**
+
+        Se activa cuando una compra pasa a estado `received`. Incrementa el stock
+        de cada línea en el almacén destino.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Solo referencia — esta función no tiene endpoint HTTP directo.
+
+  /onMarketplaceSettingsChange:
+    post:
+      tags: [Triggers]
+      summary: "TRIGGER — Sincronizar configuración del marketplace al actualizarla"
+      description: |
+        **Tipo:** `onDocumentUpdated`
+        **Path Firestore:** `companies/{companyId}/configuration/marketplace`
+        **Sin endpoint HTTP directo.**
+
+        Propaga cambios de configuración del marketplace (nombre de tienda, logo,
+        colores, etc.) al documento público de la tienda.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Solo referencia — esta función no tiene endpoint HTTP directo.
+
+  /onProductPublicSync:
+    post:
+      tags: [Triggers]
+      summary: "TRIGGER — Sincronizar producto al catálogo público del marketplace"
+      description: |
+        **Tipo:** `onDocumentWritten`
+        **Path Firestore:** `companies/{companyId}/products/{productId}`
+        **Sin endpoint HTTP directo.**
+
+        Cuando un producto cambia su visibilidad o datos, sincroniza al documento
+        público del marketplace para que sea visible en la tienda online.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Solo referencia — esta función no tiene endpoint HTTP directo.
+
+  /onTimesheetCreated:
+    post:
+      tags: [Triggers]
+      summary: "TRIGGER — Procesar nuevo registro de horas al crearse"
+      description: |
+        **Tipo:** `onDocumentCreated`
+        **Path Firestore:** `companies/{companyId}/timesheets/{timesheetId}`
+        **Sin endpoint HTTP directo.**
+
+        Actualiza las horas acumuladas del proyecto y del empleado al registrar una
+        nueva entrada de timesheet.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Solo referencia — esta función no tiene endpoint HTTP directo.
+
+  /onTaskStatusChanged:
+    post:
+      tags: [Triggers]
+      summary: "TRIGGER — Notificar cambio de estado de tarea"
+      description: |
+        **Tipo:** `onDocumentUpdated`
+        **Path Firestore:** `companies/{companyId}/tasks/{taskId}`
+        **Sin endpoint HTTP directo.**
+
+        Se activa cuando cambia el campo `status` de una tarea. Puede enviar
+        notificaciones al asignado o al creador según la configuración del proyecto.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Solo referencia — esta función no tiene endpoint HTTP directo.
+
+  /onPlanUpdated:
+    post:
+      tags: [Triggers]
+      summary: "TRIGGER — Propagar cambios de plan a todas las empresas suscritas"
+      description: |
+        **Tipo:** `onDocumentUpdated`
+        **Path Firestore:** `plans/{planId}`
+        **Sin endpoint HTTP directo.**
+
+        Se activa cuando un plan se actualiza. Si cambiaron `limits`, `features` o
+        `includedModules`, propaga los nuevos valores a todos los documentos de empresa
+        que tengan `planId == planId`. Las empresas se actualizan en batches de 400.
+
+        Sale inmediatamente si ninguno de los tres campos relevantes cambió.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Solo referencia — esta función no tiene endpoint HTTP directo.
+
+  /generateReversalFromInvoice:
+    post:
+      tags: [Triggers]
+      summary: "TRIGGER — Generar asiento de reversa al anular una factura o nota de crédito"
+      description: |
+        **Tipo:** `onDocumentUpdated`
+        **Path Firestore:** `companies/{companyId}/invoices/{invoiceId}`
+        **Sin endpoint HTTP directo.**
+
+        Se activa cuando `isVoid` cambia de `false` a `true`. Lee el asiento contable
+        original (`accountingEntryId`), invierte todos los débitos/créditos y crea un
+        asiento de reversa. Marca el asiento original como `status: 'cancelled'`.
+
+        Cubre tanto facturas como notas de crédito (misma colección).
+
+        **Idempotente:** si el asiento original ya está cancelado, no hace nada.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Solo referencia — esta función no tiene endpoint HTTP directo.
+
+  /generateReversalFromDebitNote:
+    post:
+      tags: [Triggers]
+      summary: "TRIGGER — Generar asiento de reversa al anular una nota de débito"
+      description: |
+        **Tipo:** `onDocumentUpdated`
+        **Path Firestore:** `companies/{companyId}/debitNotes/{debitNoteId}`
+        **Sin endpoint HTTP directo.**
+
+        Mismo comportamiento que `generateReversalFromInvoice` pero para notas de débito.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Solo referencia — esta función no tiene endpoint HTTP directo.
+
+  /generateReversalFromRetention:
+    post:
+      tags: [Triggers]
+      summary: "TRIGGER — Generar asiento de reversa al anular una retención"
+      description: |
+        **Tipo:** `onDocumentUpdated`
+        **Path Firestore:** `companies/{companyId}/retentions/{retentionId}`
+        **Sin endpoint HTTP directo.**
+
+        Mismo comportamiento que `generateReversalFromInvoice` pero para retenciones.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Solo referencia — esta función no tiene endpoint HTTP directo.
+
+  /generateReversalFromPurchase:
+    post:
+      tags: [Triggers]
+      summary: "TRIGGER — Generar asiento de reversa al anular una compra"
+      description: |
+        **Tipo:** `onDocumentUpdated`
+        **Path Firestore:** `companies/{companyId}/purchases/{purchaseId}`
+        **Sin endpoint HTTP directo.**
+
+        Mismo comportamiento que `generateReversalFromInvoice` pero para compras.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Solo referencia — esta función no tiene endpoint HTTP directo.
+
+  /schoolGenerateStudentQr:
+    post:
+      tags: [Triggers]
+      summary: "TRIGGER — Generar QR del alumno al crearse el documento"
+      description: |
+        **Tipo:** `onDocumentCreated`
+        **Path Firestore:** `companies/{companyId}/school_students/{studentId}`
+        **Sin endpoint HTTP directo.**
+
+        Se activa al crear un nuevo alumno. Construye el payload `{ studentId, companyId, version: 1 }`,
+        lo firma con HMAC-SHA256 usando el secret `SCHOOL_QR_SECRET`, genera la imagen PNG del QR,
+        la sube a `school-bar/{companyId}/students/{studentId}/qr.png` en Storage, y escribe
+        `qrCode` + `qrCodeUrl` en el documento del alumno.
+
+        **Idempotente:** si `qrCode` ya existe, no hace nada.
+        **Errores:** escribe `qrError` en el documento sin re-lanzar (evita retries).
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Solo referencia — esta función no tiene endpoint HTTP directo.
+
+  /schoolProcessPurchase:
+    post:
+      tags: [Triggers]
+      summary: "TRIGGER — Procesar compra del bar escolar al crear orden"
+      description: |
+        **Tipo:** `onDocumentCreated`
+        **Path Firestore:** `companies/{companyId}/school_orders/{orderId}`
+        **Sin endpoint HTTP directo.**
+
+        Es el único punto que descuenta el wallet del alumno. Solo procesa órdenes con
+        `status: 'pending'` y sin `walletTransactionId` (idempotencia doble).
+
+        Dentro de una transacción atómica:
+        1. Re-lee la orden y el alumno.
+        2. Verifica saldo suficiente (`walletBalance >= order.total`).
+        3. Si saldo insuficiente: cancela la orden con motivo.
+        4. Si saldo suficiente:
+           - Crea `SchoolTransaction` (`type: 'purchase'`) en `school_transactions`.
+           - Descuenta `walletBalance` en `school_students`.
+           - Marca la orden `status: 'confirmed'` con `walletTransactionId`.
+
+        **Errores:** no re-lanza. Cancela la orden con el mensaje de error.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Solo referencia — esta función no tiene endpoint HTTP directo.
+
+  /schoolConfirmRecharge:
+    post:
+      tags: [Triggers]
+      summary: "TRIGGER — Acreditar recarga al wallet del alumno cuando es confirmada"
+      description: |
+        **Tipo:** `onDocumentUpdated`
+        **Path Firestore:** `companies/{companyId}/school_recharges/{rechargeId}`
+        **Sin endpoint HTTP directo.**
+
+        Se activa cuando `paymentStatus` cambia a `'confirmed'`. Dentro de una transacción
+        atómica: crea `SchoolTransaction` (`type: 'recharge'`), incrementa `walletBalance`
+        del alumno, y actualiza la recarga con `walletTransactionId`, `balanceBefore` y
+        `balanceAfter`.
+
+        **Idempotente:** doble barrera (before/after check + `walletTransactionId` dentro de tx).
+        **Errores:** no re-lanza. Escribe `rechargeError` en el documento.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Solo referencia — esta función no tiene endpoint HTTP directo.
+
+  # ────────────────────────────────────────────────────────────────────────────────
+  # SCHEDULED
+  # ────────────────────────────────────────────────────────────────────────────────
+  /runMonthlyDepreciation:
+    post:
+      tags: [Scheduled]
+      summary: "SCHEDULED — Depreciación mensual automática de activos fijos"
+      description: |
+        **Tipo:** `onSchedule`
+        **Horario:** `0 6 1 * *` (día 1 de cada mes a las 06:00 hora Ecuador — America/Guayaquil)
+        **Sin endpoint HTTP directo.**
+
+        Procesa el mes anterior (no el mes en curso) para todas las empresas activas.
+        Por cada empresa:
+        1. Verifica idempotencia (busca journal_entry de tipo `depreciation` para el mes).
+        2. Obtiene activos fijos activos con valor depreciable restante.
+        3. Calcula depreciación lineal mensual: `(costo - valorResidual) / vidaUtilMeses`.
+        4. Consolida líneas por cuenta contable.
+        5. Crea `journal_entry` con `status: 'posted'` y `type: 'depreciation'`.
+        6. Actualiza `accumulatedDepreciation`, `remainingValue` y `lastDepreciationMonthKey`
+           en cada activo (en batches de 400).
+
+        Si una empresa falla, continúa con las demás (error aislado).
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Solo referencia — esta función no tiene endpoint HTTP directo.
+
+  /detectOverdueTasksScheduled:
+    post:
+      tags: [Scheduled]
+      summary: "SCHEDULED — Detectar tareas vencidas y notificar"
+      description: |
+        **Tipo:** `onSchedule`
+        **Horario:** diario (frecuencia exacta definida en el código fuente del módulo team-management).
+        **Sin endpoint HTTP directo.**
+
+        Consulta tareas con `dueDate < now` y `status != completed/cancelled` en todas
+        las empresas, y actualiza su estado a `overdue` o envía notificaciones según
+        la configuración.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Solo referencia — esta función no tiene endpoint HTTP directo.

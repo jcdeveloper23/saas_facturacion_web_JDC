@@ -34,7 +34,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createCompanyUser = exports.generateAccountingPdf = exports.generateOpeningEntry = exports.closeAccountingPeriod = exports.generateJournalEntryFromPurchase = exports.generateReversalFromPurchase = exports.generateReversalFromRetention = exports.generateReversalFromDebitNote = exports.generateReversalFromInvoice = exports.generateJournalEntryFromDebitNote = exports.generateJournalEntryFromCreditNote = exports.generateJournalEntryFromRetention = exports.generateJournalEntryFromInvoice = exports.runDepreciationForMonth = exports.runMonthlyDepreciation = exports.generateWeeklyReport = exports.detectOverdueTasksScheduled = exports.onTaskStatusChanged = exports.onTimesheetDeleted = exports.onTimesheetCreated = exports.onProductPublicSync = exports.onMarketplaceSettingsChange = exports.onPurchaseReceive = exports.onInvoiceStock = exports.onPosSaleComplete = exports.onDebitNoteEmit = exports.sendDebitNoteEmail = exports.generateDebitNotePdf = exports.generateDebitNoteXml = exports.onRetentionEmit = exports.sendRetentionEmail = exports.generateRetentionPdf = exports.generateRetentionXml = exports.onInvoiceEmit = exports.sendCreditNoteEmail = exports.generateCreditNotePdf = exports.sendInvoiceEmail = exports.generatePdf = exports.checkSriStatus = exports.sendToSri = exports.signXml = exports.generateCreditNoteXml = exports.generateInvoiceXml = exports.uploadCertificate = exports.checkPlanLimit = exports.onPlanUpdated = exports.assignPlanToCompany = exports.setupCompany = exports.setupFirstAdmin = exports.setUserCustomClaims = void 0;
-exports.downloadDocument = exports.schoolScanQr = exports.schoolConfirmRecharge = exports.schoolProcessPurchase = exports.schoolGenerateStudentQr = exports.deleteCompanyUser = exports.updateCompanyUser = void 0;
+exports.serveApiDocs = exports.downloadDocument = exports.schoolScanQr = exports.schoolConfirmRecharge = exports.schoolProcessPurchase = exports.schoolGenerateStudentQr = exports.deleteCompanyUser = exports.updateCompanyUser = void 0;
 const admin = __importStar(require("firebase-admin"));
 admin.initializeApp();
 // Auth
@@ -161,4 +161,7 @@ Object.defineProperty(exports, "schoolScanQr", { enumerable: true, get: function
 // Utils
 var download_document_1 = require("./utils/download-document");
 Object.defineProperty(exports, "downloadDocument", { enumerable: true, get: function () { return download_document_1.downloadDocument; } });
+// Docs
+var serve_api_docs_1 = require("./utils/serve-api-docs");
+Object.defineProperty(exports, "serveApiDocs", { enumerable: true, get: function () { return serve_api_docs_1.serveApiDocs; } });
 //# sourceMappingURL=index.js.map

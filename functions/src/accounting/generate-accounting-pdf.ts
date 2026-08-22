@@ -437,7 +437,7 @@ export const generateAccountingPdf = onCall<GenerateAccountingPdfInput>(
         margins: { top: 55, bottom: 40, left: 36, right: 36 }
       });
 
-      doc.on('data',  chunk => chunks.push(chunk));
+      doc.on('data',  (chunk: Buffer) => chunks.push(chunk));
       doc.on('end',   resolve);
       doc.on('error', reject);
 

@@ -1,0 +1,30 @@
+<div class="api-docs-page">
+  <div class="page-header">
+    <h1 class="page-title">Referencia de Cloud Functions</h1>
+    <p class="page-subtitle">
+      Documentación de todas las Firebase Cloud Functions — callables, triggers y funciones programadas.
+    </p>
+  </div>
+
+  @if (isLoading()) {
+    <div class="loading-state">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Cargando...</span>
+      </div>
+      <p class="mt-3 text-muted">Cargando documentación...</p>
+    </div>
+  }
+
+  @if (hasError()) {
+    <div class="alert alert-warning d-flex align-items-center gap-2" role="alert">
+      <i class="cil-warning"></i>
+      <div>
+        No se pudo cargar la documentación.
+        Verifica que la Cloud Function <code>serveApiDocs</code> esté desplegada,
+        o que el emulador Firebase esté corriendo localmente.
+      </div>
+    </div>
+  }
+
+  <div id="swagger-ui" [class.d-none]="isLoading() || hasError()"></div>
+</div>

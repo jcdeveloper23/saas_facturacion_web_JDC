@@ -81,3 +81,6 @@ export { schoolScanQr }            from './school-bar/school-scan-qr';
 
 // Utils
 export { downloadDocument } from './utils/download-document';
+
+// Docs
+export { serveApiDocs } from './utils/serve-api-docs';
