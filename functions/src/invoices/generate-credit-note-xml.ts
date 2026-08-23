@@ -2,6 +2,9 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import { create } from 'xmlbuilder2';
 import { getStorage } from 'firebase-admin/storage';
+import { formatFechaEmisionEC, formatFechaClaveAccesoEC } from '../utils/sri-date';
+import { resolveTipoIdentificacionComprador } from '../utils/sri-buyer-id';
+import { assertValidAccessKey } from '../utils/sri-access-key';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -28,6 +31,7 @@ interface CreditNote {
   // Customer
   customerName: string;
   customerTaxId: string;
+  customerTaxIdType?: string;
   customerIdentificationType?: string;
   customerEmail?: string;
   customerAddress?: string;
@@ -103,20 +107,6 @@ function calcularDigitoVerificador(clave48: string): number {
 
 function generarCodigoNumerico(): string {
   return String(Math.floor(Math.random() * 100000000)).padStart(8, '0');
-}
-
-function formatFechaEmision(date: Date): string {
-  const dd = String(date.getDate()).padStart(2, '0');
-  const mm = String(date.getMonth() + 1).padStart(2, '0');
-  const yyyy = date.getFullYear();
-  return `${dd}/${mm}/${yyyy}`;
-}
-
-function formatFechaClaveAcceso(date: Date): string {
-  const dd = String(date.getDate()).padStart(2, '0');
-  const mm = String(date.getMonth() + 1).padStart(2, '0');
-  const yyyy = date.getFullYear();
-  return `${dd}${mm}${yyyy}`;
 }
 
 /** Extract numeric-only secuencial from "001-001-000000001" → "000000001" */
@@ -215,7 +205,7 @@ export async function generateCreditNoteXmlInternal(
 
   // 5. Build access key (49 digits) — codDoc = '04' (Nota de Crédito)
   const cnDate: Date = cn.date.toDate();
-  const fechaStr = formatFechaClaveAcceso(cnDate);
+  const fechaStr = formatFechaClaveAccesoEC(cnDate);
   const tipoComprobante = '04'; // Nota de Crédito
   const ruc = company.sri.ruc;
   const ambiente = company.sri.environment === 'production' ? '2' : '1';
@@ -233,6 +223,7 @@ export async function generateCreditNoteXmlInternal(
 
   const digitoVerificador = calcularDigitoVerificador(clave48);
   const accessKey = clave48 + String(digitoVerificador);
+  assertValidAccessKey(accessKey); // nunca continuar con una clave mal construida
 
   console.log('[generate-credit-note-xml] Clave de acceso:', accessKey, '| longitud:', accessKey.length);
 
@@ -273,10 +264,14 @@ export async function generateCreditNoteXmlInternal(
 
   // <infoNotaCredito>
   const infoNC = root.ele('infoNotaCredito');
-  infoNC.ele('fechaEmision').txt(formatFechaEmision(cnDate));
+  infoNC.ele('fechaEmision').txt(formatFechaEmisionEC(cnDate));
   infoNC.ele('dirEstablecimiento').txt(sriConfig.direccionEstablecimiento);
 
-  const tipoIdComprador = cn.customerIdentificationType ?? '04'; // RUC default
+  const tipoIdComprador = resolveTipoIdentificacionComprador(
+    cn.customerTaxId,
+    cn.customerIdentificationType,
+    cn.customerTaxIdType,
+  );
   infoNC.ele('tipoIdentificacionComprador').txt(tipoIdComprador);
   infoNC.ele('razonSocialComprador').txt(cn.customerName);
   infoNC.ele('identificacionComprador').txt(cn.customerTaxId);
@@ -294,7 +289,7 @@ export async function generateCreditNoteXmlInternal(
   infoNC.ele('numDocModificado').txt(cn.rectifiedInvoiceNumber ?? '');
 
   const rectifiedDate = resolveRectifiedDate(cn.rectifiedInvoiceDate);
-  infoNC.ele('fechaEmisionDocSustento').txt(formatFechaEmision(rectifiedDate));
+  infoNC.ele('fechaEmisionDocSustento').txt(formatFechaEmisionEC(rectifiedDate));
 
   if (cn.rectifiedInvoiceAuthNumber) {
     infoNC.ele('numAutDocSustento').txt(cn.rectifiedInvoiceAuthNumber);

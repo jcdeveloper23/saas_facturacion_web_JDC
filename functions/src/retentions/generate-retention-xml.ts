@@ -2,6 +2,8 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import { create } from 'xmlbuilder2';
 import { getStorage } from 'firebase-admin/storage';
+import { formatFechaEmisionEC, formatFechaClaveAccesoEC } from '../utils/sri-date';
+import { assertValidAccessKey } from '../utils/sri-access-key';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -79,20 +81,6 @@ function generarCodigoNumerico(): string {
   return String(Math.floor(Math.random() * 100000000)).padStart(8, '0');
 }
 
-function formatFechaEmision(date: Date): string {
-  const dd   = String(date.getDate()).padStart(2, '0');
-  const mm   = String(date.getMonth() + 1).padStart(2, '0');
-  const yyyy = date.getFullYear();
-  return `${dd}/${mm}/${yyyy}`;
-}
-
-function formatFechaClaveAcceso(date: Date): string {
-  const dd   = String(date.getDate()).padStart(2, '0');
-  const mm   = String(date.getMonth() + 1).padStart(2, '0');
-  const yyyy = date.getFullYear();
-  return `${dd}${mm}${yyyy}`;
-}
-
 function extractSecuencial(fullNumber: string): string {
   const parts = fullNumber.split('-');
   return (parts[parts.length - 1] ?? '000000001').replace(/\D/g, '').padStart(9, '0');
@@ -123,7 +111,7 @@ export async function generateRetentionXmlInternal(
 
   // Build access key (49 digits)
   const retDate    = retention.date.toDate();
-  const fechaStr   = formatFechaClaveAcceso(retDate);
+  const fechaStr   = formatFechaClaveAccesoEC(retDate);
   const ruc        = company.sri.ruc;
   const ambiente   = company.sri.environment === 'production' ? '2' : '1';
   const serie      = `${company.sri.establishment}${company.sri.emissionPoint}`;
@@ -137,6 +125,7 @@ export async function generateRetentionXmlInternal(
     throw new Error(`Clave de acceso mal construida, longitud: ${clave48.length}`);
   }
   const accessKey = clave48 + String(calcularDigitoVerificador(clave48));
+  assertValidAccessKey(accessKey); // nunca continuar con una clave mal construida
   console.log('[generate-retention-xml] Clave de acceso:', accessKey);
 
   // Build XML
@@ -159,7 +148,7 @@ export async function generateRetentionXmlInternal(
 
   // <infoCompRetencion>
   const infoComp = root.ele('infoCompRetencion');
-  infoComp.ele('fechaEmision').txt(formatFechaEmision(retDate));
+  infoComp.ele('fechaEmision').txt(formatFechaEmisionEC(retDate));
   infoComp.ele('dirEstablecimiento').txt(sriConfig.direccionEstablecimiento);
   if (company.sri.contribuyenteEspecial) {
     infoComp.ele('contribuyenteEspecial').txt(company.sri.contribuyenteEspecial);
@@ -184,7 +173,7 @@ export async function generateRetentionXmlInternal(
   docSustento.ele('codDocSustento').txt(retention.supportDocType);
 
   docSustento.ele('numDocSustento').txt(retention.supportDocNumber);
-  docSustento.ele('fechaEmisionDocSustento').txt(formatFechaEmision(retention.supportDocDate.toDate()));
+  docSustento.ele('fechaEmisionDocSustento').txt(formatFechaEmisionEC(retention.supportDocDate.toDate()));
   if (retention.supportDocAuth) {
     docSustento.ele('numAutDocSustento').txt(retention.supportDocAuth);
   }

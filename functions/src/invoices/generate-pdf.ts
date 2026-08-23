@@ -8,18 +8,32 @@ import { getStorage } from 'firebase-admin/storage';
 
 interface InvoiceLine {
   sku?: string;
+  productSku?: string;  // campo real del frontend
   description: string;
   quantity: number;
   unitPrice: number;
-  discount: number;
-  taxRate: number;
+  discount?: number;
+  discountPct?: number; // campo real del frontend (porcentaje, no monto)
+  taxRate?: number;
+  vatPct?: number;       // campo real del frontend
   sriTaxCode?: string;
-  lineTotal: number;
-  taxAmount: number;
+  lineTotal?: number;
+  subtotal?: number;     // campo real del frontend (monto de línea sin impuesto)
+  taxAmount?: number;
+  vatAmount?: number;    // campo real del frontend
+}
+
+interface PaymentMethod {
+  code: string;
+  name?: string;
+  amount?: number;
+  deadline?: number | null;
+  timeUnit?: string;
 }
 
 interface Invoice {
-  number: string;
+  number: number | string;
+  fullNumber?: string;
   date: admin.firestore.Timestamp;
   status: string;
   sriStatus?: string;
@@ -28,16 +42,19 @@ interface Invoice {
   authorizedAt?: admin.firestore.Timestamp;
   customerName: string;
   customerTaxId: string;
-  customerIdentificationType?: string;
+  customerTaxIdType?: string;   // campo real: "RUC" | "CI" | "PASAPORTE" | "EXTERIOR"
   customerEmail?: string;
   customerAddress?: string;
-  subtotal: number;
-  discount: number;
-  taxableBase: number;
-  vatAmount: number;
+  subtotal?: number;
+  discount?: number;
+  grossAmount?: number;     // campo real del frontend (subtotal antes de descuento)
+  discountAmount?: number;  // campo real del frontend
+  netAmount?: number;       // campo real del frontend (base imponible)
+  vatAmount?: number;
   total: number;
   lines: InvoiceLine[];
   paymentMethod?: string;
+  paymentMethods?: PaymentMethod[]; // campo real del frontend
   paymentDays?: number;
   notes?: string;
 }
@@ -59,7 +76,10 @@ function fmt2(n: number): string { return n.toFixed(2); }
 
 function formatDate(ts: admin.firestore.Timestamp): string {
   const d = ts.toDate();
-  return d.toLocaleDateString('es-EC', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  return d.toLocaleDateString('es-EC', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    timeZone: 'America/Guayaquil',
+  });
 }
 
 function formatDatetime(ts: admin.firestore.Timestamp): string {
@@ -106,7 +126,7 @@ async function buildPdfBuffer(opts: BuildPdfOptions): Promise<Buffer> {
       size: 'A4',
       margin: 40,
       info: {
-        Title: `Factura ${invoice.number}`,
+        Title: `Factura ${invoice.fullNumber ?? invoice.number}`,
         Author: sriConfig.razonSocial,
       },
     });
@@ -148,7 +168,7 @@ async function buildPdfBuffer(opts: BuildPdfOptions): Promise<Buffer> {
       .text('FACTURA', LEFT, doc.y, { width: PAGE_W, align: 'center' });
 
     doc.moveDown(0.3).fontSize(10).font('Helvetica')
-      .text(`No. ${invoice.number}`, LEFT, doc.y, { width: PAGE_W, align: 'center' });
+      .text(`No. ${invoice.fullNumber ?? invoice.number}`, LEFT, doc.y, { width: PAGE_W, align: 'center' });
 
     doc.moveDown(0.3)
       .text(`Fecha de emisión: ${formatDate(invoice.date)}`, LEFT, doc.y, { width: PAGE_W, align: 'center' });
@@ -206,8 +226,7 @@ async function buildPdfBuffer(opts: BuildPdfOptions): Promise<Buffer> {
     doc.fontSize(9).fillColor(GRAY).font('Helvetica-Bold').text('DATOS DEL COMPRADOR', LEFT, doc.y);
     doc.moveDown(0.3);
 
-    const idTypeMap: Record<string, string> = { '04': 'RUC', '05': 'Cédula', '07': 'Pasaporte' };
-    const idLabel = idTypeMap[invoice.customerIdentificationType ?? '04'] ?? 'RUC';
+    const idLabel = invoice.customerTaxIdType || 'RUC';
 
     const buyerInfo = [
       [`Razón Social / Nombre:`, invoice.customerName],
@@ -271,15 +290,21 @@ async function buildPdfBuffer(opts: BuildPdfOptions): Promise<Buffer> {
       }
       rowEven = !rowEven;
 
-      const desc = line.sku ? `[${line.sku}] ${line.description}` : line.description;
+      const sku        = line.productSku ?? line.sku;
+      const desc       = sku ? `[${sku}] ${line.description}` : line.description;
+      const discountPct = line.discountPct ?? line.discount ?? 0;
+      const lineBase   = line.subtotal ?? line.lineTotal ?? 0;
+      const taxRate    = line.vatPct ?? line.taxRate ?? 0;
+      const lineTax    = line.vatAmount ?? line.taxAmount ?? 0;
+
       cx = LEFT + 2;
       doc.text(desc,                   cx, rowY + 4, { width: COL.desc - 4, lineBreak: false }); cx += COL.desc;
       doc.text(fmt2(line.quantity),    cx, rowY + 4, { width: COL.qty,  lineBreak: false, align: 'right' }); cx += COL.qty;
       doc.text(fmt2(line.unitPrice),   cx, rowY + 4, { width: COL.price,lineBreak: false, align: 'right' }); cx += COL.price;
-      doc.text(fmt2(line.discount),    cx, rowY + 4, { width: COL.disc, lineBreak: false, align: 'right' }); cx += COL.disc;
-      doc.text(fmt2(line.lineTotal),   cx, rowY + 4, { width: COL.sub,  lineBreak: false, align: 'right' }); cx += COL.sub;
-      doc.text(`${line.taxRate}%`,     cx, rowY + 4, { width: COL.iva,  lineBreak: false, align: 'right' }); cx += COL.iva;
-      doc.text(fmt2(line.lineTotal + line.taxAmount), cx, rowY + 4, { width: COL.total - 2, lineBreak: false, align: 'right' });
+      doc.text(`${discountPct}%`,      cx, rowY + 4, { width: COL.disc, lineBreak: false, align: 'right' }); cx += COL.disc;
+      doc.text(fmt2(lineBase),         cx, rowY + 4, { width: COL.sub,  lineBreak: false, align: 'right' }); cx += COL.sub;
+      doc.text(`${taxRate}%`,          cx, rowY + 4, { width: COL.iva,  lineBreak: false, align: 'right' }); cx += COL.iva;
+      doc.text(fmt2(lineBase + lineTax), cx, rowY + 4, { width: COL.total - 2, lineBreak: false, align: 'right' });
 
       doc.y = rowY + rowHeight;
     }
@@ -303,16 +328,22 @@ async function buildPdfBuffer(opts: BuildPdfOptions): Promise<Buffer> {
       doc.moveDown(0.35);
     }
 
-    totalRow('Subtotal sin impuestos:', `$ ${fmt2(invoice.subtotal)}`);
-    totalRow('Descuento total:',        `$ ${fmt2(invoice.discount)}`);
+    const grossAmount = invoice.grossAmount ?? invoice.subtotal ?? invoice.netAmount ?? 0;
+    const discountAmt = invoice.discountAmount ?? invoice.discount ?? 0;
+
+    totalRow('Subtotal sin impuestos:', `$ ${fmt2(grossAmount)}`);
+    totalRow('Descuento total:',        `$ ${fmt2(discountAmt)}`);
 
     // Group IVA by rate
     const ivaGroups: Map<number, { base: number; tax: number }> = new Map();
     for (const line of invoice.lines) {
-      const existing = ivaGroups.get(line.taxRate) ?? { base: 0, tax: 0 };
-      ivaGroups.set(line.taxRate, {
-        base: existing.base + line.lineTotal,
-        tax:  existing.tax  + line.taxAmount,
+      const rate     = line.vatPct ?? line.taxRate ?? 0;
+      const lineBase = line.subtotal ?? line.lineTotal ?? 0;
+      const lineTax  = line.vatAmount ?? line.taxAmount ?? 0;
+      const existing = ivaGroups.get(rate) ?? { base: 0, tax: 0 };
+      ivaGroups.set(rate, {
+        base: existing.base + lineBase,
+        tax:  existing.tax  + lineTax,
       });
     }
     for (const [rate, { base, tax }] of ivaGroups) {
@@ -325,15 +356,22 @@ async function buildPdfBuffer(opts: BuildPdfOptions): Promise<Buffer> {
     doc.moveDown(0.5);
 
     // ── Payment method ────────────────────────────────────────────────────────
+    const paymentList = invoice.paymentMethods?.length
+      ? invoice.paymentMethods
+      : [{ code: invoice.paymentMethod ?? '01', deadline: invoice.paymentDays ?? 0 } as PaymentMethod];
+
     doc.fontSize(8).fillColor(GRAY).font('Helvetica-Bold')
       .text('FORMA DE PAGO:', LEFT, doc.y);
-    doc.font('Helvetica').fillColor(DARK)
-      .text(
-        `${paymentMethodName(invoice.paymentMethod ?? '01')}` +
-        (invoice.paymentDays ? ` — Plazo: ${invoice.paymentDays} días` : ''),
+    doc.font('Helvetica').fillColor(DARK);
+    for (const pm of paymentList) {
+      doc.text(
+        `${pm.name ?? paymentMethodName(pm.code ?? '01')}` +
+        (pm.deadline ? ` — Plazo: ${pm.deadline} días` : ''),
         LEFT, doc.y, { width: PAGE_W }
       );
-    doc.moveDown(0.5);
+      doc.moveDown(0.15);
+    }
+    doc.moveDown(0.35);
 
     // ── Additional info ───────────────────────────────────────────────────────
     if (sriConfig.additionalInfoFields && sriConfig.additionalInfoFields.length > 0) {

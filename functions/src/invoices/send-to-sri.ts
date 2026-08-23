@@ -75,6 +75,34 @@ async function callSriAuthorization(wsdlUrl: string, accessKey: string): Promise
 
 // ─── Response parsers ─────────────────────────────────────────────────────────
 
+interface SriMessage {
+  identificador?: string;
+  mensaje: string;
+  informacionAdicional?: string;
+  tipo?: string;
+}
+
+/**
+ * Extrae TODOS los <mensaje> (con sus hijos identificador/mensaje/informacionAdicional/tipo)
+ * de una respuesta SOAP del SRI. Tanto recepción como autorización pueden devolver varios
+ * mensajes a la vez (ej. múltiples errores de validación); los parsers anteriores solo
+ * tomaban el primero, perdiendo detalle útil para diagnóstico (identificador, informacionAdicional).
+ */
+function parseAllMessages(soapResponse: string): SriMessage[] {
+  const messages: SriMessage[] = [];
+  const blockRe = /<mensaje>\s*(?:<identificador>([^<]*)<\/identificador>\s*)?<mensaje>([^<]*)<\/mensaje>\s*(?:<informacionAdicional>([^<]*)<\/informacionAdicional>\s*)?(?:<tipo>([^<]*)<\/tipo>\s*)?<\/mensaje>/gi;
+  let m: RegExpExecArray | null;
+  while ((m = blockRe.exec(soapResponse)) !== null) {
+    messages.push({
+      identificador: m[1]?.trim() || undefined,
+      mensaje: m[2]?.trim() ?? '',
+      informacionAdicional: m[3]?.trim() || undefined,
+      tipo: m[4]?.trim() || undefined,
+    });
+  }
+  return messages;
+}
+
 function parseReceptionState(soapResponse: string): { state: string; mensaje: string; detalle: string } {
   const estadoMatch      = soapResponse.match(/<estado>([^<]+)<\/estado>/i);
   const mensajeMatch     = soapResponse.match(/<mensaje>([^<]+)<\/mensaje>/i);
@@ -273,13 +301,20 @@ export async function sendToSriInternal(
   console.log('[send-to-sri] === FIN RESPUESTA ===');
 
   const { state: receptionState, mensaje: receptionMensaje, detalle: receptionDetalle } = parseReceptionState(receptionResponse);
+  const receptionMessages = parseAllMessages(receptionResponse);
   console.log('[send-to-sri] Estado recepción:', receptionState, '|', receptionMensaje, '| Detalle:', receptionDetalle);
 
   if (receptionState !== 'RECIBIDA') {
     const sriError = receptionDetalle
       ? `${receptionMensaje}: ${receptionDetalle}`
       : receptionMensaje;
-    await db.doc(docPath).update({ sriStatus: 'rejected', sriError, updatedAt: now });
+    await db.doc(docPath).update({
+      sriStatus: 'rejected',
+      sriError,
+      sriReceptionResponse: receptionResponse,
+      sriMessages: receptionMessages,
+      updatedAt: now,
+    });
     return { documentId, companyId, sriStatus: 'rejected', estado: receptionState, mensaje: receptionMensaje, detalle: receptionDetalle, sriError };
   }
 
@@ -296,12 +331,18 @@ export async function sendToSriInternal(
   } catch (err) {
     console.error('[send-to-sri] Error consultando autorización:', err);
     const sriError = `Comprobante recibido, error al consultar autorización: ${err instanceof Error ? err.message : String(err)}`;
-    await db.doc(docPath).update({ sriStatus: 'pending', sriError, updatedAt: now });
+    await db.doc(docPath).update({
+      sriStatus: 'pending',
+      sriError,
+      sriReceptionResponse: receptionResponse,
+      updatedAt: now,
+    });
     return { documentId, companyId, sriStatus: 'pending', sriError };
   }
 
   // 9. Parse authorization response
   const { authorizationNumber, authorizedAt, estado, mensaje } = parseAuthorizationResponse(authResponse);
+  const authMessages = parseAllMessages(authResponse);
   console.log('[send-to-sri] Estado autorización:', estado, '| número:', authorizationNumber);
 
   if (estado === 'AUTORIZADO' && authorizationNumber) {
@@ -310,6 +351,9 @@ export async function sendToSriInternal(
       authorizationNumber,
       authorizedAt: authorizedAt ? admin.firestore.Timestamp.fromDate(authorizedAt) : now,
       sriError: admin.firestore.FieldValue.delete(),
+      sriReceptionResponse: receptionResponse,
+      sriAuthorizationResponse: authResponse,
+      sriMessages: authMessages,
       updatedAt: now,
     });
     console.log('[send-to-sri]', cfg.docLabel, 'AUTORIZADA:', authorizationNumber);
@@ -326,7 +370,14 @@ export async function sendToSriInternal(
   }
 
   const sriError = mensaje || `Estado de autorización: ${estado}`;
-  await db.doc(docPath).update({ sriStatus: 'rejected', sriError, updatedAt: now });
+  await db.doc(docPath).update({
+    sriStatus: 'rejected',
+    sriError,
+    sriReceptionResponse: receptionResponse,
+    sriAuthorizationResponse: authResponse,
+    sriMessages: authMessages,
+    updatedAt: now,
+  });
   console.warn('[send-to-sri]', cfg.docLabel, 'NO autorizada:', sriError);
   return { documentId, companyId, sriStatus: 'rejected', estado, mensaje, sriError };
 }

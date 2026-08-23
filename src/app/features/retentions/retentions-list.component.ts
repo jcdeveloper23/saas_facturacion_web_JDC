@@ -173,6 +173,19 @@ import { SRI_STATUS_LABELS, SRI_STATUS_COLORS } from '../invoices/models/invoice
                       }
                     </button>
                   }
+                  <!-- Contabilidad: generar asiento manualmente (documento emitido sin asiento) -->
+                  @if (r.status === 'issued' && !r.isVoid && !r.accountingEntryId) {
+                    <button cButton color="warning" variant="outline" size="sm"
+                            class="ms-1" title="Generar asiento contable (pendiente)"
+                            [disabled]="generatingEntry() === r.id"
+                            (click)="generarAsiento(r)">
+                      @if (generatingEntry() === r.id) {
+                        <c-spinner size="sm"></c-spinner>
+                      } @else {
+                        <svg cIcon name="cilSpreadsheet"></svg>
+                      }
+                    </button>
+                  }
                 </td>
               </tr>
             }
@@ -203,6 +216,7 @@ export class RetentionsListComponent implements OnInit, OnDestroy {
   reenviarLoading = signal(false);
   pdfLoading      = signal<string | null>(null);
   downloadingDoc  = signal<string | null>(null);
+  generatingEntry = signal<string | null>(null);
   all           = signal<Retention[]>([]);
   yearFilter    = String(new Date().getFullYear());
   statusFilter  = '';
@@ -278,6 +292,23 @@ export class RetentionsListComponent implements OnInit, OnDestroy {
       this.notifications.error('Error al reenviar: ' + (err?.message ?? err));
     } finally {
       this.reenviarLoading.set(false);
+    }
+  }
+
+  async generarAsiento(r: Retention): Promise<void> {
+    if (this.generatingEntry()) return;
+    this.generatingEntry.set(r.id);
+    try {
+      const fn = httpsCallable<
+        { documentId: string; companyId: string; documentType: string },
+        { entryId: string }
+      >(this.functions, 'regenerateJournalEntry');
+      await fn({ documentId: r.id, companyId: this.tenant.companyId, documentType: 'retention' });
+      this.notifications.success('Asiento contable generado correctamente');
+    } catch (err: any) {
+      this.notifications.error(err?.message ?? 'Error al generar el asiento contable');
+    } finally {
+      this.generatingEntry.set(null);
     }
   }
 

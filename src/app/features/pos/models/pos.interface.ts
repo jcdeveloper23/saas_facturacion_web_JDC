@@ -140,6 +140,7 @@ export interface PosSale {
   generateInvoice: boolean;
   invoiceError?: string;    // mensaje de error si la CF falló al generar la factura
   hasLinkedInvoice?: boolean;  // true cuando una factura fue generada y vinculada
+  invoiceClaim?: 'client' | 'function'; // reclamo transaccional temporal para evitar factura duplicada (frontend vs. onPosSaleComplete)
   // ── Estado ─────────────────────────────────────────────────────────────────
   seriesCode: string;              // codserie del terminal
   warehouseCode?: string;          // bodega — necesaria para reponer stock al anular

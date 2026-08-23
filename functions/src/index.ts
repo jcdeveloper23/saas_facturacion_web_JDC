@@ -64,6 +64,8 @@ export { generateJournalEntryFromCreditNote }   from './accounting/generate-jour
 export { generateJournalEntryFromDebitNote }    from './accounting/generate-journal-entry-from-debit-note';
 export { generateReversalFromInvoice, generateReversalFromDebitNote, generateReversalFromRetention, generateReversalFromPurchase } from './accounting/generate-reversal-entry';
 export { generateJournalEntryFromPurchase }     from './accounting/generate-journal-entry-from-purchase';
+export { regenerateJournalEntry }               from './accounting/regenerate-journal-entry';
+export { backfillNotRequiredInvoices }          from './accounting/backfill-not-required-invoices';
 export { closeAccountingPeriod }                from './accounting/close-accounting-period';
 export { generateOpeningEntry }                 from './accounting/generate-opening-entry';
 export { generateAccountingPdf }                from './accounting/generate-accounting-pdf';

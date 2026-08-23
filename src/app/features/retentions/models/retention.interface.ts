@@ -163,6 +163,10 @@ export interface Retention {
   sriError?:           string;
   xmlUrl?:             string;
   pdfUrl?:             string;
+
+  // ── Contabilidad (generado por Cloud Function) ──────────────────────────────
+  accountingEntryId?: string;  // id del asiento en journal_entries, si ya se generó
+  reversalEntryId?:   string;  // id del asiento de reversa, si el documento fue anulado
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

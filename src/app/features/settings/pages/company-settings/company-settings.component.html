@@ -97,20 +97,25 @@
               @if (hasError('fiscalAddress')) { <div class="invalid-feedback">{{ getError('fiscalAddress') }}</div> }
             </c-col>
 
-            <c-col md="4">
+            <c-col md="3">
               <label cLabel class="fw-semibold small text-muted">Ciudad <span class="text-danger">*</span></label>
               <input cFormControl formControlName="city" placeholder="Ej: Quito" [class.is-invalid]="hasError('city')"
                 class="py-2">
             </c-col>
 
-            <c-col md="4">
+            <c-col md="3">
               <label cLabel class="fw-semibold small text-muted">Provincia</label>
               <input cFormControl formControlName="province" placeholder="Ej: Pichincha" class="py-2">
             </c-col>
 
-            <c-col md="4">
-              <label cLabel class="fw-semibold small text-muted">País</label>
-              <input cFormControl formControlName="country" class="py-2 bg-body-secondary" readonly>
+            <c-col md="3">
+              <label cLabel class="fw-semibold small text-muted">Código Postal</label>
+              <input cFormControl formControlName="zipCode" placeholder="Ej: 170150" class="py-2">
+            </c-col>
+
+            <c-col md="3">
+              <label cLabel class="fw-semibold small text-muted">País <span class="text-danger">*</span></label>
+              <input cFormControl formControlName="country" placeholder="Ecuador" class="py-2">
             </c-col>
           </c-row>
         </c-card-body>
@@ -240,6 +245,38 @@
     <!-- Columna principal: Datos SRI -->
     <c-col lg="8">
 
+      <!-- Identificación SRI -->
+      <c-card class="border-0 shadow-sm overflow-hidden mb-4">
+        <c-card-body class="p-4">
+          <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-2">
+            <h6 class="text-uppercase text-muted fw-bold small mb-0">Identificación del Emisor</h6>
+            <button cButton color="ghost" size="sm" type="button" class="text-primary py-0"
+              (click)="syncFromCompany()" title="Copiar RUC y Razón Social desde Identidad Corporativa">
+              <svg cIcon name="cilSync" size="sm" class="me-1"></svg> Sincronizar
+            </button>
+          </div>
+          <c-row class="g-3">
+            <c-col md="5">
+              <label cLabel class="fw-semibold small text-primary">RUC <span class="text-danger">*</span></label>
+              <input cFormControl formControlName="ruc" maxlength="13" placeholder="1700000000001"
+                [class.is-invalid]="hasSriError('ruc')" class="font-monospace py-2 fw-bold">
+              @if (hasSriError('ruc')) {
+                <div class="invalid-feedback">{{ sriForm.get('ruc')?.errors?.['rucInvalid'] ?? 'RUC requerido (13 dígitos)' }}</div>
+              }
+              <div class="form-text">RUC que se usa en el XML y la clave de acceso enviada al SRI</div>
+            </c-col>
+            <c-col md="7">
+              <label cLabel class="fw-semibold small">Razón Social (SRI) <span class="text-danger">*</span></label>
+              <input cFormControl formControlName="businessName" placeholder="EJ: CORPORACION EJEMPLO C.A."
+                [class.is-invalid]="hasSriError('businessName')" class="py-2">
+              @if (hasSriError('businessName')) {
+                <div class="invalid-feedback">Campo requerido</div>
+              }
+            </c-col>
+          </c-row>
+        </c-card-body>
+      </c-card>
+
       <!-- Ambiente y Emisión -->
       <c-card class="border-0 shadow-sm overflow-hidden mb-4">
         <c-card-body class="p-4">
@@ -247,7 +284,7 @@
           <c-row class="g-3">
             <c-col md="6">
               <label cLabel class="fw-semibold small">Ambiente SRI <span class="text-danger">*</span></label>
-              <select cFormSelect formControlName="environment"
+              <select cFormSelect formControlName="environment" class="py-2"
                 [class.is-invalid]="hasSriError('environment')">
                 <option value="testing">Pruebas (certificación)</option>
                 <option value="production">Producción</option>
@@ -283,14 +320,14 @@
           <c-row class="g-3">
             <c-col md="6">
               <label cLabel class="fw-semibold small">Tipo Contribuyente <span class="text-danger">*</span></label>
-              <select cFormSelect formControlName="contributorType">
+              <select cFormSelect formControlName="contributorType" class="py-2">
                 <option value="natural">Persona Natural</option>
                 <option value="juridica">Persona Jurídica / Sociedad</option>
               </select>
             </c-col>
             <c-col md="6">
               <label cLabel class="fw-semibold small">Régimen <span class="text-danger">*</span></label>
-              <select cFormSelect formControlName="regimen">
+              <select cFormSelect formControlName="regimen" class="py-2">
                 <option value="general">General</option>
                 <option value="rimpe_emprendedor">RIMPE — Emprendedor</option>
                 <option value="rimpe_negocio_popular">RIMPE — Negocio Popular</option>
@@ -557,7 +594,7 @@
         </c-col>
         <c-col md="6">
           <label cLabel class="fw-semibold small">Obligado a llevar Contabilidad <span class="text-danger">*</span></label>
-          <select cFormSelect formControlName="obligadoContabilidad">
+          <select cFormSelect formControlName="obligadoContabilidad" class="py-2">
             <option value="SI">SI</option>
             <option value="NO">NO</option>
           </select>
@@ -576,7 +613,7 @@
 
         <c-col md="6">
           <label cLabel class="fw-semibold small">Tipo de Contribuyente</label>
-          <select cFormSelect formControlName="tipoContribuyente">
+          <select cFormSelect formControlName="tipoContribuyente" class="py-2">
             <option value="01">01 — Persona Natural</option>
             <option value="02">02 — Sociedad</option>
           </select>
@@ -691,7 +728,7 @@
 
         <c-col sm="12" md="6">
           <label cLabel class="fw-semibold mb-1">Almacén por defecto</label>
-          <select cSelect formControlName="defaultWarehouseCode">
+          <select cFormSelect formControlName="defaultWarehouseCode" class="py-2">
             <option value="">— Sin almacén por defecto —</option>
             @for (wh of warehouses(); track wh.id) {
               <option [value]="wh.code">{{ wh.name }}</option>

@@ -562,6 +562,7 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
     this.svc.getInvoice(id).pipe(take(1)).subscribe({
       next: inv => {
         if (!inv) { this.router.navigate(['/invoices']); return; }
+        console.log('[invoice-form] Factura cargada:', JSON.stringify(inv, null, 2));
         this.invoice.set(inv);
         this.patchForm(inv);
         this.loading.set(false);
@@ -1226,7 +1227,10 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
   // ─── Helpers ───────────────────────────────────────────────────────────────
 
   private toDateInput(d: Date): string {
-    return d.toISOString().substring(0, 10);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
   }
 
   private tsToDateInput(ts: any): string {

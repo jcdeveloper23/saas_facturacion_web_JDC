@@ -77,6 +77,9 @@ export interface Purchase {
   stockProcessed: boolean;
   // Retención vinculada
   retentionId?: string;
+  // Contabilidad (generado por Cloud Function)
+  accountingEntryId?: string;  // id del asiento en journal_entries, si ya se generó
+  reversalEntryId?:   string;  // id del asiento de reversa, si la compra fue anulada
   // Auditoría
   createdBy: string;
   createdAt: Timestamp;

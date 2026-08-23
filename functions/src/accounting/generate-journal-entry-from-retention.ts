@@ -1,4 +1,4 @@
-import { onDocumentUpdated } from 'firebase-functions/v2/firestore';
+import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import * as admin from 'firebase-admin';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -85,104 +85,132 @@ function buildRetentionLines(retention: RetentionDoc, accounts: typeof DEFAULT_A
   return lines;
 }
 
-// ─── Trigger ──────────────────────────────────────────────────────────────────
+// ─── Reusable core (called by the trigger AND by the manual regeneration callable) ──
 
-export const generateJournalEntryFromRetention = onDocumentUpdated(
+export type GenerateJournalEntryResult = { created: boolean; entryId?: string; reason?: string };
+
+export async function generateJournalEntryFromRetentionInternal(
+  companyId: string,
+  retentionId: string
+): Promise<GenerateJournalEntryResult> {
+  const db = admin.firestore();
+
+  const docRef = db.doc(`companies/${companyId}/retentions/${retentionId}`);
+  const snap   = await docRef.get();
+  if (!snap.exists) return { created: false, reason: 'not_found' };
+
+  const after = snap.data() as RetentionDoc;
+
+  if (after.accountingEntryId) return { created: false, reason: 'already_exists', entryId: after.accountingEntryId };
+  if (after.status !== 'issued') return { created: false, reason: 'not_ready' };
+
+  const now = admin.firestore.Timestamp.now();
+
+  // Resolve active accounting period for the retention year
+  const retYear = parseInt(after.fiscalYear ?? new Date().getFullYear().toString());
+  const periodsSnap = await db
+    .collection(`companies/${companyId}/accounting_periods`)
+    .where('year', '==', retYear)
+    .where('status', '==', 'open')
+    .limit(1)
+    .get();
+
+  if (periodsSnap.empty) {
+    console.warn('[generateJournalEntryFromRetention] No hay período contable abierto para el año', retYear);
+    return { created: false, reason: 'no_open_period' };
+  }
+
+  const periodId   = periodsSnap.docs[0].id;
+  const periodYear = retYear;
+
+  // Get next journal entry number (atomic)
+  const key        = `journal_${periodYear}`;
+  const counterRef = db.doc(`companies/${companyId}/counters/journal_entries`);
+  let entryNumber  = 1;
+
+  await db.runTransaction(async tx => {
+    const counterSnap = await tx.get(counterRef);
+    const current     = (counterSnap.data()?.[key] as number) ?? 0;
+    entryNumber       = current + 1;
+    tx.set(counterRef, { [key]: entryNumber }, { merge: true });
+  });
+
+  const accounts = DEFAULT_ACCOUNTS;
+  const lines    = buildRetentionLines(after, accounts);
+
+  if (lines.length === 0) {
+    console.warn('[generateJournalEntryFromRetention] Retención sin impuestos — no se crea asiento.');
+    return { created: false, reason: 'no_taxes' };
+  }
+
+  const totalDebit  = round2(lines.reduce((s, l) => s + l.debit,  0));
+  const totalCredit = round2(lines.reduce((s, l) => s + l.credit, 0));
+  const isBalanced  = totalDebit === totalCredit;
+
+  if (!isBalanced) {
+    console.error('[generateJournalEntryFromRetention] Asiento descuadrado:', { totalDebit, totalCredit });
+  }
+
+  // Create journal entry
+  const entryRef = db.collection(`companies/${companyId}/journal_entries`).doc();
+  const entry = {
+    number:      entryNumber,
+    date:        after.date ?? now,
+    description: `Retención ${after.fullNumber} — ${after.supplierName} (Doc: ${after.supportDocNumber})`,
+    periodId,
+    periodYear,
+    type:        'automatic',
+    status:      'posted',
+    reference:   after.fullNumber,
+    referenceId: retentionId,
+    lines,
+    totalDebit,
+    totalCredit,
+    isBalanced,
+    createdBy:   'system',
+    createdAt:   now,
+    updatedAt:   now
+  };
+
+  await entryRef.set(entry);
+
+  // Back-reference on the retention
+  await docRef.update({
+    accountingEntryId: entryRef.id,
+    updatedAt:         now
+  });
+
+  console.log('[generateJournalEntryFromRetention] Asiento creado:', entryRef.id, 'balanceado:', isBalanced);
+
+  return { created: true, entryId: entryRef.id };
+}
+
+// ─── Trigger ──────────────────────────────────────────────────────────────────
+// onDocumentWritten: cubre el caso en que la retención se crea directamente
+// en estado 'issued' (sin borrador previo), que antes nunca generaba asiento
+// porque onDocumentUpdated no se dispara en creación.
+
+export const generateJournalEntryFromRetention = onDocumentWritten(
   'companies/{companyId}/retentions/{retentionId}',
   async (event) => {
-    const before = event.data?.before.data() as RetentionDoc | undefined;
-    const after  = event.data?.after.data()  as RetentionDoc | undefined;
-    if (!before || !after) return;
+    if (!event.data?.after.exists) return;
 
-    // Trigger when retention is issued (status: issued) and not already processed
-    const statusChangedToIssued = before.status !== 'issued' && after.status === 'issued';
+    const before = event.data.before.exists ? event.data.before.data() as RetentionDoc : undefined;
+    const after  = event.data.after.data() as RetentionDoc;
+
+    const statusChangedToIssued = before?.status !== 'issued' && after.status === 'issued';
     const entryAlreadyCreated   = !!after.accountingEntryId;
 
     if (!statusChangedToIssued || entryAlreadyCreated) return;
 
     const { companyId, retentionId } = event.params;
-    const db  = admin.firestore();
-    const now = admin.firestore.Timestamp.now();
-
     console.log('[generateJournalEntryFromRetention] Creando asiento para retención:', retentionId, 'empresa:', companyId);
 
     try {
-      // Resolve active accounting period for the retention year
-      const retYear = parseInt(after.fiscalYear ?? new Date().getFullYear().toString());
-      const periodsSnap = await db
-        .collection(`companies/${companyId}/accounting_periods`)
-        .where('year', '==', retYear)
-        .where('status', '==', 'open')
-        .limit(1)
-        .get();
-
-      if (periodsSnap.empty) {
-        console.warn('[generateJournalEntryFromRetention] No hay período contable abierto para el año', retYear);
-        return;
+      const result = await generateJournalEntryFromRetentionInternal(companyId, retentionId);
+      if (!result.created) {
+        console.warn('[generateJournalEntryFromRetention] No se generó asiento:', result.reason);
       }
-
-      const periodId   = periodsSnap.docs[0].id;
-      const periodYear = retYear;
-
-      // Get next journal entry number (atomic)
-      const key        = `journal_${periodYear}`;
-      const counterRef = db.doc(`companies/${companyId}/counters/journal_entries`);
-      let entryNumber  = 1;
-
-      await db.runTransaction(async tx => {
-        const counterSnap = await tx.get(counterRef);
-        const current     = (counterSnap.data()?.[key] as number) ?? 0;
-        entryNumber       = current + 1;
-        tx.set(counterRef, { [key]: entryNumber }, { merge: true });
-      });
-
-      const accounts = DEFAULT_ACCOUNTS;
-      const lines    = buildRetentionLines(after, accounts);
-
-      if (lines.length === 0) {
-        console.warn('[generateJournalEntryFromRetention] Retención sin impuestos — no se crea asiento.');
-        return;
-      }
-
-      const totalDebit  = round2(lines.reduce((s, l) => s + l.debit,  0));
-      const totalCredit = round2(lines.reduce((s, l) => s + l.credit, 0));
-      const isBalanced  = totalDebit === totalCredit;
-
-      if (!isBalanced) {
-        console.error('[generateJournalEntryFromRetention] Asiento descuadrado:', { totalDebit, totalCredit });
-      }
-
-      // Create journal entry
-      const entryRef = db.collection(`companies/${companyId}/journal_entries`).doc();
-      const entry = {
-        number:      entryNumber,
-        date:        after.date ?? now,
-        description: `Retención ${after.fullNumber} — ${after.supplierName} (Doc: ${after.supportDocNumber})`,
-        periodId,
-        periodYear,
-        type:        'automatic',
-        status:      'posted',
-        reference:   after.fullNumber,
-        referenceId: retentionId,
-        lines,
-        totalDebit,
-        totalCredit,
-        isBalanced,
-        createdBy:   'system',
-        createdAt:   now,
-        updatedAt:   now
-      };
-
-      await entryRef.set(entry);
-
-      // Back-reference on the retention
-      await db.doc(`companies/${companyId}/retentions/${retentionId}`).update({
-        accountingEntryId: entryRef.id,
-        updatedAt:         now
-      });
-
-      console.log('[generateJournalEntryFromRetention] Asiento creado:', entryRef.id, 'balanceado:', isBalanced);
-
     } catch (err) {
       console.error('[generateJournalEntryFromRetention] Error:', err);
     }

@@ -422,6 +422,19 @@
                         }
                       </button>
                     }
+                    <!-- Contabilidad: generar asiento manualmente (documento emitido sin asiento) -->
+                    @if ((inv.status === 'issued' || inv.status === 'paid') && !inv.isVoid && !inv.accountingEntryId) {
+                      <button cButton color="warning" variant="ghost" size="sm"
+                              cTooltip="Generar asiento contable (pendiente)"
+                              [disabled]="generatingEntry() === inv.id"
+                              (click)="generarAsiento(inv, $event)">
+                        @if (generatingEntry() === inv.id) {
+                          <c-spinner size="sm"></c-spinner>
+                        } @else {
+                          <svg cIcon name="cilSpreadsheet" size="sm"></svg>
+                        }
+                      </button>
+                    }
                     <!-- SRI: Descargar XML firmado -->
                     @if (inv.xmlUrl) {
                       <button cButton color="secondary" variant="ghost" size="sm"

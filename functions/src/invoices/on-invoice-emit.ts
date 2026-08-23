@@ -9,6 +9,7 @@ import { generatePdfInternal }           from './generate-pdf';
 import { generateCreditNotePdfInternal } from './generate-credit-note-pdf';
 import { sendInvoiceEmailInternal }      from './send-invoice-email';
 import { sendCreditNoteEmailInternal }   from './send-credit-note-email';
+import { isElectronicInvoicingEnabled, SRI_NOT_REQUIRED } from '../utils/electronic-invoicing';
 
 /**
  * onInvoiceEmit
@@ -99,18 +100,50 @@ export const onInvoiceEmit = onDocumentWritten(
     // Leer empresa para verificar planFeatures y planLimits
     const companySnap  = await db.doc(`companies/${companyId}`).get();
     const company      = companySnap.data();
-    const planFeatures = company?.['planFeatures'] as Record<string, any> | null | undefined;
-    const planLimits   = company?.['planLimits']   as Record<string, any> | null | undefined;
+    const planLimits   = company?.['planLimits'] as Record<string, any> | null | undefined;
 
-    if (planFeatures && planFeatures['electronicInvoicing'] === false) {
-      console.warn('[onInvoiceEmit] Feature electronicInvoicing deshabilitada en el plan:', { companyId, invoiceId });
+    const sriEnabled = isElectronicInvoicingEnabled(company);
+
+    if (!sriEnabled) {
+      // Plan sin facturación electrónica (empresa fuera de Ecuador, o
+      // ecuatoriana que solo factura físicamente). El documento NO debe
+      // tocar el webservice del SRI, pero sí debe quedar 'issued' con su
+      // PDF (comprobante físico) y con sriStatus: 'not_required' — el
+      // sentinel que generate-journal-entry-from-*.ts ya reconoce como
+      // "listo para generar el asiento contable". Antes se usaba el string
+      // 'plan_feature_disabled', que esos generadores no reconocían, y el
+      // documento nunca se contabilizaba.
+      console.log('[onInvoiceEmit] electronicInvoicing deshabilitado en el plan — modo sin SRI:', { companyId, invoiceId });
       await db.doc(`companies/${companyId}/invoices/${invoiceId}`).update({
-        sriStatus: 'plan_feature_disabled',
+        sriStatus: SRI_NOT_REQUIRED,
         updatedAt: admin.firestore.Timestamp.now(),
       });
+
+      try {
+        if (isCreditNote) {
+          await generateCreditNotePdfInternal(invoiceId, companyId);
+        } else {
+          await generatePdfInternal(invoiceId, companyId);
+        }
+        console.log('[onInvoiceEmit] PDF (modo sin SRI) generado OK.');
+      } catch (pdfErr) {
+        console.error('[onInvoiceEmit] Error generando PDF en modo sin SRI (no crítico):', pdfErr);
+        await db.doc(`companies/${companyId}/invoices/${invoiceId}`).update({
+          pdfError: pdfErr instanceof Error ? pdfErr.message : 'Error generando PDF',
+          updatedAt: admin.firestore.Timestamp.now(),
+        });
+      }
+
+      // No se envía email aquí: sendInvoiceEmailInternal/sendCreditNoteEmailInternal
+      // exigen sriStatus === 'authorized' (documento realmente autorizado por el
+      // SRI) y fallarían para 'not_required'.
+      console.log('[onInvoiceEmit] Pipeline completado (sin SRI):', { companyId, invoiceId, sriStatus: SRI_NOT_REQUIRED });
       return;
     }
 
+    // Límite mensual de facturas SRI — solo aplica cuando el documento
+    // realmente se va a enviar al SRI (si el plan no incluye electronicInvoicing
+    // ya se retornó arriba, antes de llegar a este chequeo).
     const invoicesPerMonth = (planLimits?.['sri']?.['invoicesPerMonth'] as number | undefined);
     if (!isCreditNote && invoicesPerMonth !== undefined && invoicesPerMonth > 0) {
       const usageSnap    = await db.doc(`companies/${companyId}/usage/${period}`).get();

@@ -1,6 +1,7 @@
-import { onDocumentUpdated } from 'firebase-functions/v2/firestore';
+import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import * as admin from 'firebase-admin';
 import { getAccountMapping } from './utils/get-account-mapping';
+import { SRI_DONE } from '../utils/electronic-invoicing';
 
 // ─── Types (mirrored from frontend models to avoid cross-module imports) ──────
 
@@ -167,28 +168,125 @@ function buildInvoiceLines(invoice: InvoiceDoc, accounts: { sales15: { code: str
   return lines;
 }
 
-// ─── Trigger ──────────────────────────────────────────────────────────────────
+// ─── Reusable core (called by the trigger AND by the manual regeneration callable) ──
 
-export const generateJournalEntryFromInvoice = onDocumentUpdated(
+export type GenerateJournalEntryResult = { created: boolean; entryId?: string; reason?: string };
+
+export async function generateJournalEntryFromInvoiceInternal(
+  companyId: string,
+  invoiceId: string
+): Promise<GenerateJournalEntryResult> {
+  const db = admin.firestore();
+
+  const docRef = db.doc(`companies/${companyId}/invoices/${invoiceId}`);
+  const snap   = await docRef.get();
+  if (!snap.exists) return { created: false, reason: 'not_found' };
+
+  const after = snap.data() as InvoiceDoc;
+
+  // Skip credit notes — handled by generateJournalEntryFromCreditNoteInternal
+  if (after.isCreditNote) return { created: false, reason: 'is_credit_note' };
+  if (after.accountingEntryId) return { created: false, reason: 'already_exists', entryId: after.accountingEntryId };
+
+  if (after.status !== 'issued' || !SRI_DONE(after.sriStatus)) {
+    return { created: false, reason: 'not_ready' };
+  }
+
+  const now = admin.firestore.Timestamp.now();
+
+  // Resolve active accounting period for the invoice year
+  const periodsSnap = await db
+    .collection(`companies/${companyId}/accounting_periods`)
+    .where('year', '==', parseInt(after.fiscalYear ?? new Date().getFullYear().toString()))
+    .where('status', '==', 'open')
+    .limit(1)
+    .get();
+
+  if (periodsSnap.empty) {
+    console.warn('[generateJournalEntryFromInvoice] No hay período contable abierto para el año', after.fiscalYear);
+    return { created: false, reason: 'no_open_period' };
+  }
+
+  const periodDoc  = periodsSnap.docs[0];
+  const periodId   = periodDoc.id;
+  const periodYear = parseInt(after.fiscalYear ?? new Date().getFullYear().toString());
+
+  // Get next journal entry number (atomic)
+  const key        = `journal_${periodYear}`;
+  const counterRef = db.doc(`companies/${companyId}/counters/journal_entries`);
+  let entryNumber  = 1;
+
+  await db.runTransaction(async tx => {
+    const counterSnap = await tx.get(counterRef);
+    const current     = (counterSnap.data()?.[key] as number) ?? 0;
+    entryNumber       = current + 1;
+    tx.set(counterRef, { [key]: entryNumber }, { merge: true });
+  });
+
+  // Resolve account codes from company-level settings (falls back to defaults)
+  const accounts = await getAccountMapping(companyId);
+  const lines    = buildInvoiceLines(after, accounts);
+
+  const totalDebit  = round2(lines.reduce((s, l) => s + l.debit,  0));
+  const totalCredit = round2(lines.reduce((s, l) => s + l.credit, 0));
+  const isBalanced  = totalDebit === totalCredit;
+
+  if (!isBalanced) {
+    console.error('[generateJournalEntryFromInvoice] Asiento descuadrado:', { totalDebit, totalCredit });
+  }
+
+  // Create journal entry
+  const entryRef = db.collection(`companies/${companyId}/journal_entries`).doc();
+  const entry = {
+    number:      entryNumber,
+    date:        after.date ?? now,
+    description: `Factura de Venta ${after.fullNumber} — ${after.customerName}`,
+    periodId,
+    periodYear,
+    type:        'automatic',
+    status:      'posted',
+    reference:   after.fullNumber,
+    referenceId: invoiceId,
+    lines,
+    totalDebit,
+    totalCredit,
+    isBalanced,
+    createdBy:   'system',
+    createdAt:   now,
+    updatedAt:   now
+  };
+
+  await entryRef.set(entry);
+
+  // Back-reference on the invoice
+  await docRef.update({
+    accountingEntryId: entryRef.id,
+    updatedAt:         now
+  });
+
+  console.log('[generateJournalEntryFromInvoice] Asiento creado:', entryRef.id, 'balanceado:', isBalanced);
+
+  return { created: true, entryId: entryRef.id };
+}
+
+// ─── Trigger ──────────────────────────────────────────────────────────────────
+// onDocumentWritten (no onDocumentUpdated): también debe dispararse cuando la
+// factura se CREA ya en estado 'issued' (p. ej. POS o "Emitir" directo sin
+// pasar por borrador), caso en el que antes nunca se generaba el asiento.
+
+export const generateJournalEntryFromInvoice = onDocumentWritten(
   'companies/{companyId}/invoices/{invoiceId}',
   async (event) => {
-    const before = event.data?.before.data() as InvoiceDoc | undefined;
-    const after  = event.data?.after.data()  as InvoiceDoc | undefined;
-    if (!before || !after) return;
+    if (!event.data?.after.exists) return; // documento eliminado
 
-    // Skip credit notes — handled by generateJournalEntryFromCreditNote
+    const before = event.data.before.exists ? event.data.before.data() as InvoiceDoc : undefined;
+    const after  = event.data.after.data() as InvoiceDoc;
+
     if (after.isCreditNote) return;
 
-    const SRI_DONE = (s?: string) => s === 'authorized' || s === 'not_required';
-
-    // Case A: status transitions to 'issued' AND sriStatus already resolved
-    //   (manual invoices authorized at the same time)
-    const statusChangedToIssued = before.status !== 'issued' && after.status === 'issued' && SRI_DONE(after.sriStatus);
-
-    // Case B: invoice was already 'issued' (e.g. created by POS) and sriStatus
-    //   just transitioned to authorized/not_required
+    const statusChangedToIssued = before?.status !== 'issued' && after.status === 'issued' && SRI_DONE(after.sriStatus);
     const sriJustResolved = after.status === 'issued'
-      && !SRI_DONE(before.sriStatus)
+      && !SRI_DONE(before?.sriStatus)
       && SRI_DONE(after.sriStatus);
 
     const entryAlreadyCreated = !!after.accountingEntryId;
@@ -196,84 +294,13 @@ export const generateJournalEntryFromInvoice = onDocumentUpdated(
     if ((!statusChangedToIssued && !sriJustResolved) || entryAlreadyCreated) return;
 
     const { companyId, invoiceId } = event.params;
-    const db  = admin.firestore();
-    const now = admin.firestore.Timestamp.now();
-
     console.log('[generateJournalEntryFromInvoice] Creando asiento para factura:', invoiceId, 'empresa:', companyId);
 
     try {
-      // Resolve active accounting period for the invoice year
-      const periodsSnap = await db
-        .collection(`companies/${companyId}/accounting_periods`)
-        .where('year', '==', parseInt(after.fiscalYear ?? new Date().getFullYear().toString()))
-        .where('status', '==', 'open')
-        .limit(1)
-        .get();
-
-      if (periodsSnap.empty) {
-        console.warn('[generateJournalEntryFromInvoice] No hay período contable abierto para el año', after.fiscalYear);
-        return;
+      const result = await generateJournalEntryFromInvoiceInternal(companyId, invoiceId);
+      if (!result.created) {
+        console.warn('[generateJournalEntryFromInvoice] No se generó asiento:', result.reason);
       }
-
-      const periodDoc  = periodsSnap.docs[0];
-      const periodId   = periodDoc.id;
-      const periodYear = parseInt(after.fiscalYear ?? new Date().getFullYear().toString());
-
-      // Get next journal entry number (atomic)
-      const key        = `journal_${periodYear}`;
-      const counterRef = db.doc(`companies/${companyId}/counters/journal_entries`);
-      let entryNumber  = 1;
-
-      await db.runTransaction(async tx => {
-        const counterSnap = await tx.get(counterRef);
-        const current     = (counterSnap.data()?.[key] as number) ?? 0;
-        entryNumber       = current + 1;
-        tx.set(counterRef, { [key]: entryNumber }, { merge: true });
-      });
-
-      // Resolve account codes from company-level settings (falls back to defaults)
-      const accounts = await getAccountMapping(companyId);
-      const lines    = buildInvoiceLines(after, accounts);
-
-      const totalDebit  = round2(lines.reduce((s, l) => s + l.debit,  0));
-      const totalCredit = round2(lines.reduce((s, l) => s + l.credit, 0));
-      const isBalanced  = totalDebit === totalCredit;
-
-      if (!isBalanced) {
-        console.error('[generateJournalEntryFromInvoice] Asiento descuadrado:', { totalDebit, totalCredit });
-      }
-
-      // Create journal entry
-      const entryRef = db.collection(`companies/${companyId}/journal_entries`).doc();
-      const entry = {
-        number:      entryNumber,
-        date:        after.date ?? now,
-        description: `Factura de Venta ${after.fullNumber} — ${after.customerName}`,
-        periodId,
-        periodYear,
-        type:        'automatic',
-        status:      'posted',
-        reference:   after.fullNumber,
-        referenceId: invoiceId,
-        lines,
-        totalDebit,
-        totalCredit,
-        isBalanced,
-        createdBy:   'system',
-        createdAt:   now,
-        updatedAt:   now
-      };
-
-      await entryRef.set(entry);
-
-      // Back-reference on the invoice
-      await db.doc(`companies/${companyId}/invoices/${invoiceId}`).update({
-        accountingEntryId: entryRef.id,
-        updatedAt:         now
-      });
-
-      console.log('[generateJournalEntryFromInvoice] Asiento creado:', entryRef.id, 'balanceado:', isBalanced);
-
     } catch (err) {
       console.error('[generateJournalEntryFromInvoice] Error:', err);
     }

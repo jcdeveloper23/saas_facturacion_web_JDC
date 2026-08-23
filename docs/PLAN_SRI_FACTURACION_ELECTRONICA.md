@@ -1,8 +1,8 @@
 # Plan Maestro — Facturación Electrónica SRI Ecuador
 ## SaasFacturacion · Angular 21 + Firebase Functions v2
 
-**Versión:** 1.8  
-**Última actualización:** 2026-04-10  
+**Versión:** 1.9  
+**Última actualización:** 2026-08-22 — auditoría completa de firma XAdES-BES, causa raíz de "FIRMA INVALIDA", validadores estructurales y XSD real (ver §7)  
 **Stack:** Angular 21 · CoreUI 5.x · Firebase (Firestore, Functions v2, Storage) · Node.js 20 · node-forge  
 **Referencia normativa:** Ficha Técnica Comprobantes Electrónicos SRI v2.32 (oct-2025) · Resolución NAC-DGERCGC16-00000247 · WSDL SRI Ecuador
 
@@ -748,6 +748,53 @@ USUARIO                     FRONTEND                    CLOUD FUNCTIONS         
 | Primera línea no eliminable | Consecuencia del bug anterior (visual) | Mismo fix | — |
 | Facturas con IVA 0% no se guardan | `Validators.required` trata `0` como inválido (falsy) | `[Validators.min(0), Validators.max(100)]` | `invoice-form.component.ts:511` |
 | IVA siempre 15% al seleccionar producto | `(p as any).vatPct ?? 15` — campo no existe, es `p.taxRate` | `p.taxRate ?? 15` | `invoice-form.component.ts:590,763` |
+| `fechaEmision`/`claveAcceso` un día adelantada | `getDate()/getMonth()/getFullYear()` usan timezone del runtime (UTC), no Ecuador (UTC-5) | `Intl.DateTimeFormat` con `timeZone: 'America/Guayaquil'` | `utils/sri-date.ts` (nuevo) |
+| PDF (RIDE) crasheaba: `Cannot read properties of undefined (reading 'toFixed')` | Interfaces `Invoice`/`InvoiceLine` en generate-pdf.ts con nombres de campo obsoletos (`subtotal`,`discount`,`taxRate`...) que ya no existen en el documento real | Mismos fallbacks que ya tenía el generador de XML | `invoices/generate-pdf.ts`, `invoices/generate-credit-note-pdf.ts` |
+| Selección de certificado en `.p12` con cadena | Tomaba ciegamente `certBags[0]`; con cadena completa (titular+CA+raíz) podía embeber el cert equivocado | Selecciona el cert cuyo módulo/exponente RSA coincide con la llave privada | `utils/sign-xml-helper.ts` |
+| **"FIRMA INVALIDA" — causa raíz real** | C14N casero declaraba `xmlns:ds`+`xmlns:xades` juntos en `ds:Signature`; el algoritmo no-exclusivo que exige el SRI (`REC-xml-c14n-20010315`) renderiza TODOS los namespaces en scope en cada nodo referenciado — `SignedInfo`/`KeyInfo` nunca deberían heredar `xades`, solo `SignedProperties` | `xmlns:xades` se movió a declararse en `xades:QualifyingProperties` (no en `ds:Signature`); `withDsNs()` (solo ds) vs `withInheritedNs()` (ds+xades) según corresponda | `utils/sign-xml-helper.ts` |
+| `X509IssuerName` en orden ASN.1 en vez de RFC 2253 | XMLDSig §4.4.4 exige RFC 2253 (más específico primero: `CN,O,C`); el código unía `certificate.issuer.attributes` en el orden crudo del certificado (`C,O,CN`) | `.reverse()` antes de unir los atributos del emisor | `utils/sign-xml-helper.ts` |
+| `tipoIdentificacionComprador` = 04 en vez de 07 para Consumidor Final | Dependía de `customerTaxIdType` (texto), que puede desincronizarse del cliente real (visto en producción: cliente "Consumidor Final" guardado con `taxIdType:"RUC"`) | `resolveTipoIdentificacionComprador()`: si `identificacionComprador === '9999999999999'` fuerza 07 SIEMPRE, sin importar el texto | `utils/sri-buyer-id.ts` (nuevo), usado en los 3 generadores (factura/NC/ND) |
+| Nota de débito: `tipoIdentificacionComprador` sin mapear | Volcaba el string crudo (`"RUC"`, `"CI"`...) directo al XML en vez de un código SRI de 2 dígitos | Usa `resolveTipoIdentificacionComprador()` | `debit-notes/generate-debit-note-xml.ts` |
+| Doble aplicación del descuento global | `totalSinImp = subtotal - discountAmt` cuando `subtotal` YA era `netAmount` (ya neto del descuento) | Solo resta `discountAmt` cuando el campo fuente es `subtotal`/`grossAmount` (no cuando ya es `netAmount`) | `invoices/generate-invoice-xml.ts` |
+
+---
+
+## 7.1 Auditoría completa de firma XAdES-BES y capa de validación (2026-08-22)
+
+Auditoría end-to-end solicitada explícitamente: generación de clave de acceso, identificación del comprador, totales, XAdES-BES 1.3.2, C14N, digests, certificado, y validación XSD. Resultado: **72 tests automatizados pasando**, incluyendo firma real + verificación criptográfica real (no solo self-consistency) con detección de manipulación probada contra un certificado generado en memoria.
+
+**Módulos nuevos (`functions/src/utils/`):**
+
+| Archivo | Responsabilidad |
+|---|---|
+| `sri-access-key.ts` | `generateAccessKey()` / `validateAccessKey()` / `calculateModulo11()` / `assertValidAccessKey()` — construcción y validación estructural completa de la clave de 49 dígitos (fecha, RUC, ambiente, establecimiento, punto emisión, secuencial, código numérico, tipo emisión, dígito verificador). Conectado como guardia obligatoria en los 4 generadores (factura, NC, ND, retención) — nunca se firma con una clave mal construida. |
+| `sri-buyer-id.ts` | `resolveTipoIdentificacionComprador()` — Tabla 6 SRI (04 RUC, 05 Cédula, 06 Pasaporte, 07 Consumidor Final, 08 Exterior), verificada contra el XSD oficial (`pattern value="[0][4-8]"`). Consumidor Final se detecta por la identificación fija `9999999999999`, no por texto. |
+| `sri-invoice-validator.ts` | `validateBuyerIdentification()`, `validateTotals()`, `validateInvoiceForSri()` — validación estructurada (`{valid, errors: [{code, field, message}]}`) de consistencia comprador/totales, ejecutada ANTES de construir el XML. |
+| `sign-xml-helper.ts` (extendido) | `verifySignedXml()` — re-deriva los 3 digests + verifica `SignatureValue` RSA-SHA1 contra el certificado embebido, desde el XML YA FIRMADO (no solo re-firmando). Conectado como guardia obligatoria al final de `signXmlContent()`: si la firma no se auto-verifica, lanza error y NO se envía nada al SRI. |
+| `validate-electronic-invoice.ts` | CLI: `npx ts-node src/utils/validate-electronic-invoice.ts factura.xml` — corre TODAS las validaciones (estructura, **XSD oficial vía `xmllint`**, clave de acceso, comprador, totales, certificado, 3 digests, SignatureValue, XAdES-BES) e imprime un reporte `[✓]/[✗]/[?]`. `[?]` = no verificado (nunca se reporta como válido sin ejecutar el chequeo). |
+
+**XSD oficial:** ya estaba vendido en `docs/XML y XSD Factura/factura_V{1.0.0,1.1.0,2.0.0,2.1.0}.xsd` — solo faltaba `xmldsig-core-schema.xsd` (schema W3C estándar que el XSD del SRI importa), agregado a la misma carpeta. Validado con `xmllint --schema` (libxml2): el XML que genera `generate-invoice-xml.ts` **valida correctamente contra `factura_V1.0.0.xsd`**.
+
+⚠️ **La validación XSD SOLO corre en el CLI local** — no se conectó al flujo de producción de Cloud Functions porque no se confirmó que el binario `xmllint` exista en el runtime de Firebase Functions Gen2 (Cloud Run, Node 20). Conectarlo sin verificar eso podría romper la generación de facturas en producción con `ENOENT`. Antes de conectarlo a producción: confirmar disponibilidad de `xmllint` en ese runtime, o migrar a una librería XSD pura-Node.
+
+**Tests nuevos (`functions/src/__tests__/`):** `sri-access-key.test.ts`, `sri-buyer-id.test.ts`, `sri-invoice-validator.test.ts`, `sign-xml-helper.test.ts` (firma+verificación+tamper-detection reales con cert RSA generado en memoria vía `node-forge`, sin depender de `openssl`).
+
+---
+
+## 7.2 Causa raíz definitiva de "FIRMA INVALIDA", confirmada contra la Ficha Técnica oficial (2026-08-22)
+
+Tras §7.1, el SRI seguía rechazando con `identificador 39, "FIRMA INVALIDA", informacionAdicional: "firma y/o certificados alterados"` — probado con **dos certificados de dos entidades certificadoras distintas** (Lazzate y FirmaSegura), ambos fallando igual, mientras que **Odoo** (localización EC de terceros) autorizaba sin problema una factura firmada con el mismo certificado Lazzate el mismo día. Esto descartó infraestructura del certificado como causa.
+
+Se leyó el documento oficial `docs/FICHA TE_CNICA COMPROBANTES ELECTRO_NICOS ESQUEMA OFFLINE Versio_n 234.pdf` (requiere `poppler-utils`: `brew install poppler`, para que el lector de PDF del entorno pueda renderizar páginas — no viene preinstalado). El **ANEXO 14** (pág. 111-113) trae el ejemplo XML oficial completo de una firma XAdES-BES. Comparado campo por campo contra `sign-xml-helper.ts`, se encontraron:
+
+1. **Namespace scope revertido incorrectamente en una iteración previa (§7.1 Bug 2c).** El ejemplo oficial declara `xmlns:ds` Y `xmlns:xades` JUNTOS en `<ds:Signature>` — la estrategia original (antes de "corregirla" comparando con Odoo, un tercero, en vez de la ficha técnica). Se revirtió: ambos namespaces vuelven a `ds:Signature`, `withDsNs()` se eliminó, todo usa `withInheritedNs()` (ds+xades) para SignedInfo/KeyInfo/SignedProperties.
+2. **Bug real, presente desde el origen:** el atributo `Type` de la `ds:Reference` a `SignedProperties` debía ser la constante XAdES fija `http://uri.etsi.org/01903#SignedProperties` (sin `/v1.3.2`) — el código generaba `http://uri.etsi.org/01903/v1.3.2#SignedProperties` (derivado por error del namespace de versión `XADES_NS`). Confirmado tanto por la ficha técnica como por el XML de Odoo. Nueva constante `XADES_SIGNED_PROPERTIES_TYPE` separada de `XADES_NS`.
+3. **Orden de `ds:Reference` en `SignedInfo`:** el ejemplo oficial (y Odoo) van SignedProperties → KeyInfo → comprobante. El código tenía el orden inverso; se corrigió.
+4. `ds:SignatureValue` con atributo `Id` (presente en el ejemplo oficial, bajo impacto ya que nada lo referencia, pero se agregó por fidelidad).
+
+**Lección:** para dudas de conformidad con el SRI, la Ficha Técnica oficial (`docs/FICHA TE_CNICA...pdf`, hay v232 y v234 en el repo) es la fuente de verdad — no la implementación de un tercero (Odoo), que puede usar convenciones alternativas válidas para SU propio software pero no necesariamente exigidas por el SRI, y que además puede tener otras diferencias (IDs con GUID, elementos opcionales presentes/ausentes) que no son la causa del problema.
+
+**Estado:** 72 tests pasan, XSD real (`xmllint`) y verificación criptográfica real pasan end-to-end localmente. **Aún sin confirmar contra el SRI real** — pendiente deploy + reintento.
 
 ---
 
@@ -759,7 +806,7 @@ USUARIO                     FRONTEND                    CLOUD FUNCTIONS         
 | P2 | `paymentMethods` solo 1 método por factura | Medio | ✅ Resuelto (8.7) |
 | P3 | Sin validación de cliente en edición de borrador | Bajo | ✅ Resuelto — guard `!selectedCustomer()` sin `isNew()` |
 | P4 | Búsqueda client-side — lenta con +5000 registros | Medio | 🔴 Futuro — evaluar Algolia o Firestore composite index |
-| P5 | Sin tests unitarios en cálculos ni validadores | Alto | 🔴 Sprint 4 dedicado |
+| P5 | Sin tests unitarios en cálculos ni validadores | Alto | ✅ Resuelto (2026-08-22) — 72 tests: clave de acceso, comprador, totales, firma real+tamper-detection (ver §7.1) |
 | P6 | `updatedBy` faltante en operaciones de update | Bajo | ✅ Resuelto — `invoices.service.ts` + `Invoice.updatedBy?` |
 | P7 | Notas de Crédito sin UI | Alto | ✅ Resuelto (8.5) — solo UI, backend SRI pendiente (ver Sección 13) |
 | P8 | Signed URLs de Storage expiran en 7 días | Alto | 🔴 Sprint 3 — reemplazar por CF callable de descarga |
@@ -850,7 +897,14 @@ functions/src/
 │   ├── send-debit-note-email.ts       ✅ Email HTML al cliente (smtp-helper)
 │   └── on-debit-note-emit.ts          ✅ Trigger: XML→firma→SRI→PDF→email (post-auth no bloqueante)
 └── utils/
-    └── smtp-helper.ts                 ✅ Lee SMTP de Firestore (cache 5 min) o env vars; createSmtpTransporter/getSmtpFrom
+    ├── smtp-helper.ts                 ✅ Lee SMTP de Firestore (cache 5 min) o env vars; createSmtpTransporter/getSmtpFrom
+    ├── sri-date.ts                    ✅ Fecha/clave en timezone America/Guayaquil (no UTC del runtime)
+    ├── sri-access-key.ts              ✅ generateAccessKey/validateAccessKey/calculateModulo11 — clave 49 dígitos
+    ├── sri-buyer-id.ts                ✅ resolveTipoIdentificacionComprador — Tabla 6 SRI, Consumidor Final por identificación fija
+    ├── sri-invoice-validator.ts       ✅ validateBuyerIdentification/validateTotals/validateInvoiceForSri
+    ├── sign-xml-helper.ts             ✅ Firma XAdES-BES + verifySignedXml (verificación criptográfica real post-firma)
+    ├── validate-signature.ts          ✅ Script diagnóstico local: firma un XML de prueba y verifica matemáticamente
+    └── validate-electronic-invoice.ts ✅ CLI: valida un XML firmado real (XSD, clave, comprador, totales, firma) — ver §7.1
 ```
 
 ### Firestore paths

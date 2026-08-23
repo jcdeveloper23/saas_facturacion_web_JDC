@@ -19,7 +19,7 @@ import { SettingsService } from '../../services/settings.service';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { TenantService } from '../../../../core/services/tenant.service';
 import { Warehouse } from '../../models/settings.interfaces';
-import { ecuadorTaxIdValidator } from '../../../../shared/validators/ruc.validator';
+import { ecuadorTaxIdValidator, ecuadorRucValidator } from '../../../../shared/validators/ruc.validator';
 import { SriCompanyConfig } from '../../models/settings.interfaces';
 
 @Component({
@@ -81,6 +81,7 @@ export class CompanySettingsComponent implements OnInit, OnDestroy {
     fiscalAddress:   ['', Validators.required],
     city:            ['', Validators.required],
     province:        [''],
+    zipCode:         [''],
     country:         ['Ecuador', Validators.required],
     phone:           ['', Validators.required],
     email:           ['', [Validators.required, Validators.email]],
@@ -92,6 +93,8 @@ export class CompanySettingsComponent implements OnInit, OnDestroy {
 
   // ── Formulario configuración SRI (ambiente/certificado) ────────────────────
   sriForm = this.fb.group({
+    ruc:                      ['', [Validators.required, ecuadorRucValidator()]],
+    businessName:             ['', Validators.required],
     environment:              ['testing', Validators.required],
     establishment:            ['001', [Validators.required, Validators.pattern(/^\d{3}$/)]],
     emissionPoint:            ['001', [Validators.required, Validators.pattern(/^\d{3}$/)]],
@@ -184,6 +187,8 @@ export class CompanySettingsComponent implements OnInit, OnDestroy {
       next: (sri) => {
         if (sri) {
           this.sriForm.patchValue({
+            ruc:                     sri.ruc ?? '',
+            businessName:            sri.businessName ?? '',
             environment:             sri.environment ?? 'testing',
             establishment:           sri.establishment ?? '001',
             emissionPoint:           sri.emissionPoint ?? '001',
@@ -278,6 +283,8 @@ export class CompanySettingsComponent implements OnInit, OnDestroy {
     try {
       const fv = this.sriForm.getRawValue();
       const sri: any = {
+        ruc:                   fv.ruc,
+        businessName:          fv.businessName,
         environment:           fv.environment,
         establishment:         fv.establishment,
         emissionPoint:         fv.emissionPoint,
@@ -341,9 +348,13 @@ export class CompanySettingsComponent implements OnInit, OnDestroy {
     }
   }
 
-  // ── Sync from company form → sriXmlForm ─────────────────────────────────────
+  // ── Sync from company form → sriForm + sriXmlForm ───────────────────────────
   syncFromCompany(): void {
     const fv = this.form.getRawValue();
+    this.sriForm.patchValue({
+      ruc:          fv.taxIdType === 'ruc' ? (fv.taxId ?? '') : this.sriForm.get('ruc')?.value,
+      businessName: fv.companyName ?? '',
+    });
     this.sriXmlForm.patchValue({
       razonSocial:              fv.companyName ?? '',
       direccionMatriz:          fv.fiscalAddress ?? '',

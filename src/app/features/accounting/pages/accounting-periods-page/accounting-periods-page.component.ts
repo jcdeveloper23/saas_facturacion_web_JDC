@@ -133,8 +133,8 @@ export class AccountingPeriodsPageComponent implements OnInit, OnDestroy {
   openEdit(p: AccountingPeriod, event: Event): void {
     event.stopPropagation();
     this.editingId.set(p.id);
-    const start = p.startDate?.toDate ? p.startDate.toDate().toISOString().substring(0, 10) : '';
-    const end   = p.endDate?.toDate   ? p.endDate.toDate().toISOString().substring(0, 10)   : '';
+    const start = p.startDate?.toDate ? this.toDateInput(p.startDate.toDate()) : '';
+    const end   = p.endDate?.toDate   ? this.toDateInput(p.endDate.toDate())   : '';
     this.form.patchValue({
       year:      p.year,
       name:      p.name,
@@ -237,6 +237,13 @@ export class AccountingPeriodsPageComponent implements OnInit, OnDestroy {
   }
 
   // ── Formatters ────────────────────────────────────────────────────────────
+  private toDateInput(d: Date): string {
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
   formatDate(ts: any): string {
     if (!ts) return '—';
     const d = ts?.toDate ? ts.toDate() : new Date(ts);

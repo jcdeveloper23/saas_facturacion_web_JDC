@@ -8,18 +8,23 @@ import { getStorage } from 'firebase-admin/storage';
 
 interface CreditNoteLine {
   sku?: string;
+  productSku?: string;  // campo real del frontend
   description: string;
   quantity: number;
   unitPrice: number;
-  discount: number;
-  taxRate: number;
+  discount?: number;
+  discountPct?: number; // campo real del frontend (porcentaje, no monto)
+  taxRate?: number;
+  vatPct?: number;       // campo real del frontend
   sriTaxCode?: string;
-  lineTotal: number;
-  taxAmount: number;
+  lineTotal?: number;
+  subtotal?: number;     // campo real del frontend (monto de línea sin impuesto)
+  taxAmount?: number;
+  vatAmount?: number;    // campo real del frontend
 }
 
 interface CreditNote {
-  number: string;
+  number: number | string;
   fullNumber?: string;
   date: admin.firestore.Timestamp;
   status: string;
@@ -29,13 +34,15 @@ interface CreditNote {
   authorizedAt?: admin.firestore.Timestamp;
   customerName: string;
   customerTaxId: string;
-  customerIdentificationType?: string;
+  customerTaxIdType?: string;   // campo real: "RUC" | "CI" | "PASAPORTE" | "EXTERIOR"
   customerEmail?: string;
   customerAddress?: string;
-  subtotal: number;
-  discount: number;
-  taxableBase: number;
-  vatAmount: number;
+  subtotal?: number;
+  discount?: number;
+  grossAmount?: number;     // campo real del frontend
+  discountAmount?: number;  // campo real del frontend
+  netAmount?: number;       // campo real del frontend
+  vatAmount?: number;
   total: number;
   lines: CreditNoteLine[];
   notes?: string;
@@ -63,7 +70,10 @@ function fmt2(n: number): string { return n.toFixed(2); }
 
 function formatDate(ts: admin.firestore.Timestamp): string {
   const d = ts.toDate();
-  return d.toLocaleDateString('es-EC', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  return d.toLocaleDateString('es-EC', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    timeZone: 'America/Guayaquil',
+  });
 }
 
 function formatDateRectified(value: admin.firestore.Timestamp | string | undefined): string {
@@ -198,8 +208,7 @@ async function buildCreditNotePdfBuffer(opts: BuildCreditNotePdfOptions): Promis
     doc.fontSize(9).fillColor(GRAY).font('Helvetica-Bold').text('DATOS DEL COMPRADOR', LEFT, doc.y);
     doc.moveDown(0.3);
 
-    const idTypeMap: Record<string, string> = { '04': 'RUC', '05': 'Cédula', '07': 'Pasaporte' };
-    const idLabel = idTypeMap[creditNote.customerIdentificationType ?? '04'] ?? 'RUC';
+    const idLabel = creditNote.customerTaxIdType || 'RUC';
 
     const buyerInfo: [string, string][] = [
       ['Razón Social / Nombre:', creditNote.customerName],
@@ -328,15 +337,21 @@ async function buildCreditNotePdfBuffer(opts: BuildCreditNotePdfOptions): Promis
       }
       rowEven = !rowEven;
 
-      const desc = line.sku ? `[${line.sku}] ${line.description}` : line.description;
+      const sku         = line.productSku ?? line.sku;
+      const desc        = sku ? `[${sku}] ${line.description}` : line.description;
+      const discountPct = line.discountPct ?? line.discount ?? 0;
+      const lineBase    = line.subtotal ?? line.lineTotal ?? 0;
+      const taxRate     = line.vatPct ?? line.taxRate ?? 0;
+      const lineTax     = line.vatAmount ?? line.taxAmount ?? 0;
+
       cx = LEFT + 2;
       doc.text(desc,                    cx, rowY + 4, { width: COL.desc - 4,  lineBreak: false }); cx += COL.desc;
       doc.text(fmt2(line.quantity),     cx, rowY + 4, { width: COL.qty,       lineBreak: false, align: 'right' }); cx += COL.qty;
       doc.text(fmt2(line.unitPrice),    cx, rowY + 4, { width: COL.price,     lineBreak: false, align: 'right' }); cx += COL.price;
-      doc.text(fmt2(line.discount),     cx, rowY + 4, { width: COL.disc,      lineBreak: false, align: 'right' }); cx += COL.disc;
-      doc.text(fmt2(line.lineTotal),    cx, rowY + 4, { width: COL.sub,       lineBreak: false, align: 'right' }); cx += COL.sub;
-      doc.text(`${line.taxRate}%`,      cx, rowY + 4, { width: COL.iva,       lineBreak: false, align: 'right' }); cx += COL.iva;
-      doc.text(fmt2(line.lineTotal + line.taxAmount), cx, rowY + 4, { width: COL.total - 2, lineBreak: false, align: 'right' });
+      doc.text(`${discountPct}%`,       cx, rowY + 4, { width: COL.disc,      lineBreak: false, align: 'right' }); cx += COL.disc;
+      doc.text(fmt2(lineBase),          cx, rowY + 4, { width: COL.sub,       lineBreak: false, align: 'right' }); cx += COL.sub;
+      doc.text(`${taxRate}%`,           cx, rowY + 4, { width: COL.iva,       lineBreak: false, align: 'right' }); cx += COL.iva;
+      doc.text(fmt2(lineBase + lineTax), cx, rowY + 4, { width: COL.total - 2, lineBreak: false, align: 'right' });
 
       doc.y = rowY + rowHeight;
     }
@@ -360,15 +375,21 @@ async function buildCreditNotePdfBuffer(opts: BuildCreditNotePdfOptions): Promis
       doc.moveDown(0.35);
     }
 
-    totalRow('Subtotal sin impuestos:', `$ ${fmt2(creditNote.subtotal)}`);
-    totalRow('Descuento total:',        `$ ${fmt2(creditNote.discount)}`);
+    const grossAmount = creditNote.grossAmount ?? creditNote.subtotal ?? creditNote.netAmount ?? 0;
+    const discountAmt = creditNote.discountAmount ?? creditNote.discount ?? 0;
+
+    totalRow('Subtotal sin impuestos:', `$ ${fmt2(grossAmount)}`);
+    totalRow('Descuento total:',        `$ ${fmt2(discountAmt)}`);
 
     const ivaGroups: Map<number, { base: number; tax: number }> = new Map();
     for (const line of creditNote.lines) {
-      const existing = ivaGroups.get(line.taxRate) ?? { base: 0, tax: 0 };
-      ivaGroups.set(line.taxRate, {
-        base: existing.base + line.lineTotal,
-        tax:  existing.tax  + line.taxAmount,
+      const rate     = line.vatPct ?? line.taxRate ?? 0;
+      const lineBase = line.subtotal ?? line.lineTotal ?? 0;
+      const lineTax  = line.vatAmount ?? line.taxAmount ?? 0;
+      const existing = ivaGroups.get(rate) ?? { base: 0, tax: 0 };
+      ivaGroups.set(rate, {
+        base: existing.base + lineBase,
+        tax:  existing.tax  + lineTax,
       });
     }
     for (const [rate, { base, tax }] of ivaGroups) {

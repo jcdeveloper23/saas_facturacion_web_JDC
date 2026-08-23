@@ -122,12 +122,19 @@ export class JournalEntryFormPageComponent implements OnInit, OnDestroy {
   }
 
   // ── Form helpers ──────────────────────────────────────────────────────────
+  private toDateInput(d: Date): string {
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
   private todayStr(): string {
-    return new Date().toISOString().substring(0, 10);
+    return this.toDateInput(new Date());
   }
 
   private patchForm(entry: JournalEntry): void {
-    const dateStr = entry.date?.toDate ? entry.date.toDate().toISOString().substring(0, 10) : '';
+    const dateStr = entry.date?.toDate ? this.toDateInput(entry.date.toDate()) : '';
     this.form.patchValue({
       date:        dateStr,
       description: entry.description,

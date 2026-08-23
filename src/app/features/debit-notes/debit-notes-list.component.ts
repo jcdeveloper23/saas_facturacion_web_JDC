@@ -168,6 +168,18 @@ import { SRI_STATUS_LABELS, SRI_STATUS_COLORS } from '../invoices/models/invoice
                       }
                     </button>
                   }
+                  @if (dn.status === 'issued' && !dn.isVoid && !dn.accountingEntryId) {
+                    <button cButton color="warning" variant="outline" size="sm"
+                            class="ms-1" title="Generar asiento contable (pendiente)"
+                            [disabled]="generatingEntry() === dn.id"
+                            (click)="generarAsiento(dn)">
+                      @if (generatingEntry() === dn.id) {
+                        <c-spinner size="sm"></c-spinner>
+                      } @else {
+                        <svg cIcon name="cilSpreadsheet"></svg>
+                      }
+                    </button>
+                  }
                 </td>
               </tr>
             }
@@ -198,6 +210,7 @@ export class DebitNotesListComponent implements OnInit, OnDestroy {
   reenviarLoading = signal(false);
   pdfLoading      = signal<string | null>(null);
   downloadingDoc  = signal<string | null>(null);
+  generatingEntry = signal<string | null>(null);
   all             = signal<DebitNote[]>([]);
   yearFilter      = String(new Date().getFullYear());
   statusFilter    = '';
@@ -271,6 +284,23 @@ export class DebitNotesListComponent implements OnInit, OnDestroy {
       this.notifications.error('Error al reenviar: ' + (err?.message ?? err));
     } finally {
       this.reenviarLoading.set(false);
+    }
+  }
+
+  async generarAsiento(dn: DebitNote): Promise<void> {
+    if (this.generatingEntry()) return;
+    this.generatingEntry.set(dn.id);
+    try {
+      const fn = httpsCallable<
+        { documentId: string; companyId: string; documentType: string },
+        { entryId: string }
+      >(this.functions, 'regenerateJournalEntry');
+      await fn({ documentId: dn.id, companyId: this.tenant.companyId, documentType: 'debit_note' });
+      this.notifications.success('Asiento contable generado correctamente');
+    } catch (err: any) {
+      this.notifications.error(err?.message ?? 'Error al generar el asiento contable');
+    } finally {
+      this.generatingEntry.set(null);
     }
   }
 

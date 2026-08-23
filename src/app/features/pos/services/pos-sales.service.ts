@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import {
   Firestore, collection, doc, addDoc, updateDoc, getDoc, onSnapshot,
-  query, where, orderBy, limit, Timestamp, runTransaction
+  query, where, orderBy, limit, Timestamp, runTransaction, deleteField
 } from '@angular/fire/firestore';
 import { firstValueFrom, Observable } from 'rxjs';
 
@@ -151,6 +151,24 @@ export class PosSalesService {
       const paymentTermCode = paymentTerms.find(t => t.isActive)?.code ?? '';
 
       if (series) {
+        // ── Reclamo transaccional ──────────────────────────────────────────
+        // La Cloud Function onPosSaleComplete también puede crear esta misma
+        // factura si se dispara antes de que este método llegue aquí. Se
+        // relee el doc de la venta y se marca `invoiceClaim` de forma atómica
+        // para que solo uno de los dos lados proceda.
+        const claimed = await runTransaction(this.firestore, async tx => {
+          const snap = await tx.get(saleRef);
+          const data = snap.data() as Record<string, any> | undefined;
+          if (!data || data['invoiceId'] || data['invoiceClaim']) return false;
+          tx.update(saleRef, { invoiceClaim: 'client' });
+          return true;
+        });
+
+        if (!claimed) {
+          console.log('[POS] Factura ya reclamada por la Cloud Function — omitiendo creación local.');
+          return sale;
+        }
+
         const lines: InvoiceLine[] = cartState.items.map((item, idx) => ({
           id:          `${saleId}-${idx + 1}`,
           productId:   item.productId,
@@ -201,13 +219,13 @@ export class PosSalesService {
           })),
         });
 
-        await updateDoc(doc(this.firestore, `${this.salesPath}/${saleId}`), { invoiceId, hasLinkedInvoice: true });
+        await updateDoc(saleRef, { invoiceId, hasLinkedInvoice: true, invoiceClaim: deleteField() });
         sale.invoiceId = invoiceId;
       }
     } catch (err: any) {
       console.error('[POS] Invoice creation failed:', err);
       const invoiceError = err?.message ?? 'Error al crear factura';
-      await updateDoc(doc(this.firestore, `${this.salesPath}/${saleId}`), { invoiceError });
+      await updateDoc(saleRef, { invoiceError, invoiceClaim: deleteField() });
       sale.invoiceError = invoiceError;
     }
 

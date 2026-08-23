@@ -2,6 +2,10 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import { create } from 'xmlbuilder2';
 import { getStorage } from 'firebase-admin/storage';
+import { formatFechaEmisionEC, formatFechaClaveAccesoEC } from '../utils/sri-date';
+import { resolveTipoIdentificacionComprador } from '../utils/sri-buyer-id';
+import { generateAccessKey, assertValidAccessKey, calculateModulo11 } from '../utils/sri-access-key';
+import { validateTotals } from '../utils/sri-invoice-validator';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -100,34 +104,11 @@ interface SriPlatformConfig {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-export function calcularDigitoVerificador(clave48: string): number {
-  const factores = [2, 3, 4, 5, 6, 7];
-  let suma = 0;
-  for (let i = clave48.length - 1, f = 0; i >= 0; i--, f++) {
-    suma += parseInt(clave48[i]) * factores[f % 6];
-  }
-  const residuo = suma % 11;
-  if (residuo === 0) return 0;
-  if (residuo === 1) return 1;
-  return 11 - residuo;
-}
+/** @deprecated alias de calculateModulo11 (utils/sri-access-key.ts) — se conserva por compatibilidad con tests existentes. */
+export const calcularDigitoVerificador = calculateModulo11;
 
 function generarCodigoNumerico(): string {
   return String(Math.floor(Math.random() * 100000000)).padStart(8, '0');
-}
-
-function formatFechaEmision(date: Date): string {
-  const dd = String(date.getDate()).padStart(2, '0');
-  const mm = String(date.getMonth() + 1).padStart(2, '0');
-  const yyyy = date.getFullYear();
-  return `${dd}/${mm}/${yyyy}`;
-}
-
-function formatFechaClaveAcceso(date: Date): string {
-  const dd = String(date.getDate()).padStart(2, '0');
-  const mm = String(date.getMonth() + 1).padStart(2, '0');
-  const yyyy = date.getFullYear();
-  return `${dd}${mm}${yyyy}`;
 }
 
 /** Extract numeric-only secuencial from fullNumber "001-001-000000001" or plain number */
@@ -137,17 +118,6 @@ function extractSecuencial(invoice: { fullNumber?: string; number?: number | str
   const parts = source.split('-');
   const raw = parts[parts.length - 1] ?? '000000001';
   return raw.replace(/\D/g, '').padStart(9, '0');
-}
-
-/** Map frontend tax ID type to SRI identification code */
-function mapTipoIdentificacion(type: string | undefined): string {
-  if (!type) return '04';
-  const t = type.toUpperCase();
-  if (t === 'RUC'  || t === '04') return '04';
-  if (t === 'CI'   || t === '05') return '05';
-  if (t === 'PASAPORTE' || t === '06') return '06';
-  if (t === 'CONSUMIDOR_FINAL' || t === '07') return '07';
-  return '04';
 }
 
 /** Derive SRI tax code from taxRate percentage using platform config */
@@ -238,7 +208,7 @@ export async function generateInvoiceXmlInternal(
 
   // 5. Build access key (49 digits)
   const invoiceDate: Date = invoice.date.toDate();
-  const fechaStr = formatFechaClaveAcceso(invoiceDate);
+  const fechaStr = formatFechaClaveAccesoEC(invoiceDate);
   const tipoComprobante = '01'; // Factura
   const ruc = company.sri.ruc;
   const ambiente = company.sri.environment === 'production' ? '2' : '1';
@@ -250,25 +220,31 @@ export async function generateInvoiceXmlInternal(
   console.log('[generate-invoice-xml] 5. fechaStr:', fechaStr, '| ruc:', ruc, '| ambiente:', ambiente);
   console.log('[generate-invoice-xml] 5. serie:', serie, '| secuencial:', secuencial, '| codigoNumerico:', codigoNumerico);
 
-  const clave48 =
-    fechaStr + tipoComprobante + ruc + ambiente + serie + secuencial + codigoNumerico + tipoEmision;
-
-  console.log('[generate-invoice-xml] 5. clave48 (longitud ' + clave48.length + '):', clave48);
-
-  if (clave48.length !== 48) {
-    throw new Error(`Clave de acceso mal construida, longitud: ${clave48.length} (esperada: 48)`);
-  }
-
-  const digitoVerificador = calcularDigitoVerificador(clave48);
-  const accessKey = clave48 + String(digitoVerificador);
-  console.log('[generate-invoice-xml] 5. accessKey (49 dígitos):', accessKey);
-
-  console.log('[generate-invoice-xml] Clave de acceso:', accessKey, '| longitud:', accessKey.length);
+  const accessKey = generateAccessKey({
+    fechaEmision:    fechaStr,
+    tipoComprobante,
+    ruc,
+    ambiente,
+    establecimiento: company.sri.establishment,
+    puntoEmision:    company.sri.emissionPoint,
+    secuencial,
+    codigoNumerico,
+    tipoEmision,
+  });
+  // Nunca continuar (firmar/enviar) con una clave mal construida.
+  assertValidAccessKey(accessKey);
+  console.log('[generate-invoice-xml] 5. accessKey (49 dígitos, validada):', accessKey);
 
   // 6. Normalizar totales (soporta campos del frontend y campos legacy)
-  const subtotal      = invoice.netAmount ?? invoice.subtotal ?? invoice.grossAmount ?? 0;
+  // invoice.netAmount YA viene neto del descuento global (netAmount = grossAmount -
+  // discountAmount, ver calcInvoiceTotals en invoice.interface.ts); subtotal/grossAmount
+  // NO. Restar discountAmt otra vez cuando netAmount existe aplicaba el descuento dos
+  // veces — bug latente nunca disparado porque ningún caso probado usaba descuento
+  // global > 0. Fijado junto con el validador de totales, que lo habría detectado.
   const discountAmt   = invoice.discountAmount ?? invoice.discount ?? 0;
-  const totalSinImp   = subtotal - discountAmt;
+  const totalSinImp   = invoice.netAmount !== undefined
+    ? invoice.netAmount
+    : (invoice.subtotal ?? invoice.grossAmount ?? 0) - discountAmt;
 
   // 6b. Group lines by SRI tax code for totalConImpuestos
   const taxGroups: Map<string, { base: number; tax: number }> = new Map();
@@ -282,6 +258,25 @@ export async function generateInvoiceXmlInternal(
       base: existing.base + lineTotal,
       tax:  existing.tax  + lineTax,
     });
+  }
+
+  // 6c. Validar consistencia aritmética de totales ANTES de construir el XML.
+  // Nunca generar/firmar un comprobante con totales que no cuadren.
+  const totalImpuestoValor = [...taxGroups.values()].reduce((s, g) => s + g.tax, 0);
+  const totalsCheck = validateTotals({
+    lines: invoice.lines.map(line => ({
+      baseImponible:           line.subtotal ?? line.lineTotal ?? 0,
+      valorImpuesto:           line.vatAmount ?? line.taxAmount ?? 0,
+      precioTotalSinImpuesto:  line.subtotal ?? line.lineTotal ?? 0,
+    })),
+    totalSinImpuestos: totalSinImp,
+    totalImpuestoValor,
+    totalDescuento:    discountAmt,
+    importeTotal:      invoice.total ?? 0,
+  });
+  if (totalsCheck.length > 0) {
+    const detail = totalsCheck.map(e => `[${e.code}] ${e.message}`).join('; ');
+    throw new Error(`Totales de la factura inconsistentes, no se generará el XML: ${detail}`);
   }
 
   // 7. Build XML using xmlbuilder2
@@ -309,7 +304,7 @@ export async function generateInvoiceXmlInternal(
 
   // <infoFactura>
   const infoFactura = root.ele('infoFactura');
-  infoFactura.ele('fechaEmision').txt(formatFechaEmision(invoiceDate));
+  infoFactura.ele('fechaEmision').txt(formatFechaEmisionEC(invoiceDate));
   infoFactura.ele('dirEstablecimiento').txt(sriConfig.direccionEstablecimiento);
 
   if (company.sri.contribuyenteEspecial) {
@@ -324,8 +319,11 @@ export async function generateInvoiceXmlInternal(
     infoFactura.ele('regimenMicroempresa').txt('CONTRIBUYENTE');
   }
 
-  const tipoIdComprador = invoice.customerIdentificationType
-    ?? mapTipoIdentificacion(invoice.customerTaxIdType);
+  const tipoIdComprador = resolveTipoIdentificacionComprador(
+    invoice.customerTaxId,
+    invoice.customerIdentificationType,
+    invoice.customerTaxIdType,
+  );
   infoFactura.ele('tipoIdentificacionComprador').txt(tipoIdComprador);
   infoFactura.ele('razonSocialComprador').txt(invoice.customerName);
   infoFactura.ele('identificacionComprador').txt(invoice.customerTaxId);

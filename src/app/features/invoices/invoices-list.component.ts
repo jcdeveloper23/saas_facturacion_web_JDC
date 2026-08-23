@@ -237,6 +237,7 @@ export class InvoicesListComponent implements OnInit, OnDestroy {
   reenviarLoading     = signal<string | null>(null); // invoiceId being retried
   checkStatusLoading  = signal<string | null>(null);
   downloadingDoc      = signal<string | null>(null); // '{docId}-{fileType}' mientras descarga
+  generatingEntry     = signal<string | null>(null); // invoiceId al que se le está generando el asiento
 
   // ── Static lookups ─────────────────────────────────────────────────────────
   readonly STATUS_LABELS      = INVOICE_STATUS_LABELS;
@@ -584,6 +585,29 @@ export class InvoicesListComponent implements OnInit, OnDestroy {
       this.notifications.error((err as any)?.message ?? 'Error al consultar el SRI');
     } finally {
       this.checkStatusLoading.set(null);
+    }
+  }
+
+  // ── Contabilidad: generar asiento manualmente ─────────────────────────────
+  async generarAsiento(inv: Invoice, event: Event): Promise<void> {
+    event.stopPropagation();
+    if (this.generatingEntry()) return;
+    this.generatingEntry.set(inv.id);
+    try {
+      const fn = httpsCallable<
+        { documentId: string; companyId: string; documentType: string },
+        { entryId: string }
+      >(this.functions, 'regenerateJournalEntry');
+      await fn({
+        documentId:   inv.id,
+        companyId:    this.tenantSvc.companyId,
+        documentType: inv.isCreditNote ? 'credit_note' : 'invoice'
+      });
+      this.notifications.success('Asiento contable generado correctamente');
+    } catch (err: unknown) {
+      this.notifications.error((err as any)?.message ?? 'Error al generar el asiento contable');
+    } finally {
+      this.generatingEntry.set(null);
     }
   }
 

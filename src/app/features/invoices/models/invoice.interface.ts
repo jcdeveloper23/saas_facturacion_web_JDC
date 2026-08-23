@@ -2,12 +2,17 @@ import { Timestamp } from '@angular/fire/firestore';
 
 // ─── SRI Electronic Document Status ──────────────────────────────────────────
 export type SriDocumentStatus =
-  | 'pending'        // emitida, pendiente de envío a SRI
-  | 'authorized'     // autorizada por SRI, tiene authorizationNumber
-  | 'rejected'       // rechazada por SRI, ver sriError
-  | 'not_required'   // borrador o estado que no requiere SRI
-  | 'xml_generated'  // XML generado, pendiente de firma
-  | 'signed';        // XML firmado, pendiente de envío a SRI
+  | 'pending'                // emitida, pendiente de envío a SRI
+  | 'authorized'             // autorizada por SRI, tiene authorizationNumber
+  | 'rejected'               // rechazada por SRI, ver sriError
+  | 'not_required'           // borrador, o plan sin electronicInvoicing — no requiere SRI, sí contabiliza
+  | 'xml_generated'          // XML generado, pendiente de firma
+  | 'signed'                 // XML firmado, pendiente de envío a SRI
+  | 'plan_limit_reached'     // límite mensual de documentos SRI del plan alcanzado — bloqueado, no se generó XML
+  | 'plan_feature_disabled'; // @deprecated legado: pre-fix del plan sin electronicInvoicing.
+                              // El pipeline ya no escribe este valor (usa 'not_required'); se
+                              // conserva en el tipo solo para que documentos antiguos aún sin
+                              // migrar (ver backfillNotRequiredInvoices) no rompan el badge.
 
 // ─── Status ──────────────────────────────────────────────────────────────────
 
@@ -30,21 +35,25 @@ export const INVOICE_STATUS_COLORS: Record<InvoiceStatus, string> = {
 };
 
 export const SRI_STATUS_LABELS: Record<SriDocumentStatus, string> = {
-  pending:       'Pendiente SRI',
-  authorized:    'Autorizada',
-  rejected:      'Rechazada SRI',
-  not_required:  '—',
-  xml_generated: 'XML generado',
-  signed:        'Firmado'
+  pending:               'Pendiente SRI',
+  authorized:            'Autorizada',
+  rejected:              'Rechazada SRI',
+  not_required:          '—',
+  xml_generated:         'XML generado',
+  signed:                'Firmado',
+  plan_limit_reached:    'Límite del plan alcanzado',
+  plan_feature_disabled: 'Sin SRI (plan)', // legado — ver backfillNotRequiredInvoices
 };
 
 export const SRI_STATUS_COLORS: Record<SriDocumentStatus, string> = {
-  pending:       'warning',
-  authorized:    'success',
-  rejected:      'danger',
-  not_required:  'secondary',
-  xml_generated: 'secondary',
-  signed:        'secondary'
+  pending:               'warning',
+  authorized:            'success',
+  rejected:              'danger',
+  not_required:          'secondary',
+  xml_generated:         'secondary',
+  signed:                'secondary',
+  plan_limit_reached:    'warning',
+  plan_feature_disabled: 'secondary',
 };
 
 // ─── Line ─────────────────────────────────────────────────────────────────────
@@ -176,6 +185,14 @@ export interface Invoice {
   authorizationNumber?: string;      // número autorización retornado por SRI
   authorizedAt?: Timestamp;          // fecha/hora de autorización SRI
   sriError?: string;                 // mensaje de error si sriStatus === 'rejected'
+  sriReceptionResponse?: string;     // SOAP crudo de RecepcionComprobantesOffline
+  sriAuthorizationResponse?: string; // SOAP crudo de AutorizacionComprobantesOffline
+  sriMessages?: Array<{              // todos los <mensaje> devueltos por el SRI (no solo el primero)
+    identificador?: string;
+    mensaje: string;
+    informacionAdicional?: string;
+    tipo?: string;
+  }>;
   xmlUrl?: string;                   // Cloud Storage URL del XML firmado
   pdfUrl?: string;                   // Cloud Storage URL del PDF (RIDE)
 
@@ -185,6 +202,10 @@ export interface Invoice {
   stockRestored?:    boolean;    // true = CF restauró stock al anular
   stockRestoredAt?:  Timestamp;
   stockError?:       string;     // mensaje si onInvoiceStock falló
+
+  // ── Contabilidad (generado por Cloud Function) ───────────────────────────────
+  accountingEntryId?: string;  // id del asiento en journal_entries, si ya se generó
+  reversalEntryId?:   string;  // id del asiento de reversa, si el documento fue anulado
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────

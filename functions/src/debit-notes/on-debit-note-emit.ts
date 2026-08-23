@@ -1,4 +1,4 @@
-import { onDocumentUpdated } from 'firebase-functions/v2/firestore';
+import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import * as admin from 'firebase-admin';
 import { getStorage } from 'firebase-admin/storage';
 import axios from 'axios';
@@ -7,6 +7,7 @@ import { generateDebitNoteXmlInternal }  from './generate-debit-note-xml';
 import { generateDebitNotePdfInternal }  from './generate-debit-note-pdf';
 import { sendDebitNoteEmailInternal }    from './send-debit-note-email';
 import { signXmlContent }                from '../utils/sign-xml-helper';
+import { isElectronicInvoicingEnabled, SRI_NOT_REQUIRED } from '../utils/electronic-invoicing';
 
 // ─── SRI defaults ─────────────────────────────────────────────────────────────
 
@@ -139,14 +140,15 @@ async function sendDebitNoteToSri(debitNoteId: string, companyId: string): Promi
 
 // ─── Trigger ──────────────────────────────────────────────────────────────────
 
-export const onDebitNoteEmit = onDocumentUpdated(
+export const onDebitNoteEmit = onDocumentWritten(
   'companies/{companyId}/debitNotes/{debitNoteId}',
   async (event) => {
-    const before = event.data?.before.data() as Record<string, any> | undefined;
-    const after  = event.data?.after.data()  as Record<string, any> | undefined;
-    if (!before || !after) return;
+    if (!event.data?.after.exists) return;
 
-    const statusChangedToIssued = before['status'] !== 'issued' && after['status'] === 'issued';
+    const before = event.data.before.exists ? event.data.before.data() as Record<string, any> : undefined;
+    const after  = event.data.after.data() as Record<string, any>;
+
+    const statusChangedToIssued = before?.['status'] !== 'issued' && after['status'] === 'issued';
     const sriNotYetStarted      = !after['sriStatus'];
     if (!statusChangedToIssued || !sriNotYetStarted) return;
 
@@ -185,6 +187,32 @@ export const onDebitNoteEmit = onDocumentUpdated(
       });
     } catch (e) {
       console.error('[onDebitNoteEmit] Error contador notas de débito:', e);
+    }
+
+    // ── Plan sin facturación electrónica ────────────────────────────────────
+    // Igual que en facturas y retenciones: si el plan tiene electronicInvoicing
+    // en false, la nota de débito NO debe intentar firmar/enviar al SRI. Antes
+    // este trigger no tenía ningún chequeo de plan y siempre intentaba el
+    // pipeline SRI completo, que además de innecesario terminaba en
+    // sriStatus: 'rejected' (falla real de conexión/certificado) — y
+    // generateJournalEntryFromDebitNoteInternal exige sriStatus === 'authorized'
+    // || 'not_required', así que el asiento contable tampoco se generaba.
+    const companySnap = await db.doc(`companies/${companyId}`).get();
+    const sriEnabled  = isElectronicInvoicingEnabled(companySnap.data());
+
+    if (!sriEnabled) {
+      console.log('[onDebitNoteEmit] electronicInvoicing deshabilitado en el plan — modo sin SRI:', { companyId, debitNoteId });
+      await db.doc(`companies/${companyId}/debitNotes/${debitNoteId}`).update({
+        sriStatus: SRI_NOT_REQUIRED, updatedAt: admin.firestore.Timestamp.now(),
+      });
+      try {
+        await generateDebitNotePdfInternal(debitNoteId, companyId);
+        console.log('[onDebitNoteEmit] PDF (modo sin SRI) generado OK.');
+      } catch (pdfErr) {
+        console.error('[onDebitNoteEmit] Error generando PDF en modo sin SRI (no crítico):', pdfErr);
+      }
+      // No se envía email: sendDebitNoteEmailInternal exige sriStatus === 'authorized'.
+      return;
     }
 
     try {

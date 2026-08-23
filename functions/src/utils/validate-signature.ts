@@ -17,7 +17,7 @@
 
 import * as fs   from 'fs';
 import * as forge from 'node-forge';
-import { signXmlContent } from './sign-xml-helper';
+import { signXmlContent, c14n, withInheritedNs } from './sign-xml-helper';
 
 const TEST_XML = `<?xml version="1.0" encoding="UTF-8"?>
 <factura id="comprobante" version="1.0.0">
@@ -33,30 +33,6 @@ const TEST_XML = `<?xml version="1.0" encoding="UTF-8"?>
   </infoTributaria>
 </factura>`;
 
-function stripDecl(xml: string) { return xml.replace(/<\?xml[^?]*\?>\s*/i, '').trim(); }
-function expandSC(xml: string) {
-  return xml.replace(/<([a-zA-Z:][a-zA-Z0-9:._-]*)(\s[^>]*)?\s*\/>/g,
-    (_, t: string, a: string | undefined) => `<${t}${a ?? ''}></${t}>`);
-}
-function sortAttrs(xml: string) {
-  return xml.replace(/<([a-zA-Z:][a-zA-Z0-9:._-]*)(\s[^>]+)?>/g,
-    (_m, tag: string, ab: string | undefined) => {
-      if (!ab?.trim()) return `<${tag}>`;
-      const re = /(\S+)=(?:"([^"]*)"|'([^']*)')/g;
-      const attrs: { k: string; v: string }[] = [];
-      let m: RegExpExecArray | null;
-      while ((m = re.exec(ab))) attrs.push({ k: m[1], v: m[2] ?? m[3] ?? '' });
-      attrs.sort((a, b) => {
-        const an = a.k === 'xmlns' || a.k.startsWith('xmlns:');
-        const bn = b.k === 'xmlns' || b.k.startsWith('xmlns:');
-        if (an && !bn) return -1; if (!an && bn) return 1;
-        return a.k.localeCompare(b.k);
-      });
-      return `<${tag} ${attrs.map(a => `${a.k}="${a.v}"`).join(' ')}>`;
-    });
-}
-function c14n(xml: string) { return sortAttrs(expandSC(stripDecl(xml))); }
-
 function sha1b64(data: string): string {
   const md = forge.md.sha1.create();
   md.update(forge.util.encodeUtf8(data));
@@ -71,9 +47,12 @@ function between(xml: string, open: string, close: string): string {
 }
 
 function extractText(xml: string, tag: string): string {
-  const open = `<${tag}>`, close = `</${tag}>`;
-  const s = xml.indexOf(open); const e = xml.indexOf(close, s);
-  return s === -1 ? '' : xml.slice(s + open.length, e);
+  const openMatch = xml.match(new RegExp(`<${tag}(\\s[^>]*)?>`));
+  if (!openMatch || openMatch.index === undefined) return '';
+  const s = openMatch.index + openMatch[0].length;
+  const close = `</${tag}>`;
+  const e = xml.indexOf(close, s);
+  return e === -1 ? '' : xml.slice(s, e);
 }
 
 async function main() {
@@ -109,7 +88,7 @@ async function main() {
   try {
     // Extract ds:SignedInfo (no xmlns:ds — inside ds:Signature which provides it)
     const siRaw = between(signedXml, '<ds:SignedInfo ', '</ds:SignedInfo>');
-    const siC14n = c14n(siRaw);
+    const siC14n = c14n(withInheritedNs(siRaw));
     console.log('  canonical SignedInfo (primeros 120 chars):');
     console.log(' ', siC14n.slice(0, 120));
 
@@ -146,13 +125,14 @@ async function main() {
       computed === inXml ? '' : `\n    computed=${computed}\n    inXml   =${inXml}`);
   } catch (e) { check('Digest #comprobante', false, String(e)); }
 
-  // Reference 2: #Certificate (ds:KeyInfo)
+  // Reference 2: #Certificate<uuid> (ds:KeyInfo) — el Id es dinámico por firma
   try {
-    const kiRaw   = between(signedXml, '<ds:KeyInfo Id=', '</ds:KeyInfo>');
-    const computed = sha1b64(c14n(kiRaw));
+    const kiRaw    = between(signedXml, '<ds:KeyInfo Id=', '</ds:KeyInfo>');
+    const computed  = sha1b64(c14n(withInheritedNs(kiRaw)));
+    const kiId      = kiRaw.match(/Id="([^"]+)"/)?.[1];
+    if (!kiId) throw new Error('No se encontró Id en ds:KeyInfo');
     const inXml   = (() => {
-      // Find the reference to Certificate URI
-      const refStart = signedXml.indexOf('URI="#' + 'Certificate"');
+      const refStart = signedXml.indexOf(`URI="#${kiId}"`);
       const refBlock = signedXml.slice(refStart, signedXml.indexOf('</ds:Reference>', refStart));
       return extractText(refBlock, 'ds:DigestValue');
     })();
@@ -163,7 +143,7 @@ async function main() {
   // Reference 3: #Signature-SignedProperties
   try {
     const spRaw   = between(signedXml, '<xades:SignedProperties Id=', '</xades:SignedProperties>');
-    const computed = sha1b64(c14n(spRaw));
+    const computed = sha1b64(c14n(withInheritedNs(spRaw)));
     const inXml   = (() => {
       const refStart = signedXml.indexOf('Type="http://uri.etsi.org/01903');
       const refBlock = signedXml.slice(refStart, signedXml.indexOf('</ds:Reference>', refStart));

@@ -1,4 +1,4 @@
-import { onDocumentUpdated } from 'firebase-functions/v2/firestore';
+import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import * as admin from 'firebase-admin';
 import { getStorage } from 'firebase-admin/storage';
 import axios from 'axios';
@@ -7,6 +7,7 @@ import { generateRetentionXmlInternal } from './generate-retention-xml';
 import { generateRetentionPdfInternal } from './generate-retention-pdf';
 import { sendRetentionEmailInternal }   from './send-retention-email';
 import { signXmlContent }               from '../utils/sign-xml-helper';
+import { isElectronicInvoicingEnabled, SRI_NOT_REQUIRED } from '../utils/electronic-invoicing';
 
 // ─── Shared SRI helpers (duplicated from invoices to keep modules independent) ─
 
@@ -150,14 +151,15 @@ async function sendRetentionToSri(retentionId: string, companyId: string): Promi
 
 // ─── Trigger ──────────────────────────────────────────────────────────────────
 
-export const onRetentionEmit = onDocumentUpdated(
+export const onRetentionEmit = onDocumentWritten(
   'companies/{companyId}/retentions/{retentionId}',
   async (event) => {
-    const before = event.data?.before.data() as Record<string, any> | undefined;
-    const after  = event.data?.after.data()  as Record<string, any> | undefined;
-    if (!before || !after) return;
+    if (!event.data?.after.exists) return;
 
-    const statusChangedToIssued = before['status'] !== 'issued' && after['status'] === 'issued';
+    const before = event.data.before.exists ? event.data.before.data() as Record<string, any> : undefined;
+    const after  = event.data.after.data() as Record<string, any>;
+
+    const statusChangedToIssued = before?.['status'] !== 'issued' && after['status'] === 'issued';
     const sriNotYetStarted      = !after['sriStatus'];
     if (!statusChangedToIssued || !sriNotYetStarted) return;
 
@@ -197,6 +199,34 @@ export const onRetentionEmit = onDocumentUpdated(
       });
     } catch (e) {
       console.error('[onRetentionEmit] Error contador retenciones:', e);
+    }
+
+    // ── Plan sin facturación electrónica ────────────────────────────────────
+    // Antes esta función no verificaba planFeatures.electronicInvoicing en
+    // absoluto: siempre intentaba firmar y enviar la retención al SRI, lo
+    // que para una empresa sin ese feature terminaba en un 'rejected' real
+    // (falla de conexión/certificado) en vez de reconocer que el SRI
+    // sencillamente no aplica. generateJournalEntryFromRetention no exige
+    // sriStatus === 'authorized' (solo status === 'issued'), así que el
+    // asiento contable de la retención no dependía de esto — pero sí se
+    // intentaban llamadas SRI innecesarias y el error quedaba mal
+    // etiquetado en el documento.
+    const companySnap = await db.doc(`companies/${companyId}`).get();
+    const sriEnabled  = isElectronicInvoicingEnabled(companySnap.data());
+
+    if (!sriEnabled) {
+      console.log('[onRetentionEmit] electronicInvoicing deshabilitado en el plan — modo sin SRI:', { companyId, retentionId });
+      await db.doc(`companies/${companyId}/retentions/${retentionId}`).update({
+        sriStatus: SRI_NOT_REQUIRED, updatedAt: admin.firestore.Timestamp.now(),
+      });
+      try {
+        await generateRetentionPdfInternal(retentionId, companyId);
+        console.log('[onRetentionEmit] PDF (modo sin SRI) generado OK.');
+      } catch (pdfErr) {
+        console.error('[onRetentionEmit] Error generando PDF en modo sin SRI (no crítico):', pdfErr);
+      }
+      // No se envía email: sendRetentionEmailInternal exige sriStatus === 'authorized'.
+      return;
     }
 
     try {

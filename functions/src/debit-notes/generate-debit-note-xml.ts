@@ -2,6 +2,9 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import { create } from 'xmlbuilder2';
 import { getStorage } from 'firebase-admin/storage';
+import { formatFechaEmisionEC, formatFechaClaveAccesoEC } from '../utils/sri-date';
+import { resolveTipoIdentificacionComprador } from '../utils/sri-buyer-id';
+import { assertValidAccessKey } from '../utils/sri-access-key';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -68,14 +71,6 @@ function genCodigo(): string {
   return String(Math.floor(Math.random() * 100000000)).padStart(8, '0');
 }
 
-function fmtFecha(d: Date): string {
-  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
-}
-
-function fmtClaveAcceso(d: Date): string {
-  return `${String(d.getDate()).padStart(2, '0')}${String(d.getMonth() + 1).padStart(2, '0')}${d.getFullYear()}`;
-}
-
 function extractSecuencial(fullNumber: string): string {
   const parts = fullNumber.split('-');
   return (parts[parts.length - 1] ?? '000000001').replace(/\D/g, '').padStart(9, '0');
@@ -123,9 +118,10 @@ export async function generateDebitNoteXmlInternal(
   const codNum     = dn.codigoNumerico ?? genCodigo();
   const codDoc     = '05'; // Nota de Débito
 
-  const clave48 = fmtClaveAcceso(dnDate) + codDoc + ruc + ambiente + serie + secuencial + codNum + '1';
+  const clave48 = formatFechaClaveAccesoEC(dnDate) + codDoc + ruc + ambiente + serie + secuencial + codNum + '1';
   if (clave48.length !== 48) throw new Error(`Clave mal construida: ${clave48.length} dígitos`);
   const accessKey = clave48 + String(calcDigito(clave48));
+  assertValidAccessKey(accessKey); // nunca continuar con una clave mal construida
   console.log('[generate-debit-note-xml] Clave de acceso:', accessKey);
 
   const version = platformConfig.notaDebitoVersion ?? '1.0.0';
@@ -150,9 +146,11 @@ export async function generateDebitNoteXmlInternal(
 
   // <infoNotaDebito>
   const infoND = root.ele('infoNotaDebito');
-  infoND.ele('fechaEmision').txt(fmtFecha(dnDate));
+  infoND.ele('fechaEmision').txt(formatFechaEmisionEC(dnDate));
   infoND.ele('dirEstablecimiento').txt(sriConfig.direccionEstablecimiento);
-  infoND.ele('tipoIdentificacionComprador').txt(dn.customerTaxIdType ?? '04');
+  infoND.ele('tipoIdentificacionComprador').txt(
+    resolveTipoIdentificacionComprador(dn.customerTaxId, undefined, dn.customerTaxIdType)
+  );
   infoND.ele('razonSocialComprador').txt(dn.customerName);
   infoND.ele('identificacionComprador').txt(dn.customerTaxId);
   if (company.sri.contribuyenteEspecial) {
@@ -163,7 +161,7 @@ export async function generateDebitNoteXmlInternal(
   );
   infoND.ele('codDocModificado').txt('01');  // factura original
   infoND.ele('numDocModificado').txt(dn.originalInvoiceNumber);
-  infoND.ele('fechaEmisionDocSustento').txt(fmtFecha(dn.originalInvoiceDate.toDate()));
+  infoND.ele('fechaEmisionDocSustento').txt(formatFechaEmisionEC(dn.originalInvoiceDate.toDate()));
   infoND.ele('totalSinImpuestos').txt(dn.totalSinImpuestos.toFixed(2));
 
   const impuestos = infoND.ele('impuestos');

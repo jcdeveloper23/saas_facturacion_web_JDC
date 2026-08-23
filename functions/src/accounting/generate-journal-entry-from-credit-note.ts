@@ -1,6 +1,7 @@
-import { onDocumentUpdated } from 'firebase-functions/v2/firestore';
+import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import * as admin from 'firebase-admin';
 import { getAccountMapping } from './utils/get-account-mapping';
+import { SRI_DONE } from '../utils/electronic-invoicing';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -175,106 +176,135 @@ function buildCreditNoteLines(note: CreditNoteDoc, accounts: { sales15: { code: 
   return lines;
 }
 
-// ─── Trigger ──────────────────────────────────────────────────────────────────
+// ─── Reusable core (called by the trigger AND by the manual regeneration callable) ──
 
-export const generateJournalEntryFromCreditNote = onDocumentUpdated(
+export type GenerateJournalEntryResult = { created: boolean; entryId?: string; reason?: string };
+
+export async function generateJournalEntryFromCreditNoteInternal(
+  companyId: string,
+  invoiceId: string
+): Promise<GenerateJournalEntryResult> {
+  const db = admin.firestore();
+
+  const docRef = db.doc(`companies/${companyId}/invoices/${invoiceId}`);
+  const snap   = await docRef.get();
+  if (!snap.exists) return { created: false, reason: 'not_found' };
+
+  const after = snap.data() as CreditNoteDoc;
+
+  if (!after.isCreditNote) return { created: false, reason: 'not_credit_note' };
+  if (after.accountingEntryId) return { created: false, reason: 'already_exists', entryId: after.accountingEntryId };
+
+  if (after.status !== 'issued' || !SRI_DONE(after.sriStatus)) {
+    return { created: false, reason: 'not_ready' };
+  }
+
+  const now = admin.firestore.Timestamp.now();
+  const fiscalYear = after.fiscalYear ?? new Date().getFullYear().toString();
+
+  // Resolve open accounting period
+  const periodsSnap = await db
+    .collection(`companies/${companyId}/accounting_periods`)
+    .where('year',   '==', parseInt(fiscalYear))
+    .where('status', '==', 'open')
+    .limit(1)
+    .get();
+
+  if (periodsSnap.empty) {
+    console.warn('[generateJournalEntryFromCreditNote] No hay período contable abierto para el año', fiscalYear);
+    return { created: false, reason: 'no_open_period' };
+  }
+
+  const periodDoc  = periodsSnap.docs[0];
+  const periodId   = periodDoc.id;
+  const periodYear = parseInt(fiscalYear);
+
+  // Get next journal entry number (atomic)
+  const key        = `journal_${periodYear}`;
+  const counterRef = db.doc(`companies/${companyId}/counters/journal_entries`);
+  let entryNumber  = 1;
+
+  await db.runTransaction(async tx => {
+    const counterSnap = await tx.get(counterRef);
+    const current     = (counterSnap.data()?.[key] as number) ?? 0;
+    entryNumber       = current + 1;
+    tx.set(counterRef, { [key]: entryNumber }, { merge: true });
+  });
+
+  const accounts = await getAccountMapping(companyId);
+  const lines    = buildCreditNoteLines(after, accounts);
+
+  const totalDebit  = round2(lines.reduce((s, l) => s + l.debit,  0));
+  const totalCredit = round2(lines.reduce((s, l) => s + l.credit, 0));
+  const isBalanced  = Math.abs(totalDebit - totalCredit) < 0.01;
+
+  if (!isBalanced) {
+    console.error('[generateJournalEntryFromCreditNote] Asiento descuadrado:', { totalDebit, totalCredit });
+  }
+
+  const desc = after.rectifiedInvoiceNumber
+    ? `Nota de Crédito ${after.fullNumber} — Anula ${after.rectifiedInvoiceNumber}`
+    : `Nota de Crédito ${after.fullNumber} — ${after.customerName}`;
+
+  const entryRef = db.collection(`companies/${companyId}/journal_entries`).doc();
+  await entryRef.set({
+    number:      entryNumber,
+    date:        after.date ?? now,
+    description: desc,
+    periodId,
+    periodYear,
+    type:        'automatic',
+    status:      'posted',
+    reference:   after.fullNumber,
+    referenceId: invoiceId,
+    lines,
+    totalDebit,
+    totalCredit,
+    isBalanced,
+    createdBy:   'system',
+    createdAt:   now,
+    updatedAt:   now
+  });
+
+  await docRef.update({
+    accountingEntryId: entryRef.id,
+    updatedAt:         now
+  });
+
+  console.log('[generateJournalEntryFromCreditNote] Asiento NC creado:', entryRef.id, 'balanceado:', isBalanced);
+
+  return { created: true, entryId: entryRef.id };
+}
+
+// ─── Trigger ──────────────────────────────────────────────────────────────────
+// onDocumentWritten: cubre también el caso en que la NC se cree directamente
+// ya en estado 'issued' (poco común hoy, ya que el flujo normal la crea en
+// 'draft', pero mantiene consistencia con el resto de generadores).
+
+export const generateJournalEntryFromCreditNote = onDocumentWritten(
   'companies/{companyId}/invoices/{invoiceId}',
   async (event) => {
-    const before = event.data?.before.data() as CreditNoteDoc | undefined;
-    const after  = event.data?.after.data()  as CreditNoteDoc | undefined;
-    if (!before || !after) return;
+    if (!event.data?.after.exists) return;
 
-    // Only process credit notes
+    const before = event.data.before.exists ? event.data.before.data() as CreditNoteDoc : undefined;
+    const after  = event.data.after.data() as CreditNoteDoc;
+
     if (!after.isCreditNote) return;
 
-    const SRI_DONE = (s?: string) => s === 'authorized' || s === 'not_required';
-
-    const statusChangedToIssued = before.status !== 'issued' && after.status === 'issued' && SRI_DONE(after.sriStatus);
-    const sriJustResolved       = after.status === 'issued' && !SRI_DONE(before.sriStatus) && SRI_DONE(after.sriStatus);
+    const statusChangedToIssued = before?.status !== 'issued' && after.status === 'issued' && SRI_DONE(after.sriStatus);
+    const sriJustResolved       = after.status === 'issued' && !SRI_DONE(before?.sriStatus) && SRI_DONE(after.sriStatus);
     const entryAlreadyCreated   = !!after.accountingEntryId;
 
     if ((!statusChangedToIssued && !sriJustResolved) || entryAlreadyCreated) return;
 
     const { companyId, invoiceId } = event.params;
-    const db  = admin.firestore();
-    const now = admin.firestore.Timestamp.now();
-
-    const fiscalYear = after.fiscalYear ?? new Date().getFullYear().toString();
-
     console.log('[generateJournalEntryFromCreditNote] Creando asiento NC:', invoiceId, 'empresa:', companyId);
 
     try {
-      // Resolve open accounting period
-      const periodsSnap = await db
-        .collection(`companies/${companyId}/accounting_periods`)
-        .where('year',   '==', parseInt(fiscalYear))
-        .where('status', '==', 'open')
-        .limit(1)
-        .get();
-
-      if (periodsSnap.empty) {
-        console.warn('[generateJournalEntryFromCreditNote] No hay período contable abierto para el año', fiscalYear);
-        return;
+      const result = await generateJournalEntryFromCreditNoteInternal(companyId, invoiceId);
+      if (!result.created) {
+        console.warn('[generateJournalEntryFromCreditNote] No se generó asiento:', result.reason);
       }
-
-      const periodDoc  = periodsSnap.docs[0];
-      const periodId   = periodDoc.id;
-      const periodYear = parseInt(fiscalYear);
-
-      // Get next journal entry number (atomic)
-      const key        = `journal_${periodYear}`;
-      const counterRef = db.doc(`companies/${companyId}/counters/journal_entries`);
-      let entryNumber  = 1;
-
-      await db.runTransaction(async tx => {
-        const counterSnap = await tx.get(counterRef);
-        const current     = (counterSnap.data()?.[key] as number) ?? 0;
-        entryNumber       = current + 1;
-        tx.set(counterRef, { [key]: entryNumber }, { merge: true });
-      });
-
-      const accounts = await getAccountMapping(companyId);
-      const lines    = buildCreditNoteLines(after, accounts);
-
-      const totalDebit  = round2(lines.reduce((s, l) => s + l.debit,  0));
-      const totalCredit = round2(lines.reduce((s, l) => s + l.credit, 0));
-      const isBalanced  = Math.abs(totalDebit - totalCredit) < 0.01;
-
-      if (!isBalanced) {
-        console.error('[generateJournalEntryFromCreditNote] Asiento descuadrado:', { totalDebit, totalCredit });
-      }
-
-      const desc = after.rectifiedInvoiceNumber
-        ? `Nota de Crédito ${after.fullNumber} — Anula ${after.rectifiedInvoiceNumber}`
-        : `Nota de Crédito ${after.fullNumber} — ${after.customerName}`;
-
-      const entryRef = db.collection(`companies/${companyId}/journal_entries`).doc();
-      await entryRef.set({
-        number:      entryNumber,
-        date:        after.date ?? now,
-        description: desc,
-        periodId,
-        periodYear,
-        type:        'automatic',
-        status:      'posted',
-        reference:   after.fullNumber,
-        referenceId: invoiceId,
-        lines,
-        totalDebit,
-        totalCredit,
-        isBalanced,
-        createdBy:   'system',
-        createdAt:   now,
-        updatedAt:   now
-      });
-
-      await db.doc(`companies/${companyId}/invoices/${invoiceId}`).update({
-        accountingEntryId: entryRef.id,
-        updatedAt:         now
-      });
-
-      console.log('[generateJournalEntryFromCreditNote] Asiento NC creado:', entryRef.id, 'balanceado:', isBalanced);
-
     } catch (err) {
       console.error('[generateJournalEntryFromCreditNote] Error:', err);
     }

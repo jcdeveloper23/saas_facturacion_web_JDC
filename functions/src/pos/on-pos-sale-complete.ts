@@ -2,6 +2,7 @@ import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import * as admin from 'firebase-admin';
 import { logger } from 'firebase-functions/v2';
 import { FieldValue } from 'firebase-admin/firestore';
+import { isElectronicInvoicingEnabled } from '../utils/electronic-invoicing';
 
 /**
  * onPosSaleComplete
@@ -39,9 +40,29 @@ export const onPosSaleComplete = onDocumentCreated(
       return;
     }
 
-    logger.info('[onPosSaleComplete] Generando factura desde venta POS.', { companyId, saleId });
+    const db      = admin.firestore();
+    const saleRef = db.doc(`companies/${companyId}/pos-sales/${saleId}`);
 
-    const db = admin.firestore();
+    // ── Guard 3: reclamo transaccional ────────────────────────────────────────
+    // El snapshot del evento (`sale`) puede estar desactualizado: el frontend
+    // (pos-sales.service.ts → completeSale) también crea la factura para la
+    // misma venta y podría llegar primero. Se relee el documento fresco y se
+    // marca `invoiceClaim` de forma atómica para que solo uno de los dos lados
+    // (esta función o el frontend) proceda a crear la factura.
+    const claimed = await db.runTransaction(async tx => {
+      const snap = await tx.get(saleRef);
+      const data = snap.data() as Record<string, any> | undefined;
+      if (!data || data['invoiceId'] || data['invoiceClaim']) return false;
+      tx.update(saleRef, { invoiceClaim: 'function' });
+      return true;
+    });
+
+    if (!claimed) {
+      logger.info('[onPosSaleComplete] Factura ya reclamada (frontend u otra ejecución) — omitiendo.', { companyId, saleId });
+      return;
+    }
+
+    logger.info('[onPosSaleComplete] Generando factura desde venta POS.', { companyId, saleId });
 
     try {
       // ── Step 1: Verificar plan de la empresa ─────────────────────────────────
@@ -51,23 +72,24 @@ export const onPosSaleComplete = onDocumentCreated(
         return;
       }
 
-      const company      = companySnap.data() as Record<string, any>;
-      const planFeatures = company['planFeatures'] as Record<string, any> | null | undefined;
-      const planLimits   = company['planLimits']   as Record<string, any> | null | undefined;
+      const company    = companySnap.data() as Record<string, any>;
+      const planLimits = company['planLimits'] as Record<string, any> | null | undefined;
 
-      // Feature flag: si electronicInvoicing está explícitamente en false, no generar
-      if (planFeatures && planFeatures['electronicInvoicing'] === false) {
-        logger.info('[onPosSaleComplete] Feature electronicInvoicing deshabilitada en el plan — omitiendo.', { companyId, saleId });
-        await db.doc(`companies/${companyId}/pos-sales/${saleId}`).update({
-          invoiceError: 'Facturación electrónica no disponible en el plan actual',
-          updatedAt:    FieldValue.serverTimestamp(),
-        });
-        return;
-      }
+      // Feature flag: si electronicInvoicing está en false NO abortamos — la
+      // factura se crea igual (más abajo) con status: 'issued'. El trigger
+      // onInvoiceEmit (functions/src/invoices/on-invoice-emit.ts) vuelve a
+      // resolver esta misma condición sobre la empresa y, si corresponde,
+      // marca sriStatus: 'not_required' + genera el PDF sin tocar el SRI.
+      // Antes esta función retornaba aquí y la venta POS se quedaba sin
+      // factura en absoluto para empresas sin electronicInvoicing.
+      const sriEnabled = isElectronicInvoicingEnabled(company);
 
-      // Límite mensual de facturas SRI
+      // Límite mensual de facturas SRI — solo aplica si el documento
+      // realmente se va a enviar al SRI; una empresa en modo "sin SRI" no
+      // debe ver bloqueada su facturación física por un límite pensado
+      // para el volumen de comprobantes electrónicos.
       const invoicesPerMonth = planLimits?.['sri']?.['invoicesPerMonth'] as number | undefined;
-      if (invoicesPerMonth !== undefined && invoicesPerMonth > 0) {
+      if (sriEnabled && invoicesPerMonth !== undefined && invoicesPerMonth > 0) {
         const now    = new Date();
         const period = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
         const usageSnap    = await db.doc(`companies/${companyId}/usage/${period}`).get();
@@ -77,8 +99,9 @@ export const onPosSaleComplete = onDocumentCreated(
           logger.warn('[onPosSaleComplete] Límite mensual de facturas alcanzado — omitiendo.', {
             companyId, saleId, currentCount, invoicesPerMonth,
           });
-          await db.doc(`companies/${companyId}/pos-sales/${saleId}`).update({
+          await saleRef.update({
             invoiceError: `Límite del plan alcanzado: ${currentCount}/${invoicesPerMonth} facturas este mes`,
+            invoiceClaim: FieldValue.delete(),
             updatedAt:    FieldValue.serverTimestamp(),
           });
           return;
@@ -200,7 +223,7 @@ export const onPosSaleComplete = onDocumentCreated(
       // ── Step 9: Asignar número correlativo atómico + crear factura ─────────
       const counterRef  = db.doc(`companies/${companyId}/counters/invoices`);
       const invoicesCol = db.collection(`companies/${companyId}/invoices`);
-      const saleRef     = db.doc(`companies/${companyId}/pos-sales/${saleId}`);
+      // saleRef ya fue resuelto arriba (Guard 3)
 
       const counterKey = `${establishment}_${emissionPoint}_${fiscalYear}`;
 
@@ -290,8 +313,9 @@ export const onPosSaleComplete = onDocumentCreated(
 
       // Marcar la venta con el error para que el usuario pueda re-intentar
       try {
-        await db.doc(`companies/${companyId}/pos-sales/${saleId}`).update({
+        await saleRef.update({
           invoiceError: err instanceof Error ? err.message : 'Error desconocido al generar factura',
+          invoiceClaim: FieldValue.delete(),
           updatedAt:    FieldValue.serverTimestamp(),
         });
       } catch (updateErr) {
