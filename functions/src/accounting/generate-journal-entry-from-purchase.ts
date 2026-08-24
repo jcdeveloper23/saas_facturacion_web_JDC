@@ -40,6 +40,8 @@ interface PurchaseDoc {
   vatAmount?: number;
   total?: number;
   lines?: PurchaseLine[];
+  costCenterId?: string;
+  costCenterName?: string;
 }
 
 interface JournalEntryLine {
@@ -140,8 +142,8 @@ export const generateJournalEntryFromPurchase = onDocumentWritten(
           accountName:   accounts.inventory.name,
           debit:         inventorySubtotal,
           credit:        0,
-          costCenterId:  null,
-          costCenterName:null,
+          costCenterId:  after.costCenterId ?? null,
+          costCenterName:after.costCenterName ?? null,
           description:   `Compra ${ref} — ${supplier}`
         });
       }
@@ -154,8 +156,8 @@ export const generateJournalEntryFromPurchase = onDocumentWritten(
           accountName:   accounts.ivaCredit.name,
           debit:         ivaAmount,
           credit:        0,
-          costCenterId:  null,
-          costCenterName:null,
+          costCenterId:  after.costCenterId ?? null,
+          costCenterName:after.costCenterName ?? null,
           description:   `IVA compra ${ref}`
         });
       }
@@ -168,8 +170,8 @@ export const generateJournalEntryFromPurchase = onDocumentWritten(
         accountName:   accounts.accountsPayable.name,
         debit:         0,
         credit:        creditTotal,
-        costCenterId:  null,
-        costCenterName:null,
+        costCenterId:  after.costCenterId ?? null,
+        costCenterName:after.costCenterName ?? null,
         description:   `CxP: ${supplier} — ${ref}`
       });
 
@@ -178,7 +180,17 @@ export const generateJournalEntryFromPurchase = onDocumentWritten(
       const isBalanced  = Math.abs(totalDebit - totalCredit) < 0.01;
 
       if (!isBalanced) {
-        logger.error('[generateJournalEntryFromPurchase] Asiento descuadrado:', { totalDebit, totalCredit });
+        // No se guarda un asiento descuadrado. No hay callable de
+        // regeneración manual para compras (a diferencia de invoice/credit
+        // note/debit note/retention) — se deja accountingError visible en
+        // el documento para que soporte lo detecte, en vez de contabilizar
+        // en silencio con débito ≠ crédito.
+        logger.error('[generateJournalEntryFromPurchase] Asiento descuadrado — NO se crea:', { totalDebit, totalCredit, purchaseId });
+        await db.doc(`companies/${companyId}/purchases/${purchaseId}`).update({
+          accountingError: `Asiento descuadrado: débito ${totalDebit} vs crédito ${totalCredit}`,
+          updatedAt: now,
+        });
+        return;
       }
 
       // Get next entry number (atomic)

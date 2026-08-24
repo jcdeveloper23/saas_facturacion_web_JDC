@@ -12,6 +12,10 @@
         <svg cIcon name="cilPrint" size="sm" class="me-1"></svg>
         Imprimir
       </button>
+      <button cButton color="success" variant="outline" size="sm" (click)="downloadExcel()">
+        <svg cIcon name="cilSpreadsheet" size="sm" class="me-1"></svg>
+        Excel
+      </button>
       <button cButton color="primary" variant="outline" size="sm"
               [disabled]="downloadingPdf()" (click)="downloadPdf()">
         @if (downloadingPdf()) { <c-spinner size="sm" class="me-1"></c-spinner> } @else {
@@ -29,7 +33,7 @@
     <div class="d-flex gap-3 align-items-end flex-wrap">
       <div>
         <label cLabel>Período Contable</label>
-        <select cFormSelect class="select-period"
+        <select cSelect class="select-period"
                 [ngModel]="selectedPeriod()" (ngModelChange)="selectedPeriod.set($event)">
           <option value="">Todos los períodos</option>
           @for (p of periods(); track p.id) {
@@ -40,7 +44,7 @@
       @if (costCenters().length > 0) {
         <div>
           <label cLabel>Centro de Costo</label>
-          <select cFormSelect class="select-period"
+          <select cSelect class="select-period"
                   [ngModel]="selectedCostCenter()" (ngModelChange)="selectedCostCenter.set($event)">
             <option value="">Todos</option>
             @for (cc of costCenters(); track cc.id) {

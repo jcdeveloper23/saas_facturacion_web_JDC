@@ -6,7 +6,8 @@ export type AccountingReportType =
   | 'libro-mayor'
   | 'balance-comprobacion'
   | 'estado-resultados'
-  | 'balance-general';
+  | 'balance-general'
+  | 'flujo-efectivo';
 
 interface GeneratePdfInput {
   reportType:  AccountingReportType;

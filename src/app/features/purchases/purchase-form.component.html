@@ -95,9 +95,47 @@
                      maxlength="49"
                      [class.is-invalid]="form.get('supplierAccessKey')?.invalid && form.get('supplierAccessKey')?.touched">
             </div>
+            <div class="inv-field" style="flex:1.3; min-width:170px">
+              <label class="inv-label">Centro de Costo</label>
+              <select class="form-select inv-ctrl" [value]="selectedCostCenterId()" (change)="onCostCenterSelect($event)">
+                <option value="">— Sin centro de costo —</option>
+                @for (cc of costCenters(); track cc.id) {
+                  <option [value]="cc.id">{{ cc.code }} - {{ cc.name }}</option>
+                }
+              </select>
+            </div>
           </div>
 
-          <!-- Fila 3: Notas -->
+          <!-- Fila 3: datos para el ATS (Anexo Transaccional Simplificado) -->
+          <div class="d-flex gap-3 flex-wrap mb-2">
+            <div class="inv-field" style="flex:1.3; min-width:170px">
+              <label class="inv-label">Tipo de Comprobante<span class="req">*</span></label>
+              <select class="form-select inv-ctrl" formControlName="sriDocumentType">
+                @for (t of sriDocumentTypes; track t.code) {
+                  <option [value]="t.code">{{ t.code }} — {{ t.name }}</option>
+                }
+              </select>
+            </div>
+            <div class="inv-field" style="flex:1.3; min-width:170px">
+              <label class="inv-label">Sustento Tributario<span class="req">*</span></label>
+              <select class="form-select inv-ctrl" formControlName="sriSustentoCode">
+                @for (s of sriSustentoCodes; track s.code) {
+                  <option [value]="s.code">{{ s.code }} — {{ s.name }}</option>
+                }
+              </select>
+            </div>
+            <div class="inv-field" style="flex:1.3; min-width:170px">
+              <label class="inv-label">Forma de Pago</label>
+              <select class="form-select inv-ctrl" formControlName="paymentMethodCode">
+                <option value="">— No especificada —</option>
+                @for (p of sriPaymentMethods; track p.code) {
+                  <option [value]="p.code">{{ p.code }} — {{ p.name }}</option>
+                }
+              </select>
+            </div>
+          </div>
+
+          <!-- Fila 4: Notas -->
           <div class="inv-field">
             <label class="inv-label">Notas</label>
             <textarea class="form-control inv-ctrl" formControlName="notes" rows="2"

@@ -107,6 +107,36 @@ export const SRI_PAYMENT_METHODS: { code: string; name: string }[] = [
   { code: '21', name: 'Endoso de títulos' },
 ];
 
+// ─── Datos de exportación (solo si la venta es una exportación) ──────────────
+// Alimenta la sección <exportaciones> del ATS (Anexo Transaccional Simplificado).
+// Todos los campos aduaneros son opcionales porque no toda exportación tiene
+// DAU (ej. exportación de servicios) — ver ats.xsd, detalleExportacionesType.
+
+export const SRI_EXPORT_TYPES: { code: string; name: string }[] = [
+  { code: '01', name: 'Definitiva' },
+  { code: '02', name: 'Temporal con reimportación en el mismo estado' },
+  { code: '03', name: 'Temporal para perfeccionamiento pasivo' },
+  { code: '04', name: 'Reexportación' },
+  { code: '05', name: 'Exportación de servicios' },
+  { code: '06', name: 'Envíos de socorro' },
+  { code: '07', name: 'Envío postal internacional' },
+];
+
+export interface InvoiceExportData {
+  exportType: string;          // código exportacionDe (SRI_EXPORT_TYPES)
+  destinationCountry: string;  // código de país (tabla SRI)
+  shipmentDate: Timestamp;     // fechaEmbarque
+  fobValue: number;            // valorFOB
+  // Datos aduaneros (DAU) — opcionales
+  customsDistrict?: string;    // distAduanero (3 dígitos)
+  customsYear?: string;        // año DAU (4 dígitos)
+  customsRegime?: string;      // régimen (2 dígitos)
+  customsCorrelative?: string; // correlativo (6-8 dígitos)
+  customsVerifier?: string;    // dígito verificador (1 dígito)
+  transportDoc?: string;       // documento de transporte
+  fue?: string;                // Formulario Único de Exportación (13 dígitos)
+}
+
 // ─── Main Invoice document ────────────────────────────────────────────────────
 // Stored at: /companies/{companyId}/invoices/{invoiceId}
 
@@ -142,9 +172,15 @@ export interface Invoice {
   currency: string;              // "USD"
   exchangeRate: number;          // 1.0 for USD
   agentCode?: string;
+  // Centro de costo — precargado desde CustomerData.defaultCostCenterId al
+  // seleccionar el cliente, editable en el formulario. Alimenta las líneas
+  // del asiento contable generado (generate-journal-entry-from-invoice.ts).
+  costCenterId?: string;
+  costCenterName?: string;
   // Referencia del cliente (número de orden de compra / PO)
   customerReference?: string;
   paymentMethods?: SriPaymentMethod[];  // formas de pago SRI (requerido para XML)
+  exportData?: InvoiceExportData;       // solo si esta venta es una exportación (ATS)
 
   // ── Lines (embedded) ────────────────────────────────────────────────────────
   lines: InvoiceLine[];
@@ -162,6 +198,8 @@ export interface Invoice {
   status: InvoiceStatus;
   isPaid: boolean;
   paidAt?: Timestamp;
+  paymentBankAccountId?: string; // cuenta bancaria que recibió el pago — alimenta el asiento de Cobro (conciliación)
+  paymentEntryId?: string;       // id del asiento de Cobro en journal_entries (distinto de accountingEntryId, el de emisión)
   isVoid: boolean;
   voidedAt?: Timestamp;
   isCreditNote: boolean;

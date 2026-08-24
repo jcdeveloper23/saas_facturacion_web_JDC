@@ -89,6 +89,8 @@ export interface CustomerData {
   accountingCode?: string;    // codsubcuenta — código contable
   vatIncluded?: boolean;      // ivaincluido — los precios ya incluyen IVA para este cliente
   isDefault?: boolean;        // cliente cargado automáticamente al crear nueva factura
+  defaultCostCenterId?: string;    // centro de costo precargado al facturar a este cliente
+  defaultCostCenterName?: string;
 }
 
 export interface SupplierData {
@@ -101,6 +103,8 @@ export interface SupplierData {
   irRetentionPct?: number;    // porRetencionIR  — % retención Renta (ej: 1, 2, 8, 10)
   purchaseAccount?: string;   // cuenta de compras (legacy)
   accountingCode?: string;    // codsubcuenta — código contable
+  defaultCostCenterId?: string;    // centro de costo precargado al registrar una compra de este proveedor
+  defaultCostCenterName?: string;
 }
 
 export interface EmployeeData {

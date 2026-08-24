@@ -52,6 +52,10 @@ export interface JournalEntryLine {
   costCenterId?: string | null;
   costCenterName?: string | null;
   description?: string;
+  // Gasto no deducible para efectos de Impuesto a la Renta (conciliación
+  // tributaria — Formulario 101/102). Granularidad por línea, no por asiento,
+  // porque un mismo asiento puede mezclar gastos deducibles y no deducibles.
+  isNonDeductible?: boolean;
 }
 
 // ─── Journal Entry document ───────────────────────────────────────────────────

@@ -1,6 +1,7 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import PDFDocument from 'pdfkit';
+import { requireCompanyRole } from '../utils/callable-auth';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -9,9 +10,10 @@ type ReportType =
   | 'libro-mayor'
   | 'balance-comprobacion'
   | 'estado-resultados'
-  | 'balance-general';
+  | 'balance-general'
+  | 'flujo-efectivo';
 
-interface ReportLine { [key: string]: string | number }
+interface ReportLine { [key: string]: string | number | ReportLine[] }
 
 interface GenerateAccountingPdfInput {
   reportType:  ReportType;
@@ -23,9 +25,11 @@ interface GenerateAccountingPdfInput {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+const currencyFmt = new Intl.NumberFormat('es-EC', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
 function fmt2(n: number | string | undefined): string {
   const num = typeof n === 'string' ? parseFloat(n) : (n ?? 0);
-  return isNaN(num) ? '0.00' : num.toFixed(2);
+  return isNaN(num) ? '0.00' : currencyFmt.format(num);
 }
 
 function pageHeader(
@@ -65,13 +69,32 @@ function tableHeader(doc: PDFKit.PDFDocument, cols: { label: string; width: numb
   doc.moveTo(ml, doc.y).lineTo(doc.page.width - ml, doc.y).stroke('#ddd');
 }
 
+// Alto real que necesita una fila: si algún texto hace wrap a 2+ líneas dentro
+// del ancho de su columna, la fila debe crecer — si no, la siguiente fila se
+// dibuja encima del texto que se desbordó (rowH fijo no alcanza a cubrirlo).
+function rowHeight(
+  doc: PDFKit.PDFDocument,
+  cols: { value: string | number; width: number }[],
+  minH = 12
+): number {
+  doc.fontSize(7);
+  let h = minH;
+  for (const col of cols) {
+    const txt = typeof col.value === 'number' ? fmt2(col.value) : String(col.value ?? '');
+    if (!txt) continue;
+    const needed = doc.heightOfString(txt, { width: col.width - 4 }) + 4; // + padding vertical
+    if (needed > h) h = needed;
+  }
+  return h;
+}
+
 function tableRow(
   doc: PDFKit.PDFDocument,
   cols: { value: string | number; width: number; align?: string; bold?: boolean; color?: string }[],
   ml: number,
   shade = false
-): void {
-  const rowH = 12;
+): number {
+  const rowH = rowHeight(doc, cols);
   const y    = doc.y;
 
   if (shade) doc.rect(ml, y, doc.page.width - ml * 2, rowH).fill('#fafbfc');
@@ -86,6 +109,7 @@ function tableRow(
     x += col.width;
   }
   doc.y = y + rowH;
+  return rowH;
 }
 
 function totalRow(
@@ -118,25 +142,52 @@ function totalRow(
 
 function buildLibroDiario(doc: PDFKit.PDFDocument, data: ReportLine[], extra: Record<string, any>, ml: number, pageW: number): void {
   const cols = [
-    { label: 'N°',          width: 30  },
-    { label: 'Fecha',       width: 65  },
-    { label: 'Descripción', width: 190 },
-    { label: 'Referencia',  width: 85  },
-    { label: 'Débito',      width: 70, align: 'right' },
-    { label: 'Crédito',     width: 70, align: 'right' },
+    { label: 'N°',                 width: 30  },
+    { label: 'Fecha',              width: 65  },
+    { label: 'Descripción / Cuenta', width: 190 },
+    { label: 'Referencia',         width: 85  },
+    { label: 'Débito',             width: 70, align: 'right' },
+    { label: 'Crédito',            width: 70, align: 'right' },
   ];
   tableHeader(doc, cols);
 
   data.forEach((row, i) => {
-    if (doc.y > doc.page.height - 60) { doc.addPage(); tableHeader(doc, cols); }
-    tableRow(doc, [
-      { value: String(row['number'] ?? ''),      width: 30 },
-      { value: String(row['date']   ?? ''),      width: 65 },
-      { value: String(row['description'] ?? ''), width: 190 },
+    const lines = (row['lines'] as ReportLine[] | undefined) ?? [];
+
+    const headerCols = [
+      { value: String(row['number'] ?? ''),      width: 30,  bold: true },
+      { value: String(row['date']   ?? ''),      width: 65,  bold: true },
+      { value: String(row['description'] ?? ''), width: 190, bold: true },
       { value: String(row['reference'] ?? ''),   width: 85 },
-      { value: Number(row['totalDebit']  ?? 0),  width: 70, align: 'right' },
-      { value: Number(row['totalCredit'] ?? 0),  width: 70, align: 'right' },
-    ], ml, i % 2 === 0);
+      { value: Number(row['totalDebit']  ?? 0),  width: 70, align: 'right', bold: true },
+      { value: Number(row['totalCredit'] ?? 0),  width: 70, align: 'right', bold: true },
+    ];
+    const lineCols = lines.map(line => {
+      const debit  = Number(line['debit']  ?? 0);
+      const credit = Number(line['credit'] ?? 0);
+      return [
+        { value: '', width: 30 },
+        { value: '', width: 65 },
+        { value: `   ${line['accountCode'] ?? ''} — ${line['accountName'] ?? ''}`, width: 190, color: '#666' },
+        { value: '', width: 85 },
+        { value: debit  > 0 ? debit  : '', width: 70, align: 'right', color: '#666' },
+        { value: credit > 0 ? credit : '', width: 70, align: 'right', color: '#666' },
+      ];
+    });
+
+    // Encabezado del asiento + todas sus líneas deben caber juntos; si no,
+    // saltar de página antes de empezar (evita un asiento con el header en
+    // una página y las líneas sueltas en la siguiente). Altura real, no fija:
+    // una descripción o nombre de cuenta largo puede ocupar 2+ líneas.
+    const neededH = rowHeight(doc, headerCols) + lineCols.reduce((s, c) => s + rowHeight(doc, c), 0);
+    if (doc.y + neededH > doc.page.height - 60) { doc.addPage(); tableHeader(doc, cols); }
+
+    tableRow(doc, headerCols, ml, i % 2 === 0);
+
+    for (const cols2 of lineCols) {
+      if (doc.y > doc.page.height - 60) { doc.addPage(); tableHeader(doc, cols); }
+      tableRow(doc, cols2, ml, false);
+    }
   });
 
   doc.moveDown(0.3);
@@ -398,6 +449,66 @@ function buildBalanceGeneral(doc: PDFKit.PDFDocument, _data: ReportLine[], extra
   doc.y = cy + 15;
 }
 
+function buildFlujoEfectivo(doc: PDFKit.PDFDocument, _data: ReportLine[], extra: Record<string, any>, ml: number, pageW: number): void {
+  const bodyW  = pageW - ml * 2;
+  const amtW   = 100;
+  const labelW = bodyW - amtW;
+
+  const section = (title: string, color: string) => {
+    if (doc.y > doc.page.height - 80) doc.addPage();
+    doc.rect(ml, doc.y, bodyW, 14).fill(color);
+    doc.fontSize(8).fillColor('#fff').font('Helvetica-Bold')
+       .text(title, ml + 4, doc.y - 11, { width: bodyW - 8 });
+    doc.y += 3;
+  };
+
+  const lineRow = (label: string, amount: number, indent = 0, bold = false, separator = false) => {
+    if (doc.y > doc.page.height - 60) doc.addPage();
+    if (separator) { doc.moveTo(ml, doc.y).lineTo(pageW - ml, doc.y).stroke('#ddd'); }
+    const y = doc.y;
+    doc.fontSize(7.5).fillColor('#222').font(bold ? 'Helvetica-Bold' : 'Helvetica')
+       .text(label, ml + 4 + indent, y + 2, { width: labelW - indent - 4 });
+    doc.text(fmt2(amount), ml + labelW, y + 2, { width: amtW - 4, align: 'right' });
+    doc.y = y + 13;
+  };
+
+  const banner = (label: string, amount: number, bg: string, fg: string) => {
+    if (doc.y > doc.page.height - 60) doc.addPage();
+    doc.rect(ml, doc.y, bodyW, 16).fill(bg);
+    const y = doc.y;
+    doc.fontSize(8.5).fillColor(fg).font('Helvetica-Bold')
+       .text(label, ml + 4, y + 3, { width: labelW - 4 });
+    doc.text(fmt2(amount), ml + labelW, y + 3, { width: amtW - 4, align: 'right' });
+    doc.y = y + 19;
+  };
+
+  banner('EFECTIVO AL INICIO DEL PERÍODO', Number(extra['efectivoInicial'] ?? 0), '#eef2f7', '#334155');
+  doc.moveDown(0.3);
+
+  section('FLUJO DE ACTIVIDADES DE OPERACIÓN', '#1a56db');
+  (extra['operacion'] ?? []).forEach((l: ReportLine) =>
+    lineRow(String(l['accountName'] ?? ''), Number(l['amount'] ?? 0), 8));
+  lineRow('Efectivo neto de Operación', Number(extra['totalOperacion'] ?? 0), 0, true, true);
+
+  doc.moveDown(0.4);
+  section('FLUJO DE ACTIVIDADES DE INVERSIÓN', '#7c3aed');
+  (extra['inversion'] ?? []).forEach((l: ReportLine) =>
+    lineRow(String(l['accountName'] ?? ''), Number(l['amount'] ?? 0), 8));
+  lineRow('Efectivo neto de Inversión', Number(extra['totalInversion'] ?? 0), 0, true, true);
+
+  doc.moveDown(0.4);
+  section('FLUJO DE ACTIVIDADES DE FINANCIAMIENTO', '#c27803');
+  (extra['financiamiento'] ?? []).forEach((l: ReportLine) =>
+    lineRow(String(l['accountName'] ?? ''), Number(l['amount'] ?? 0), 8));
+  lineRow('Efectivo neto de Financiamiento', Number(extra['totalFinanciamiento'] ?? 0), 0, true, true);
+
+  doc.moveDown(0.6);
+  const variacion  = Number(extra['variacionNeta'] ?? 0);
+  const isPositive = variacion >= 0;
+  banner('VARIACIÓN NETA DE EFECTIVO', variacion, isPositive ? '#e8f5e9' : '#fce8e8', isPositive ? '#1a7c3e' : '#9f2020');
+  banner('EFECTIVO AL FINAL DEL PERÍODO', Number(extra['efectivoFinal'] ?? 0), '#dbeafe', '#1a56db');
+}
+
 // ─── Main callable ─────────────────────────────────────────────────────────────
 
 export const generateAccountingPdf = onCall<GenerateAccountingPdfInput>(
@@ -408,6 +519,12 @@ export const generateAccountingPdf = onCall<GenerateAccountingPdfInput>(
     if (!reportType || !companyId) {
       throw new HttpsError('invalid-argument', 'reportType y companyId son requeridos');
     }
+
+    // Reportes contables — mismo criterio de lectura que firestore.rules
+    // (admin o accountant). Sin esto, cualquiera con el apiKey público del
+    // proyecto puede invocar esta función sin sesión y obtener el RUC real
+    // de cualquier empresa en un PDF "oficial" con cifras no verificadas.
+    requireCompanyRole(request, companyId, ['admin', 'accountant']);
 
     const db = admin.firestore();
 
@@ -423,6 +540,7 @@ export const generateAccountingPdf = onCall<GenerateAccountingPdfInput>(
       'balance-comprobacion': 'BALANCE DE COMPROBACIÓN',
       'estado-resultados':    'ESTADO DE RESULTADOS',
       'balance-general':      'BALANCE GENERAL',
+      'flujo-efectivo':       'ESTADO DE FLUJO DE EFECTIVO',
     };
 
     const title = TITLES[reportType] ?? reportType.toUpperCase();
@@ -461,6 +579,9 @@ export const generateAccountingPdf = onCall<GenerateAccountingPdfInput>(
           break;
         case 'balance-general':
           buildBalanceGeneral(doc, data, extraData, ml, pageW);
+          break;
+        case 'flujo-efectivo':
+          buildFlujoEfectivo(doc, data, extraData, ml, pageW);
           break;
       }
 

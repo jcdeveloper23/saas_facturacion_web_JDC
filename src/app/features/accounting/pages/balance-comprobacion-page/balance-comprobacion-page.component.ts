@@ -15,6 +15,7 @@ import { AccountingPeriodsService } from '../../services/accounting-periods.serv
 import { ChartOfAccountsService }   from '../../services/chart-of-accounts.service';
 import { CostCentersService }       from '../../services/cost-centers.service';
 import { AccountingPdfService }     from '../../services/accounting-pdf.service';
+import { ExcelExportService }       from '../../services/excel-export.service';
 import { TenantService }            from '../../../../core/services/tenant.service';
 import { NotificationService }      from '../../../../core/services/notification.service';
 import { JournalEntry }             from '../../models/journal-entry.interface';
@@ -47,6 +48,7 @@ export class BalanceComprobacionPageComponent implements OnInit, OnDestroy {
   private accountsSvc    = inject(ChartOfAccountsService);
   private costCentersSvc = inject(CostCentersService);
   private pdfSvc         = inject(AccountingPdfService);
+  private excelSvc       = inject(ExcelExportService);
   private tenantSvc      = inject(TenantService);
   private notifications  = inject(NotificationService);
   private destroy$       = new Subject<void>();
@@ -180,6 +182,19 @@ export class BalanceComprobacionPageComponent implements OnInit, OnDestroy {
     } finally {
       this.downloadingPdf.set(false);
     }
+  }
+
+  downloadExcel(): void {
+    if (!this.lines().length) return;
+    const rows = this.lines().map(l => ({
+      Código: l.accountCode,
+      Cuenta: l.accountName,
+      Tipo:   this.ACC_TYPES[l.accountType] ?? l.accountType,
+      Debe:   this.round2(l.sumDebit),
+      Haber:  this.round2(l.sumCredit)
+    }));
+    rows.push({ Código: '', Cuenta: 'TOTALES', Tipo: '', Debe: this.round2(this.totalDebit()), Haber: this.round2(this.totalCredit()) });
+    this.excelSvc.export(`balance-comprobacion-${this.getPeriodName().replace(/\s+/g, '_')}`, [{ name: 'Balance de Comprobación', rows }]);
   }
 
   getPeriodName(): string {

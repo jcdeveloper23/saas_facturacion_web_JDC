@@ -74,6 +74,14 @@
     </div>
     <div class="border rounded px-3 py-2 d-flex align-items-center gap-2 bg-body"
          style="cursor:pointer"
+         [class.border-primary]="statusFilter() === 'paid'"
+         (click)="setStatusFilter('paid')">
+      <svg cIcon name="cilCash" class="text-primary" size="sm"></svg>
+      <span class="fw-semibold text-primary">{{ stats().paid }}</span>
+      <span class="text-muted small">Pagada</span>
+    </div>
+    <div class="border rounded px-3 py-2 d-flex align-items-center gap-2 bg-body"
+         style="cursor:pointer"
          [class.border-danger]="statusFilter() === 'cancelled'"
          (click)="setStatusFilter('cancelled')">
       <svg cIcon name="cilBan" class="text-danger" size="sm"></svg>
@@ -200,8 +208,17 @@
                     </button>
                   }
 
+                  <!-- Pagar (recibida) -->
+                  @if (p.status === 'received') {
+                    <button cButton color="primary" variant="outline" size="sm"
+                            class="ms-1" title="Marcar como pagada"
+                            (click)="openMarkPaid(p)">
+                      <svg cIcon name="cilCash"></svg>
+                    </button>
+                  }
+
                   <!-- Cancelar -->
-                  @if (p.status !== 'received' && p.status !== 'cancelled') {
+                  @if (p.status !== 'received' && p.status !== 'paid' && p.status !== 'cancelled') {
                     <button *hasPermission="'purchases.delete'" cButton color="danger" variant="outline" size="sm"
                             class="ms-1" title="Cancelar"
                             (click)="cancelOrder(p)">
@@ -217,3 +234,10 @@
     }
   </c-card-body>
 </c-card>
+
+<app-mark-paid-modal
+  title="Marcar compra como pagada"
+  [visible]="showMarkPaidModal()"
+  (visibleChange)="showMarkPaidModal.set($event)"
+  [confirming]="confirmingMarkPaid()"
+  (confirm)="confirmMarkPaid($event)" />

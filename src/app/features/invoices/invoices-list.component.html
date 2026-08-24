@@ -594,3 +594,10 @@
     </div>
   </div>
 }
+
+<app-mark-paid-modal
+  title="Marcar factura como pagada"
+  [visible]="showMarkPaidModal()"
+  (visibleChange)="showMarkPaidModal.set($event)"
+  [confirming]="confirmingMarkPaid()"
+  (confirm)="confirmMarkPaid($event)" />

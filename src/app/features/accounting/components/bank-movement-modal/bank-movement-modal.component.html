@@ -1,0 +1,72 @@
+<c-modal [visible]="visible" (visibleChange)="onVisibleChange($event)" backdrop="static">
+  <c-modal-header>
+    <h5 cModalTitle>Registrar Movimiento Bancario</h5>
+    <button type="button" class="btn-close" (click)="onVisibleChange(false)"></button>
+  </c-modal-header>
+
+  <c-modal-body>
+    @if (bankAccount) {
+      <p class="text-secondary small mb-3">
+        Cuenta: <strong>{{ bankAccount.bankName }} — {{ bankAccount.accountNumber }}</strong>
+      </p>
+
+      <div class="d-flex gap-2 mb-3">
+        <button type="button" class="btn btn-sm flex-fill"
+                [class.btn-success]="movementType() === 'ingreso'"
+                [class.btn-outline-secondary]="movementType() !== 'ingreso'"
+                (click)="movementType.set('ingreso')">
+          <svg cIcon name="cilArrowBottom" size="sm" class="me-1"></svg>
+          Ingreso
+        </button>
+        <button type="button" class="btn btn-sm flex-fill"
+                [class.btn-danger]="movementType() === 'egreso'"
+                [class.btn-outline-secondary]="movementType() !== 'egreso'"
+                (click)="movementType.set('egreso')">
+          <svg cIcon name="cilArrowTop" size="sm" class="me-1"></svg>
+          Egreso
+        </button>
+      </div>
+
+      <div class="mb-3">
+        <label cLabel>
+          {{ movementType() === 'ingreso' ? 'Cuenta de origen del dinero' : 'Cuenta de destino del dinero' }}
+          <span class="text-danger">*</span>
+        </label>
+        <select cSelect [ngModel]="counterAccountCode()" (ngModelChange)="counterAccountCode.set($event)">
+          <option value="">— Seleccionar cuenta contable —</option>
+          @for (a of glAccounts(); track a.id) {
+            <option [value]="a.code">{{ a.code }} — {{ a.name }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-md-6">
+          <label cLabel>Monto <span class="text-danger">*</span></label>
+          <input type="number" min="0.01" step="0.01" cFormControl
+                 [ngModel]="amount()" (ngModelChange)="amount.set(+$event)" />
+        </div>
+        <div class="col-md-6">
+          <label cLabel>Fecha</label>
+          <input type="date" cFormControl [ngModel]="date()" (ngModelChange)="date.set($event)" />
+        </div>
+      </div>
+
+      <div>
+        <label cLabel>Descripción <span class="text-danger">*</span></label>
+        <input cFormControl [ngModel]="description()" (ngModelChange)="description.set($event)"
+               placeholder="Ej: Comisión mantenimiento cuenta, Transferencia a cuenta de ahorros..." />
+      </div>
+    }
+  </c-modal-body>
+
+  <c-modal-footer>
+    <button cButton color="secondary" variant="outline" (click)="onVisibleChange(false)">Cancelar</button>
+    <button cButton color="primary"
+            [disabled]="!counterAccountCode() || amount() <= 0 || !description().trim() || saving()"
+            (click)="confirm()">
+      @if (saving()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+      Registrar
+    </button>
+  </c-modal-footer>
+</c-modal>

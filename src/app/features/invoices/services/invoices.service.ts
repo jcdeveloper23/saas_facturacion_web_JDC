@@ -143,8 +143,13 @@ export class InvoicesService {
     await this.updateInvoice(id, { status: 'issued', isVoid: false, isPaid: false });
   }
 
-  async markPaid(id: string): Promise<void> {
-    await this.updateInvoice(id, { status: 'paid', isPaid: true, paidAt: Timestamp.now() });
+  async markPaid(id: string, bankAccountId: string, date: string): Promise<void> {
+    await this.updateInvoice(id, {
+      status: 'paid',
+      isPaid: true,
+      paidAt: Timestamp.fromDate(new Date(date + 'T00:00:00')),
+      paymentBankAccountId: bankAccountId,
+    });
   }
 
   async markVoid(id: string): Promise<void> {

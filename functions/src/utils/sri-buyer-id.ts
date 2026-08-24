@@ -16,7 +16,7 @@ export const TIPO_IDENTIFICACION_COMPRADOR = {
 } as const;
 
 /** Map a free-text/legacy tax id type string to the SRI numeric code. */
-function mapTipoIdentificacion(type: string | undefined): string {
+export function mapTipoIdentificacion(type: string | undefined): string {
   if (!type) return TIPO_IDENTIFICACION_COMPRADOR.RUC;
   const t = type.trim().toUpperCase();
   if (t === 'RUC' || t === '04') return TIPO_IDENTIFICACION_COMPRADOR.RUC;

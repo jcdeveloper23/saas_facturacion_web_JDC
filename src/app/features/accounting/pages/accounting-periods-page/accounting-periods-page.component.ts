@@ -44,6 +44,13 @@ export class AccountingPeriodsPageComponent implements OnInit, OnDestroy {
   saving           = signal(false);
   generatingOpening = signal<string | null>(null);  // periodId en proceso
 
+  // Cierre mensual
+  togglingMonthlyClose = signal<string | null>(null); // periodId en proceso
+  closeMonthModalOpen   = signal(false);
+  closeMonthTarget      = signal<AccountingPeriod | null>(null);
+  closeMonthValue       = signal('');   // input type=month → 'yyyy-MM'
+  closingMonth          = signal(false);
+
   // ── Form ──────────────────────────────────────────────────────────────────
   form = this.fb.group({
     year:      [new Date().getFullYear(), [Validators.required, Validators.min(2000), Validators.max(2099)]],
@@ -229,6 +236,72 @@ export class AccountingPeriodsPageComponent implements OnInit, OnDestroy {
     } finally {
       this.generatingOpening.set(null);
     }
+  }
+
+  // ── Cierre mensual ────────────────────────────────────────────────────────
+  async toggleMonthlyClose(p: AccountingPeriod, event: Event): Promise<void> {
+    event.stopPropagation();
+    const enabling = !p.monthlyCloseEnabled;
+    if (enabling && !confirm(
+      `¿Activar cierre mensual para "${p.name}"? Podrá cerrar meses individuales para bloquear la edición de asientos con fecha anterior.`
+    )) return;
+
+    this.togglingMonthlyClose.set(p.id);
+    try {
+      await this.svc.setMonthlyCloseEnabled(p.id, enabling);
+      this.notifications.success(enabling ? 'Cierre mensual activado' : 'Cierre mensual desactivado');
+    } catch (err: any) {
+      this.notifications.error('Error: ' + (err?.message ?? err));
+    } finally {
+      this.togglingMonthlyClose.set(null);
+    }
+  }
+
+  openCloseMonthModal(p: AccountingPeriod, event: Event): void {
+    event.stopPropagation();
+    this.closeMonthTarget.set(p);
+    const cutoff = p.monthlyCloseCutoff?.toDate ? p.monthlyCloseCutoff.toDate() : null;
+    const next   = cutoff ? new Date(cutoff.getFullYear(), cutoff.getMonth() + 1, 1) : new Date(p.year, 0, 1);
+    this.closeMonthValue.set(`${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}`);
+    this.closeMonthModalOpen.set(true);
+  }
+
+  closeMonthModalDismiss(): void {
+    this.closeMonthModalOpen.set(false);
+    this.closeMonthTarget.set(null);
+  }
+
+  async confirmCloseMonth(): Promise<void> {
+    const p = this.closeMonthTarget();
+    const monthStr = this.closeMonthValue();
+    if (!p || !monthStr) return;
+
+    const [yearStr, monthNumStr] = monthStr.split('-');
+    const year  = parseInt(yearStr, 10);
+    const month = parseInt(monthNumStr, 10); // 1-12
+    // Último instante del mes elegido (día 0 del mes siguiente = último día de este mes)
+    const cutoffDate = new Date(year, month, 0, 23, 59, 59, 999);
+    const cutoffTs   = Timestamp.fromDate(cutoffDate);
+
+    this.closingMonth.set(true);
+    try {
+      await this.svc.closeMonthsUpTo(p.id, cutoffTs);
+      this.notifications.success(
+        `Meses cerrados hasta ${cutoffDate.toLocaleDateString('es-EC', { month: 'long', year: 'numeric' })}`
+      );
+      this.closeMonthModalDismiss();
+    } catch (err: any) {
+      this.notifications.error('Error: ' + (err?.message ?? err));
+    } finally {
+      this.closingMonth.set(false);
+    }
+  }
+
+  monthlyCloseStatusLabel(p: AccountingPeriod): string {
+    if (!p.monthlyCloseEnabled) return 'Inactivo';
+    if (!p.monthlyCloseCutoff) return 'Sin meses cerrados';
+    const d = p.monthlyCloseCutoff.toDate();
+    return 'Cerrado hasta ' + d.toLocaleDateString('es-EC', { month: 'short', year: 'numeric' });
   }
 
   get activeFilterLabel(): string {

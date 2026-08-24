@@ -29,3 +29,33 @@ export interface Form101Data {
   c899:  number;  // IR a pagar (max(0, c839-c879))
   c903:  number;  // Saldo a favor (max(0, c879-c839))
 }
+
+// Formulario 103 — Declaración mensual de Retenciones en la Fuente del IR.
+// Casilleros verificados contra el "Formulario 103 – Instructivo" oficial del
+// SRI y la Resolución NAC-DGERCGC26-00000009 (vigente desde 2026-03-01).
+// Cobertura: solo los conceptos que el catálogo interno (SRI_IR_RETENTION_CODES,
+// retention.interface.ts) puede generar. Fuera de alcance — el sistema nunca
+// produce estos códigos, así que no tienen casillero propio aquí: relación de
+// dependencia (302), liquidaciones de compra por rusticidad (311), dividendos
+// (324), loterías/rifas (325), compra de banano (329/330). Los pagos al
+// exterior (pctCode 340) se reportan agregados sin desagregar por sub-concepto
+// (401/411/413/415/429/431/433) porque el sistema no distingue convenios de
+// doble tributación ni tipo de pago al exterior — verificar manualmente antes
+// de declarar si hay montos aquí. Tampoco cubre la sección de declaración
+// sustitutiva (casilleros 890-999).
+export interface Form103Data {
+  c303: number;      // Honorarios profesionales
+  c304: number;      // Predomina intelecto
+  c307: number;      // Predomina mano de obra
+  c308: number;      // Imagen o renombre
+  c309: number;      // Transporte privado de pasajeros
+  c310: number;      // Bienes muebles corporales
+  c312: number;      // Bienes inmuebles (tasa sin verificar contra la resolución vigente)
+  c314: number;      // Regalías, derechos de autor, marcas y patentes
+  c319: number;      // Arrendamiento de bienes inmuebles
+  c322: number;      // Seguros y reaseguros
+  c323: number;      // Rendimientos financieros
+  c344: number;      // Otras retenciones sin % específico (código interno 343)
+  exterior: number;  // Pagos a no domiciliados/exterior — agregado, verificar casillero exacto
+  total: number;     // Total retenido en el período
+}

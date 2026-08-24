@@ -15,6 +15,11 @@
     </div>
   </div>
   <div class="d-flex gap-2">
+    <button cButton [color]="selectionMode() ? 'primary' : 'secondary'" variant="outline" size="sm"
+            (click)="toggleSelectionMode()">
+      <svg cIcon name="cilTask" size="sm" class="me-1"></svg>
+      {{ selectionMode() ? 'Cancelar Selección' : 'Selección Múltiple' }}
+    </button>
     <button cButton color="secondary" variant="outline" size="sm"
             (click)="seedAccounts()" [disabled]="seeding()">
       @if (seeding()) {
@@ -30,6 +35,29 @@
     </button>
   </div>
 </div>
+
+<!-- ── Bulk action bar ────────────────────────────────────────────────────── -->
+@if (selectionMode() && selectedIds().size > 0) {
+  <div class="bulk-bar mb-3">
+    <span class="bulk-count">{{ selectedIds().size }} cuenta(s) seleccionada(s)</span>
+    <div class="ms-auto d-flex gap-2">
+      <button cButton color="success" variant="outline" size="sm"
+              [disabled]="bulkApplying()" (click)="bulkSetActive(true)">
+        @if (bulkApplying()) { <c-spinner size="sm" class="me-1"></c-spinner> } @else {
+          <svg cIcon name="cilCheckCircle" size="sm" class="me-1"></svg>
+        }
+        Activar
+      </button>
+      <button cButton color="warning" variant="outline" size="sm"
+              [disabled]="bulkApplying()" (click)="bulkSetActive(false)">
+        @if (bulkApplying()) { <c-spinner size="sm" class="me-1"></c-spinner> } @else {
+          <svg cIcon name="cilBan" size="sm" class="me-1"></svg>
+        }
+        Inactivar
+      </button>
+    </div>
+  </div>
+}
 
 <!-- ── Filters & View Toggle ─────────────────────────────────────────────── -->
 <c-card class="mb-3">
@@ -93,6 +121,11 @@
       <table class="acc-table">
         <thead>
           <tr>
+            @if (selectionMode()) {
+              <th class="text-center">
+                <input type="checkbox" [checked]="allVisibleSelected()" (click)="toggleSelectAllVisible($event)" />
+              </th>
+            }
             <th>Código</th>
             <th>Nombre</th>
             <th>Tipo</th>
@@ -107,6 +140,11 @@
           @if (treeMode() && !isSearching) {
             @for (node of visibleNodes(); track node.code) {
               <tr [class.row-inactive]="!node.isActive" (click)="openEdit(node, $event)">
+                @if (selectionMode()) {
+                  <td class="text-center" (click)="$event.stopPropagation()">
+                    <input type="checkbox" [checked]="isSelected(node.id)" (click)="toggleSelect(node.id, $event)" />
+                  </td>
+                }
                 <td class="acc-code">
                   <span class="acc-indent" [style.width]="indentPx(node.level)"></span>
                   @if (node.children.length > 0) {
@@ -120,23 +158,29 @@
                 </td>
                 <td>{{ node.name }}</td>
                 <td>
-                  <c-badge [color]="TYPE_COLORS[node.type]" shape="rounded-pill">
+                  <span [class]="badgeClasses(TYPE_COLORS[node.type])">
                     {{ TYPE_LABELS[node.type] }}
-                  </c-badge>
+                  </span>
                 </td>
                 <td class="text-capitalize text-sm-muted">{{ NATURE_LABELS[node.nature] }}</td>
                 <td><span class="level-badge">N{{ node.level }}</span></td>
                 <td>
                   @if (node.isActive) {
-                    <c-badge color="success" shape="rounded-pill">Activa</c-badge>
+                    <span class="badge bg-success-subtle text-success border border-success-subtle">Activa</span>
                   } @else {
-                    <c-badge color="secondary" shape="rounded-pill">Inactiva</c-badge>
+                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">Inactiva</span>
                   }
                   @if (node.allowsMovement) {
-                    <c-badge color="info" shape="rounded-pill" class="ms-1">Movimiento</c-badge>
+                    <span class="badge bg-info-subtle text-info border border-info-subtle ms-1">Movimiento</span>
                   }
                 </td>
                 <td class="text-end">
+                  @if (node.allowsMovement) {
+                    <button cButton color="info" variant="ghost" size="sm"
+                            cTooltip="Ver movimientos (Libro Mayor)" (click)="viewMovements(node, $event)">
+                      <svg cIcon name="cilListRich" size="sm"></svg>
+                    </button>
+                  }
                   <button cButton color="secondary" variant="ghost" size="sm"
                           cTooltip="Editar" (click)="openEdit(node, $event)">
                     <svg cIcon name="cilPencil" size="sm"></svg>
@@ -157,26 +201,37 @@
             <!-- Flat / search mode -->
             @for (acc of filteredFlat(); track acc.id) {
               <tr [class.row-inactive]="!acc.isActive" (click)="openEdit(acc, $event)">
+                @if (selectionMode()) {
+                  <td class="text-center" (click)="$event.stopPropagation()">
+                    <input type="checkbox" [checked]="isSelected(acc.id)" (click)="toggleSelect(acc.id, $event)" />
+                  </td>
+                }
                 <td class="acc-code">{{ acc.code }}</td>
                 <td>{{ acc.name }}</td>
                 <td>
-                  <c-badge [color]="TYPE_COLORS[acc.type]" shape="rounded-pill">
+                  <span [class]="badgeClasses(TYPE_COLORS[acc.type])">
                     {{ TYPE_LABELS[acc.type] }}
-                  </c-badge>
+                  </span>
                 </td>
                 <td class="text-sm-muted">{{ NATURE_LABELS[acc.nature] }}</td>
                 <td><span class="level-badge">N{{ acc.level }}</span></td>
                 <td>
                   @if (acc.isActive) {
-                    <c-badge color="success" shape="rounded-pill">Activa</c-badge>
+                    <span class="badge bg-success-subtle text-success border border-success-subtle">Activa</span>
                   } @else {
-                    <c-badge color="secondary" shape="rounded-pill">Inactiva</c-badge>
+                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">Inactiva</span>
                   }
                   @if (acc.allowsMovement) {
-                    <c-badge color="info" shape="rounded-pill" class="ms-1">Movimiento</c-badge>
+                    <span class="badge bg-info-subtle text-info border border-info-subtle ms-1">Movimiento</span>
                   }
                 </td>
                 <td class="text-end">
+                  @if (acc.allowsMovement) {
+                    <button cButton color="info" variant="ghost" size="sm"
+                            cTooltip="Ver movimientos (Libro Mayor)" (click)="viewMovements(acc, $event)">
+                      <svg cIcon name="cilListRich" size="sm"></svg>
+                    </button>
+                  }
                   <button cButton color="secondary" variant="ghost" size="sm"
                           (click)="openEdit(acc, $event)">
                     <svg cIcon name="cilPencil" size="sm"></svg>
@@ -236,7 +291,7 @@
         </div>
         <div class="col-md-6">
           <label cLabel>Tipo de Cuenta <span class="text-danger">*</span></label>
-          <select cFormSelect formControlName="type" (change)="onTypeChange()">
+          <select cSelect formControlName="type" (change)="onTypeChange()">
             @for (type of accountTypes; track type) {
               <option [value]="type">{{ TYPE_LABELS[type] }}</option>
             }
@@ -244,7 +299,7 @@
         </div>
         <div class="col-md-6">
           <label cLabel>Naturaleza</label>
-          <select cFormSelect formControlName="nature">
+          <select cSelect formControlName="nature">
             <option value="deudora">Deudora (saldo normal débito)</option>
             <option value="acreedora">Acreedora (saldo normal crédito)</option>
           </select>

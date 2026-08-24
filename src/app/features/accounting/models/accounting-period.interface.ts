@@ -28,6 +28,13 @@ export interface AccountingPeriod {
   status: AccountingPeriodStatus;
   openingEntryId?: string;    // ID of the opening journal entry
   closingEntryId?: string;    // ID of the closing journal entry
+  // Cierre mensual — control interno opcional dentro de un ejercicio 'open':
+  // bloquea crear/editar/eliminar asientos con fecha <= monthlyCloseCutoff.
+  // Se avanza explícitamente (acción "Cerrar hasta [mes]"), nunca automático
+  // por calendario — evita inventar una regla de "día de corte" sin que el
+  // usuario la haya pedido.
+  monthlyCloseEnabled?: boolean;
+  monthlyCloseCutoff?: Timestamp;  // cerrado hasta esta fecha inclusive
   closedAt?: Timestamp;
   closedBy?: string;
   lockedAt?: Timestamp;

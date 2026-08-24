@@ -30,6 +30,33 @@ service cloud.firestore {
       return hasRole('accountant');
     }
 
+    // True si el update SOLO toca los campos de cobro/pago (marcar factura o
+    // compra pagada, o aplicar un anticipo) — nunca datos de línea/montos.
+    // Deja pasar a un contador (isAccountant) sin darle permiso general de
+    // edición sobre invoices/purchases, y permite marcar pagada una compra ya
+    // 'received' (la regla general la bloquea después de recibida).
+    function isPaymentOnlyUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(['status', 'isPaid', 'paidAt', 'paymentBankAccountId', 'paymentEntryId', 'updatedAt']);
+    }
+
+    // Collections that already have their own dedicated `match` block below
+    // with admin/accountant-only restrictions (chart_of_accounts,
+    // accounting_periods, journal_entries, etc.). Firestore evaluates every
+    // matching `match` block with OR semantics — it does NOT prefer the
+    // "more specific" one — so the generic catch-all rule at the bottom of
+    // this file MUST exclude these names explicitly. Otherwise its broader
+    // canWrite() (which includes seller/cashier) silently re-grants access
+    // that the specific rule above just denied.
+    function isAccountingGovernedCollection(collection) {
+      return collection in [
+        'chart_of_accounts', 'accounting_periods', 'cost_centers',
+        'journal_entries', 'bank_accounts', 'bank_statements',
+        'budgets', 'fixed_assets', 'advances',
+        'petty_cash_funds', 'petty_cash_movements', 'audit_log'
+      ];
+    }
+
     // Returns true if the caller belongs to the company AND has at least
     // one of the roles allowed to read fiscal documents (retentions, debitNotes).
     function canReadFiscalDoc(companyId) {
@@ -146,10 +173,16 @@ service cloud.firestore {
       match /invoices/{id} {
         allow read: if isAuthenticated() && belongsToCompany(companyId);
         allow create: if isAuthenticated() && belongsToCompany(companyId) && canWrite();
-        // Cannot edit a cancelled invoice; only admin can void
-        allow update: if isAuthenticated() && belongsToCompany(companyId) && canWrite()
+        // Cannot edit a cancelled invoice; only admin can void.
+        // Payment-only updates (marcar pagada / aplicar anticipo) además
+        // aceptan al contador, sin darle edición general de la factura.
+        allow update: if isAuthenticated() && belongsToCompany(companyId)
                        && resource.data.status != 'cancelled'
-                       && (request.resource.data.status != 'void' || isAdmin());
+                       && (
+                            (isPaymentOnlyUpdate() && (canWrite() || isAccountant()))
+                            || (!isPaymentOnlyUpdate() && canWrite()
+                                && (request.resource.data.status != 'void' || isAdmin()))
+                          );
         allow delete: if false; // NEVER delete invoices
       }
 
@@ -260,8 +293,14 @@ service cloud.firestore {
       match /purchases/{purchaseId} {
         allow read:   if isAuthenticated() && belongsToCompany(companyId);
         allow create: if isAuthenticated() && belongsToCompany(companyId) && canWrite();
-        allow update: if isAuthenticated() && belongsToCompany(companyId) && canWrite()
-                      && resource.data.status != 'received';
+        // Una vez 'received' no se puede editar el contenido (líneas/montos ya
+        // afectaron stock) — pero SÍ marcarla pagada / aplicarle un anticipo
+        // (isPaymentOnlyUpdate), que además acepta al contador.
+        allow update: if isAuthenticated() && belongsToCompany(companyId)
+                      && (
+                           (isPaymentOnlyUpdate() && (canWrite() || isAccountant()))
+                           || (!isPaymentOnlyUpdate() && canWrite() && resource.data.status != 'received')
+                         );
         allow delete: if isAuthenticated() && belongsToCompany(companyId) && isAdmin()
                       && resource.data.status == 'draft';
       }
@@ -385,12 +424,21 @@ service cloud.firestore {
                       && resource.data.get('type', 'manual') == 'manual';
       }
 
+      // ─── Audit Log (Fase 7) ─────────────────────────────────────────────────
+      // Log append-only escrito únicamente por Cloud Functions (Admin SDK,
+      // audit-log-trigger.ts) — el cliente nunca escribe aquí, solo lee.
+      match /audit_log/{logId} {
+        allow read:  if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
+        allow write: if false;
+      }
+
       // ─── Bank Accounts ────────────────────────────────────────────────────
       match /bank_accounts/{accountId} {
-        allow read:          if isAuthenticated() && belongsToCompany(companyId)
-                             && (isAdmin() || isAccountant());
-        allow create, update: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
-        allow delete:         if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
+        allow read:            if isAuthenticated() && belongsToCompany(companyId)
+                               && (isAdmin() || isAccountant());
+        allow create, update:  if isAuthenticated() && belongsToCompany(companyId)
+                               && (isAdmin() || isAccountant());
+        allow delete:          if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
       }
 
       // ─── Bank Statements + Transactions (subcollection) ───────────────────
@@ -410,6 +458,32 @@ service cloud.firestore {
                                && (isAdmin() || isAccountant());
           allow delete:         if false; // immutable audit trail
         }
+      }
+
+      // ─── Advances (anticipos de clientes/proveedores) ──────────────────────
+      match /advances/{advanceId} {
+        allow read:            if isAuthenticated() && belongsToCompany(companyId)
+                               && (isAdmin() || isAccountant());
+        allow create, update:  if isAuthenticated() && belongsToCompany(companyId)
+                               && (isAdmin() || isAccountant());
+        allow delete:          if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
+      }
+
+      // ─── Petty Cash (caja chica) ────────────────────────────────────────────
+      match /petty_cash_funds/{fundId} {
+        allow read:            if isAuthenticated() && belongsToCompany(companyId)
+                               && (isAdmin() || isAccountant());
+        allow create, update:  if isAuthenticated() && belongsToCompany(companyId)
+                               && (isAdmin() || isAccountant());
+        allow delete:          if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
+      }
+
+      match /petty_cash_movements/{movementId} {
+        allow read:            if isAuthenticated() && belongsToCompany(companyId)
+                               && (isAdmin() || isAccountant());
+        allow create, update:  if isAuthenticated() && belongsToCompany(companyId)
+                               && (isAdmin() || isAccountant());
+        allow delete:          if false; // auditoría de gasto — no se borra, solo se marca reimbursed
       }
 
       // ─── Budgets ──────────────────────────────────────────────────────────
@@ -439,9 +513,14 @@ service cloud.firestore {
       }
 
       // Default rule for all other sub-collections
+      // Excludes the accounting collections above: they have their own
+      // stricter admin/accountant-only rules and this rule's broader
+      // canWrite() (seller/cashier included) must not re-grant that access.
       match /{collection}/{id} {
-        allow read: if isAuthenticated() && belongsToCompany(companyId);
-        allow write: if isAuthenticated() && belongsToCompany(companyId) && canWrite();
+        allow read: if isAuthenticated() && belongsToCompany(companyId)
+                    && !isAccountingGovernedCollection(collection);
+        allow write: if isAuthenticated() && belongsToCompany(companyId) && canWrite()
+                    && !isAccountingGovernedCollection(collection);
       }
     }
 

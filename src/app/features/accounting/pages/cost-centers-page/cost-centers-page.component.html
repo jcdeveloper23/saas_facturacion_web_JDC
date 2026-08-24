@@ -120,7 +120,7 @@
         </div>
         <div class="col-md-6">
           <label cLabel>Tipo</label>
-          <select cFormSelect formControlName="type">
+          <select cSelect formControlName="type">
             @for (t of centerTypes; track t) {
               <option [value]="t">{{ TYPE_LABELS[t] }}</option>
             }
@@ -128,7 +128,7 @@
         </div>
         <div class="col-md-6">
           <label cLabel>Centro Superior</label>
-          <select cFormSelect formControlName="parentId">
+          <select cSelect formControlName="parentId">
             <option [value]="null">— Sin superior —</option>
             @for (parent of parentOptions(); track parent.id) {
               <option [value]="parent.id">{{ parent.code }} — {{ parent.name }}</option>

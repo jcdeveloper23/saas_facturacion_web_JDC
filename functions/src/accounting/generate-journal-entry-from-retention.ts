@@ -148,7 +148,8 @@ export async function generateJournalEntryFromRetentionInternal(
   const isBalanced  = totalDebit === totalCredit;
 
   if (!isBalanced) {
-    console.error('[generateJournalEntryFromRetention] Asiento descuadrado:', { totalDebit, totalCredit });
+    console.error('[generateJournalEntryFromRetention] Asiento descuadrado — NO se crea:', { totalDebit, totalCredit, retentionId });
+    return { created: false, reason: 'unbalanced' };
   }
 
   // Create journal entry

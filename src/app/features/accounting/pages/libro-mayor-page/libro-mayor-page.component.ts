@@ -3,6 +3,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { Subject, takeUntil, of, take } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import {
@@ -17,6 +18,7 @@ import { AccountingPeriodsService } from '../../services/accounting-periods.serv
 import { ChartOfAccountsService }   from '../../services/chart-of-accounts.service';
 import { CostCentersService }       from '../../services/cost-centers.service';
 import { AccountingPdfService }     from '../../services/accounting-pdf.service';
+import { ExcelExportService }       from '../../services/excel-export.service';
 import { TenantService }            from '../../../../core/services/tenant.service';
 import { NotificationService }      from '../../../../core/services/notification.service';
 import { LibroMayorLine, JOURNAL_ENTRY_TYPE_LABELS } from '../../models/journal-entry.interface';
@@ -42,8 +44,10 @@ export class LibroMayorPageComponent implements OnInit, OnDestroy {
   private accountsSvc    = inject(ChartOfAccountsService);
   private costCentersSvc = inject(CostCentersService);
   private pdfSvc         = inject(AccountingPdfService);
+  private excelSvc       = inject(ExcelExportService);
   private tenantSvc      = inject(TenantService);
   private notifications  = inject(NotificationService);
+  private route          = inject(ActivatedRoute);
   private destroy$       = new Subject<void>();
 
   // ── State ─────────────────────────────────────────────────────────────────
@@ -82,7 +86,17 @@ export class LibroMayorPageComponent implements OnInit, OnDestroy {
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────
   ngOnInit(): void {
-    this.accountsSvc.getActiveMovementAccounts().pipe(take(1)).subscribe(a => this.accounts.set(a));
+    // Drill-down desde chart-of-accounts-page ("Ver movimientos"): preselecciona
+    // y carga automáticamente la cuenta pasada por query param.
+    const preselectCode = this.route.snapshot.queryParamMap.get('accountCode');
+
+    this.accountsSvc.getActiveMovementAccounts().pipe(take(1)).subscribe(a => {
+      this.accounts.set(a);
+      if (preselectCode && a.some(acc => acc.code === preselectCode)) {
+        this.selectedCode.set(preselectCode);
+        this.loadMayor();
+      }
+    });
     this.periodsSvc.getPeriods().pipe(take(1)).subscribe(p => this.periods.set(p));
     this.costCentersSvc.getCostCenters().pipe(take(1)).subscribe(cc =>
       this.costCenters.set(cc.filter(c => c.isActive))
@@ -151,6 +165,29 @@ export class LibroMayorPageComponent implements OnInit, OnDestroy {
       this.downloadingPdf.set(false);
     }
   }
+
+  downloadExcel(): void {
+    if (!this.lines().length) return;
+    const acc = this.selectedAccount();
+    const rows: Record<string, string | number>[] = this.lines().map(l => ({
+      'N° Asiento': l.entryNumber,
+      Fecha:        this.formatDate(l.date),
+      Descripción:  l.description,
+      Referencia:   l.reference,
+      Tipo:         this.TYPE_LABELS[l.type] ?? l.type,
+      Debe:         this.round2Amt(l.debit),
+      Haber:        this.round2Amt(l.credit),
+      Saldo:        this.round2Amt(l.balance)
+    }));
+    rows.push({
+      'N° Asiento': '', Fecha: '', Descripción: 'TOTALES', Referencia: '', Tipo: '',
+      Debe: this.round2Amt(this.totalDebit()), Haber: this.round2Amt(this.totalCredit()), Saldo: this.round2Amt(this.finalBalance())
+    });
+    const label = acc ? `${acc.code}-${acc.name}` : 'libro-mayor';
+    this.excelSvc.export(`libro-mayor-${label.replace(/[^\w-]+/g, '_')}`, [{ name: 'Libro Mayor', rows }]);
+  }
+
+  private round2Amt(n: number): number { return Math.round((n ?? 0) * 100) / 100; }
 
   balanceClass(bal: number): string {
     if (bal > 0)  return 'bal-positive';

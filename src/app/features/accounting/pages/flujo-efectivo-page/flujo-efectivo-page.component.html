@@ -1,0 +1,167 @@
+<!-- ── Header ──────────────────────────────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0">Estado de Flujo de Efectivo</h4>
+  @if (searched()) {
+    <div class="d-flex gap-2">
+      <button cButton color="secondary" variant="outline" size="sm" (click)="printReport()">
+        <svg cIcon name="cilPrint" size="sm" class="me-1"></svg>
+        Imprimir
+      </button>
+      <button cButton color="primary" variant="outline" size="sm"
+              [disabled]="downloadingPdf()" (click)="downloadPdf()">
+        @if (downloadingPdf()) { <c-spinner size="sm" class="me-1"></c-spinner> } @else {
+          <svg cIcon name="cilCloudDownload" size="sm" class="me-1"></svg>
+        }
+        PDF
+      </button>
+    </div>
+  }
+</div>
+
+<!-- ── Filters ────────────────────────────────────────────────────────────── -->
+<c-card class="mb-3 no-print">
+  <c-card-body>
+    <div class="d-flex gap-3 align-items-end flex-wrap">
+      <div>
+        <label cLabel>Período Contable <span class="text-danger">*</span></label>
+        <select cSelect class="select-period"
+                [ngModel]="selectedPeriod()" (ngModelChange)="selectedPeriod.set($event)">
+          <option value="">— Seleccionar ejercicio —</option>
+          @for (p of periods(); track p.id) {
+            <option [value]="p.id">{{ p.name }}</option>
+          }
+        </select>
+      </div>
+      <button cButton color="primary" (click)="generate()" [disabled]="searching() || !selectedPeriod()">
+        @if (searching()) {
+          <c-spinner size="sm" class="me-1"></c-spinner>
+          Generando...
+        } @else {
+          <svg cIcon name="cilChartLine" size="sm" class="me-1"></svg>
+          Generar Reporte
+        }
+      </button>
+    </div>
+  </c-card-body>
+</c-card>
+
+<!-- ── Report ─────────────────────────────────────────────────────────────── -->
+@if (searched()) {
+  <div class="report-header mb-3">
+    <div class="report-title">ESTADO DE FLUJO DE EFECTIVO</div>
+    <div class="report-period">{{ getPeriodName() }} — Método Indirecto</div>
+  </div>
+
+  <c-card class="mb-3">
+    <c-card-body class="p-0">
+      <table class="fe-table">
+        <tbody>
+          <tr class="banner-row inicial-row">
+            <td>EFECTIVO AL INICIO DEL PERÍODO</td>
+            <td class="amt-cell">{{ efectivoInicial() | number:'1.2-2' }}</td>
+          </tr>
+        </tbody>
+
+        <!-- ── OPERACIÓN ── -->
+        <thead>
+          <tr class="section-header operacion-header">
+            <td colspan="2">FLUJO DE ACTIVIDADES DE OPERACIÓN</td>
+          </tr>
+        </thead>
+        <tbody>
+          @for (line of operacion(); track line.accountCode) {
+            <tr>
+              <td class="acc-cell">
+                <span class="acc-code">{{ line.accountCode }}</span>
+                {{ line.accountName }}
+              </td>
+              <td class="amt-cell">{{ line.amount | number:'1.2-2' }}</td>
+            </tr>
+          }
+          @if (operacion().length === 0) {
+            <tr><td colspan="2" class="text-center text-secondary py-2">Sin movimientos</td></tr>
+          }
+        </tbody>
+        <tfoot>
+          <tr class="subtotal-row">
+            <td>Efectivo neto de Operación</td>
+            <td class="amt-cell">{{ totalOperacion() | number:'1.2-2' }}</td>
+          </tr>
+        </tfoot>
+
+        <!-- ── INVERSIÓN ── -->
+        <thead>
+          <tr class="section-header inversion-header">
+            <td colspan="2">FLUJO DE ACTIVIDADES DE INVERSIÓN</td>
+          </tr>
+        </thead>
+        <tbody>
+          @for (line of inversion(); track line.accountCode) {
+            <tr>
+              <td class="acc-cell">
+                <span class="acc-code">{{ line.accountCode }}</span>
+                {{ line.accountName }}
+              </td>
+              <td class="amt-cell">{{ line.amount | number:'1.2-2' }}</td>
+            </tr>
+          }
+          @if (inversion().length === 0) {
+            <tr><td colspan="2" class="text-center text-secondary py-2">Sin movimientos</td></tr>
+          }
+        </tbody>
+        <tfoot>
+          <tr class="subtotal-row">
+            <td>Efectivo neto de Inversión</td>
+            <td class="amt-cell">{{ totalInversion() | number:'1.2-2' }}</td>
+          </tr>
+        </tfoot>
+
+        <!-- ── FINANCIAMIENTO ── -->
+        <thead>
+          <tr class="section-header financiamiento-header">
+            <td colspan="2">FLUJO DE ACTIVIDADES DE FINANCIAMIENTO</td>
+          </tr>
+        </thead>
+        <tbody>
+          @for (line of financiamiento(); track line.accountCode) {
+            <tr>
+              <td class="acc-cell">
+                <span class="acc-code">{{ line.accountCode }}</span>
+                {{ line.accountName }}
+              </td>
+              <td class="amt-cell">{{ line.amount | number:'1.2-2' }}</td>
+            </tr>
+          }
+          @if (financiamiento().length === 0) {
+            <tr><td colspan="2" class="text-center text-secondary py-2">Sin movimientos</td></tr>
+          }
+        </tbody>
+        <tfoot>
+          <tr class="subtotal-row">
+            <td>Efectivo neto de Financiamiento</td>
+            <td class="amt-cell">{{ totalFinanciamiento() | number:'1.2-2' }}</td>
+          </tr>
+        </tfoot>
+
+        <!-- ── VARIACIÓN Y CIERRE ── -->
+        <tbody>
+          <tr class="banner-row variacion-row" [class.negativa]="variacionNeta() < 0">
+            <td>VARIACIÓN NETA DE EFECTIVO</td>
+            <td class="amt-cell">{{ variacionNeta() | number:'1.2-2' }}</td>
+          </tr>
+          <tr class="banner-row final-row">
+            <td>EFECTIVO AL FINAL DEL PERÍODO</td>
+            <td class="amt-cell">{{ efectivoFinal() | number:'1.2-2' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </c-card-body>
+  </c-card>
+}
+
+@if (!searched() && !searching()) {
+  <div class="text-center py-5 text-secondary">
+    <svg cIcon name="cilChartLine" size="xl" class="mb-3 opacity-25"></svg>
+    <p>Seleccione el ejercicio y haga clic en "Generar Reporte"</p>
+  </div>
+}

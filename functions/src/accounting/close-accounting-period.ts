@@ -1,5 +1,6 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
+import { requireCompanyRole } from '../utils/callable-auth';
 
 // ─── Callable: closeAccountingPeriod ─────────────────────────────────────────
 //
@@ -41,6 +42,11 @@ export const closeAccountingPeriod = onCall<CloseAccountingPeriodInput>(async (r
   if (!companyId || !periodId) {
     throw new HttpsError('invalid-argument', 'companyId y periodId son requeridos');
   }
+
+  // Cerrar un período es una acción admin-only (mismo criterio que
+  // firestore.rules para accounting_periods) — este callable usa Admin SDK
+  // y por tanto no pasa por esas reglas, hay que replicarlas aquí.
+  requireCompanyRole(request, companyId, ['admin']);
 
   const db  = admin.firestore();
   const now = admin.firestore.Timestamp.now();

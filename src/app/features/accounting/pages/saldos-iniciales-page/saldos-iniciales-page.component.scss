@@ -1,0 +1,84 @@
+@use '../../accounting-shared' as *;
+
+/* ── Summary bar ──────────────────────────────────────────────────────────── */
+.summary-bar {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+  padding: .6rem .9rem;
+  background: var(--cui-tertiary-bg);
+  border: 1px solid var(--cui-border-color);
+  border-radius: 8px;
+  flex-wrap: wrap;
+
+  .lbl { font-size: .68rem; color: var(--cui-secondary-color); text-transform: uppercase; letter-spacing: .04em; }
+  .val { font-size: 1rem; font-weight: 700; font-family: monospace; }
+}
+
+.diff-ok   { color: var(--cui-success); }
+.diff-fail { color: var(--cui-danger); }
+
+/* ── Editable table ───────────────────────────────────────────────────────── */
+.si-table-wrap { max-height: 65vh; overflow-y: auto; }
+
+.si-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    font-size: .68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--cui-secondary-color);
+    padding: .5rem .75rem;
+    background: var(--cui-card-bg);
+    border-bottom: 2px solid var(--cui-border-color);
+  }
+
+  tbody tr {
+    border-bottom: 1px solid var(--cui-border-color-translucent);
+    &:hover     { background: var(--cui-tertiary-bg); }
+    &.has-value { background: rgba(var(--cui-primary-rgb), .05); }
+  }
+
+  tbody td { padding: .4rem .75rem; font-size: .82rem; vertical-align: middle; }
+
+  .acc-code {
+    font-family: monospace;
+    font-size: .75rem;
+    font-weight: 600;
+    color: var(--cui-tertiary-color);
+    margin-right: .4rem;
+  }
+}
+
+.nature-pill {
+  font-size: .68rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+
+  &.deudora   { background: rgba(var(--cui-primary-rgb), .1); color: var(--cui-primary); }
+  &.acreedora { background: rgba(var(--cui-warning-rgb), .12); color: var(--cui-warning); }
+}
+
+.amount-input {
+  width: 140px;
+  text-align: right;
+  font-family: monospace;
+  padding: .3rem .5rem;
+  border: 1px solid var(--cui-border-color);
+  border-radius: 5px;
+  background: var(--cui-body-bg);
+  color: var(--cui-body-color);
+
+  &:focus {
+    outline: none;
+    border-color: var(--cui-primary);
+    box-shadow: 0 0 0 2px rgba(var(--cui-primary-rgb), .15);
+  }
+}

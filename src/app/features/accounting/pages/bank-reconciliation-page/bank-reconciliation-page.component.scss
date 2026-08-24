@@ -41,9 +41,10 @@
     transition: background .1s;
 
     &:hover { background: var(--cui-tertiary-bg); }
-    &.selected { background: #cfe2ff !important; }
-    &.matched  { background: #d1e7dd; cursor: default; }
-    &.ignored  { background: var(--cui-tertiary-bg); opacity: .6; cursor: default; }
+    &.selected  { background: rgba(var(--cui-primary-rgb), .15) !important; }
+    &.matched   { background: rgba(var(--cui-success-rgb), .12); cursor: default; }
+    &.ignored   { background: var(--cui-tertiary-bg); opacity: .6; cursor: default; }
+    &.suggested { background: rgba(var(--cui-info-rgb), .1); }
   }
 
   &.preview-table tbody tr {
@@ -75,7 +76,15 @@
 
 .match-ref {
   font-size: .72rem;
-  color: #198754;
+  color: var(--cui-success);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.suggestion-note {
+  font-size: .72rem;
+  color: var(--cui-info);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

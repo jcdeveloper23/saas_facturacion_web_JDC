@@ -1,13 +1,14 @@
 import { Injectable, inject } from '@angular/core';
 import {
   Firestore, collection, doc, onSnapshot,
-  addDoc, updateDoc, deleteDoc, getDocs,
+  addDoc, updateDoc, deleteDoc, getDocs, getDoc,
   query, where, orderBy, Timestamp, runTransaction
 } from '@angular/fire/firestore';
 import { Observable } from 'rxjs';
 
 import { TenantService } from '../../../core/services/tenant.service';
 import { AuthService }   from '../../../core/services/auth.service';
+import { AccountingPeriodsService } from './accounting-periods.service';
 import {
   JournalEntry, JournalEntryLine, JournalEntryType, JournalEntryStatus,
   calcEntryTotals, LibroMayorLine
@@ -32,6 +33,7 @@ export class JournalEntriesService {
   private firestore     = inject(Firestore);
   private tenantService = inject(TenantService);
   private authService   = inject(AuthService);
+  private periodsSvc    = inject(AccountingPeriodsService);
 
   private get companyId(): string { return this.tenantService.companyId; }
   private get colPath(): string   { return `companies/${this.companyId}/journal_entries`; }
@@ -100,6 +102,46 @@ export class JournalEntriesService {
     return result;
   }
 
+  // ─── Integrity check: ¿alguna línea usa esta cuenta? ──────────────────────
+  // Usado por ChartOfAccountsService.deleteAccount() antes de borrar — evita
+  // dejar líneas de journal_entries apuntando a una cuenta que ya no existe
+  // (el libro mayor de esa cuenta desaparecería sin que quede rastro).
+
+  async hasMovementsForAccount(accountCode: string): Promise<boolean> {
+    const ref  = collection(this.firestore, this.colPath);
+    const snap = await getDocs(query(ref, where('status', '==', 'posted')));
+    for (const d of snap.docs) {
+      const entry = d.data() as JournalEntry;
+      if ((entry.lines ?? []).some(l => l.accountCode === accountCode)) return true;
+    }
+    return false;
+  }
+
+  // ─── Cierre mensual: bloquea crear/editar/eliminar en meses cerrados ──────
+  // Validación centralizada aquí (en vez de en cada caller: journal-entry-form,
+  // bank-movement-modal, advances.service, petty-cash.service, etc.) porque
+  // todos esos flujos terminan llamando a createEntry/updateEntry/deleteEntry.
+  // Igual que la validación de cuadre (calcEntryTotals), es una regla de
+  // negocio aplicada en el service layer, no en firestore.rules.
+
+  private async assertDateNotLocked(date: Timestamp): Promise<void> {
+    const year   = date.toDate().getFullYear();
+    const period = await this.periodsSvc.getPeriodForYear(year);
+    if (period?.monthlyCloseEnabled && period.monthlyCloseCutoff &&
+        date.toMillis() <= period.monthlyCloseCutoff.toMillis()) {
+      const cutoffStr = period.monthlyCloseCutoff.toDate().toLocaleDateString('es-EC');
+      throw new Error(
+        `El período está cerrado hasta ${cutoffStr}. No se pueden crear, editar ni eliminar asientos con fecha en meses ya cerrados.`
+      );
+    }
+  }
+
+  private async getEntryDate(id: string): Promise<Timestamp> {
+    const snap = await getDoc(doc(this.firestore, `${this.colPath}/${id}`));
+    if (!snap.exists()) throw new Error('Asiento no encontrado');
+    return (snap.data() as JournalEntry).date;
+  }
+
   // ─── Firestore safe serialization ─────────────────────────────────────────
 
   private cleanDoc<T>(obj: T): T {
@@ -118,6 +160,8 @@ export class JournalEntriesService {
   // ─── Create ───────────────────────────────────────────────────────────────
 
   async createEntry(input: JournalEntryCreateInput): Promise<string> {
+    await this.assertDateNotLocked(input.date);
+
     const userId  = this.authService.user()?.uid ?? 'unknown';
     const now     = Timestamp.now();
     const number  = await this.nextNumber(input.periodYear);
@@ -143,6 +187,12 @@ export class JournalEntriesService {
   // ─── Update ───────────────────────────────────────────────────────────────
 
   async updateEntry(id: string, changes: Partial<Omit<JournalEntry, 'id' | 'createdAt' | 'createdBy' | 'number'>>): Promise<void> {
+    const currentDate = await this.getEntryDate(id);
+    await this.assertDateNotLocked(currentDate);
+    if (changes.date && changes.date.toMillis() !== currentDate.toMillis()) {
+      await this.assertDateNotLocked(changes.date);
+    }
+
     const userId  = this.authService.user()?.uid ?? 'unknown';
     const ref     = doc(this.firestore, `${this.colPath}/${id}`);
     const payload: any = { ...changes, updatedAt: Timestamp.now(), updatedBy: userId };
@@ -180,9 +230,8 @@ export class JournalEntriesService {
   // ─── Duplicate ────────────────────────────────────────────────────────────
 
   async duplicateEntry(id: string): Promise<string> {
-    const snap  = await getDocs(query(collection(this.firestore, this.colPath), where('__name__', '==', id)));
     const ref   = doc(this.firestore, `${this.colPath}/${id}`);
-    const sSnap = await (await import('@angular/fire/firestore')).getDoc(ref);
+    const sSnap = await getDoc(ref);
 
     if (!sSnap.exists()) throw new Error('Asiento no encontrado');
 
@@ -207,6 +256,8 @@ export class JournalEntriesService {
   // ─── Delete (draft only) ─────────────────────────────────────────────────
 
   async deleteEntry(id: string): Promise<void> {
+    const currentDate = await this.getEntryDate(id);
+    await this.assertDateNotLocked(currentDate);
     await deleteDoc(doc(this.firestore, `${this.colPath}/${id}`));
   }
 

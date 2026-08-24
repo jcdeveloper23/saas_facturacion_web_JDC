@@ -45,14 +45,14 @@
                [ngModel]="searchTerm()" (ngModelChange)="searchTerm.set($event)" />
       </c-input-group>
 
-      <select cFormSelect class="select-sm"
+      <select cSelect class="select-sm"
               [ngModel]="yearFilter()" (ngModelChange)="changeYear(+$event)">
         @for (y of years; track y) {
           <option [value]="y">{{ y }}</option>
         }
       </select>
 
-      <select cFormSelect class="select-sm"
+      <select cSelect class="select-sm"
               [ngModel]="typeFilter()" (ngModelChange)="typeFilter.set($event || null)">
         <option [value]="null">Todos los tipos</option>
         @for (t of entryTypes; track t) {
@@ -94,9 +94,9 @@
               <td>{{ formatDate(entry.date) }}</td>
               <td>{{ entry.description }}</td>
               <td>
-                <c-badge [color]="TYPE_COLORS[entry.type]" shape="rounded-pill">
+                <span [class]="badgeClasses(TYPE_COLORS[entry.type])">
                   {{ TYPE_LABELS[entry.type] }}
-                </c-badge>
+                </span>
               </td>
               <td class="text-sm-muted">
                 {{ entry.reference || '—' }}
@@ -104,13 +104,13 @@
               <td class="je-amt">{{ formatAmt(entry.totalDebit) }}</td>
               <td class="je-amt">{{ formatAmt(entry.totalCredit) }}</td>
               <td>
-                <c-badge [color]="STATUS_COLORS[entry.status]" shape="rounded-pill">
+                <span [class]="badgeClasses(STATUS_COLORS[entry.status])">
                   {{ STATUS_LABELS[entry.status] }}
-                </c-badge>
+                </span>
                 @if (!entry.isBalanced) {
-                  <c-badge color="danger" shape="rounded-pill" class="ms-1">
+                  <span class="badge bg-danger-subtle text-danger border border-danger-subtle ms-1">
                     Descuadrado
-                  </c-badge>
+                  </span>
                 }
               </td>
               <td class="text-end" (click)="$event.stopPropagation()">
@@ -167,9 +167,9 @@
     <c-modal-header>
       <h5 cModalTitle>
         Asiento N° {{ detailEntry()!.number }} —
-        <c-badge [color]="STATUS_COLORS[detailEntry()!.status]" class="ms-1">
+        <span [class]="badgeClasses(STATUS_COLORS[detailEntry()!.status]) + ' ms-1'">
           {{ STATUS_LABELS[detailEntry()!.status] }}
-        </c-badge>
+        </span>
       </h5>
       <button type="button" class="btn-close" (click)="closeDetail()"></button>
     </c-modal-header>
@@ -181,7 +181,7 @@
         </div>
         <div class="col-md-3">
           <small class="text-secondary d-block">Tipo</small>
-          <c-badge [color]="TYPE_COLORS[detailEntry()!.type]">{{ TYPE_LABELS[detailEntry()!.type] }}</c-badge>
+          <span [class]="badgeClasses(TYPE_COLORS[detailEntry()!.type])">{{ TYPE_LABELS[detailEntry()!.type] }}</span>
         </div>
         <div class="col-md-3">
           <small class="text-secondary d-block">Referencia</small>

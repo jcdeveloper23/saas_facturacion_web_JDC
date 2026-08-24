@@ -1,0 +1,199 @@
+<!-- ── Header ──────────────────────────────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h4 class="mb-0">Anticipos</h4>
+    <small class="text-secondary">Anticipos de clientes y a proveedores</small>
+  </div>
+  <button cButton color="primary" size="sm" (click)="openCreate()">
+    <svg cIcon name="cilPlus" class="me-1"></svg>
+    Nuevo Anticipo
+  </button>
+</div>
+
+<!-- ── Filters ─────────────────────────────────────────────────────────────── -->
+<c-card class="mb-3">
+  <c-card-body class="py-2 px-3">
+    <div class="d-flex gap-2 align-items-center flex-wrap">
+      <c-input-group class="search-wrap-md">
+        <span cInputGroupText><svg cIcon name="cilSearch" size="sm"></svg></span>
+        <input cFormControl type="text" placeholder="Buscar por cliente/proveedor..."
+               [ngModel]="searchTerm()" (ngModelChange)="searchTerm.set($event)" />
+      </c-input-group>
+
+      <button class="btn btn-sm" [class.btn-primary]="statusFilter() === ''" [class.btn-outline-secondary]="statusFilter() !== ''"
+              (click)="statusFilter.set('')">Todos</button>
+      <button class="btn btn-sm" [class.btn-success]="statusFilter() === 'open'" [class.btn-outline-secondary]="statusFilter() !== 'open'"
+              (click)="statusFilter.set('open')">Disponibles</button>
+      <button class="btn btn-sm" [class.btn-secondary]="statusFilter() === 'applied'" [class.btn-outline-secondary]="statusFilter() !== 'applied'"
+              (click)="statusFilter.set('applied')">Aplicados</button>
+    </div>
+  </c-card-body>
+</c-card>
+
+<!-- ── Table ──────────────────────────────────────────────────────────────── -->
+<c-card>
+  @if (loading()) {
+    <c-card-body class="text-center py-5">
+      <c-spinner color="primary"></c-spinner>
+    </c-card-body>
+  } @else {
+    <div class="table-responsive">
+      <table class="adv-table">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Tipo</th>
+            <th>Cliente / Proveedor</th>
+            <th>Cuenta Bancaria</th>
+            <th class="text-end">Monto</th>
+            <th class="text-end">Disponible</th>
+            <th>Estado</th>
+            <th class="text-end">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (a of filtered(); track a.id) {
+            <tr>
+              <td>{{ formatDate(a.date) }}</td>
+              <td>
+                <span class="badge bg-{{ a.partyType === 'customer' ? 'info' : 'warning' }}-subtle text-{{ a.partyType === 'customer' ? 'info' : 'warning' }} border border-{{ a.partyType === 'customer' ? 'info' : 'warning' }}-subtle">
+                  {{ a.partyType === 'customer' ? 'Cliente' : 'Proveedor' }}
+                </span>
+              </td>
+              <td>
+                {{ a.partyName }}
+                <div class="text-xs-muted">{{ a.partyTaxId }}</div>
+              </td>
+              <td class="text-sm-muted">{{ a.bankAccountName }}</td>
+              <td class="amt-cell text-end">{{ a.amount | number:'1.2-2' }}</td>
+              <td class="amt-cell text-end">{{ a.remainingAmount | number:'1.2-2' }}</td>
+              <td>
+                <span class="badge bg-{{ STATUS_COLORS[a.status] }}-subtle text-{{ STATUS_COLORS[a.status] }} border border-{{ STATUS_COLORS[a.status] }}-subtle">
+                  {{ STATUS_LABELS[a.status] }}
+                </span>
+              </td>
+              <td class="text-end">
+                @if (a.status === 'open') {
+                  <button cButton color="primary" variant="outline" size="sm" (click)="openApply(a)">
+                    Aplicar
+                  </button>
+                }
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="8" class="text-center text-secondary py-4">No hay anticipos registrados</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</c-card>
+
+<!-- ── Modal: Nuevo Anticipo ─────────────────────────────────────────────── -->
+<c-modal [visible]="showCreateModal()" (visibleChange)="showCreateModal.set($event)" backdrop="static">
+  <c-modal-header>
+    <h5 cModalTitle>Nuevo Anticipo</h5>
+    <button type="button" class="btn-close" (click)="showCreateModal.set(false)"></button>
+  </c-modal-header>
+  <c-modal-body>
+    <div class="d-flex gap-2 mb-3">
+      <button type="button" class="btn btn-sm flex-fill"
+              [class.btn-info]="newPartyType() === 'customer'" [class.btn-outline-secondary]="newPartyType() !== 'customer'"
+              (click)="newPartyType.set('customer'); newPartyId.set('')">
+        Anticipo de Cliente
+      </button>
+      <button type="button" class="btn btn-sm flex-fill"
+              [class.btn-warning]="newPartyType() === 'supplier'" [class.btn-outline-secondary]="newPartyType() !== 'supplier'"
+              (click)="newPartyType.set('supplier'); newPartyId.set('')">
+        Anticipo a Proveedor
+      </button>
+    </div>
+
+    <div class="mb-3">
+      <label cLabel>{{ newPartyType() === 'customer' ? 'Cliente' : 'Proveedor' }} <span class="text-danger">*</span></label>
+      <select cSelect [ngModel]="newPartyId()" (ngModelChange)="newPartyId.set($event)">
+        <option value="">— Seleccionar —</option>
+        @for (p of partyOptions(); track p.id) {
+          <option [value]="p.id">{{ p.name }} — {{ p.taxId }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="row g-3 mb-3">
+      <div class="col-md-6">
+        <label cLabel>Monto <span class="text-danger">*</span></label>
+        <input type="number" min="0.01" step="0.01" cFormControl
+               [ngModel]="newAmount()" (ngModelChange)="newAmount.set(+$event)" />
+      </div>
+      <div class="col-md-6">
+        <label cLabel>Fecha</label>
+        <input type="date" cFormControl [ngModel]="newDate()" (ngModelChange)="newDate.set($event)" />
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label cLabel>Cuenta Bancaria <span class="text-danger">*</span></label>
+      <select cSelect [ngModel]="newBankAccountId()" (ngModelChange)="newBankAccountId.set($event)">
+        <option value="">— Seleccionar —</option>
+        @for (b of bankAccounts(); track b.id) {
+          <option [value]="b.id">{{ b.bankName }} — {{ b.accountNumber }}</option>
+        }
+      </select>
+    </div>
+
+    <div>
+      <label cLabel>Notas</label>
+      <input cFormControl [ngModel]="newNotes()" (ngModelChange)="newNotes.set($event)" />
+    </div>
+  </c-modal-body>
+  <c-modal-footer>
+    <button cButton color="secondary" variant="outline" (click)="showCreateModal.set(false)">Cancelar</button>
+    <button cButton color="primary"
+            [disabled]="!newPartyId() || !newBankAccountId() || newAmount() <= 0 || creating()"
+            (click)="confirmCreate()">
+      @if (creating()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+      Registrar
+    </button>
+  </c-modal-footer>
+</c-modal>
+
+<!-- ── Modal: Aplicar Anticipo ────────────────────────────────────────────── -->
+<c-modal [visible]="showApplyModal()" (visibleChange)="showApplyModal.set($event)" backdrop="static">
+  <c-modal-header>
+    <h5 cModalTitle>Aplicar Anticipo</h5>
+    <button type="button" class="btn-close" (click)="showApplyModal.set(false)"></button>
+  </c-modal-header>
+  <c-modal-body>
+    @if (applyingAdvance(); as adv) {
+      <p class="text-secondary small mb-3">
+        {{ adv.partyName }} — Disponible: <strong>{{ adv.remainingAmount | number:'1.2-2' }}</strong> USD
+      </p>
+
+      @if (loadingTargets()) {
+        <div class="text-center py-3"><c-spinner size="sm"></c-spinner></div>
+      } @else if (applyTargets().length === 0) {
+        <c-alert color="warning" class="mb-0">
+          No hay {{ adv.partyType === 'customer' ? 'facturas' : 'compras' }} pendientes de este
+          {{ adv.partyType === 'customer' ? 'cliente' : 'proveedor' }} cuyo total quepa dentro del anticipo disponible.
+        </c-alert>
+      } @else {
+        <label cLabel>{{ adv.partyType === 'customer' ? 'Factura' : 'Compra' }} a cubrir <span class="text-danger">*</span></label>
+        <select cSelect [ngModel]="selectedTargetId()" (ngModelChange)="selectedTargetId.set($event)">
+          <option value="">— Seleccionar —</option>
+          @for (t of applyTargets(); track t.id) {
+            <option [value]="t.id">{{ t.fullNumber }} — {{ t.total | number:'1.2-2' }} USD</option>
+          }
+        </select>
+      }
+    }
+  </c-modal-body>
+  <c-modal-footer>
+    <button cButton color="secondary" variant="outline" (click)="showApplyModal.set(false)">Cancelar</button>
+    <button cButton color="primary" [disabled]="!selectedTargetId() || applying()" (click)="confirmApply()">
+      @if (applying()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+      Aplicar
+    </button>
+  </c-modal-footer>
+</c-modal>

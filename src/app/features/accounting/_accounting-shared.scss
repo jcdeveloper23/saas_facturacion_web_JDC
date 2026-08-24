@@ -100,3 +100,15 @@
 
 /* ── Monospace amounts ───────────────────────────────────────────────────── */
 .cell-mono { font-family: monospace; }
+
+/* ── Badge "neutral" ──────────────────────────────────────────────────────── */
+// Bootstrap/CoreUI no traen bg-dark-subtle utilizable en dark mode: en dark
+// mode $dark-bg-subtle-dark mezcla con negro y queda casi invisible sobre el
+// fondo ya oscuro de la página (ver docs/UI_DESIGN_GUIDELINES.md, Norma 5).
+// Se usa para la 7ma categoría de un set de colores cuando ya se agotaron
+// los 6 colores de tema seguros (primary/secondary/success/danger/warning/info).
+.badge-neutral-subtle {
+  background-color: var(--cui-tertiary-bg);
+  color: var(--cui-body-color);
+  border: 1px solid var(--cui-border-color);
+}

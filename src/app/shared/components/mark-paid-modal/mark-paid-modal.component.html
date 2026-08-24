@@ -1,0 +1,38 @@
+<c-modal [visible]="visible" (visibleChange)="onVisibleChange($event)" backdrop="static">
+  <c-modal-header>
+    <h5 cModalTitle>{{ title }}</h5>
+    <button type="button" class="btn-close" (click)="onVisibleChange(false)"></button>
+  </c-modal-header>
+
+  <c-modal-body>
+    <div class="mb-3">
+      <label cLabel>Cuenta bancaria que recibió/pagó el dinero <span class="text-danger">*</span></label>
+      @if (bankAccounts().length) {
+        <select cSelect [ngModel]="selectedBankAccountId()" (ngModelChange)="selectedBankAccountId.set($event)">
+          <option value="">— Seleccionar —</option>
+          @for (a of bankAccounts(); track a.id) {
+            <option [value]="a.id">{{ a.bankName }} — {{ a.accountNumber }}</option>
+          }
+        </select>
+      } @else {
+        <div class="text-secondary small">
+          No hay cuentas bancarias activas. Cree una en Contabilidad → Cuentas Bancarias.
+        </div>
+      }
+    </div>
+    <div>
+      <label cLabel>Fecha del pago</label>
+      <input type="date" cFormControl [ngModel]="date()" (ngModelChange)="date.set($event)" />
+    </div>
+  </c-modal-body>
+
+  <c-modal-footer>
+    <button cButton color="secondary" variant="outline" (click)="onVisibleChange(false)">Cancelar</button>
+    <button cButton color="primary" [disabled]="!selectedBankAccountId() || confirming" (click)="confirmClick()">
+      @if (confirming) {
+        <c-spinner size="sm" class="me-1"></c-spinner>
+      }
+      Confirmar
+    </button>
+  </c-modal-footer>
+</c-modal>

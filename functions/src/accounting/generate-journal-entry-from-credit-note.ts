@@ -239,7 +239,8 @@ export async function generateJournalEntryFromCreditNoteInternal(
   const isBalanced  = Math.abs(totalDebit - totalCredit) < 0.01;
 
   if (!isBalanced) {
-    console.error('[generateJournalEntryFromCreditNote] Asiento descuadrado:', { totalDebit, totalCredit });
+    console.error('[generateJournalEntryFromCreditNote] Asiento descuadrado — NO se crea:', { totalDebit, totalCredit, invoiceId });
+    return { created: false, reason: 'unbalanced' };
   }
 
   const desc = after.rectifiedInvoiceNumber

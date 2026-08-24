@@ -6,6 +6,11 @@
       <svg cIcon name="cilPrint" size="sm" class="me-1"></svg>
       Imprimir
     </button>
+    <button cButton color="success" variant="outline" size="sm"
+            [disabled]="!filtered().length" (click)="downloadExcel()">
+      <svg cIcon name="cilSpreadsheet" size="sm" class="me-1"></svg>
+      Excel
+    </button>
     <button cButton color="primary" variant="outline" size="sm"
             [disabled]="downloadingPdf() || !filtered().length"
             (click)="downloadPdf()">
@@ -23,14 +28,14 @@
 <c-card class="mb-3 no-print">
   <c-card-body class="py-2 px-3">
     <div class="d-flex gap-2 align-items-center flex-wrap">
-      <select cFormSelect class="select-sm"
+      <select cSelect class="select-sm"
               [ngModel]="yearFilter()" (ngModelChange)="changeYear(+$event)">
         @for (y of years; track y) {
           <option [value]="y">{{ y }}</option>
         }
       </select>
 
-      <select cFormSelect class="select-sm"
+      <select cSelect class="select-sm"
               [ngModel]="periodFilter()" (ngModelChange)="periodFilter.set($event)">
         <option value="">Todos los períodos</option>
         @for (p of periods(); track p.id) {
@@ -38,7 +43,7 @@
         }
       </select>
 
-      <select cFormSelect class="select-sm"
+      <select cSelect class="select-sm"
               [ngModel]="typeFilter()" (ngModelChange)="typeFilter.set($event || null)">
         <option [value]="null">Todos los tipos</option>
         @for (t of entryTypes; track t) {
@@ -64,8 +69,8 @@
   </c-card-body>
 </c-card>
 
-<!-- ── Report header (print) ─────────────────────────────────────────────── -->
-<div class="print-btn text-center mb-3">
+<!-- ── Report header (solo impresión) ────────────────────────────────────── -->
+<div class="print-only text-center mb-3">
   <h3>LIBRO DIARIO</h3>
   <p>Período {{ yearFilter() }}</p>
 </div>
@@ -102,10 +107,10 @@
                 <small class="text-secondary ms-2">{{ getPeriodName(entry.periodId) }}</small>
               </td>
               <td>
-                <c-badge [color]="TYPE_COLORS[entry.type]" shape="rounded-pill" class="no-print">
+                <span [class]="badgeClasses(TYPE_COLORS[entry.type]) + ' no-print'">
                   {{ TYPE_LABELS[entry.type] }}
-                </c-badge>
-                <span class="print-btn">{{ TYPE_LABELS[entry.type] }}</span>
+                </span>
+                <span class="print-only-inline">{{ TYPE_LABELS[entry.type] }}</span>
               </td>
               <td class="text-xs">{{ entry.reference || '' }}</td>
               <td class="text-end cell-mono">{{ entry.totalDebit | number:'1.2-2' }}</td>

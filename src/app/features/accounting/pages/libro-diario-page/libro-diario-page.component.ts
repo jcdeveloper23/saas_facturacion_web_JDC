@@ -7,7 +7,7 @@ import { RouterLink } from '@angular/router';
 import { Subject, takeUntil, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import {
-  CardModule, ButtonModule, GridModule, BadgeModule,
+  CardModule, ButtonModule, GridModule,
   SpinnerModule, TableModule, FormModule, TooltipModule,
   InputGroupComponent, InputGroupTextDirective
 } from '@coreui/angular';
@@ -16,6 +16,7 @@ import { IconModule } from '@coreui/icons-angular';
 import { JournalEntriesService }    from '../../services/journal-entries.service';
 import { AccountingPeriodsService } from '../../services/accounting-periods.service';
 import { AccountingPdfService }     from '../../services/accounting-pdf.service';
+import { ExcelExportService }       from '../../services/excel-export.service';
 import { TenantService }            from '../../../../core/services/tenant.service';
 import { NotificationService }      from '../../../../core/services/notification.service';
 import {
@@ -32,7 +33,7 @@ import { AccountingPeriod } from '../../models/accounting-period.interface';
   styleUrl:    './libro-diario-page.component.scss',
   imports: [
     CommonModule, FormsModule, RouterLink,
-    CardModule, ButtonModule, GridModule, BadgeModule, SpinnerModule,
+    CardModule, ButtonModule, GridModule, SpinnerModule,
     TableModule, FormModule, TooltipModule, IconModule,
     InputGroupComponent, InputGroupTextDirective
   ]
@@ -41,6 +42,7 @@ export class LibroDiarioPageComponent implements OnInit, OnDestroy {
   private svc           = inject(JournalEntriesService);
   private periodsSvc    = inject(AccountingPeriodsService);
   private pdfSvc        = inject(AccountingPdfService);
+  private excelSvc      = inject(ExcelExportService);
   private tenantSvc     = inject(TenantService);
   private notifications = inject(NotificationService);
   private destroy$      = new Subject<void>();
@@ -145,7 +147,15 @@ export class LibroDiarioPageComponent implements OnInit, OnDestroy {
           description: e.description,
           reference:   e.reference ?? '',
           totalDebit:  e.totalDebit,
-          totalCredit: e.totalCredit
+          totalCredit: e.totalCredit,
+          // Detalle de cada línea (cuenta debitada/acreditada) — sin esto el PDF
+          // solo muestra totales por asiento, no un Libro Diario real.
+          lines: e.lines.map(l => ({
+            accountCode: l.accountCode,
+            accountName: l.accountName,
+            debit:       l.debit,
+            credit:      l.credit
+          }))
         })),
         extraData: {
           totalDebit:  this.grandTotalDebit(),
@@ -157,6 +167,33 @@ export class LibroDiarioPageComponent implements OnInit, OnDestroy {
     } finally {
       this.downloadingPdf.set(false);
     }
+  }
+
+  downloadExcel(): void {
+    if (!this.filtered().length) return;
+    const rows: Record<string, string | number>[] = [];
+    for (const e of this.filtered()) {
+      for (const l of e.lines) {
+        rows.push({
+          'N° Asiento': e.number,
+          Fecha:        this.formatDate(e.date),
+          Descripción:  e.description,
+          Referencia:   e.reference ?? '',
+          Cuenta:       l.accountCode,
+          'Nombre Cuenta': l.accountName,
+          Debe:         l.debit  ?? 0,
+          Haber:        l.credit ?? 0
+        });
+      }
+    }
+    rows.push({
+      'N° Asiento': '', Fecha: '', Descripción: 'TOTALES', Referencia: '', Cuenta: '', 'Nombre Cuenta': '',
+      Debe: this.grandTotalDebit(), Haber: this.grandTotalCredit()
+    });
+    const periodName = this.periodFilter()
+      ? this.periods().find(p => p.id === this.periodFilter())?.name ?? String(this.yearFilter())
+      : String(this.yearFilter());
+    this.excelSvc.export(`libro-diario-${periodName.replace(/\s+/g, '_')}`, [{ name: 'Libro Diario', rows }]);
   }
 
   // ── Formatters ────────────────────────────────────────────────────────────
@@ -180,4 +217,10 @@ export class LibroDiarioPageComponent implements OnInit, OnDestroy {
   }
 
   trackById(_: number, item: { id: string }): string { return item.id; }
+
+  /** Clases para badge subtle (Norma 1). 'dark' no tiene subtle usable en dark mode → badge-neutral-subtle. */
+  badgeClasses(color: string): string {
+    if (color === 'dark') return 'badge badge-neutral-subtle';
+    return `badge bg-${color}-subtle text-${color} border border-${color}-subtle`;
+  }
 }

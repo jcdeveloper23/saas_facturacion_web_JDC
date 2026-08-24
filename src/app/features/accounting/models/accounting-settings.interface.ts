@@ -15,6 +15,9 @@ export interface AccountMapping {
   inventory:           string;   // Inventario      (default: '1.1.03.001')
   // Costos
   cogs:                string;   // Costo de Ventas (default: '5.1.01.001')
+  // Anticipos
+  advancesFromCustomers: string; // Anticipo Clientes (pasivo)    (default: '2.1.04.008')
+  advancesToSuppliers:   string; // Anticipos a Proveedores (activo) (default: '1.1.04.003')
 }
 
 export interface AccountingSettings {
@@ -31,6 +34,8 @@ export const DEFAULT_ACCOUNT_MAPPING: AccountMapping = {
   accountsReceivable: '1.1.02.001',
   inventory:          '1.1.03.001',
   cogs:               '5.1.01.001',
+  advancesFromCustomers: '2.1.04.008',
+  advancesToSuppliers:   '1.1.04.003',
 };
 
 export const ACCOUNT_MAPPING_LABELS: Record<keyof AccountMapping, string> = {
@@ -41,4 +46,6 @@ export const ACCOUNT_MAPPING_LABELS: Record<keyof AccountMapping, string> = {
   accountsReceivable: 'Cuentas por Cobrar Clientes',
   inventory:          'Inventario de Mercaderías',
   cogs:               'Costo de Ventas (COGS)',
+  advancesFromCustomers: 'Anticipo de Clientes',
+  advancesToSuppliers:   'Anticipos a Proveedores',
 };

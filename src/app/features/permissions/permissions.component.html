@@ -437,7 +437,7 @@
         </c-col>
         <c-col xs="12" md="4">
           <label cLabel for="mod_parent" class="small fw-semibold">Módulo padre</label>
-          <select cFormSelect id="mod_parent" formControlName="parent_id">
+          <select cSelect id="mod_parent" formControlName="parent_id">
             <option [ngValue]="null">— Raíz —</option>
             @for (mod of moduleCodes(); track mod.id) {
             @if (mod.id !== editingModule()?.id) {
@@ -459,7 +459,7 @@
         </c-col>
         <c-col xs="12" md="6">
           <label cLabel for="mod_badgeColor" class="small fw-semibold">Color</label>
-          <select cFormSelect id="mod_badgeColor" formControlName="badgeColor">
+          <select cSelect id="mod_badgeColor" formControlName="badgeColor">
             <option value="">— Sin badge —</option>
             <option value="success">Verde (success)</option>
             <option value="danger">Rojo (danger)</option>
@@ -560,7 +560,7 @@
           <label cLabel for="perm_module_id" class="small fw-semibold">
             Módulo <span class="text-danger">*</span>
           </label>
-          <select cFormSelect id="perm_module_id" formControlName="module_id">
+          <select cSelect id="perm_module_id" formControlName="module_id">
             <option value="" disabled>Seleccionar módulo</option>
             @for (mod of moduleCodes(); track mod.id) {
             <option [value]="mod.id">{{ mod.name }}</option>
@@ -571,7 +571,7 @@
           <label cLabel for="perm_action_id" class="small fw-semibold">
             Acción <span class="text-danger">*</span>
           </label>
-          <select cFormSelect id="perm_action_id" formControlName="action_id">
+          <select cSelect id="perm_action_id" formControlName="action_id">
             <option value="" disabled>Seleccionar acción</option>
             @for (action of actions(); track action.id) {
             <option [value]="action.id">{{ action.name }}</option>

@@ -77,7 +77,7 @@
             <c-row class="g-3">
               <c-col md="3">
                 <label cLabel>{{ fieldLabel('taxIdType') }} <span class="text-danger">*</span></label>
-                <select cFormSelect formControlName="taxIdType">
+                <select cSelect formControlName="taxIdType">
                   @for (t of taxIdTypes; track t.value) {
                     <option [value]="t.value">{{ t.label }}</option>
                   }
@@ -197,7 +197,7 @@
             <c-row class="g-3">
               <c-col md="4">
                 <label cLabel>{{ fieldLabel('paymentTermCode') }} <span class="text-danger">*</span></label>
-                <select cFormSelect formControlName="paymentTermCode">
+                <select cSelect formControlName="paymentTermCode">
                   @for (t of paymentTerms(); track t.code) {
                     <option [value]="t.code">{{ t.name }}</option>
                   }
@@ -208,7 +208,7 @@
                   <label cLabel>{{ fieldLabel('vatRegime') }}
                     @if (isRequired('vatRegime')) { <span class="text-danger">*</span> }
                   </label>
-                  <select cFormSelect formControlName="vatRegime"
+                  <select cSelect formControlName="vatRegime"
                           [class.is-invalid]="hasError(form, 'vatRegime')">
                     @for (r of vatRegimes; track r.value) {
                       <option [value]="r.value">{{ r.label }}</option>

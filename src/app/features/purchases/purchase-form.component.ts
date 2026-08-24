@@ -24,9 +24,13 @@ import {
   PURCHASE_STATUS_LABELS, PURCHASE_STATUS_COLORS,
   buildPurchaseFullNumber, calcPurchaseLine, calcPurchaseTotals
 } from './models/purchase.interface';
+import { SUPPORT_DOC_TYPES, SRI_SUSTENTO_CODES } from '../retentions/models/retention.interface';
+import { SRI_PAYMENT_METHODS } from '../invoices/models/invoice.interface';
 import { Person } from '../personas/models/person.interface';
 import { Product } from '../products/models/product.interface';
 import { Warehouse } from '../settings/models/settings.interfaces';
+import { CostCentersService } from '../accounting/services/cost-centers.service';
+import { CostCenter } from '../accounting/models/cost-center.interface';
 
 @Component({
   selector: 'app-purchase-form',
@@ -160,6 +164,7 @@ export class PurchaseFormComponent implements OnInit, OnDestroy {
   private router        = inject(Router);
   private route         = inject(ActivatedRoute);
   private fb            = inject(FormBuilder);
+  private costCentersSvc = inject(CostCentersService);
   private destroy$      = new Subject<void>();
 
   // ── State ──────────────────────────────────────────────────────────────────
@@ -180,6 +185,11 @@ export class PurchaseFormComponent implements OnInit, OnDestroy {
   supplierSearch       = signal('');
   showSupplierDrop     = signal(false);
   selectedSupplier     = signal<Person | null>(null);
+
+  // ── Centro de costo (Fase 6.1) ──────────────────────────────────────────────
+  costCenters             = signal<CostCenter[]>([]);
+  selectedCostCenterId    = signal('');
+  selectedCostCenterName  = signal('');
 
   supplierResults = computed(() => {
     const term = this.supplierSearch().toLowerCase().trim();
@@ -233,6 +243,11 @@ export class PurchaseFormComponent implements OnInit, OnDestroy {
   readonly STATUS_COLORS = PURCHASE_STATUS_COLORS;
   readonly vatOptions = [0, 15];
 
+  // ── Catálogos SRI (para el ATS — Anexo Transaccional Simplificado) ─────────
+  readonly sriDocumentTypes = SUPPORT_DOC_TYPES;
+  readonly sriSustentoCodes = SRI_SUSTENTO_CODES;
+  readonly sriPaymentMethods = SRI_PAYMENT_METHODS;
+
   // ── Form ───────────────────────────────────────────────────────────────────
   form!: FormGroup;
 
@@ -277,6 +292,10 @@ export class PurchaseFormComponent implements OnInit, OnDestroy {
       date:                  [today, Validators.required],
       expectedDate:          [''],
       notes:                 [''],
+      // Datos para el ATS — valores por defecto cubren el caso más común
+      sriDocumentType:  ['01', Validators.required], // Factura de venta
+      sriSustentoCode:  ['01', Validators.required], // Compras
+      paymentMethodCode: [''],
       lines:                 this.fb.array([])
     });
 
@@ -313,6 +332,9 @@ export class PurchaseFormComponent implements OnInit, OnDestroy {
     // Peek next purchase number for display
     const year = new Date().getFullYear();
     this.svc.peekNextNumber(this.SERIE, year).then(n => this.nextNumber.set(n)).catch(() => {});
+    this.costCentersSvc.getCostCenters().pipe(take(1)).subscribe({
+      next: list => this.costCenters.set(list.filter(c => c.isActive))
+    });
   }
 
   // ─── Load existing purchase ────────────────────────────────────────────────
@@ -338,7 +360,12 @@ export class PurchaseFormComponent implements OnInit, OnDestroy {
       date:                  this.tsToDateInput(p.date),
       expectedDate:          p.expectedDate ? this.tsToDateInput(p.expectedDate) : '',
       notes:                 p.notes ?? '',
+      sriDocumentType:       p.sriDocumentType ?? '01',
+      sriSustentoCode:       p.sriSustentoCode ?? '01',
+      paymentMethodCode:     p.paymentMethodCode ?? '',
     });
+    this.selectedCostCenterId.set(p.costCenterId ?? '');
+    this.selectedCostCenterName.set(p.costCenterName ?? '');
 
     // Restore supplier chip
     const existingSupplier = this.suppliers().find(s => s.id === p.supplierId);
@@ -418,7 +445,17 @@ export class PurchaseFormComponent implements OnInit, OnDestroy {
     this.selectedSupplier.set(s);
     this.supplierSearch.set(s.name);
     this.showSupplierDrop.set(false);
+    // Precarga el centro de costo por defecto del proveedor, editable por el usuario.
+    this.selectedCostCenterId.set(s.supplierData?.defaultCostCenterId ?? '');
+    this.selectedCostCenterName.set(s.supplierData?.defaultCostCenterName ?? '');
     this.refreshTotals();
+  }
+
+  onCostCenterSelect(event: Event): void {
+    const id = (event.target as HTMLSelectElement).value;
+    const cc = this.costCenters().find(c => c.id === id);
+    this.selectedCostCenterId.set(cc?.id ?? '');
+    this.selectedCostCenterName.set(cc?.name ?? '');
   }
 
   blurSupplier(): void {
@@ -544,11 +581,16 @@ export class PurchaseFormComponent implements OnInit, OnDestroy {
       supplierTaxIdType:     supplier?.taxIdType ?? '',
       irRetentionPct:        irPct,
       vatRetentionPct:       vatPct,
+      costCenterId:          this.selectedCostCenterId()   || undefined,
+      costCenterName:        this.selectedCostCenterName() || undefined,
       warehouseCode:         v.warehouseCode,
       warehouseName:         warehouse?.name ?? v.warehouseCode,
       date:                  this.dateToTs(v.date),
       expectedDate:          v.expectedDate ? this.dateToTs(v.expectedDate) : undefined,
       notes:                 v.notes || undefined,
+      sriDocumentType:       v.sriDocumentType || '01',
+      sriSustentoCode:       v.sriSustentoCode || '01',
+      paymentMethodCode:     v.paymentMethodCode || undefined,
       lines,
       subtotal:              t.subtotal,
       totalDiscount:         t.totalDiscount,

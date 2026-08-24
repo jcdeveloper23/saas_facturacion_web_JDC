@@ -13,6 +13,7 @@ import {
 import { IconModule } from '@coreui/icons-angular';
 import { Timestamp } from '@angular/fire/firestore';
 
+import { BankMovementModalComponent } from '../../components/bank-movement-modal/bank-movement-modal.component';
 import { BankAccountsService }       from '../../services/bank-accounts.service';
 import { BankReconciliationService }  from '../../services/bank-reconciliation.service';
 import { JournalEntriesService }      from '../../services/journal-entries.service';
@@ -33,7 +34,8 @@ import { AccountingPeriod }           from '../../models/accounting-period.inter
     CommonModule, FormsModule, ReactiveFormsModule,
     CardModule, ButtonModule, GridModule, BadgeModule, SpinnerModule,
     TableModule, FormModule, ModalModule, TooltipModule, AlertModule, IconModule,
-    InputGroupComponent, InputGroupTextDirective, CardHeaderComponent
+    InputGroupComponent, InputGroupTextDirective, CardHeaderComponent,
+    BankMovementModalComponent
   ]
 })
 export class BankReconciliationPageComponent implements OnInit, OnDestroy {
@@ -66,6 +68,15 @@ export class BankReconciliationPageComponent implements OnInit, OnDestroy {
   // Selection for matching
   selectedTxId      = signal<string | null>(null);
   selectedGlLineKey = signal<string | null>(null); // entryId
+
+  // Sugerencias automáticas (Norma: sugerir + confirmar con un clic, nunca
+  // vincular a ciegas — mismo criterio que usa Contifico). txId -> entryId.
+  suggestedMatches  = signal<Map<string, string>>(new Map());
+  suggesting        = signal(false);
+  confirmingAll     = signal(false);
+
+  // Manual bank movement modal
+  showMovementModal = signal(false);
 
   // CSV import modal
   showImportModal        = signal(false);
@@ -431,6 +442,114 @@ export class BankReconciliationPageComponent implements OnInit, OnDestroy {
       this.notifications.success('Transacción vinculada correctamente');
     } catch (err: any) {
       this.notifications.error('Error al vincular: ' + (err?.message ?? err));
+    }
+  }
+
+  // ── Sugerencia automática de coincidencias ───────────────────────────────
+  //
+  // No vincula nada por sí sola — solo pre-selecciona pares candidatos por
+  // monto exacto + fecha cercana (±5 días) para que el usuario confirme con
+  // un clic en vez de buscar manualmente en dos listas largas. Si el mismo
+  // monto aparece más de una vez dentro de la ventana, se deja ambiguo (sin
+  // sugerir) para evitar vincular mal un movimiento financiero.
+  private static readonly MATCH_DATE_WINDOW_DAYS = 5;
+  private static readonly MATCH_AMOUNT_EPSILON = 0.01;
+
+  suggestMatches(): void {
+    this.suggesting.set(true);
+    try {
+      const unmatchedTxs = this.transactions().filter(t => t.status === 'unmatched');
+      const unmatchedGl  = this.glLinesWithStatus().filter(l => !l.isMatched);
+
+      const claimedGlEntryIds = new Set<string>();
+      const suggestions = new Map<string, string>();
+
+      for (const tx of unmatchedTxs) {
+        // BankTransaction: debit = salida de dinero, credit = entrada.
+        // LibroMayorLine (cuenta de banco, activo): debit = entrada, credit = salida.
+        // Por eso el campo se invierte al comparar.
+        const isDeposit = tx.credit > 0;
+        const amount    = isDeposit ? tx.credit : tx.debit;
+        if (amount <= 0) continue;
+
+        const txDate = tx.date.toDate().getTime();
+        const dayMs  = 24 * 60 * 60 * 1000;
+
+        const candidates = unmatchedGl.filter(l => {
+          if (claimedGlEntryIds.has(l.entryId)) return false;
+          const glAmount = isDeposit ? l.debit : l.credit;
+          if (Math.abs(glAmount - amount) > BankReconciliationPageComponent.MATCH_AMOUNT_EPSILON) return false;
+          const glDate = l.date.toDate().getTime();
+          const diffDays = Math.abs(glDate - txDate) / dayMs;
+          return diffDays <= BankReconciliationPageComponent.MATCH_DATE_WINDOW_DAYS;
+        });
+
+        if (candidates.length === 1) {
+          suggestions.set(tx.id, candidates[0].entryId);
+          claimedGlEntryIds.add(candidates[0].entryId);
+        }
+      }
+
+      this.suggestedMatches.set(suggestions);
+      if (suggestions.size === 0) {
+        this.notifications.info('No se encontraron coincidencias sugeribles (por monto exacto y fecha cercana).');
+      } else {
+        this.notifications.success(`${suggestions.size} coincidencia(s) sugerida(s) — revisa y confirma.`);
+      }
+    } finally {
+      this.suggesting.set(false);
+    }
+  }
+
+  suggestionForTx(txId: string): LibroMayorLine | null {
+    const entryId = this.suggestedMatches().get(txId);
+    if (!entryId) return null;
+    return this.glLines().find(l => l.entryId === entryId) ?? null;
+  }
+
+  async confirmSuggestion(tx: BankTransaction): Promise<void> {
+    const entryId = this.suggestedMatches().get(tx.id);
+    const stmtId  = this.selectedStatementId();
+    if (!entryId || !stmtId) return;
+    const glLine = this.glLines().find(l => l.entryId === entryId);
+    if (!glLine) return;
+
+    try {
+      await this.reconciliationSvc.matchTransaction(stmtId, tx.id, entryId, entryId, glLine.description);
+      this.suggestedMatches.update(m => { const next = new Map(m); next.delete(tx.id); return next; });
+      this.notifications.success('Transacción vinculada correctamente');
+    } catch (err: any) {
+      this.notifications.error('Error al vincular: ' + (err?.message ?? err));
+    }
+  }
+
+  dismissSuggestion(txId: string): void {
+    this.suggestedMatches.update(m => { const next = new Map(m); next.delete(txId); return next; });
+  }
+
+  async confirmAllSuggestions(): Promise<void> {
+    const stmtId = this.selectedStatementId();
+    if (!stmtId) return;
+    const entries = [...this.suggestedMatches().entries()];
+    if (!entries.length) return;
+
+    this.confirmingAll.set(true);
+    let ok = 0;
+    try {
+      for (const [txId, entryId] of entries) {
+        const glLine = this.glLines().find(l => l.entryId === entryId);
+        if (!glLine) continue;
+        try {
+          await this.reconciliationSvc.matchTransaction(stmtId, txId, entryId, entryId, glLine.description);
+          ok++;
+        } catch {
+          // sigue con las demás — se reporta el conteo final
+        }
+      }
+      this.suggestedMatches.set(new Map());
+      this.notifications.success(`${ok} de ${entries.length} coincidencia(s) confirmada(s)`);
+    } finally {
+      this.confirmingAll.set(false);
     }
   }
 

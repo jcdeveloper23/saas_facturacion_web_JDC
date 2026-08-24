@@ -13,6 +13,7 @@ import { JournalEntriesService }    from '../../services/journal-entries.service
 import { AccountingPeriodsService } from '../../services/accounting-periods.service';
 import { CostCentersService }       from '../../services/cost-centers.service';
 import { AccountingPdfService }     from '../../services/accounting-pdf.service';
+import { ExcelExportService }       from '../../services/excel-export.service';
 import { TenantService }            from '../../../../core/services/tenant.service';
 import { NotificationService }      from '../../../../core/services/notification.service';
 import { JournalEntry }             from '../../models/journal-entry.interface';
@@ -48,6 +49,7 @@ export class EstadoResultadosPageComponent implements OnInit, OnDestroy {
   private periodsSvc     = inject(AccountingPeriodsService);
   private costCentersSvc = inject(CostCentersService);
   private pdfSvc         = inject(AccountingPdfService);
+  private excelSvc       = inject(ExcelExportService);
   private tenantSvc      = inject(TenantService);
   private notifications  = inject(NotificationService);
   private destroy$       = new Subject<void>();
@@ -184,6 +186,18 @@ export class EstadoResultadosPageComponent implements OnInit, OnDestroy {
     } finally {
       this.downloadingPdf.set(false);
     }
+  }
+
+  downloadExcel(): void {
+    if (!this.searched()) return;
+    const rows = [
+      ...this.ingresos().map(l => ({ Sección: 'Ingresos', Código: l.accountCode, Cuenta: l.accountName, Monto: this.round2(l.netBalance) })),
+      { Sección: '', Código: '', Cuenta: 'TOTAL INGRESOS', Monto: this.round2(this.totalIngresos()) },
+      ...this.costos().map(l => ({ Sección: 'Costos y Gastos', Código: l.accountCode, Cuenta: l.accountName, Monto: this.round2(l.netBalance) })),
+      { Sección: '', Código: '', Cuenta: 'TOTAL COSTOS Y GASTOS', Monto: this.round2(this.totalCostos()) },
+      { Sección: '', Código: '', Cuenta: this.isGanancia() ? 'UTILIDAD DEL EJERCICIO' : 'PÉRDIDA DEL EJERCICIO', Monto: this.round2(this.utilidad()) }
+    ];
+    this.excelSvc.export(`estado-resultados-${this.getPeriodName().replace(/\s+/g, '_')}`, [{ name: 'Estado de Resultados', rows }]);
   }
 
   getPeriodName(): string {

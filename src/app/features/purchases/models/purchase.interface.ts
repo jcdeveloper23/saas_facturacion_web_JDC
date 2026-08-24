@@ -2,12 +2,13 @@ import { Timestamp } from '@angular/fire/firestore';
 
 // ─── Status ───────────────────────────────────────────────────────────────────
 
-export type PurchaseStatus = 'draft' | 'sent' | 'received' | 'cancelled';
+export type PurchaseStatus = 'draft' | 'sent' | 'received' | 'paid' | 'cancelled';
 
 export const PURCHASE_STATUS_LABELS: Record<PurchaseStatus, string> = {
   draft:     'Borrador',
   sent:      'Enviada',
   received:  'Recibida',
+  paid:      'Pagada',
   cancelled: 'Cancelada',
 };
 
@@ -15,6 +16,7 @@ export const PURCHASE_STATUS_COLORS: Record<PurchaseStatus, string> = {
   draft:     'secondary',
   sent:      'info',
   received:  'success',
+  paid:      'primary',
   cancelled: 'danger',
 };
 
@@ -54,9 +56,20 @@ export interface Purchase {
   supplierName: string;
   supplierRuc: string;
   supplierTaxIdType: string;   // 'ruc'|'cedula'|'passport'
+  // ── Datos para el Anexo Transaccional Simplificado (ATS) ────────────────────
+  // Compras registradas antes de este campo no lo tendrán — el generador del
+  // ATS debe tolerar que falte (ver Norma en accounting/services/ats.service).
+  sriDocumentType:   string;   // código de SUPPORT_DOC_TYPES (retention.interface.ts) → tipoComprobante
+  sriSustentoCode:   string;   // código de SRI_SUSTENTO_CODES (retention.interface.ts) → codSustento
+  paymentMethodCode?: string;  // código de SRI_PAYMENT_METHODS (invoice.interface.ts) → formaPago
   // Retenciones precargadas del proveedor
   irRetentionPct: number;
   vatRetentionPct: number;
+  // Centro de costo — precargado desde SupplierData.defaultCostCenterId al
+  // seleccionar el proveedor, editable en el formulario. Alimenta las líneas
+  // del asiento contable generado (generate-journal-entry-from-purchase.ts).
+  costCenterId?: string;
+  costCenterName?: string;
   // Logística
   warehouseCode: string;
   warehouseName: string;
@@ -75,10 +88,20 @@ export interface Purchase {
   // Estado
   status: PurchaseStatus;
   stockProcessed: boolean;
+  // Anulación — espejo del patrón de Invoice/DebitNote/Retention (status:'cancelled'
+  // se mantiene por compatibilidad; isVoid/voidedAt permiten filtrar por fecha de
+  // anulación, necesario para el ATS del mes correcto)
+  isVoid?:   boolean;
+  voidedAt?: Timestamp;
+  // Pago — alimenta el asiento de Pago (conciliación bancaria)
+  isPaid?:               boolean;
+  paidAt?:               Timestamp;
+  paymentBankAccountId?: string;  // cuenta bancaria desde la que se pagó
   // Retención vinculada
   retentionId?: string;
   // Contabilidad (generado por Cloud Function)
   accountingEntryId?: string;  // id del asiento en journal_entries, si ya se generó
+  paymentEntryId?:    string;  // id del asiento de Pago, distinto del de emisión
   reversalEntryId?:   string;  // id del asiento de reversa, si la compra fue anulada
   // Auditoría
   createdBy: string;

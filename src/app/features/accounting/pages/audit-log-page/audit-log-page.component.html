@@ -1,0 +1,124 @@
+<!-- ── Header ──────────────────────────────────────────────────────────────── -->
+<div class="mb-3">
+  <h4 class="mb-1">Log de Auditoría</h4>
+  <span class="text-secondary small">
+    Historial inmutable de cambios en asientos contables, plan de cuentas y ejercicios. Últimos 200 registros.
+  </span>
+</div>
+
+<!-- ── Filters ────────────────────────────────────────────────────────────── -->
+<c-card class="mb-3">
+  <c-card-body class="py-2 px-3">
+    <div class="d-flex gap-2 align-items-center flex-wrap">
+      <select cSelect class="select-collection"
+              [ngModel]="collectionFilter()" (ngModelChange)="collectionFilter.set($event)">
+        <option value="">Todas las colecciones</option>
+        @for (c of collectionOptions; track c) {
+          <option [value]="c">{{ collectionLabel(c) }}</option>
+        }
+      </select>
+      <button cButton color="secondary" variant="outline" size="sm" (click)="load()" [disabled]="loading()">
+        <svg cIcon name="cilReload" size="sm" class="me-1"></svg>
+        Refrescar
+      </button>
+      <span class="ms-auto text-secondary small">{{ filteredEntries().length }} registros</span>
+    </div>
+  </c-card-body>
+</c-card>
+
+<!-- ── Table ──────────────────────────────────────────────────────────────── -->
+<c-card>
+  @if (loading()) {
+    <c-card-body class="text-center py-5">
+      <c-spinner color="primary"></c-spinner>
+      <p class="mt-2 text-secondary">Cargando log de auditoría...</p>
+    </c-card-body>
+  } @else {
+    <div class="table-responsive">
+      <table class="al-table">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Colección</th>
+            <th>Acción</th>
+            <th>Documento</th>
+            <th>Campos Modificados</th>
+            <th>Usuario</th>
+            <th class="text-end">Detalle</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (e of filteredEntries(); track e.id) {
+            <tr>
+              <td class="text-sm-muted">{{ formatDate(e.timestamp) }}</td>
+              <td>{{ collectionLabel(e.collection) }}</td>
+              <td>
+                <span class="badge bg-{{ ACTION_COLORS[e.action] }}-subtle text-{{ ACTION_COLORS[e.action] }} border border-{{ ACTION_COLORS[e.action] }}-subtle">
+                  {{ ACTION_LABELS[e.action] }}
+                </span>
+              </td>
+              <td class="doc-id">{{ e.docId }}</td>
+              <td class="text-sm-muted">
+                @if (e.changedFields.includes('*')) {
+                  <em>documento completo</em>
+                } @else {
+                  {{ e.changedFields.join(', ') }}
+                }
+              </td>
+              <td class="text-sm-muted user-id">{{ e.userId }}</td>
+              <td class="text-end">
+                <button cButton color="secondary" variant="ghost" size="sm" (click)="showDetail(e)">
+                  <svg cIcon name="cilMagnifyingGlass" size="sm"></svg>
+                </button>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="7" class="text-center text-secondary py-4">Sin registros de auditoría.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</c-card>
+
+<!-- ── Detail modal ───────────────────────────────────────────────────────── -->
+<c-modal [visible]="!!detailEntry()" (visibleChange)="closeDetail()" size="lg">
+  @if (detailEntry(); as e) {
+    <c-modal-header>
+      <h5 cModalTitle>{{ collectionLabel(e.collection) }} — {{ ACTION_LABELS[e.action] }}</h5>
+      <button type="button" class="btn-close" (click)="closeDetail()"></button>
+    </c-modal-header>
+    <c-modal-body>
+      <p class="text-sm-muted mb-3">
+        Documento <code>{{ e.docId }}</code> · {{ formatDate(e.timestamp) }} · usuario <code>{{ e.userId }}</code>
+      </p>
+      @if (e.changedFields.includes('*') || !e.before || !e.after) {
+        <div class="detail-block">
+          <div class="detail-title">{{ e.action === 'delete' ? 'Estado antes de eliminar' : 'Documento' }}</div>
+          <pre class="detail-json">{{ (e.action === 'delete' ? e.before : e.after) | json }}</pre>
+        </div>
+      } @else {
+        <div class="detail-diff">
+          @for (field of e.changedFields; track field) {
+            <div class="diff-row">
+              <div class="diff-field">{{ field }}</div>
+              <div class="diff-before">
+                <span class="diff-label">Antes</span>
+                {{ formatValue(e.before?.[field]) }}
+              </div>
+              <div class="diff-after">
+                <span class="diff-label">Después</span>
+                {{ formatValue(e.after?.[field]) }}
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </c-modal-body>
+    <c-modal-footer>
+      <button cButton color="secondary" variant="outline" (click)="closeDetail()">Cerrar</button>
+    </c-modal-footer>
+  }
+</c-modal>

@@ -149,7 +149,7 @@
         <!-- Familia padre -->
         <c-col md="12">
           <label cLabel>Familia Padre</label>
-          <select cFormSelect formControlName="parentId">
+          <select cSelect formControlName="parentId">
             <option [value]="null">— Sin padre (Familia raíz) —</option>
             @for (root of rootFamilies; track root.id) {
               <option [value]="root.id">{{ root.code }} — {{ root.name }}</option>

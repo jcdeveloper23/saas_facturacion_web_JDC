@@ -321,6 +321,22 @@
             </c-col>
             }
 
+            <!-- Centro de costo por defecto -->
+            @if (isVisible('customer.defaultCostCenterId')) {
+            <c-col md="4">
+              <label cLabel>{{ fieldLabel('customer.defaultCostCenterId') }}
+                @if (isRequired('customer.defaultCostCenterId')) { <span class="text-danger">*</span> }
+              </label>
+              <select cSelect formControlName="defaultCostCenterId" (change)="onCustomerCostCenterSelect($event)">
+                <option value="">— Sin centro de costo —</option>
+                @for (cc of costCenters(); track cc.id) {
+                  <option [value]="cc.id">{{ cc.code }} - {{ cc.name }}</option>
+                }
+              </select>
+              <div class="form-text text-muted small">Se precarga al facturar a este cliente.</div>
+            </c-col>
+            }
+
             <!-- Lista de precios -->
             @if (isVisible('customer.priceListCode')) {
             <c-col md="4">
@@ -483,6 +499,22 @@
                 <input cFormControl type="number" min="0" formControlName="paymentDays" placeholder="Ej: 30">
                 <span cInputGroupText>días</span>
               </c-input-group>
+            </c-col>
+            }
+
+            <!-- Centro de costo por defecto -->
+            @if (isVisible('supplier.defaultCostCenterId')) {
+            <c-col md="4">
+              <label cLabel>{{ fieldLabel('supplier.defaultCostCenterId') }}
+                @if (isRequired('supplier.defaultCostCenterId')) { <span class="text-danger">*</span> }
+              </label>
+              <select cSelect formControlName="defaultCostCenterId" (change)="onSupplierCostCenterSelect($event)">
+                <option value="">— Sin centro de costo —</option>
+                @for (cc of costCenters(); track cc.id) {
+                  <option [value]="cc.id">{{ cc.code }} - {{ cc.name }}</option>
+                }
+              </select>
+              <div class="form-text text-muted small">Se precarga al registrar una compra de este proveedor.</div>
             </c-col>
             }
 

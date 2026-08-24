@@ -82,6 +82,7 @@
             <th>Inicio</th>
             <th>Fin</th>
             <th>Estado</th>
+            <th>Cierre Mensual</th>
             <th>Notas</th>
             <th class="text-end">Acciones</th>
           </tr>
@@ -97,6 +98,30 @@
                 <c-badge [color]="STATUS_COLORS[p.status]" shape="rounded-pill">
                   {{ STATUS_LABELS[p.status] }}
                 </c-badge>
+              </td>
+              <td (click)="$event.stopPropagation()">
+                @if (p.status === 'open') {
+                  <div class="d-flex align-items-center gap-2">
+                    <div class="form-check form-switch mb-0"
+                         cTooltip="Bloquear edición de asientos en meses cerrados">
+                      <input class="form-check-input" type="checkbox" role="switch"
+                             [id]="'monthlyClose' + p.id"
+                             [checked]="!!p.monthlyCloseEnabled"
+                             [disabled]="togglingMonthlyClose() === p.id"
+                             (change)="toggleMonthlyClose(p, $event)" />
+                    </div>
+                    <span class="text-xs-muted">{{ monthlyCloseStatusLabel(p) }}</span>
+                    @if (p.monthlyCloseEnabled) {
+                      <button cButton color="secondary" variant="ghost" size="sm"
+                              cTooltip="Cerrar hasta un mes"
+                              (click)="openCloseMonthModal(p, $event)">
+                        <svg cIcon name="cilLockLocked" size="sm"></svg>
+                      </button>
+                    }
+                  </div>
+                } @else {
+                  <span class="text-xs-muted">—</span>
+                }
               </td>
               <td class="text-xs-muted">
                 {{ p.notes || '—' }}
@@ -138,7 +163,7 @@
             </tr>
           } @empty {
             <tr>
-              <td colspan="7" class="text-center text-secondary py-4">
+              <td colspan="8" class="text-center text-secondary py-4">
                 No hay ejercicios contables registrados. Cree el primero.
               </td>
             </tr>
@@ -193,7 +218,7 @@
         </div>
         <div class="col-md-4">
           <label cLabel>Estado</label>
-          <select cFormSelect class="form-select" formControlName="status">
+          <select cSelect class="form-select" formControlName="status">
             @for (s of statuses; track s) {
               <option [value]="s">{{ STATUS_LABELS[s] }}</option>
             }
@@ -212,6 +237,33 @@
     <button cButton color="primary" (click)="save()" [disabled]="form.invalid || saving()">
       @if (saving()) { <c-spinner size="sm" class="me-1"></c-spinner> }
       {{ editingId() ? 'Actualizar' : 'Crear' }}
+    </button>
+  </c-modal-footer>
+</c-modal>
+
+<!-- ── Modal: Cerrar mes ──────────────────────────────────────────────────── -->
+<c-modal [visible]="closeMonthModalOpen()" (visibleChange)="closeMonthModalOpen.set($event)" backdrop="static">
+  <c-modal-header>
+    <h5 cModalTitle>Cerrar meses — {{ closeMonthTarget()?.name }}</h5>
+    <button type="button" class="btn-close" (click)="closeMonthModalDismiss()"></button>
+  </c-modal-header>
+  <c-modal-body>
+    <p class="text-sm-muted">
+      Se bloqueará la creación, edición y eliminación de asientos con fecha igual o anterior
+      al último día del mes seleccionado. La acción es hacia adelante — no se puede reabrir un
+      mes ya cerrado desde aquí.
+    </p>
+    <label cLabel>Cerrar hasta el mes de <span class="text-danger">*</span></label>
+    <input cFormControl type="month"
+           [ngModel]="closeMonthValue()" (ngModelChange)="closeMonthValue.set($event)"
+           [attr.min]="closeMonthTarget()?.year + '-01'"
+           [attr.max]="closeMonthTarget()?.year + '-12'" />
+  </c-modal-body>
+  <c-modal-footer>
+    <button cButton color="secondary" variant="outline" (click)="closeMonthModalDismiss()">Cancelar</button>
+    <button cButton color="warning" (click)="confirmCloseMonth()" [disabled]="!closeMonthValue() || closingMonth()">
+      @if (closingMonth()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+      Cerrar Mes(es)
     </button>
   </c-modal-footer>
 </c-modal>

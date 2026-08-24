@@ -62,6 +62,13 @@
             Importar CSV
           </button>
         </div>
+        <div>
+          <label class="form-label mb-1 text-xs-muted">&nbsp;</label>
+          <button cButton color="secondary" variant="outline" size="sm" (click)="showMovementModal.set(true)">
+            <svg cIcon name="cilPlus" class="me-1"></svg>
+            Registrar Movimiento
+          </button>
+        </div>
       }
 
       <!-- Period filter for GL -->
@@ -87,6 +94,27 @@
             }
             Cargar GL
           </button>
+          @if (glLines().length > 0) {
+            <button cButton color="info" size="sm" (click)="suggestMatches()"
+                    [disabled]="suggesting()" cTooltip="Sugiere pares por monto exacto y fecha cercana (±5 días) — no vincula nada, solo pre-selecciona para que confirmes.">
+              @if (suggesting()) {
+                <c-spinner size="sm" class="me-1"></c-spinner>
+              } @else {
+                <svg cIcon name="cilLightbulb" class="me-1"></svg>
+              }
+              Sugerir Coincidencias
+            </button>
+          }
+          @if (suggestedMatches().size > 0) {
+            <button cButton color="success" size="sm" (click)="confirmAllSuggestions()" [disabled]="confirmingAll()">
+              @if (confirmingAll()) {
+                <c-spinner size="sm" class="me-1"></c-spinner>
+              } @else {
+                <svg cIcon name="cilCheckCircle" class="me-1"></svg>
+              }
+              Confirmar Todas ({{ suggestedMatches().size }})
+            </button>
+          }
         </div>
       }
 
@@ -193,12 +221,19 @@
                 <tr [class.selected]="selectedTxId() === tx.id"
                     [class.matched]="tx.status === 'matched'"
                     [class.ignored]="tx.status === 'ignored'"
+                    [class.suggested]="!!suggestionForTx(tx.id)"
                     (click)="selectTransaction(tx)">
                   <td class="date-cell">{{ formatDate(tx.date) }}</td>
                   <td class="desc-cell">
                     {{ tx.description }}
                     @if (tx.matchedDescription) {
                       <div class="match-ref">GL: {{ tx.matchedDescription }}</div>
+                    }
+                    @if (suggestionForTx(tx.id); as suggestion) {
+                      <div class="suggestion-note">
+                        <svg cIcon name="cilLightbulb" size="sm" class="me-1"></svg>
+                        Sugerido: {{ suggestion.description }} ({{ formatDate(suggestion.date) }})
+                      </div>
                     }
                   </td>
                   <td class="amt-cell text-end">{{ tx.debit > 0 ? (tx.debit | number:'1.2-2') : '' }}</td>
@@ -208,6 +243,8 @@
                       <c-badge color="success" shape="rounded-pill">Conciliado</c-badge>
                     } @else if (tx.status === 'ignored') {
                       <c-badge color="secondary" shape="rounded-pill">Ignorado</c-badge>
+                    } @else if (suggestionForTx(tx.id)) {
+                      <c-badge color="info" shape="rounded-pill">Sugerido</c-badge>
                     } @else {
                       <c-badge color="warning" shape="rounded-pill">Pendiente</c-badge>
                     }
@@ -217,6 +254,17 @@
                       <button cButton size="sm" color="secondary" variant="ghost"
                               cTooltip="Desvincular"
                               (click)="unmatch(tx, $event)">
+                        <svg cIcon name="cilX" size="sm"></svg>
+                      </button>
+                    } @else if (suggestionForTx(tx.id)) {
+                      <button cButton size="sm" color="success" variant="ghost"
+                              cTooltip="Confirmar sugerencia"
+                              (click)="confirmSuggestion(tx); $event.stopPropagation()">
+                        <svg cIcon name="cilCheckCircle" size="sm"></svg>
+                      </button>
+                      <button cButton size="sm" color="secondary" variant="ghost"
+                              cTooltip="Descartar sugerencia"
+                              (click)="dismissSuggestion(tx.id); $event.stopPropagation()">
                         <svg cIcon name="cilX" size="sm"></svg>
                       </button>
                     } @else if (tx.status === 'unmatched') {
@@ -405,3 +453,9 @@
     </button>
   </c-modal-footer>
 </c-modal>
+
+<app-bank-movement-modal
+  [visible]="showMovementModal()"
+  (visibleChange)="showMovementModal.set($event)"
+  [bankAccount]="selectedBankAccount()"
+  (saved)="loadGlLines()" />

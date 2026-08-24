@@ -179,7 +179,7 @@
             <!-- Almacén -->
             <c-col md="12">
               <label cLabel>Almacén <span class="text-danger">*</span></label>
-              <select cFormSelect formControlName="warehouseCode" (change)="onWarehouseChange()">
+              <select cSelect formControlName="warehouseCode" (change)="onWarehouseChange()">
                 <option value="">— Selecciona almacén —</option>
                 @for (w of warehouses(); track w.id) {
                   <option [value]="w.code">{{ w.name }}</option>

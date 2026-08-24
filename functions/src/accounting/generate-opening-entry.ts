@@ -1,5 +1,6 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
+import { requireCompanyRole } from '../utils/callable-auth';
 
 // ─── Callable: generateOpeningEntry ──────────────────────────────────────────
 //
@@ -36,6 +37,11 @@ export const generateOpeningEntry = onCall<GenerateOpeningEntryInput>(async (req
     throw new HttpsError('invalid-argument', 'companyId y newPeriodId son requeridos');
   }
 
+  // Abrir/generar la apertura de un ejercicio es admin-only (mismo criterio
+  // que firestore.rules para accounting_periods) — este callable usa Admin
+  // SDK y no pasa por esas reglas, hay que replicarlas aquí.
+  requireCompanyRole(request, companyId, ['admin']);
+
   const db  = admin.firestore();
   const now = admin.firestore.Timestamp.now();
 
@@ -57,8 +63,29 @@ export const generateOpeningEntry = onCall<GenerateOpeningEntryInput>(async (req
     throw new HttpsError('already-exists', 'El período ya tiene un asiento de apertura generado');
   }
 
+  // ── Reclamo atómico ──────────────────────────────────────────────────────
+  // El chequeo de arriba es un get() simple; entre esa lectura y la escritura
+  // final de `openingEntryId` (al final de esta función) hay una ventana
+  // larga (agrega TODOS los asientos del período anterior). Un doble clic o
+  // un reintento del SDK dispara dos ejecuciones que pasan ambos chequeos
+  // antes de que ninguna termine — generando dos asientos de apertura
+  // completos. Se reclama el período con un placeholder dentro de una
+  // transacción para que solo una ejecución pueda avanzar.
+  const claimed = await db.runTransaction(async tx => {
+    const snap = await tx.get(newPeriodRef);
+    const data = snap.data() as Record<string, any> | undefined;
+    if (!data || data['status'] !== 'open' || data['openingEntryId']) return false;
+    tx.update(newPeriodRef, { openingEntryId: '__generating__', updatedAt: now });
+    return true;
+  });
+
+  if (!claimed) {
+    throw new HttpsError('already-exists', 'El período ya tiene un asiento de apertura generado o en proceso.');
+  }
+
   const newPeriodYear: number = newPeriod['year'];
 
+  try {
   // Find the previous closed/locked period (year = newPeriodYear - 1)
   const prevPeriodsSnap = await db
     .collection(`companies/${companyId}/accounting_periods`)
@@ -237,4 +264,14 @@ export const generateOpeningEntry = onCall<GenerateOpeningEntryInput>(async (req
     totalCredit,
     message:    `Asiento de apertura generado con ${openingLines.length} cuentas`
   };
+  } catch (err) {
+    // Liberar el reclamo: de lo contrario el período queda atascado en
+    // openingEntryId='__generating__' para siempre y ni el usuario ni un
+    // reintento pueden volver a generar la apertura.
+    await newPeriodRef.update({
+      openingEntryId: admin.firestore.FieldValue.delete(),
+      updatedAt: admin.firestore.Timestamp.now(),
+    }).catch(() => {});
+    throw err;
+  }
 });

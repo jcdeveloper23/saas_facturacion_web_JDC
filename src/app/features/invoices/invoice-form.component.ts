@@ -28,11 +28,14 @@ import {
   Invoice, InvoiceLine, InvoiceStatus, SriDocumentStatus,
   INVOICE_STATUS_LABELS, INVOICE_STATUS_COLORS,
   SriPaymentMethod, SRI_PAYMENT_METHODS,
+  InvoiceExportData, SRI_EXPORT_TYPES,
   calcLine, calcInvoiceTotals, buildFullNumber
 } from './models/invoice.interface';
 import { Person, TaxIdType } from '../personas/models/person.interface';
 import { Product } from '../products/models/product.interface';
 import { PaymentTerm, Warehouse, DocumentSeries } from '../settings/models/settings.interfaces';
+import { CostCentersService } from '../accounting/services/cost-centers.service';
+import { CostCenter } from '../accounting/models/cost-center.interface';
 
 @Component({
   selector: 'app-invoice-form',
@@ -231,6 +234,7 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
   private router        = inject(Router);
   private route         = inject(ActivatedRoute);
   private fb            = inject(FormBuilder);
+  private costCentersSvc = inject(CostCentersService);
   private destroy$      = new Subject<void>();
 
   /** True when the company has the 'sri' module — enables the SRI electronic pipeline. */
@@ -260,6 +264,11 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
   paymentTerms  = signal<PaymentTerm[]>([]);
   warehouses    = signal<Warehouse[]>([]);
   seriesList    = signal<DocumentSeries[]>([]);
+  costCenters   = signal<CostCenter[]>([]);
+
+  // ── Centro de costo (Fase 6.1) ──────────────────────────────────────────────
+  selectedCostCenterId   = signal('');
+  selectedCostCenterName = signal('');
 
   // ── Customer search ───────────────────────────────────────────────────────
   customerSearch       = signal('');
@@ -450,7 +459,22 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
       notes:              [''],
       creditNoteMotivo:   ['', Validators.maxLength(300)],
       paymentMethods:     this.fb.array([this.buildPaymentMethodGroup()]),
-      lines:              this.fb.array([])
+      lines:              this.fb.array([]),
+      // Exportación (ATS) — solo se envía si isExport está marcado
+      isExport:           [false],
+      exportData: this.fb.group({
+        exportType:          ['05'],  // default: exportación de servicios
+        destinationCountry:  [''],
+        shipmentDate:        [today],
+        fobValue:            [0, [Validators.min(0)]],
+        customsDistrict:     [''],
+        customsYear:         [''],
+        customsRegime:       [''],
+        customsCorrelative:  [''],
+        customsVerifier:     [''],
+        transportDoc:        [''],
+        fue:                 [''],
+      }),
     });
 
     // Recalculate totals on any form change
@@ -556,6 +580,16 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
         }
       }
     });
+    this.costCentersSvc.getCostCenters().pipe(take(1)).subscribe({
+      next: list => this.costCenters.set(list.filter(c => c.isActive))
+    });
+  }
+
+  onCostCenterSelect(event: Event): void {
+    const id = (event.target as HTMLSelectElement).value;
+    const cc = this.costCenters().find(c => c.id === id);
+    this.selectedCostCenterId.set(cc?.id ?? '');
+    this.selectedCostCenterName.set(cc?.name ?? '');
   }
 
   private loadInvoice(id: string): void {
@@ -591,7 +625,23 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
       customerReference:  inv.customerReference ?? '',
       notes:              inv.notes ?? '',
       creditNoteMotivo:   inv.creditNoteMotivo ?? '',
+      isExport:           !!inv.exportData,
+      exportData: inv.exportData ? {
+        exportType:          inv.exportData.exportType,
+        destinationCountry:  inv.exportData.destinationCountry,
+        shipmentDate:        this.tsToDateInput(inv.exportData.shipmentDate),
+        fobValue:            inv.exportData.fobValue,
+        customsDistrict:     inv.exportData.customsDistrict ?? '',
+        customsYear:         inv.exportData.customsYear ?? '',
+        customsRegime:       inv.exportData.customsRegime ?? '',
+        customsCorrelative:  inv.exportData.customsCorrelative ?? '',
+        customsVerifier:     inv.exportData.customsVerifier ?? '',
+        transportDoc:        inv.exportData.transportDoc ?? '',
+        fue:                 inv.exportData.fue ?? '',
+      } : undefined,
     });
+    this.selectedCostCenterId.set(inv.costCenterId ?? '');
+    this.selectedCostCenterName.set(inv.costCenterName ?? '');
 
     // Restore payment methods FormArray
     const pma = this.paymentMethodsArray;
@@ -660,6 +710,9 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
     this.customerSearch.set(c.name);
     this.showCustomerDrop.set(false);
     this.customerHighlightIdx.set(0);
+    // Precarga el centro de costo por defecto del cliente, editable por el usuario.
+    this.selectedCostCenterId.set(c.customerData?.defaultCostCenterId ?? '');
+    this.selectedCostCenterName.set(c.customerData?.defaultCostCenterName ?? '');
     // Set due date based on payment term days
     const termCode = c.customerData?.paymentTermCode ?? this.form.get('paymentTermCode')?.value;
     if (termCode) {
@@ -923,6 +976,27 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
 
   // ─── Save ──────────────────────────────────────────────────────────────────
 
+  readonly sriExportTypes = SRI_EXPORT_TYPES;
+
+  /** Construye InvoiceExportData desde el form, o undefined si no es exportación. */
+  private buildExportData(fv: any): InvoiceExportData | undefined {
+    if (!fv.isExport) return undefined;
+    const ed = fv.exportData ?? {};
+    return {
+      exportType:         ed.exportType || '05',
+      destinationCountry: ed.destinationCountry || '',
+      shipmentDate:       Timestamp.fromDate(new Date((ed.shipmentDate || fv.date) + 'T00:00:00')),
+      fobValue:           parseFloat(ed.fobValue) || 0,
+      customsDistrict:    ed.customsDistrict || undefined,
+      customsYear:        ed.customsYear || undefined,
+      customsRegime:      ed.customsRegime || undefined,
+      customsCorrelative: ed.customsCorrelative || undefined,
+      customsVerifier:    ed.customsVerifier || undefined,
+      transportDoc:       ed.transportDoc || undefined,
+      fue:                ed.fue || undefined,
+    };
+  }
+
   async save(emitAfter = false): Promise<void> {
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
     if (!this.selectedCustomer()) {
@@ -985,6 +1059,8 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
           currency:              fv.currency ?? 'USD',
           exchangeRate:          fv.exchangeRate ?? 1,
           agentCode:             fv.agentCode || '',
+          costCenterId:          this.selectedCostCenterId()   || undefined,
+          costCenterName:        this.selectedCostCenterName() || undefined,
           globalDiscountPct:     fv.globalDiscountPct ?? 0,
           customerReference:     fv.customerReference || '',
           lines,
@@ -997,6 +1073,7 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
           isCreditNote:          false,
           notes:                 fv.notes ?? '',
           paymentMethods,
+          exportData:            this.buildExportData(fv),
           ...totals
         };
         const id = await this.svc.createInvoice(input);
@@ -1014,12 +1091,15 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
           warehouseCode:    fv.warehouseCode,
           paymentTermCode:  fv.paymentTermCode,
           agentCode:        fv.agentCode || '',
+          costCenterId:     this.selectedCostCenterId()   || undefined,
+          costCenterName:   this.selectedCostCenterName() || undefined,
           globalDiscountPct:fv.globalDiscountPct ?? 0,
           customerReference:fv.customerReference || '',
           lines,
           notes:            fv.notes ?? '',
           creditNoteMotivo: fv['creditNoteMotivo'] ?? '',
           paymentMethods,
+          exportData:       this.buildExportData(fv),
           ...(emitAfter ? {
             status: 'issued' as InvoiceStatus,
             // Non-SRI companies: mark immediately so onInvoiceEmit skips the SRI pipeline.

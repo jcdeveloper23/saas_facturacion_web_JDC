@@ -220,7 +220,28 @@ export class TenantService {
     const ref = doc(this.firestore, `companies/${companyId}`);
     onSnapshot(ref, {
       next: snap => {
-        this._company.set(snap.exists() ? ({ id: snap.id, ...snap.data() } as CompanyConfig) : null);
+        const company = snap.exists() ? ({ id: snap.id, ...snap.data() } as CompanyConfig) : null;
+        this._company.set(company);
+
+        // ── DEBUG TEMPORAL — quitar cuando se cierre la depuración de
+        // acceso a módulos (accountingModule / electronicInvoicing). Vuelca
+        // toda la config resuelta de la empresa cada vez que el doc cambia,
+        // para ver de un vistazo qué está encendido/apagado sin ir a Firestore.
+        console.log(
+          '%c[DEBUG COMPANY CONFIG] companies/' + companyId,
+          'color:#e67e22;font-weight:bold',
+          JSON.stringify({
+            id:               company?.id,
+            name:             (company as any)?.name,
+            status:           company?.status,
+            planId:           (company as any)?.planId,
+            enabledPackages:  (company as any)?.enabledPackages,
+            enabledModules:   (company as any)?.enabledModules,
+            planFeatures:     (company as any)?.planFeatures,
+            planLimits:       (company as any)?.planLimits,
+          }, null, 2)
+        );
+
         // Carga lazy: solo si el plan tiene multiCompanyMode habilitado
         const uid = this._uid();
         if (uid && this.multiCompanyEnabled() && !this._managedLoaded) {

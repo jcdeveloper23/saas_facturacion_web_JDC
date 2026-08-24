@@ -114,7 +114,7 @@
       <c-row class="g-3">
         <c-col md="6">
           <label cLabel>Documento Relacionado <span class="text-danger">*</span></label>
-          <select cFormSelect formControlName="documentType">
+          <select cSelect formControlName="documentType">
             @for (opt of docTypeOptions; track opt.value) {
               <option [value]="opt.value">{{ opt.label }}</option>
             }

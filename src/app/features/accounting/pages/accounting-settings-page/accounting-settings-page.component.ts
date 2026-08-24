@@ -45,7 +45,7 @@ export class AccountingSettingsPageComponent implements OnInit, OnDestroy {
   readonly DEFAULTS = DEFAULT_ACCOUNT_MAPPING;
 
   readonly ingresoKeys:  (keyof AccountMapping)[] = ['sales15', 'sales0', 'salesExempt'];
-  readonly activoKeys:   (keyof AccountMapping)[] = ['accountsReceivable', 'inventory'];
+  readonly activoKeys:   (keyof AccountMapping)[] = ['accountsReceivable', 'inventory', 'advancesToSuppliers'];
 
   // ── Form ──────────────────────────────────────────────────────────────────
   form = this.fb.group({
@@ -56,6 +56,8 @@ export class AccountingSettingsPageComponent implements OnInit, OnDestroy {
     accountsReceivable: [DEFAULT_ACCOUNT_MAPPING.accountsReceivable, Validators.required],
     inventory:          [DEFAULT_ACCOUNT_MAPPING.inventory,          Validators.required],
     cogs:               [DEFAULT_ACCOUNT_MAPPING.cogs,               Validators.required],
+    advancesFromCustomers: [DEFAULT_ACCOUNT_MAPPING.advancesFromCustomers, Validators.required],
+    advancesToSuppliers:   [DEFAULT_ACCOUNT_MAPPING.advancesToSuppliers,   Validators.required],
   });
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────

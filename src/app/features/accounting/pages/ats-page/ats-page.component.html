@@ -1,0 +1,114 @@
+<!-- ── Header ──────────────────────────────────────────────────────────────── -->
+<div class="mb-3">
+  <h4 class="mb-0">ATS — Anexo Transaccional Simplificado</h4>
+  <small class="text-secondary">Declaración mensual de compras/ventas para subir al SRI</small>
+</div>
+
+<!-- ── Info alert ──────────────────────────────────────────────────────────── -->
+<c-alert color="info" class="mb-3">
+  <svg cIcon name="cilInfo" size="sm" class="me-1"></svg>
+  El archivo generado (.zip con el .xml del ATS) sigue la estructura oficial del SRI. Antes de la
+  <strong>primera</strong> presentación con datos reales, valídelo en la herramienta
+  "Declaración de anexos" del SRI — ahí se valida contra el esquema oficial completo.
+  Verifique también con su contador los casos que este resumen no cubre (exportaciones sin datos
+  aduaneros completos, retenciones recibidas de clientes, etc.).
+</c-alert>
+
+<!-- ── Filters ─────────────────────────────────────────────────────────────── -->
+<c-card class="mb-3">
+  <c-card-body>
+    <div class="d-flex gap-3 align-items-end flex-wrap">
+      <div>
+        <label cLabel>Año</label>
+        <select cSelect [ngModel]="selectedYear()" (ngModelChange)="selectedYear.set(+$event); calculatePreview()">
+          @for (y of years; track y) {
+            <option [value]="y">{{ y }}</option>
+          }
+        </select>
+      </div>
+      <div>
+        <label cLabel>Mes</label>
+        <select cSelect [ngModel]="selectedMonth()" (ngModelChange)="selectedMonth.set(+$event); calculatePreview()">
+          @for (m of months; track m.value) {
+            <option [value]="m.value">{{ m.label }}</option>
+          }
+        </select>
+      </div>
+      <button cButton color="secondary" variant="outline" (click)="calculatePreview()" [disabled]="loadingPreview()">
+        @if (loadingPreview()) {
+          <c-spinner size="sm" class="me-1"></c-spinner>
+        } @else {
+          <svg cIcon name="cilReload" size="sm" class="me-1"></svg>
+        }
+        Actualizar resumen
+      </button>
+      <button cButton color="primary" class="ms-auto" (click)="downloadAts()" [disabled]="downloading()">
+        @if (downloading()) {
+          <c-spinner size="sm" class="me-1"></c-spinner>
+          Generando...
+        } @else {
+          <svg cIcon name="cilCloudDownload" size="sm" class="me-1"></svg>
+          Generar y Descargar ATS
+        }
+      </button>
+    </div>
+  </c-card-body>
+</c-card>
+
+<!-- ── Preview ─────────────────────────────────────────────────────────────── -->
+@if (loadingPreview()) {
+  <div class="text-center py-5">
+    <c-spinner color="primary"></c-spinner>
+  </div>
+} @else if (preview(); as p) {
+  <c-card>
+    <c-card-body>
+      <p class="section-title">Resumen — {{ selectedMonthLabel() }} {{ selectedYear() }}</p>
+      <div class="ats-summary-grid">
+        <div class="ats-stat">
+          <div class="ats-stat__value">{{ p.invoicesCount }}</div>
+          <div class="ats-stat__label">Facturas</div>
+        </div>
+        <div class="ats-stat">
+          <div class="ats-stat__value">{{ p.creditNotesCount }}</div>
+          <div class="ats-stat__label">Notas de Crédito</div>
+        </div>
+        <div class="ats-stat">
+          <div class="ats-stat__value">{{ p.debitNotesCount }}</div>
+          <div class="ats-stat__label">Notas de Débito</div>
+        </div>
+        <div class="ats-stat">
+          <div class="ats-stat__value">{{ p.purchasesCount }}</div>
+          <div class="ats-stat__label">Compras</div>
+        </div>
+        <div class="ats-stat">
+          <div class="ats-stat__value">{{ p.exportCount }}</div>
+          <div class="ats-stat__label">Exportaciones</div>
+        </div>
+        <div class="ats-stat" [class.ats-stat--warn]="p.voidedCount > 0">
+          <div class="ats-stat__value">{{ p.voidedCount }}</div>
+          <div class="ats-stat__label">Anulados en el mes</div>
+        </div>
+      </div>
+
+      <hr class="my-3">
+
+      <div class="d-flex gap-4 flex-wrap">
+        <div>
+          <div class="text-secondary small">Total Ventas</div>
+          <div class="ats-total">{{ p.totalVentas | number:'1.2-2' }} USD</div>
+        </div>
+        <div>
+          <div class="text-secondary small">Total Compras</div>
+          <div class="ats-total">{{ p.totalCompras | number:'1.2-2' }} USD</div>
+        </div>
+      </div>
+
+      @if (p.purchasesCount === 0 && p.invoicesCount === 0) {
+        <c-alert color="warning" class="mt-3 mb-0">
+          No hay comprobantes registrados para {{ selectedMonthLabel() }} {{ selectedYear() }}.
+        </c-alert>
+      }
+    </c-card-body>
+  </c-card>
+}

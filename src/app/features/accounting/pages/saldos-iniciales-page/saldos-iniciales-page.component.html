@@ -1,0 +1,118 @@
+<!-- ── Header ──────────────────────────────────────────────────────────────── -->
+<div class="mb-3">
+  <h4 class="mb-0">Asistente de Saldos Iniciales</h4>
+  <span class="text-secondary small">
+    Carga el saldo inicial de todo el plan de cuentas de una sola vez — típico al migrar desde otro sistema.
+  </span>
+</div>
+
+@if (loading()) {
+  <div class="text-center py-5">
+    <c-spinner color="primary"></c-spinner>
+  </div>
+} @else {
+  <!-- ── Config ──────────────────────────────────────────────────────────── -->
+  <c-card class="mb-3">
+    <c-card-body>
+      <div class="row g-3 align-items-end">
+        <div class="col-md-5">
+          <label cLabel>Ejercicio Contable Destino <span class="text-danger">*</span></label>
+          <select cSelect [ngModel]="selectedPeriod()" (ngModelChange)="selectedPeriod.set($event)">
+            <option value="">— Seleccionar ejercicio —</option>
+            @for (p of eligiblePeriods(); track p.id) {
+              <option [value]="p.id">{{ p.name }}</option>
+            }
+          </select>
+          @if (!eligiblePeriods().length) {
+            <div class="form-text text-warning">
+              No hay ejercicios elegibles — deben estar Abiertos y sin asiento de apertura generado.
+            </div>
+          }
+        </div>
+        <div class="col-md-3">
+          <label cLabel>Fecha del Asiento</label>
+          <input cFormControl type="date" [ngModel]="entryDate()" (ngModelChange)="entryDate.set($event)" />
+        </div>
+        <div class="col-md-4">
+          <label cLabel>Buscar Cuenta</label>
+          <input cFormControl type="text" placeholder="Código o nombre..."
+                 [ngModel]="searchTerm()" (ngModelChange)="searchTerm.set($event)" />
+        </div>
+      </div>
+    </c-card-body>
+  </c-card>
+
+  <!-- ── Summary bar ─────────────────────────────────────────────────────── -->
+  <div class="summary-bar mb-3">
+    <div>
+      <div class="lbl">Total Débitos</div>
+      <div class="val">{{ totalDebit() | number:'1.2-2' }}</div>
+    </div>
+    <div>
+      <div class="lbl">Total Créditos</div>
+      <div class="val">{{ totalCredit() | number:'1.2-2' }}</div>
+    </div>
+    <div>
+      <div class="lbl">Diferencia</div>
+      <div class="val" [class.diff-ok]="isBalanced()" [class.diff-fail]="!isBalanced()">
+        {{ diferencia() | number:'1.2-2' }}
+      </div>
+    </div>
+    <div class="ms-auto d-flex align-items-center gap-2">
+      @if (isBalanced() && nonZeroRows().length > 0) {
+        <span class="badge bg-success-subtle text-success border border-success-subtle">Cuadrado</span>
+      } @else if (nonZeroRows().length > 0) {
+        <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Descuadrado</span>
+      }
+      <button cButton color="secondary" variant="outline" size="sm" (click)="clearAll()" [disabled]="saving()">
+        Limpiar Todo
+      </button>
+      <button cButton color="primary" size="sm" (click)="save()"
+              [disabled]="saving() || !isBalanced() || !nonZeroRows().length || !selectedPeriod()">
+        @if (saving()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+        Generar Asiento de Saldos Iniciales
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Editable table ──────────────────────────────────────────────────── -->
+  <c-card>
+    <c-card-body class="p-0">
+      <div class="table-responsive si-table-wrap">
+        <table class="si-table">
+          <thead>
+            <tr>
+              <th>Cuenta</th>
+              <th>Tipo</th>
+              <th>Naturaleza</th>
+              <th class="text-end">Monto</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of filteredRows(); track row.accountCode) {
+              <tr [class.has-value]="row.amount">
+                <td>
+                  <span class="acc-code">{{ row.accountCode }}</span>
+                  {{ row.accountName }}
+                </td>
+                <td class="text-sm-muted">{{ TYPE_LABELS[row.type] }}</td>
+                <td>
+                  <span class="nature-pill" [class.deudora]="row.nature === 'deudora'" [class.acreedora]="row.nature === 'acreedora'">
+                    {{ row.nature === 'deudora' ? 'Debe' : 'Haber' }}
+                  </span>
+                </td>
+                <td>
+                  <input type="number" step="0.01" class="amount-input"
+                         [ngModel]="row.amount || null" (ngModelChange)="updateAmount(row, $event)"
+                         placeholder="0.00" />
+                </td>
+              </tr>
+            } @empty {
+              <tr><td colspan="4" class="text-center text-secondary py-4">Sin cuentas que coincidan con la búsqueda</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </c-card-body>
+  </c-card>
+}

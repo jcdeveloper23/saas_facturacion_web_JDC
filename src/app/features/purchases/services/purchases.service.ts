@@ -131,8 +131,17 @@ export class PurchasesService {
     await this.update(id, { status: 'received' });
   }
 
+  async markPaid(id: string, bankAccountId: string, date: string): Promise<void> {
+    await this.update(id, {
+      status: 'paid',
+      isPaid: true,
+      paidAt: Timestamp.fromDate(new Date(date + 'T00:00:00')),
+      paymentBankAccountId: bankAccountId,
+    });
+  }
+
   async cancel(id: string): Promise<void> {
-    await this.update(id, { status: 'cancelled' });
+    await this.update(id, { status: 'cancelled', isVoid: true, voidedAt: Timestamp.now() });
   }
 
   // ─── Auto-increment counter (atomic) ──────────────────────────────────────

@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import {
   Firestore, collection, doc, onSnapshot,
-  addDoc, updateDoc, query, orderBy, where, Timestamp, getDocs
+  addDoc, updateDoc, query, orderBy, where, Timestamp, getDocs, getDoc
 } from '@angular/fire/firestore';
 import { Functions, httpsCallable } from '@angular/fire/functions';
 import { Observable } from 'rxjs';
@@ -49,6 +49,15 @@ export class AccountingPeriodsService {
   async getOpenPeriod(): Promise<AccountingPeriod | null> {
     const snap = await getDocs(
       query(collection(this.firestore, this.colPath), where('status', '==', 'open'))
+    );
+    if (snap.empty) return null;
+    const d = snap.docs[0];
+    return { id: d.id, ...d.data() } as AccountingPeriod;
+  }
+
+  async getPeriodForYear(year: number): Promise<AccountingPeriod | null> {
+    const snap = await getDocs(
+      query(collection(this.firestore, this.colPath), where('year', '==', year))
     );
     if (snap.empty) return null;
     const d = snap.docs[0];
@@ -141,5 +150,31 @@ export class AccountingPeriodsService {
       lockedAt:  undefined as any,
       lockedBy:  undefined as any
     });
+  }
+
+  // ─── Cierre mensual (control interno dentro de un ejercicio 'open') ───────
+
+  async setMonthlyCloseEnabled(id: string, enabled: boolean): Promise<void> {
+    await this.updatePeriod(id, { monthlyCloseEnabled: enabled });
+  }
+
+  /**
+   * Avanza el corte de cierre mensual. `cutoff` debe ser el último instante
+   * del mes que se está cerrando (ej: 2026-07-31 23:59:59). Solo avanza
+   * hacia adelante — nunca se permite retroceder el corte desde aquí (evitaría
+   * reabrir accidentalmente un mes ya cerrado).
+   */
+  async closeMonthsUpTo(id: string, cutoff: Timestamp): Promise<void> {
+    const snap    = await getDoc(doc(this.firestore, `${this.colPath}/${id}`));
+    const current = snap.exists() ? (snap.data() as AccountingPeriod) : undefined;
+
+    if (current?.monthlyCloseCutoff && cutoff.toMillis() <= current.monthlyCloseCutoff.toMillis()) {
+      throw new Error('La nueva fecha de corte debe ser posterior al corte actual.');
+    }
+    if (current && cutoff.toDate().getFullYear() !== current.year) {
+      throw new Error(`La fecha de corte debe pertenecer al año del ejercicio (${current.year}).`);
+    }
+
+    await this.updatePeriod(id, { monthlyCloseCutoff: cutoff });
   }
 }

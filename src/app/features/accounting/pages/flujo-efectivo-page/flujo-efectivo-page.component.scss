@@ -1,0 +1,93 @@
+@use '../../accounting-shared' as *;
+
+.select-period { min-width: 220px; }
+
+/* ── Report header ────────────────────────────────────────────────────────── */
+.report-header {
+  text-align: center;
+  .report-title  { font-size: 1rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+  .report-period { font-size: .82rem; color: var(--cui-secondary-color); }
+}
+
+/* ── Flujo de Efectivo table ──────────────────────────────────────────────── */
+.fe-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  .section-header td {
+    font-size: .7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    padding: .45rem .75rem;
+    border-top: 2px solid var(--cui-border-color);
+    border-bottom: 1px solid var(--cui-border-color);
+  }
+
+  .operacion-header td      { background: rgba(var(--cui-primary-rgb), .08); color: var(--cui-primary); }
+  .inversion-header td      { background: rgba(147, 51, 234, .08);           color: #9333ea; }
+  .financiamiento-header td { background: rgba(var(--cui-warning-rgb), .10); color: var(--cui-warning); }
+
+  tbody tr {
+    border-bottom: 1px solid var(--cui-border-color-translucent);
+
+    &:hover { background: var(--cui-tertiary-bg); }
+  }
+
+  tbody td { padding: .3rem .75rem; font-size: .82rem; }
+
+  .subtotal-row td {
+    font-weight: 700;
+    font-size: .82rem;
+    padding: .4rem .75rem;
+    background: var(--cui-tertiary-bg);
+    border-top: 1px solid var(--cui-border-color);
+    font-family: monospace;
+  }
+
+  .banner-row td {
+    font-weight: 700;
+    font-size: .88rem;
+    padding: .55rem .75rem;
+    font-family: monospace;
+    letter-spacing: .02em;
+  }
+
+  .inicial-row td { background: var(--cui-tertiary-bg); color: var(--cui-body-color); }
+
+  .variacion-row td {
+    background: rgba(var(--cui-success-rgb), .08);
+    color: var(--cui-success);
+    border-top: 2px solid var(--cui-border-color);
+  }
+  .variacion-row.negativa td { background: rgba(var(--cui-danger-rgb), .08); color: var(--cui-danger); }
+
+  .final-row td {
+    background: rgba(var(--cui-primary-rgb), .10);
+    color: var(--cui-primary);
+    font-size: .95rem;
+    border-top: 3px double var(--cui-border-color);
+  }
+}
+
+.acc-cell {
+  .acc-code {
+    font-family: monospace;
+    font-size: .75rem;
+    font-weight: 600;
+    color: var(--cui-tertiary-color);
+    margin-right: .4rem;
+  }
+}
+
+.amt-cell {
+  text-align: right;
+  font-family: monospace;
+  white-space: nowrap;
+  width: 140px;
+}
+
+/* ── Print ────────────────────────────────────────────────────────────────── */
+@media print {
+  .no-print { display: none !important; }
+}

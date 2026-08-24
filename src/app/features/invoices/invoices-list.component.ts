@@ -12,6 +12,7 @@ import { IconModule } from '@coreui/icons-angular';
 import { Functions, httpsCallable } from '@angular/fire/functions';
 
 import { HasPermissionDirective } from '../../shared/directives/has-permission.directive';
+import { MarkPaidModalComponent, MarkPaidResult } from '../../shared/components/mark-paid-modal/mark-paid-modal.component';
 import { InvoicesService }   from './services/invoices.service';
 import { SettingsService }   from '../settings/services/settings.service';
 import { NotificationService } from '../../core/services/notification.service';
@@ -201,7 +202,7 @@ export interface LineMatch { invoice: Invoice; lineDesc: string; lineSku: string
     CardModule, ButtonModule, GridModule, BadgeModule, SpinnerModule,
     TableModule, FormModule, TooltipModule, IconModule,
     InputGroupComponent, InputGroupTextDirective,
-    HasPermissionDirective
+    HasPermissionDirective, MarkPaidModalComponent
   ]
 })
 export class InvoicesListComponent implements OnInit, OnDestroy {
@@ -457,14 +458,29 @@ export class InvoicesListComponent implements OnInit, OnDestroy {
   }
 
   // ── Status actions ────────────────────────────────────────────────────────
-  async markPaid(inv: Invoice, event: Event): Promise<void> {
+  showMarkPaidModal = signal(false);
+  markingPaidInvoice = signal<Invoice | null>(null);
+  confirmingMarkPaid = signal(false);
+
+  markPaid(inv: Invoice, event: Event): void {
     event.stopPropagation();
     if (inv.status !== 'issued') return;
+    this.markingPaidInvoice.set(inv);
+    this.showMarkPaidModal.set(true);
+  }
+
+  async confirmMarkPaid(result: MarkPaidResult): Promise<void> {
+    const inv = this.markingPaidInvoice();
+    if (!inv) return;
+    this.confirmingMarkPaid.set(true);
     try {
-      await this.svc.markPaid(inv.id);
+      await this.svc.markPaid(inv.id, result.bankAccountId, result.date);
       this.notifications.success('Factura marcada como pagada');
+      this.showMarkPaidModal.set(false);
     } catch {
       this.notifications.error('Error al actualizar estado');
+    } finally {
+      this.confirmingMarkPaid.set(false);
     }
   }
 

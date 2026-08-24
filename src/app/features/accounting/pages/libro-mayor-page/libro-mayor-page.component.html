@@ -7,6 +7,10 @@
         <svg cIcon name="cilPrint" size="sm" class="me-1"></svg>
         Imprimir
       </button>
+      <button cButton color="success" variant="outline" size="sm" (click)="downloadExcel()">
+        <svg cIcon name="cilSpreadsheet" size="sm" class="me-1"></svg>
+        Excel
+      </button>
       <button cButton color="primary" variant="outline" size="sm"
               [disabled]="downloadingPdf()" (click)="downloadPdf()">
         @if (downloadingPdf()) { <c-spinner size="sm" class="me-1"></c-spinner> } @else {
@@ -34,7 +38,7 @@
       </div>
       <div class="col-md-4">
         <label cLabel>Cuenta Contable <span class="text-danger">*</span></label>
-        <select cFormSelect class="select-account" [ngModel]="selectedCode()" (ngModelChange)="selectedCode.set($event)">
+        <select cSelect class="select-account" [ngModel]="selectedCode()" (ngModelChange)="selectedCode.set($event)">
           <option value="">— Seleccionar cuenta —</option>
           @for (acc of filteredAccounts(); track acc.code) {
             <option [value]="acc.code">{{ acc.code }} — {{ acc.name }}</option>
@@ -43,7 +47,7 @@
       </div>
       <div class="col-md-2">
         <label cLabel>Período</label>
-        <select cFormSelect class="select-period" [ngModel]="selectedPeriod()" (ngModelChange)="selectedPeriod.set($event)">
+        <select cSelect class="select-period" [ngModel]="selectedPeriod()" (ngModelChange)="selectedPeriod.set($event)">
           <option value="">Todos los períodos</option>
           @for (p of periods(); track p.id) {
             <option [value]="p.id">{{ p.name }}</option>
@@ -53,7 +57,7 @@
       @if (costCenters().length > 0) {
         <div class="col-md-2">
           <label cLabel>Centro de Costo</label>
-          <select cFormSelect [ngModel]="selectedCostCenter()" (ngModelChange)="selectedCostCenter.set($event)">
+          <select cSelect [ngModel]="selectedCostCenter()" (ngModelChange)="selectedCostCenter.set($event)">
             <option value="">Todos</option>
             @for (cc of costCenters(); track cc.id) {
               <option [value]="cc.id">{{ cc.code }} — {{ cc.name }}</option>

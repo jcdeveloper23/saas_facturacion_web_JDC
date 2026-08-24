@@ -54,6 +54,7 @@ export const PERSON_FIELD_CATALOG: FieldDefinition[] = [
   { key: 'customer.customerGroupCode', defaultLabel: 'Grupo de Clientes',      section: 'customer_commercial', requiresRole: 'customer', alwaysVisible: false, alwaysRequired: false, defaultVisible: false, defaultRequired: false },
   { key: 'customer.documentSeriesCode',defaultLabel: 'Serie de Documento',     section: 'customer_commercial', requiresRole: 'customer', alwaysVisible: false, alwaysRequired: false, defaultVisible: false, defaultRequired: false },
   { key: 'customer.accountingCode',    defaultLabel: 'Código Contable',        section: 'customer_commercial', requiresRole: 'customer', alwaysVisible: false, alwaysRequired: false, defaultVisible: false, defaultRequired: false },
+  { key: 'customer.defaultCostCenterId', defaultLabel: 'Centro de Costo por Defecto', section: 'customer_commercial', requiresRole: 'customer', alwaysVisible: false, alwaysRequired: false, defaultVisible: false, defaultRequired: false },
 
   // ── Supplier commercial (locked) ──────────────────────────────────────────
   { key: 'supplier.paymentTermCode',   defaultLabel: 'Cond. Pago Compras',     section: 'supplier_commercial', requiresRole: 'supplier', alwaysVisible: true,  alwaysRequired: true,  defaultVisible: true,  defaultRequired: true  },
@@ -65,6 +66,7 @@ export const PERSON_FIELD_CATALOG: FieldDefinition[] = [
   { key: 'supplier.irRetentionPct',    defaultLabel: 'Retención Renta %',      section: 'supplier_commercial', requiresRole: 'supplier', alwaysVisible: false, alwaysRequired: false, defaultVisible: true,  defaultRequired: false },
   { key: 'supplier.paymentDays',       defaultLabel: 'Días Pago Proveedor',    section: 'supplier_commercial', requiresRole: 'supplier', alwaysVisible: false, alwaysRequired: false, defaultVisible: false, defaultRequired: false },
   { key: 'supplier.accountingCode',    defaultLabel: 'Código Contable',        section: 'supplier_commercial', requiresRole: 'supplier', alwaysVisible: false, alwaysRequired: false, defaultVisible: false, defaultRequired: false },
+  { key: 'supplier.defaultCostCenterId', defaultLabel: 'Centro de Costo por Defecto', section: 'supplier_commercial', requiresRole: 'supplier', alwaysVisible: false, alwaysRequired: false, defaultVisible: false, defaultRequired: false },
 
   // ── Employee HR (configurable) ────────────────────────────────────────────
   { key: 'employee.iessNumber',   defaultLabel: 'N° Afiliación IESS',  section: 'employee_hr', requiresRole: 'employee', alwaysVisible: false, alwaysRequired: false, defaultVisible: true,  defaultRequired: false },

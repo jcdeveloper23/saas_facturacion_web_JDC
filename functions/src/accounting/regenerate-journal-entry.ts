@@ -26,6 +26,7 @@ const REASON_MESSAGES: Record<string, string> = {
   not_found:        'Documento no encontrado.',
   already_exists:   'El documento ya tiene un asiento contable generado.',
   not_ready:        'El documento no está emitido/autorizado — no se puede generar el asiento todavía.',
+  unbalanced:       'El asiento generado no cuadra (débito ≠ crédito) — no se creó para evitar corromper la contabilidad. Contacte a soporte.',
   no_open_period:   'No hay un período contable abierto para el año del documento.',
   no_taxes:         'El documento no tiene impuestos que contabilizar.',
   is_credit_note:   'Este documento es una nota de crédito — use documentType "credit_note".',

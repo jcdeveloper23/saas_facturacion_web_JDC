@@ -51,7 +51,7 @@
               }
             </div>
             <div class="mapping-control">
-              <select cFormSelect [formControlName]="key">
+              <select cSelect [formControlName]="key">
                 @for (acc of accounts(); track acc.id) {
                   <option [value]="acc.code">{{ acc.code }} — {{ acc.name }}</option>
                 }
@@ -74,7 +74,7 @@
             }
           </div>
           <div class="mapping-control">
-            <select cFormSelect formControlName="ivaCollected">
+            <select cSelect formControlName="ivaCollected">
               @for (acc of accounts(); track acc.id) {
                 <option [value]="acc.code">{{ acc.code }} — {{ acc.name }}</option>
               }
@@ -97,7 +97,7 @@
               }
             </div>
             <div class="mapping-control">
-              <select cFormSelect [formControlName]="key">
+              <select cSelect [formControlName]="key">
                 @for (acc of accounts(); track acc.id) {
                   <option [value]="acc.code">{{ acc.code }} — {{ acc.name }}</option>
                 }
@@ -108,6 +108,28 @@
             </div>
           </div>
         }
+
+        <!-- ── PASIVOS ── -->
+        <div class="section-title mt-3">Cuentas de Pasivo</div>
+
+        <div class="mapping-row">
+          <div class="mapping-label">
+            <strong>{{ LABELS.advancesFromCustomers }}</strong>
+            @if (!isDefault('advancesFromCustomers')) {
+              <span class="badge-custom">Personalizado</span>
+            }
+          </div>
+          <div class="mapping-control">
+            <select cSelect formControlName="advancesFromCustomers">
+              @for (acc of accounts(); track acc.id) {
+                <option [value]="acc.code">{{ acc.code }} — {{ acc.name }}</option>
+              }
+            </select>
+          </div>
+          <div class="mapping-default">
+            <small class="text-secondary">Por defecto: <code>{{ DEFAULTS.advancesFromCustomers }}</code></small>
+          </div>
+        </div>
 
         <!-- ── COSTOS ── -->
         <div class="section-title mt-3">Cuentas de Costo</div>
@@ -120,7 +142,7 @@
             }
           </div>
           <div class="mapping-control">
-            <select cFormSelect formControlName="cogs">
+            <select cSelect formControlName="cogs">
               @for (acc of accounts(); track acc.id) {
                 <option [value]="acc.code">{{ acc.code }} — {{ acc.name }}</option>
               }

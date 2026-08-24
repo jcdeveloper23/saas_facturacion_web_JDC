@@ -7,7 +7,7 @@ import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import {
-  CardModule, ButtonModule, GridModule, BadgeModule,
+  CardModule, ButtonModule, GridModule,
   SpinnerModule, TableModule, FormModule, TooltipModule,
   InputGroupComponent, InputGroupTextDirective, ModalModule
 } from '@coreui/angular';
@@ -31,7 +31,7 @@ import { Timestamp } from '@angular/fire/firestore';
   styleUrl:    './journal-entries-page.component.scss',
   imports: [
     CommonModule, RouterLink, FormsModule,
-    CardModule, ButtonModule, GridModule, BadgeModule, SpinnerModule,
+    CardModule, ButtonModule, GridModule, SpinnerModule,
     TableModule, FormModule, TooltipModule, ModalModule, IconModule,
     InputGroupComponent, InputGroupTextDirective
   ]
@@ -222,4 +222,10 @@ export class JournalEntriesPageComponent implements OnInit, OnDestroy {
   }
 
   trackById(_: number, item: { id: string }): string { return item.id; }
+
+  /** Clases para badge subtle (Norma 1). 'dark' no tiene subtle usable en dark mode → badge-neutral-subtle. */
+  badgeClasses(color: string): string {
+    if (color === 'dark') return 'badge badge-neutral-subtle';
+    return `badge bg-${color}-subtle text-${color} border border-${color}-subtle`;
+  }
 }

@@ -4,10 +4,12 @@ import {
   addDoc, updateDoc, deleteDoc, getDocs,
   query, orderBy, where, writeBatch, Timestamp
 } from '@angular/fire/firestore';
-import { Observable } from 'rxjs';
+import { Observable, firstValueFrom } from 'rxjs';
+import { take } from 'rxjs/operators';
 
 import { TenantService } from '../../../core/services/tenant.service';
 import { AuthService }   from '../../../core/services/auth.service';
+import { JournalEntriesService } from './journal-entries.service';
 import {
   Account, AccountType, AccountNature,
   levelFromCode, parentCodeFromCode, defaultNatureForType,
@@ -23,6 +25,7 @@ export class ChartOfAccountsService {
   private firestore     = inject(Firestore);
   private tenantService = inject(TenantService);
   private authService   = inject(AuthService);
+  private journalSvc    = inject(JournalEntriesService);
 
   private get companyId(): string { return this.tenantService.companyId; }
   private get colPath(): string   { return `companies/${this.companyId}/chart_of_accounts`; }
@@ -124,6 +127,15 @@ export class ChartOfAccountsService {
   // ─── Delete ───────────────────────────────────────────────────────────────
 
   async deleteAccount(id: string): Promise<void> {
+    const account = await firstValueFrom(this.getAccount(id).pipe(take(1)));
+    if (account) {
+      const hasMovements = await this.journalSvc.hasMovementsForAccount(account.code);
+      if (hasMovements) {
+        throw new Error(
+          `No se puede eliminar la cuenta ${account.code} — ${account.name}: tiene movimientos contables asociados. Inactívela en vez de eliminarla.`
+        );
+      }
+    }
     await deleteDoc(doc(this.firestore, `${this.colPath}/${id}`));
   }
 

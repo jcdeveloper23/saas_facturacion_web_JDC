@@ -131,7 +131,7 @@
         <!-- Tipo de cuenta -->
         <div class="col-md-4">
           <label cLabel>Tipo de Cuenta <span class="text-danger">*</span></label>
-          <select cFormSelect formControlName="accountType">
+          <select cSelect formControlName="accountType">
             @for (t of accountTypes; track t) {
               <option [value]="t">{{ TYPE_LABELS[t] }}</option>
             }
@@ -145,7 +145,7 @@
         <!-- Cuenta GL -->
         <div class="col-md-6">
           <label cLabel>Cuenta Contable (GL) <span class="text-danger">*</span></label>
-          <select cFormSelect formControlName="linkedGlCode"
+          <select cSelect formControlName="linkedGlCode"
                   (change)="onGlAccountChange($any($event.target).value)"
                   [class.is-invalid]="form.get('linkedGlCode')?.invalid && form.get('linkedGlCode')?.touched">
             <option value="">— Seleccionar cuenta —</option>
@@ -159,6 +159,22 @@
         </div>
         <!-- GL Name (hidden field kept in sync) -->
         <input type="hidden" formControlName="linkedGlName" />
+
+        <!-- Saldo inicial — solo aplica al crear -->
+        @if (!editingId() || (form.get('openingBalance')?.value ?? 0) > 0) {
+          <div class="col-md-4">
+            <label cLabel>Saldo Inicial</label>
+            <input cFormControl type="number" min="0" step="0.01" formControlName="openingBalance" />
+            @if (!editingId()) {
+              <div class="form-text">Si tiene actividad previa a este sistema. Genera un asiento automáticamente.</div>
+            }
+          </div>
+          <div class="col-md-3">
+            <label cLabel>Fecha de Saldo Inicial</label>
+            <input cFormControl type="date" formControlName="openingBalanceDate" />
+          </div>
+        }
+
         <!-- Active toggle -->
         <div class="col-12">
           <div class="form-check form-switch">

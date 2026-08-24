@@ -271,6 +271,17 @@
               </select>
             </div>
 
+            <div class="inv-field" style="flex:1; min-width:130px">
+              <label class="inv-label">Centro de Costo</label>
+              <select cSelect class="inv-ctrl" [value]="selectedCostCenterId()" (change)="onCostCenterSelect($event)"
+                [attr.disabled]="!isEditable() ? true : null">
+                <option value="">— Sin centro de costo —</option>
+                @for (cc of costCenters(); track cc.id) {
+                  <option [value]="cc.id">{{ cc.code }} - {{ cc.name }}</option>
+                }
+              </select>
+            </div>
+
             <!-- Serie/Año colapsable al final -->
             <div class="inv-field" style="min-width:150px">
               <details class="doc-advanced" style="margin:0">
@@ -303,6 +314,79 @@
             </div>
 
           </div>
+
+          <!-- Fila 5: Exportación (ATS) — colapsable, solo si aplica -->
+          <div class="d-flex gap-2 flex-wrap align-items-end mt-2">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="isExport" formControlName="isExport"
+                [attr.disabled]="!isEditable() ? true : null">
+              <label class="form-check-label inv-label" for="isExport">Esta venta es una exportación</label>
+            </div>
+          </div>
+
+          @if (form.get('isExport')?.value) {
+          <div class="mt-2" formGroupName="exportData">
+            <p class="section-title">Datos de Exportación (ATS)</p>
+            <div class="d-flex gap-2 flex-wrap mb-2">
+              <div class="inv-field" style="flex:1.2; min-width:170px">
+                <label class="inv-label">Tipo de Exportación<span class="req">*</span></label>
+                <select cSelect class="inv-ctrl" formControlName="exportType">
+                  @for (t of sriExportTypes; track t.code) {
+                  <option [value]="t.code">{{ t.code }} — {{ t.name }}</option>
+                  }
+                </select>
+              </div>
+              <div class="inv-field" style="flex:1; min-width:130px">
+                <label class="inv-label">País Destino (código SRI)<span class="req">*</span></label>
+                <input cFormControl class="inv-ctrl" formControlName="destinationCountry" placeholder="Ej: 400 (EE.UU.)">
+              </div>
+              <div class="inv-field" style="flex:1; min-width:130px">
+                <label class="inv-label">Fecha de Embarque</label>
+                <input type="date" cFormControl class="inv-ctrl" formControlName="shipmentDate">
+              </div>
+              <div class="inv-field" style="flex:1; min-width:120px">
+                <label class="inv-label">Valor FOB (USD)</label>
+                <input type="number" cFormControl class="inv-ctrl" formControlName="fobValue" min="0" step="0.01">
+              </div>
+            </div>
+            <details class="doc-advanced" style="margin:0">
+              <summary class="doc-advanced__toggle" style="font-size:.72rem">
+                <svg cIcon name="cilSettings" size="sm" class="me-1"></svg>
+                Datos aduaneros (DAU) — opcional
+              </summary>
+              <div class="d-flex gap-2 flex-wrap mt-1">
+                <div class="inv-field" style="width:100px">
+                  <label class="inv-label">Distrito</label>
+                  <input cFormControl class="inv-ctrl" formControlName="customsDistrict" placeholder="011">
+                </div>
+                <div class="inv-field" style="width:80px">
+                  <label class="inv-label">Año</label>
+                  <input cFormControl class="inv-ctrl" formControlName="customsYear" placeholder="2026">
+                </div>
+                <div class="inv-field" style="width:80px">
+                  <label class="inv-label">Régimen</label>
+                  <input cFormControl class="inv-ctrl" formControlName="customsRegime" placeholder="40">
+                </div>
+                <div class="inv-field" style="width:120px">
+                  <label class="inv-label">Correlativo</label>
+                  <input cFormControl class="inv-ctrl" formControlName="customsCorrelative">
+                </div>
+                <div class="inv-field" style="width:80px">
+                  <label class="inv-label">Verificador</label>
+                  <input cFormControl class="inv-ctrl" formControlName="customsVerifier" maxlength="1">
+                </div>
+                <div class="inv-field" style="flex:1; min-width:140px">
+                  <label class="inv-label">Doc. Transporte</label>
+                  <input cFormControl class="inv-ctrl" formControlName="transportDoc">
+                </div>
+                <div class="inv-field" style="min-width:140px">
+                  <label class="inv-label">FUE</label>
+                  <input cFormControl class="inv-ctrl" formControlName="fue" maxlength="13">
+                </div>
+              </div>
+            </details>
+          </div>
+          }
 
         </c-card-body>
       </c-card>

@@ -25,7 +25,7 @@
     <div class="d-flex gap-3 align-items-end flex-wrap">
       <div>
         <label cLabel>Año</label>
-        <select cFormSelect [ngModel]="selectedYear()" (ngModelChange)="selectedYear.set(+$event)">
+        <select cSelect [ngModel]="selectedYear()" (ngModelChange)="selectedYear.set(+$event)">
           @for (y of years; track y) {
             <option [value]="y">{{ y }}</option>
           }
@@ -33,7 +33,7 @@
       </div>
       <div>
         <label cLabel>Mes</label>
-        <select cFormSelect [ngModel]="selectedMonth()" (ngModelChange)="selectedMonth.set(+$event)">
+        <select cSelect [ngModel]="selectedMonth()" (ngModelChange)="selectedMonth.set(+$event)">
           @for (m of months; track m.value) {
             <option [value]="m.value">{{ m.label }}</option>
           }

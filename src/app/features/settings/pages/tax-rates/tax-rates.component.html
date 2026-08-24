@@ -135,7 +135,7 @@
         </c-col>
         <c-col md="12">
           <label cLabel>Clasificación Código SRI <span class="text-danger">*</span></label>
-          <select cFormSelect formControlName="sriCode">
+          <select cSelect formControlName="sriCode">
             @for (opt of sriCodeOptions; track opt.value) {
               <option [value]="opt.value">{{ opt.label }}</option>
             }

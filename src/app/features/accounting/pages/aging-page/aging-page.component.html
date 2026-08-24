@@ -1,0 +1,122 @@
+<!-- ── Header ──────────────────────────────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0">Antigüedad de Cartera</h4>
+  @if (loaded()) {
+    <button cButton color="secondary" variant="outline" size="sm" (click)="printReport()">
+      <svg cIcon name="cilPrint" size="sm" class="me-1"></svg>
+      Imprimir
+    </button>
+  }
+</div>
+
+<!-- ── Filters ────────────────────────────────────────────────────────────── -->
+<c-card class="mb-3 no-print">
+  <c-card-body>
+    <div class="d-flex gap-3 align-items-end flex-wrap">
+      <div class="mode-tabs">
+        <button type="button" class="mode-tab" [class.active]="mode() === 'cxc'" (click)="setMode('cxc')">
+          Cuentas por Cobrar
+        </button>
+        <button type="button" class="mode-tab" [class.active]="mode() === 'cxp'" (click)="setMode('cxp')">
+          Cuentas por Pagar
+        </button>
+      </div>
+      <button cButton color="primary" (click)="generate()" [disabled]="loading()">
+        @if (loading()) {
+          <c-spinner size="sm" class="me-1"></c-spinner>
+          Calculando...
+        } @else {
+          <svg cIcon name="cilCalculator" size="sm" class="me-1"></svg>
+          Generar Reporte
+        }
+      </button>
+    </div>
+  </c-card-body>
+</c-card>
+
+<!-- ── Report ─────────────────────────────────────────────────────────────── -->
+@if (loaded()) {
+  <div class="report-header mb-3">
+    <div class="report-title">
+      {{ mode() === 'cxc' ? 'ANTIGÜEDAD DE CUENTAS POR COBRAR' : 'ANTIGÜEDAD DE CUENTAS POR PAGAR' }}
+    </div>
+    <div class="report-period">Corte al {{ asOfDate() | date:'dd/MM/yyyy' }}</div>
+  </div>
+
+  <div class="stat-strip mb-3">
+    <div class="stat-item">
+      <span class="stat-value">{{ totals().total | number:'1.2-2' }}</span>
+      <span class="stat-label">total cartera</span>
+    </div>
+    <div class="stat-sep"></div>
+    <div class="stat-item">
+      <span class="stat-value text-warning">{{ overdueTotal() | number:'1.2-2' }}</span>
+      <span class="stat-label">vencido</span>
+    </div>
+    <div class="stat-sep"></div>
+    <div class="stat-item">
+      <span class="stat-value">{{ rows().length }}</span>
+      <span class="stat-label">{{ mode() === 'cxc' ? 'clientes' : 'proveedores' }}</span>
+    </div>
+  </div>
+
+  <c-card>
+    <c-card-body class="p-0">
+      <div class="table-responsive">
+        <table class="aging-table">
+          <thead>
+            <tr>
+              <th>{{ mode() === 'cxc' ? 'Cliente' : 'Proveedor' }}</th>
+              <th class="text-end">Por Vencer</th>
+              <th class="text-end">0-30 días</th>
+              <th class="text-end">31-60 días</th>
+              <th class="text-end">61-90 días</th>
+              <th class="text-end">90+ días</th>
+              <th class="text-end">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of rows(); track row.partyId) {
+              <tr>
+                <td>
+                  <div class="party-name">{{ row.partyName }}</div>
+                  <div class="party-taxid">{{ row.partyTaxId }} · {{ row.documentCount }} doc.</div>
+                </td>
+                <td class="amt-cell">{{ row.current  | number:'1.2-2' }}</td>
+                <td class="amt-cell" [class.has-amount]="row.b0_30 > 0">{{ row.b0_30    | number:'1.2-2' }}</td>
+                <td class="amt-cell warn"   [class.has-amount]="row.b31_60 > 0">{{ row.b31_60   | number:'1.2-2' }}</td>
+                <td class="amt-cell danger" [class.has-amount]="row.b61_90 > 0">{{ row.b61_90   | number:'1.2-2' }}</td>
+                <td class="amt-cell danger" [class.has-amount]="row.b90_plus > 0">{{ row.b90_plus | number:'1.2-2' }}</td>
+                <td class="amt-cell total-cell">{{ row.total | number:'1.2-2' }}</td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="7" class="text-center text-secondary py-4">
+                  Sin documentos pendientes {{ mode() === 'cxc' ? 'de cobro' : 'de pago' }}.
+                </td>
+              </tr>
+            }
+          </tbody>
+          <tfoot>
+            <tr class="total-row">
+              <td>TOTALES</td>
+              <td class="amt-cell">{{ totals().current  | number:'1.2-2' }}</td>
+              <td class="amt-cell">{{ totals().b0_30    | number:'1.2-2' }}</td>
+              <td class="amt-cell">{{ totals().b31_60   | number:'1.2-2' }}</td>
+              <td class="amt-cell">{{ totals().b61_90   | number:'1.2-2' }}</td>
+              <td class="amt-cell">{{ totals().b90_plus | number:'1.2-2' }}</td>
+              <td class="amt-cell total-cell">{{ totals().total | number:'1.2-2' }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </c-card-body>
+  </c-card>
+}
+
+@if (!loaded() && !loading()) {
+  <div class="text-center py-5 text-secondary">
+    <svg cIcon name="cilCalculator" size="xl" class="mb-3 opacity-25"></svg>
+    <p>Seleccione CxC o CxP y haga clic en "Generar Reporte"</p>
+  </div>
+}

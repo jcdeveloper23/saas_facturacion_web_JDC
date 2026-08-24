@@ -37,6 +37,8 @@ interface InvoiceDoc {
   fiscalYear: string;
   accountingEntryId?: string;
   isCreditNote?: boolean;
+  costCenterId?: string;
+  costCenterName?: string;
 }
 
 interface JournalEntryLine {
@@ -67,8 +69,8 @@ function buildInvoiceLines(invoice: InvoiceDoc, accounts: { sales15: { code: str
     accountName:   accounts.accountsReceivable.name,
     debit:         round2(invoice.total),
     credit:        0,
-    costCenterId:  null,
-    costCenterName:null,
+    costCenterId:  invoice.costCenterId ?? null,
+    costCenterName:invoice.costCenterName ?? null,
     description:   `${invoice.customerName} — ${invoice.fullNumber}`
   });
 
@@ -90,8 +92,8 @@ function buildInvoiceLines(invoice: InvoiceDoc, accounts: { sales15: { code: str
         accountName:   salesAccount.name,
         debit:         0,
         credit:        round2(vat.taxableBase),
-        costCenterId:  null,
-        costCenterName:null,
+        costCenterId:  invoice.costCenterId ?? null,
+        costCenterName:invoice.costCenterName ?? null,
         description:   `Ventas ${vat.vatPct}% IVA — ${invoice.fullNumber}`
       });
     }
@@ -104,8 +106,8 @@ function buildInvoiceLines(invoice: InvoiceDoc, accounts: { sales15: { code: str
         accountName:   accounts.ivaCollected.name,
         debit:         0,
         credit:        round2(vat.vatAmount),
-        costCenterId:  null,
-        costCenterName:null,
+        costCenterId:  invoice.costCenterId ?? null,
+        costCenterName:invoice.costCenterName ?? null,
         description:   `IVA ${vat.vatPct}% — ${invoice.fullNumber}`
       });
     }
@@ -119,8 +121,8 @@ function buildInvoiceLines(invoice: InvoiceDoc, accounts: { sales15: { code: str
       accountName:   accounts.sales15.name,
       debit:         0,
       credit:        round2(invoice.netAmount),
-      costCenterId:  null,
-      costCenterName:null,
+      costCenterId:  invoice.costCenterId ?? null,
+      costCenterName:invoice.costCenterName ?? null,
       description:   `Ventas — ${invoice.fullNumber}`
     });
     if (invoice.vatAmount > 0) {
@@ -130,8 +132,8 @@ function buildInvoiceLines(invoice: InvoiceDoc, accounts: { sales15: { code: str
         accountName:   accounts.ivaCollected.name,
         debit:         0,
         credit:        round2(invoice.vatAmount),
-        costCenterId:  null,
-        costCenterName:null,
+        costCenterId:  invoice.costCenterId ?? null,
+        costCenterName:invoice.costCenterName ?? null,
         description:   `IVA — ${invoice.fullNumber}`
       });
     }
@@ -149,8 +151,8 @@ function buildInvoiceLines(invoice: InvoiceDoc, accounts: { sales15: { code: str
       accountName:   accounts.cogs.name,
       debit:         cogs,
       credit:        0,
-      costCenterId:  null,
-      costCenterName:null,
+      costCenterId:  invoice.costCenterId ?? null,
+      costCenterName:invoice.costCenterName ?? null,
       description:   `COGS: ${invLine.description} — ${invoice.fullNumber}`
     });
     lines.push({
@@ -159,8 +161,8 @@ function buildInvoiceLines(invoice: InvoiceDoc, accounts: { sales15: { code: str
       accountName:   accounts.inventory.name,
       debit:         0,
       credit:        cogs,
-      costCenterId:  null,
-      costCenterName:null,
+      costCenterId:  invoice.costCenterId ?? null,
+      costCenterName:invoice.costCenterName ?? null,
       description:   `Salida inventario: ${invLine.description} — ${invoice.fullNumber}`
     });
   }
@@ -232,7 +234,12 @@ export async function generateJournalEntryFromInvoiceInternal(
   const isBalanced  = totalDebit === totalCredit;
 
   if (!isBalanced) {
-    console.error('[generateJournalEntryFromInvoice] Asiento descuadrado:', { totalDebit, totalCredit });
+    // No se guarda un asiento descuadrado — rompería la ecuación contable
+    // fundamental (débito = crédito) y el contador no podría cerrar el mes.
+    // Queda sin accountingEntryId, así que regenerateJournalEntry puede
+    // reintentar una vez corregida la causa (ej. vatSummary incompleto).
+    console.error('[generateJournalEntryFromInvoice] Asiento descuadrado — NO se crea:', { totalDebit, totalCredit, invoiceId });
+    return { created: false, reason: 'unbalanced' };
   }
 
   // Create journal entry

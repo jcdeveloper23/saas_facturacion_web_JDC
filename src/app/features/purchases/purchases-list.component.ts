@@ -11,6 +11,7 @@ import {
 import { IconModule } from '@coreui/icons-angular';
 
 import { HasPermissionDirective } from '../../shared/directives/has-permission.directive';
+import { MarkPaidModalComponent, MarkPaidResult } from '../../shared/components/mark-paid-modal/mark-paid-modal.component';
 import { PurchasesService } from './services/purchases.service';
 import { NotificationService } from '../../core/services/notification.service';
 import {
@@ -26,7 +27,7 @@ import {
     CommonModule, FormsModule, RouterLink,
     CardModule, ButtonModule, GridModule, BadgeModule, SpinnerModule,
     IconModule,
-    HasPermissionDirective,
+    HasPermissionDirective, MarkPaidModalComponent,
   ],
 })
 export class PurchasesListComponent implements OnInit, OnDestroy {
@@ -55,6 +56,7 @@ export class PurchasesListComponent implements OnInit, OnDestroy {
       draft:        all.filter(p => p.status === 'draft').length,
       sent:         all.filter(p => p.status === 'sent').length,
       received:     all.filter(p => p.status === 'received').length,
+      paid:         all.filter(p => p.status === 'paid').length,
       cancelled:    all.filter(p => p.status === 'cancelled').length,
       noRetention:  all.filter(p => p.status === 'received' && !p.retentionId).length,
     };
@@ -139,8 +141,8 @@ export class PurchasesListComponent implements OnInit, OnDestroy {
   }
 
   async cancelOrder(p: Purchase): Promise<void> {
-    if (p.status === 'received') {
-      this.notifications.error('No se puede cancelar una compra ya recibida');
+    if (p.status === 'received' || p.status === 'paid') {
+      this.notifications.error('No se puede cancelar una compra ya recibida o pagada');
       return;
     }
     if (!confirm(`¿Cancelar compra ${p.fullNumber}?`)) return;
@@ -149,6 +151,31 @@ export class PurchasesListComponent implements OnInit, OnDestroy {
       this.notifications.success(`Compra ${p.fullNumber} cancelada`);
     } catch (err: any) {
       this.notifications.error('Error al cancelar: ' + (err?.message ?? err));
+    }
+  }
+
+  // ── Marcar pagada ────────────────────────────────────────────────────────────
+  showMarkPaidModal = signal(false);
+  markingPaidPurchase = signal<Purchase | null>(null);
+  confirmingMarkPaid = signal(false);
+
+  openMarkPaid(p: Purchase): void {
+    this.markingPaidPurchase.set(p);
+    this.showMarkPaidModal.set(true);
+  }
+
+  async confirmMarkPaid(result: MarkPaidResult): Promise<void> {
+    const p = this.markingPaidPurchase();
+    if (!p) return;
+    this.confirmingMarkPaid.set(true);
+    try {
+      await this.svc.markPaid(p.id, result.bankAccountId, result.date);
+      this.notifications.success(`Compra ${p.fullNumber} marcada como pagada`);
+      this.showMarkPaidModal.set(false);
+    } catch (err: any) {
+      this.notifications.error('Error al marcar como pagada: ' + (err?.message ?? err));
+    } finally {
+      this.confirmingMarkPaid.set(false);
     }
   }
 

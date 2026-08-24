@@ -54,8 +54,15 @@
 }
 
 /* ── Print ────────────────────────────────────────────────────────────────── */
+// Elementos que solo deben verse al imprimir (título de reporte, etiqueta de
+// tipo en texto plano en vez del badge). Ocultos en pantalla por defecto.
+.print-only        { display: none; }
+.print-only-inline  { display: none; }
+
 @media print {
-  .no-print  { display: none !important; }
+  .no-print           { display: none !important; }
+  .print-only          { display: block; }
+  .print-only-inline   { display: inline; }
   body       { font-size: 11px; }
   .ld-table  { font-size: 10px; }
 }

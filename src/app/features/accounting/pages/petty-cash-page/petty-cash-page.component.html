@@ -1,0 +1,246 @@
+<!-- ── Header ──────────────────────────────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h4 class="mb-0">Caja Chica</h4>
+    <small class="text-secondary">Fondos fijos con reposición periódica</small>
+  </div>
+  <button cButton color="primary" size="sm" (click)="openNewFund()">
+    <svg cIcon name="cilPlus" class="me-1"></svg>
+    Nuevo Fondo
+  </button>
+</div>
+
+@if (loading()) {
+  <div class="text-center py-5"><c-spinner color="primary"></c-spinner></div>
+} @else {
+  <div class="row g-3">
+    <!-- ── Left: fund list ─────────────────────────────────────────────── -->
+    <div class="col-md-4">
+      <c-card>
+        <c-card-body class="p-0">
+          <div class="fund-list">
+            @for (f of funds(); track f.id) {
+              <div class="fund-item" [class.selected]="selectedFundId() === f.id" [class.inactive]="!f.isActive"
+                   (click)="selectFund(f.id)">
+                <div class="d-flex justify-content-between align-items-center">
+                  <strong>{{ f.name }}</strong>
+                  <span class="badge"
+                        [class.bg-success-subtle]="f.isActive" [class.text-success]="f.isActive" [class.border-success-subtle]="f.isActive"
+                        [class.bg-secondary-subtle]="!f.isActive" [class.text-secondary]="!f.isActive" [class.border-secondary-subtle]="!f.isActive"
+                        style="border-width:1px; border-style:solid; cursor:pointer"
+                        (click)="toggleFundActive(f, $event)">
+                    {{ f.isActive ? 'Activo' : 'Inactivo' }}
+                  </span>
+                </div>
+                <div class="text-xs-muted">{{ f.custodianName || '—' }} · Fondo fijo: {{ f.fixedAmount | number:'1.2-2' }} USD</div>
+              </div>
+            } @empty {
+              <div class="text-center text-secondary py-4 small">No hay fondos de caja chica</div>
+            }
+          </div>
+        </c-card-body>
+      </c-card>
+    </div>
+
+    <!-- ── Right: movements ────────────────────────────────────────────── -->
+    <div class="col-md-8">
+      @if (selectedFund(); as fund) {
+        <c-card class="mb-3">
+          <c-card-body class="py-2 px-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+              <strong>{{ fund.name }}</strong>
+              <span class="text-xs-muted ms-2">Cuenta GL: {{ fund.linkedGlCode }} — {{ fund.linkedGlName }}</span>
+            </div>
+            <div class="d-flex gap-2">
+              <button cButton color="secondary" variant="outline" size="sm" (click)="openNewExpense()">
+                <svg cIcon name="cilPlus" class="me-1"></svg>
+                Registrar Gasto
+              </button>
+              <button cButton color="primary" size="sm" [disabled]="pendingMovements().length === 0" (click)="openReplenish()">
+                <svg cIcon name="cilSync" class="me-1"></svg>
+                Reponer ({{ pendingMovements().length }})
+              </button>
+            </div>
+          </c-card-body>
+        </c-card>
+
+        <c-card>
+          @if (loadingMovements()) {
+            <c-card-body class="text-center py-4"><c-spinner size="sm"></c-spinner></c-card-body>
+          } @else {
+            <div class="table-responsive">
+              <table class="pc-table">
+                <thead>
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Descripción</th>
+                    <th>Cuenta</th>
+                    <th class="text-end">Monto</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (m of movements(); track m.id) {
+                    <tr [class.row-reimbursed]="m.reimbursed">
+                      <td>{{ formatDate(m.date) }}</td>
+                      <td>
+                        {{ m.description }}
+                        @if (m.receiptRef) { <div class="text-xs-muted">{{ m.receiptRef }}</div> }
+                      </td>
+                      <td class="text-sm-muted">{{ m.expenseAccountName }}</td>
+                      <td class="amt-cell text-end">{{ m.amount | number:'1.2-2' }}</td>
+                      <td>
+                        @if (m.reimbursed) {
+                          <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">Repuesto</span>
+                        } @else {
+                          <span class="badge bg-warning-subtle text-warning border border-warning-subtle">Pendiente</span>
+                        }
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr><td colspan="5" class="text-center text-secondary py-4">Sin gastos registrados</td></tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </c-card>
+      } @else {
+        <c-card>
+          <c-card-body class="text-center text-secondary py-5">
+            Seleccione un fondo para ver sus movimientos
+          </c-card-body>
+        </c-card>
+      }
+    </div>
+  </div>
+}
+
+<!-- ── Modal: Nuevo Fondo ─────────────────────────────────────────────────── -->
+<c-modal [visible]="showFundModal()" (visibleChange)="showFundModal.set($event)" backdrop="static">
+  <c-modal-header>
+    <h5 cModalTitle>Nuevo Fondo de Caja Chica</h5>
+    <button type="button" class="btn-close" (click)="showFundModal.set(false)"></button>
+  </c-modal-header>
+  <c-modal-body>
+    <div class="mb-3">
+      <label cLabel>Nombre <span class="text-danger">*</span></label>
+      <input cFormControl [ngModel]="newFundName()" (ngModelChange)="newFundName.set($event)"
+             placeholder="Ej: Caja Chica Oficina Central" />
+    </div>
+    <div class="mb-3">
+      <label cLabel>Responsable</label>
+      <input cFormControl [ngModel]="newFundCustodian()" (ngModelChange)="newFundCustodian.set($event)" />
+    </div>
+    <div class="mb-3">
+      <label cLabel>Cuenta Contable (GL) <span class="text-danger">*</span></label>
+      <select cSelect [ngModel]="newFundGlCode()" (ngModelChange)="newFundGlCode.set($event)">
+        <option value="">— Seleccionar —</option>
+        @for (a of glAccounts(); track a.id) {
+          <option [value]="a.code">{{ a.code }} — {{ a.name }}</option>
+        }
+      </select>
+    </div>
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label cLabel>Monto del Fondo Fijo</label>
+        <input type="number" min="0" step="0.01" cFormControl
+               [ngModel]="newFundAmount()" (ngModelChange)="newFundAmount.set(+$event)" />
+      </div>
+      @if (newFundAmount() > 0) {
+        <div class="col-md-6">
+          <label cLabel>Financiado desde <span class="text-danger">*</span></label>
+          <select cSelect [ngModel]="newFundBankAccountId()" (ngModelChange)="newFundBankAccountId.set($event)">
+            <option value="">— Seleccionar cuenta bancaria —</option>
+            @for (b of bankAccounts(); track b.id) {
+              <option [value]="b.id">{{ b.bankName }} — {{ b.accountNumber }}</option>
+            }
+          </select>
+        </div>
+      }
+    </div>
+  </c-modal-body>
+  <c-modal-footer>
+    <button cButton color="secondary" variant="outline" (click)="showFundModal.set(false)">Cancelar</button>
+    <button cButton color="primary" [disabled]="!newFundName().trim() || !newFundGlCode() || creatingFund()" (click)="confirmNewFund()">
+      @if (creatingFund()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+      Crear
+    </button>
+  </c-modal-footer>
+</c-modal>
+
+<!-- ── Modal: Registrar Gasto ─────────────────────────────────────────────── -->
+<c-modal [visible]="showExpenseModal()" (visibleChange)="showExpenseModal.set($event)" backdrop="static">
+  <c-modal-header>
+    <h5 cModalTitle>Registrar Gasto de Caja Chica</h5>
+    <button type="button" class="btn-close" (click)="showExpenseModal.set(false)"></button>
+  </c-modal-header>
+  <c-modal-body>
+    <div class="row g-3 mb-3">
+      <div class="col-md-6">
+        <label cLabel>Fecha</label>
+        <input type="date" cFormControl [ngModel]="newExpDate()" (ngModelChange)="newExpDate.set($event)" />
+      </div>
+      <div class="col-md-6">
+        <label cLabel>Monto <span class="text-danger">*</span></label>
+        <input type="number" min="0.01" step="0.01" cFormControl
+               [ngModel]="newExpAmount()" (ngModelChange)="newExpAmount.set(+$event)" />
+      </div>
+    </div>
+    <div class="mb-3">
+      <label cLabel>Descripción <span class="text-danger">*</span></label>
+      <input cFormControl [ngModel]="newExpDescription()" (ngModelChange)="newExpDescription.set($event)"
+             placeholder="Ej: Compra de suministros de oficina" />
+    </div>
+    <div class="mb-3">
+      <label cLabel>Cuenta de Gasto <span class="text-danger">*</span></label>
+      <select cSelect [ngModel]="newExpAccountCode()" (ngModelChange)="newExpAccountCode.set($event)">
+        <option value="">— Seleccionar —</option>
+        @for (a of glAccounts(); track a.id) {
+          <option [value]="a.code">{{ a.code }} — {{ a.name }}</option>
+        }
+      </select>
+    </div>
+    <div>
+      <label cLabel>N° de Comprobante</label>
+      <input cFormControl [ngModel]="newExpReceiptRef()" (ngModelChange)="newExpReceiptRef.set($event)" />
+    </div>
+  </c-modal-body>
+  <c-modal-footer>
+    <button cButton color="secondary" variant="outline" (click)="showExpenseModal.set(false)">Cancelar</button>
+    <button cButton color="primary"
+            [disabled]="!newExpAccountCode() || newExpAmount() <= 0 || !newExpDescription().trim() || creatingExpense()"
+            (click)="confirmNewExpense()">
+      @if (creatingExpense()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+      Registrar
+    </button>
+  </c-modal-footer>
+</c-modal>
+
+<!-- ── Modal: Reponer ─────────────────────────────────────────────────────── -->
+<c-modal [visible]="showReplenishModal()" (visibleChange)="showReplenishModal.set($event)" backdrop="static">
+  <c-modal-header>
+    <h5 cModalTitle>Reponer Caja Chica</h5>
+    <button type="button" class="btn-close" (click)="showReplenishModal.set(false)"></button>
+  </c-modal-header>
+  <c-modal-body>
+    <c-alert color="info" class="mb-3">
+      Se contabilizarán {{ pendingMovements().length }} gasto(s) pendiente(s) por un total de
+      <strong>{{ pendingTotal() | number:'1.2-2' }} USD</strong>, agrupados por cuenta contable.
+    </c-alert>
+    <label cLabel>Cuenta bancaria que repone el fondo <span class="text-danger">*</span></label>
+    <select cSelect [ngModel]="replenishBankAccountId()" (ngModelChange)="replenishBankAccountId.set($event)">
+      <option value="">— Seleccionar —</option>
+      @for (b of bankAccounts(); track b.id) {
+        <option [value]="b.id">{{ b.bankName }} — {{ b.accountNumber }}</option>
+      }
+    </select>
+  </c-modal-body>
+  <c-modal-footer>
+    <button cButton color="secondary" variant="outline" (click)="showReplenishModal.set(false)">Cancelar</button>
+    <button cButton color="primary" [disabled]="!replenishBankAccountId() || replenishing()" (click)="confirmReplenish()">
+      @if (replenishing()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+      Reponer
+    </button>
+  </c-modal-footer>
+</c-modal>

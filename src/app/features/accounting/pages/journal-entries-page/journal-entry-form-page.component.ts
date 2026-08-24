@@ -7,7 +7,7 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, Validators, FormArray, F
 import { Subject, takeUntil, of } from 'rxjs';
 import { catchError, take } from 'rxjs/operators';
 import {
-  CardModule, ButtonModule, GridModule, BadgeModule,
+  CardModule, ButtonModule, GridModule,
   SpinnerModule, FormModule, TooltipModule, TableModule
 } from '@coreui/angular';
 import { IconModule } from '@coreui/icons-angular';
@@ -33,7 +33,7 @@ import { CostCenter } from '../../models/cost-center.interface';
   styleUrl:    './journal-entry-form-page.component.scss',
   imports: [
     CommonModule, RouterLink, FormsModule, ReactiveFormsModule,
-    CardModule, ButtonModule, GridModule, BadgeModule, SpinnerModule,
+    CardModule, ButtonModule, GridModule, SpinnerModule,
     FormModule, TooltipModule, TableModule, IconModule
   ]
 })
@@ -158,7 +158,8 @@ export class JournalEntryFormPageComponent implements OnInit, OnDestroy {
       credit:        [line?.credit ?? 0],
       costCenterId:  [line?.costCenterId ?? null],
       costCenterName:[line?.costCenterName ?? null],
-      description:   [line?.description ?? '']
+      description:   [line?.description ?? ''],
+      isNonDeductible: [line?.isNonDeductible ?? false]
     });
   }
 
@@ -219,7 +220,8 @@ export class JournalEntryFormPageComponent implements OnInit, OnDestroy {
       credit:        parseFloat(l.credit) || 0,
       costCenterId:  l.costCenterId  || null,
       costCenterName:l.costCenterName || null,
-      description:   l.description   || ''
+      description:   l.description   || '',
+      isNonDeductible: !!l.isNonDeductible
     }));
 
     const t = calcEntryTotals(lines);
@@ -250,7 +252,14 @@ export class JournalEntryFormPageComponent implements OnInit, OnDestroy {
         await this.svc.updateEntry(id, input as any);
         this.notifications.success(postImmediately ? 'Asiento contabilizado' : 'Asiento actualizado');
       } else {
-        await this.svc.createEntry(input as any);
+        // La regla de Firestore para `create` exige status:'draft' siempre
+        // (un asiento nuevo no puede nacer 'posted' directamente) — se crea
+        // como borrador y, si se pidió contabilizar, se pasa a 'posted' con
+        // un update inmediato después, que sí lo permite la regla.
+        const newId = await this.svc.createEntry({ ...input, status: 'draft' } as any);
+        if (postImmediately) {
+          await this.svc.postEntry(newId);
+        }
         this.notifications.success(postImmediately ? 'Asiento creado y contabilizado' : 'Asiento guardado como borrador');
       }
       this.router.navigate(['/accounting/journal-entries']);

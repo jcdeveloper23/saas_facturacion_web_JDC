@@ -30,6 +30,8 @@ import { PaymentTerm, Currency, DocumentSeries } from '../settings/models/settin
 import { EntityFormConfig } from '../../core/interfaces/form-config.interface';
 import { ecuadorTaxIdValidator } from '../../core/validators/ecuador.validators';
 import { SupplierPurchasesTabComponent } from './supplier-purchases-tab.component';
+import { CostCentersService } from '../accounting/services/cost-centers.service';
+import { CostCenter } from '../accounting/models/cost-center.interface';
 
 type FormTab = 'general' | 'addresses' | 'banks' | 'purchases';
 
@@ -122,6 +124,7 @@ export class PersonFormComponent implements OnInit {
   private fb              = inject(FormBuilder);
   private router          = inject(Router);
   private route           = inject(ActivatedRoute);
+  private costCentersSvc  = inject(CostCentersService);
 
   // ─── State ──────────────────────────────────────────────────────────────
 
@@ -137,6 +140,7 @@ export class PersonFormComponent implements OnInit {
   documentSeries = signal<DocumentSeries[]>([]);
   selectedRoles  = signal<PersonRole[]>(['customer']);
   existingCodes  = signal<{ customer?: string; supplier?: string; employee?: string; student?: string; teacher?: string }>({});
+  costCenters    = signal<CostCenter[]>([]);
 
   // Computed role flags used in template
   hasCustomerRole = computed(() => this.selectedRoles().includes('customer'));
@@ -208,6 +212,9 @@ export class PersonFormComponent implements OnInit {
     });
     this.settingsSvc.getCurrencies().pipe(take(1)).subscribe({
       next: list => this.currencies.set(list.filter(c => c.isActive))
+    });
+    this.costCentersSvc.getCostCenters().pipe(take(1)).subscribe({
+      next: list => this.costCenters.set(list.filter(c => c.isActive))
     });
     this.settingsSvc.getDocumentSeries().pipe(take(1)).subscribe({
       next: list => this.documentSeries.set(list.filter(s => s.isActive && s.documentType === 'invoice'))
@@ -336,7 +343,9 @@ export class PersonFormComponent implements OnInit {
         customerGroupCode:   [''],
         documentSeriesCode:  [''],
         accountingCode:      [''],
-        vatIncluded:         [false]
+        vatIncluded:         [false],
+        defaultCostCenterId:   [''],
+        defaultCostCenterName: ['']
       }),
       // ── Supplier role data ───────────────────────────────────────────────
       supplierData: this.fb.group({
@@ -347,7 +356,9 @@ export class PersonFormComponent implements OnInit {
         irRetentionPct:    [null, [Validators.min(0), Validators.max(100)]],
         paymentDays:       [null],
         purchaseAccount:   [''],
-        accountingCode:    ['']
+        accountingCode:    [''],
+        defaultCostCenterId:   [''],
+        defaultCostCenterName: ['']
       }),
       // ── Employee role data ───────────────────────────────────────────────
       employeeData: this.fb.group({
@@ -587,6 +598,24 @@ export class PersonFormComponent implements OnInit {
 
   isAllergenActive(id: string): boolean {
     return this.studentAllergenIds().includes(id);
+  }
+
+  onCustomerCostCenterSelect(event: Event): void {
+    const id = (event.target as HTMLSelectElement).value;
+    const cc = this.costCenters().find(c => c.id === id);
+    this.form.get('customerData')?.patchValue({
+      defaultCostCenterId:   cc?.id   ?? '',
+      defaultCostCenterName: cc?.name ?? ''
+    });
+  }
+
+  onSupplierCostCenterSelect(event: Event): void {
+    const id = (event.target as HTMLSelectElement).value;
+    const cc = this.costCenters().find(c => c.id === id);
+    this.form.get('supplierData')?.patchValue({
+      defaultCostCenterId:   cc?.id   ?? '',
+      defaultCostCenterName: cc?.name ?? ''
+    });
   }
 
   onStudentGradeSelect(event: Event): void {

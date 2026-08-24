@@ -679,6 +679,11 @@ export class PurchaseImporterService {
       warehouseName:         warehouse.name,
       date:                  Timestamp.fromDate(record.supplierInvoiceDate),
       notes:                 `Importado desde archivo: ${record.sourceFile}`,
+      // Defaults para el ATS — el caso más común al importar facturas de compra.
+      // Si el comprobante real es otro (liquidación de compra, etc.) debe corregirse
+      // manualmente en el formulario de la compra antes de generar el ATS del mes.
+      sriDocumentType:       '01',
+      sriSustentoCode:       '01',
       lines,
       status:                'draft',
       ...totals,

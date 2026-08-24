@@ -14,6 +14,7 @@ import { JournalEntriesService }    from '../../services/journal-entries.service
 import { AccountingPeriodsService } from '../../services/accounting-periods.service';
 import { CostCentersService }       from '../../services/cost-centers.service';
 import { AccountingPdfService }     from '../../services/accounting-pdf.service';
+import { ExcelExportService }       from '../../services/excel-export.service';
 import { TenantService }            from '../../../../core/services/tenant.service';
 import { NotificationService }      from '../../../../core/services/notification.service';
 import { JournalEntry }             from '../../models/journal-entry.interface';
@@ -49,6 +50,7 @@ export class BalanceGeneralPageComponent implements OnInit, OnDestroy {
   private periodsSvc     = inject(AccountingPeriodsService);
   private costCentersSvc = inject(CostCentersService);
   private pdfSvc         = inject(AccountingPdfService);
+  private excelSvc       = inject(ExcelExportService);
   private tenantSvc      = inject(TenantService);
   private notifications  = inject(NotificationService);
   private destroy$       = new Subject<void>();
@@ -228,6 +230,24 @@ export class BalanceGeneralPageComponent implements OnInit, OnDestroy {
     } finally {
       this.downloadingPdf.set(false);
     }
+  }
+
+  downloadExcel(): void {
+    if (!this.searched()) return;
+    const section = (label: string, lines: BalanceGeneralLine[], subtotal: number) => [
+      ...lines.map(l => ({ Sección: label, Código: l.accountCode, Cuenta: l.accountName, Monto: this.round2(l.netBalance) })),
+      { Sección: '', Código: '', Cuenta: `Subtotal ${label}`, Monto: this.round2(subtotal) }
+    ];
+    const rows = [
+      ...section('Activo Corriente',    this.activoCorriente(),   this.totalActivoCorriente()),
+      ...section('Activo No Corriente', this.activoNoCorriente(), this.totalActivoNoCorriente()),
+      { Sección: '', Código: '', Cuenta: 'TOTAL ACTIVOS', Monto: this.round2(this.totalActivos()) },
+      ...section('Pasivo Corriente',    this.pasivoCorriente(),   this.totalPasivoCorriente()),
+      ...section('Pasivo No Corriente', this.pasivoNoCorriente(), this.totalPasivoNoCorriente()),
+      ...section('Patrimonio',          this.patrimonio(),        this.totalPatrimonio()),
+      { Sección: '', Código: '', Cuenta: 'TOTAL PASIVOS + PATRIMONIO', Monto: this.round2(this.totalPasivoPatrimonio()) }
+    ];
+    this.excelSvc.export(`balance-general-${this.getPeriodName().replace(/\s+/g, '_')}`, [{ name: 'Balance General', rows }]);
   }
 
   getPeriodName(): string {

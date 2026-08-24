@@ -27,19 +27,36 @@ export interface SriRetentionCode {
   rate:        number;  // ej: 10.00 para IR honorarios, 30 para IVA 30%
 }
 
+// Porcentajes verificados contra la Resolución NAC-DGERCGC26-00000009 (SRI,
+// vigente desde 2026-03-01 — deroga NAC-DGERCGC24-00000008) y los números de
+// casillero contra el "Formulario 103 – Instructivo" oficial del SRI. Antes de
+// esta corrección varios códigos tenían tasas y hasta conceptos desactualizados
+// (ej. el 308 real es "imagen o renombre" 10%, no "marcas/patentes" 5% — ese es
+// el 314). El campo `rate` es solo el valor sugerido al emitir una retención;
+// `retention-form.component` lo deja editable, así que un valor desactualizado
+// no bloquea al usuario, pero si está mal el sistema induce a error por defecto.
 export const SRI_IR_RETENTION_CODES: SriRetentionCode[] = [
   { taxCode: '1', taxCodeName: 'IR', pctCode: '303', pctName: 'Honorarios profesionales', rate: 10 },
-  { taxCode: '1', taxCodeName: 'IR', pctCode: '304', pctName: 'Servicios (predomina intelecto)', rate: 1.75 },
-  { taxCode: '1', taxCodeName: 'IR', pctCode: '307', pctName: 'Servicios (predomina mano de obra)', rate: 2 },
-  { taxCode: '1', taxCodeName: 'IR', pctCode: '308', pctName: 'Marcas, patentes, derechos de autor', rate: 5 },
+  { taxCode: '1', taxCodeName: 'IR', pctCode: '304', pctName: 'Servicios (predomina intelecto)', rate: 10 },
+  { taxCode: '1', taxCodeName: 'IR', pctCode: '307', pctName: 'Servicios (predomina mano de obra)', rate: 3 },
+  { taxCode: '1', taxCodeName: 'IR', pctCode: '308', pctName: 'Utilización o aprovechamiento de imagen o renombre', rate: 10 },
   { taxCode: '1', taxCodeName: 'IR', pctCode: '309', pctName: 'Transporte privado de pasajeros', rate: 1 },
-  { taxCode: '1', taxCodeName: 'IR', pctCode: '310', pctName: 'Transferencia de bienes muebles', rate: 1.75 },
-  { taxCode: '1', taxCodeName: 'IR', pctCode: '312', pctName: 'Transferencia de bienes inmuebles', rate: 1 },
-  { taxCode: '1', taxCodeName: 'IR', pctCode: '319', pctName: 'Arrendamiento bienes inmuebles personas naturales', rate: 10 },
-  { taxCode: '1', taxCodeName: 'IR', pctCode: '322', pctName: 'Seguros y reaseguros', rate: 1 },
-  { taxCode: '1', taxCodeName: 'IR', pctCode: '323', pctName: 'Reaseguros — compañías extranjeras', rate: 2 },
-  { taxCode: '1', taxCodeName: 'IR', pctCode: '340', pctName: 'Pagos a no domiciliados / no residentes', rate: 22 },
-  { taxCode: '1', taxCodeName: 'IR', pctCode: '343', pctName: 'Otras retenciones IR', rate: 2.75 },
+  { taxCode: '1', taxCodeName: 'IR', pctCode: '310', pctName: 'Transferencia de bienes muebles corporales', rate: 2 },
+  // 312 (transferencia de bienes inmuebles) no aparece como concepto propio en
+  // la resolución vigente — puede corresponder a otro régimen (ganancia
+  // ocasional). Se deja el código por compatibilidad con datos existentes,
+  // tasa sin verificar — revisar antes de confiar en el valor sugerido.
+  { taxCode: '1', taxCodeName: 'IR', pctCode: '312', pctName: 'Transferencia de bienes inmuebles (verificar tasa vigente)', rate: 1 },
+  { taxCode: '1', taxCodeName: 'IR', pctCode: '314', pctName: 'Regalías, derechos de autor, marcas y patentes', rate: 10 },
+  { taxCode: '1', taxCodeName: 'IR', pctCode: '319', pctName: 'Arrendamiento de bienes inmuebles', rate: 10 },
+  { taxCode: '1', taxCodeName: 'IR', pctCode: '322', pctName: 'Seguros y reaseguros (primas facturadas)', rate: 2 },
+  { taxCode: '1', taxCodeName: 'IR', pctCode: '323', pctName: 'Rendimientos financieros', rate: 3 },
+  // Pagos a no domiciliados: la resolución no fija un % propio — remite a la
+  // tarifa general de IR sociedades vigente (Art. 4), que cambia con la ley
+  // anual. 22% es un valor histórico — verificar la tarifa societaria vigente
+  // antes de emitir con este código.
+  { taxCode: '1', taxCodeName: 'IR', pctCode: '340', pctName: 'Pagos a no domiciliados / no residentes (verificar tarifa societaria vigente)', rate: 22 },
+  { taxCode: '1', taxCodeName: 'IR', pctCode: '343', pctName: 'Otras retenciones IR (sin % específico — casillero 344)', rate: 3 },
 ];
 
 export const SRI_IVA_RETENTION_CODES: SriRetentionCode[] = [

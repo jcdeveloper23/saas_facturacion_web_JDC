@@ -180,7 +180,9 @@ export const navItems: INavData[] = [
       { name: 'Libro Mayor',               url: '/accounting/libro-mayor',             icon: 'nav-icon-bullet' },
       { name: 'Balance de Comprobación',   url: '/accounting/balance-comprobacion',    icon: 'nav-icon-bullet' },
       { name: 'Estado de Resultados',      url: '/accounting/estado-resultados',       icon: 'nav-icon-bullet' },
-      { name: 'Balance General',           url: '/accounting/balance-general',         icon: 'nav-icon-bullet' }
+      { name: 'Balance General',           url: '/accounting/balance-general',         icon: 'nav-icon-bullet' },
+      { name: 'Flujo de Efectivo',         url: '/accounting/flujo-efectivo',          icon: 'nav-icon-bullet' },
+      { name: 'Antigüedad de Cartera',     url: '/accounting/aging',                   icon: 'nav-icon-bullet' }
     ]
   },
   {
@@ -190,7 +192,9 @@ export const navItems: INavData[] = [
     attributes: { module: 'accounting', roles: ['admin', 'accountant'] },
     children: [
       { name: 'Formulario 104 (IVA)', url: '/accounting/formulario-104', icon: 'nav-icon-bullet' },
-      { name: 'Formulario 101 (IR)',  url: '/accounting/formulario-101', icon: 'nav-icon-bullet' }
+      { name: 'Formulario 103 (Retenciones)', url: '/accounting/formulario-103', icon: 'nav-icon-bullet' },
+      { name: 'Formulario 101 (IR)',  url: '/accounting/formulario-101', icon: 'nav-icon-bullet' },
+      { name: 'ATS',                  url: '/accounting/ats',            icon: 'nav-icon-bullet' }
     ]
   },
   {
@@ -200,7 +204,9 @@ export const navItems: INavData[] = [
     attributes: { module: 'accounting', roles: ['admin', 'accountant'] },
     children: [
       { name: 'Cuentas Bancarias', url: '/accounting/bank-accounts',      icon: 'nav-icon-bullet' },
-      { name: 'Conciliar',         url: '/accounting/bank-reconciliation', icon: 'nav-icon-bullet' }
+      { name: 'Conciliar',         url: '/accounting/bank-reconciliation', icon: 'nav-icon-bullet' },
+      { name: 'Anticipos',        url: '/accounting/advances',           icon: 'nav-icon-bullet' },
+      { name: 'Caja Chica',       url: '/accounting/petty-cash',         icon: 'nav-icon-bullet' }
     ]
   },
   {
@@ -226,9 +232,21 @@ export const navItems: INavData[] = [
     attributes: { module: 'accounting', roles: ['admin', 'accountant'] }
   },
   {
+    name: 'Saldos Iniciales',
+    url: '/accounting/saldos-iniciales',
+    iconComponent: { name: 'cil-spreadsheet' },
+    attributes: { module: 'accounting', roles: ['admin', 'accountant'] }
+  },
+  {
     name: 'Configuración Contable',
     url: '/accounting/settings',
     iconComponent: { name: 'cil-settings' },
+    attributes: { module: 'accounting', roles: ['admin'] }
+  },
+  {
+    name: 'Log de Auditoría',
+    url: '/accounting/audit-log',
+    iconComponent: { name: 'cil-history' },
     attributes: { module: 'accounting', roles: ['admin'] }
   },
 

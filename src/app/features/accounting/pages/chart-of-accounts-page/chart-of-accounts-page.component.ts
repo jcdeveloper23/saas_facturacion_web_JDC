@@ -3,10 +3,11 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
 import { Subject, takeUntil, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import {
-  CardModule, ButtonModule, GridModule, BadgeModule,
+  CardModule, ButtonModule, GridModule,
   SpinnerModule, TableModule, FormModule, ModalModule,
   TooltipModule, InputGroupComponent, InputGroupTextDirective
 } from '@coreui/angular';
@@ -27,7 +28,7 @@ import {
   styleUrl:    './chart-of-accounts-page.component.scss',
   imports: [
     CommonModule, FormsModule, ReactiveFormsModule,
-    CardModule, ButtonModule, GridModule, BadgeModule, SpinnerModule,
+    CardModule, ButtonModule, GridModule, SpinnerModule,
     TableModule, FormModule, ModalModule, TooltipModule, IconModule,
     InputGroupComponent, InputGroupTextDirective
   ]
@@ -36,6 +37,7 @@ export class ChartOfAccountsPageComponent implements OnInit, OnDestroy {
   private svc           = inject(ChartOfAccountsService);
   private notifications = inject(NotificationService);
   private fb            = inject(FormBuilder);
+  private router        = inject(Router);
   private destroy$      = new Subject<void>();
 
   // ── State ─────────────────────────────────────────────────────────────────
@@ -48,6 +50,11 @@ export class ChartOfAccountsPageComponent implements OnInit, OnDestroy {
   saving      = signal(false);
   seeding     = signal(false);
   typeFilter  = signal<AccountType | null>(null);
+
+  // ── Selección múltiple / edición en lote (Fase 6.2) ────────────────────────
+  selectionMode = signal(false);
+  selectedIds   = signal<Set<string>>(new Set());
+  bulkApplying  = signal(false);
 
   // ── Tree state ─────────────────────────────────────────────────────────────
   private treeNodes = signal<AccountTreeNode[]>([]);
@@ -225,6 +232,67 @@ export class ChartOfAccountsPageComponent implements OnInit, OnDestroy {
     }
   }
 
+  // ── Selección múltiple / edición en lote ───────────────────────────────────
+  // Alcance mínimo (Fase 6.2 del plan): activar/inactivar en lote. Renombrar o
+  // mover de padre en lote se deja fuera — afecta reportes históricos y merece
+  // su propia validación.
+  toggleSelectionMode(): void {
+    this.selectionMode.update(v => !v);
+    this.selectedIds.set(new Set());
+  }
+
+  isSelected(id: string): boolean { return this.selectedIds().has(id); }
+
+  toggleSelect(id: string, event: Event): void {
+    event.stopPropagation();
+    const next = new Set(this.selectedIds());
+    if (next.has(id)) next.delete(id); else next.add(id);
+    this.selectedIds.set(next);
+  }
+
+  private currentVisibleAccounts(): Account[] {
+    return (this.treeMode() && !this.isSearching) ? this.visibleNodes() : this.filteredFlat();
+  }
+
+  allVisibleSelected(): boolean {
+    const visible = this.currentVisibleAccounts();
+    return visible.length > 0 && visible.every(a => this.selectedIds().has(a.id));
+  }
+
+  toggleSelectAllVisible(event: Event): void {
+    event.stopPropagation();
+    const visible = this.currentVisibleAccounts();
+    if (this.allVisibleSelected()) {
+      this.selectedIds.set(new Set());
+    } else {
+      this.selectedIds.set(new Set(visible.map(a => a.id)));
+    }
+  }
+
+  async bulkSetActive(active: boolean): Promise<void> {
+    const ids = [...this.selectedIds()];
+    if (!ids.length) return;
+    const verb = active ? 'activar' : 'inactivar';
+    if (!confirm(`¿${active ? 'Activar' : 'Inactivar'} ${ids.length} cuenta(s) seleccionada(s)?`)) return;
+
+    this.bulkApplying.set(true);
+    try {
+      await Promise.all(ids.map(id => this.svc.toggleActive(id, active)));
+      this.notifications.success(`${ids.length} cuenta(s) actualizadas`);
+      this.selectedIds.set(new Set());
+    } catch (err: any) {
+      this.notifications.error(`Error al ${verb} en lote: ` + (err?.message ?? err));
+    } finally {
+      this.bulkApplying.set(false);
+    }
+  }
+
+  // ── Drill-down a Libro Mayor ────────────────────────────────────────────────
+  viewMovements(acc: Account, event: Event): void {
+    event.stopPropagation();
+    this.router.navigate(['/accounting/libro-mayor'], { queryParams: { accountCode: acc.code } });
+  }
+
   // ── Delete ────────────────────────────────────────────────────────────────
   async delete(acc: Account, event: Event): Promise<void> {
     event.stopPropagation();
@@ -257,6 +325,12 @@ export class ChartOfAccountsPageComponent implements OnInit, OnDestroy {
   setTypeFilter(type: AccountType | null): void { this.typeFilter.set(type); }
 
   indentPx(level: number): string { return `${(level - 1) * 20}px`; }
+
+  /** Clases para badge subtle (Norma 1). 'dark' no tiene subtle usable en dark mode → badge-neutral-subtle. */
+  badgeClasses(color: string): string {
+    if (color === 'dark') return 'badge badge-neutral-subtle';
+    return `badge bg-${color}-subtle text-${color} border border-${color}-subtle`;
+  }
 
   trackById(_: number, item: { id: string }): string { return item.id; }
   trackByCode(_: number, item: { code: string }): string { return item.code; }

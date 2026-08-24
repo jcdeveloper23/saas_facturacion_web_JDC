@@ -222,7 +222,7 @@
 
       <div class="mb-2">
         <label cLabel class="form-label-sm mb-1">Método de pago</label>
-        <select cFormSelect [ngModel]="paymentMethod()" (ngModelChange)="paymentMethod.set($event)">
+        <select cSelect [ngModel]="paymentMethod()" (ngModelChange)="paymentMethod.set($event)">
           <option value="cash">Efectivo</option>
           <option value="transfer">Transferencia</option>
           <option value="check">Cheque</option>

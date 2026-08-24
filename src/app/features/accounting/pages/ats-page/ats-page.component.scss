@@ -1,0 +1,52 @@
+@use '../../accounting-shared' as *;
+
+.section-title {
+  font-size: .68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--cui-tertiary-color);
+  margin: 0 0 .75rem;
+}
+
+.ats-summary-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  border: 1px solid var(--cui-border-color);
+  border-radius: var(--cui-border-radius);
+  overflow: hidden;
+}
+
+.ats-stat {
+  flex: 1 1 150px;
+  padding: .6rem .9rem;
+  border-right: 1px solid var(--cui-border-color);
+  border-bottom: 1px solid var(--cui-border-color);
+
+  &:last-child { border-right: none; }
+}
+
+.ats-stat--warn .ats-stat__value { color: var(--cui-warning); }
+
+.ats-stat__value {
+  font-family: var(--cui-font-monospace, monospace);
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.ats-stat__label {
+  font-size: .72rem;
+  color: var(--cui-secondary-color);
+}
+
+.ats-total {
+  font-family: var(--cui-font-monospace, monospace);
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+@media (max-width: 576px) {
+  .ats-stat { flex: 1 1 45%; }
+}
