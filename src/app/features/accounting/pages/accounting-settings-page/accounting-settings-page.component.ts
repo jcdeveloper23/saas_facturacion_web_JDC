@@ -13,6 +13,7 @@ import { AccountingSettingsService } from '../../services/accounting-settings.se
 import { ChartOfAccountsService }   from '../../services/chart-of-accounts.service';
 import { NotificationService }      from '../../../../core/services/notification.service';
 import { Account }                  from '../../models/account.interface';
+import { AccountSelectComponent }   from '../../components/account-select/account-select.component';
 import {
   AccountMapping, DEFAULT_ACCOUNT_MAPPING, ACCOUNT_MAPPING_LABELS
 } from '../../models/accounting-settings.interface';
@@ -25,7 +26,8 @@ import {
   imports: [
     CommonModule, FormsModule, ReactiveFormsModule,
     CardModule, ButtonModule, GridModule, SpinnerModule, FormModule,
-    TooltipModule, AlertModule, IconModule
+    TooltipModule, AlertModule, IconModule,
+    AccountSelectComponent
   ]
 })
 export class AccountingSettingsPageComponent implements OnInit, OnDestroy {

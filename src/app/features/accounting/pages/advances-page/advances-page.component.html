@@ -20,12 +20,14 @@
                [ngModel]="searchTerm()" (ngModelChange)="searchTerm.set($event)" />
       </c-input-group>
 
-      <button class="btn btn-sm" [class.btn-primary]="statusFilter() === ''" [class.btn-outline-secondary]="statusFilter() !== ''"
-              (click)="statusFilter.set('')">Todos</button>
-      <button class="btn btn-sm" [class.btn-success]="statusFilter() === 'open'" [class.btn-outline-secondary]="statusFilter() !== 'open'"
-              (click)="statusFilter.set('open')">Disponibles</button>
-      <button class="btn btn-sm" [class.btn-secondary]="statusFilter() === 'applied'" [class.btn-outline-secondary]="statusFilter() !== 'applied'"
-              (click)="statusFilter.set('applied')">Aplicados</button>
+      <div class="seg-tabs">
+        <button class="seg-tab" [class.active]="statusFilter() === ''"
+                (click)="statusFilter.set('')">Todos</button>
+        <button class="seg-tab" [class.active]="statusFilter() === 'open'"
+                (click)="statusFilter.set('open')">Disponibles</button>
+        <button class="seg-tab" [class.active]="statusFilter() === 'applied'"
+                (click)="statusFilter.set('applied')">Aplicados</button>
+      </div>
     </div>
   </c-card-body>
 </c-card>

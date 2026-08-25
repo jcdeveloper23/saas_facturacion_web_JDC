@@ -25,6 +25,7 @@ import {
 import { AccountingPeriod } from '../../models/accounting-period.interface';
 import { Account } from '../../models/account.interface';
 import { CostCenter } from '../../models/cost-center.interface';
+import { AccountSelectComponent } from '../../components/account-select/account-select.component';
 
 @Component({
   selector: 'app-journal-entry-form-page',
@@ -34,7 +35,8 @@ import { CostCenter } from '../../models/cost-center.interface';
   imports: [
     CommonModule, RouterLink, FormsModule, ReactiveFormsModule,
     CardModule, ButtonModule, GridModule, SpinnerModule,
-    FormModule, TooltipModule, TableModule, IconModule
+    FormModule, TooltipModule, TableModule, IconModule,
+    AccountSelectComponent
   ]
 })
 export class JournalEntryFormPageComponent implements OnInit, OnDestroy {
@@ -183,6 +185,13 @@ export class JournalEntryFormPageComponent implements OnInit, OnDestroy {
       group.patchValue({ accountCode: acc.code, accountName: acc.name });
       this.linesVersion.update(v => v + 1);
     }
+  }
+
+  onAccountSelectedForLine(index: number, acc: Account | null): void {
+    if (!acc) return;
+    const group = this.linesArray.at(index) as FormGroup;
+    group.patchValue({ accountCode: acc.code, accountName: acc.name });
+    this.linesVersion.update(v => v + 1);
   }
 
   onCostCenterSelect(index: number, event: Event): void {

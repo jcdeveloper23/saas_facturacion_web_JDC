@@ -1,103 +1,85 @@
-<!--<c-header class="mb-4 d-print-none" position="sticky">-->
 <ng-container>
-  <c-container [fluid]="true" class="border-bottom px-4">
-    <button [cSidebarToggle]="sidebarId()" cHeaderToggler class="btn" toggle="visible"
-      style="margin-inline-start: -14px;" aria-label="Toggle sidebar navigation">
-      <svg cIcon name="cil-menu" size="lg"></svg>
-    </button>
-    <c-header-nav class="d-none d-md-flex">
-      <c-nav-item>
-        <a cNavLink routerLink="/dashboard" routerLinkActive="active">Dashboard</a>
-      </c-nav-item>
-      <c-nav-item>
-        <a cNavLink routerLink="/users" routerLinkActive="active">Users</a>
-      </c-nav-item>
-      <c-nav-item>
-        <a cNavLink routerLink="/settings" routerLinkActive="active">Settings</a>
-      </c-nav-item>
-    </c-header-nav>
+  <!-- Barra superior ultra-compacta (38px de alto) -->
+  <c-container [fluid]="true" class="h-100 border-bottom px-3 d-flex align-items-center justify-content-between">
 
-    <c-header-nav class="d-none d-md-flex ms-auto ">
-      <a cNavLink>
-        <svg cIcon class="my-1" name="cil-bell" size="lg"></svg>
-      </a>
-      <a cNavLink>
-        <svg cIcon class="my-1" name="cil-list" size="lg"></svg>
-      </a>
-      <a cNavLink>
-        <svg cIcon class="my-1" name="cil-envelope-open" size="lg"></svg>
-      </a>
-    </c-header-nav>
+    <!-- Lado Izquierdo: Botón Hamburguesa de Menú Lateral -->
+    <div class="d-flex align-items-center">
+      <button [cSidebarToggle]="sidebarId()" cHeaderToggler
+        class="btn p-0 border-0 d-flex align-items-center text-body-secondary" toggle="visible"
+        aria-label="Toggle sidebar navigation">
+        <svg cIcon name="cil-menu" style="width: 18px; height: 18px;"></svg>
+      </button>
+    </div>
 
-    <c-header-nav class="ms-auto ms-md-0">
-      <div class="nav-item py-1">
-        <div class="vr h-100 mx-2 text-body text-opacity-75"></div>
-      </div>
+    <!-- Lado Derecho: Acciones, Selector de Tema, Empresa y Avatar de Usuario -->
+    <div class="d-flex align-items-center gap-2 ms-auto">
+
+      <!-- Selector de Modo de Tema (Claro / Oscuro) -->
       <ng-container *ngTemplateOutlet="themeDropdown" />
-      <div class="nav-item py-1">
-        <div class="vr h-100 mx-2 text-body text-opacity-75"></div>
-      </div>
-    </c-header-nav>
 
-    @if (showCompanySwitcher()) {
-    <c-header-nav class="mx-0 me-2">
+      <!-- Selector de Empresa (Multi-empresa) -->
+      @if (showCompanySwitcher()) {
+      <div class="vr my-1 text-body opacity-25" style="height: 16px;"></div>
       <ng-container *ngTemplateOutlet="companyDropdown" />
-    </c-header-nav>
-    }
+      }
 
-    <c-header-nav class="mx-0">
+      <div class="vr my-1 text-body opacity-25" style="height: 16px;"></div>
+
+      <!-- Menú de Usuario / Perfil Avatar -->
       <ng-container *ngTemplateOutlet="userDropdown" />
-    </c-header-nav>
+    </div>
 
-  </c-container>
-  <c-container [fluid]="true" class="px-4">
-    <c-breadcrumb-router />
   </c-container>
 </ng-container>
-<!--</c-header>-->
 
+<!-- Dropdown de Usuario / Avatar Moderno -->
 <ng-template #userDropdown>
-  <c-dropdown [popperOptions]="{ placement: 'bottom-start' }" variant="nav-item">
-    <button [caret]="false" cDropdownToggle class="py-0 pe-0" aria-label="Open user menu">
-      <c-avatar shape="rounded-1" size="md" [textColor]="'primary'" status="success">
-        {{ getUserInitials() }}
-      </c-avatar>
+  <c-dropdown [popperOptions]="{ placement: 'bottom-end' }" variant="nav-item">
+    <button [caret]="false" cDropdownToggle class="btn p-0 border-0 d-flex align-items-center"
+      aria-label="Open user menu">
+      <div class="position-relative d-flex align-items-center justify-content-center">
+        <!-- Circular Avatar Pill con Gradiente Corporativo -->
+        <div class="d-flex align-items-center justify-content-center fw-bold text-white shadow-sm border border-light"
+          style="width: 28px; height: 28px; border-radius: 50%; font-size: 0.72rem; background: linear-gradient(135deg, var(--cui-primary, #0d6efd) 0%, #0548af 100%);">
+          {{ getUserInitials() }}
+        </div>
+        <!-- Punto verde indicador de estado activo -->
+        <span class="position-absolute bottom-0 end-0 p-1 bg-success border border-white rounded-circle"
+          style="transform: translate(25%, 25%);"></span>
+      </div>
     </button>
-    <ul cDropdownMenu class="pt-0 w-auto" style="min-width: 220px;">
-      <!-- Header con info del usuario -->
+    <ul cDropdownMenu class="pt-0 w-auto shadow-sm" style="min-width: 220px;">
       <li>
         <div class="px-3 py-2 bg-body-secondary rounded-top">
           <div class="fw-semibold">{{ currentUser()?.displayName || 'Usuario' }}</div>
-          <small class="text-body-secondary">{{ currentUser()?.email }}</small>
+          <small class="text-body-secondary d-block text-truncate" style="max-width:200px;">{{ currentUser()?.email
+            }}</small>
           @if (currentUser()?.role) {
-          <div>
-            <c-badge color="info" class="mt-1">{{ currentUser()?.role }}</c-badge>
-          </div>
+          <c-badge color="info" class="mt-1">{{ currentUser()?.role }}</c-badge>
           }
         </div>
       </li>
       <li>
         <hr cDropdownDivider class="my-0" />
       </li>
-      <!-- Opciones de menú -->
       <li>
-        <a cDropdownItem routerLink="/profile">
-          <svg cIcon class="me-2" name="cil-user"></svg>
+        <a cDropdownItem routerLink="/profile" class="py-2">
+          <svg cIcon class="me-2 text-muted" name="cil-user" style="width:15px;height:15px;"></svg>
           Mi Perfil
         </a>
       </li>
       <li>
-        <a cDropdownItem routerLink="/settings">
-          <svg cIcon class="me-2" name="cil-settings"></svg>
+        <a cDropdownItem routerLink="/settings" class="py-2">
+          <svg cIcon class="me-2 text-muted" name="cil-settings" style="width:15px;height:15px;"></svg>
           Configuración
         </a>
       </li>
       <li>
-        <hr cDropdownDivider />
+        <hr cDropdownDivider class="my-0" />
       </li>
       <li>
-        <a cDropdownItem (click)="logout()" style="cursor: pointer;" class="text-danger">
-          <svg cIcon class="me-2" name="cil-account-logout"></svg>
+        <a cDropdownItem (click)="logout()" style="cursor: pointer;" class="py-2 text-danger">
+          <svg cIcon class="me-2 text-danger" name="cil-account-logout" style="width:15px;height:15px;"></svg>
           Cerrar Sesión
         </a>
       </li>
@@ -105,38 +87,39 @@
   </c-dropdown>
 </ng-template>
 
+<!-- Dropdown de Empresa -->
 <ng-template #companyDropdown>
   <c-dropdown [popperOptions]="{ placement: 'bottom-end' }" variant="nav-item">
-    <button [caret]="false" cDropdownToggle class="py-0 pe-0 d-flex align-items-center gap-2"
-      aria-label="Cambiar empresa" [disabled]="switchingCompany()">
+    <button [caret]="false" cDropdownToggle
+      class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1.5 py-0 px-2" aria-label="Cambiar empresa"
+      [disabled]="switchingCompany()" style="height: 24px; font-size: 0.75rem;">
       @if (switchingCompany()) {
-        <c-spinner size="sm" color="primary"></c-spinner>
+      <c-spinner size="sm" color="primary"></c-spinner>
       } @else {
-        <svg cIcon name="cil-building" size="lg"></svg>
+      <svg cIcon name="cil-building" style="width:13px;height:13px;"></svg>
       }
-      <small class="d-none d-lg-inline text-truncate fw-semibold" style="max-width:140px">
+      <span class="d-none d-lg-inline text-truncate fw-semibold" style="max-width:130px">
         {{ activeCompanyName() }}
-      </small>
+      </span>
     </button>
-    <ul cDropdownMenu class="pt-0" style="min-width:220px">
+    <ul cDropdownMenu class="pt-0 shadow-sm" style="min-width:220px">
       <li>
         <div class="px-3 py-2 bg-body-secondary rounded-top">
-          <small class="text-body-secondary fw-semibold text-uppercase">Mis empresas</small>
+          <small class="text-body-secondary fw-semibold text-uppercase" style="font-size:0.7rem;">Mis empresas</small>
         </div>
       </li>
       @for (company of managedCompanies(); track company.companyId) {
       <li>
-        <button cDropdownItem
-          [class.fw-bold]="company.companyId === activeCompanyId()"
+        <button cDropdownItem [class.fw-bold]="company.companyId === activeCompanyId()"
           (click)="switchCompany(company.companyId)"
-          [disabled]="company.companyId === activeCompanyId() || switchingCompany()">
+          [disabled]="company.companyId === activeCompanyId() || switchingCompany()" class="py-2">
           <div class="d-flex align-items-center justify-content-between gap-2">
-            <span class="text-truncate" style="max-width:160px">{{ company.companyName }}</span>
+            <span class="text-truncate small" style="max-width:160px">{{ company.companyName }}</span>
             @if (company.companyId === activeCompanyId()) {
-              <svg cIcon name="cil-check-alt" class="text-success flex-shrink-0" style="width:14px"></svg>
+            <svg cIcon name="cil-check-alt" class="text-success flex-shrink-0" style="width:14px"></svg>
             }
           </div>
-          <small class="text-body-secondary d-block">{{ company.role }}</small>
+          <small class="text-body-secondary d-block" style="font-size:0.75rem;">{{ company.role }}</small>
         </button>
       </li>
       }
@@ -144,17 +127,19 @@
   </c-dropdown>
 </ng-template>
 
+<!-- Dropdown de Tema -->
 <ng-template #themeDropdown>
   <c-dropdown alignment="end" variant="nav-item">
-    <button [caret]="false" cDropdownToggle aria-label="Open theme picker">
-      <svg cIcon [name]="icons()" size="lg"></svg>
+    <button [caret]="false" cDropdownToggle class="btn p-1 border-0 d-flex align-items-center text-body-secondary"
+      aria-label="Open theme picker">
+      <svg cIcon [name]="icons()" style="width:18px;height:18px;"></svg>
     </button>
-    <div cDropdownMenu>
+    <div cDropdownMenu class="shadow-sm">
       @for (mode of colorModes; track mode.name) {
       <button (click)="colorMode.set(mode.name)" [active]="colorMode()===mode.name" cDropdownItem
-        class="d-flex align-items-center">
-        <svg cIcon class="me-2" [name]="mode.icon" size="lg"></svg>
-        {{ mode.text }}
+        class="d-flex align-items-center py-2">
+        <svg cIcon class="me-2 text-muted" [name]="mode.icon" style="width:15px;height:15px;"></svg>
+        <span class="small">{{ mode.text }}</span>
       </button>
       }
     </div>

@@ -2,9 +2,11 @@ import { Injectable, inject } from '@angular/core';
 import {
   Firestore, collection, doc, onSnapshot,
   addDoc, updateDoc, deleteDoc, getDocs, getDoc,
-  query, where, orderBy, Timestamp, runTransaction
+  query, where, orderBy, limit, startAfter,
+  Timestamp, runTransaction, QueryDocumentSnapshot, QueryConstraint
 } from '@angular/fire/firestore';
 import { Observable } from 'rxjs';
+import { PageResult } from '../../../core/types/pagination.types';
 
 import { TenantService } from '../../../core/services/tenant.service';
 import { AuthService }   from '../../../core/services/auth.service';
@@ -40,21 +42,58 @@ export class JournalEntriesService {
 
   // ─── List ─────────────────────────────────────────────────────────────────
 
+  /**
+   * Stream en tiempo real — usar SOLO para reportes que necesitan datos siempre
+   * frescos (ej. Libro Diario export) con filtros que acotan bien el resultado.
+   * Para listas interactivas usar `getEntriesPage()`.
+   */
   getEntries(filters: JournalEntryFilters = {}): Observable<JournalEntry[]> {
     return new Observable<JournalEntry[]>(observer => {
       const ref = collection(this.firestore, this.colPath);
       const constraints: any[] = [orderBy('date', 'desc'), orderBy('number', 'desc')];
 
-      if (filters.periodId) constraints.unshift(where('periodId',    '==', filters.periodId));
-      if (filters.year)     constraints.unshift(where('periodYear',   '==', filters.year));
-      if (filters.type)     constraints.unshift(where('type',         '==', filters.type));
-      if (filters.status)   constraints.unshift(where('status',       '==', filters.status));
+      if (filters.periodId) constraints.unshift(where('periodId',   '==', filters.periodId));
+      if (filters.year)     constraints.unshift(where('periodYear', '==', filters.year));
+      if (filters.type)     constraints.unshift(where('type',       '==', filters.type));
+      if (filters.status)   constraints.unshift(where('status',     '==', filters.status));
 
       return onSnapshot(query(ref, ...constraints), {
         next:  snap => observer.next(snap.docs.map(d => ({ id: d.id, ...d.data() } as JournalEntry))),
         error: err  => { console.error('[JournalEntriesService] getEntries error:', err); observer.error(err); }
       });
     });
+  }
+
+  /**
+   * Carga una página de asientos con cursor-based pagination (getDocs, one-shot).
+   * Usar en lugar de `getEntries()` para todas las vistas de lista interactivas.
+   * Ver: docs/FIREBASE_PAGINATION_GUIDELINES.md
+   */
+  async getEntriesPage(
+    filters: JournalEntryFilters,
+    pageSize = 50,
+    cursor?: QueryDocumentSnapshot
+  ): Promise<PageResult<JournalEntry>> {
+    const ref = collection(this.firestore, this.colPath);
+    const constraints: QueryConstraint[] = [];
+
+    if (filters.periodId) constraints.push(where('periodId',   '==', filters.periodId));
+    if (filters.year)     constraints.push(where('periodYear', '==', filters.year));
+    if (filters.type)     constraints.push(where('type',       '==', filters.type));
+    if (filters.status)   constraints.push(where('status',     '==', filters.status));
+
+    constraints.push(orderBy('date', 'desc'), orderBy('number', 'desc'));
+    constraints.push(limit(pageSize + 1)); // +1 para detectar si hay más
+
+    if (cursor) constraints.push(startAfter(cursor));
+
+    const snap    = await getDocs(query(ref, ...constraints));
+    const hasMore = snap.docs.length > pageSize;
+    const items   = snap.docs
+      .slice(0, pageSize)
+      .map(d => ({ id: d.id, ...d.data() } as JournalEntry));
+
+    return { items, hasMore, nextCursor: hasMore ? snap.docs[pageSize - 1] : null };
   }
 
   getEntry(id: string): Observable<JournalEntry | null> {
@@ -69,9 +108,20 @@ export class JournalEntriesService {
 
   // ─── Libro Mayor: all entries for a given account code ───────────────────
 
+  /**
+   * `periodId` es obligatorio cuando se conoce (libro-mayor-page, conciliación).
+   * Sin periodId la query escanea todos los asientos posted — evitar cuando sea posible.
+   * La búsqueda por accountCode se aplica en memoria sobre el resultado ya acotado por período.
+   * Límite de 500 docs: ningún período debería superarlo en una PyME.
+   */
   async getLibroMayor(accountCode: string, periodId?: string, costCenterId?: string): Promise<LibroMayorLine[]> {
     const ref = collection(this.firestore, this.colPath);
-    const constraints: any[] = [where('status', '==', 'posted'), orderBy('date', 'asc'), orderBy('number', 'asc')];
+    const constraints: QueryConstraint[] = [
+      where('status', '==', 'posted'),
+      orderBy('date', 'asc'),
+      orderBy('number', 'asc'),
+      limit(500)
+    ];
     if (periodId) constraints.unshift(where('periodId', '==', periodId));
 
     const snap   = await getDocs(query(ref, ...constraints));
@@ -104,17 +154,31 @@ export class JournalEntriesService {
 
   // ─── Integrity check: ¿alguna línea usa esta cuenta? ──────────────────────
   // Usado por ChartOfAccountsService.deleteAccount() antes de borrar — evita
-  // dejar líneas de journal_entries apuntando a una cuenta que ya no existe
-  // (el libro mayor de esa cuenta desaparecería sin que quede rastro).
+  // dejar líneas de journal_entries apuntando a una cuenta que ya no existe.
+  //
+  // Estrategia dual para manejar la migración gradual del campo accountCodes:
+  //   1. Fast path: array-contains sobre accountCodes (entradas nuevas)
+  //   2. Slow path: scan acotado a 500 para entradas sin el campo (entradas viejas)
 
   async hasMovementsForAccount(accountCode: string): Promise<boolean> {
-    const ref  = collection(this.firestore, this.colPath);
-    const snap = await getDocs(query(ref, where('status', '==', 'posted')));
-    for (const d of snap.docs) {
-      const entry = d.data() as JournalEntry;
-      if ((entry.lines ?? []).some(l => l.accountCode === accountCode)) return true;
-    }
-    return false;
+    const ref = collection(this.firestore, this.colPath);
+
+    // 1. Fast path — entries con campo accountCodes populado
+    const fastSnap = await getDocs(query(ref,
+      where('status', '==', 'posted'),
+      where('accountCodes', 'array-contains', accountCode),
+      limit(1)
+    ));
+    if (!fastSnap.empty) return true;
+
+    // 2. Slow path — entries legacy sin campo accountCodes (scan acotado)
+    const legacySnap = await getDocs(query(ref,
+      where('status', '==', 'posted'),
+      limit(500)
+    ));
+    return legacySnap.docs
+      .filter(d => !(d.data() as any).accountCodes)
+      .some(d => ((d.data() as JournalEntry).lines ?? []).some(l => l.accountCode === accountCode));
   }
 
   // ─── Cierre mensual: bloquea crear/editar/eliminar en meses cerrados ──────
@@ -175,6 +239,7 @@ export class JournalEntriesService {
       ...input,
       number,
       ...totals,
+      accountCodes: [...new Set(input.lines.map(l => l.accountCode))],
       createdBy: userId,
       createdAt: now,
       updatedAt: now
@@ -197,13 +262,14 @@ export class JournalEntriesService {
     const ref     = doc(this.firestore, `${this.colPath}/${id}`);
     const payload: any = { ...changes, updatedAt: Timestamp.now(), updatedBy: userId };
 
-    // Recalculate totals when lines change
+    // Recalculate totals and denormalized accountCodes when lines change
     if (changes.lines !== undefined) {
       const totals = calcEntryTotals(changes.lines);
       if (!totals.isBalanced) {
         throw new Error(`El asiento no está balanceado. Débitos: ${totals.totalDebit}, Créditos: ${totals.totalCredit}`);
       }
       Object.assign(payload, totals);
+      payload.accountCodes = [...new Set(changes.lines.map(l => l.accountCode))];
     }
 
     await updateDoc(ref, this.cleanDoc(payload));

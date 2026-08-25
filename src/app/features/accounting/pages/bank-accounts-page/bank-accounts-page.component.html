@@ -145,14 +145,13 @@
         <!-- Cuenta GL -->
         <div class="col-md-6">
           <label cLabel>Cuenta Contable (GL) <span class="text-danger">*</span></label>
-          <select cSelect formControlName="linkedGlCode"
-                  (change)="onGlAccountChange($any($event.target).value)"
-                  [class.is-invalid]="form.get('linkedGlCode')?.invalid && form.get('linkedGlCode')?.touched">
-            <option value="">— Seleccionar cuenta —</option>
-            @for (gl of glAccounts(); track gl.id) {
-              <option [value]="gl.code">{{ gl.code }} — {{ gl.name }}</option>
-            }
-          </select>
+          <app-account-select
+            [accounts]="glAccounts()"
+            formControlName="linkedGlCode"
+            [invalid]="!!(form.get('linkedGlCode')?.invalid && form.get('linkedGlCode')?.touched)"
+            placeholder="— Seleccionar cuenta —"
+            (accountSelected)="onGlAccountChange($event?.code ?? '')">
+          </app-account-select>
           @if (form.get('linkedGlCode')?.invalid && form.get('linkedGlCode')?.touched) {
             <div class="invalid-feedback">Cuenta contable requerida</div>
           }

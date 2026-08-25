@@ -18,6 +18,7 @@ import { NotificationService }    from '../../../../core/services/notification.s
 import { PettyCashFund, PettyCashMovement } from '../../models/petty-cash.interface';
 import { BankAccount } from '../../models/bank-account.interface';
 import { Account } from '../../models/account.interface';
+import { AccountSelectComponent } from '../../components/account-select/account-select.component';
 
 @Component({
   selector: 'app-petty-cash-page',
@@ -27,7 +28,8 @@ import { Account } from '../../models/account.interface';
   imports: [
     CommonModule, FormsModule,
     CardModule, ButtonModule, GridModule, BadgeModule, SpinnerModule,
-    FormModule, ModalModule, TooltipModule, AlertModule, IconModule
+    FormModule, ModalModule, TooltipModule, AlertModule, IconModule,
+    AccountSelectComponent
   ]
 })
 export class PettyCashPageComponent implements OnInit, OnDestroy {

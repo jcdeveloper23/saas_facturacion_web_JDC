@@ -11,6 +11,7 @@ import { JournalEntriesService }    from '../../services/journal-entries.service
 import { AccountingPeriodsService } from '../../services/accounting-periods.service';
 import { NotificationService }      from '../../../../core/services/notification.service';
 import { Account } from '../../models/account.interface';
+import { AccountSelectComponent } from '../account-select/account-select.component';
 import { BankAccount } from '../../models/bank-account.interface';
 import { AccountingPeriod } from '../../models/accounting-period.interface';
 
@@ -26,7 +27,7 @@ export type BankMovementType = 'ingreso' | 'egreso';
 @Component({
   selector: 'app-bank-movement-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule, ModalModule, ButtonModule, FormModule, SpinnerModule, IconModule],
+  imports: [CommonModule, FormsModule, ModalModule, ButtonModule, FormModule, SpinnerModule, IconModule, AccountSelectComponent],
   templateUrl: './bank-movement-modal.component.html'
 })
 export class BankMovementModalComponent implements OnChanges {

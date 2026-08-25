@@ -71,6 +71,15 @@ export class EstadoResultadosPageComponent implements OnInit, OnDestroy {
   totalCostos   = computed(() => this.costos().reduce((s, l) => s + l.netBalance, 0));
   utilidad      = computed(() => this.totalIngresos() - this.totalCostos());
   isGanancia    = computed(() => this.utilidad() >= 0);
+  margenNeto    = computed(() => {
+    const t = this.totalIngresos();
+    return t === 0 ? 0 : Math.round((this.utilidad() / t) * 1000) / 10;
+  });
+
+  pctOfIngresos(amount: number): number {
+    const t = this.totalIngresos();
+    return t === 0 ? 0 : Math.round((amount / t) * 1000) / 10;
+  }
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────
   ngOnInit(): void {

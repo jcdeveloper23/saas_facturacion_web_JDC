@@ -76,6 +76,10 @@ export interface JournalEntry {
   totalDebit: number;
   totalCredit: number;
   isBalanced: boolean;       // totalDebit === totalCredit
+  /** Códigos de cuenta denormalizados de todas las líneas. Permite usar
+   *  array-contains en Firestore sin escanear todas las líneas embebidas.
+   *  Poblado automáticamente en createEntry/updateEntry. */
+  accountCodes?: string[];
   createdBy: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;

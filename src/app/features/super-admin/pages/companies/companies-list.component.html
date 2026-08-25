@@ -148,35 +148,29 @@
       <!-- Límites clave del plan -->
       <div class="limits-grid mb-3">
         <div class="limit-card">
-          <span class="limit-icon">🧾</span>
           <strong>{{ plan.limits?.sri?.invoicesPerMonth === -1 ? '∞' : plan.limits?.sri?.invoicesPerMonth }}</strong>
           <span class="limit-label">Facturas/mes</span>
         </div>
         <div class="limit-card">
-          <span class="limit-icon">👤</span>
           <strong>{{ plan.limits?.users?.activeUsersPerCompany === -1 ? '∞' : plan.limits?.users?.activeUsersPerCompany
             }}</strong>
           <span class="limit-label">Usuarios</span>
         </div>
         <div class="limit-card">
-          <span class="limit-icon">📋</span>
           <strong>{{ plan.limits?.sri?.retentionsPerMonth === -1 ? '∞' : (plan.limits?.sri?.retentionsPerMonth === 0 ?
             'N/D' : plan.limits?.sri?.retentionsPerMonth) }}</strong>
           <span class="limit-label">Retenciones/mes</span>
         </div>
         <div class="limit-card">
-          <span class="limit-icon">📦</span>
           <strong>{{ plan.limits?.masterData?.productsTotal === -1 ? '∞' : plan.limits?.masterData?.productsTotal
             }}</strong>
           <span class="limit-label">Productos</span>
         </div>
         <div class="limit-card">
-          <span class="limit-icon">💾</span>
           <strong>{{ plan.limits?.infra?.storageGb === -1 ? '∞' : plan.limits?.infra?.storageGb + ' GB' }}</strong>
           <span class="limit-label">Almacenamiento</span>
         </div>
         <div class="limit-card">
-          <span class="limit-icon">🏢</span>
           <strong>{{ plan.limits?.multiCompany?.companiesPerAccount === -1 ? '∞' :
             plan.limits?.multiCompany?.companiesPerAccount }}</strong>
           <span class="limit-label">Multi-empresa</span>

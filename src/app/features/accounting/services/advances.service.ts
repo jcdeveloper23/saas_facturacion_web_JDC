@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import {
   Firestore, collection, doc, onSnapshot, updateDoc,
-  addDoc, query, orderBy, Timestamp
+  addDoc, query, orderBy, limit, Timestamp
 } from '@angular/fire/firestore';
 import { Observable, firstValueFrom } from 'rxjs';
 import { take } from 'rxjs/operators';
@@ -56,7 +56,8 @@ export class AdvancesService {
   getAdvances(): Observable<Advance[]> {
     return new Observable<Advance[]>(observer => {
       const ref = collection(this.firestore, this.colPath);
-      return onSnapshot(query(ref, orderBy('date', 'desc')), {
+      // limit(200): protección ante crecimiento ilimitado. Ver FIREBASE_PAGINATION_GUIDELINES.md
+      return onSnapshot(query(ref, orderBy('date', 'desc'), limit(200)), {
         next:  snap => observer.next(snap.docs.map(d => ({ id: d.id, ...d.data() } as Advance))),
         error: err  => { console.error('[AdvancesService] getAdvances error:', err); observer.error(err); }
       });

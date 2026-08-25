@@ -8,8 +8,7 @@ import { Subject, takeUntil, of, take } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import {
   CardModule, ButtonModule, GridModule, BadgeModule,
-  SpinnerModule, TableModule, FormModule, TooltipModule,
-  InputGroupComponent, InputGroupTextDirective
+  SpinnerModule, TableModule, FormModule, TooltipModule
 } from '@coreui/angular';
 import { IconModule } from '@coreui/icons-angular';
 
@@ -21,10 +20,11 @@ import { AccountingPdfService }     from '../../services/accounting-pdf.service'
 import { ExcelExportService }       from '../../services/excel-export.service';
 import { TenantService }            from '../../../../core/services/tenant.service';
 import { NotificationService }      from '../../../../core/services/notification.service';
-import { LibroMayorLine, JOURNAL_ENTRY_TYPE_LABELS } from '../../models/journal-entry.interface';
+import { LibroMayorLine, JOURNAL_ENTRY_TYPE_LABELS, JOURNAL_ENTRY_TYPE_COLORS } from '../../models/journal-entry.interface';
 import { Account, ACCOUNT_TYPE_LABELS, ACCOUNT_NATURE_LABELS } from '../../models/account.interface';
 import { AccountingPeriod } from '../../models/accounting-period.interface';
 import { CostCenter } from '../../models/cost-center.interface';
+import { AccountSelectComponent } from '../../components/account-select/account-select.component';
 
 @Component({
   selector: 'app-libro-mayor-page',
@@ -35,7 +35,7 @@ import { CostCenter } from '../../models/cost-center.interface';
     CommonModule, FormsModule,
     CardModule, ButtonModule, GridModule, BadgeModule, SpinnerModule,
     TableModule, FormModule, TooltipModule, IconModule,
-    InputGroupComponent, InputGroupTextDirective
+    AccountSelectComponent
   ]
 })
 export class LibroMayorPageComponent implements OnInit, OnDestroy {
@@ -62,21 +62,13 @@ export class LibroMayorPageComponent implements OnInit, OnDestroy {
   selectedCostCenter  = signal('');
   loading             = signal(false);
   searching           = signal(false);
-  accountSearch       = signal('');
 
   readonly TYPE_LABELS  = JOURNAL_ENTRY_TYPE_LABELS;
+  readonly TYPE_COLORS  = JOURNAL_ENTRY_TYPE_COLORS;
   readonly ACC_TYPES    = ACCOUNT_TYPE_LABELS;
   readonly ACC_NATURES  = ACCOUNT_NATURE_LABELS;
 
   // ── Computed ──────────────────────────────────────────────────────────────
-  filteredAccounts = computed(() => {
-    const t = this.accountSearch().toLowerCase().trim();
-    if (!t) return this.accounts().slice(0, 100);
-    return this.accounts().filter(a =>
-      a.code.includes(t) || a.name.toLowerCase().includes(t)
-    );
-  });
-
   totalDebit  = computed(() => this.lines().reduce((s, l) => s + l.debit,  0));
   totalCredit = computed(() => this.lines().reduce((s, l) => s + l.credit, 0));
   finalBalance = computed(() => {
@@ -188,6 +180,11 @@ export class LibroMayorPageComponent implements OnInit, OnDestroy {
   }
 
   private round2Amt(n: number): number { return Math.round((n ?? 0) * 100) / 100; }
+
+  badgeClasses(color: string): string {
+    if (color === 'dark') return 'badge badge-neutral-subtle';
+    return `badge bg-${color}-subtle text-${color} border border-${color}-subtle`;
+  }
 
   balanceClass(bal: number): string {
     if (bal > 0)  return 'bal-positive';

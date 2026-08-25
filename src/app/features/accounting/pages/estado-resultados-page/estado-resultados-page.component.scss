@@ -9,61 +9,133 @@
   .report-period { font-size: .82rem; color: var(--cui-secondary-color); }
 }
 
+/* ── KPI Summary strip ────────────────────────────────────────────────────── */
+.er-summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 0;
+  background: var(--cui-card-bg);
+  border: 1px solid var(--cui-border-color);
+  border-radius: 10px;
+  padding: 10px 16px;
+}
+
+.er-kpi {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 2px 24px;
+}
+
+.er-kpi-sep {
+  width: 1px;
+  height: 32px;
+  background: var(--cui-border-color);
+  flex-shrink: 0;
+}
+
+.er-kpi-value {
+  font-weight: 700;
+  font-size: 1.05rem;
+  font-family: monospace;
+}
+
+.er-kpi-label {
+  color: var(--cui-secondary-color);
+  font-size: .72rem;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
 /* ── Estado de Resultados table ───────────────────────────────────────────── */
 .er-table {
   width: 100%;
   border-collapse: collapse;
 
-  .section-header td {
-    font-size: .7rem;
+  .col-acc { width: auto; }
+  .col-amt { width: 150px; }
+  .col-pct { width: 72px; }
+
+  // ── Section headers ──────────────────────────────────────────────────────
+  thead th {
+    font-size: .68rem;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: .07em;
-    padding: .45rem .75rem;
+    letter-spacing: .06em;
+    padding: .5rem .75rem;
+    background: var(--cui-tertiary-bg);
+    color: var(--cui-secondary-color);
     border-top: 2px solid var(--cui-border-color);
     border-bottom: 1px solid var(--cui-border-color);
+
+    &:first-child { padding-left: 1rem; }
   }
 
-  .ingresos-header td { background: rgba(var(--cui-success-rgb), .08); color: var(--cui-success); }
-  .costos-header td   { background: rgba(var(--cui-danger-rgb),  .06); color: var(--cui-danger);  }
-
+  // ── Account rows ──────────────────────────────────────────────────────────
   tbody tr {
     border-bottom: 1px solid var(--cui-border-color-translucent);
-
     &:hover { background: var(--cui-tertiary-bg); }
   }
 
-  tbody td { padding: .3rem .75rem; font-size: .82rem; }
+  tbody td { padding: .35rem .75rem; font-size: .82rem; }
 
+  // ── Spacer between sections ───────────────────────────────────────────────
+  .section-spacer td { height: 6px; border: none; }
+
+  // ── Subtotal rows ─────────────────────────────────────────────────────────
   .subtotal-row td {
-    font-weight: 700;
+    font-weight: 600;
     font-size: .82rem;
-    padding: .4rem .75rem;
+    padding: .42rem .75rem;
     background: var(--cui-tertiary-bg);
     border-top: 1px solid var(--cui-border-color);
+    border-bottom: 2px solid var(--cui-border-color);
     font-family: monospace;
+    color: var(--cui-body-color);
+
+    &:first-child { font-family: inherit; font-weight: 600; color: var(--cui-secondary-color); }
   }
 
+  // ── Result row ────────────────────────────────────────────────────────────
   .result-row td {
-    font-weight: 700;
-    font-size: .95rem;
-    padding: .6rem .75rem;
-    border-top: 3px double var(--cui-border-color);
+    padding: .65rem .75rem;
+    border-top: 3px solid var(--cui-border-color);
     font-family: monospace;
-    letter-spacing: .02em;
   }
 
-  .result-row.ganancia td { color: var(--cui-success); background: rgba(var(--cui-success-rgb), .06); }
-  .result-row.perdida  td { color: var(--cui-danger);  background: rgba(var(--cui-danger-rgb),  .06); }
+  .result-label {
+    font-family: inherit !important;
+    font-weight: 700;
+    font-size: .9rem;
+    letter-spacing: .02em;
+    color: var(--cui-body-color);
+  }
+
+  .result-amt {
+    font-size: 1rem;
+    font-weight: 700;
+  }
+
+  .result-pct {
+    font-weight: 600;
+  }
+
+  .result-row.ganancia .result-amt,
+  .result-row.ganancia .result-pct { color: var(--cui-success); }
+
+  .result-row.perdida .result-amt,
+  .result-row.perdida .result-pct  { color: var(--cui-danger); }
 }
 
+/* ── Cells ────────────────────────────────────────────────────────────────── */
 .acc-cell {
   .acc-code {
     font-family: monospace;
-    font-size: .75rem;
+    font-size: .74rem;
     font-weight: 600;
     color: var(--cui-tertiary-color);
-    margin-right: .4rem;
+    margin-right: .5rem;
   }
 }
 
@@ -71,7 +143,19 @@
   text-align: right;
   font-family: monospace;
   white-space: nowrap;
-  width: 140px;
+}
+
+.pct-cell {
+  text-align: right;
+  font-family: monospace;
+  font-size: .75rem;
+  color: var(--cui-tertiary-color);
+  padding-right: .75rem !important;
+}
+
+.pct-highlight {
+  color: var(--cui-secondary-color);
+  font-weight: 600;
 }
 
 /* ── Print ────────────────────────────────────────────────────────────────── */

@@ -51,11 +51,7 @@
               }
             </div>
             <div class="mapping-control">
-              <select cSelect [formControlName]="key">
-                @for (acc of accounts(); track acc.id) {
-                  <option [value]="acc.code">{{ acc.code }} — {{ acc.name }}</option>
-                }
-              </select>
+              <app-account-select [accounts]="accounts()" [formControlName]="key"></app-account-select>
             </div>
             <div class="mapping-default">
               <small class="text-secondary">Por defecto: <code>{{ DEFAULTS[key] }}</code></small>
@@ -74,11 +70,7 @@
             }
           </div>
           <div class="mapping-control">
-            <select cSelect formControlName="ivaCollected">
-              @for (acc of accounts(); track acc.id) {
-                <option [value]="acc.code">{{ acc.code }} — {{ acc.name }}</option>
-              }
-            </select>
+            <app-account-select [accounts]="accounts()" formControlName="ivaCollected"></app-account-select>
           </div>
           <div class="mapping-default">
             <small class="text-secondary">Por defecto: <code>{{ DEFAULTS.ivaCollected }}</code></small>
@@ -97,11 +89,7 @@
               }
             </div>
             <div class="mapping-control">
-              <select cSelect [formControlName]="key">
-                @for (acc of accounts(); track acc.id) {
-                  <option [value]="acc.code">{{ acc.code }} — {{ acc.name }}</option>
-                }
-              </select>
+              <app-account-select [accounts]="accounts()" [formControlName]="key"></app-account-select>
             </div>
             <div class="mapping-default">
               <small class="text-secondary">Por defecto: <code>{{ DEFAULTS[key] }}</code></small>
@@ -120,11 +108,7 @@
             }
           </div>
           <div class="mapping-control">
-            <select cSelect formControlName="advancesFromCustomers">
-              @for (acc of accounts(); track acc.id) {
-                <option [value]="acc.code">{{ acc.code }} — {{ acc.name }}</option>
-              }
-            </select>
+            <app-account-select [accounts]="accounts()" formControlName="advancesFromCustomers"></app-account-select>
           </div>
           <div class="mapping-default">
             <small class="text-secondary">Por defecto: <code>{{ DEFAULTS.advancesFromCustomers }}</code></small>
@@ -142,11 +126,7 @@
             }
           </div>
           <div class="mapping-control">
-            <select cSelect formControlName="cogs">
-              @for (acc of accounts(); track acc.id) {
-                <option [value]="acc.code">{{ acc.code }} — {{ acc.name }}</option>
-              }
-            </select>
+            <app-account-select [accounts]="accounts()" formControlName="cogs"></app-account-select>
           </div>
           <div class="mapping-default">
             <small class="text-secondary">Por defecto: <code>{{ DEFAULTS.cogs }}</code></small>

@@ -47,55 +47,13 @@
 .stat-label { color: var(--cui-secondary-color); font-size: .72rem; }
 .stat-sep   { width: 1px; height: 16px; background: var(--cui-border-color); flex-shrink: 0; }
 
-/* ── Seg-tabs ─────────────────────────────────────────────────────────────── */
-.seg-tabs {
-  display: flex;
-  gap: 2px;
-  background: var(--cui-tertiary-bg);
-  border: 1px solid var(--cui-border-color);
-  border-radius: 9px;
-  padding: 3px;
-}
+// seg-tabs / seg-tab / seg-count vienen de _accounting-shared.scss
 
-.seg-tab {
-  font-size: .78rem;
-  font-weight: 400;
-  padding: 4px 12px;
-  border-radius: 6px;
-  border: none;
-  background: transparent;
-  color: var(--cui-secondary-color);
-  cursor: pointer;
-  transition: all .15s;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  white-space: nowrap;
-
-  &:hover { color: var(--cui-body-color); }
-
-  &.active {
-    background: var(--cui-card-bg);
-    border: 1px solid var(--cui-border-color);
-    color: var(--cui-primary);
-    font-weight: 500;
-  }
-}
-
+// Variantes de color para .seg-count específicas de períodos contables
 .seg-count {
-  font-size: .65rem;
-  font-weight: 700;
-  background: var(--cui-secondary-bg);
-  color: var(--cui-secondary-color);
-  border-radius: 999px;
-  padding: 0 5px;
-  min-width: 18px;
-  text-align: center;
-  line-height: 1.6;
-
-  &.open   { background: var(--cui-success-bg-subtle); color: var(--cui-success-text-emphasis); }
-  &.closed { background: var(--cui-warning-bg-subtle); color: var(--cui-warning-text-emphasis); }
-  &.locked { background: var(--cui-danger-bg-subtle);  color: var(--cui-danger-text-emphasis);  }
+  &.open   { background: var(--cui-success-bg-subtle); color: var(--cui-success); }
+  &.closed { background: var(--cui-warning-bg-subtle); color: var(--cui-warning); }
+  &.locked { background: var(--cui-danger-bg-subtle);  color: var(--cui-danger);  }
 }
 
 .filter-divider {

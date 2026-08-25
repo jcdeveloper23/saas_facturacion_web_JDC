@@ -26,24 +26,14 @@
 <c-card class="mb-3">
   <c-card-body>
     <div class="row g-3 align-items-end">
-      <div class="col-md-4">
-        <label cLabel>Buscar Cuenta</label>
-        <c-input-group>
-          <span cInputGroupText>
-            <svg cIcon name="cilSearch" size="sm"></svg>
-          </span>
-          <input cFormControl type="text" placeholder="Código o nombre de cuenta..."
-                 [ngModel]="accountSearch()" (ngModelChange)="accountSearch.set($event)" />
-        </c-input-group>
-      </div>
-      <div class="col-md-4">
+      <div class="col-md-8">
         <label cLabel>Cuenta Contable <span class="text-danger">*</span></label>
-        <select cSelect class="select-account" [ngModel]="selectedCode()" (ngModelChange)="selectedCode.set($event)">
-          <option value="">— Seleccionar cuenta —</option>
-          @for (acc of filteredAccounts(); track acc.code) {
-            <option [value]="acc.code">{{ acc.code }} — {{ acc.name }}</option>
-          }
-        </select>
+        <app-account-select
+          [accounts]="accounts()"
+          [ngModel]="selectedCode()"
+          (ngModelChange)="selectedCode.set($event)"
+          placeholder="— Seleccionar cuenta —">
+        </app-account-select>
       </div>
       <div class="col-md-2">
         <label cLabel>Período</label>
@@ -141,7 +131,7 @@
                 <td>{{ formatDate(line.date) }}</td>
                 <td>{{ line.description }}</td>
                 <td>
-                  <small class="text-secondary">{{ TYPE_LABELS[line.type] }}</small>
+                  <span [class]="badgeClasses(TYPE_COLORS[line.type])">{{ TYPE_LABELS[line.type] }}</span>
                 </td>
                 <td class="text-xs-muted">{{ line.reference || '' }}</td>
                 <td class="amt">{{ formatAmt(line.debit) }}</td>

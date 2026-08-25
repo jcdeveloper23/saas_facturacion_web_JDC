@@ -116,6 +116,8 @@ export class PlanFormComponent implements OnInit, OnDestroy {
       teamManagementModule: [false],
       publicCatalogModule:  [true],
       publicApiModule:      [false],
+      // Personalización y Marca Blanca
+      whiteLabelModule:     [false],
       // Nivel de servicio
       prioritySupport:      [false],
       betaAccess:           [false],
@@ -250,6 +252,7 @@ export class PlanFormComponent implements OnInit, OnDestroy {
           teamManagementModule: v.features!.teamManagementModule!,
           publicCatalogModule:  v.features!.publicCatalogModule!,
           publicApiModule:      v.features!.publicApiModule!,
+          whiteLabelModule:     v.features!.whiteLabelModule!,
           prioritySupport:      v.features!.prioritySupport!,
           betaAccess:           v.features!.betaAccess!,
           multiCompanyMode:     v.features!.multiCompanyMode!

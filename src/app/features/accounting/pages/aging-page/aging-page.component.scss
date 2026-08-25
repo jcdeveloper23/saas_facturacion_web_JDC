@@ -1,29 +1,6 @@
 @use '../../accounting-shared' as *;
 
-/* ── Mode tabs (CxC / CxP) ────────────────────────────────────────────────── */
-.mode-tabs {
-  display: flex;
-  gap: 2px;
-  background: var(--cui-tertiary-bg);
-  border: 1px solid var(--cui-border-color);
-  border-radius: 9px;
-  padding: 3px;
-}
-
-.mode-tab {
-  font-size: .82rem;
-  font-weight: 500;
-  padding: 6px 14px;
-  border-radius: 6px;
-  border: none;
-  background: transparent;
-  color: var(--cui-secondary-color);
-  cursor: pointer;
-  transition: background .15s, color .15s;
-
-  &:hover   { background: var(--cui-body-bg); }
-  &.active  { background: var(--cui-primary); color: #fff; }
-}
+// seg-tabs / seg-tab vienen de _accounting-shared.scss
 
 /* ── Report header ────────────────────────────────────────────────────────── */
 .report-header {

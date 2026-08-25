@@ -1,6 +1,7 @@
 import {
   Component, OnInit, OnDestroy, inject, signal, computed
 } from '@angular/core';
+import * as XLSX from 'xlsx';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -14,18 +15,31 @@ import {
 import { IconModule } from '@coreui/icons-angular';
 
 import { ChartOfAccountsService } from '../../services/chart-of-accounts.service';
-import { NotificationService }    from '../../../../core/services/notification.service';
+import { ExcelExportService } from '../../services/excel-export.service';
+import { NotificationService } from '../../../../core/services/notification.service';
 import {
   Account, AccountType, AccountNature, AccountTreeNode,
   ACCOUNT_TYPE_LABELS, ACCOUNT_TYPE_COLORS, ACCOUNT_NATURE_LABELS,
-  buildAccountTree, flattenTree, defaultNatureForType, levelFromCode, parentCodeFromCode
+  buildAccountTree, flattenTree, defaultNatureForType, levelFromCode, parentCodeFromCode,
+  ECUADOR_CHART_OF_ACCOUNTS_SEED
 } from '../../models/account.interface';
+
+interface ImportRow {
+  row: number;
+  code: string;
+  name: string;
+  type: AccountType;
+  nature: AccountNature;
+  allowsMovement: boolean;
+  errors: string[];
+  valid: boolean;
+}
 
 @Component({
   selector: 'app-chart-of-accounts-page',
   standalone: true,
   templateUrl: './chart-of-accounts-page.component.html',
-  styleUrl:    './chart-of-accounts-page.component.scss',
+  styleUrl: './chart-of-accounts-page.component.scss',
   imports: [
     CommonModule, FormsModule, ReactiveFormsModule,
     CardModule, ButtonModule, GridModule, SpinnerModule,
@@ -34,47 +48,58 @@ import {
   ]
 })
 export class ChartOfAccountsPageComponent implements OnInit, OnDestroy {
-  private svc           = inject(ChartOfAccountsService);
+  private svc = inject(ChartOfAccountsService);
   private notifications = inject(NotificationService);
-  private fb            = inject(FormBuilder);
-  private router        = inject(Router);
-  private destroy$      = new Subject<void>();
+  private excelExport = inject(ExcelExportService);
+  private fb = inject(FormBuilder);
+  private router = inject(Router);
+  private destroy$ = new Subject<void>();
 
   // ── State ─────────────────────────────────────────────────────────────────
-  accounts    = signal<Account[]>([]);
-  loading     = signal(true);
-  searchTerm  = signal('');
-  treeMode    = signal(true);
-  showModal   = signal(false);
-  editingId   = signal<string | null>(null);
-  saving      = signal(false);
-  seeding     = signal(false);
-  typeFilter  = signal<AccountType | null>(null);
+  accounts = signal<Account[]>([]);
+  loading = signal(true);
+  searchTerm = signal('');
+  treeMode = signal(true);
+  showModal = signal(false);
+  editingId = signal<string | null>(null);
+  saving = signal(false);
+  seeding = signal(false);
+  typeFilter = signal<AccountType | null>(null);
 
   // ── Selección múltiple / edición en lote (Fase 6.2) ────────────────────────
   selectionMode = signal(false);
-  selectedIds   = signal<Set<string>>(new Set());
-  bulkApplying  = signal(false);
+  selectedIds = signal<Set<string>>(new Set());
+  bulkApplying = signal(false);
+
+  // ── Import ────────────────────────────────────────────────────────────────
+  showImportModal = signal(false);
+  importParsing = signal(false);
+  importing = signal(false);
+  importPreview = signal<ImportRow[]>([]);
+  importFileName = signal('');
+
+  importValid = computed(() => this.importPreview().filter(r => r.valid));
+  importInvalid = computed(() => this.importPreview().filter(r => !r.valid));
 
   // ── Tree state ─────────────────────────────────────────────────────────────
   private treeNodes = signal<AccountTreeNode[]>([]);
 
   // ── Form ──────────────────────────────────────────────────────────────────
   form = this.fb.group({
-    code:           ['', [Validators.required, Validators.pattern(/^[\d.]+$/)]],
-    name:           ['', [Validators.required, Validators.minLength(2)]],
-    type:           ['activo' as AccountType, Validators.required],
-    nature:         ['deudora' as AccountNature, Validators.required],
+    code: ['', [Validators.required, Validators.pattern(/^[\d.]+$/)]],
+    name: ['', [Validators.required, Validators.minLength(2)]],
+    type: ['activo' as AccountType, Validators.required],
+    nature: ['deudora' as AccountNature, Validators.required],
     allowsMovement: [false as boolean],
-    isActive:       [true as boolean],
-    description:    ['']
+    isActive: [true as boolean],
+    description: ['']
   });
 
   // ── Lookups ───────────────────────────────────────────────────────────────
-  readonly TYPE_LABELS   = ACCOUNT_TYPE_LABELS;
-  readonly TYPE_COLORS   = ACCOUNT_TYPE_COLORS;
+  readonly TYPE_LABELS = ACCOUNT_TYPE_LABELS;
+  readonly TYPE_COLORS = ACCOUNT_TYPE_COLORS;
   readonly NATURE_LABELS = ACCOUNT_NATURE_LABELS;
-  readonly accountTypes: AccountType[] = ['activo','pasivo','patrimonio','ingreso','costo','gasto','resultado'];
+  readonly accountTypes: AccountType[] = ['activo', 'pasivo', 'patrimonio', 'ingreso', 'costo', 'gasto', 'resultado'];
 
   // ── Computed: flat tree (visible nodes only) ──────────────────────────────
   visibleNodes = computed(() => {
@@ -86,7 +111,7 @@ export class ChartOfAccountsPageComponent implements OnInit, OnDestroy {
   filteredFlat = computed(() => {
     const term = this.searchTerm().toLowerCase().trim();
     const type = this.typeFilter();
-    let list   = this.accounts();
+    let list = this.accounts();
     if (type) list = list.filter(a => a.type === type);
     if (term) {
       list = list.filter(a =>
@@ -101,7 +126,7 @@ export class ChartOfAccountsPageComponent implements OnInit, OnDestroy {
   counts = computed(() => {
     const all = this.accounts();
     return {
-      total:  all.length,
+      total: all.length,
       active: all.filter(a => a.isActive).length,
       movement: all.filter(a => a.allowsMovement).length
     };
@@ -164,13 +189,13 @@ export class ChartOfAccountsPageComponent implements OnInit, OnDestroy {
     event.stopPropagation();
     this.editingId.set(acc.id);
     this.form.patchValue({
-      code:           acc.code,
-      name:           acc.name,
-      type:           acc.type,
-      nature:         acc.nature,
+      code: acc.code,
+      name: acc.name,
+      type: acc.type,
+      nature: acc.nature,
       allowsMovement: acc.allowsMovement,
-      isActive:       acc.isActive,
-      description:    acc.description ?? ''
+      isActive: acc.isActive,
+      description: acc.description ?? ''
     });
     this.showModal.set(true);
   }
@@ -193,16 +218,16 @@ export class ChartOfAccountsPageComponent implements OnInit, OnDestroy {
     const v = this.form.value;
     try {
       const input = {
-        code:           v.code!.trim(),
-        name:           v.name!.trim(),
-        type:           v.type! as AccountType,
-        nature:         v.nature! as AccountNature,
+        code: v.code!.trim(),
+        name: v.name!.trim(),
+        type: v.type! as AccountType,
+        nature: v.nature! as AccountNature,
         allowsMovement: v.allowsMovement ?? false,
-        isAuxiliary:    v.allowsMovement ?? false,
-        isActive:       v.isActive ?? true,
-        description:    v.description ?? '',
-        level:          levelFromCode(v.code!.trim()),
-        parentCode:     parentCodeFromCode(v.code!.trim())
+        isAuxiliary: v.allowsMovement ?? false,
+        isActive: v.isActive ?? true,
+        description: v.description ?? '',
+        level: levelFromCode(v.code!.trim()),
+        parentCode: parentCodeFromCode(v.code!.trim())
       };
 
       const id = this.editingId();
@@ -316,6 +341,116 @@ export class ChartOfAccountsPageComponent implements OnInit, OnDestroy {
       this.notifications.error('Error al cargar plan de cuentas: ' + (err?.message ?? err));
     } finally {
       this.seeding.set(false);
+    }
+  }
+
+  // ── Import / Export ───────────────────────────────────────────────────────
+  downloadTemplate(): void {
+    const rows = ECUADOR_CHART_OF_ACCOUNTS_SEED.map(e => ({
+      codigo: e.code,
+      nombre: e.name,
+      tipo: e.type,
+      naturaleza: e.nature,
+      permite_movimiento: e.allowsMovement ? 'SI' : 'NO'
+    }));
+    this.excelExport.export('plantilla_plan_cuentas', [{ name: 'Plan de Cuentas', rows }]);
+  }
+
+  openImportModal(): void {
+    this.importPreview.set([]);
+    this.importFileName.set('');
+    this.showImportModal.set(true);
+  }
+
+  closeImportModal(): void {
+    this.showImportModal.set(false);
+    this.importPreview.set([]);
+    this.importFileName.set('');
+  }
+
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    this.importFileName.set(file.name);
+    this.importParsing.set(true);
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target!.result as ArrayBuffer);
+        const wb = XLSX.read(data, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const raw: any[] = XLSX.utils.sheet_to_json(ws, { defval: '' });
+        const rows = this.parseImportRows(raw);
+        this.importPreview.set(rows);
+      } catch {
+        this.notifications.error('No se pudo leer el archivo. Verifica que sea un CSV o Excel válido.');
+        this.importPreview.set([]);
+        this.importFileName.set('');
+      } finally {
+        this.importParsing.set(false);
+        input.value = '';
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  private parseImportRows(raw: any[]): ImportRow[] {
+    const validTypes: AccountType[] = ['activo', 'pasivo', 'patrimonio', 'ingreso', 'costo', 'gasto', 'resultado'];
+    const validNatures: AccountNature[] = ['deudora', 'acreedora'];
+
+    return raw.map((r, i) => {
+      const errors: string[] = [];
+
+      const code = String(r['codigo'] ?? r['code'] ?? r['Codigo'] ?? r['Code'] ?? '').trim();
+      const name = String(r['nombre'] ?? r['name'] ?? r['Nombre'] ?? r['Name'] ?? '').trim();
+      const rawType = String(r['tipo'] ?? r['type'] ?? r['Tipo'] ?? r['Type'] ?? '').trim().toLowerCase();
+      const rawNature = String(r['naturaleza'] ?? r['nature'] ?? r['Naturaleza'] ?? r['Nature'] ?? '').trim().toLowerCase();
+      const rawMov = String(r['permite_movimiento'] ?? r['allowsMovement'] ?? r['Permite_Movimiento'] ?? '').trim().toLowerCase();
+
+      if (!code) errors.push('Código requerido');
+      else if (!/^[\d.]+$/.test(code)) errors.push('Código inválido (solo números y puntos)');
+
+      if (!name) errors.push('Nombre requerido');
+      else if (name.length < 2) errors.push('Nombre muy corto');
+
+      const type = validTypes.includes(rawType as AccountType) ? rawType as AccountType : null;
+      if (!type) errors.push(`Tipo inválido: "${rawType}" (use: ${validTypes.join(', ')})`);
+
+      const nature = validNatures.includes(rawNature as AccountNature)
+        ? rawNature as AccountNature
+        : (type ? defaultNatureForType(type as AccountType) : 'deudora' as AccountNature);
+
+      const allowsMovement = ['si', 'yes', 'true', '1', 'sí'].includes(rawMov);
+
+      return {
+        row: i + 2,
+        code,
+        name,
+        type: (type ?? 'activo') as AccountType,
+        nature,
+        allowsMovement,
+        errors,
+        valid: errors.length === 0
+      };
+    });
+  }
+
+  async confirmImport(): Promise<void> {
+    const valid = this.importValid();
+    if (!valid.length || this.importing()) return;
+    this.importing.set(true);
+    try {
+      const { created, skipped } = await this.svc.importAccounts(
+        valid.map(r => ({ code: r.code, name: r.name, type: r.type, nature: r.nature, allowsMovement: r.allowsMovement }))
+      );
+      this.notifications.success(`Importación completada: ${created} cuentas creadas, ${skipped} omitidas`);
+      this.closeImportModal();
+    } catch (err: any) {
+      this.notifications.error('Error al importar: ' + (err?.message ?? err));
+    } finally {
+      this.importing.set(false);
     }
   }
 

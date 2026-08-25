@@ -2,29 +2,15 @@
 <div class="d-flex justify-content-between align-items-start mb-3">
   <div>
     <h4 class="mb-1">Asientos Contables</h4>
-    <div class="d-flex gap-2 flex-wrap">
-      <button class="btn btn-sm" [class.btn-primary]="statusFilter() === null"
-              [class.btn-outline-secondary]="statusFilter() !== null"
-              (click)="statusFilter.set(null)">
-        Todos <strong>{{ counts().total }}</strong>
-      </button>
-      <button class="btn btn-sm" [class.btn-success]="statusFilter() === 'posted'"
-              [class.btn-outline-secondary]="statusFilter() !== 'posted'"
-              (click)="statusFilter.set('posted')">
-        Contabilizados <strong>{{ counts().posted }}</strong>
-      </button>
-      <button class="btn btn-sm" [class.btn-secondary]="statusFilter() === 'draft'"
-              [class.btn-outline-secondary]="statusFilter() !== 'draft'"
-              (click)="statusFilter.set('draft')">
-        Borradores <strong>{{ counts().draft }}</strong>
-      </button>
-      @if (counts().cancelled > 0) {
-        <button class="btn btn-sm" [class.btn-danger]="statusFilter() === 'cancelled'"
-                [class.btn-outline-secondary]="statusFilter() !== 'cancelled'"
-                (click)="statusFilter.set('cancelled')">
-          Anulados <strong>{{ counts().cancelled }}</strong>
-        </button>
-      }
+    <div class="seg-tabs">
+      <button class="seg-tab" [class.active]="statusFilter() === null"
+              (click)="setStatusFilter(null)">Todos</button>
+      <button class="seg-tab" [class.active]="statusFilter() === 'posted'"
+              (click)="setStatusFilter('posted')">Contabilizados</button>
+      <button class="seg-tab" [class.active]="statusFilter() === 'draft'"
+              (click)="setStatusFilter('draft')">Borradores</button>
+      <button class="seg-tab" [class.active]="statusFilter() === 'cancelled'"
+              (click)="setStatusFilter('cancelled')">Anulados</button>
     </div>
   </div>
   <button cButton color="primary" size="sm" (click)="openNew()">
@@ -53,7 +39,7 @@
       </select>
 
       <select cSelect class="select-sm"
-              [ngModel]="typeFilter()" (ngModelChange)="typeFilter.set($event || null)">
+              [ngModel]="typeFilter()" (ngModelChange)="setTypeFilter($event || null)">
         <option [value]="null">Todos los tipos</option>
         @for (t of entryTypes; track t) {
           <option [value]="t">{{ TYPE_LABELS[t] }}</option>
@@ -152,48 +138,67 @@
         </tbody>
       </table>
     </div>
-    <div class="table-footer d-flex justify-content-between">
-      <span>{{ filtered().length }} asientos</span>
-      <span>
-        Total contabilizado: <strong class="ms-1">{{ totalPostedDebit() | number:'1.2-2' }} USD</strong>
+    <div class="table-footer d-flex justify-content-between align-items-center">
+      <span class="text-secondary">
+        Página {{ currentPage() }} · {{ filtered().length }} asientos
+        @if (loadingPage()) { <c-spinner size="sm" class="ms-2"></c-spinner> }
       </span>
+      <div class="d-flex gap-3 align-items-center">
+        <span class="text-secondary">
+          Total contabilizado: <strong class="ms-1">{{ totalPostedDebit() | number:'1.2-2' }} USD</strong>
+        </span>
+        <div class="d-flex gap-1">
+          <button cButton color="secondary" variant="outline" size="sm"
+                  [disabled]="currentPage() === 1 || loadingPage()"
+                  (click)="loadPage('prev')">
+            <svg cIcon name="cilArrowLeft" size="sm"></svg>
+          </button>
+          <button cButton color="secondary" variant="outline" size="sm"
+                  [disabled]="!hasMore() || loadingPage()"
+                  (click)="loadPage('next')">
+            <svg cIcon name="cilArrowRight" size="sm"></svg>
+          </button>
+        </div>
+      </div>
     </div>
   }
 </c-card>
 
 <!-- ── Modal: Entry Detail ───────────────────────────────────────────────── -->
-@if (detailEntry()) {
-  <c-modal [visible]="showDetail()" (visibleChange)="showDetail.set($event)" size="xl" backdrop="static">
-    <c-modal-header>
-      <h5 cModalTitle>
-        Asiento N° {{ detailEntry()!.number }} —
-        <span [class]="badgeClasses(STATUS_COLORS[detailEntry()!.status]) + ' ms-1'">
-          {{ STATUS_LABELS[detailEntry()!.status] }}
+<c-modal [visible]="showDetail()" (visibleChange)="showDetail.set($event)" size="xl" backdrop="static">
+  <c-modal-header>
+    <h5 cModalTitle>
+      Asiento N° {{ detailEntry()?.number }} —
+      @if (detailEntry(); as e) {
+        <span [class]="badgeClasses(STATUS_COLORS[e.status]) + ' ms-1'">
+          {{ STATUS_LABELS[e.status] }}
         </span>
-      </h5>
-      <button type="button" class="btn-close" (click)="closeDetail()"></button>
-    </c-modal-header>
+      }
+    </h5>
+    <button type="button" class="btn-close" (click)="closeDetail()"></button>
+  </c-modal-header>
+  @if (detailEntry(); as e) {
     <c-modal-body>
       <div class="row g-2 mb-3">
         <div class="col-md-3">
           <small class="text-secondary d-block">Fecha</small>
-          <strong>{{ formatDate(detailEntry()!.date) }}</strong>
+          <strong>{{ formatDate(e.date) }}</strong>
         </div>
         <div class="col-md-3">
           <small class="text-secondary d-block">Tipo</small>
-          <span [class]="badgeClasses(TYPE_COLORS[detailEntry()!.type])">{{ TYPE_LABELS[detailEntry()!.type] }}</span>
+          <span [class]="badgeClasses(TYPE_COLORS[e.type])">{{ TYPE_LABELS[e.type] }}</span>
         </div>
         <div class="col-md-3">
           <small class="text-secondary d-block">Referencia</small>
-          <span>{{ detailEntry()!.reference || '—' }}</span>
+          <span>{{ e.reference || '—' }}</span>
         </div>
         <div class="col-md-3">
           <small class="text-secondary d-block">Período</small>
-          <span>{{ getPeriodName(detailEntry()!.periodId) }}</span>
+          <span>{{ getPeriodName(e.periodId) }}</span>
         </div>
         <div class="col-12">
           <small class="text-secondary d-block">Descripción</small>
-          <span>{{ detailEntry()!.description }}</span>
+          <span>{{ e.description }}</span>
         </div>
       </div>
 
@@ -209,7 +214,7 @@
           </tr>
         </thead>
         <tbody>
-          @for (line of detailEntry()!.lines; track line.id) {
+          @for (line of e.lines; track line.id) {
             <tr>
               <td class="je-num">{{ line.accountCode }}</td>
               <td>{{ line.accountName }}</td>
@@ -223,25 +228,25 @@
         <tfoot>
           <tr>
             <td colspan="3" class="text-end">TOTALES</td>
-            <td class="text-end">{{ formatAmt(detailEntry()!.totalDebit) }}</td>
-            <td class="text-end">{{ formatAmt(detailEntry()!.totalCredit) }}</td>
-            <td [class.balance-ok]="detailEntry()!.isBalanced" [class.balance-fail]="!detailEntry()!.isBalanced">
-              {{ detailEntry()!.isBalanced ? 'Cuadrado' : 'DESCUADRADO' }}
+            <td class="text-end">{{ formatAmt(e.totalDebit) }}</td>
+            <td class="text-end">{{ formatAmt(e.totalCredit) }}</td>
+            <td [class.balance-ok]="e.isBalanced" [class.balance-fail]="!e.isBalanced">
+              {{ e.isBalanced ? 'Cuadrado' : 'DESCUADRADO' }}
             </td>
           </tr>
         </tfoot>
       </table>
     </c-modal-body>
     <c-modal-footer>
-      @if (detailEntry()!.status === 'draft') {
-        <button cButton color="primary" size="sm" (click)="openEdit(detailEntry()!); closeDetail()">
+      @if (e.status === 'draft') {
+        <button cButton color="primary" size="sm" (click)="openEdit(e); closeDetail()">
           <svg cIcon name="cilPencil" size="sm" class="me-1"></svg>Editar
         </button>
       }
       <button cButton color="secondary" variant="outline" (click)="closeDetail()">Cerrar</button>
     </c-modal-footer>
-  </c-modal>
-}
+  }
+</c-modal>
 
 <!-- ── Modal: Cancel Entry ───────────────────────────────────────────────── -->
 <c-modal [visible]="showCancelDlg()" (visibleChange)="showCancelDlg.set($event)" backdrop="static">

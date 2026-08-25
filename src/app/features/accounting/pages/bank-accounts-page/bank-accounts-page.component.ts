@@ -24,6 +24,7 @@ import {
   BANK_ACCOUNT_TYPE_LABELS
 } from '../../models/bank-account.interface';
 import { Account } from '../../models/account.interface';
+import { AccountSelectComponent } from '../../components/account-select/account-select.component';
 import { AccountingPeriod } from '../../models/accounting-period.interface';
 
 // Cuenta puente fija para saldos iniciales cargados fuera del ciclo formal de
@@ -39,7 +40,8 @@ const OPENING_BALANCE_OFFSET_ACCOUNT = { code: '3.3.01.001', name: 'Utilidades A
     CommonModule, FormsModule, ReactiveFormsModule,
     CardModule, ButtonModule, GridModule, BadgeModule, SpinnerModule,
     TableModule, FormModule, ModalModule, TooltipModule, IconModule,
-    InputGroupComponent, InputGroupTextDirective
+    InputGroupComponent, InputGroupTextDirective,
+    AccountSelectComponent
   ]
 })
 export class BankAccountsPageComponent implements OnInit, OnDestroy {

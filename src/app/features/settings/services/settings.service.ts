@@ -37,12 +37,41 @@ export class SettingsService {
 
   async saveCompanySettings(data: Partial<CompanySettings>): Promise<void> {
     const companyId = this.tenantService.companyId;
+    if (!companyId) return;
+
+    // Eliminar propiedades undefined para evitar errores en Firestore setDoc
+    const cleanData: Record<string, any> = {};
+    for (const [key, value] of Object.entries(data)) {
+      if (value !== undefined) {
+        cleanData[key] = value;
+      }
+    }
+
     const ref = doc(this.firestore, `companies/${companyId}/configuration/general`);
     await setDoc(ref, {
-      ...data,
+      ...cleanData,
       updatedAt: Timestamp.now(),
       updatedBy: this.authService.user()?.uid ?? ''
     }, { merge: true });
+
+    // También actualizamos el documento raíz para reflejar logo, marca y nombre en tiempo real
+    const rootUpdates: Record<string, any> = {};
+    if (data.logoUrl !== undefined) rootUpdates['logoUrl'] = data.logoUrl;
+    if (data.brandColor !== undefined) rootUpdates['brandColor'] = data.brandColor;
+    if (data.brandAccentColor !== undefined) rootUpdates['brandAccentColor'] = data.brandAccentColor;
+    if (data.sidebarTheme !== undefined) rootUpdates['sidebarTheme'] = data.sidebarTheme;
+    if (data.buttonStyle !== undefined) rootUpdates['buttonStyle'] = data.buttonStyle;
+    if (data.cardRadius !== undefined) rootUpdates['cardRadius'] = data.cardRadius;
+    if (data.appTitleSuffix !== undefined) rootUpdates['appTitleSuffix'] = data.appTitleSuffix;
+    if (data.companyName !== undefined) rootUpdates['name'] = data.companyName;
+
+    if (Object.keys(rootUpdates).length > 0) {
+      const rootRef = doc(this.firestore, `companies/${companyId}`);
+      await setDoc(rootRef, {
+        ...rootUpdates,
+        updatedAt: Timestamp.now()
+      }, { merge: true });
+    }
   }
 
   // ── SRI Config — configuration/sri-main (subcollection con permisos de admin) ──

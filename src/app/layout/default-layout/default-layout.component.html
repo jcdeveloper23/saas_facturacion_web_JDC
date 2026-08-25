@@ -5,11 +5,23 @@
   colorScheme="dark"
   id="sidebar1"
   visible
+  [style.--cui-sidebar-brand-bg]="brandColor() ? brandColor()! + '22' : ''"
 >
   <c-sidebar-header class="border-bottom">
     <c-sidebar-brand [routerLink]="[]">
-      <svg [class]="{icon: false}" cIcon class="sidebar-brand-full" height="32" name="logo" title="CoreUI Logo"></svg>
-      <svg cIcon class="sidebar-brand-narrow" height="32" name="signet" title="CoreUI Logo"></svg>
+      @if (logoUrl()) {
+        <!-- Logo personalizado de la empresa -->
+        <img [src]="logoUrl()!" class="sidebar-brand-full" style="max-height:36px;max-width:140px;object-fit:contain;" [alt]="companyName()" />
+        <img [src]="logoUrl()!" class="sidebar-brand-narrow" style="max-height:36px;max-width:36px;object-fit:contain;border-radius:6px;" [alt]="companyName()" />
+      } @else {
+        <div class="sidebar-brand-full d-flex align-items-center gap-2 px-2">
+          <svg cIcon name="cilBuilding" size="lg" class="text-primary flex-shrink-0"></svg>
+          <span class="fw-bold fs-6 text-truncate text-white" style="max-width:130px;">{{ companyName() || 'FacturaSec' }}</span>
+        </div>
+        <div class="sidebar-brand-narrow d-flex align-items-center justify-content-center">
+          <svg cIcon name="cilBuilding" size="lg" class="text-primary"></svg>
+        </div>
+      }
     </c-sidebar-brand>
   </c-sidebar-header>
 

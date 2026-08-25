@@ -18,11 +18,67 @@
 
 // ── Compact Layout — optimización de espacios ─────────────────────────────────
 
-// El wrapper ya maneja padding-inline para el sidebar via --cui-sidebar-occupy-start.
-// Reducimos al mínimo cualquier padding adicional del contenedor principal.
+// Header ultra-compacto (38px de alto en lugar de 64px)
+.header {
+  --cui-header-min-height: 38px !important;
+  --cui-header-height: 38px !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  padding: 0 !important;
+  margin-bottom: 0.25rem !important;
+}
+
+.header .container-fluid {
+  height: 38px !important;
+  min-height: 38px !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+.header-nav {
+  min-height: auto !important;
+  height: auto !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
 .body {
   > .container-fluid {
     padding-inline: 0.5rem;
+  }
+}
+
+// ── Personalización de Marca Blanca & Adaptabilidad Claro/Oscuro ─────────────
+.btn-primary {
+  --cui-btn-color: var(--cui-primary-contrast, #ffffff);
+  --cui-btn-bg: var(--cui-primary);
+  --cui-btn-border-color: var(--cui-primary);
+  --cui-btn-hover-color: var(--cui-primary-contrast, #ffffff);
+  --cui-btn-hover-bg: var(--cui-primary-hover, var(--cui-primary));
+  --cui-btn-hover-border-color: var(--cui-primary-hover, var(--cui-primary));
+  --cui-btn-focus-shadow-rgb: var(--cui-primary-rgb);
+  --cui-btn-active-color: var(--cui-primary-contrast, #ffffff);
+  --cui-btn-active-bg: var(--cui-primary-hover, var(--cui-primary));
+}
+
+.btn {
+  border-radius: var(--brand-btn-radius, 8px);
+}
+
+.card {
+  border-radius: var(--brand-card-radius, 12px);
+}
+
+// Adaptación de textos e íconos primarios según el tema activo (Claro u Oscuro)
+[data-coreui-theme="light"] {
+  .text-primary, a.text-primary {
+    color: var(--cui-primary-light-text, var(--cui-primary)) !important;
+  }
+}
+
+[data-coreui-theme="dark"] {
+  .text-primary, a.text-primary {
+    color: var(--cui-primary-dark-text, var(--cui-primary)) !important;
   }
 }
 

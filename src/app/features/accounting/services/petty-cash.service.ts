@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import {
   Firestore, collection, doc, onSnapshot, updateDoc,
-  addDoc, query, where, orderBy, Timestamp
+  addDoc, query, where, orderBy, limit, Timestamp
 } from '@angular/fire/firestore';
 import { Observable, firstValueFrom } from 'rxjs';
 import { take } from 'rxjs/operators';
@@ -95,7 +95,8 @@ export class PettyCashService {
   getMovements(fundId: string): Observable<PettyCashMovement[]> {
     return new Observable<PettyCashMovement[]>(observer => {
       const ref = collection(this.firestore, this.movementsPath);
-      return onSnapshot(query(ref, where('fundId', '==', fundId), orderBy('date', 'desc')), {
+      // limit(200): ya filtrado por fundId, pero acotamos por seguridad. Ver FIREBASE_PAGINATION_GUIDELINES.md
+      return onSnapshot(query(ref, where('fundId', '==', fundId), orderBy('date', 'desc'), limit(200)), {
         next:  snap => observer.next(snap.docs.map(d => ({ id: d.id, ...d.data() } as PettyCashMovement))),
         error: err  => { console.error('[PettyCashService] getMovements error:', err); observer.error(err); }
       });

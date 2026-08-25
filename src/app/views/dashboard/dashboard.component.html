@@ -1,5 +1,5 @@
 <!-- ── Bienvenida ──────────────────────────────────────────────────────────── -->
-<c-row class="mb-4 align-items-center">
+<c-row class="mb-3 align-items-center">
   <c-col>
     <h4 class="mb-0">Bienvenido</h4>
     <p class="text-muted mb-0 small">{{ companyName() }} · {{ monthName }}</p>
@@ -10,6 +10,60 @@
     </a>
   </c-col>
 </c-row>
+
+<!-- ── Acciones rápidas ───────────────────────────────────────────────────── -->
+<div class="quick-actions mb-4">
+  <a routerLink="/invoices/new" class="quick-action-btn">
+    <div class="quick-action-icon quick-action-icon--primary">
+      <svg cIcon name="cilFile" size="sm"></svg>
+    </div>
+    <span>Nueva Factura</span>
+  </a>
+  @if (hasModule('retentions')) {
+    <a routerLink="/retentions/new" class="quick-action-btn">
+      <div class="quick-action-icon quick-action-icon--info">
+        <svg cIcon name="cilDescription" size="sm"></svg>
+      </div>
+      <span>Nueva Retención</span>
+    </a>
+  }
+  @if (hasModule('purchases')) {
+    <a routerLink="/purchases/new" class="quick-action-btn">
+      <div class="quick-action-icon quick-action-icon--warning">
+        <svg cIcon name="cilCart" size="sm"></svg>
+      </div>
+      <span>Nueva Compra</span>
+    </a>
+  }
+  <a routerLink="/invoices" class="quick-action-btn">
+    <div class="quick-action-icon" [class.quick-action-icon--danger]="overdueInvoices().length > 0" [class.quick-action-icon--secondary]="overdueInvoices().length === 0">
+      <svg cIcon name="cilClock" size="sm"></svg>
+    </div>
+    <span>Ver Vencidas
+      @if (overdueInvoices().length > 0) {
+        <span class="quick-action-badge">{{ overdueInvoices().length }}</span>
+      }
+    </span>
+  </a>
+  <a routerLink="/personas" class="quick-action-btn">
+    <div class="quick-action-icon quick-action-icon--success">
+      <svg cIcon name="cilPeople" size="sm"></svg>
+    </div>
+    <span>Clientes</span>
+  </a>
+  @if (hasModule('stock')) {
+    <a routerLink="/stock" class="quick-action-btn">
+      <div class="quick-action-icon" [class.quick-action-icon--danger]="lowStockProducts().length > 0" [class.quick-action-icon--secondary]="lowStockProducts().length === 0">
+        <svg cIcon name="cilStorage" size="sm"></svg>
+      </div>
+      <span>Stock
+        @if (lowStockProducts().length > 0) {
+          <span class="quick-action-badge">{{ lowStockProducts().length }}</span>
+        }
+      </span>
+    </a>
+  }
+</div>
 
 <!-- ── Alertas operativas ────────────────────────────────────────────────────── -->
 @if (!loading()) {
@@ -49,7 +103,7 @@
           <strong>El certificado SRI ha vencido.</strong> La emisión electrónica está bloqueada.
         } @else {
           <strong>Certificado SRI vence en {{ sriCertDaysLeft() }} día{{ sriCertDaysLeft() === 1 ? '' : 's' }}.</strong>
-          Renueva el certificado antes de que expire para evitar interrupciones en la emisión.
+          Renueva el certificado antes de que expire.
         }
         <a routerLink="/settings/company" class="alert-link ms-1">Ir a configuración →</a>
       </span>
@@ -64,8 +118,8 @@
   </div>
 } @else {
 
-  <!-- ── KPI Cards ──────────────────────────────────────────────────────────── -->
-  <c-row class="mb-4 g-3">
+  <!-- ── KPI Cards principales ──────────────────────────────────────────────── -->
+  <c-row class="mb-3 g-3">
 
     <!-- Ventas del mes -->
     <c-col xs="12" sm="6" xl="3">
@@ -115,7 +169,7 @@
       </c-card>
     </c-col>
 
-    <!-- Stock bajo mínimo (si módulo activo) / Clientes (si no) -->
+    <!-- Stock / Clientes -->
     <c-col xs="12" sm="6" xl="3">
       @if (hasModule('stock')) {
         <c-card class="kpi-card h-100" [class.kpi-card--alert]="lowStockProducts().length > 0">
@@ -124,10 +178,8 @@
               <svg cIcon name="cilStorage" size="lg"></svg>
             </div>
             <div class="kpi-value">{{ lowStockProducts().length }}</div>
-            <div class="kpi-label">Productos bajo stock mínimo</div>
-            <div class="kpi-sub">
-              <a routerLink="/stock" class="text-primary small">Ver stock →</a>
-            </div>
+            <div class="kpi-label">Bajo stock mínimo</div>
+            <div class="kpi-sub"><a routerLink="/stock" class="text-primary small">Ver stock →</a></div>
           </c-card-body>
         </c-card>
       } @else {
@@ -138,9 +190,7 @@
             </div>
             <div class="kpi-value">{{ customersCount() }}</div>
             <div class="kpi-label">Clientes registrados</div>
-            <div class="kpi-sub">
-              <a routerLink="/personas" class="text-primary small">Ver directorio →</a>
-            </div>
+            <div class="kpi-sub"><a routerLink="/personas" class="text-primary small">Ver directorio →</a></div>
           </c-card-body>
         </c-card>
       }
@@ -148,27 +198,217 @@
 
   </c-row>
 
-  <!-- ── Chart + Recent Invoices ────────────────────────────────────────────── -->
+  <!-- ── KPI Cards secundarios ──────────────────────────────────────────────── -->
+  <c-row class="mb-4 g-3">
+
+    <!-- Ticket promedio -->
+    <c-col xs="12" sm="6" xl="4">
+      <c-card class="kpi-card kpi-card--sm h-100">
+        <c-card-body class="d-flex align-items-center gap-3">
+          <div class="kpi-icon kpi-icon--info mb-0 flex-shrink-0">
+            <svg cIcon name="cilBalanceScale" size="lg"></svg>
+          </div>
+          <div class="flex-grow-1 min-w-0">
+            <div class="kpi-value kpi-value--sm">{{ averageTicket() | currency:'USD':'symbol':'1.2-2' }}</div>
+            <div class="kpi-label mb-0">Ticket promedio</div>
+            @if (invoicesThisMonth() > 0) {
+              <div class="kpi-delta mt-1" [class.positive]="averageTicketDelta() >= 0" [class.negative]="averageTicketDelta() < 0">
+                <svg cIcon [name]="averageTicketDelta() >= 0 ? 'cilArrowTop' : 'cilArrowBottom'" size="sm"></svg>
+                {{ averageTicketDelta() | number:'1.0-0' }}% vs mes anterior
+              </div>
+            }
+          </div>
+        </c-card-body>
+      </c-card>
+    </c-col>
+
+    <!-- Tasa de cobro -->
+    <c-col xs="12" sm="6" xl="4">
+      <c-card class="kpi-card kpi-card--sm h-100">
+        <c-card-body class="d-flex align-items-center gap-3">
+          <div class="kpi-icon mb-0 flex-shrink-0"
+               [class.kpi-icon--success]="collectionRate() >= 80"
+               [class.kpi-icon--warning]="collectionRate() >= 50 && collectionRate() < 80"
+               [class.kpi-icon--danger]="collectionRate() < 50">
+            <svg cIcon name="cilCheck" size="lg"></svg>
+          </div>
+          <div class="flex-grow-1 min-w-0">
+            <div class="kpi-value kpi-value--sm">{{ collectionRate() }}%</div>
+            <div class="kpi-label mb-1">Tasa de cobro</div>
+            <c-progress [value]="collectionRate()" height="4"
+              [color]="collectionRate() >= 80 ? 'success' : collectionRate() >= 50 ? 'warning' : 'danger'">
+            </c-progress>
+            <div class="kpi-delta mt-1"
+                 [class.positive]="collectionRateDelta() >= 0"
+                 [class.negative]="collectionRateDelta() < 0">
+              <svg cIcon [name]="collectionRateDelta() >= 0 ? 'cilArrowTop' : 'cilArrowBottom'" size="sm"></svg>
+              {{ collectionRateDelta() | number:'1.0-0' }}pp vs mes anterior
+            </div>
+          </div>
+        </c-card-body>
+      </c-card>
+    </c-col>
+
+    <!-- SRI del mes (solo si módulo SRI activo) -->
+    @if (hasModule('sri')) {
+      <c-col xs="12" xl="4">
+        <c-card class="kpi-card kpi-card--sm h-100">
+          <c-card-body class="d-flex align-items-center gap-3">
+            <div class="kpi-icon kpi-icon--primary mb-0 flex-shrink-0">
+              <svg cIcon name="cilShieldAlt" size="lg"></svg>
+            </div>
+            <div class="flex-grow-1 min-w-0">
+              <div class="kpi-label mb-2">SRI — {{ monthName }}</div>
+              <div class="d-flex gap-3 flex-wrap">
+                <div class="text-center">
+                  <div class="sri-count sri-count--success">{{ sriStatusThisMonth().authorized }}</div>
+                  <div class="sri-label text-success">Autorizadas</div>
+                </div>
+                <div class="text-center">
+                  <div class="sri-count sri-count--warning">{{ sriStatusThisMonth().pending }}</div>
+                  <div class="sri-label text-warning">Pendientes</div>
+                </div>
+                <div class="text-center">
+                  <div class="sri-count sri-count--danger">{{ sriStatusThisMonth().rejected }}</div>
+                  <div class="sri-label text-danger">Rechazadas</div>
+                </div>
+              </div>
+            </div>
+          </c-card-body>
+        </c-card>
+      </c-col>
+    } @else {
+      <!-- Si no hay SRI: mostrar clientes (si stock activo en la fila principal) o ventas del año (si ya se muestran clientes) -->
+      <c-col xs="12" xl="4">
+        @if (hasModule('stock')) {
+          <!-- Con stock activo: la fila principal muestra stock, aquí sí tiene sentido mostrar clientes -->
+          <c-card class="kpi-card kpi-card--sm h-100">
+            <c-card-body class="d-flex align-items-center gap-3">
+              <div class="kpi-icon kpi-icon--info mb-0 flex-shrink-0">
+                <svg cIcon name="cilPeople" size="lg"></svg>
+              </div>
+              <div class="flex-grow-1">
+                <div class="kpi-value kpi-value--sm">{{ customersCount() }}</div>
+                <div class="kpi-label mb-0">Clientes registrados</div>
+                <div class="kpi-sub mt-1"><a routerLink="/personas" class="text-primary small">Ver directorio →</a></div>
+              </div>
+            </c-card-body>
+          </c-card>
+        } @else {
+          <!-- Sin stock ni SRI: clientes ya aparece arriba — mostrar ventas del año -->
+          <c-card class="kpi-card kpi-card--sm h-100">
+            <c-card-body class="d-flex align-items-center gap-3">
+              <div class="kpi-icon kpi-icon--success mb-0 flex-shrink-0">
+                <svg cIcon name="cilChartLine" size="lg"></svg>
+              </div>
+              <div class="flex-grow-1 min-w-0">
+                <div class="kpi-value kpi-value--sm">{{ salesThisYear() | currency:'USD':'symbol':'1.0-0' }}</div>
+                <div class="kpi-label mb-0">Ventas {{ currentYear }}</div>
+                <div class="kpi-sub mt-1">{{ invoicesThisYear() }} facturas emitidas</div>
+              </div>
+            </c-card-body>
+          </c-card>
+        }
+      </c-col>
+    }
+
+  </c-row>
+
+  <!-- ── Tendencia 6 meses + Aging de cobros ────────────────────────────────── -->
+  <c-row class="mb-4 g-3">
+
+    <!-- Tendencia 6 meses -->
+    <c-col xs="12" lg="7">
+      <c-card class="h-100">
+        <c-card-header>
+          <strong>Tendencia de ventas</strong>
+          <span class="text-muted small ms-2">Últimos 6 meses</span>
+        </c-card-header>
+        <c-card-body>
+          <div class="chart-wrapper">
+            <c-chart type="line" [data]="salesTrend()" [options]="trendChartOptions"></c-chart>
+          </div>
+        </c-card-body>
+      </c-card>
+    </c-col>
+
+    <!-- Aging de cuentas por cobrar -->
+    <c-col xs="12" lg="5">
+      <c-card class="h-100">
+        <c-card-header class="d-flex align-items-center justify-content-between">
+          <strong>Aging de cobros</strong>
+          <span class="text-muted small">{{ outstanding() | currency:'USD':'symbol':'1.0-0' }} total</span>
+        </c-card-header>
+        <c-card-body>
+          @if (outstanding() === 0) {
+            <div class="text-center py-3 text-muted small">
+              <svg cIcon name="cilCheck" size="xl" class="text-success mb-2"></svg>
+              <p class="mb-0">Sin cuentas por cobrar. ¡Todo al día!</p>
+            </div>
+          } @else {
+            <div class="aging-grid">
+              <div class="aging-item aging-item--success">
+                <div class="aging-amount">{{ aging().current | currency:'USD':'symbol':'1.0-0' }}</div>
+                <div class="aging-label">Al día</div>
+                <div class="aging-count">{{ aging().currentCount }} doc.</div>
+              </div>
+              <div class="aging-item" [class.aging-item--warning]="aging().d1_30 > 0" [class.aging-item--muted]="aging().d1_30 === 0">
+                <div class="aging-amount">{{ aging().d1_30 | currency:'USD':'symbol':'1.0-0' }}</div>
+                <div class="aging-label">1–30 días</div>
+                <div class="aging-count">{{ aging().d1_30Count }} doc.</div>
+              </div>
+              <div class="aging-item" [class.aging-item--orange]="aging().d31_60 > 0" [class.aging-item--muted]="aging().d31_60 === 0">
+                <div class="aging-amount">{{ aging().d31_60 | currency:'USD':'symbol':'1.0-0' }}</div>
+                <div class="aging-label">31–60 días</div>
+                <div class="aging-count">{{ aging().d31_60Count }} doc.</div>
+              </div>
+              <div class="aging-item" [class.aging-item--danger]="aging().d60plus > 0" [class.aging-item--muted]="aging().d60plus === 0">
+                <div class="aging-amount">{{ aging().d60plus | currency:'USD':'symbol':'1.0-0' }}</div>
+                <div class="aging-label">+60 días</div>
+                <div class="aging-count">{{ aging().d60plusCount }} doc.</div>
+              </div>
+            </div>
+          }
+        </c-card-body>
+      </c-card>
+    </c-col>
+
+  </c-row>
+
+  <!-- ── Gráfico diario + Últimas facturas ──────────────────────────────────── -->
   <c-row class="mb-4 g-3">
 
     <!-- Gráfico de ventas por día -->
     <c-col xs="12" lg="8">
       <c-card class="h-100">
-        <c-card-header class="d-flex align-items-center justify-content-between">
+        <c-card-header class="d-flex align-items-center justify-content-between flex-wrap gap-2">
           <div>
             <strong>Ventas por día</strong>
-            <span class="text-muted small ms-2">{{ monthName }}</span>
+            <span class="text-muted small ms-2">{{ selectedMonthLabel() }}</span>
           </div>
-          <a routerLink="/invoices" class="text-primary small">Ver facturas →</a>
+          <div class="d-flex align-items-center gap-2">
+            <select
+              class="form-select form-select-sm month-select"
+              (change)="onChartMonthChange($event)">
+              @for (m of availableMonths(); track m.value) {
+                <option [value]="m.value" [selected]="m.value === selectedChartMonth()">
+                  {{ m.label | titlecase }}
+                </option>
+              }
+            </select>
+            <a routerLink="/invoices" class="text-primary small text-nowrap">Ver facturas →</a>
+          </div>
         </c-card-header>
         <c-card-body>
-          @if (invoicesThisMonth() === 0) {
+          @if (invoicesInSelectedMonth() === 0) {
             <div class="text-center py-4 text-muted">
               <svg cIcon name="cilChartLine" size="xl" class="mb-2 text-secondary"></svg>
-              <p class="mb-1">Sin ventas registradas este mes.</p>
-              <a routerLink="/invoices/new" cButton color="primary" size="sm">
-                Crear primera factura
-              </a>
+              <p class="mb-1">Sin ventas registradas en {{ selectedMonthLabel() }}.</p>
+              @if (selectedChartMonth() === currentMonth) {
+                <a routerLink="/invoices/new" cButton color="primary" size="sm">
+                  Crear primera factura
+                </a>
+              }
             </div>
           } @else {
             <div class="chart-wrapper">
@@ -274,7 +514,50 @@
     </c-row>
   }
 
-} <!-- /loading -->
+  <!-- ── Top 5 clientes + Plan Usage ───────────────────────────────────────── -->
+  <c-row class="mb-4 g-3">
 
-<!-- ── Plan Usage Widget ──────────────────────────────────────────────────── -->
-<app-plan-usage-widget />
+    <!-- Top 5 clientes del mes -->
+    @if (topCustomers().length > 0) {
+      <c-col xs="12" lg="6">
+        <c-card class="h-100">
+          <c-card-header class="d-flex align-items-center justify-content-between">
+            <strong>Top clientes del mes</strong>
+            <a routerLink="/personas" class="text-primary small">Ver directorio →</a>
+          </c-card-header>
+          <c-card-body class="p-0">
+            <table class="table table-sm table-hover mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th class="ps-3">#</th>
+                  <th>Cliente</th>
+                  <th class="text-end">Docs.</th>
+                  <th class="text-end pe-3">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (c of topCustomers(); track c.name; let i = $index) {
+                  <tr>
+                    <td class="ps-3">
+                      <span class="customer-rank" [class]="'rank-' + (i + 1)">{{ i + 1 }}</span>
+                    </td>
+                    <td class="small fw-medium text-truncate" style="max-width:200px">{{ c.name }}</td>
+                    <td class="text-end small text-muted">{{ c.count }}</td>
+                    <td class="text-end pe-3 small fw-semibold">${{ c.total | number:'1.2-2' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </c-card-body>
+        </c-card>
+      </c-col>
+    }
+
+    <!-- Plan Usage Widget -->
+    <c-col xs="12" [lg]="topCustomers().length > 0 ? 6 : 12">
+      <app-plan-usage-widget />
+    </c-col>
+
+  </c-row>
+
+} <!-- /loading -->

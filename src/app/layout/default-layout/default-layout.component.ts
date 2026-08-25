@@ -62,6 +62,8 @@ export class DefaultLayoutComponent {
   readonly companyStatus         = computed(() => this.tenantService.companyStatus());
   readonly companyName           = computed(() => this.tenantService.company?.name ?? '');
   readonly isSubscriptionExpired = computed(() => this.tenantService.isSubscriptionExpired());
+  readonly logoUrl               = computed(() => this.tenantService.logoUrl());
+  readonly brandColor            = computed(() => this.tenantService.brandColor());
 
   logout(): void {
     this.authService.logout();

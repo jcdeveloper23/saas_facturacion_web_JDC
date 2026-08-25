@@ -63,80 +63,133 @@
 
 <!-- ── Report ─────────────────────────────────────────────────────────────── -->
 @if (searched()) {
+  <!-- Report title -->
   <div class="report-header mb-3">
     <div class="report-title">ESTADO DE RESULTADOS</div>
     <div class="report-period">{{ getPeriodName() }}</div>
   </div>
 
-  <c-card class="mb-3">
+  <!-- KPI summary strip -->
+  <div class="er-summary mb-3 no-print">
+    <div class="er-kpi">
+      <div class="er-kpi-value">{{ round2(totalIngresos()) | number:'1.2-2' }}</div>
+      <div class="er-kpi-label">Total Ingresos</div>
+    </div>
+    <div class="er-kpi-sep"></div>
+    <div class="er-kpi">
+      <div class="er-kpi-value">{{ round2(totalCostos()) | number:'1.2-2' }}</div>
+      <div class="er-kpi-label">Costos y Gastos</div>
+    </div>
+    <div class="er-kpi-sep"></div>
+    <div class="er-kpi">
+      <div class="er-kpi-value" [class.text-success]="isGanancia()" [class.text-danger]="!isGanancia()">
+        {{ round2(utilidad()) | number:'1.2-2' }}
+      </div>
+      <div class="er-kpi-label">{{ isGanancia() ? 'Utilidad Neta' : 'Pérdida Neta' }}</div>
+    </div>
+    <div class="er-kpi-sep"></div>
+    <div class="er-kpi">
+      <div class="er-kpi-value" [class.text-success]="isGanancia()" [class.text-danger]="!isGanancia()">
+        {{ margenNeto() | number:'1.1-1' }}%
+      </div>
+      <div class="er-kpi-label">Margen Neto</div>
+    </div>
+  </div>
+
+  <!-- Main table -->
+  <c-card>
     <c-card-body class="p-0">
-      <table class="er-table">
-        <!-- ── INGRESOS ── -->
-        <thead>
-          <tr class="section-header ingresos-header">
-            <td colspan="2">INGRESOS</td>
-          </tr>
-        </thead>
-        <tbody>
-          @for (line of ingresos(); track line.accountCode) {
-            <tr>
-              <td class="acc-cell">
-                <span class="acc-code">{{ line.accountCode }}</span>
-                {{ line.accountName }}
-              </td>
-              <td class="amt-cell">{{ round2(line.netBalance) | number:'1.2-2' }}</td>
-            </tr>
-          }
-          @if (ingresos().length === 0) {
-            <tr>
-              <td colspan="2" class="text-center text-secondary py-2">Sin movimientos</td>
-            </tr>
-          }
-        </tbody>
-        <tfoot>
-          <tr class="subtotal-row">
-            <td>TOTAL INGRESOS</td>
-            <td class="amt-cell">{{ round2(totalIngresos()) | number:'1.2-2' }}</td>
-          </tr>
-        </tfoot>
+      <div class="table-responsive">
+        <table class="er-table">
+          <colgroup>
+            <col class="col-acc">
+            <col class="col-amt">
+            <col class="col-pct">
+          </colgroup>
 
-        <!-- ── COSTOS Y GASTOS ── -->
-        <thead>
-          <tr class="section-header costos-header">
-            <td colspan="2">COSTOS Y GASTOS</td>
-          </tr>
-        </thead>
-        <tbody>
-          @for (line of costos(); track line.accountCode) {
-            <tr>
-              <td class="acc-cell">
-                <span class="acc-code">{{ line.accountCode }}</span>
-                {{ line.accountName }}
-              </td>
-              <td class="amt-cell">{{ round2(line.netBalance) | number:'1.2-2' }}</td>
+          <!-- ── INGRESOS ─────────────────────────────────────────────────── -->
+          <thead>
+            <tr class="section-header">
+              <th>Ingresos</th>
+              <th class="text-end">Monto</th>
+              <th class="text-end">% Ing.</th>
             </tr>
-          }
-          @if (costos().length === 0) {
-            <tr>
-              <td colspan="2" class="text-center text-secondary py-2">Sin movimientos</td>
+          </thead>
+          <tbody>
+            @for (line of ingresos(); track line.accountCode) {
+              <tr>
+                <td class="acc-cell">
+                  <span class="acc-code">{{ line.accountCode }}</span>
+                  {{ line.accountName }}
+                </td>
+                <td class="amt-cell">{{ round2(line.netBalance) | number:'1.2-2' }}</td>
+                <td class="pct-cell">{{ pctOfIngresos(line.netBalance) | number:'1.1-1' }}%</td>
+              </tr>
+            }
+            @if (ingresos().length === 0) {
+              <tr>
+                <td colspan="3" class="text-center text-secondary py-3">Sin movimientos de ingresos</td>
+              </tr>
+            }
+          </tbody>
+          <tfoot>
+            <tr class="subtotal-row">
+              <td>Total Ingresos</td>
+              <td class="amt-cell">{{ round2(totalIngresos()) | number:'1.2-2' }}</td>
+              <td class="pct-cell pct-highlight">100%</td>
             </tr>
-          }
-        </tbody>
-        <tfoot>
-          <tr class="subtotal-row">
-            <td>TOTAL COSTOS Y GASTOS</td>
-            <td class="amt-cell">{{ round2(totalCostos()) | number:'1.2-2' }}</td>
-          </tr>
-        </tfoot>
+          </tfoot>
 
-        <!-- ── UTILIDAD / PÉRDIDA ── -->
-        <tfoot>
-          <tr class="result-row" [class.ganancia]="isGanancia()" [class.perdida]="!isGanancia()">
-            <td>{{ isGanancia() ? 'UTILIDAD DEL EJERCICIO' : 'PÉRDIDA DEL EJERCICIO' }}</td>
-            <td class="amt-cell">{{ round2(utilidad()) | number:'1.2-2' }}</td>
-          </tr>
-        </tfoot>
-      </table>
+          <!-- ── Spacer ───────────────────────────────────────────────────── -->
+          <tbody>
+            <tr class="section-spacer"><td colspan="3"></td></tr>
+          </tbody>
+
+          <!-- ── COSTOS Y GASTOS ──────────────────────────────────────────── -->
+          <thead>
+            <tr class="section-header">
+              <th>Costos y Gastos</th>
+              <th></th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (line of costos(); track line.accountCode) {
+              <tr>
+                <td class="acc-cell">
+                  <span class="acc-code">{{ line.accountCode }}</span>
+                  {{ line.accountName }}
+                </td>
+                <td class="amt-cell">{{ round2(line.netBalance) | number:'1.2-2' }}</td>
+                <td class="pct-cell">{{ pctOfIngresos(line.netBalance) | number:'1.1-1' }}%</td>
+              </tr>
+            }
+            @if (costos().length === 0) {
+              <tr>
+                <td colspan="3" class="text-center text-secondary py-3">Sin movimientos de costos/gastos</td>
+              </tr>
+            }
+          </tbody>
+          <tfoot>
+            <tr class="subtotal-row">
+              <td>Total Costos y Gastos</td>
+              <td class="amt-cell">{{ round2(totalCostos()) | number:'1.2-2' }}</td>
+              <td class="pct-cell pct-highlight">{{ pctOfIngresos(totalCostos()) | number:'1.1-1' }}%</td>
+            </tr>
+          </tfoot>
+
+          <!-- ── RESULTADO ─────────────────────────────────────────────────── -->
+          <tfoot>
+            <tr class="result-row" [class.ganancia]="isGanancia()" [class.perdida]="!isGanancia()">
+              <td class="result-label">
+                {{ isGanancia() ? 'Utilidad del Ejercicio' : 'Pérdida del Ejercicio' }}
+              </td>
+              <td class="amt-cell result-amt">{{ round2(utilidad()) | number:'1.2-2' }}</td>
+              <td class="pct-cell result-pct">{{ margenNeto() | number:'1.1-1' }}%</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
     </c-card-body>
   </c-card>
 }

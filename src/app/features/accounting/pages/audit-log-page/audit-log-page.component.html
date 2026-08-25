@@ -84,7 +84,7 @@
 </c-card>
 
 <!-- ── Detail modal ───────────────────────────────────────────────────────── -->
-<c-modal [visible]="!!detailEntry()" (visibleChange)="closeDetail()" size="lg">
+<c-modal [visible]="!!detailEntry()" (visibleChange)="$event || closeDetail()" size="lg">
   @if (detailEntry(); as e) {
     <c-modal-header>
       <h5 cModalTitle>{{ collectionLabel(e.collection) }} — {{ ACTION_LABELS[e.action] }}</h5>

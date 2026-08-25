@@ -29,6 +29,14 @@
       }
       Cargar Plan Estándar
     </button>
+    <button cButton color="success" variant="outline" size="sm" (click)="downloadTemplate()">
+      <svg cIcon name="cilCloudDownload" size="sm" class="me-1"></svg>
+      Plantilla
+    </button>
+    <button cButton color="info" variant="outline" size="sm" (click)="openImportModal()">
+      <svg cIcon name="cilArrowTop" size="sm" class="me-1"></svg>
+      Importar
+    </button>
     <button cButton color="primary" size="sm" (click)="openNew()">
       <svg cIcon name="cilPlus" class="me-1"></svg>
       Nueva Cuenta
@@ -73,17 +81,16 @@
       </c-input-group>
 
       <!-- Type pills -->
-      <button class="btn btn-sm" [class.btn-primary]="typeFilter() === null"
-              [class.btn-outline-secondary]="typeFilter() !== null"
-              (click)="setTypeFilter(null)">Todas</button>
-      @for (type of accountTypes; track type) {
-        <button class="btn btn-sm"
-                [class.btn-primary]="typeFilter() === type"
-                [class.btn-outline-secondary]="typeFilter() !== type"
-                (click)="setTypeFilter(type)">
-          {{ TYPE_LABELS[type] }}
-        </button>
-      }
+      <div class="seg-tabs">
+        <button class="seg-tab" [class.active]="typeFilter() === null"
+                (click)="setTypeFilter(null)">Todas</button>
+        @for (type of accountTypes; track type) {
+          <button class="seg-tab" [class.active]="typeFilter() === type"
+                  (click)="setTypeFilter(type)">
+            {{ TYPE_LABELS[type] }}
+          </button>
+        }
+      </div>
 
       <div class="ms-auto d-flex gap-1">
         <button cButton color="secondary" variant="outline" size="sm"
@@ -338,5 +345,153 @@
       }
       {{ editingId() ? 'Actualizar' : 'Crear' }}
     </button>
+  </c-modal-footer>
+</c-modal>
+
+<!-- ── Modal: Import Accounts ─────────────────────────────────────────────── -->
+<c-modal [visible]="showImportModal()" (visibleChange)="showImportModal.set($event)" backdrop="static" size="xl">
+  <c-modal-header>
+    <h5 cModalTitle>Importar Plan de Cuentas</h5>
+    <button type="button" class="btn-close" (click)="closeImportModal()"></button>
+  </c-modal-header>
+
+  <c-modal-body>
+    @if (!importFileName() && !importParsing()) {
+      <div class="import-zone">
+        <div class="import-zone__icon">
+          <svg cIcon name="cilArrowTop" size="xxl"></svg>
+        </div>
+        <p class="import-zone__title">Sube tu archivo CSV o Excel</p>
+        <p class="import-zone__sub text-secondary">
+          Columnas requeridas: <code>codigo</code>, <code>nombre</code>, <code>tipo</code>,
+          <code>naturaleza</code>, <code>permite_movimiento</code>
+        </p>
+        <div class="d-flex gap-2 justify-content-center mt-3">
+          <button cButton color="primary" variant="outline" size="sm" (click)="fileInputRef.click()">
+            <svg cIcon name="cilFile" size="sm" class="me-1"></svg>
+            Seleccionar archivo
+          </button>
+          <button cButton color="success" variant="outline" size="sm" (click)="downloadTemplate()">
+            <svg cIcon name="cilCloudDownload" size="sm" class="me-1"></svg>
+            Descargar plantilla (.xlsx)
+          </button>
+        </div>
+        <p class="import-zone__hint text-secondary mt-3">
+          La plantilla incluye el plan de cuentas estándar Ecuador como ejemplo.
+          Puedes modificarla y subir tu propio plan personalizado.
+        </p>
+      </div>
+      <input #fileInputRef type="file" accept=".csv,.xlsx,.xls" class="d-none"
+             (change)="onFileSelected($event)" />
+    }
+
+    @if (importParsing()) {
+      <div class="text-center py-4">
+        <c-spinner color="primary"></c-spinner>
+        <p class="mt-2 text-secondary">Procesando archivo...</p>
+      </div>
+    }
+
+    @if (importFileName() && !importParsing()) {
+      <div class="import-summary mb-3">
+        <svg cIcon name="cilFile" size="sm" class="text-secondary flex-shrink-0"></svg>
+        <span class="import-summary__file ms-1">{{ importFileName() }}</span>
+        <div class="d-flex gap-2 ms-auto align-items-center">
+          <span class="badge bg-success-subtle text-success border border-success-subtle">
+            {{ importValid().length }} válidas
+          </span>
+          @if (importInvalid().length) {
+            <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+              {{ importInvalid().length }} con errores
+            </span>
+          }
+          <button cButton color="secondary" variant="ghost" size="sm" (click)="fileInputRef2.click()">
+            <svg cIcon name="cilReload" size="sm" class="me-1"></svg>
+            Cambiar archivo
+          </button>
+          <input #fileInputRef2 type="file" accept=".csv,.xlsx,.xls" class="d-none"
+                 (change)="onFileSelected($event)" />
+        </div>
+      </div>
+
+      @if (importInvalid().length) {
+        <div class="alert alert-warning py-2 mb-3 d-flex align-items-start gap-2">
+          <svg cIcon name="cilWarning" size="sm" class="mt-1 flex-shrink-0"></svg>
+          <div>
+            <strong>{{ importInvalid().length }} fila(s) tienen errores</strong> y serán omitidas.
+            Solo se importarán las {{ importValid().length }} filas válidas.
+          </div>
+        </div>
+      }
+
+      @if (!importPreview().length) {
+        <div class="text-center py-4 text-secondary">
+          No se encontraron filas de datos en el archivo.
+        </div>
+      } @else {
+        <div class="import-preview-wrap">
+          <table class="import-table">
+            <thead>
+              <tr>
+                <th>Fila</th>
+                <th>Código</th>
+                <th>Nombre</th>
+                <th>Tipo</th>
+                <th>Naturaleza</th>
+                <th>Movimiento</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of importPreview(); track row.row) {
+                <tr [class.import-row-error]="!row.valid">
+                  <td class="text-secondary">{{ row.row }}</td>
+                  <td class="acc-code">{{ row.code || '—' }}</td>
+                  <td>{{ row.name || '—' }}</td>
+                  <td>
+                    @if (row.type) {
+                      <span [class]="badgeClasses(TYPE_COLORS[row.type])">
+                        {{ TYPE_LABELS[row.type] }}
+                      </span>
+                    }
+                  </td>
+                  <td class="text-capitalize">{{ row.nature }}</td>
+                  <td>
+                    @if (row.allowsMovement) {
+                      <span class="badge bg-info-subtle text-info border border-info-subtle">SI</span>
+                    } @else {
+                      <span class="text-secondary">NO</span>
+                    }
+                  </td>
+                  <td>
+                    @if (row.valid) {
+                      <span class="badge bg-success-subtle text-success border border-success-subtle">OK</span>
+                    } @else {
+                      <span class="text-danger" [cTooltip]="row.errors.join(', ')">
+                        <svg cIcon name="cilWarning" size="sm" class="me-1"></svg>Error
+                      </span>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    }
+  </c-modal-body>
+
+  <c-modal-footer>
+    <button cButton color="secondary" variant="outline" (click)="closeImportModal()">Cancelar</button>
+    @if (importFileName() && !importParsing() && importValid().length > 0) {
+      <button cButton color="primary" [disabled]="importing()" (click)="confirmImport()">
+        @if (importing()) {
+          <c-spinner size="sm" class="me-1"></c-spinner> Importando...
+        } @else {
+          <svg cIcon name="cilArrowTop" size="sm" class="me-1"></svg>
+          Confirmar importación ({{ importValid().length }} cuentas)
+        }
+      </button>
+    }
   </c-modal-footer>
 </c-modal>

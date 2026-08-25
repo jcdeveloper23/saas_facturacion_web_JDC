@@ -13,11 +13,11 @@
 <c-card class="mb-3 no-print">
   <c-card-body>
     <div class="d-flex gap-3 align-items-end flex-wrap">
-      <div class="mode-tabs">
-        <button type="button" class="mode-tab" [class.active]="mode() === 'cxc'" (click)="setMode('cxc')">
+      <div class="seg-tabs">
+        <button type="button" class="seg-tab" [class.active]="mode() === 'cxc'" (click)="setMode('cxc')">
           Cuentas por Cobrar
         </button>
-        <button type="button" class="mode-tab" [class.active]="mode() === 'cxp'" (click)="setMode('cxp')">
+        <button type="button" class="seg-tab" [class.active]="mode() === 'cxp'" (click)="setMode('cxp')">
           Cuentas por Pagar
         </button>
       </div>

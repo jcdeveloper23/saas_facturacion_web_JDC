@@ -1,4 +1,4 @@
-import { Injectable, inject, signal, computed } from '@angular/core';
+import { Injectable, inject, signal, computed, effect } from '@angular/core';
 import { Firestore, doc, collection, onSnapshot } from '@angular/fire/firestore';
 import { PlanLimitsService } from './plan-limits.service';
 
@@ -19,6 +19,14 @@ export interface CompanyConfig {
   phone?: string;
   email?: string;
   logoUrl?: string;
+  brandColor?: string;
+  brandAccentColor?: string;
+  sidebarTheme?: 'dark' | 'brand' | 'light';
+  buttonStyle?: 'square' | 'sharp' | 'rounded' | 'pill';
+  cardRadius?: 'none' | 'sm' | 'md' | 'lg';
+  appTitleSuffix?: string;
+  showLogoOnPdf?: boolean;
+  pdfFooterMessage?: string;
   defaultCurrency: 'USD' | 'EUR';
   vatRate: number;
   fiscalYear: number;
@@ -79,7 +87,146 @@ export class TenantService {
   private _switchingCompany = signal(false);
   private _managedLoaded    = false;
 
+  constructor() {
+    effect(() => {
+      const company = this._company();
+      const color   = company?.brandColor ?? null;
+      const accent  = company?.brandAccentColor ?? null;
+      const theme   = company?.sidebarTheme ?? 'dark';
+      const btnStyle = company?.buttonStyle ?? 'rounded';
+      const cardRad  = company?.cardRadius ?? 'md';
+      const suffix   = company?.appTitleSuffix ?? '';
+      const name     = company?.name ?? '';
+      this.applyBrandTheme(color, accent, theme, btnStyle, cardRad, suffix, name);
+    });
+  }
+
+  private applyBrandTheme(
+    color: string | null,
+    accent: string | null,
+    sidebarTheme: string,
+    buttonStyle: string,
+    cardRadius: string,
+    titleSuffix: string,
+    companyName: string
+  ): void {
+    if (typeof document === 'undefined') return;
+    const root = document.documentElement;
+
+    if (companyName) {
+      document.title = `${companyName} ${titleSuffix ? '| ' + titleSuffix : '| FacturaSec'}`;
+    }
+
+    if (!color) {
+      root.style.removeProperty('--cui-primary');
+      root.style.removeProperty('--cui-primary-rgb');
+      root.style.removeProperty('--cui-primary-contrast');
+      root.style.removeProperty('--cui-primary-light-text');
+      root.style.removeProperty('--cui-primary-dark-text');
+      root.style.removeProperty('--cui-sidebar-brand-bg');
+      root.style.removeProperty('--cui-sidebar-nav-link-active-bg');
+      root.style.removeProperty('--cui-sidebar-nav-link-active-color');
+    } else {
+      root.style.setProperty('--cui-primary', color);
+      root.style.setProperty('--cui-sidebar-brand-bg', color + '22');
+
+      const rgb = this.hexToRgb(color);
+      if (rgb) {
+        root.style.setProperty('--cui-primary-rgb', `${rgb.r}, ${rgb.g}, ${rgb.b}`);
+        root.style.setProperty('--cui-sidebar-nav-link-active-bg', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.18)`);
+        root.style.setProperty('--cui-sidebar-nav-link-active-color', '#ffffff');
+
+        // Cálculo de luminancia para contraste WCAG
+        const lum = this.getLuminance(rgb.r, rgb.g, rgb.b);
+        const contrastText = lum > 0.55 ? '#111827' : '#ffffff';
+        root.style.setProperty('--cui-primary-contrast', contrastText);
+
+        // Variante para texto en Modo Claro (si el color es muy claro, se oscurece un 25%)
+        const lightModeText = lum > 0.45 ? this.adjustBrightness(color, -25) : color;
+        root.style.setProperty('--cui-primary-light-text', lightModeText);
+
+        // Variante para texto en Modo Oscuro (si el color es muy oscuro, se aclara un 30%)
+        const darkModeText = lum < 0.2 ? this.adjustBrightness(color, 35) : color;
+        root.style.setProperty('--cui-primary-dark-text', darkModeText);
+
+        // Hover de botón
+        const hoverColor = lum > 0.5 ? this.adjustBrightness(color, -12) : this.adjustBrightness(color, 12);
+        root.style.setProperty('--cui-primary-hover', hoverColor);
+      }
+    }
+
+    if (accent) {
+      root.style.setProperty('--cui-secondary', accent);
+      root.style.setProperty('--brand-accent', accent);
+      const accentRgb = this.hexToRgb(accent);
+      if (accentRgb) {
+        root.style.setProperty('--brand-accent-rgb', `${accentRgb.r}, ${accentRgb.g}, ${accentRgb.b}`);
+      }
+    } else {
+      root.style.removeProperty('--cui-secondary');
+      root.style.removeProperty('--brand-accent');
+    }
+
+    // Estilo de botones
+    const btnRadius = buttonStyle === 'square' ? '0px' : buttonStyle === 'pill' ? '50px' : buttonStyle === 'sharp' ? '4px' : '8px';
+    root.style.setProperty('--brand-btn-radius', btnRadius);
+
+    // Redondeo de tarjetas
+    const cardRadPx = cardRadius === 'none' ? '0px' : cardRadius === 'sm' ? '6px' : cardRadius === 'lg' ? '16px' : '12px';
+    root.style.setProperty('--brand-card-radius', cardRadPx);
+  }
+
+  private hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16)
+    } : null;
+  }
+
+  private getLuminance(r: number, g: number, b: number): number {
+    const a = [r, g, b].map(v => {
+      v /= 255;
+      return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    });
+    return a[0] * 0.2126 + a[1] * 0.7152 + a[2] * 0.0722;
+  }
+
+  private adjustBrightness(hex: string, percent: number): string {
+    const num = parseInt(hex.replace('#', ''), 16);
+    const amt = Math.round(2.55 * percent);
+    const R = Math.min(255, Math.max(0, (num >> 16) + amt));
+    const G = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + amt));
+    const B = Math.min(255, Math.max(0, (num & 0x0000FF) + amt));
+    return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
+  }
+
   // ─── Company status API ──────────────────────────────────────────────────
+
+  /** URL del logo de la empresa (null si no tiene). */
+  readonly logoUrl          = computed(() => this._company()?.logoUrl   ?? null);
+  /** Color primario de marca (#hex). Null si no configurado. */
+  readonly brandColor       = computed(() => this._company()?.brandColor ?? null);
+  /** Color secundario / de acento de marca (#hex). Null si no configurado. */
+  readonly brandAccentColor = computed(() => this._company()?.brandAccentColor ?? null);
+  /** Tema del menú lateral: 'dark' | 'brand' | 'light'. */
+  readonly sidebarTheme     = computed(() => this._company()?.sidebarTheme ?? 'dark');
+  /** Estilo de botones: 'rounded' | 'pill' | 'sharp'. */
+  readonly buttonStyle     = computed(() => this._company()?.buttonStyle ?? 'rounded');
+  /** Redondeo de tarjetas: 'sm' | 'md' | 'lg'. */
+  readonly cardRadius       = computed(() => this._company()?.cardRadius ?? 'md');
+  /** Leyenda en la pestaña del navegador. */
+  readonly appTitleSuffix   = computed(() => this._company()?.appTitleSuffix ?? '');
+
+  // ── Plan feature flags (via PlanLimitsService) ───────────────────────────
+
+  /** true si el plan incluye personalización de marca (colores, estilos, PDF). */
+  readonly isWhiteLabelEnabled = computed(() => this.planLimits.isFeatureEnabled('whiteLabelModule'));
+  /** true si el módulo de stock/inventario está habilitado en el plan. */
+  readonly isStockModuleEnabled = computed(() => this.planLimits.isFeatureEnabled('stockModule'));
+  /** true si la facturación electrónica está habilitada en el plan (puede enviar al SRI). */
+  readonly isElectronicInvoicingEnabled = computed(() => this.planLimits.isFeatureEnabled('electronicInvoicing'));
 
   /** Estado actual de la empresa (null mientras no se carga el doc). */
   readonly companyStatus = computed(() => this._company()?.status ?? null);
@@ -217,38 +364,48 @@ export class TenantService {
   }
 
   private loadCompany(companyId: string): void {
-    const ref = doc(this.firestore, `companies/${companyId}`);
-    onSnapshot(ref, {
+    const rootRef = doc(this.firestore, `companies/${companyId}`);
+    const generalRef = doc(this.firestore, `companies/${companyId}/configuration/general`);
+
+    let companyData: Partial<CompanyConfig> = {};
+    let generalData: Record<string, any> = {};
+
+    const updateCombined = () => {
+      if (!companyData.id) return;
+      const merged = {
+        ...companyData,
+        logoUrl: generalData['logoUrl'] ?? companyData.logoUrl,
+        brandColor: generalData['brandColor'] ?? companyData.brandColor,
+        brandAccentColor: generalData['brandAccentColor'] ?? companyData.brandAccentColor,
+        sidebarTheme: generalData['sidebarTheme'] ?? companyData.sidebarTheme ?? 'dark',
+        buttonStyle: generalData['buttonStyle'] ?? companyData.buttonStyle ?? 'rounded',
+        cardRadius: generalData['cardRadius'] ?? companyData.cardRadius ?? 'md',
+        appTitleSuffix: generalData['appTitleSuffix'] ?? companyData.appTitleSuffix ?? '',
+        showLogoOnPdf: generalData['showLogoOnPdf'] ?? companyData.showLogoOnPdf,
+        pdfFooterMessage: generalData['pdfFooterMessage'] ?? companyData.pdfFooterMessage,
+      } as CompanyConfig;
+      this._company.set(merged);
+    };
+
+    onSnapshot(rootRef, {
       next: snap => {
-        const company = snap.exists() ? ({ id: snap.id, ...snap.data() } as CompanyConfig) : null;
-        this._company.set(company);
+        companyData = snap.exists() ? ({ id: snap.id, ...snap.data() } as CompanyConfig) : {};
+        updateCombined();
 
-        // ── DEBUG TEMPORAL — quitar cuando se cierre la depuración de
-        // acceso a módulos (accountingModule / electronicInvoicing). Vuelca
-        // toda la config resuelta de la empresa cada vez que el doc cambia,
-        // para ver de un vistazo qué está encendido/apagado sin ir a Firestore.
-        console.log(
-          '%c[DEBUG COMPANY CONFIG] companies/' + companyId,
-          'color:#e67e22;font-weight:bold',
-          JSON.stringify({
-            id:               company?.id,
-            name:             (company as any)?.name,
-            status:           company?.status,
-            planId:           (company as any)?.planId,
-            enabledPackages:  (company as any)?.enabledPackages,
-            enabledModules:   (company as any)?.enabledModules,
-            planFeatures:     (company as any)?.planFeatures,
-            planLimits:       (company as any)?.planLimits,
-          }, null, 2)
-        );
-
-        // Carga lazy: solo si el plan tiene multiCompanyMode habilitado
         const uid = this._uid();
         if (uid && this.multiCompanyEnabled() && !this._managedLoaded) {
           this.loadManagedCompanies(uid);
         }
       },
       error: err => console.error('[TenantService] Failed to load company:', err)
+    });
+
+    onSnapshot(generalRef, {
+      next: snap => {
+        generalData = snap.exists() ? snap.data() : {};
+        updateCombined();
+      },
+      error: _err => { /* subdoc general may not exist yet */ }
     });
   }
 }

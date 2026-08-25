@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import {
   Firestore, collection, doc, onSnapshot,
   addDoc, updateDoc, deleteDoc,
-  getDocs, query, orderBy, where, writeBatch, Timestamp,
+  getDocs, query, orderBy, where, limit, writeBatch, Timestamp,
   increment
 } from '@angular/fire/firestore';
 import { Observable } from 'rxjs';
@@ -48,7 +48,8 @@ export class BankReconciliationService {
   getStatements(bankAccountId?: string): Observable<BankStatement[]> {
     return new Observable<BankStatement[]>(observer => {
       const ref         = collection(this.firestore, this.stmtPath);
-      const constraints: any[] = [orderBy('createdAt', 'desc')];
+      // limit(50): máx ~4 años de extractos mensuales por cuenta. Ver FIREBASE_PAGINATION_GUIDELINES.md
+      const constraints: any[] = [orderBy('createdAt', 'desc'), limit(50)];
       if (bankAccountId) constraints.unshift(where('bankAccountId', '==', bankAccountId));
 
       return onSnapshot(query(ref, ...constraints), {
@@ -63,7 +64,8 @@ export class BankReconciliationService {
   getTransactions(statementId: string): Observable<BankTransaction[]> {
     return new Observable<BankTransaction[]>(observer => {
       const ref = collection(this.firestore, this.txPath(statementId));
-      return onSnapshot(query(ref, orderBy('date', 'asc')), {
+      // limit(1000): scoped a un extracto; ningún estado de cuenta real supera esto. Ver FIREBASE_PAGINATION_GUIDELINES.md
+      return onSnapshot(query(ref, orderBy('date', 'asc'), limit(1000)), {
         next:  snap => observer.next(snap.docs.map(d => ({ id: d.id, ...d.data() } as BankTransaction))),
         error: err  => { console.error('[BankReconciliationService] getTransactions error:', err); observer.error(err); }
       });

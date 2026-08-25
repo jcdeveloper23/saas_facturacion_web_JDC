@@ -4,14 +4,14 @@ import {
 import { CommonModule } from '@angular/common';
 import { RouterLink, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { Subject, takeUntil, of } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { Subject, takeUntil } from 'rxjs';
 import {
   CardModule, ButtonModule, GridModule,
   SpinnerModule, TableModule, FormModule, TooltipModule,
   InputGroupComponent, InputGroupTextDirective, ModalModule
 } from '@coreui/angular';
 import { IconModule } from '@coreui/icons-angular';
+import { QueryDocumentSnapshot } from '@angular/fire/firestore';
 
 import { JournalEntriesService }    from '../../services/journal-entries.service';
 import { AccountingPeriodsService } from '../../services/accounting-periods.service';
@@ -44,13 +44,21 @@ export class JournalEntriesPageComponent implements OnInit, OnDestroy {
   private destroy$      = new Subject<void>();
 
   // ── State ─────────────────────────────────────────────────────────────────
-  entries     = signal<JournalEntry[]>([]);
-  periods     = signal<AccountingPeriod[]>([]);
-  loading     = signal(true);
-  searchTerm  = signal('');
-  yearFilter  = signal(new Date().getFullYear());
-  typeFilter  = signal<JournalEntryType | null>(null);
-  statusFilter= signal<JournalEntryStatus | null>(null);
+  entries      = signal<JournalEntry[]>([]);
+  periods      = signal<AccountingPeriod[]>([]);
+  loading      = signal(true);
+  loadingPage  = signal(false);
+  searchTerm   = signal('');
+  yearFilter   = signal(new Date().getFullYear());
+  typeFilter   = signal<JournalEntryType | null>(null);
+  statusFilter = signal<JournalEntryStatus | null>(null);
+
+  // ── Paginación (cursor-based) ─────────────────────────────────────────────
+  readonly PAGE_SIZE = 50;
+  currentPage  = signal(1);
+  hasMore      = signal(false);
+  /** Historial de cursors: índice 0 = página 1 (null = inicio), índice 1 = cursor para página 2, etc. */
+  private cursorHistory: (QueryDocumentSnapshot | null)[] = [null];
 
   // Detail modal
   detailEntry  = signal<JournalEntry | null>(null);
@@ -67,31 +75,15 @@ export class JournalEntriesPageComponent implements OnInit, OnDestroy {
   readonly entryTypes: JournalEntryType[] = ['manual','automatic','opening','closing','adjustment'];
 
   // ── Computed ──────────────────────────────────────────────────────────────
+  /** Filtro cliente: solo searchTerm. Tipo y estado van server-side en getEntriesPage(). */
   filtered = computed(() => {
-    const term   = this.searchTerm().toLowerCase().trim();
-    const type   = this.typeFilter();
-    const status = this.statusFilter();
-    let list     = this.entries();
-
-    if (type)   list = list.filter(e => e.type === type);
-    if (status) list = list.filter(e => e.status === status);
-    if (term)   list = list.filter(e =>
+    const term = this.searchTerm().toLowerCase().trim();
+    if (!term) return this.entries();
+    return this.entries().filter(e =>
       String(e.number).includes(term) ||
       e.description.toLowerCase().includes(term) ||
       (e.reference ?? '').toLowerCase().includes(term)
     );
-
-    return list;
-  });
-
-  counts = computed(() => {
-    const all = this.entries();
-    return {
-      total:     all.length,
-      draft:     all.filter(e => e.status === 'draft').length,
-      posted:    all.filter(e => e.status === 'posted').length,
-      cancelled: all.filter(e => e.status === 'cancelled').length,
-    };
   });
 
   totalPostedDebit = computed(() =>
@@ -100,8 +92,8 @@ export class JournalEntriesPageComponent implements OnInit, OnDestroy {
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────
   ngOnInit(): void {
-    this.loadEntries();
     this.periodsSvc.getPeriods().pipe(takeUntil(this.destroy$)).subscribe(p => this.periods.set(p));
+    this.loadPage('reset');
   }
 
   ngOnDestroy(): void {
@@ -109,26 +101,59 @@ export class JournalEntriesPageComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  private loadEntries(): void {
-    this.loading.set(true);
-    this.svc.getEntries({ year: this.yearFilter() }).pipe(
-      catchError(err => {
-        this.notifications.error('Error cargando asientos: ' + (err?.message ?? err));
-        this.loading.set(false);
-        return of([]);
-      }),
-      takeUntil(this.destroy$)
-    ).subscribe(list => {
-      this.entries.set(list);
+  // ── Paginación ────────────────────────────────────────────────────────────
+  async loadPage(direction: 'next' | 'prev' | 'reset'): Promise<void> {
+    const isReset = direction === 'reset';
+
+    if (isReset) {
+      this.cursorHistory = [null];
+      this.currentPage.set(1);
+      this.loading.set(true);
+    } else {
+      this.loadingPage.set(true);
+    }
+
+    let page = this.currentPage();
+    if (direction === 'next') page++;
+    else if (direction === 'prev') page--;
+
+    const cursor = this.cursorHistory[page - 1] ?? undefined;
+
+    try {
+      const result = await this.svc.getEntriesPage(
+        {
+          year:   this.yearFilter(),
+          type:   this.typeFilter()   ?? undefined,
+          status: this.statusFilter() ?? undefined
+        },
+        this.PAGE_SIZE,
+        cursor
+      );
+      this.entries.set(result.items);
+      this.hasMore.set(result.hasMore);
+      this.currentPage.set(page);
+      if (result.nextCursor) this.cursorHistory[page] = result.nextCursor;
+    } catch (err: any) {
+      this.notifications.error('Error cargando asientos: ' + (err?.message ?? err));
+    } finally {
       this.loading.set(false);
-    });
+      this.loadingPage.set(false);
+    }
   }
 
   changeYear(year: number): void {
     this.yearFilter.set(year);
-    this.destroy$.next();
-    this.loadEntries();
-    this.periodsSvc.getPeriods().pipe(takeUntil(this.destroy$)).subscribe(p => this.periods.set(p));
+    this.loadPage('reset');
+  }
+
+  setTypeFilter(type: JournalEntryType | null): void {
+    this.typeFilter.set(type);
+    this.loadPage('reset');
+  }
+
+  setStatusFilter(status: JournalEntryStatus | null): void {
+    this.statusFilter.set(status);
+    this.loadPage('reset');
   }
 
   // ── Navigation ────────────────────────────────────────────────────────────
@@ -146,7 +171,7 @@ export class JournalEntriesPageComponent implements OnInit, OnDestroy {
 
   closeDetail(): void {
     this.showDetail.set(false);
-    this.detailEntry.set(null);
+    setTimeout(() => this.detailEntry.set(null), 350);
   }
 
   // ── Actions ───────────────────────────────────────────────────────────────
@@ -156,6 +181,7 @@ export class JournalEntriesPageComponent implements OnInit, OnDestroy {
     try {
       await this.svc.postEntry(entry.id);
       this.notifications.success('Asiento contabilizado');
+      this.loadPage('reset');
     } catch (err: any) {
       this.notifications.error('Error: ' + (err?.message ?? err));
     }
@@ -178,6 +204,7 @@ export class JournalEntriesPageComponent implements OnInit, OnDestroy {
       await this.svc.cancelEntry(entry.id, this.cancelReason());
       this.notifications.success('Asiento anulado');
       this.showCancelDlg.set(false);
+      this.loadPage('reset');
     } catch (err: any) {
       this.notifications.error('Error: ' + (err?.message ?? err));
     }
@@ -201,6 +228,7 @@ export class JournalEntriesPageComponent implements OnInit, OnDestroy {
     try {
       await this.svc.deleteEntry(entry.id);
       this.notifications.success('Borrador eliminado');
+      this.loadPage('reset');
     } catch (err: any) {
       this.notifications.error('Error: ' + (err?.message ?? err));
     }

@@ -4,8 +4,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { Subject, takeUntil, of } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { Subject, takeUntil } from 'rxjs';
 import {
   CardModule, ButtonModule, GridModule,
   SpinnerModule, TableModule, FormModule, TooltipModule,
@@ -49,6 +48,7 @@ export class LibroDiarioPageComponent implements OnInit, OnDestroy {
 
   // ── State ─────────────────────────────────────────────────────────────────
   entries        = signal<JournalEntry[]>([]);
+  truncated      = signal(false);   // true si el servidor devolvió limit(500) y había más
   downloadingPdf = signal(false);
   periods      = signal<AccountingPeriod[]>([]);
   loading      = signal(true);
@@ -107,24 +107,25 @@ export class LibroDiarioPageComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  private loadEntries(): void {
+  private async loadEntries(): Promise<void> {
     this.loading.set(true);
-    this.svc.getEntries({ year: this.yearFilter() }).pipe(
-      catchError(err => {
-        this.notifications.error('Error cargando libro diario: ' + (err?.message ?? err));
-        this.loading.set(false);
-        return of([]);
-      }),
-      takeUntil(this.destroy$)
-    ).subscribe(list => {
-      this.entries.set(list);
+    this.truncated.set(false);
+    try {
+      // Solo filtro por año en servidor (índice ya existente: periodYear + date + number).
+      // El filtro status='posted' se aplica client-side en filtered() para evitar requerir
+      // un índice compuesto nuevo (periodYear + status + date + number).
+      const result = await this.svc.getEntriesPage({ year: this.yearFilter() }, 500);
+      this.entries.set(result.items);
+      this.truncated.set(result.hasMore);
+    } catch (err: any) {
+      this.notifications.error('Error cargando libro diario: ' + (err?.message ?? err));
+    } finally {
       this.loading.set(false);
-    });
+    }
   }
 
   changeYear(year: number): void {
     this.yearFilter.set(year);
-    this.destroy$.next();
     this.loadEntries();
     this.periodsSvc.getPeriods().pipe(takeUntil(this.destroy$)).subscribe(p => this.periods.set(p));
   }

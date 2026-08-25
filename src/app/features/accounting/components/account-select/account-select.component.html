@@ -1,0 +1,45 @@
+<div class="acc-select"
+     [class.open]="isOpen()"
+     [class.is-invalid]="invalid"
+     [class.disabled]="isDisabled()">
+
+  @if (!isOpen()) {
+    <!-- Closed trigger -->
+    <div class="acc-trigger"
+         [attr.tabindex]="isDisabled() ? -1 : 0"
+         (click)="open()"
+         (keydown)="onTriggerKey($event)">
+      <span [class.acc-placeholder]="!value()">
+        {{ displayValue() || placeholder }}
+      </span>
+      <span class="acc-caret">&#9662;</span>
+    </div>
+  } @else {
+    <!-- Open: search input -->
+    <div class="acc-search-wrap">
+      <input #searchInput
+             class="acc-search-input"
+             type="text"
+             [value]="searchTerm()"
+             (input)="onInput($any($event.target).value)"
+             (keydown)="onSearchKeydown($event)"
+             placeholder="Buscar código o nombre..." />
+      <button type="button" class="acc-close-btn" (click)="close()">&#10005;</button>
+    </div>
+    <!-- Dropdown -->
+    <div #dropdownEl class="acc-dropdown">
+      @for (acc of filteredAccounts(); track acc.code; let i = $index) {
+        <div class="acc-option"
+             [class.highlighted]="highlighted() === i"
+             [class.selected]="value() === acc.code"
+             (click)="select(acc)"
+             (mouseenter)="highlighted.set(i)">
+          <span class="acc-code">{{ acc.code }}</span>
+          <span class="acc-name">{{ acc.name }}</span>
+        </div>
+      } @empty {
+        <div class="acc-no-results">Sin resultados para "{{ searchTerm() }}"</div>
+      }
+    </div>
+  }
+</div>

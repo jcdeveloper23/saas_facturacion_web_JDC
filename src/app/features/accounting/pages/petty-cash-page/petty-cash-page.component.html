@@ -134,12 +134,12 @@
     </div>
     <div class="mb-3">
       <label cLabel>Cuenta Contable (GL) <span class="text-danger">*</span></label>
-      <select cSelect [ngModel]="newFundGlCode()" (ngModelChange)="newFundGlCode.set($event)">
-        <option value="">— Seleccionar —</option>
-        @for (a of glAccounts(); track a.id) {
-          <option [value]="a.code">{{ a.code }} — {{ a.name }}</option>
-        }
-      </select>
+      <app-account-select
+        [accounts]="glAccounts()"
+        [ngModel]="newFundGlCode()"
+        (ngModelChange)="newFundGlCode.set($event)"
+        placeholder="— Seleccionar —">
+      </app-account-select>
     </div>
     <div class="row g-3">
       <div class="col-md-6">
@@ -194,12 +194,12 @@
     </div>
     <div class="mb-3">
       <label cLabel>Cuenta de Gasto <span class="text-danger">*</span></label>
-      <select cSelect [ngModel]="newExpAccountCode()" (ngModelChange)="newExpAccountCode.set($event)">
-        <option value="">— Seleccionar —</option>
-        @for (a of glAccounts(); track a.id) {
-          <option [value]="a.code">{{ a.code }} — {{ a.name }}</option>
-        }
-      </select>
+      <app-account-select
+        [accounts]="glAccounts()"
+        [ngModel]="newExpAccountCode()"
+        (ngModelChange)="newExpAccountCode.set($event)"
+        placeholder="— Seleccionar —">
+      </app-account-select>
     </div>
     <div>
       <label cLabel>N° de Comprobante</label>

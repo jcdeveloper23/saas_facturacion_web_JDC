@@ -11,13 +11,20 @@
 
 /* ── Account header card ──────────────────────────────────────────────────── */
 .acc-header {
-  background: var(--cui-primary-bg-subtle);
-  border: 1px solid var(--cui-primary-border-subtle);
+  background: var(--cui-tertiary-bg);
+  border: 1px solid var(--cui-border-color);
+  border-left: 3px solid var(--cui-primary);
   border-radius: 6px;
   padding: .75rem 1rem;
   margin-bottom: .75rem;
 
   h5 { font-family: monospace; margin-bottom: .15rem; }
+}
+
+.saldo-final-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  font-family: monospace;
 }
 
 /* ── Mayor table ──────────────────────────────────────────────────────────── */

@@ -92,6 +92,9 @@ export interface PlanFeatureFlags {
   publicCatalogModule: boolean;    // false = catálogo público deshabilitado
   publicApiModule: boolean;        // false = API pública deshabilitada
 
+  // ── Personalización y Marca Blanca ────────────────────────────────────────
+  whiteLabelModule: boolean;       // false = solo logo básico; true = paleta, estilos, PDF branding
+
   // ── Nivel de servicio ──────────────────────────────────────────────────────
   prioritySupport: boolean;        // acceso a soporte prioritario (SLA reducido)
   betaAccess: boolean;             // acceso a features en beta antes del lanzamiento

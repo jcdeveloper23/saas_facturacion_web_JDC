@@ -82,3 +82,67 @@
 
   .bulk-count { font-size: .82rem; font-weight: 600; color: var(--cui-primary); }
 }
+
+/* ── Import modal ──────────────────────────────────────────────────────────── */
+.import-zone {
+  text-align: center;
+  padding: 2.5rem 2rem;
+  border: 2px dashed var(--cui-border-color);
+  border-radius: 12px;
+  background: var(--cui-tertiary-bg);
+
+  &__icon { color: var(--cui-tertiary-color); margin-bottom: 1rem; }
+  &__title { font-size: 1.05rem; font-weight: 600; margin-bottom: .35rem; }
+  &__sub { font-size: .82rem; }
+  &__hint { font-size: .78rem; }
+}
+
+.import-summary {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .55rem .75rem;
+  background: var(--cui-tertiary-bg);
+  border: 1px solid var(--cui-border-color);
+  border-radius: 8px;
+
+  &__file { font-size: .82rem; font-weight: 500; }
+}
+
+.import-preview-wrap {
+  max-height: 380px;
+  overflow-y: auto;
+  border: 1px solid var(--cui-border-color);
+  border-radius: 6px;
+}
+
+.import-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .8rem;
+
+  thead th {
+    position: sticky;
+    top: 0;
+    background: var(--cui-tertiary-bg);
+    padding: .35rem .6rem;
+    font-size: .68rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--cui-tertiary-color);
+    border-bottom: 1px solid var(--cui-border-color);
+    white-space: nowrap;
+    z-index: 1;
+  }
+
+  tbody td {
+    padding: .3rem .6rem;
+    border-bottom: 1px solid var(--cui-border-color);
+    vertical-align: middle;
+  }
+}
+
+.import-row-error td {
+  background: rgba(var(--cui-danger-rgb), .05);
+}

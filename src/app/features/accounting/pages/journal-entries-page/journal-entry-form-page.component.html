@@ -104,15 +104,13 @@
               @for (ctrl of linesArray.controls; track $index; let i = $index) {
                 <tr [formGroupName]="i">
                   <td>
-                    <select cSelect formControlName="accountCode"
-                            (change)="onAccountSelect(i, $event)"
-                            class="font-mono-xs"
-                            [class.is-invalid]="getLineGroup(i).get('accountCode')?.invalid && getLineGroup(i).get('accountCode')?.touched">
-                      <option value="">— Cuenta —</option>
-                      @for (acc of accounts(); track acc.code) {
-                        <option [value]="acc.code">{{ acc.code }}</option>
-                      }
-                    </select>
+                    <app-account-select
+                      [accounts]="accounts()"
+                      [codeOnly]="true"
+                      formControlName="accountCode"
+                      [invalid]="!!(getLineGroup(i).get('accountCode')?.invalid && getLineGroup(i).get('accountCode')?.touched)"
+                      (accountSelected)="onAccountSelectedForLine(i, $event)">
+                    </app-account-select>
                   </td>
                   <td class="text-sm-muted">
                     {{ getLineGroup(i).get('accountName')?.value || '—' }}

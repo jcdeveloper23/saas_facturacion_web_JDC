@@ -15,6 +15,14 @@ export interface CompanySettings {
   email: string;
   website?: string;
   logoUrl?: string;
+  brandColor?: string;       // hex: '#0d6efd' — color primario de marca
+  brandAccentColor?: string; // hex: '#0dcaf0' — color de acento/secundario
+  sidebarTheme?: 'dark' | 'brand' | 'light'; // estilo del sidebar
+  buttonStyle?: 'square' | 'sharp' | 'rounded' | 'pill'; // estilo de redondeo de botones (square=0px)
+  cardRadius?: 'none' | 'sm' | 'md' | 'lg';              // estilo de redondeo de tarjetas (none=0px)
+  appTitleSuffix?: string;                   // leyenda en la pestaña del navegador
+  showLogoOnPdf?: boolean;    // true = incluir logo en la cabecera de PDFs generados
+  pdfFooterMessage?: string; // mensaje de agradecimiento/pie de página en PDFs
   defaultCurrency: 'USD' | 'EUR';
   vatRate: number;          // 15 (Ecuador 2024)
   fiscalYear: number;

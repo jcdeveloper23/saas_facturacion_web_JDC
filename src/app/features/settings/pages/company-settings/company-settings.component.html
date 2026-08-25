@@ -1,764 +1,1089 @@
 @if (loading()) {
-<div class="text-center py-5"><c-spinner color="primary"></c-spinner></div>
+  <div class="text-center py-5"><c-spinner color="primary"></c-spinner></div>
 } @else {
-<!-- ── Cabecera Pro ────────────────────────────────────────── -->
-<div class="d-flex justify-content-between align-items-center mb-1">
-  <div class="d-flex align-items-center gap-2">
+
+<!-- ── Page header ──────────────────────────────────────────────────────────── -->
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+  <div class="d-flex align-items-center gap-3">
     <div class="bg-primary bg-opacity-10 p-2 rounded">
       <svg cIcon name="cilBuilding" size="xl" class="text-primary"></svg>
     </div>
     <div>
-      <h3 class="mb-0 fw-semibold">Identidad Corporativa</h3>
-      <p class="text-muted small mb-0">Gestiona los datos legales que aparecerán en tus facturas</p>
+      <h3 class="mb-0 fw-semibold">Configuración de Empresa</h3>
+      <p class="text-muted small mb-0">Personaliza tu empresa y la identidad de tu plataforma</p>
     </div>
   </div>
-  <button cButton color="primary" type="submit" form="companyForm" [disabled]="saving()" class="px-4 shadow-sm">
-    @if (saving()) { <c-spinner size="sm" class="me-1"></c-spinner> }
-    Guardar Cambios
-  </button>
+
+  <!-- Porcentaje de completitud -->
+  <div class="bg-body-tertiary p-3 rounded border shadow-sm" style="min-width: 260px;">
+    <div class="d-flex justify-content-between align-items-center mb-1">
+      <span class="small fw-semibold">Perfil de Empresa</span>
+      <span class="badge bg-primary rounded-pill">{{ completionPercentage() }}%</span>
+    </div>
+    <c-progress [value]="completionPercentage()" color="primary" class="mb-0" style="height: 6px;"></c-progress>
+  </div>
 </div>
 
-<!-- ── Ayuda CEO (Callout) ──────────────────────────────────── -->
-<c-callout color="primary" class="bg-body border-start-4 shadow-sm mb-4">
-  <div class="d-flex gap-3 align-items-start">
-    <svg cIcon name="cilInfo" size="lg" class="text-primary mt-1"></svg>
-    <div>
-      <p class="mb-1 fw-bold">Información Legal Crítica</p>
-      <p class="mb-0 text-muted small">
-        La <strong>Razón Social</strong> y el <strong>RUC / Cédula</strong> deben coincidir exactamente con tu registro en el
-        SRI. Cualquier discrepancia podría invalidar tus comprobantes electrónicos.
-      </p>
-    </div>
-  </div>
-</c-callout>
-
-<form id="companyForm" [formGroup]="form" (ngSubmit)="onSubmit()">
-  @if (errorMessage()) {
-  <c-alert color="danger" variant="solid" class="mb-4 d-flex align-items-center gap-2 shadow-sm">
-    <svg cIcon name="cilXCircle" size="xl"></svg> {{ errorMessage() }}
-  </c-alert>
+<!-- ── Tab navigation ───────────────────────────────────────────────────────── -->
+<c-nav variant="underline" class="settings-tabs mb-4">
+  <c-nav-item>
+    <a cNavLink [active]="activeTab() === 'empresa'" (click)="setTab('empresa')" style="cursor:pointer" class="d-inline-flex align-items-center gap-2">
+      <svg cIcon name="cilBuilding" size="sm"></svg>
+      <span>Mi Empresa</span>
+    </a>
+  </c-nav-item>
+  <c-nav-item>
+    <a cNavLink [active]="activeTab() === 'apariencia'" (click)="setTab('apariencia')" style="cursor:pointer" class="d-inline-flex align-items-center gap-2">
+      <svg cIcon name="cilImage" size="sm"></svg>
+      <span>Apariencia</span>
+      @if (currentLogoUrl()) {
+        <span class="tab-badge success">Logo OK</span>
+      }
+    </a>
+  </c-nav-item>
+  @if (isSriEnabled()) {
+    <c-nav-item>
+      <a cNavLink [active]="activeTab() === 'sri'" (click)="setTab('sri')" style="cursor:pointer" class="d-inline-flex align-items-center gap-2">
+        <svg cIcon name="cilShieldAlt" size="sm"></svg>
+        <span>Facturación SRI</span>
+        @if (certThumbprint()) {
+          <span class="tab-badge success">Firma OK</span>
+        } @else {
+          <span class="tab-badge warning">Sin Firma</span>
+        }
+      </a>
+    </c-nav-item>
+    <c-nav-item>
+      <a cNavLink [active]="activeTab() === 'xml'" (click)="setTab('xml')" style="cursor:pointer" class="d-inline-flex align-items-center gap-2">
+        <svg cIcon name="cilDescription" size="sm"></svg>
+        <span>Datos XML</span>
+      </a>
+    </c-nav-item>
   }
+  @if (isStockModuleEnabled()) {
+    <c-nav-item>
+      <a cNavLink [active]="activeTab() === 'inventario'" (click)="setTab('inventario')" style="cursor:pointer" class="d-inline-flex align-items-center gap-2">
+        <svg cIcon name="cilStorage" size="sm"></svg>
+        <span>Inventario</span>
+        @if (stockForm.get('blockSaleOnInsufficient')?.value) {
+          <span class="tab-badge info">Bloqueo Activo</span>
+        }
+      </a>
+    </c-nav-item>
+  }
+</c-nav>
 
-  <c-row class="g-4">
-    <!-- Columna Principal: Datos Legales -->
-    <c-col lg="8">
-      <c-card class="border-0 shadow-sm overflow-hidden h-100">
-        <c-card-body class="p-4">
-          <h6 class="text-uppercase text-muted fw-bold small mb-4 border-bottom pb-2">Información de Registro</h6>
-
-          <c-row class="g-3">
-            <c-col md="12">
-              <label cLabel class="fw-semibold small">Razón Social <span class="text-danger">*</span></label>
-              <input cFormControl formControlName="companyName" placeholder="EJ: CORPORACION EJEMPLO C.A."
-                [class.is-invalid]="hasError('companyName')" class="py-2 fw-bold">
-              @if (hasError('companyName')) { <div class="invalid-feedback">{{ getError('companyName') }}</div> }
-            </c-col>
-
-            <c-col md="3">
-              <label cLabel class="fw-semibold small">Tipo de Documento <span class="text-danger">*</span></label>
-              <select cSelect formControlName="taxIdType" class="py-2">
-                <option value="ruc">RUC (13 dígitos)</option>
-                <option value="cedula">Cédula (10 dígitos)</option>
-              </select>
-              <div class="form-text">
-                @if (form.get('taxIdType')?.value === 'cedula') {
-                  Persona natural que factura con cédula
-                } @else {
-                  Empresa o persona natural con RUC
-                }
-              </div>
-            </c-col>
-
-            <c-col md="5">
-              <label cLabel class="fw-semibold small text-primary">
-                {{ form.get('taxIdType')?.value === 'cedula' ? 'Número de Cédula' : 'Número de RUC' }}
-                <span class="text-danger">*</span>
-              </label>
-              <input cFormControl formControlName="taxId"
-                [maxlength]="form.get('taxIdType')?.value === 'cedula' ? 10 : 13"
-                [placeholder]="form.get('taxIdType')?.value === 'cedula' ? '1700000000' : '1700000000001'"
-                [class.is-invalid]="hasError('taxId')"
-                class="font-monospace py-2 fs-5">
-              @if (hasError('taxId')) { <div class="invalid-feedback">{{ getError('taxId') }}</div> }
-            </c-col>
-
-            <c-col md="6">
-              <label cLabel class="fw-semibold small">Teléfono Corporativo <span class="text-danger">*</span></label>
-              <input cFormControl formControlName="phone" placeholder="Ej: 02 200 0000"
-                [class.is-invalid]="hasError('phone')" class="py-2">
-              @if (hasError('phone')) { <div class="invalid-feedback">{{ getError('phone') }}</div> }
-            </c-col>
-
-            <c-col md="12">
-              <label cLabel class="fw-semibold small">Dirección Fiscal Completa <span
-                  class="text-danger">*</span></label>
-              <input cFormControl formControlName="fiscalAddress" placeholder="Av. Amazonas y Colón N52-..."
-                [class.is-invalid]="hasError('fiscalAddress')" class="py-2">
-              @if (hasError('fiscalAddress')) { <div class="invalid-feedback">{{ getError('fiscalAddress') }}</div> }
-            </c-col>
-
-            <c-col md="3">
-              <label cLabel class="fw-semibold small text-muted">Ciudad <span class="text-danger">*</span></label>
-              <input cFormControl formControlName="city" placeholder="Ej: Quito" [class.is-invalid]="hasError('city')"
-                class="py-2">
-            </c-col>
-
-            <c-col md="3">
-              <label cLabel class="fw-semibold small text-muted">Provincia</label>
-              <input cFormControl formControlName="province" placeholder="Ej: Pichincha" class="py-2">
-            </c-col>
-
-            <c-col md="3">
-              <label cLabel class="fw-semibold small text-muted">Código Postal</label>
-              <input cFormControl formControlName="zipCode" placeholder="Ej: 170150" class="py-2">
-            </c-col>
-
-            <c-col md="3">
-              <label cLabel class="fw-semibold small text-muted">País <span class="text-danger">*</span></label>
-              <input cFormControl formControlName="country" placeholder="Ecuador" class="py-2">
-            </c-col>
-          </c-row>
-        </c-card-body>
-      </c-card>
-    </c-col>
-
-    <!-- Columna Lateral: Configuración y Contacto -->
-    <c-col lg="4">
-      <c-card class="border-0 shadow-sm overflow-hidden mb-4">
-        <c-card-body class="p-4">
-          <h6 class="text-uppercase text-muted fw-bold small mb-4 border-bottom pb-2">Configuración Interna</h6>
-
-          <c-row class="g-3">
-            <c-col md="12">
-              <label cLabel class="fw-semibold small">Moneda del Sistema</label>
-              <select cSelect formControlName="defaultCurrency" class="py-2">
-                <option value="USD">USD — Dólar Americano</option>
-                <option value="EUR">EUR — Euro</option>
-              </select>
-            </c-col>
-
-            <c-col md="12">
-              <label cLabel class="fw-semibold small">IVA por defecto <span class="text-danger">*</span></label>
-              <c-input-group>
-                <input cFormControl type="number" formControlName="vatRate" min="0" max="100" class="py-2">
-                <span cInputGroupText class="bg-body-secondary">%</span>
-              </c-input-group>
-            </c-col>
-
-            <c-col md="12">
-              <label cLabel class="fw-semibold small text-muted">Ejercicio Fiscal</label>
-              <input cFormControl type="number" formControlName="fiscalYear" class="py-2">
-            </c-col>
-          </c-row>
-        </c-card-body>
-      </c-card>
-
-      <c-card class="border-0 shadow-sm overflow-hidden">
-        <c-card-body class="p-4">
-          <h6 class="text-uppercase text-muted fw-bold small mb-4 border-bottom pb-2">Canales Digitales</h6>
-
-          <c-row class="g-3">
-            <c-col md="12">
-              <label cLabel class="fw-semibold small">Email de Facturación <span class="text-danger">*</span></label>
-              <input cFormControl type="email" formControlName="email" placeholder="facturacion@empresa.com"
-                [class.is-invalid]="hasError('email')" class="py-2">
-            </c-col>
-
-            <c-col md="12">
-              <label cLabel class="fw-semibold small text-muted">Sitio Web Oficial</label>
-              <input cFormControl formControlName="website" placeholder="www.tuempresa.com" class="py-2">
-            </c-col>
-          </c-row>
-        </c-card-body>
-      </c-card>
-    </c-col>
-  </c-row>
-
-  <!-- ── Pie de formulario (Mobile visible) ──────────────────── -->
-  <div class="d-flex justify-content-end mt-4 mb-5 d-lg-none">
-    <button cButton color="primary" type="submit" [disabled]="saving()" class="w-100 py-2 shadow-sm">
+<!-- ══════════════════════════════════════════════════════════════════════════
+     TAB: MI EMPRESA
+══════════════════════════════════════════════════════════════════════════════ -->
+@if (activeTab() === 'empresa') {
+  <div class="d-flex justify-content-end mb-3">
+    <button cButton color="primary" type="submit" form="companyForm" [disabled]="saving()" class="px-4">
       @if (saving()) { <c-spinner size="sm" class="me-1"></c-spinner> }
-      Guardar Todo
+      Guardar Cambios
     </button>
   </div>
-</form>
 
-<!-- ── Aviso módulo SRI inactivo ──────────────────────────────────────────── -->
-@if (!isSriEnabled()) {
-<c-callout color="secondary" class="bg-body border-start-4 shadow-sm mt-5 mb-2">
-  <div class="d-flex gap-3 align-items-start">
-    <svg cIcon name="cilLockLocked" size="lg" class="text-secondary mt-1"></svg>
-    <div>
-      <p class="mb-1 fw-bold">Facturación Electrónica SRI no activa</p>
-      <p class="mb-0 text-muted small">
-        El módulo de facturación electrónica no está habilitado en tu plan actual.
-        Las facturas se emitirán como documentos internos sin envío al SRI.
-        Para activar la facturación electrónica, contacta a soporte o actualiza tu plan.
-      </p>
-    </div>
-  </div>
-</c-callout>
+  <form id="companyForm" [formGroup]="form" (ngSubmit)="onSubmit()">
+    @if (errorMessage()) {
+      <c-alert color="danger" class="mb-3 d-flex align-items-center gap-2">
+        <svg cIcon name="cilXCircle" size="sm"></svg> {{ errorMessage() }}
+      </c-alert>
+    }
+
+    <c-row class="g-4">
+      <!-- Columna principal: Datos legales + Contacto -->
+      <c-col lg="8">
+        <c-card class="border-0 shadow-sm mb-4">
+          <c-card-body class="p-4">
+            <h6 class="text-uppercase text-muted fw-bold small mb-4 border-bottom pb-2">Datos Legales</h6>
+            <c-row class="g-3">
+              <c-col md="12">
+                <label cLabel class="fw-semibold small">Razón Social <span class="text-danger">*</span></label>
+                <input cFormControl formControlName="companyName" placeholder="EJ: CORPORACION EJEMPLO C.A."
+                  [class.is-invalid]="hasError('companyName')" class="py-2 fw-bold">
+                @if (hasError('companyName')) { <div class="invalid-feedback">{{ getError('companyName') }}</div> }
+              </c-col>
+
+              <c-col md="3">
+                <label cLabel class="fw-semibold small">Tipo de Documento <span class="text-danger">*</span></label>
+                <select cSelect formControlName="taxIdType" class="py-2">
+                  <option value="ruc">RUC (13 dígitos)</option>
+                  <option value="cedula">Cédula (10 dígitos)</option>
+                </select>
+              </c-col>
+
+              <c-col md="5">
+                <label cLabel class="fw-semibold small">
+                  {{ form.get('taxIdType')?.value === 'cedula' ? 'Número de Cédula' : 'Número de RUC' }}
+                  <span class="text-danger">*</span>
+                </label>
+                <input cFormControl formControlName="taxId"
+                  [maxlength]="form.get('taxIdType')?.value === 'cedula' ? 10 : 13"
+                  [placeholder]="form.get('taxIdType')?.value === 'cedula' ? '1700000000' : '1700000000001'"
+                  [class.is-invalid]="hasError('taxId')"
+                  class="font-monospace py-2">
+                @if (hasError('taxId')) { <div class="invalid-feedback">{{ getError('taxId') }}</div> }
+              </c-col>
+
+              <c-col md="4">
+                <label cLabel class="fw-semibold small">Teléfono <span class="text-danger">*</span></label>
+                <input cFormControl formControlName="phone" placeholder="02 200 0000"
+                  [class.is-invalid]="hasError('phone')" class="py-2">
+                @if (hasError('phone')) { <div class="invalid-feedback">{{ getError('phone') }}</div> }
+              </c-col>
+
+              <c-col md="12">
+                <label cLabel class="fw-semibold small">Dirección Fiscal <span class="text-danger">*</span></label>
+                <input cFormControl formControlName="fiscalAddress" placeholder="Av. Amazonas y Colón N52-..."
+                  [class.is-invalid]="hasError('fiscalAddress')" class="py-2">
+                @if (hasError('fiscalAddress')) { <div class="invalid-feedback">{{ getError('fiscalAddress') }}</div> }
+              </c-col>
+
+              <c-col md="3">
+                <label cLabel class="fw-semibold small">Ciudad <span class="text-danger">*</span></label>
+                <input cFormControl formControlName="city" placeholder="Quito"
+                  [class.is-invalid]="hasError('city')" class="py-2">
+              </c-col>
+              <c-col md="3">
+                <label cLabel class="fw-semibold small">Provincia</label>
+                <input cFormControl formControlName="province" placeholder="Pichincha" class="py-2">
+              </c-col>
+              <c-col md="3">
+                <label cLabel class="fw-semibold small">Código Postal</label>
+                <input cFormControl formControlName="zipCode" placeholder="170150" class="py-2">
+              </c-col>
+              <c-col md="3">
+                <label cLabel class="fw-semibold small">País <span class="text-danger">*</span></label>
+                <input cFormControl formControlName="country" placeholder="Ecuador" class="py-2">
+              </c-col>
+            </c-row>
+          </c-card-body>
+        </c-card>
+
+        <c-card class="border-0 shadow-sm">
+          <c-card-body class="p-4">
+            <h6 class="text-uppercase text-muted fw-bold small mb-4 border-bottom pb-2">Canales Digitales</h6>
+            <c-row class="g-3">
+              <c-col md="6">
+                <label cLabel class="fw-semibold small">Email <span class="text-danger">*</span></label>
+                <input cFormControl type="email" formControlName="email" placeholder="facturacion@empresa.com"
+                  [class.is-invalid]="hasError('email')" class="py-2">
+                @if (hasError('email')) { <div class="invalid-feedback">{{ getError('email') }}</div> }
+              </c-col>
+              <c-col md="6">
+                <label cLabel class="fw-semibold small">Sitio Web</label>
+                <input cFormControl formControlName="website" placeholder="www.tuempresa.com" class="py-2">
+              </c-col>
+            </c-row>
+          </c-card-body>
+        </c-card>
+      </c-col>
+
+      <!-- Columna lateral: Configuración financiera -->
+      <c-col lg="4">
+        <c-card class="border-0 shadow-sm">
+          <c-card-body class="p-4">
+            <h6 class="text-uppercase text-muted fw-bold small mb-4 border-bottom pb-2">Configuración Financiera</h6>
+            <c-row class="g-3">
+              <c-col md="12">
+                <label cLabel class="fw-semibold small">Moneda</label>
+                <select cSelect formControlName="defaultCurrency" class="py-2">
+                  <option value="USD">USD — Dólar Americano</option>
+                  <option value="EUR">EUR — Euro</option>
+                </select>
+              </c-col>
+              <c-col md="12">
+                <label cLabel class="fw-semibold small">IVA por defecto <span class="text-danger">*</span></label>
+                <c-input-group>
+                  <input cFormControl type="number" formControlName="vatRate" min="0" max="100" class="py-2">
+                  <span cInputGroupText class="bg-body-secondary">%</span>
+                </c-input-group>
+              </c-col>
+              <c-col md="12">
+                <label cLabel class="fw-semibold small">Ejercicio Fiscal</label>
+                <input cFormControl type="number" formControlName="fiscalYear" class="py-2">
+              </c-col>
+            </c-row>
+          </c-card-body>
+        </c-card>
+
+        @if (!isSriEnabled()) {
+          <c-callout color="secondary" class="mt-3">
+            <p class="small mb-0">
+              <strong>Facturación electrónica SRI</strong> no está activa en tu plan.
+              Contacta soporte para activarla.
+            </p>
+          </c-callout>
+        }
+      </c-col>
+    </c-row>
+  </form>
 }
 
-<!-- ══════════════════════════════════════════════════════════════════════
-     SECCIÓN SRI — Facturación Electrónica
-     ════════════════════════════════════════════════════════════════════ -->
-@if (isSriEnabled()) {
-<div class="d-flex justify-content-between align-items-center mb-1 mt-5">
-  <div class="d-flex align-items-center gap-2">
-    <div class="bg-warning bg-opacity-10 p-2 rounded">
-      <svg cIcon name="cilShieldAlt" size="xl" class="text-warning"></svg>
-    </div>
-    <div>
-      <h3 class="mb-0 fw-semibold">Facturación Electrónica SRI</h3>
-      <p class="text-muted small mb-0">Configuración para emisión de comprobantes electrónicos</p>
-    </div>
-  </div>
-  <button cButton color="warning" type="submit" form="sriForm" [disabled]="savingSri()" class="px-4 shadow-sm">
-    @if (savingSri()) { <c-spinner size="sm" class="me-1"></c-spinner> }
-    Guardar Config. SRI
-  </button>
-</div>
-
-<c-callout color="warning" class="bg-body border-start-4 shadow-sm mb-4">
-  <div class="d-flex gap-3 align-items-start">
-    <svg cIcon name="cilWarning" size="lg" class="text-warning mt-1"></svg>
-    <div>
-      <p class="mb-1 fw-bold">Ambiente de pruebas activado por defecto</p>
-      <p class="mb-0 text-muted small">
-        Configura y prueba en <strong>Ambiente de Pruebas</strong> antes de cambiar a Producción.
-        El cambio a Producción afectará facturas reales validadas por el SRI.
-      </p>
-    </div>
-  </div>
-</c-callout>
-
-@if (sriErrorMessage()) {
-<c-alert color="danger" variant="solid" class="mb-4 d-flex align-items-center gap-2 shadow-sm">
-  <svg cIcon name="cilXCircle" size="xl"></svg> {{ sriErrorMessage() }}
-</c-alert>
-}
-
-<form id="sriForm" [formGroup]="sriForm" (ngSubmit)="onSubmitSri()">
+<!-- ══════════════════════════════════════════════════════════════════════════
+     TAB: APARIENCIA (Marca Blanca)
+══════════════════════════════════════════════════════════════════════════════ -->
+@if (activeTab() === 'apariencia') {
   <c-row class="g-4">
 
-    <!-- Columna principal: Datos SRI -->
-    <c-col lg="8">
-
-      <!-- Identificación SRI -->
-      <c-card class="border-0 shadow-sm overflow-hidden mb-4">
+    <!-- Logo de empresa -->
+    <c-col lg="7">
+      <c-card class="border-0 shadow-sm h-100">
         <c-card-body class="p-4">
-          <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-2">
-            <h6 class="text-uppercase text-muted fw-bold small mb-0">Identificación del Emisor</h6>
-            <button cButton color="ghost" size="sm" type="button" class="text-primary py-0"
-              (click)="syncFromCompany()" title="Copiar RUC y Razón Social desde Identidad Corporativa">
-              <svg cIcon name="cilSync" size="sm" class="me-1"></svg> Sincronizar
-            </button>
+          <h6 class="text-uppercase text-muted fw-bold small mb-1 border-bottom pb-2">Logo de la empresa</h6>
+          <p class="text-muted small mb-4">
+            Se mostrará en la barra lateral de navegación. Usa formato PNG o SVG con fondo transparente para mejores resultados.
+          </p>
+
+          <!-- Preview actual -->
+          <div class="logo-preview-area mb-4">
+            <div class="sidebar-mockup">
+              <div class="sidebar-mockup-header">
+                @if (logoPreviewUrl() || currentLogoUrl()) {
+                  <img [src]="logoPreviewUrl() ?? currentLogoUrl()!" class="mockup-logo-full" alt="Logo empresa" />
+                } @else {
+                  <div class="mockup-logo-placeholder">
+                    <svg cIcon name="cilBuilding" size="lg" class="text-secondary"></svg>
+                    <span class="text-secondary small">Sin logo</span>
+                  </div>
+                }
+              </div>
+              <div class="sidebar-mockup-nav">
+                <div class="mockup-nav-item active"></div>
+                <div class="mockup-nav-item"></div>
+                <div class="mockup-nav-item"></div>
+                <div class="mockup-nav-item"></div>
+              </div>
+            </div>
+            <div class="logo-preview-label text-muted small text-center mt-2">Vista previa en sidebar</div>
           </div>
-          <c-row class="g-3">
-            <c-col md="5">
-              <label cLabel class="fw-semibold small text-primary">RUC <span class="text-danger">*</span></label>
-              <input cFormControl formControlName="ruc" maxlength="13" placeholder="1700000000001"
-                [class.is-invalid]="hasSriError('ruc')" class="font-monospace py-2 fw-bold">
-              @if (hasSriError('ruc')) {
-                <div class="invalid-feedback">{{ sriForm.get('ruc')?.errors?.['rucInvalid'] ?? 'RUC requerido (13 dígitos)' }}</div>
-              }
-              <div class="form-text">RUC que se usa en el XML y la clave de acceso enviada al SRI</div>
-            </c-col>
-            <c-col md="7">
-              <label cLabel class="fw-semibold small">Razón Social (SRI) <span class="text-danger">*</span></label>
-              <input cFormControl formControlName="businessName" placeholder="EJ: CORPORACION EJEMPLO C.A."
-                [class.is-invalid]="hasSriError('businessName')" class="py-2">
-              @if (hasSriError('businessName')) {
-                <div class="invalid-feedback">Campo requerido</div>
-              }
-            </c-col>
-          </c-row>
-        </c-card-body>
-      </c-card>
 
-      <!-- Ambiente y Emisión -->
-      <c-card class="border-0 shadow-sm overflow-hidden mb-4">
-        <c-card-body class="p-4">
-          <h6 class="text-uppercase text-muted fw-bold small mb-4 border-bottom pb-2">Ambiente y Punto de Emisión</h6>
-          <c-row class="g-3">
-            <c-col md="6">
-              <label cLabel class="fw-semibold small">Ambiente SRI <span class="text-danger">*</span></label>
-              <select cSelect formControlName="environment" class="py-2"
-                [class.is-invalid]="hasSriError('environment')">
-                <option value="testing">Pruebas (certificación)</option>
-                <option value="production">Producción</option>
-              </select>
-              @if (hasSriError('environment')) {
-                <div class="invalid-feedback">Seleccione un ambiente</div>
+          <!-- Upload zone -->
+          <div class="logo-upload-zone" [class.has-file]="logoFileName()">
+            <label for="logoInput" class="d-flex flex-column align-items-center gap-2 py-3" style="cursor:pointer">
+              <svg cIcon name="cilArrowTop" size="xl" class="text-primary"></svg>
+              @if (logoFileName()) {
+                <span class="fw-semibold text-primary">{{ logoFileName() }}</span>
+                <span class="text-muted small">Haz clic para cambiar el archivo</span>
+              } @else {
+                <span class="fw-semibold">Arrastra tu logo aquí o haz clic para seleccionar</span>
+                <span class="text-muted small">JPG, PNG, WEBP o SVG · máx. 2 MB</span>
               }
-            </c-col>
-            <c-col md="3">
-              <label cLabel class="fw-semibold small">Establecimiento <span class="text-danger">*</span></label>
-              <input cFormControl formControlName="establishment" maxlength="3" placeholder="001"
-                class="font-monospace" [class.is-invalid]="hasSriError('establishment')">
-              @if (hasSriError('establishment')) {
-                <div class="invalid-feedback">3 dígitos</div>
-              }
-            </c-col>
-            <c-col md="3">
-              <label cLabel class="fw-semibold small">Punto Emisión <span class="text-danger">*</span></label>
-              <input cFormControl formControlName="emissionPoint" maxlength="3" placeholder="001"
-                class="font-monospace" [class.is-invalid]="hasSriError('emissionPoint')">
-              @if (hasSriError('emissionPoint')) {
-                <div class="invalid-feedback">3 dígitos</div>
-              }
-            </c-col>
-          </c-row>
-        </c-card-body>
-      </c-card>
+            </label>
+            <input type="file" id="logoInput" accept="image/jpeg,image/png,image/webp,image/svg+xml"
+              class="d-none" (change)="onLogoFileSelected($event)">
+          </div>
 
-      <!-- Tipo de Contribuyente y Obligaciones -->
-      <c-card class="border-0 shadow-sm overflow-hidden">
-        <c-card-body class="p-4">
-          <h6 class="text-uppercase text-muted fw-bold small mb-4 border-bottom pb-2">Tipo de Contribuyente</h6>
-          <c-row class="g-3">
-            <c-col md="6">
-              <label cLabel class="fw-semibold small">Tipo Contribuyente <span class="text-danger">*</span></label>
-              <select cSelect formControlName="contributorType" class="py-2">
-                <option value="natural">Persona Natural</option>
-                <option value="juridica">Persona Jurídica / Sociedad</option>
-              </select>
-            </c-col>
-            <c-col md="6">
-              <label cLabel class="fw-semibold small">Régimen <span class="text-danger">*</span></label>
-              <select cSelect formControlName="regimen" class="py-2">
-                <option value="general">General</option>
-                <option value="rimpe_emprendedor">RIMPE — Emprendedor</option>
-                <option value="rimpe_negocio_popular">RIMPE — Negocio Popular</option>
-              </select>
-            </c-col>
-            <c-col md="6">
-              <label cLabel class="fw-semibold small">N° Contribuyente Especial</label>
-              <input cFormControl formControlName="contribuyenteEspecial"
-                placeholder="Dejar vacío si no aplica">
-              <div class="form-text">Solo si el SRI lo designó contribuyente especial</div>
-            </c-col>
-            <c-col md="3" class="d-flex align-items-center pt-4">
-              <div class="form-check form-switch">
-                <input class="form-check-input" type="checkbox" formControlName="accountingRequired" id="accountingReq">
-                <label class="form-check-label fw-semibold small" for="accountingReq">Obligado Contabilidad</label>
-              </div>
-            </c-col>
-            <c-col md="3" class="d-flex align-items-center pt-4">
-              <div class="form-check form-switch">
-                <input class="form-check-input" type="checkbox" formControlName="microempresa" id="microempresa">
-                <label class="form-check-label fw-semibold small" for="microempresa">Microempresa</label>
-              </div>
-            </c-col>
+          @if (logoUploadError()) {
+            <c-alert color="danger" class="mt-2 py-2 small">{{ logoUploadError() }}</c-alert>
+          }
 
-            <!-- Representante legal — solo visible si contributorType === 'juridica' -->
-            @if (sriForm.get('contributorType')?.value === 'juridica') {
-            <c-col md="12">
-              <hr class="my-1">
-              <p class="small fw-semibold text-muted mb-2 mt-2">Representante Legal</p>
-            </c-col>
-            <c-col md="8">
-              <label cLabel class="fw-semibold small">Nombre Completo <span class="text-danger">*</span></label>
-              <input cFormControl formControlName="representanteLegalName" placeholder="Nombre del representante">
-            </c-col>
-            <c-col md="4">
-              <label cLabel class="fw-semibold small">Cédula <span class="text-danger">*</span></label>
-              <input cFormControl formControlName="representanteLegalTaxId" maxlength="10"
-                placeholder="0000000000" class="font-monospace">
-            </c-col>
+          @if (uploadingLogo() && logoUploadProgress() > 0) {
+            <div class="mt-3">
+              <c-progress [value]="logoUploadProgress()" color="primary" animated></c-progress>
+              <p class="text-muted small text-center mt-1">Subiendo… {{ logoUploadProgress() }}%</p>
+            </div>
+          }
+
+          <div class="d-flex gap-2 mt-3">
+            <button cButton color="primary" size="sm" [disabled]="!logoFile() || uploadingLogo()"
+              (click)="uploadLogo()">
+              @if (uploadingLogo()) { <c-spinner size="sm" class="me-1"></c-spinner> Subiendo... }
+              @else { <svg cIcon name="cilArrowTop" size="sm" class="me-1"></svg> Subir Logo }
+            </button>
+            @if (currentLogoUrl()) {
+              <button cButton color="danger" variant="outline" size="sm"
+                [disabled]="removingLogo()" (click)="removeLogo()">
+                @if (removingLogo()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+                @else { <svg cIcon name="cilTrash" size="sm" class="me-1"></svg> }
+                Eliminar logo
+              </button>
             }
-          </c-row>
+          </div>
         </c-card-body>
       </c-card>
-
     </c-col>
 
-    <!-- Columna lateral: Certificado digital -->
-    <c-col lg="4">
-      <c-card class="border-0 shadow-sm overflow-hidden">
+    <!-- Paleta de Colores y Tema de Marca -->
+    <c-col lg="5">
+      <c-card class="border-0 shadow-sm mb-4" [class.plan-locked]="!isWhiteLabelEnabled()">
         <c-card-body class="p-4">
-          <h6 class="text-uppercase text-muted fw-bold small mb-4 border-bottom pb-2">Certificado Digital</h6>
-
-          <c-callout color="info" class="mb-3 p-2">
-            <p class="small mb-0">El certificado <strong>.p12</strong> es emitido por el <strong>BCE</strong> o
-              entidades autorizadas por el SRI. Es necesario para firmar electrónicamente los comprobantes.</p>
-          </c-callout>
-
-          <!-- Zona de carga -->
-          <div class="mb-3">
-            <label cLabel class="fw-semibold small d-block mb-2">Archivo de Certificado (.p12)</label>
-            <input type="file" accept=".p12,.pfx" class="form-control form-control-sm"
-              (change)="onCertificateFileChange($event)">
-            @if (certificateFileName()) {
-              <div class="mt-2 d-flex align-items-center gap-2 text-success small">
-                <svg cIcon name="cilCheckCircle" size="sm"></svg>
-                {{ certificateFileName() }}
-              </div>
+          <div class="d-flex justify-content-between align-items-start mb-1">
+            <h6 class="text-uppercase text-muted fw-bold small border-bottom pb-2 flex-grow-1">Paleta de Colores y Tema</h6>
+            @if (!isWhiteLabelEnabled()) {
+              <span class="badge bg-warning-subtle text-warning border border-warning-subtle ms-2 flex-shrink-0">
+                <svg cIcon name="cilLockLocked" size="sm" class="me-1"></svg>Plan Pro
+              </span>
             }
           </div>
-
-          <!-- Contraseña del certificado -->
-          <div class="mb-3">
-            <label cLabel class="fw-semibold small d-block mb-2">Contraseña del Certificado</label>
-            <input cFormControl type="password" size="sm" autocomplete="new-password"
-                   placeholder="Contraseña del .p12"
-                   [value]="certPassword()"
-                   (input)="certPassword.set($any($event.target).value)">
-          </div>
-
-          @if (certUploadError()) {
-            <c-alert color="danger" class="py-2 px-3 mb-2 small">
-              <svg cIcon name="cilWarning" size="sm" class="me-1"></svg>
-              {{ certUploadError() }}
-            </c-alert>
+          <p class="text-muted small mb-4">
+            Personaliza la identidad cromática de tu plataforma. Modifica los colores primario y secundario.
+          </p>
+          @if (!isWhiteLabelEnabled()) {
+            <c-callout color="warning" class="mb-4">
+              <p class="small mb-1 fw-semibold">Función disponible en planes superiores</p>
+              <p class="small mb-0 text-muted">
+                La personalización de colores, estilos de botones y opciones avanzadas de marca requieren el plan
+                <strong>Professional</strong> o superior. Contacta a soporte para actualizar tu plan.
+              </p>
+            </c-callout>
           }
 
-          <button cButton color="primary" size="sm" class="w-100" type="button"
-            [disabled]="uploadingCert() || !certificateFile()"
-            (click)="uploadCertificate()">
-            @if (uploadingCert()) {
-              <c-spinner size="sm" class="me-1"></c-spinner>
-              Subiendo...
-            } @else {
-              <svg cIcon name="cilCloudUpload" size="sm" class="me-1"></svg>
-              Subir Certificado
-            }
+          <!-- Color Primario -->
+          <div class="color-picker-wrap mb-3" [class.opacity-50]="!isWhiteLabelEnabled()">
+            <div class="color-swatch" [style.background]="brandColor()"></div>
+            <div class="flex-grow-1">
+              <label class="fw-semibold small d-block mb-1">Color Primario (Botones, Acentos y Menú)</label>
+              <div class="d-flex gap-2 align-items-center">
+                <input type="color" class="form-control form-control-color"
+                  [value]="brandColor()"
+                  (input)="brandColor.set($any($event.target).value)"
+                  [disabled]="!isWhiteLabelEnabled()"
+                  title="Elige el color primario">
+                <input cFormControl type="text" class="font-monospace"
+                  [value]="brandColor()"
+                  (change)="brandColor.set($any($event.target).value)"
+                  [attr.disabled]="!isWhiteLabelEnabled() ? true : null"
+                  placeholder="#0d6efd" style="max-width:110px">
+              </div>
+            </div>
+          </div>
+
+          <!-- Color Secundario / Acento -->
+          <div class="color-picker-wrap mb-4" [class.opacity-50]="!isWhiteLabelEnabled()">
+            <div class="color-swatch" [style.background]="brandAccentColor()"></div>
+            <div class="flex-grow-1">
+              <label class="fw-semibold small d-block mb-1">Color Secundario / Acento (Tags y Resaltados)</label>
+              <div class="d-flex gap-2 align-items-center">
+                <input type="color" class="form-control form-control-color"
+                  [value]="brandAccentColor()"
+                  (input)="brandAccentColor.set($any($event.target).value)"
+                  [disabled]="!isWhiteLabelEnabled()"
+                  title="Elige el color de acento">
+                <input cFormControl type="text" class="font-monospace"
+                  [value]="brandAccentColor()"
+                  (change)="brandAccentColor.set($any($event.target).value)"
+                  [attr.disabled]="!isWhiteLabelEnabled() ? true : null"
+                  placeholder="#0dcaf0" style="max-width:110px">
+              </div>
+            </div>
+          </div>
+
+          <!-- Paletas Combinadas Sugeridas -->
+          <div class="mb-4" [class.opacity-50]="!isWhiteLabelEnabled()">
+            <p class="text-muted small mb-2 fw-semibold">Combinaciones Sugeridas</p>
+            <div class="d-flex gap-2 flex-wrap">
+              <button type="button" class="btn btn-sm btn-outline-light border d-flex align-items-center gap-1"
+                [disabled]="!isWhiteLabelEnabled()"
+                (click)="applyPresetPalette('#0d6efd', '#0dcaf0')" title="Azul Corporativo">
+                <span class="color-chip" style="background:#0d6efd; width:16px; height:16px;"></span>
+                <span class="color-chip" style="background:#0dcaf0; width:16px; height:16px;"></span>
+                <small class="text-dark ms-1">Azul</small>
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-light border d-flex align-items-center gap-1"
+                [disabled]="!isWhiteLabelEnabled()"
+                (click)="applyPresetPalette('#198754', '#20c997')" title="Verde Ejecutivo">
+                <span class="color-chip" style="background:#198754; width:16px; height:16px;"></span>
+                <span class="color-chip" style="background:#20c997; width:16px; height:16px;"></span>
+                <small class="text-dark ms-1">Verde</small>
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-light border d-flex align-items-center gap-1"
+                [disabled]="!isWhiteLabelEnabled()"
+                (click)="applyPresetPalette('#6f42c1', '#d63384')" title="Púrpura Elegante">
+                <span class="color-chip" style="background:#6f42c1; width:16px; height:16px;"></span>
+                <span class="color-chip" style="background:#d63384; width:16px; height:16px;"></span>
+                <small class="text-dark ms-1">Púrpura</small>
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-light border d-flex align-items-center gap-1"
+                [disabled]="!isWhiteLabelEnabled()"
+                (click)="applyPresetPalette('#fd7e14', '#ffc107')" title="Naranja Dinámico">
+                <span class="color-chip" style="background:#fd7e14; width:16px; height:16px;"></span>
+                <span class="color-chip" style="background:#ffc107; width:16px; height:16px;"></span>
+                <small class="text-dark ms-1">Naranja</small>
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-light border d-flex align-items-center gap-1"
+                [disabled]="!isWhiteLabelEnabled()"
+                (click)="applyPresetPalette('#dc3545', '#fd7e14')" title="Rojo Ejecutivo">
+                <span class="color-chip" style="background:#dc3545; width:16px; height:16px;"></span>
+                <span class="color-chip" style="background:#fd7e14; width:16px; height:16px;"></span>
+                <small class="text-dark ms-1">Rojo</small>
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-light border d-flex align-items-center gap-1"
+                [disabled]="!isWhiteLabelEnabled()"
+                (click)="applyPresetPalette('#343a40', '#6c757d')" title="Slate Tecnológico">
+                <span class="color-chip" style="background:#343a40; width:16px; height:16px;"></span>
+                <span class="color-chip" style="background:#6c757d; width:16px; height:16px;"></span>
+                <small class="text-dark ms-1">Gris</small>
+              </button>
+            </div>
+          </div>
+
+          <!-- Vista previa de legibilidad Modo Claro / Modo Oscuro -->
+          <div class="mb-4 p-3 rounded border bg-body-tertiary">
+            <p class="text-muted small mb-2 fw-semibold">Garantía de Legibilidad (Claro vs Oscuro)</p>
+            <c-row class="g-2">
+              <c-col sm="6">
+                <div class="p-2.5 rounded border text-center" style="background:#ffffff; color:#212529;">
+                  <small class="d-block text-muted mb-1 font-monospace" style="font-size:0.7rem;">Modo Claro</small>
+                  <button type="button" class="btn btn-sm btn-primary py-1 px-2 me-1" style="font-size:0.75rem;">Acción</button>
+                  <span class="small fw-semibold" [style.color]="brandColor()">Enlace</span>
+                </div>
+              </c-col>
+              <c-col sm="6">
+                <div class="p-2.5 rounded border text-center" style="background:#1d222b; color:#f8fafc;">
+                  <small class="d-block text-muted mb-1 font-monospace" style="font-size:0.7rem;">Modo Oscuro</small>
+                  <button type="button" class="btn btn-sm btn-primary py-1 px-2 me-1" style="font-size:0.75rem;">Acción</button>
+                  <span class="small fw-semibold" [style.color]="brandColor()">Enlace</span>
+                </div>
+              </c-col>
+            </c-row>
+          </div>
+
+          <button cButton color="primary" size="sm"
+            [disabled]="savingBrand() || !isWhiteLabelEnabled()"
+            (click)="saveBrandColor()">
+            @if (savingBrand()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+            Guardar Paleta de Colores
           </button>
+        </c-card-body>
+      </c-card>
 
-          <!-- Alerta de vencimiento del certificado -->
-          @if (certExpiryAlert) {
-            <c-alert [color]="certExpiryAlert" class="mb-3 py-2 px-3 small mt-3">
-              <strong>Certificado de firma electrónica</strong>
-              @if (certDaysLeft <= 0) {
-                — <strong>VENCIDO</strong>. Renueve el certificado en el Banco Central del Ecuador.
-              } @else {
-                — Vence en <strong>{{ certDaysLeft }} días</strong>. Renueve antes de que expire para evitar interrupciones.
-              }
-            </c-alert>
-          }
+      <!-- Estilo de Componentes y Botones -->
+      <c-card class="border-0 shadow-sm mb-4" [class.plan-locked]="!isWhiteLabelEnabled()">
+        <c-card-body class="p-4">
+          <div class="d-flex justify-content-between align-items-start mb-1">
+            <h6 class="text-uppercase text-muted fw-bold small border-bottom pb-2 flex-grow-1">Estilo de Componentes e Interfaz</h6>
+            @if (!isWhiteLabelEnabled()) {
+              <span class="badge bg-warning-subtle text-warning border border-warning-subtle ms-2 flex-shrink-0">
+                <svg cIcon name="cilLockLocked" size="sm" class="me-1"></svg>Plan Pro
+              </span>
+            }
+          </div>
+          <p class="text-muted small mb-4">
+            Ajusta la forma de los botones, el redondeo de las tarjetas y la identidad visual de la interfaz.
+          </p>
 
-          <!-- Estado actual del certificado -->
-          <hr class="my-3">
-          <p class="small fw-semibold text-muted mb-2">Estado Actual</p>
-          <div class="d-flex flex-column gap-1">
-            <div class="d-flex justify-content-between small">
-              <span class="text-muted">Estado:</span>
-              @if (certThumbprint()) {
-                <c-badge color="success">Configurado</c-badge>
-              } @else {
-                <c-badge color="secondary">Sin configurar</c-badge>
-              }
-            </div>
-            @if (certOwnerTaxId()) {
-              <div class="d-flex justify-content-between small">
-                <span class="text-muted">RUC/Cédula cert.:</span>
-                <span class="font-monospace fw-bold text-success">{{ certOwnerTaxId() }}</span>
-              </div>
-            }
-            @if (certOwnerName()) {
-              <div class="d-flex justify-content-between small align-items-start">
-                <span class="text-muted flex-shrink-0">Titular:</span>
-                <span class="text-truncate ms-2 text-end" style="max-width:140px" [title]="certOwnerName()!">
-                  {{ certOwnerName() }}
-                </span>
-              </div>
-            }
-            @if (certThumbprint()) {
-              <div class="d-flex justify-content-between small">
-                <span class="text-muted">Huella (SHA1):</span>
-                <span class="font-monospace text-truncate ms-2" style="max-width:120px" [title]="certThumbprint()!">
-                  {{ certThumbprint()!.substring(0, 12) }}…
-                </span>
-              </div>
-            }
-            <div class="d-flex justify-content-between small">
-              <span class="text-muted">Vencimiento:</span>
-              @if (certExpiry()) {
-                <span [class]="certExpiry()! < today ? 'text-danger fw-bold' : 'text-success'">
-                  {{ certExpiry()! | date:'dd/MM/yyyy' }}
-                </span>
-              } @else {
-                <span class="font-monospace">—</span>
-              }
+          <!-- Estilo de Botones -->
+          <div class="mb-3" [class.opacity-50]="!isWhiteLabelEnabled()">
+            <label cLabel class="fw-semibold small d-block mb-2">Forma de Botones</label>
+            <div class="btn-group w-100" role="group">
+              <button type="button" class="btn btn-sm btn-outline-primary"
+                [class.active]="buttonStyle() === 'square'"
+                [disabled]="!isWhiteLabelEnabled()"
+                (click)="buttonStyle.set('square')">
+                Recto (0px)
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-primary"
+                [class.active]="buttonStyle() === 'sharp'"
+                [disabled]="!isWhiteLabelEnabled()"
+                (click)="buttonStyle.set('sharp')">
+                Fino (4px)
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-primary"
+                [class.active]="buttonStyle() === 'rounded'"
+                [disabled]="!isWhiteLabelEnabled()"
+                (click)="buttonStyle.set('rounded')">
+                Redondeado (8px)
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-primary"
+                [class.active]="buttonStyle() === 'pill'"
+                [disabled]="!isWhiteLabelEnabled()"
+                (click)="buttonStyle.set('pill')">
+                Píldora (50px)
+              </button>
             </div>
           </div>
+
+          <!-- Redondeo de Tarjetas -->
+          <div class="mb-3" [class.opacity-50]="!isWhiteLabelEnabled()">
+            <label cLabel class="fw-semibold small d-block mb-2">Esquinas de Tarjetas y Cajas</label>
+            <select cSelect class="py-2"
+              [value]="cardRadius()"
+              [attr.disabled]="!isWhiteLabelEnabled() ? true : null"
+              (change)="cardRadius.set($any($event.target).value)">
+              <option value="none">Plano / Sin Redondeo (Esquinas 0px)</option>
+              <option value="sm">Sutil (Bordes finos 6px)</option>
+              <option value="md">Estándar Corporativo (Bordes suaves 12px)</option>
+              <option value="lg">Pronunciado Moderno (Bordes redondeados 16px)</option>
+            </select>
+          </div>
+
+          <!-- Leyenda Pestaña Navegador -->
+          <div class="mb-4" [class.opacity-50]="!isWhiteLabelEnabled()">
+            <label cLabel class="fw-semibold small d-block mb-1">Leyenda en Pestaña del Navegador</label>
+            <input cFormControl type="text"
+              [value]="appTitleSuffix()"
+              [attr.disabled]="!isWhiteLabelEnabled() ? true : null"
+              (input)="appTitleSuffix.set($any($event.target).value)"
+              placeholder="Ej: | Portal Comercial & Facturación">
+            <div class="form-text">Aparece después del nombre de tu empresa en el título de la pestaña.</div>
+          </div>
+
+          <button cButton color="primary" size="sm"
+            [disabled]="savingBrand() || !isWhiteLabelEnabled()"
+            (click)="saveBrandColor()">
+            @if (savingBrand()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+            Guardar Estilos de Interfaz
+          </button>
+        </c-card-body>
+      </c-card>
+
+      <c-card class="border-0 shadow-sm mb-4" [class.plan-locked]="!isWhiteLabelEnabled()">
+        <c-card-body class="p-4">
+          <div class="d-flex justify-content-between align-items-start mb-1">
+            <h6 class="text-uppercase text-muted fw-bold small border-bottom pb-2 flex-grow-1">Comprobantes e Impresión (PDF)</h6>
+            @if (!isWhiteLabelEnabled()) {
+              <span class="badge bg-warning-subtle text-warning border border-warning-subtle ms-2 flex-shrink-0">
+                <svg cIcon name="cilLockLocked" size="sm" class="me-1"></svg>Plan Pro
+              </span>
+            }
+          </div>
+          <p class="text-muted small mb-4">
+            Personaliza cómo ven tus clientes los PDF de facturas y retenciones emitidas.
+          </p>
+
+          <div class="form-check form-switch mb-3" [class.opacity-50]="!isWhiteLabelEnabled()">
+            <input class="form-check-input" type="checkbox" role="switch" id="showLogoPdfSwitch"
+              [checked]="showLogoOnPdf()"
+              [disabled]="!isWhiteLabelEnabled()"
+              (change)="showLogoOnPdf.set($any($event.target).checked)">
+            <label class="form-check-label fw-semibold small" for="showLogoPdfSwitch">
+              Incluir logo de la empresa en la cabecera del PDF
+            </label>
+          </div>
+
+          <div class="mb-3" [class.opacity-50]="!isWhiteLabelEnabled()">
+            <label cLabel class="fw-semibold small d-block mb-1">Nota o pie de página en comprobantes</label>
+            <textarea cFormControl rows="2"
+              [value]="pdfFooterMessage()"
+              [attr.disabled]="!isWhiteLabelEnabled() ? true : null"
+              (input)="pdfFooterMessage.set($any($event.target).value)"
+              placeholder="EJ: Gracias por su compra. Depósitos en Banco Pichincha Cta Cte #123456789."></textarea>
+            <div class="form-text">Aparece en el pie de página de cada factura impresa o enviada por correo.</div>
+          </div>
+
+          <button cButton color="primary" size="sm"
+            [disabled]="savingPdfBranding() || !isWhiteLabelEnabled()"
+            (click)="savePdfBranding()">
+            @if (savingPdfBranding()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+            Guardar opciones PDF
+          </button>
+        </c-card-body>
+      </c-card>
+
+      <c-card class="border-0 shadow-sm">
+        <c-card-body class="p-4">
+          <h6 class="text-uppercase text-muted fw-bold small mb-3 border-bottom pb-2">Consejos de marca</h6>
+          <ul class="list-unstyled text-muted small mb-0">
+            <li class="mb-2">
+              <svg cIcon name="cilCheckCircle" size="sm" class="text-success me-2"></svg>
+              Usa un logo con <strong>fondo transparente</strong> (PNG o SVG) para que se vea bien sobre el sidebar oscuro.
+            </li>
+            <li class="mb-2">
+              <svg cIcon name="cilCheckCircle" size="sm" class="text-success me-2"></svg>
+              El logo ideal es <strong>horizontal</strong>, de máx. 140×36 px, para que quepa bien en el sidebar.
+            </li>
+            <li class="mb-2">
+              <svg cIcon name="cilCheckCircle" size="sm" class="text-success me-2"></svg>
+              Elige un color que <strong>contraste bien</strong> con el sidebar oscuro para que sea legible.
+            </li>
+            <li>
+              <svg cIcon name="cilInfo" size="sm" class="text-info me-2"></svg>
+              Los cambios de color y logo se aplican <strong>al instante</strong> en tu entorno.
+            </li>
+          </ul>
         </c-card-body>
       </c-card>
     </c-col>
 
   </c-row>
+}
 
-  <!-- Pie mobile -->
-  <div class="d-flex justify-content-end mt-4 mb-5 d-lg-none">
-    <button cButton color="warning" type="submit" [disabled]="savingSri()" class="w-100 py-2 shadow-sm">
+<!-- ══════════════════════════════════════════════════════════════════════════
+     TAB: FACTURACIÓN SRI
+══════════════════════════════════════════════════════════════════════════════ -->
+@if (activeTab() === 'sri' && isSriEnabled()) {
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h5 class="mb-0 fw-semibold">Facturación Electrónica SRI</h5>
+      <p class="text-muted small mb-0">Configuración para emisión de comprobantes electrónicos</p>
+    </div>
+    <button cButton color="warning" type="submit" form="sriForm" [disabled]="savingSri()" class="px-4">
       @if (savingSri()) { <c-spinner size="sm" class="me-1"></c-spinner> }
       Guardar Config. SRI
     </button>
   </div>
-</form>
+
+  <c-callout color="warning" class="mb-4">
+    <p class="small mb-0">
+      <svg cIcon name="cilWarning" size="sm" class="me-1 text-warning"></svg>
+      Configura y prueba en <strong>Ambiente de Pruebas</strong> antes de cambiar a Producción.
+      El cambio a Producción afecta facturas reales validadas por el SRI.
+    </p>
+  </c-callout>
+
+  @if (sriErrorMessage()) {
+    <c-alert color="danger" class="mb-3 d-flex align-items-center gap-2">
+      <svg cIcon name="cilXCircle" size="sm"></svg> {{ sriErrorMessage() }}
+    </c-alert>
+  }
+
+  <form id="sriForm" [formGroup]="sriForm" (ngSubmit)="onSubmitSri()">
+    <c-row class="g-4">
+
+      <c-col lg="8">
+        <c-card class="border-0 shadow-sm mb-4">
+          <c-card-body class="p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-2">
+              <h6 class="text-uppercase text-muted fw-bold small mb-0">Identificación del Emisor</h6>
+              <button cButton color="ghost" size="sm" type="button" class="text-primary py-0"
+                (click)="syncFromCompany()">
+                <svg cIcon name="cilSync" size="sm" class="me-1"></svg> Sincronizar desde Mi Empresa
+              </button>
+            </div>
+            <c-row class="g-3">
+              <c-col md="5">
+                <label cLabel class="fw-semibold small">RUC <span class="text-danger">*</span></label>
+                <input cFormControl formControlName="ruc" maxlength="13" placeholder="1700000000001"
+                  [class.is-invalid]="hasSriError('ruc')" class="font-monospace py-2 fw-bold">
+                @if (hasSriError('ruc')) {
+                  <div class="invalid-feedback">{{ sriForm.get('ruc')?.errors?.['rucInvalid'] ?? 'RUC requerido (13 dígitos)' }}</div>
+                }
+              </c-col>
+              <c-col md="7">
+                <label cLabel class="fw-semibold small">Razón Social (SRI) <span class="text-danger">*</span></label>
+                <input cFormControl formControlName="businessName" placeholder="CORPORACION EJEMPLO C.A."
+                  [class.is-invalid]="hasSriError('businessName')" class="py-2">
+                @if (hasSriError('businessName')) { <div class="invalid-feedback">Campo requerido</div> }
+              </c-col>
+            </c-row>
+          </c-card-body>
+        </c-card>
+
+        <c-card class="border-0 shadow-sm mb-4">
+          <c-card-body class="p-4">
+            <h6 class="text-uppercase text-muted fw-bold small mb-4 border-bottom pb-2">Ambiente y Punto de Emisión</h6>
+            <c-row class="g-3">
+              <c-col md="6">
+                <label cLabel class="fw-semibold small">Ambiente SRI <span class="text-danger">*</span></label>
+                <select cSelect formControlName="environment" class="py-2" [class.is-invalid]="hasSriError('environment')">
+                  <option value="testing">Pruebas (certificación)</option>
+                  <option value="production">Producción</option>
+                </select>
+              </c-col>
+              <c-col md="3">
+                <label cLabel class="fw-semibold small">Establecimiento <span class="text-danger">*</span></label>
+                <input cFormControl formControlName="establishment" maxlength="3" placeholder="001"
+                  class="font-monospace" [class.is-invalid]="hasSriError('establishment')">
+                @if (hasSriError('establishment')) { <div class="invalid-feedback">3 dígitos</div> }
+              </c-col>
+              <c-col md="3">
+                <label cLabel class="fw-semibold small">Punto Emisión <span class="text-danger">*</span></label>
+                <input cFormControl formControlName="emissionPoint" maxlength="3" placeholder="001"
+                  class="font-monospace" [class.is-invalid]="hasSriError('emissionPoint')">
+                @if (hasSriError('emissionPoint')) { <div class="invalid-feedback">3 dígitos</div> }
+              </c-col>
+            </c-row>
+          </c-card-body>
+        </c-card>
+
+        <c-card class="border-0 shadow-sm">
+          <c-card-body class="p-4">
+            <h6 class="text-uppercase text-muted fw-bold small mb-4 border-bottom pb-2">Tipo de Contribuyente</h6>
+            <c-row class="g-3">
+              <c-col md="6">
+                <label cLabel class="fw-semibold small">Tipo Contribuyente <span class="text-danger">*</span></label>
+                <select cSelect formControlName="contributorType" class="py-2">
+                  <option value="natural">Persona Natural</option>
+                  <option value="juridica">Persona Jurídica / Sociedad</option>
+                </select>
+              </c-col>
+              <c-col md="6">
+                <label cLabel class="fw-semibold small">Régimen <span class="text-danger">*</span></label>
+                <select cSelect formControlName="regimen" class="py-2">
+                  <option value="general">General</option>
+                  <option value="rimpe_emprendedor">RIMPE — Emprendedor</option>
+                  <option value="rimpe_negocio_popular">RIMPE — Negocio Popular</option>
+                </select>
+              </c-col>
+              <c-col md="6">
+                <label cLabel class="fw-semibold small">N° Contribuyente Especial</label>
+                <input cFormControl formControlName="contribuyenteEspecial" placeholder="Dejar vacío si no aplica">
+                <div class="form-text">Solo si el SRI lo designó contribuyente especial</div>
+              </c-col>
+              <c-col md="3" class="d-flex align-items-center pt-4">
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" formControlName="accountingRequired" id="accountingReq">
+                  <label class="form-check-label fw-semibold small" for="accountingReq">Obligado Contabilidad</label>
+                </div>
+              </c-col>
+              <c-col md="3" class="d-flex align-items-center pt-4">
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" formControlName="microempresa" id="microempresa">
+                  <label class="form-check-label fw-semibold small" for="microempresa">Microempresa</label>
+                </div>
+              </c-col>
+
+              @if (sriForm.get('contributorType')?.value === 'juridica') {
+                <c-col md="12"><hr class="my-1"><p class="small fw-semibold text-muted mb-2 mt-2">Representante Legal</p></c-col>
+                <c-col md="8">
+                  <label cLabel class="fw-semibold small">Nombre Completo</label>
+                  <input cFormControl formControlName="representanteLegalName" placeholder="Nombre del representante">
+                </c-col>
+                <c-col md="4">
+                  <label cLabel class="fw-semibold small">Cédula</label>
+                  <input cFormControl formControlName="representanteLegalTaxId" maxlength="10"
+                    placeholder="0000000000" class="font-monospace">
+                </c-col>
+              }
+            </c-row>
+          </c-card-body>
+        </c-card>
+      </c-col>
+
+      <!-- Columna lateral: Certificado digital -->
+      <c-col lg="4">
+        <c-card class="border-0 shadow-sm">
+          <c-card-body class="p-4">
+            <h6 class="text-uppercase text-muted fw-bold small mb-3 border-bottom pb-2">Certificado Digital</h6>
+
+            <c-callout color="info" class="mb-3 p-2">
+              <p class="small mb-0">El certificado <strong>.p12</strong> es emitido por el <strong>BCE</strong> u
+                entidades autorizadas. Es necesario para firmar comprobantes electrónicamente.</p>
+            </c-callout>
+
+            <div class="mb-3">
+              <label cLabel class="fw-semibold small d-block mb-2">Archivo de Certificado (.p12)</label>
+              <input type="file" accept=".p12,.pfx" class="form-control form-control-sm"
+                (change)="onCertificateFileChange($event)">
+              @if (certificateFileName()) {
+                <div class="mt-2 d-flex align-items-center gap-2 text-success small">
+                  <svg cIcon name="cilCheckCircle" size="sm"></svg>
+                  {{ certificateFileName() }}
+                </div>
+              }
+            </div>
+
+            <div class="mb-3">
+              <label cLabel class="fw-semibold small d-block mb-2">Contraseña del Certificado</label>
+              <input cFormControl type="password" size="sm" autocomplete="new-password"
+                placeholder="Contraseña del .p12"
+                [value]="certPassword()"
+                (input)="certPassword.set($any($event.target).value)">
+            </div>
+
+            @if (certUploadError()) {
+              <c-alert color="danger" class="py-2 px-3 mb-2 small">
+                <svg cIcon name="cilWarning" size="sm" class="me-1"></svg>{{ certUploadError() }}
+              </c-alert>
+            }
+
+            <button cButton color="primary" size="sm" class="w-100" type="button"
+              [disabled]="uploadingCert() || !certificateFile()" (click)="uploadCertificate()">
+              @if (uploadingCert()) { <c-spinner size="sm" class="me-1"></c-spinner> Subiendo... }
+              @else { <svg cIcon name="cilCloudUpload" size="sm" class="me-1"></svg> Subir Certificado }
+            </button>
+
+            @if (certExpiryAlert) {
+              <c-alert [color]="certExpiryAlert" class="mb-3 py-2 px-3 small mt-3">
+                <strong>Certificado</strong>
+                @if (certDaysLeft <= 0) { — <strong>VENCIDO</strong>. Renueve en el BCE. }
+                @else { — Vence en <strong>{{ certDaysLeft }} días</strong>. }
+              </c-alert>
+            }
+
+            <hr class="my-3">
+            <p class="small fw-semibold text-muted mb-2">Estado Actual</p>
+            <div class="d-flex flex-column gap-1">
+              <div class="d-flex justify-content-between small">
+                <span class="text-muted">Estado:</span>
+                @if (certThumbprint()) { <c-badge color="success">Configurado</c-badge> }
+                @else { <c-badge color="secondary">Sin configurar</c-badge> }
+              </div>
+              @if (certOwnerTaxId()) {
+                <div class="d-flex justify-content-between small">
+                  <span class="text-muted">RUC/Cédula cert.:</span>
+                  <span class="font-monospace fw-bold text-success">{{ certOwnerTaxId() }}</span>
+                </div>
+              }
+              @if (certOwnerName()) {
+                <div class="d-flex justify-content-between small align-items-start">
+                  <span class="text-muted flex-shrink-0">Titular:</span>
+                  <span class="text-truncate ms-2 text-end" style="max-width:140px" [title]="certOwnerName()!">{{ certOwnerName() }}</span>
+                </div>
+              }
+              <div class="d-flex justify-content-between small">
+                <span class="text-muted">Vencimiento:</span>
+                @if (certExpiry()) {
+                  <span [class]="certExpiry()! < today ? 'text-danger fw-bold' : 'text-success'">
+                    {{ certExpiry()! | date:'dd/MM/yyyy' }}
+                  </span>
+                } @else {
+                  <span class="font-monospace">—</span>
+                }
+              </div>
+            </div>
+          </c-card-body>
+        </c-card>
+      </c-col>
+
+    </c-row>
+  </form>
 }
 
-<!-- ══════════════════════════════════════════════════════════════════════
-     SECCIÓN XML — Datos para el XML de Factura (infoTributaria)
-     ════════════════════════════════════════════════════════════════════ -->
-@if (isSriEnabled()) {
-<div class="d-flex justify-content-between align-items-center mb-1 mt-5">
-  <div class="d-flex align-items-center gap-2">
-    <div class="bg-info bg-opacity-10 p-2 rounded">
-      <svg cIcon name="cilDescription" size="xl" class="text-info"></svg>
-    </div>
+<!-- ══════════════════════════════════════════════════════════════════════════
+     TAB: DATOS XML
+══════════════════════════════════════════════════════════════════════════════ -->
+@if (activeTab() === 'xml' && isSriEnabled()) {
+  <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
-      <h3 class="mb-0 fw-semibold">Datos XML de Factura</h3>
+      <h5 class="mb-0 fw-semibold">Datos XML de Factura</h5>
       <p class="text-muted small mb-0">Información que se incluye en el XML de cada comprobante electrónico</p>
     </div>
-  </div>
-  <button cButton color="info" type="submit" form="sriXmlForm" [disabled]="savingSriXml()" class="px-4 shadow-sm text-white">
-    @if (savingSriXml()) { <c-spinner size="sm" class="me-1"></c-spinner> }
-    Guardar Datos XML
-  </button>
-</div>
-
-<c-callout color="info" class="bg-body border-start-4 shadow-sm mb-4">
-  <div class="d-flex gap-3 align-items-start">
-    <svg cIcon name="cilInfo" size="lg" class="text-info mt-1"></svg>
-    <div class="flex-grow-1">
-      <p class="mb-1 fw-bold">Datos infoTributaria del XML</p>
-      <p class="mb-1 text-muted small">
-        Estos datos se insertan directamente en el XML de los comprobantes electrónicos que se envían al SRI.
-        La <strong>Razón Social</strong> y las <strong>Direcciones</strong> deben coincidir con los registros del SRI.
-      </p>
-      <button cButton color="outline-info" size="sm" type="button" (click)="syncFromCompany()">
-        <svg cIcon name="cilSync" size="sm" class="me-1"></svg>
-        Sincronizar desde datos de empresa
+    <div class="d-flex gap-2">
+      <button cButton color="ghost" size="sm" type="button" (click)="syncFromCompany()">
+        <svg cIcon name="cilSync" size="sm" class="me-1"></svg> Sincronizar desde Mi Empresa
+      </button>
+      <button cButton color="info" type="submit" form="sriXmlForm" [disabled]="savingSriXml()" class="px-4 text-white">
+        @if (savingSriXml()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+        Guardar Datos XML
       </button>
     </div>
   </div>
-</c-callout>
 
-@if (sriXmlErrorMessage()) {
-<c-alert color="danger" variant="solid" class="mb-4 d-flex align-items-center gap-2 shadow-sm">
-  <svg cIcon name="cilXCircle" size="xl"></svg> {{ sriXmlErrorMessage() }}
-</c-alert>
+  @if (sriXmlErrorMessage()) {
+    <c-alert color="danger" class="mb-3 d-flex align-items-center gap-2">
+      <svg cIcon name="cilXCircle" size="sm"></svg> {{ sriXmlErrorMessage() }}
+    </c-alert>
+  }
+
+  <form id="sriXmlForm" [formGroup]="sriXmlForm" (ngSubmit)="onSubmitSriXml()">
+    <c-card class="border-0 shadow-sm mb-4">
+      <c-card-body class="p-4">
+        <h6 class="text-uppercase text-muted fw-bold small mb-4 border-bottom pb-2">Datos para infoTributaria</h6>
+        <c-row class="g-3">
+          <c-col md="8">
+            <label cLabel class="fw-semibold small">Razón Social <span class="text-danger">*</span></label>
+            <input cFormControl formControlName="razonSocial" placeholder="CORPORACION EJEMPLO C.A."
+              [class.is-invalid]="hasSriXmlError('razonSocial')">
+            @if (hasSriXmlError('razonSocial')) { <div class="invalid-feedback">Campo requerido</div> }
+          </c-col>
+          <c-col md="4">
+            <label cLabel class="fw-semibold small">Nombre Comercial</label>
+            <input cFormControl formControlName="nombreComercial" placeholder="Opcional">
+          </c-col>
+          <c-col md="12">
+            <label cLabel class="fw-semibold small">Dirección Matriz <span class="text-danger">*</span></label>
+            <input cFormControl formControlName="direccionMatriz" placeholder="Av. Ejemplo N00-000 y Calle Ejemplo"
+              [class.is-invalid]="hasSriXmlError('direccionMatriz')">
+            @if (hasSriXmlError('direccionMatriz')) { <div class="invalid-feedback">Campo requerido</div> }
+          </c-col>
+          <c-col md="12">
+            <label cLabel class="fw-semibold small">Dirección Establecimiento <span class="text-danger">*</span></label>
+            <input cFormControl formControlName="direccionEstablecimiento" placeholder="Av. Ejemplo N00-000 y Calle Ejemplo"
+              [class.is-invalid]="hasSriXmlError('direccionEstablecimiento')">
+            @if (hasSriXmlError('direccionEstablecimiento')) { <div class="invalid-feedback">Campo requerido</div> }
+          </c-col>
+          <c-col md="6">
+            <label cLabel class="fw-semibold small">Teléfono</label>
+            <input cFormControl formControlName="telefono" placeholder="02 200 0000">
+          </c-col>
+          <c-col md="6">
+            <label cLabel class="fw-semibold small">Correo Electrónico</label>
+            <input cFormControl type="email" formControlName="correo" placeholder="facturacion@empresa.com"
+              [class.is-invalid]="hasSriXmlError('correo')">
+            @if (hasSriXmlError('correo')) { <div class="invalid-feedback">Email inválido</div> }
+          </c-col>
+          <c-col md="6">
+            <label cLabel class="fw-semibold small">Obligado a llevar Contabilidad <span class="text-danger">*</span></label>
+            <select cSelect formControlName="obligadoContabilidad">
+              <option value="SI">SI</option>
+              <option value="NO">NO</option>
+            </select>
+          </c-col>
+          <c-col md="6">
+            <label cLabel class="fw-semibold small">N° Contribuyente Especial</label>
+            <input cFormControl formControlName="contribuyenteEspecial" placeholder="Vacío si no aplica">
+          </c-col>
+
+          <c-col md="12"><hr class="my-1 mt-2"><h6 class="text-uppercase text-muted fw-bold small mb-0 mt-3 border-bottom pb-2">Datos Tributarios Adicionales</h6></c-col>
+          <c-col md="6">
+            <label cLabel class="fw-semibold small">Tipo de Contribuyente</label>
+            <select cSelect formControlName="tipoContribuyente">
+              <option value="01">01 — Persona Natural</option>
+              <option value="02">02 — Sociedad</option>
+            </select>
+          </c-col>
+          <c-col md="6">
+            <label cLabel class="fw-semibold small">Agente Retenedor (N° resolución)</label>
+            <input cFormControl formControlName="agenteRetencion" placeholder="Solo si aplica">
+          </c-col>
+          <c-col md="6">
+            <label cLabel class="fw-semibold small">Email Reply-To</label>
+            <input cFormControl type="email" formControlName="emailReplyTo" placeholder="ventas@miempresa.com"
+              [class.is-invalid]="hasSriXmlError('emailReplyTo')">
+            @if (hasSriXmlError('emailReplyTo')) { <div class="invalid-feedback">Email inválido</div> }
+            <div class="form-text">Email de respuesta en correos de comprobantes</div>
+          </c-col>
+          <c-col md="6" class="d-flex align-items-center pt-4">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" formControlName="regimenMicroempresa" id="regimenMicroempresaXml">
+              <label class="form-check-label fw-semibold small" for="regimenMicroempresaXml">Contribuyente en régimen de microempresas</label>
+            </div>
+          </c-col>
+        </c-row>
+      </c-card-body>
+    </c-card>
+
+    <!-- Información adicional XML -->
+    <c-card class="border-0 shadow-sm mb-4">
+      <c-card-header class="d-flex justify-content-between align-items-center p-4">
+        <div>
+          <strong>Información Adicional (infoAdicional)</strong>
+          <p class="text-muted small mb-0 mt-1">Campos adicionales al final de cada comprobante</p>
+        </div>
+        <button cButton color="outline-info" size="sm" type="button"
+          (click)="addAdditionalField()" [disabled]="additionalFields.length >= 15">
+          <svg cIcon name="cilPlus" class="me-1"></svg> Agregar
+        </button>
+      </c-card-header>
+      <c-card-body class="p-4">
+        <c-callout color="warning" class="mb-3 p-2">
+          <p class="small mb-0">
+            Variables disponibles:
+            <code>&#36;&#123;invoice.*&#125;</code>, <code>&#36;&#123;customer.*&#125;</code>, <code>&#36;&#123;company.*&#125;</code>
+          </p>
+        </c-callout>
+
+        @if (additionalFields.length === 0) {
+          <p class="text-muted small text-center py-3 mb-0">Sin campos adicionales.</p>
+        } @else {
+          <div class="table-responsive">
+            <table cTable hover class="mb-3">
+              <thead>
+                <tr><th>Nombre</th><th>Valor</th><th></th></tr>
+              </thead>
+              <tbody>
+                @for (ctrl of additionalFields.controls; track trackByIndex($index)) {
+                  <tr [formGroup]="ctrl">
+                    <td style="width:40%"><input cFormControl formControlName="nombre" placeholder="Ej: Vendedor"></td>
+                    <td><input cFormControl formControlName="valor" placeholder="Ej: ${company.sellerName}"></td>
+                    <td class="text-end" style="width:60px">
+                      <button cButton color="ghost" size="sm" class="text-danger p-1" type="button"
+                        (click)="removeAdditionalField($index)">
+                        <svg cIcon name="cilTrash" size="sm"></svg>
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </c-card-body>
+    </c-card>
+  </form>
 }
 
-<form id="sriXmlForm" [formGroup]="sriXmlForm" (ngSubmit)="onSubmitSriXml()">
-  <!-- Card: Datos infoTributaria -->
-  <c-card class="border-0 shadow-sm overflow-hidden mb-4">
-    <c-card-body class="p-4">
-      <h6 class="text-uppercase text-muted fw-bold small mb-4 border-bottom pb-2">Datos para infoTributaria</h6>
-      <c-row class="g-3">
-        <c-col md="8">
-          <label cLabel class="fw-semibold small">Razón Social <span class="text-danger">*</span></label>
-          <input cFormControl formControlName="razonSocial"
-            placeholder="EJ: CORPORACION EJEMPLO C.A."
-            [class.is-invalid]="hasSriXmlError('razonSocial')">
-          @if (hasSriXmlError('razonSocial')) {
-            <div class="invalid-feedback">Campo requerido</div>
-          }
-        </c-col>
-        <c-col md="4">
-          <label cLabel class="fw-semibold small">Nombre Comercial</label>
-          <input cFormControl formControlName="nombreComercial" placeholder="Nombre comercial (opcional)">
-        </c-col>
-        <c-col md="12">
-          <label cLabel class="fw-semibold small">Dirección Matriz <span class="text-danger">*</span></label>
-          <input cFormControl formControlName="direccionMatriz"
-            placeholder="Av. Ejemplo N00-000 y Calle Ejemplo"
-            [class.is-invalid]="hasSriXmlError('direccionMatriz')">
-          @if (hasSriXmlError('direccionMatriz')) {
-            <div class="invalid-feedback">Campo requerido</div>
-          }
-        </c-col>
-        <c-col md="12">
-          <label cLabel class="fw-semibold small">Dirección Establecimiento <span class="text-danger">*</span></label>
-          <input cFormControl formControlName="direccionEstablecimiento"
-            placeholder="Av. Ejemplo N00-000 y Calle Ejemplo"
-            [class.is-invalid]="hasSriXmlError('direccionEstablecimiento')">
-          @if (hasSriXmlError('direccionEstablecimiento')) {
-            <div class="invalid-feedback">Campo requerido</div>
-          }
-        </c-col>
-        <c-col md="6">
-          <label cLabel class="fw-semibold small">Teléfono</label>
-          <input cFormControl formControlName="telefono" placeholder="Ej: 02 200 0000">
-        </c-col>
-        <c-col md="6">
-          <label cLabel class="fw-semibold small">Correo Electrónico</label>
-          <input cFormControl type="email" formControlName="correo"
-            placeholder="facturacion@empresa.com"
-            [class.is-invalid]="hasSriXmlError('correo')">
-          @if (hasSriXmlError('correo')) {
-            <div class="invalid-feedback">Email inválido</div>
-          }
-        </c-col>
-        <c-col md="6">
-          <label cLabel class="fw-semibold small">Obligado a llevar Contabilidad <span class="text-danger">*</span></label>
-          <select cSelect formControlName="obligadoContabilidad" class="py-2">
-            <option value="SI">SI</option>
-            <option value="NO">NO</option>
-          </select>
-        </c-col>
-        <c-col md="6">
-          <label cLabel class="fw-semibold small">N° Contribuyente Especial</label>
-          <input cFormControl formControlName="contribuyenteEspecial" placeholder="Vacío si no aplica">
-          <div class="form-text">Solo si el SRI lo designó contribuyente especial</div>
-        </c-col>
-
-        <!-- ── Datos Tributarios Adicionales ─────────────────────────────── -->
-        <c-col md="12">
-          <hr class="my-1 mt-2">
-          <h6 class="text-uppercase text-muted fw-bold small mb-0 mt-3 border-bottom pb-2">Datos Tributarios Adicionales</h6>
-        </c-col>
-
-        <c-col md="6">
-          <label cLabel class="fw-semibold small">Tipo de Contribuyente</label>
-          <select cSelect formControlName="tipoContribuyente" class="py-2">
-            <option value="01">01 — Persona Natural</option>
-            <option value="02">02 — Sociedad</option>
-          </select>
-        </c-col>
-
-        <c-col md="6">
-          <label cLabel class="fw-semibold small">Agente Retenedor (N° resolución)</label>
-          <input cFormControl formControlName="agenteRetencion" placeholder="Ej: 1234567890">
-          <div class="form-text">Solo si tiene resolución de agente de retención del SRI</div>
-        </c-col>
-
-        <c-col md="6">
-          <label cLabel class="fw-semibold small">Email Reply-To</label>
-          <input cFormControl type="email" formControlName="emailReplyTo"
-            placeholder="ventas@miempresa.com"
-            [class.is-invalid]="hasSriXmlError('emailReplyTo')">
-          @if (hasSriXmlError('emailReplyTo')) {
-            <div class="invalid-feedback">Email inválido</div>
-          }
-          <div class="form-text">Email de respuesta en correos de comprobantes electrónicos</div>
-        </c-col>
-
-        <c-col md="6" class="d-flex align-items-center pt-4">
-          <div class="form-check form-switch">
-            <input class="form-check-input" type="checkbox" formControlName="regimenMicroempresa" id="regimenMicroempresaXml">
-            <label class="form-check-label fw-semibold small" for="regimenMicroempresaXml">Contribuyente en régimen de microempresas</label>
-          </div>
-        </c-col>
-      </c-row>
-    </c-card-body>
-  </c-card>
-
-  <!-- Card: Información Adicional -->
-  <c-card class="border-0 shadow-sm overflow-hidden mb-4">
-    <c-card-header class="d-flex justify-content-between align-items-center p-4">
-      <div>
-        <strong>Información Adicional (infoAdicional)</strong>
-        <p class="text-muted small mb-0 mt-1">Campos adicionales que se incluyen al final de cada comprobante electrónico</p>
-      </div>
-      <button cButton color="outline-info" size="sm" type="button"
-        (click)="addAdditionalField()" [disabled]="additionalFields.length >= 15">
-        <svg cIcon name="cilPlus" class="me-1"></svg> Agregar campo
-      </button>
-    </c-card-header>
-    <c-card-body class="p-4">
-      <c-callout color="warning" class="mb-3 p-2">
-        <p class="small mb-0">
-          Variables disponibles en el campo "Valor":
-          <code>&#36;&#123;invoice.*&#125;</code>, <code>&#36;&#123;customer.*&#125;</code>, <code>&#36;&#123;company.*&#125;</code>
-          — se resuelven al generar el XML.
-        </p>
-      </c-callout>
-
-      @if (additionalFields.length === 0) {
-        <p class="text-muted small text-center py-3 mb-0">Sin campos adicionales. Usa "Agregar campo" para añadir uno.</p>
-      } @else {
-        <div class="table-responsive">
-          <table cTable hover class="mb-3">
-            <thead>
-              <tr>
-                <th>Nombre (nombre)</th>
-                <th>Valor (valor)</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (ctrl of additionalFields.controls; track trackByIndex($index)) {
-                <tr [formGroup]="ctrl">
-                  <td style="width:40%">
-                    <input cFormControl formControlName="nombre" placeholder="Ej: Vendedor">
-                  </td>
-                  <td>
-                    <input cFormControl formControlName="valor" placeholder="Ej: ${company.sellerName}">
-                  </td>
-                  <td class="text-end" style="width:60px">
-                    <button cButton color="ghost" size="sm" class="text-danger p-1" type="button"
-                      (click)="removeAdditionalField($index)" title="Eliminar">
-                      <svg cIcon name="cilTrash" size="sm"></svg>
-                    </button>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      }
-    </c-card-body>
-  </c-card>
-
-  <!-- Pie mobile -->
-  <div class="d-flex justify-content-end mt-4 mb-5 d-lg-none">
-    <button cButton color="info" type="submit" [disabled]="savingSriXml()" class="w-100 py-2 shadow-sm text-white">
-      @if (savingSriXml()) { <c-spinner size="sm" class="me-1"></c-spinner> }
-      Guardar Datos XML
+<!-- ══════════════════════════════════════════════════════════════════════════
+     TAB: INVENTARIO
+══════════════════════════════════════════════════════════════════════════════ -->
+@if (activeTab() === 'inventario') {
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h5 class="mb-0 fw-semibold">Configuración de Inventario y Stock</h5>
+      <p class="text-muted small mb-0">Define la bodega predeterminada y la política de control de inventarios al facturar</p>
+    </div>
+    <button cButton color="primary" type="submit" form="stockForm" [disabled]="savingStock()" class="px-4">
+      @if (savingStock()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+      Guardar Inventario
     </button>
   </div>
-</form>
-}
 
-<!-- ══ CONFIGURACIÓN DE INVENTARIO ══════════════════════════════════════════ -->
-<form [formGroup]="stockForm" (ngSubmit)="onSubmitStock()" class="mt-4 mb-5">
-  <c-card class="shadow-sm border-0">
-    <c-card-header class="d-flex justify-content-between align-items-center">
-      <strong>Configuración de Inventario</strong>
-      <button cButton color="success" type="submit" size="sm" [disabled]="savingStock()">
-        @if (savingStock()) { <c-spinner size="sm" class="me-1"></c-spinner> }
-        Guardar inventario
-      </button>
-    </c-card-header>
-    <c-card-body>
-      <c-row class="g-3">
+  <form id="stockForm" [formGroup]="stockForm" (ngSubmit)="onSubmitStock()">
+    <c-row class="g-4">
 
-        <c-col sm="12" md="6">
-          <label cLabel class="fw-semibold mb-1">Almacén por defecto</label>
-          <select cSelect formControlName="defaultWarehouseCode" class="py-2">
-            <option value="">— Sin almacén por defecto —</option>
-            @for (wh of warehouses(); track wh.id) {
-              <option [value]="wh.code">{{ wh.name }}</option>
+      <!-- Columna izquierda: Almacén Principal -->
+      <c-col lg="6">
+        <c-card class="border-0 shadow-sm h-100">
+          <c-card-body class="p-4">
+            <div class="d-flex align-items-center gap-2 mb-3 border-bottom pb-2">
+              <svg cIcon name="cilStorage" size="lg" class="text-primary"></svg>
+              <h6 class="text-uppercase text-muted fw-bold small mb-0">Almacén Predeterminado</h6>
+            </div>
+            <p class="text-muted small mb-4">
+              Selecciona la bodega desde la cual se descontará el stock automáticamente cuando agregues ítems a facturas o notas de venta.
+            </p>
+
+            <div class="mb-3">
+              <label cLabel class="fw-semibold small d-block mb-1">Bodega por Defecto</label>
+              <select cSelect formControlName="defaultWarehouseCode" class="py-2">
+                <option value="">— Sin bodega asignada por defecto —</option>
+                @for (wh of warehouses(); track wh.id) {
+                  <option [value]="wh.code">{{ wh.name }} (Código: {{ wh.code }})</option>
+                }
+              </select>
+              <div class="form-text">Si no se especifica una bodega en la línea de la factura, el sistema usará esta opción.</div>
+            </div>
+
+            @if (warehouses().length === 0) {
+              <c-callout color="warning" class="py-2 px-3 small mt-3">
+                <svg cIcon name="cilWarning" size="sm" class="me-1"></svg>
+                No tienes bodegas activas configuradas. Puedes crear bodegas en la sección de Inventarios.
+              </c-callout>
             }
-          </select>
-          <small class="text-muted">Se usará en facturas cuando no se especifique almacén en la línea.</small>
-        </c-col>
+          </c-card-body>
+        </c-card>
+      </c-col>
 
-        <c-col sm="12" md="6" class="d-flex align-items-center">
-          <div class="form-check form-switch mt-3">
-            <input class="form-check-input" type="checkbox" role="switch"
-                   id="blockSaleCheck" formControlName="blockSaleOnInsufficient">
-            <label class="form-check-label fw-semibold" for="blockSaleCheck">
-              Bloquear venta si no hay stock suficiente
-            </label>
-          </div>
-        </c-col>
+      <!-- Columna derecha: Política de Control de Stock -->
+      <c-col lg="6">
+        <c-card class="border-0 shadow-sm h-100">
+          <c-card-body class="p-4">
+            <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+              <div class="d-flex align-items-center gap-2">
+                <svg cIcon name="cilShieldAlt" size="lg" class="text-primary"></svg>
+                <h6 class="text-uppercase text-muted fw-bold small mb-0">Control de Stock Insuficiente</h6>
+              </div>
+              @if (stockForm.get('blockSaleOnInsufficient')?.value) {
+                <c-badge color="danger" class="px-2 py-1">Modo Estricto (Bloqueo)</c-badge>
+              } @else {
+                <c-badge color="info" class="px-2 py-1">Modo Advertencia</c-badge>
+              }
+            </div>
 
-        <c-col sm="12">
-          <c-callout color="info" class="py-2 mb-0">
-            <small>
-              <strong>Sin bloqueo:</strong> El sistema advierte con un indicador en la factura pero permite emitir.<br>
-              <strong>Con bloqueo:</strong> El botón "Emitir factura" se deshabilita si alguna línea tiene stock insuficiente.
-              Solo aplica a productos con <em>Control de stock</em> activado.
-            </small>
-          </c-callout>
-        </c-col>
+            <p class="text-muted small mb-4">
+              Configura la rigurosidad del sistema al vender productos cuyo stock sea inferior a la cantidad solicitada.
+            </p>
 
-      </c-row>
-    </c-card-body>
-  </c-card>
-</form>
+            <div class="p-3 rounded border bg-body-tertiary mb-3">
+              <div class="form-check form-switch m-0">
+                <input class="form-check-input" type="checkbox" role="switch"
+                  id="blockSaleCheck" formControlName="blockSaleOnInsufficient">
+                <label class="form-check-label fw-semibold" for="blockSaleCheck">
+                  Bloquear emisión si no hay stock suficiente
+                </label>
+              </div>
+            </div>
+
+            <c-callout [color]="stockForm.get('blockSaleOnInsufficient')?.value ? 'danger' : 'info'" class="py-3 px-3 mb-0">
+              @if (stockForm.get('blockSaleOnInsufficient')?.value) {
+                <small class="d-block">
+                  <strong>Venta bloqueada:</strong> El botón "Emitir Factura" estará deshabilitado si alguna línea del comprobante no cuenta con las existencias requeridas en bodega.
+                </small>
+              } @else {
+                <small class="d-block">
+                  <strong>Aviso sin bloqueo:</strong> El sistema mostrará un aviso de advertencia de stock bajo pero permitirá procesar la venta.
+                </small>
+              }
+            </c-callout>
+          </c-card-body>
+        </c-card>
+      </c-col>
+
+    </c-row>
+  </form>
 }
+
+}<!-- end @if (loading) -->

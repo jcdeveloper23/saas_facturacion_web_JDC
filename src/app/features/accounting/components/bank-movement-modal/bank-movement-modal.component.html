@@ -32,12 +32,12 @@
           {{ movementType() === 'ingreso' ? 'Cuenta de origen del dinero' : 'Cuenta de destino del dinero' }}
           <span class="text-danger">*</span>
         </label>
-        <select cSelect [ngModel]="counterAccountCode()" (ngModelChange)="counterAccountCode.set($event)">
-          <option value="">— Seleccionar cuenta contable —</option>
-          @for (a of glAccounts(); track a.id) {
-            <option [value]="a.code">{{ a.code }} — {{ a.name }}</option>
-          }
-        </select>
+        <app-account-select
+          [accounts]="glAccounts()"
+          [ngModel]="counterAccountCode()"
+          (ngModelChange)="counterAccountCode.set($event)"
+          placeholder="— Seleccionar cuenta contable —">
+        </app-account-select>
       </div>
 
       <div class="row g-3 mb-3">
