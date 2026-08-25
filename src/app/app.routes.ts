@@ -8,7 +8,7 @@ const APP_SEGMENTS = new Set([
   'dashboard', 'personas', 'customers', 'products', 'invoices',
   'retentions', 'debit-notes', 'stock', 'purchases', 'team-management',
   'pos', 'users', 'profiles', 'profile', 'accounting', 'settings',
-  'benefits', 'school-bar', 'api-docs',
+  'benefits', 'school-bar', 'api-docs', 'test-data',
   'base', 'forms', 'icons', 'notifications', 'charts', 'widgets', 'legal',
 ]);
 
@@ -249,6 +249,15 @@ export const routes: Routes = [
         data: { roles: ['admin', 'super_admin'], title: 'API Docs' },
         loadComponent: () =>
           import('./features/api-docs/api-docs-page.component').then(m => m.ApiDocsPageComponent)
+      },
+
+      // ── Test Data Generator ────────────────────────────────────────────────
+      {
+        path: 'test-data',
+        canActivate: [roleGuard],
+        data: { roles: ['admin', 'super_admin'], title: 'Generador de Datos de Prueba' },
+        loadChildren: () =>
+          import('./features/test-data/test-data.routes').then(m => m.TEST_DATA_ROUTES)
       },
 
       // ── CoreUI component library (acceso restringido a super_admin en producción) ─

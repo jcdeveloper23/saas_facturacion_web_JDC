@@ -1,0 +1,129 @@
+<c-row>
+  <c-col>
+    <c-callout color="warning">
+      <strong>Generador de Datos de Prueba</strong> — Solo usar en ambientes de desarrollo/prueba.
+      Los datos generados crean facturas reales en Firestore y disparan Cloud Functions de contabilidad y stock.
+    </c-callout>
+  </c-col>
+</c-row>
+
+<!-- Barra de acciones superior -->
+<c-row class="mb-3 align-items-center">
+  <c-col>
+    <h4 class="mb-0">Panel de Generación</h4>
+    <small class="text-medium-emphasis">Genera registros de prueba en bloques de 10 para poblar el sistema y verificar todos los módulos.</small>
+  </c-col>
+  <c-col [xs]="'auto'">
+    <button cButton color="secondary" variant="outline" size="sm"
+            (click)="loadStats()" [disabled]="statsLoading()">
+      <c-spinner *ngIf="statsLoading()" size="sm" class="me-1"></c-spinner>
+      <svg cIcon name="cilReload" *ngIf="!statsLoading()"></svg>
+      Actualizar
+    </button>
+  </c-col>
+</c-row>
+
+<!-- Orden de generación recomendado -->
+<c-row class="mb-3">
+  <c-col>
+    <c-card class="border-0 bg-light">
+      <c-card-body class="py-2 px-3">
+        <small class="text-medium-emphasis">
+          <strong>Orden recomendado:</strong>
+          1. Familias → 2. Artículos → 3. Clientes → 4. Proveedores → 5. Facturas de Venta → 6. Facturas de Compra
+        </small>
+      </c-card-body>
+    </c-card>
+  </c-col>
+</c-row>
+
+<!-- Cards de entidades -->
+<c-row [gutter]="3">
+  @for (card of cards(); track card.key) {
+    <c-col [sm]="6" [lg]="4">
+      <c-card class="h-100">
+        <c-card-header class="d-flex align-items-center justify-content-between py-2">
+          <div class="d-flex align-items-center gap-2">
+            <svg cIcon [name]="card.icon" size="lg" [ngStyle]="{'color': 'var(--cui-' + card.color + ')'}"></svg>
+            <strong>{{ card.label }}</strong>
+          </div>
+          <c-badge [color]="card.color">{{ card.count }}</c-badge>
+        </c-card-header>
+        <c-card-body class="d-flex flex-column justify-content-between gap-3">
+
+          <!-- Progreso si hay límite -->
+          @if (card.limit) {
+            <div>
+              <div class="d-flex justify-content-between mb-1">
+                <small class="text-medium-emphasis">{{ card.count }} / {{ card.limit }}</small>
+                <small class="text-medium-emphasis">{{ ((card.count / card.limit) * 100) | number:'1.0-0' }}%</small>
+              </div>
+              <c-progress [value]="(card.count / card.limit) * 100" [color]="card.color" thin></c-progress>
+            </div>
+          }
+
+          <!-- Botón generar -->
+          <button cButton [color]="card.color"
+                  [disabled]="card.loading || isAtLimit(card)"
+                  (click)="generate(card.key)"
+                  class="w-100">
+            @if (card.loading) {
+              <c-spinner size="sm" class="me-2"></c-spinner>
+              Generando...
+            } @else if (isAtLimit(card)) {
+              Catálogo completo
+            } @else {
+              <svg cIcon name="cilPlus" class="me-1"></svg>
+              Generar 10 {{ card.label }}
+            }
+          </button>
+        </c-card-body>
+      </c-card>
+    </c-col>
+  }
+</c-row>
+
+<!-- Log de operaciones -->
+<c-row class="mt-4">
+  <c-col>
+    <c-card>
+      <c-card-header class="d-flex align-items-center justify-content-between py-2">
+        <strong>Log de operaciones</strong>
+        <div class="d-flex gap-2 align-items-center">
+          <c-badge color="secondary">{{ log().length }} entradas</c-badge>
+          <button cButton color="secondary" variant="ghost" size="sm" (click)="clearLog()">
+            Limpiar
+          </button>
+        </div>
+      </c-card-header>
+      <c-card-body class="p-0">
+        @if (log().length === 0) {
+          <div class="text-center text-medium-emphasis py-4">
+            <svg cIcon name="cilInfo" size="xl" class="mb-2"></svg>
+            <p class="mb-0">Presiona "Generar 10" en cualquier entidad para comenzar.</p>
+          </div>
+        } @else {
+          <div style="max-height: 380px; overflow-y: auto;">
+            <ul cListGroup flush>
+              @for (entry of log(); track $index) {
+                <li cListGroupItem class="py-1 px-3 border-0 border-bottom">
+                  <div class="d-flex align-items-start gap-2">
+                    <small class="text-nowrap text-medium-emphasis font-monospace mt-1">{{ entry.time }}</small>
+                    @if (entry.type === 'success') {
+                      <svg cIcon name="cilCheckCircle" class="text-success flex-shrink-0 mt-1" size="sm"></svg>
+                    } @else if (entry.type === 'error') {
+                      <svg cIcon name="cilXCircle" class="text-danger flex-shrink-0 mt-1" size="sm"></svg>
+                    } @else {
+                      <svg cIcon name="cilInfo" class="text-info flex-shrink-0 mt-1" size="sm"></svg>
+                    }
+                    <small [class.text-danger]="entry.type === 'error'">{{ entry.message }}</small>
+                  </div>
+                </li>
+              }
+            </ul>
+          </div>
+        }
+      </c-card-body>
+    </c-card>
+  </c-col>
+</c-row>

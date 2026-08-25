@@ -1,26 +1,20 @@
 # FacturaSec — Frontend
 
-node 20.19.5
-nvm use 20.19.5
-ng s
-angular 21.1.4
-firebase
-cloud functions
+**Node:** 20.19.5 (`nvm use 20.19.5`) · **Angular:** 21.1.x · **Firebase** + **Cloud Functions**
 
-
-SaaS de facturación electrónica para Ecuador. Multi-tenant, integración con SRI, firma digital y emisión de documentos electrónicos. Desarrollado con Angular 21 y CoreUI 5.
+Solución SaaS todo-en-uno para empresas ecuatorianas: facturación electrónica homologada con el SRI, contabilidad, inventario, punto de venta, gestión de flotas GPS y equipos de trabajo — todo en una sola plataforma. Multi-tenant, con firma digital de documentos y emisión autorizada en tiempo real. Desarrollada con Angular 21 standalone components y CoreUI 5.
 
 ## Stack Tecnológico
 
 | Tecnología | Versión | Propósito |
 |------------|---------|-----------|
-| Angular | 21.1.x | Framework principal (standalone components) |
+| Angular | 21.1.x | Framework principal (standalone components + signals) |
 | TypeScript | 5.9.x | Tipado estático |
-| CoreUI Angular | 5.6.x | UI Components / Layout |
-| Firebase / AngularFire | 12.x / 20.x | Auth, Firestore, Hosting |
+| CoreUI Angular | 5.6.x | UI Components / Layout con sidebar |
+| Firebase / AngularFire | 12.x / 20.x | Auth, Firestore, Hosting, Storage |
 | RxJS | 7.8.x | Programación reactiva |
 | Chart.js | 4.5.x | Gráficas y reportes |
-| Leaflet | 1.9.x | Mapas |
+| Leaflet | 1.9.x | Mapas (GPS / geofences) |
 | CryptoJS | 4.2.x | Encriptación en localStorage |
 
 ## Requisitos Previos
@@ -34,7 +28,7 @@ SaaS de facturación electrónica para Ecuador. Multi-tenant, integración con S
 
 ```bash
 git clone <repository-url>
-cd coreui-facturasec-front-web
+cd saas_facturacion_web
 npm install
 ```
 
@@ -80,7 +74,7 @@ firebase deploy --only hosting
 # Deploy de funciones
 firebase deploy --only functions
 
-# Deploy de indexs
+# Deploy de índices
 firebase deploy --only firestore:indexes
 
 # Deploy completo (hosting + functions + rules)
@@ -107,36 +101,106 @@ src/
 │   │   ├── invoices/           # Facturas electrónicas
 │   │   ├── debit-notes/        # Notas de débito
 │   │   ├── retentions/         # Retenciones
+│   │   ├── purchases/          # Compras / liquidaciones
 │   │   ├── customers/          # Clientes
-│   │   ├── products/           # Productos / servicios
+│   │   ├── products/           # Productos y servicios
+│   │   ├── stock/              # Inventario y stock
+│   │   ├── pos/                # Punto de venta
+│   │   ├── accounting/         # Contabilidad (estados financieros, conciliación, presupuesto)
 │   │   ├── personas/           # Personas naturales
+│   │   ├── organizations/      # Organizaciones / empresas vinculadas
+│   │   ├── users/              # Usuarios y roles
+│   │   ├── permissions/        # Gestión de permisos
+│   │   ├── profiles/           # Perfiles de usuario
+│   │   ├── profile/            # Perfil propio del usuario autenticado
+│   │   ├── team-management/    # Gestión de proyectos, tareas y equipos
+│   │   ├── devices/            # Dispositivos registrados
+│   │   ├── gps-monitor/        # Monitoreo GPS en tiempo real
+│   │   ├── geofences/          # Geocercas
+│   │   ├── routes/             # Rutas de distribución
+│   │   ├── marketplace/        # Marketplace de integraciones
+│   │   ├── plans/              # Planes de suscripción
+│   │   ├── benefits/           # Beneficios por plan
+│   │   ├── alerts/             # Alertas del sistema
+│   │   ├── school-bar/         # Módulo bar escolar
 │   │   ├── settings/           # Configuración de empresa y SRI
 │   │   ├── super-admin/        # Gestión de tenants y plataforma
-│   │   ├── users/              # Usuarios y roles
-│   │   ├── plans/              # Planes de suscripción
-│   │   ├── alerts/             # Alertas del sistema
-│   │   └── ...                 # Otros módulos
+│   │   └── api-docs/           # Documentación API (Swagger UI)
 │   ├── layout/                 # Layout principal con sidebar CoreUI
 │   └── shared/                 # Componentes y pipes reutilizables
 ├── assets/                     # Recursos estáticos
 └── environments/               # Configuración por ambiente
 functions/                      # Cloud Functions (Node.js 20)
+├── src/
+│   ├── accounting/             # Contabilidad y reportes financieros
+│   ├── auth/                   # Auth triggers (onCreate/onDelete)
+│   ├── invoices/               # Generación XML, firma y envío SRI
+│   ├── debit-notes/            # Notas de débito electrónicas
+│   ├── retentions/             # Comprobantes de retención
+│   ├── pos/                    # Punto de venta
+│   ├── stock/                  # Inventario
+│   ├── marketplace/            # Integraciones marketplace
+│   ├── team-management/        # Gestión de equipos y tareas
+│   ├── school-bar/             # Bar escolar
+│   ├── tenants/                # Setup de nuevos tenants (copia defaults)
+│   ├── users/                  # Gestión de usuarios y custom claims
+│   └── utils/                  # Utilidades compartidas
 firestore.rules                 # Reglas de seguridad Firestore
 storage.rules                   # Reglas de seguridad Storage
 firebase.json                   # Configuración Firebase
+firestore.indexes.json          # Índices compuestos Firestore
 ```
 
 ## Módulos Principales
 
+### Facturación Electrónica (SRI)
+
 | Módulo | Descripción |
 |--------|-------------|
-| `invoices` | Generación, firma y envío de facturas al SRI |
+| `invoices` | Generación, firma digital y envío de facturas al SRI |
 | `debit-notes` | Notas de débito electrónicas |
 | `retentions` | Comprobantes de retención |
+| `purchases` | Liquidaciones de compra |
+
+### Comercial
+
+| Módulo | Descripción |
+|--------|-------------|
 | `customers` | CRUD de clientes con validación RUC/CI |
 | `products` | Catálogo de productos y servicios |
+| `stock` | Inventario, entradas y salidas |
+| `pos` | Punto de venta |
+
+### Contabilidad
+
+| Módulo | Descripción |
+|--------|-------------|
+| `accounting` | Estados financieros, conciliación bancaria, presupuesto y asientos automáticos |
+
+### Gestión de Equipos
+
+| Módulo | Descripción |
+|--------|-------------|
+| `team-management` | Proyectos, tareas, sprints y productividad (competitivo con Jira/ClickUp) |
+
+### GPS y Logística
+
+| Módulo | Descripción |
+|--------|-------------|
+| `gps-monitor` | Monitoreo de flota en tiempo real (Leaflet) |
+| `geofences` | Definición y alertas de geocercas |
+| `routes` | Rutas de distribución |
+| `devices` | Dispositivos GPS registrados |
+
+### Administración
+
+| Módulo | Descripción |
+|--------|-------------|
 | `settings` | Configuración SMTP, certificado .p12, datos SRI |
+| `users` | Usuarios y asignación de roles |
+| `permissions` | Gestión granular de permisos |
 | `super-admin` | Administración de empresas y defaults de plataforma |
+| `api-docs` | Documentación interactiva de la API (Swagger UI) |
 
 ## Autenticación y Roles
 
@@ -158,7 +222,7 @@ Cada empresa (tenant) opera bajo su propio `companyId`. Los datos en Firestore s
 /platform/defaults/...          # Configuración base de la plataforma
 ```
 
-Las Cloud Functions validan el `companyId` del custom claim en cada request.
+Las Cloud Functions validan el `companyId` del custom claim en cada request. Al crear un nuevo tenant, la función `setup-company` copia los defaults de plataforma al tenant automáticamente.
 
 ## Firebase Project
 
@@ -170,18 +234,15 @@ Las Cloud Functions validan el `companyId` del custom claim en cada request.
 
 ### Signed URLs para Cloud Storage
 
-Las Cloud Functions generan Signed URLs temporales para que el frontend pueda descargar XMLs y PDFs de facturas desde Storage privado. Esto requiere el permiso `iam.serviceAccounts.signBlob` en el service account.
+Las Cloud Functions generan Signed URLs temporales para que el frontend descargue XMLs y PDFs desde Storage privado. Requiere el permiso `iam.serviceAccounts.signBlob` en el service account.
 
 **Pasos (GCP Console):**
 
 1. Ve a [console.cloud.google.com](https://console.cloud.google.com)
 2. Selecciona el proyecto `facturasproec`
 3. Menú izquierdo → **IAM & Admin → IAM**
-4. Busca el service account: `facturasproec@appspot.gserviceaccount.com`
-5. Haz clic en el icono de lápiz (editar)
-6. Clic en **+ Add another role**
-7. Busca y selecciona: **Service Account Token Creator**
-8. Clic en **Save**
+4. Busca: `facturasproec@appspot.gserviceaccount.com`
+5. Editar → **+ Add another role** → **Service Account Token Creator** → Save
 
 **O desde terminal:**
 
@@ -195,6 +256,4 @@ gcloud projects add-iam-policy-binding facturasproec \
 
 ---
 
-*Última actualización: Abril 2026*
-
-
+*Última actualización: Agosto 2026*

@@ -432,6 +432,12 @@ export const navItems: INavData[] = [
     iconComponent: { name: 'cil-code' },
     attributes: { roles: ['admin', 'super_admin'] }
   },
+  {
+    name: 'Datos de Prueba',
+    url: '/test-data',
+    iconComponent: { name: 'cil-beaker' },
+    attributes: { roles: ['admin', 'super_admin'] }
+  },
 
   // ─── CoreUI reference (remove after development) ─────────────────────────
   // {
