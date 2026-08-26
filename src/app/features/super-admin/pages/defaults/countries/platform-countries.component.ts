@@ -127,7 +127,14 @@ export class PlatformCountriesComponent implements OnInit, OnDestroy {
   }
 
   async delete(item: DefaultCountry): Promise<void> {
-    if (!confirm(`¿Eliminar el país "${item.name}"?`)) return;
+    const ok = await this.notifications.confirm({
+      title: `¿Eliminar el país "${item.name}"?`,
+      confirmText: 'Sí, eliminar',
+      cancelText: 'Cancelar',
+      icon: 'warning',
+      danger: true
+    });
+    if (!ok) return;
     try {
       await this.svc.deleteCountry(item.id);
       this.notifications.success('País eliminado');

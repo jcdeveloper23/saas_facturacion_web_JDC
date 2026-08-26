@@ -15,14 +15,19 @@ import { QueryDocumentSnapshot } from '@angular/fire/firestore';
 
 import { JournalEntriesService }    from '../../services/journal-entries.service';
 import { AccountingPeriodsService } from '../../services/accounting-periods.service';
+import { ChartOfAccountsService }   from '../../services/chart-of-accounts.service';
+import { CostCentersService }       from '../../services/cost-centers.service';
+import { ExcelExportService }       from '../../services/excel-export.service';
 import { NotificationService }      from '../../../../core/services/notification.service';
 import {
   JournalEntry, JournalEntryStatus, JournalEntryType,
   JOURNAL_ENTRY_STATUS_LABELS, JOURNAL_ENTRY_STATUS_COLORS,
   JOURNAL_ENTRY_TYPE_LABELS, JOURNAL_ENTRY_TYPE_COLORS
 } from '../../models/journal-entry.interface';
+import { Account }     from '../../models/account.interface';
+import { CostCenter }  from '../../models/cost-center.interface';
 import { AccountingPeriod } from '../../models/accounting-period.interface';
-import { Timestamp } from '@angular/fire/firestore';
+import { AccountSelectComponent } from '../../components/account-select/account-select.component';
 
 @Component({
   selector: 'app-journal-entries-page',
@@ -33,49 +38,62 @@ import { Timestamp } from '@angular/fire/firestore';
     CommonModule, RouterLink, FormsModule,
     CardModule, ButtonModule, GridModule, SpinnerModule,
     TableModule, FormModule, TooltipModule, ModalModule, IconModule,
-    InputGroupComponent, InputGroupTextDirective
+    InputGroupComponent, InputGroupTextDirective,
+    AccountSelectComponent
   ]
 })
 export class JournalEntriesPageComponent implements OnInit, OnDestroy {
-  private svc           = inject(JournalEntriesService);
-  private periodsSvc    = inject(AccountingPeriodsService);
-  private notifications = inject(NotificationService);
-  private router        = inject(Router);
-  private destroy$      = new Subject<void>();
+  private svc            = inject(JournalEntriesService);
+  private periodsSvc     = inject(AccountingPeriodsService);
+  private accountsSvc    = inject(ChartOfAccountsService);
+  private costCentersSvc = inject(CostCentersService);
+  private excelSvc       = inject(ExcelExportService);
+  private notifications  = inject(NotificationService);
+  private router         = inject(Router);
+  private destroy$       = new Subject<void>();
 
   // ── State ─────────────────────────────────────────────────────────────────
-  entries      = signal<JournalEntry[]>([]);
-  periods      = signal<AccountingPeriod[]>([]);
-  loading      = signal(true);
-  loadingPage  = signal(false);
-  searchTerm   = signal('');
-  yearFilter   = signal(new Date().getFullYear());
-  typeFilter   = signal<JournalEntryType | null>(null);
-  statusFilter = signal<JournalEntryStatus | null>(null);
+  entries       = signal<JournalEntry[]>([]);
+  periods       = signal<AccountingPeriod[]>([]);
+  accounts      = signal<Account[]>([]);
+  costCenters   = signal<CostCenter[]>([]);
+  loading       = signal(false);
+  loadingPage   = signal(false);
+  exportingExcel = signal(false);
+
+  // ── Filter signals ────────────────────────────────────────────────────────
+  dateFrom      = signal('');              // YYYY-MM-DD
+  dateTo        = signal('');              // YYYY-MM-DD
+  accountCode   = signal('');             // '' = sin filtro
+  costCenterId  = signal('');             // '' = sin filtro
+  searchTerm    = signal('');
+  typeFilter    = signal<JournalEntryType | null>(null);
+  statusFilter  = signal<JournalEntryStatus | null>(null);
+
+  /** true si ya se ejecutó al menos una consulta */
+  hasQueried    = signal(false);
 
   // ── Paginación (cursor-based) ─────────────────────────────────────────────
   readonly PAGE_SIZE = 50;
-  currentPage  = signal(1);
-  hasMore      = signal(false);
-  /** Historial de cursors: índice 0 = página 1 (null = inicio), índice 1 = cursor para página 2, etc. */
+  currentPage   = signal(1);
+  hasMore       = signal(false);
   private cursorHistory: (QueryDocumentSnapshot | null)[] = [null];
 
   // Detail modal
-  detailEntry  = signal<JournalEntry | null>(null);
-  showDetail   = signal(false);
-  cancelReason = signal('');
-  showCancelDlg= signal(false);
+  detailEntry   = signal<JournalEntry | null>(null);
+  showDetail    = signal(false);
+  cancelReason  = signal('');
+  showCancelDlg = signal(false);
 
   // ── Lookups ───────────────────────────────────────────────────────────────
   readonly STATUS_LABELS = JOURNAL_ENTRY_STATUS_LABELS;
   readonly STATUS_COLORS = JOURNAL_ENTRY_STATUS_COLORS;
   readonly TYPE_LABELS   = JOURNAL_ENTRY_TYPE_LABELS;
   readonly TYPE_COLORS   = JOURNAL_ENTRY_TYPE_COLORS;
-  readonly years         = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
   readonly entryTypes: JournalEntryType[] = ['manual','automatic','opening','closing','adjustment'];
 
   // ── Computed ──────────────────────────────────────────────────────────────
-  /** Filtro cliente: solo searchTerm. Tipo y estado van server-side en getEntriesPage(). */
+  /** Client-side text filter over loaded page */
   filtered = computed(() => {
     const term = this.searchTerm().toLowerCase().trim();
     if (!term) return this.entries();
@@ -90,15 +108,59 @@ export class JournalEntriesPageComponent implements OnInit, OnDestroy {
     this.filtered().filter(e => e.status === 'posted').reduce((s, e) => s + e.totalDebit, 0)
   );
 
+  /** Validation: dateFrom <= dateTo */
+  get dateRangeValid(): boolean {
+    const from = this.dateFrom();
+    const to   = this.dateTo();
+    if (!from || !to) return false;
+    return from <= to;
+  }
+
+  get hasActiveFilters(): boolean {
+    return !!(
+      this.dateFrom() || this.dateTo() ||
+      this.accountCode() || this.costCenterId() ||
+      this.searchTerm() || this.typeFilter() || this.statusFilter()
+    );
+  }
+
   // ── Lifecycle ─────────────────────────────────────────────────────────────
   ngOnInit(): void {
-    this.periodsSvc.getPeriods().pipe(takeUntil(this.destroy$)).subscribe(p => this.periods.set(p));
-    this.loadPage('reset');
+    this.periodsSvc.getPeriods().pipe(takeUntil(this.destroy$))
+      .subscribe(p => this.periods.set(p));
+
+    this.accountsSvc.getActiveMovementAccounts().pipe(takeUntil(this.destroy$))
+      .subscribe(a => this.accounts.set(a));
+
+    this.costCentersSvc.getActiveCostCenters().pipe(takeUntil(this.destroy$))
+      .subscribe(c => this.costCenters.set(c));
+
+    // Default date range: current month
+    const now   = new Date();
+    const y     = now.getFullYear();
+    const m     = String(now.getMonth() + 1).padStart(2, '0');
+    this.dateFrom.set(`${y}-${m}-01`);
+    this.dateTo.set(new Date(y, now.getMonth() + 1, 0).toISOString().slice(0, 10));
   }
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  // ── Query (Consultar) ─────────────────────────────────────────────────────
+  /** Ejecuta la consulta manualmente. Valida Desde/Hasta antes. */
+  async consultar(): Promise<void> {
+    if (!this.dateFrom() || !this.dateTo()) {
+      this.notifications.warning('Las fechas Desde y Hasta son obligatorias');
+      return;
+    }
+    if (!this.dateRangeValid) {
+      this.notifications.warning('La fecha Desde no puede ser mayor que Hasta');
+      return;
+    }
+    this.hasQueried.set(true);
+    await this.loadPage('reset');
   }
 
   // ── Paginación ────────────────────────────────────────────────────────────
@@ -122,9 +184,12 @@ export class JournalEntriesPageComponent implements OnInit, OnDestroy {
     try {
       const result = await this.svc.getEntriesPage(
         {
-          year:   this.yearFilter(),
-          type:   this.typeFilter()   ?? undefined,
-          status: this.statusFilter() ?? undefined
+          dateFrom:     this.dateFrom()     || undefined,
+          dateTo:       this.dateTo()       || undefined,
+          type:         this.typeFilter()   ?? undefined,
+          status:       this.statusFilter() ?? undefined,
+          accountCode:  this.accountCode()  || undefined,
+          costCenterId: this.costCenterId() || undefined,
         },
         this.PAGE_SIZE,
         cursor
@@ -141,19 +206,91 @@ export class JournalEntriesPageComponent implements OnInit, OnDestroy {
     }
   }
 
-  changeYear(year: number): void {
-    this.yearFilter.set(year);
-    this.loadPage('reset');
-  }
-
   setTypeFilter(type: JournalEntryType | null): void {
     this.typeFilter.set(type);
-    this.loadPage('reset');
+    if (this.hasQueried()) this.loadPage('reset');
   }
 
   setStatusFilter(status: JournalEntryStatus | null): void {
     this.statusFilter.set(status);
-    this.loadPage('reset');
+    if (this.hasQueried()) this.loadPage('reset');
+  }
+
+  clearFilters(): void {
+    const now = new Date();
+    const y   = now.getFullYear();
+    const m   = String(now.getMonth() + 1).padStart(2, '0');
+    this.dateFrom.set(`${y}-${m}-01`);
+    this.dateTo.set(new Date(y, now.getMonth() + 1, 0).toISOString().slice(0, 10));
+    this.accountCode.set('');
+    this.costCenterId.set('');
+    this.searchTerm.set('');
+    this.typeFilter.set(null);
+    this.statusFilter.set(null);
+    this.entries.set([]);
+    this.hasQueried.set(false);
+    this.cursorHistory = [null];
+    this.currentPage.set(1);
+    this.hasMore.set(false);
+  }
+
+  // ── Excel Export ──────────────────────────────────────────────────────────
+  async exportExcel(): Promise<void> {
+    if (this.exportingExcel()) return;
+    this.exportingExcel.set(true);
+    try {
+      const allEntries = await this.svc.getEntriesByRange({
+        dateFrom:     this.dateFrom()     || undefined,
+        dateTo:       this.dateTo()       || undefined,
+        type:         this.typeFilter()   ?? undefined,
+        status:       this.statusFilter() ?? undefined,
+        accountCode:  this.accountCode()  || undefined,
+        costCenterId: this.costCenterId() || undefined,
+      });
+
+      // Sheet 1: Entry headers
+      const headersRows = allEntries.map(e => ({
+        'N°':          e.number,
+        'Fecha':       this.formatDate(e.date),
+        'Descripción': e.description,
+        'Tipo':        this.TYPE_LABELS[e.type],
+        'Estado':      this.STATUS_LABELS[e.status],
+        'Referencia':  e.reference ?? '',
+        'Débito':      e.totalDebit,
+        'Crédito':     e.totalCredit,
+        'Cuadrado':    e.isBalanced ? 'Sí' : 'No',
+      }));
+
+      // Sheet 2: Entry lines detail
+      const linesRows: Record<string, string | number>[] = [];
+      for (const e of allEntries) {
+        for (const l of e.lines) {
+          linesRows.push({
+            'N° Asiento':      e.number,
+            'Fecha':           this.formatDate(e.date),
+            'Código Cuenta':   l.accountCode,
+            'Cuenta':          l.accountName,
+            'Centro de Costo': l.costCenterName ?? '',
+            'Débito':          l.debit,
+            'Crédito':         l.credit,
+            'Detalle Línea':   l.description ?? '',
+          });
+        }
+      }
+
+      const fromStr = this.dateFrom() || 'todos';
+      const toStr   = this.dateTo()   || '';
+      const suffix  = toStr ? `${fromStr}_${toStr}` : fromStr;
+
+      this.excelSvc.export(`asientos_${suffix}`, [
+        { name: 'Asientos', rows: headersRows },
+        { name: 'Líneas',   rows: linesRows   },
+      ]);
+    } catch (err: any) {
+      this.notifications.error('Error exportando: ' + (err?.message ?? err));
+    } finally {
+      this.exportingExcel.set(false);
+    }
   }
 
   // ── Navigation ────────────────────────────────────────────────────────────
@@ -177,7 +314,13 @@ export class JournalEntriesPageComponent implements OnInit, OnDestroy {
   // ── Actions ───────────────────────────────────────────────────────────────
   async postEntry(entry: JournalEntry, event: Event): Promise<void> {
     event.stopPropagation();
-    if (!confirm(`¿Contabilizar el asiento N° ${entry.number}?`)) return;
+    const ok = await this.notifications.confirm({
+      title: `¿Contabilizar el asiento N° ${entry.number}?`,
+      confirmText: 'Sí, contabilizar',
+      cancelText: 'Cancelar',
+      icon: 'question'
+    });
+    if (!ok) return;
     try {
       await this.svc.postEntry(entry.id);
       this.notifications.success('Asiento contabilizado');
@@ -224,7 +367,14 @@ export class JournalEntriesPageComponent implements OnInit, OnDestroy {
   async deleteEntry(entry: JournalEntry, event: Event): Promise<void> {
     event.stopPropagation();
     if (entry.status !== 'draft') return;
-    if (!confirm(`¿Eliminar el borrador N° ${entry.number}?`)) return;
+    const ok2 = await this.notifications.confirm({
+      title: `¿Eliminar el borrador N° ${entry.number}?`,
+      confirmText: 'Sí, eliminar',
+      cancelText: 'Cancelar',
+      icon: 'warning',
+      danger: true
+    });
+    if (!ok2) return;
     try {
       await this.svc.deleteEntry(entry.id);
       this.notifications.success('Borrador eliminado');
@@ -251,9 +401,21 @@ export class JournalEntriesPageComponent implements OnInit, OnDestroy {
 
   trackById(_: number, item: { id: string }): string { return item.id; }
 
-  /** Clases para badge subtle (Norma 1). 'dark' no tiene subtle usable en dark mode → badge-neutral-subtle. */
+  /** Clases para badge subtle */
   badgeClasses(color: string): string {
     if (color === 'dark') return 'badge badge-neutral-subtle';
     return `badge bg-${color}-subtle text-${color} border border-${color}-subtle`;
   }
+
+  /** Label para mostrar en el select de cuentas */
+  accountLabel(a: Account): string {
+    return `${a.code} — ${a.name}`;
+  }
+
+  /** Label para mostrar en el select de centros (con indentación visual para subcentros) */
+  costCenterLabel(c: CostCenter): string {
+    return c.parentId ? `  ↳ ${c.code} — ${c.name}` : `${c.code} — ${c.name}`;
+  }
 }
+
+

@@ -31,7 +31,8 @@ import {
     Action,
     ActionInput
 } from '../../core/interfaces/permission.interface';
-import { MODULES_SEED, ACTIONS_SEED } from '../../core/seed/modules-seed';
+import { MODULES_SEED, ACTIONS_SEED }  from '../../core/seed/modules-seed';
+import { NotificationService }         from '../../core/services/notification.service';
 
 type ActiveTab = 'permissions' | 'modules' | 'actions';
 
@@ -64,6 +65,7 @@ export class PermissionsComponent implements OnInit {
     private actionsService      = inject(ActionsService);
     private permCatalogService  = inject(PermissionsCatalogService);
     private fb                  = inject(FormBuilder);
+    private notifications       = inject(NotificationService);
 
     activeTab = signal<ActiveTab>('permissions');
 
@@ -234,7 +236,14 @@ export class PermissionsComponent implements OnInit {
             alert('No se pueden eliminar permisos del sistema.');
             return;
         }
-        if (!confirm(`¿Eliminar el permiso "${permission.name}"?`)) return;
+        const ok = await this.notifications.confirm({
+            title: `¿Eliminar el permiso "${permission.name}"?`,
+            confirmText: 'Sí, eliminar',
+            cancelText: 'Cancelar',
+            icon: 'warning',
+            danger: true
+        });
+        if (!ok) return;
         try {
             await this.permCatalogService.deletePermission(permission.id!);
             this.loadAllData();
@@ -320,7 +329,15 @@ export class PermissionsComponent implements OnInit {
     }
 
     async deleteModule(module: Module): Promise<void> {
-        if (!confirm(`¿Eliminar el módulo "${module.name}"? Fallará si tiene permisos asociados.`)) return;
+        const ok = await this.notifications.confirm({
+            title: `¿Eliminar el módulo "${module.name}"?`,
+            text: 'Fallará si tiene permisos asociados.',
+            confirmText: 'Sí, eliminar',
+            cancelText: 'Cancelar',
+            icon: 'warning',
+            danger: true
+        });
+        if (!ok) return;
         try {
             await this.modulesService.deleteModule(module.id);
             this.loadAllData();
@@ -376,7 +393,14 @@ export class PermissionsComponent implements OnInit {
     }
 
     async deleteAction(action: Action): Promise<void> {
-        if (!confirm(`¿Eliminar la acción "${action.name}"?`)) return;
+        const ok = await this.notifications.confirm({
+            title: `¿Eliminar la acción "${action.name}"?`,
+            confirmText: 'Sí, eliminar',
+            cancelText: 'Cancelar',
+            icon: 'warning',
+            danger: true
+        });
+        if (!ok) return;
         try {
             await this.actionsService.deleteAction(action.id);
             this.loadAllData();
@@ -397,7 +421,13 @@ export class PermissionsComponent implements OnInit {
      *  - Si no existe → crea.
      */
     async syncModules(): Promise<void> {
-        if (!confirm('Se actualizarán todos los módulos del catálogo con los datos del seed.\n¿Continuar?')) return;
+        const ok = await this.notifications.confirm({
+            title: '¿Actualizar todos los módulos del catálogo con los datos del seed?',
+            confirmText: 'Sí, sincronizar',
+            cancelText: 'Cancelar',
+            icon: 'question'
+        });
+        if (!ok) return;
 
         this.seeding.set(true);
         this.seedLog.set([]);
@@ -474,7 +504,14 @@ export class PermissionsComponent implements OnInit {
             actionsToInsert.length ? `${actionsToInsert.length} acciones nuevas` : ''
         ].filter(Boolean).join(' y ');
 
-        if (!confirm(`Se registrarán ${msg}.\n\nLos registros existentes no se modificarán. ¿Continuar?`)) return;
+        const seedOk = await this.notifications.confirm({
+            title: `¿Registrar ${msg}?`,
+            text: 'Los registros existentes no se modificarán.',
+            confirmText: 'Sí, registrar',
+            cancelText: 'Cancelar',
+            icon: 'question'
+        });
+        if (!seedOk) return;
 
         this.seeding.set(true);
         this.seedLog.set([]);

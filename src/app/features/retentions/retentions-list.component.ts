@@ -259,7 +259,14 @@ export class RetentionsListComponent implements OnInit, OnDestroy {
   applySearch(): void { /* reactive via computed() */ }
 
   async deleteRetention(r: Retention): Promise<void> {
-    if (!confirm(`¿Eliminar retención ${r.fullNumber}?`)) return;
+    const ok = await this.notifications.confirm({
+      title: `¿Eliminar retención ${r.fullNumber}?`,
+      confirmText: 'Sí, eliminar',
+      cancelText: 'Cancelar',
+      icon: 'warning',
+      danger: true
+    });
+    if (!ok) return;
     try {
       await this.svc.deleteRetention(r.id);
       this.notifications.success('Retención eliminada');

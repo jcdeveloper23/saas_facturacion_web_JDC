@@ -934,7 +934,14 @@ export class ProductFormComponent implements OnInit, OnDestroy {
   }
 
   async removeImageAt(slot: number): Promise<void> {
-    if (!confirm(`¿Eliminar la imagen ${slot + 1}?`)) return;
+    const ok = await this.notifications.confirm({
+      title: `¿Eliminar la imagen ${slot + 1}?`,
+      confirmText: 'Sí, eliminar',
+      cancelText: 'Cancelar',
+      icon: 'warning',
+      danger: true
+    });
+    if (!ok) return;
     const productId = this.productId();
     const url       = this.imageUrls()[slot];
     if (!productId || !url) { this.updateSlot(slot, null); return; }
@@ -990,7 +997,14 @@ export class ProductFormComponent implements OnInit, OnDestroy {
   }
 
   async deleteSupplier(s: ProductSupplier): Promise<void> {
-    if (!confirm(`¿Eliminar proveedor "${s.supplierName ?? s.supplierCode}"?`)) return;
+    const ok = await this.notifications.confirm({
+      title: `¿Eliminar proveedor "${s.supplierName ?? s.supplierCode}"?`,
+      confirmText: 'Sí, eliminar',
+      cancelText: 'Cancelar',
+      icon: 'warning',
+      danger: true
+    });
+    if (!ok) return;
     try {
       await this.svc.deleteSupplier(this.productId()!, s.id);
       this.notifications.success('Proveedor eliminado');
@@ -1044,7 +1058,14 @@ export class ProductFormComponent implements OnInit, OnDestroy {
   }
 
   async deleteVariant(v: ProductVariant): Promise<void> {
-    if (!confirm(`¿Eliminar variante "${v.sku}"?`)) return;
+    const ok = await this.notifications.confirm({
+      title: `¿Eliminar variante "${v.sku}"?`,
+      confirmText: 'Sí, eliminar',
+      cancelText: 'Cancelar',
+      icon: 'warning',
+      danger: true
+    });
+    if (!ok) return;
     try {
       await this.svc.deleteVariant(this.productId()!, v.id);
       this.notifications.success('Variante eliminada');

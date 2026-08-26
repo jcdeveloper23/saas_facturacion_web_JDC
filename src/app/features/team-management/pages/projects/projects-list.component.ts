@@ -138,7 +138,13 @@ export class ProjectsListComponent implements OnInit, OnDestroy {
   async changeProjectStatus(p: Project, status: ProjectStatus): Promise<void> {
     this.closeMenu();
     const label = PROJECT_STATUS_LABELS[status];
-    if (!confirm(`¿Cambiar estado del proyecto "${p.name}" a "${label}"?`)) return;
+    const ok = await this.notifications.confirm({
+      title: `¿Cambiar estado del proyecto "${p.name}" a "${label}"?`,
+      confirmText: 'Sí, cambiar',
+      cancelText: 'Cancelar',
+      icon: 'question'
+    });
+    if (!ok) return;
     try {
       await this.svc.changeStatus(p.id, status);
       this.notifications.success(`Proyecto actualizado a "${label}"`);
@@ -149,7 +155,15 @@ export class ProjectsListComponent implements OnInit, OnDestroy {
 
   async softDelete(p: Project): Promise<void> {
     this.closeMenu();
-    if (!confirm(`¿Eliminar el proyecto "${p.name}"? Esta acción no se puede deshacer.`)) return;
+    const ok = await this.notifications.confirm({
+      title: `¿Eliminar el proyecto "${p.name}"?`,
+      text: 'Esta acción no se puede deshacer.',
+      confirmText: 'Sí, eliminar',
+      cancelText: 'Cancelar',
+      icon: 'warning',
+      danger: true
+    });
+    if (!ok) return;
     try {
       await this.svc.softDelete(p.id);
       this.notifications.success('Proyecto eliminado');

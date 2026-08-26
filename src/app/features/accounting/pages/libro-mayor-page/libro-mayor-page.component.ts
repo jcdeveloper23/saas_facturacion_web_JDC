@@ -62,6 +62,12 @@ export class LibroMayorPageComponent implements OnInit, OnDestroy {
   selectedCostCenter  = signal('');
   loading             = signal(false);
   searching           = signal(false);
+  hasQueried          = signal(false);
+
+  // ── Filter signals ────────────────────────────────────────────────────────
+  dateFrom            = signal('');
+  dateTo              = signal('');
+  searchTerm          = signal('');
 
   readonly TYPE_LABELS  = JOURNAL_ENTRY_TYPE_LABELS;
   readonly TYPE_COLORS  = JOURNAL_ENTRY_TYPE_COLORS;
@@ -69,15 +75,48 @@ export class LibroMayorPageComponent implements OnInit, OnDestroy {
   readonly ACC_NATURES  = ACCOUNT_NATURE_LABELS;
 
   // ── Computed ──────────────────────────────────────────────────────────────
-  totalDebit  = computed(() => this.lines().reduce((s, l) => s + l.debit,  0));
-  totalCredit = computed(() => this.lines().reduce((s, l) => s + l.credit, 0));
+  filteredLines = computed(() => {
+    const term = this.searchTerm().toLowerCase().trim();
+    if (!term) return this.lines();
+    return this.lines().filter(l =>
+      String(l.entryNumber).includes(term) ||
+      l.description.toLowerCase().includes(term) ||
+      (l.reference ?? '').toLowerCase().includes(term)
+    );
+  });
+
+  totalDebit  = computed(() => this.filteredLines().reduce((s, l) => s + l.debit,  0));
+  totalCredit = computed(() => this.filteredLines().reduce((s, l) => s + l.credit, 0));
   finalBalance = computed(() => {
-    const last = this.lines();
+    const last = this.filteredLines();
     return last.length ? last[last.length - 1].balance : 0;
   });
 
+  /** Validation: dateFrom <= dateTo */
+  get dateRangeValid(): boolean {
+    const from = this.dateFrom();
+    const to   = this.dateTo();
+    if (!from || !to) return false;
+    return from <= to;
+  }
+
+  get hasActiveFilters(): boolean {
+    return !!(
+      this.dateFrom() || this.dateTo() ||
+      this.selectedCode() || this.selectedCostCenter() ||
+      this.searchTerm() || this.selectedPeriod()
+    );
+  }
+
   // ── Lifecycle ─────────────────────────────────────────────────────────────
   ngOnInit(): void {
+    // Default date range: current month
+    const now   = new Date();
+    const y     = now.getFullYear();
+    const m     = String(now.getMonth() + 1).padStart(2, '0');
+    this.dateFrom.set(`${y}-${m}-01`);
+    this.dateTo.set(new Date(y, now.getMonth() + 1, 0).toISOString().slice(0, 10));
+
     // Drill-down desde chart-of-accounts-page ("Ver movimientos"): preselecciona
     // y carga automáticamente la cuenta pasada por query param.
     const preselectCode = this.route.snapshot.queryParamMap.get('accountCode');
@@ -103,7 +142,15 @@ export class LibroMayorPageComponent implements OnInit, OnDestroy {
   // ── Load mayor ────────────────────────────────────────────────────────────
   async loadMayor(): Promise<void> {
     const code = this.selectedCode();
-    if (!code) { this.notifications.warning('Seleccione una cuenta'); return; }
+    if (!code) { this.notifications.warning('Seleccione una cuenta contable'); return; }
+    if (!this.dateFrom() || !this.dateTo()) {
+      this.notifications.warning('Las fechas Desde y Hasta son obligatorias');
+      return;
+    }
+    if (!this.dateRangeValid) {
+      this.notifications.warning('La fecha Desde no puede ser mayor que Hasta');
+      return;
+    }
 
     const acc = this.accounts().find(a => a.code === code);
     this.selectedAccount.set(acc ?? null);
@@ -113,8 +160,15 @@ export class LibroMayorPageComponent implements OnInit, OnDestroy {
     try {
       const periodId     = this.selectedPeriod()     || undefined;
       const costCenterId = this.selectedCostCenter() || undefined;
-      const result       = await this.svc.getLibroMayor(code, periodId, costCenterId);
+      const result       = await this.svc.getLibroMayor(
+        code,
+        periodId,
+        costCenterId,
+        this.dateFrom(),
+        this.dateTo()
+      );
       this.lines.set(result);
+      this.hasQueried.set(true);
     } catch (err: any) {
       this.notifications.error('Error cargando libro mayor: ' + (err?.message ?? err));
     } finally {
@@ -122,19 +176,36 @@ export class LibroMayorPageComponent implements OnInit, OnDestroy {
     }
   }
 
+  clearFilters(): void {
+    const now = new Date();
+    const y   = now.getFullYear();
+    const m   = String(now.getMonth() + 1).padStart(2, '0');
+    this.dateFrom.set(`${y}-${m}-01`);
+    this.dateTo.set(new Date(y, now.getMonth() + 1, 0).toISOString().slice(0, 10));
+    this.selectedCode.set('');
+    this.selectedCostCenter.set('');
+    this.searchTerm.set('');
+    this.selectedPeriod.set('');
+    this.lines.set([]);
+    this.selectedAccount.set(null);
+    this.hasQueried.set(false);
+  }
+
   printReport(): void { window.print(); }
 
   async downloadPdf(): Promise<void> {
-    if (!this.lines().length) return;
+    if (!this.filteredLines().length) return;
     this.downloadingPdf.set(true);
     try {
       const acc        = this.selectedAccount();
-      const periodName = this.getPeriodName(this.selectedPeriod());
+      const periodName = this.selectedPeriod()
+        ? this.getPeriodName(this.selectedPeriod())
+        : `${this.dateFrom()} a ${this.dateTo()}`;
       await this.pdfSvc.downloadPdf({
         reportType: 'libro-mayor',
         companyId:  this.tenantSvc.companyId,
         periodName,
-        data: this.lines().map(l => ({
+        data: this.filteredLines().map(l => ({
           entryNumber: l.entryNumber,
           date:        this.formatDate(l.date),
           description: l.description,
@@ -159,9 +230,9 @@ export class LibroMayorPageComponent implements OnInit, OnDestroy {
   }
 
   downloadExcel(): void {
-    if (!this.lines().length) return;
+    if (!this.filteredLines().length) return;
     const acc = this.selectedAccount();
-    const rows: Record<string, string | number>[] = this.lines().map(l => ({
+    const rows: Record<string, string | number>[] = this.filteredLines().map(l => ({
       'N° Asiento': l.entryNumber,
       Fecha:        this.formatDate(l.date),
       Descripción:  l.description,

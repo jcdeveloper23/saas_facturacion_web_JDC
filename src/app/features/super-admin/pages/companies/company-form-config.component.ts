@@ -158,8 +158,16 @@ export class CompanyFormConfigComponent implements OnInit {
     }
   }
 
-  resetDefaults(): void {
-    if (!confirm('¿Restablecer los valores por defecto? Se perderán las etiquetas personalizadas.')) return;
+  async resetDefaults(): Promise<void> {
+    const ok = await this.notifications.confirm({
+      title: '¿Restablecer los valores por defecto?',
+      text: 'Se perderán las etiquetas personalizadas.',
+      confirmText: 'Sí, restablecer',
+      cancelText: 'Cancelar',
+      icon: 'warning',
+      danger: true
+    });
+    if (!ok) return;
     this.rawConfig.set(this.configSvc.buildDefault(this.entity()));
     this.save(false);
   }

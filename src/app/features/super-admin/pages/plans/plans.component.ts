@@ -83,11 +83,13 @@ export class PlansComponent implements OnInit, OnDestroy {
 
   async syncPlans(): Promise<void> {
     if (this.syncing()) return;
-    const ok = confirm(
-      '¿Sincronizar los 5 planes y 11 paquetes por defecto?\n\n' +
-      'Se usará merge — los campos ya personalizados no se sobreescriben.\n' +
-      'Si un plan no existe, se creará. Si ya existe, solo se actualizan los campos del seed.'
-    );
+    const ok = await this.notifications.confirm({
+      title: '¿Sincronizar los 5 planes y 11 paquetes por defecto?',
+      text: 'Se usará merge — los campos ya personalizados no se sobreescriben. Si un plan no existe, se creará. Si ya existe, solo se actualizan los campos del seed.',
+      confirmText: 'Sí, sincronizar',
+      cancelText: 'Cancelar',
+      icon: 'question'
+    });
     if (!ok) return;
     this.syncing.set(true);
     try {
@@ -105,7 +107,14 @@ export class PlansComponent implements OnInit, OnDestroy {
   }
 
   async deactivate(plan: Plan): Promise<void> {
-    if (!confirm(`¿Desactivar el plan "${plan.name}"?`)) return;
+    const ok = await this.notifications.confirm({
+      title: `¿Desactivar el plan "${plan.name}"?`,
+      confirmText: 'Sí, desactivar',
+      cancelText: 'Cancelar',
+      icon: 'warning',
+      danger: true
+    });
+    if (!ok) return;
     try {
       await this.svc.deactivatePlan(plan.id);
       this.notifications.success('Plan desactivado');

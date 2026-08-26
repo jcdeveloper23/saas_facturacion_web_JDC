@@ -155,7 +155,14 @@ export class PurchasesMappingsComponent implements OnInit, OnDestroy {
   }
 
   async deleteMapping(m: SupplierProductMapping): Promise<void> {
-    if (!confirm(`¿Eliminar el mapeo "${m.supplierSku}" → "${m.productName}"?`)) return;
+    const ok = await this.notifications.confirm({
+      title: `¿Eliminar el mapeo "${m.supplierSku}" → "${m.productName}"?`,
+      confirmText: 'Sí, eliminar',
+      cancelText: 'Cancelar',
+      icon: 'warning',
+      danger: true
+    });
+    if (!ok) return;
     try {
       await this.svc.delete(m.id);
       this.notifications.success('Mapeo eliminado');

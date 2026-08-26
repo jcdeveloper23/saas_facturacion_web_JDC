@@ -6,8 +6,9 @@ import {
   AlertModule, ModalModule, SpinnerModule
 } from '@coreui/angular';
 
-import { SchoolWalletService } from '../services/school-wallet.service';
+import { SchoolWalletService }  from '../services/school-wallet.service';
 import { SchoolStudentService } from '../services/school-student.service';
+import { NotificationService }  from '../../../core/services/notification.service';
 import {
   SchoolRecharge, SchoolTransaction, SchoolStudent,
   RECHARGE_QUICK_AMOUNTS
@@ -27,6 +28,7 @@ export class SchoolWalletHistoryComponent implements OnInit {
   private walletService  = inject(SchoolWalletService);
   private studentService = inject(SchoolStudentService);
   private fb             = inject(FormBuilder);
+  private notifications  = inject(NotificationService);
 
   students         = signal<SchoolStudent[]>([]);
   pendingRecharges = signal<SchoolRecharge[]>([]);
@@ -67,12 +69,25 @@ export class SchoolWalletHistoryComponent implements OnInit {
   }
 
   async confirmRecharge(recharge: SchoolRecharge): Promise<void> {
-    if (!confirm(`¿Confirmar recarga de $${recharge.amount.toFixed(2)} para ${recharge.studentName}?`)) return;
+    const ok = await this.notifications.confirm({
+      title: `¿Confirmar recarga de $${recharge.amount.toFixed(2)} para ${recharge.studentName}?`,
+      confirmText: 'Sí, confirmar',
+      cancelText: 'Cancelar',
+      icon: 'question'
+    });
+    if (!ok) return;
     await this.walletService.confirmRecharge(recharge.id!);
   }
 
   async rejectRecharge(id: string): Promise<void> {
-    if (!confirm('¿Rechazar esta recarga?')) return;
+    const ok = await this.notifications.confirm({
+      title: '¿Rechazar esta recarga?',
+      confirmText: 'Sí, rechazar',
+      cancelText: 'Cancelar',
+      icon: 'warning',
+      danger: true
+    });
+    if (!ok) return;
     await this.walletService.rejectRecharge(id);
   }
 

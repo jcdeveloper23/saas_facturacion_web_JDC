@@ -486,7 +486,14 @@ export class InvoicesListComponent implements OnInit, OnDestroy {
 
   async markVoid(inv: Invoice, event: Event): Promise<void> {
     event.stopPropagation();
-    if (!confirm(`¿Anular factura ${inv.fullNumber}?`)) return;
+    const ok = await this.notifications.confirm({
+      title: `¿Anular factura ${inv.fullNumber}?`,
+      confirmText: 'Sí, anular',
+      cancelText: 'Cancelar',
+      icon: 'warning',
+      danger: true
+    });
+    if (!ok) return;
     try {
       await this.svc.markVoid(inv.id);
       this.notifications.success('Factura anulada');
@@ -498,7 +505,14 @@ export class InvoicesListComponent implements OnInit, OnDestroy {
   async deleteInvoice(inv: Invoice, event: Event): Promise<void> {
     event.stopPropagation();
     if (inv.status !== 'draft') return;
-    if (!confirm(`¿Eliminar borrador ${inv.fullNumber}?`)) return;
+    const ok = await this.notifications.confirm({
+      title: `¿Eliminar borrador ${inv.fullNumber}?`,
+      confirmText: 'Sí, eliminar',
+      cancelText: 'Cancelar',
+      icon: 'warning',
+      danger: true
+    });
+    if (!ok) return;
     try {
       await this.svc.deleteInvoice(inv.id);
       this.notifications.success('Borrador eliminado');
@@ -510,7 +524,13 @@ export class InvoicesListComponent implements OnInit, OnDestroy {
   // ── Nota de Crédito ──────────────────────────────────────────────────────
   async createCreditNote(inv: Invoice, event: Event): Promise<void> {
     event.stopPropagation();
-    if (!confirm(`¿Crear nota de crédito para la factura ${inv.fullNumber}?`)) return;
+    const ok = await this.notifications.confirm({
+      title: `¿Crear nota de crédito para la factura ${inv.fullNumber}?`,
+      confirmText: 'Sí, crear',
+      cancelText: 'Cancelar',
+      icon: 'question'
+    });
+    if (!ok) return;
     try {
       const today = new Date();
       const lines = inv.lines.map(l => ({ ...l, id: crypto.randomUUID() }));

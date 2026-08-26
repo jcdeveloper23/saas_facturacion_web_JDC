@@ -297,7 +297,14 @@ export class BankAccountsPageComponent implements OnInit, OnDestroy {
 
   async deleteAccount(acc: BankAccount, event: Event): Promise<void> {
     event.stopPropagation();
-    if (!confirm(`¿Eliminar cuenta bancaria "${acc.bankName} — ${acc.accountNumber}"?`)) return;
+    const ok = await this.notifications.confirm({
+      title: `¿Eliminar cuenta bancaria "${acc.bankName} — ${acc.accountNumber}"?`,
+      confirmText: 'Sí, eliminar',
+      cancelText: 'Cancelar',
+      icon: 'warning',
+      danger: true
+    });
+    if (!ok) return;
     this.deleting.set(acc.id);
     try {
       await this.svc.deleteBankAccount(acc.id);

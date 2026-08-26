@@ -222,53 +222,56 @@
 }
 
 <!-- ══════════════════════════════════════════════════════════════════════════
-     TAB: APARIENCIA (Marca Blanca)
+     TAB: APARIENCIA
 ══════════════════════════════════════════════════════════════════════════════ -->
 @if (activeTab() === 'apariencia') {
-  <c-row class="g-4">
 
-    <!-- Logo de empresa -->
-    <c-col lg="7">
-      <c-card class="border-0 shadow-sm h-100">
-        <c-card-body class="p-4">
-          <h6 class="text-uppercase text-muted fw-bold small mb-1 border-bottom pb-2">Logo de la empresa</h6>
-          <p class="text-muted small mb-4">
-            Se mostrará en la barra lateral de navegación. Usa formato PNG o SVG con fondo transparente para mejores resultados.
+  <!-- Fila 1: Logo + Colores de Marca -->
+  <c-row class="g-3 mb-3">
+
+    <!-- ── Logo ─────────────────────────────────────────────────────────────── -->
+    <c-col lg="4">
+      <c-card class="h-100">
+        <c-card-body>
+          <div class="appearance-section-header mb-2">
+            <svg cIcon name="cilImage" size="sm" class="text-muted"></svg>
+            <span>Logo de la empresa</span>
+          </div>
+          <p class="text-secondary small mb-3">
+            Se muestra en la barra lateral. Usa PNG o SVG con fondo transparente para mejores resultados.
           </p>
 
-          <!-- Preview actual -->
-          <div class="logo-preview-area mb-4">
-            <div class="sidebar-mockup">
-              <div class="sidebar-mockup-header">
-                @if (logoPreviewUrl() || currentLogoUrl()) {
-                  <img [src]="logoPreviewUrl() ?? currentLogoUrl()!" class="mockup-logo-full" alt="Logo empresa" />
-                } @else {
-                  <div class="mockup-logo-placeholder">
-                    <svg cIcon name="cilBuilding" size="lg" class="text-secondary"></svg>
-                    <span class="text-secondary small">Sin logo</span>
-                  </div>
-                }
-              </div>
-              <div class="sidebar-mockup-nav">
-                <div class="mockup-nav-item active"></div>
-                <div class="mockup-nav-item"></div>
-                <div class="mockup-nav-item"></div>
-                <div class="mockup-nav-item"></div>
-              </div>
+          <!-- Sidebar mockup preview -->
+          <div class="sidebar-mockup mx-auto mb-1">
+            <div class="sidebar-mockup-header">
+              @if (logoPreviewUrl() || currentLogoUrl()) {
+                <img [src]="logoPreviewUrl() ?? currentLogoUrl()!" class="mockup-logo-full" alt="Logo empresa">
+              } @else {
+                <div class="mockup-logo-placeholder">
+                  <svg cIcon name="cilBuilding" size="lg"></svg>
+                  <span>Sin logo</span>
+                </div>
+              }
             </div>
-            <div class="logo-preview-label text-muted small text-center mt-2">Vista previa en sidebar</div>
+            <div class="sidebar-mockup-nav">
+              <div class="mockup-nav-item active"></div>
+              <div class="mockup-nav-item"></div>
+              <div class="mockup-nav-item"></div>
+              <div class="mockup-nav-item short"></div>
+            </div>
           </div>
+          <p class="text-center text-secondary mb-3" style="font-size:.7rem">Vista previa · sidebar</p>
 
           <!-- Upload zone -->
-          <div class="logo-upload-zone" [class.has-file]="logoFileName()">
-            <label for="logoInput" class="d-flex flex-column align-items-center gap-2 py-3" style="cursor:pointer">
-              <svg cIcon name="cilArrowTop" size="xl" class="text-primary"></svg>
+          <div class="logo-upload-zone mb-2" [class.has-file]="logoFileName()">
+            <label for="logoInput" class="d-flex flex-column align-items-center gap-1 py-2" style="cursor:pointer">
+              <svg cIcon name="cilArrowTop" class="text-primary"></svg>
               @if (logoFileName()) {
-                <span class="fw-semibold text-primary">{{ logoFileName() }}</span>
-                <span class="text-muted small">Haz clic para cambiar el archivo</span>
+                <span class="fw-semibold text-primary small text-center">{{ logoFileName() }}</span>
+                <span class="text-secondary" style="font-size:.7rem">Clic para cambiar</span>
               } @else {
-                <span class="fw-semibold">Arrastra tu logo aquí o haz clic para seleccionar</span>
-                <span class="text-muted small">JPG, PNG, WEBP o SVG · máx. 2 MB</span>
+                <span class="small">Arrastra o selecciona un archivo</span>
+                <span class="text-secondary" style="font-size:.7rem">JPG · PNG · WEBP · SVG · máx 2 MB</span>
               }
             </label>
             <input type="file" id="logoInput" accept="image/jpeg,image/png,image/webp,image/svg+xml"
@@ -276,28 +279,25 @@
           </div>
 
           @if (logoUploadError()) {
-            <c-alert color="danger" class="mt-2 py-2 small">{{ logoUploadError() }}</c-alert>
+            <c-alert color="danger" class="py-2 small mb-2">{{ logoUploadError() }}</c-alert>
           }
-
           @if (uploadingLogo() && logoUploadProgress() > 0) {
-            <div class="mt-3">
+            <div class="mb-2">
               <c-progress [value]="logoUploadProgress()" color="primary" animated></c-progress>
-              <p class="text-muted small text-center mt-1">Subiendo… {{ logoUploadProgress() }}%</p>
+              <p class="text-secondary text-center mt-1" style="font-size:.7rem">Subiendo… {{ logoUploadProgress() }}%</p>
             </div>
           }
 
-          <div class="d-flex gap-2 mt-3">
-            <button cButton color="primary" size="sm" [disabled]="!logoFile() || uploadingLogo()"
-              (click)="uploadLogo()">
+          <div class="d-flex gap-2 mt-2">
+            <button cButton color="primary" size="sm" [disabled]="!logoFile() || uploadingLogo()" (click)="uploadLogo()">
               @if (uploadingLogo()) { <c-spinner size="sm" class="me-1"></c-spinner> Subiendo... }
-              @else { <svg cIcon name="cilArrowTop" size="sm" class="me-1"></svg> Subir Logo }
+              @else { <svg cIcon name="cilArrowTop" size="sm" class="me-1"></svg> Subir logo }
             </button>
             @if (currentLogoUrl()) {
-              <button cButton color="danger" variant="outline" size="sm"
-                [disabled]="removingLogo()" (click)="removeLogo()">
+              <button cButton color="danger" variant="outline" size="sm" [disabled]="removingLogo()" (click)="removeLogo()">
                 @if (removingLogo()) { <c-spinner size="sm" class="me-1"></c-spinner> }
                 @else { <svg cIcon name="cilTrash" size="sm" class="me-1"></svg> }
-                Eliminar logo
+                Eliminar
               </button>
             }
           </div>
@@ -305,298 +305,259 @@
       </c-card>
     </c-col>
 
-    <!-- Paleta de Colores y Tema de Marca -->
-    <c-col lg="5">
-      <c-card class="border-0 shadow-sm mb-4" [class.plan-locked]="!isWhiteLabelEnabled()">
-        <c-card-body class="p-4">
-          <div class="d-flex justify-content-between align-items-start mb-1">
-            <h6 class="text-uppercase text-muted fw-bold small border-bottom pb-2 flex-grow-1">Paleta de Colores y Tema</h6>
+    <!-- ── Colores de Marca ──────────────────────────────────────────────────── -->
+    <c-col lg="8">
+      <c-card class="h-100" [class.plan-locked]="!isWhiteLabelEnabled()">
+        <c-card-body>
+          <div class="appearance-section-header mb-1">
+            <svg cIcon name="cilDrop" size="sm" class="text-muted"></svg>
+            <span>Color de Marca</span>
             @if (!isWhiteLabelEnabled()) {
-              <span class="badge bg-warning-subtle text-warning border border-warning-subtle ms-2 flex-shrink-0">
-                <svg cIcon name="cilLockLocked" size="sm" class="me-1"></svg>Plan Pro
+              <span class="badge bg-warning-subtle text-warning border border-warning-subtle ms-auto">
+                <svg cIcon name="cilLockLocked" size="sm" class="me-1"></svg>Requiere Marca Blanca
               </span>
             }
           </div>
-          <p class="text-muted small mb-4">
-            Personaliza la identidad cromática de tu plataforma. Modifica los colores primario y secundario.
-          </p>
+          <p class="text-secondary small mb-3">Personaliza los colores primario y de acento de tu plataforma.</p>
+
           @if (!isWhiteLabelEnabled()) {
-            <c-callout color="warning" class="mb-4">
-              <p class="small mb-1 fw-semibold">Función disponible en planes superiores</p>
-              <p class="small mb-0 text-muted">
-                La personalización de colores, estilos de botones y opciones avanzadas de marca requieren el plan
-                <strong>Professional</strong> o superior. Contacta a soporte para actualizar tu plan.
+            <c-callout color="warning" class="mb-3">
+              <p class="small mb-0">
+                La personalización de la interfaz y marca está deshabilitada porque no está activa la función de <strong>Marca Blanca</strong> en la configuración de tu plan. Contacta a soporte o al administrador para habilitarla.
               </p>
             </c-callout>
           }
 
-          <!-- Color Primario -->
-          <div class="color-picker-wrap mb-3" [class.opacity-50]="!isWhiteLabelEnabled()">
-            <div class="color-swatch" [style.background]="brandColor()"></div>
-            <div class="flex-grow-1">
-              <label class="fw-semibold small d-block mb-1">Color Primario (Botones, Acentos y Menú)</label>
-              <div class="d-flex gap-2 align-items-center">
-                <input type="color" class="form-control form-control-color"
-                  [value]="brandColor()"
-                  (input)="brandColor.set($any($event.target).value)"
+          <!-- Pickers primario + acento -->
+          <c-row class="g-3 mb-3" [class.opacity-50]="!isWhiteLabelEnabled()">
+            <c-col sm="6">
+              <label class="form-label">Color primario</label>
+              <p class="text-secondary mb-2" style="font-size:.75rem">Botones, acentos y menú lateral</p>
+              <div class="color-picker-wrap">
+                <div class="color-swatch" [style.background]="brandColor()"></div>
+                <div class="d-flex gap-2 align-items-center flex-grow-1">
+                  <input type="color" class="form-control form-control-color flex-shrink-0"
+                    [value]="brandColor()"
+                    (input)="brandColor.set($any($event.target).value)"
+                    [disabled]="!isWhiteLabelEnabled()">
+                  <input cFormControl type="text" class="font-monospace"
+                    [value]="brandColor()"
+                    (change)="brandColor.set($any($event.target).value)"
+                    [attr.disabled]="!isWhiteLabelEnabled() ? true : null"
+                    placeholder="#0d6efd">
+                </div>
+              </div>
+            </c-col>
+            <c-col sm="6">
+              <label class="form-label">Color de acento</label>
+              <p class="text-secondary mb-2" style="font-size:.75rem">Tags, badges y resaltados</p>
+              <div class="color-picker-wrap">
+                <div class="color-swatch" [style.background]="brandAccentColor()"></div>
+                <div class="d-flex gap-2 align-items-center flex-grow-1">
+                  <input type="color" class="form-control form-control-color flex-shrink-0"
+                    [value]="brandAccentColor()"
+                    (input)="brandAccentColor.set($any($event.target).value)"
+                    [disabled]="!isWhiteLabelEnabled()">
+                  <input cFormControl type="text" class="font-monospace"
+                    [value]="brandAccentColor()"
+                    (change)="brandAccentColor.set($any($event.target).value)"
+                    [attr.disabled]="!isWhiteLabelEnabled() ? true : null"
+                    placeholder="#0dcaf0">
+                </div>
+              </div>
+            </c-col>
+          </c-row>
+
+          <!-- Paletas sugeridas -->
+          <div class="mb-3" [class.opacity-50]="!isWhiteLabelEnabled()">
+            <label class="form-label mb-2">Paletas sugeridas</label>
+            <div class="palette-grid">
+              @for (p of presetPalettes; track p.label) {
+                <button type="button" class="palette-preset"
                   [disabled]="!isWhiteLabelEnabled()"
-                  title="Elige el color primario">
-                <input cFormControl type="text" class="font-monospace"
-                  [value]="brandColor()"
-                  (change)="brandColor.set($any($event.target).value)"
-                  [attr.disabled]="!isWhiteLabelEnabled() ? true : null"
-                  placeholder="#0d6efd" style="max-width:110px">
+                  [title]="p.label"
+                  (click)="applyPresetPalette(p.primary, p.accent)">
+                  <span class="palette-chip" [style.background]="p.primary"></span>
+                  <span class="palette-chip" [style.background]="p.accent"></span>
+                  <span class="palette-label">{{ p.label }}</span>
+                </button>
+              }
+            </div>
+          </div>
+
+          <!-- Previsualización claro/oscuro — fondos de simulación intencionales -->
+          <div class="mb-3" [class.opacity-50]="!isWhiteLabelEnabled()">
+            <label class="form-label mb-2">Previsualización</label>
+            <div class="d-flex gap-2">
+              <div class="legibility-box legibility-box--light">
+                <span class="legibility-label">Modo claro</span>
+                <button class="legibility-btn" [style.background]="brandColor()">Acción</button>
+                <span class="legibility-link" [style.color]="brandColor()">Enlace</span>
+              </div>
+              <div class="legibility-box legibility-box--dark">
+                <span class="legibility-label">Modo oscuro</span>
+                <button class="legibility-btn" [style.background]="brandColor()">Acción</button>
+                <span class="legibility-link" [style.color]="brandColor()">Enlace</span>
               </div>
             </div>
-          </div>
-
-          <!-- Color Secundario / Acento -->
-          <div class="color-picker-wrap mb-4" [class.opacity-50]="!isWhiteLabelEnabled()">
-            <div class="color-swatch" [style.background]="brandAccentColor()"></div>
-            <div class="flex-grow-1">
-              <label class="fw-semibold small d-block mb-1">Color Secundario / Acento (Tags y Resaltados)</label>
-              <div class="d-flex gap-2 align-items-center">
-                <input type="color" class="form-control form-control-color"
-                  [value]="brandAccentColor()"
-                  (input)="brandAccentColor.set($any($event.target).value)"
-                  [disabled]="!isWhiteLabelEnabled()"
-                  title="Elige el color de acento">
-                <input cFormControl type="text" class="font-monospace"
-                  [value]="brandAccentColor()"
-                  (change)="brandAccentColor.set($any($event.target).value)"
-                  [attr.disabled]="!isWhiteLabelEnabled() ? true : null"
-                  placeholder="#0dcaf0" style="max-width:110px">
-              </div>
-            </div>
-          </div>
-
-          <!-- Paletas Combinadas Sugeridas -->
-          <div class="mb-4" [class.opacity-50]="!isWhiteLabelEnabled()">
-            <p class="text-muted small mb-2 fw-semibold">Combinaciones Sugeridas</p>
-            <div class="d-flex gap-2 flex-wrap">
-              <button type="button" class="btn btn-sm btn-outline-light border d-flex align-items-center gap-1"
-                [disabled]="!isWhiteLabelEnabled()"
-                (click)="applyPresetPalette('#0d6efd', '#0dcaf0')" title="Azul Corporativo">
-                <span class="color-chip" style="background:#0d6efd; width:16px; height:16px;"></span>
-                <span class="color-chip" style="background:#0dcaf0; width:16px; height:16px;"></span>
-                <small class="text-dark ms-1">Azul</small>
-              </button>
-              <button type="button" class="btn btn-sm btn-outline-light border d-flex align-items-center gap-1"
-                [disabled]="!isWhiteLabelEnabled()"
-                (click)="applyPresetPalette('#198754', '#20c997')" title="Verde Ejecutivo">
-                <span class="color-chip" style="background:#198754; width:16px; height:16px;"></span>
-                <span class="color-chip" style="background:#20c997; width:16px; height:16px;"></span>
-                <small class="text-dark ms-1">Verde</small>
-              </button>
-              <button type="button" class="btn btn-sm btn-outline-light border d-flex align-items-center gap-1"
-                [disabled]="!isWhiteLabelEnabled()"
-                (click)="applyPresetPalette('#6f42c1', '#d63384')" title="Púrpura Elegante">
-                <span class="color-chip" style="background:#6f42c1; width:16px; height:16px;"></span>
-                <span class="color-chip" style="background:#d63384; width:16px; height:16px;"></span>
-                <small class="text-dark ms-1">Púrpura</small>
-              </button>
-              <button type="button" class="btn btn-sm btn-outline-light border d-flex align-items-center gap-1"
-                [disabled]="!isWhiteLabelEnabled()"
-                (click)="applyPresetPalette('#fd7e14', '#ffc107')" title="Naranja Dinámico">
-                <span class="color-chip" style="background:#fd7e14; width:16px; height:16px;"></span>
-                <span class="color-chip" style="background:#ffc107; width:16px; height:16px;"></span>
-                <small class="text-dark ms-1">Naranja</small>
-              </button>
-              <button type="button" class="btn btn-sm btn-outline-light border d-flex align-items-center gap-1"
-                [disabled]="!isWhiteLabelEnabled()"
-                (click)="applyPresetPalette('#dc3545', '#fd7e14')" title="Rojo Ejecutivo">
-                <span class="color-chip" style="background:#dc3545; width:16px; height:16px;"></span>
-                <span class="color-chip" style="background:#fd7e14; width:16px; height:16px;"></span>
-                <small class="text-dark ms-1">Rojo</small>
-              </button>
-              <button type="button" class="btn btn-sm btn-outline-light border d-flex align-items-center gap-1"
-                [disabled]="!isWhiteLabelEnabled()"
-                (click)="applyPresetPalette('#343a40', '#6c757d')" title="Slate Tecnológico">
-                <span class="color-chip" style="background:#343a40; width:16px; height:16px;"></span>
-                <span class="color-chip" style="background:#6c757d; width:16px; height:16px;"></span>
-                <small class="text-dark ms-1">Gris</small>
-              </button>
-            </div>
-          </div>
-
-          <!-- Vista previa de legibilidad Modo Claro / Modo Oscuro -->
-          <div class="mb-4 p-3 rounded border bg-body-tertiary">
-            <p class="text-muted small mb-2 fw-semibold">Garantía de Legibilidad (Claro vs Oscuro)</p>
-            <c-row class="g-2">
-              <c-col sm="6">
-                <div class="p-2.5 rounded border text-center" style="background:#ffffff; color:#212529;">
-                  <small class="d-block text-muted mb-1 font-monospace" style="font-size:0.7rem;">Modo Claro</small>
-                  <button type="button" class="btn btn-sm btn-primary py-1 px-2 me-1" style="font-size:0.75rem;">Acción</button>
-                  <span class="small fw-semibold" [style.color]="brandColor()">Enlace</span>
-                </div>
-              </c-col>
-              <c-col sm="6">
-                <div class="p-2.5 rounded border text-center" style="background:#1d222b; color:#f8fafc;">
-                  <small class="d-block text-muted mb-1 font-monospace" style="font-size:0.7rem;">Modo Oscuro</small>
-                  <button type="button" class="btn btn-sm btn-primary py-1 px-2 me-1" style="font-size:0.75rem;">Acción</button>
-                  <span class="small fw-semibold" [style.color]="brandColor()">Enlace</span>
-                </div>
-              </c-col>
-            </c-row>
           </div>
 
           <button cButton color="primary" size="sm"
             [disabled]="savingBrand() || !isWhiteLabelEnabled()"
             (click)="saveBrandColor()">
             @if (savingBrand()) { <c-spinner size="sm" class="me-1"></c-spinner> }
-            Guardar Paleta de Colores
+            Guardar colores
           </button>
         </c-card-body>
       </c-card>
+    </c-col>
+  </c-row>
 
-      <!-- Estilo de Componentes y Botones -->
-      <c-card class="border-0 shadow-sm mb-4" [class.plan-locked]="!isWhiteLabelEnabled()">
-        <c-card-body class="p-4">
-          <div class="d-flex justify-content-between align-items-start mb-1">
-            <h6 class="text-uppercase text-muted fw-bold small border-bottom pb-2 flex-grow-1">Estilo de Componentes e Interfaz</h6>
+  <!-- Fila 2: Estilo Interfaz + PDF y Consejos -->
+  <c-row class="g-3">
+
+    <!-- ── Estilo de Interfaz ────────────────────────────────────────────────── -->
+    <c-col lg="6">
+      <c-card class="h-100" [class.plan-locked]="!isWhiteLabelEnabled()">
+        <c-card-body>
+          <div class="appearance-section-header mb-1">
+            <svg cIcon name="cilSettings" size="sm" class="text-muted"></svg>
+            <span>Estilo de Interfaz</span>
             @if (!isWhiteLabelEnabled()) {
-              <span class="badge bg-warning-subtle text-warning border border-warning-subtle ms-2 flex-shrink-0">
-                <svg cIcon name="cilLockLocked" size="sm" class="me-1"></svg>Plan Pro
+              <span class="badge bg-warning-subtle text-warning border border-warning-subtle ms-auto">
+                <svg cIcon name="cilLockLocked" size="sm" class="me-1"></svg>Requiere Marca Blanca
               </span>
             }
           </div>
-          <p class="text-muted small mb-4">
-            Ajusta la forma de los botones, el redondeo de las tarjetas y la identidad visual de la interfaz.
-          </p>
+          <p class="text-secondary small mb-3">Ajusta la forma de los botones y el redondeo de las tarjetas.</p>
 
-          <!-- Estilo de Botones -->
+          <!-- Forma de botones — visual tiles -->
           <div class="mb-3" [class.opacity-50]="!isWhiteLabelEnabled()">
-            <label cLabel class="fw-semibold small d-block mb-2">Forma de Botones</label>
-            <div class="btn-group w-100" role="group">
-              <button type="button" class="btn btn-sm btn-outline-primary"
-                [class.active]="buttonStyle() === 'square'"
-                [disabled]="!isWhiteLabelEnabled()"
-                (click)="buttonStyle.set('square')">
-                Recto (0px)
-              </button>
-              <button type="button" class="btn btn-sm btn-outline-primary"
-                [class.active]="buttonStyle() === 'sharp'"
-                [disabled]="!isWhiteLabelEnabled()"
-                (click)="buttonStyle.set('sharp')">
-                Fino (4px)
-              </button>
-              <button type="button" class="btn btn-sm btn-outline-primary"
-                [class.active]="buttonStyle() === 'rounded'"
-                [disabled]="!isWhiteLabelEnabled()"
-                (click)="buttonStyle.set('rounded')">
-                Redondeado (8px)
-              </button>
-              <button type="button" class="btn btn-sm btn-outline-primary"
-                [class.active]="buttonStyle() === 'pill'"
-                [disabled]="!isWhiteLabelEnabled()"
-                (click)="buttonStyle.set('pill')">
-                Píldora (50px)
-              </button>
+            <label class="form-label mb-2">Forma de botones</label>
+            <div class="btn-style-grid">
+              @for (opt of buttonStyleOptions; track opt.value) {
+                <button type="button" class="btn-style-tile"
+                  [class.active]="buttonStyle() === opt.value"
+                  [disabled]="!isWhiteLabelEnabled()"
+                  (click)="buttonStyle.set(opt.value)">
+                  <!-- border-radius intencional: muestra visualmente el estilo del botón -->
+                  <span class="btn-style-demo" [style.border-radius]="opt.radius">Aa</span>
+                  <span class="btn-style-name">{{ opt.label }}</span>
+                </button>
+              }
             </div>
           </div>
 
-          <!-- Redondeo de Tarjetas -->
+          <!-- Esquinas de tarjetas -->
           <div class="mb-3" [class.opacity-50]="!isWhiteLabelEnabled()">
-            <label cLabel class="fw-semibold small d-block mb-2">Esquinas de Tarjetas y Cajas</label>
-            <select cSelect class="py-2"
+            <label class="form-label mb-1">Esquinas de tarjetas</label>
+            <select cSelect
               [value]="cardRadius()"
               [attr.disabled]="!isWhiteLabelEnabled() ? true : null"
               (change)="cardRadius.set($any($event.target).value)">
-              <option value="none">Plano / Sin Redondeo (Esquinas 0px)</option>
-              <option value="sm">Sutil (Bordes finos 6px)</option>
-              <option value="md">Estándar Corporativo (Bordes suaves 12px)</option>
-              <option value="lg">Pronunciado Moderno (Bordes redondeados 16px)</option>
+              <option value="none">Sin redondeo · 0px</option>
+              <option value="sm">Sutil · 6px</option>
+              <option value="md">Estándar · 12px</option>
+              <option value="lg">Pronunciado · 16px</option>
             </select>
           </div>
 
-          <!-- Leyenda Pestaña Navegador -->
+          <!-- Pestaña navegador -->
           <div class="mb-4" [class.opacity-50]="!isWhiteLabelEnabled()">
-            <label cLabel class="fw-semibold small d-block mb-1">Leyenda en Pestaña del Navegador</label>
+            <label class="form-label mb-1">Leyenda en la pestaña del navegador</label>
             <input cFormControl type="text"
               [value]="appTitleSuffix()"
               [attr.disabled]="!isWhiteLabelEnabled() ? true : null"
               (input)="appTitleSuffix.set($any($event.target).value)"
-              placeholder="Ej: | Portal Comercial & Facturación">
-            <div class="form-text">Aparece después del nombre de tu empresa en el título de la pestaña.</div>
+              placeholder="Ej: | Portal Comercial">
+            <div class="form-text">Aparece tras el nombre de la empresa en el título de la pestaña.</div>
           </div>
 
           <button cButton color="primary" size="sm"
             [disabled]="savingBrand() || !isWhiteLabelEnabled()"
             (click)="saveBrandColor()">
             @if (savingBrand()) { <c-spinner size="sm" class="me-1"></c-spinner> }
-            Guardar Estilos de Interfaz
+            Guardar estilos
           </button>
         </c-card-body>
       </c-card>
+    </c-col>
 
-      <c-card class="border-0 shadow-sm mb-4" [class.plan-locked]="!isWhiteLabelEnabled()">
-        <c-card-body class="p-4">
-          <div class="d-flex justify-content-between align-items-start mb-1">
-            <h6 class="text-uppercase text-muted fw-bold small border-bottom pb-2 flex-grow-1">Comprobantes e Impresión (PDF)</h6>
+    <!-- ── PDF + Consejos ────────────────────────────────────────────────────── -->
+    <c-col lg="6" class="d-flex flex-column gap-3">
+
+      <!-- PDF -->
+      <c-card [class.plan-locked]="!isWhiteLabelEnabled()">
+        <c-card-body>
+          <div class="appearance-section-header mb-1">
+            <svg cIcon name="cilDescription" size="sm" class="text-muted"></svg>
+            <span>Comprobantes PDF</span>
             @if (!isWhiteLabelEnabled()) {
-              <span class="badge bg-warning-subtle text-warning border border-warning-subtle ms-2 flex-shrink-0">
-                <svg cIcon name="cilLockLocked" size="sm" class="me-1"></svg>Plan Pro
+              <span class="badge bg-warning-subtle text-warning border border-warning-subtle ms-auto">
+                <svg cIcon name="cilLockLocked" size="sm" class="me-1"></svg>Requiere Marca Blanca
               </span>
             }
           </div>
-          <p class="text-muted small mb-4">
-            Personaliza cómo ven tus clientes los PDF de facturas y retenciones emitidas.
-          </p>
+          <p class="text-secondary small mb-3">Personaliza las facturas y retenciones generadas para tus clientes.</p>
 
           <div class="form-check form-switch mb-3" [class.opacity-50]="!isWhiteLabelEnabled()">
             <input class="form-check-input" type="checkbox" role="switch" id="showLogoPdfSwitch"
               [checked]="showLogoOnPdf()"
               [disabled]="!isWhiteLabelEnabled()"
               (change)="showLogoOnPdf.set($any($event.target).checked)">
-            <label class="form-check-label fw-semibold small" for="showLogoPdfSwitch">
-              Incluir logo de la empresa en la cabecera del PDF
+            <label class="form-check-label small" for="showLogoPdfSwitch">
+              Incluir logo en la cabecera del PDF
             </label>
           </div>
 
           <div class="mb-3" [class.opacity-50]="!isWhiteLabelEnabled()">
-            <label cLabel class="fw-semibold small d-block mb-1">Nota o pie de página en comprobantes</label>
+            <label class="form-label mb-1">Nota o pie de página</label>
             <textarea cFormControl rows="2"
               [value]="pdfFooterMessage()"
               [attr.disabled]="!isWhiteLabelEnabled() ? true : null"
               (input)="pdfFooterMessage.set($any($event.target).value)"
-              placeholder="EJ: Gracias por su compra. Depósitos en Banco Pichincha Cta Cte #123456789."></textarea>
-            <div class="form-text">Aparece en el pie de página de cada factura impresa o enviada por correo.</div>
+              placeholder="Ej: Gracias por su compra. Depósitos en Banco Pichincha Cta #123456789."></textarea>
+            <div class="form-text">Aparece al pie de cada factura impresa o enviada por correo.</div>
           </div>
 
           <button cButton color="primary" size="sm"
             [disabled]="savingPdfBranding() || !isWhiteLabelEnabled()"
             (click)="savePdfBranding()">
             @if (savingPdfBranding()) { <c-spinner size="sm" class="me-1"></c-spinner> }
-            Guardar opciones PDF
+            Guardar PDF
           </button>
         </c-card-body>
       </c-card>
 
-      <c-card class="border-0 shadow-sm">
-        <c-card-body class="p-4">
-          <h6 class="text-uppercase text-muted fw-bold small mb-3 border-bottom pb-2">Consejos de marca</h6>
-          <ul class="list-unstyled text-muted small mb-0">
-            <li class="mb-2">
-              <svg cIcon name="cilCheckCircle" size="sm" class="text-success me-2"></svg>
-              Usa un logo con <strong>fondo transparente</strong> (PNG o SVG) para que se vea bien sobre el sidebar oscuro.
-            </li>
-            <li class="mb-2">
-              <svg cIcon name="cilCheckCircle" size="sm" class="text-success me-2"></svg>
-              El logo ideal es <strong>horizontal</strong>, de máx. 140×36 px, para que quepa bien en el sidebar.
-            </li>
-            <li class="mb-2">
-              <svg cIcon name="cilCheckCircle" size="sm" class="text-success me-2"></svg>
-              Elige un color que <strong>contraste bien</strong> con el sidebar oscuro para que sea legible.
+      <!-- Consejos -->
+      <c-card>
+        <c-card-body>
+          <div class="appearance-section-header mb-3">
+            <svg cIcon name="cilLightbulb" size="sm" class="text-warning"></svg>
+            <span>Consejos de marca</span>
+          </div>
+          <ul class="appearance-tips">
+            <li>
+              <svg cIcon name="cilCheckCircle" size="sm" class="text-success flex-shrink-0"></svg>
+              <span>Usa un logo con <strong>fondo transparente</strong> (PNG o SVG) para que se vea bien sobre el sidebar oscuro.</span>
             </li>
             <li>
-              <svg cIcon name="cilInfo" size="sm" class="text-info me-2"></svg>
-              Los cambios de color y logo se aplican <strong>al instante</strong> en tu entorno.
+              <svg cIcon name="cilCheckCircle" size="sm" class="text-success flex-shrink-0"></svg>
+              <span>El logo ideal es <strong>horizontal</strong>, máx. 140 × 36 px.</span>
+            </li>
+            <li>
+              <svg cIcon name="cilCheckCircle" size="sm" class="text-success flex-shrink-0"></svg>
+              <span>Elige colores que <strong>contrasten</strong> bien en modo claro y oscuro.</span>
+            </li>
+            <li>
+              <svg cIcon name="cilInfo" size="sm" class="text-info flex-shrink-0"></svg>
+              <span>Los cambios de logo y color se aplican <strong>al instante</strong> en tu entorno.</span>
             </li>
           </ul>
         </c-card-body>
       </c-card>
-    </c-col>
 
+    </c-col>
   </c-row>
 }
 

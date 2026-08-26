@@ -67,3 +67,16 @@ export function buildCostCenterTree(centers: CostCenter[]): CostCenterTreeNode[]
 
   return roots;
 }
+
+// ─── Flatten tree (respects expanded state) ───────────────────────────────────
+
+export function flattenCostCenterTree(nodes: CostCenterTreeNode[]): CostCenterTreeNode[] {
+  const result: CostCenterTreeNode[] = [];
+  for (const node of nodes) {
+    result.push(node);
+    if (node.expanded && node.children.length) {
+      result.push(...flattenCostCenterTree(node.children));
+    }
+  }
+  return result;
+}

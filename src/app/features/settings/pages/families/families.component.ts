@@ -143,7 +143,14 @@ export class FamiliesComponent implements OnInit {
       this.notifications.warning('Primero elimina o reasigna las subfamilias');
       return;
     }
-    if (!confirm(`¿Eliminar la familia "${f.name}"?`)) return;
+    const ok = await this.notifications.confirm({
+      title: `¿Eliminar la familia "${f.name}"?`,
+      confirmText: 'Sí, eliminar',
+      cancelText: 'Cancelar',
+      icon: 'warning',
+      danger: true
+    });
+    if (!ok) return;
     try {
       await this.svc.delete(f.id);
       this.notifications.success('Familia eliminada');

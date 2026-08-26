@@ -12,7 +12,8 @@ import { take } from 'rxjs/operators';
 
 import { PluginPackagesService } from '../../../../core/services/plugin-packages.service';
 import { ModulesService } from '../../../../core/services/modules.service';
-import { SuperAdminService } from '../../services/super-admin.service';
+import { SuperAdminService }  from '../../services/super-admin.service';
+import { NotificationService } from '../../../../core/services/notification.service';
 import { PluginPackage, PluginPackageInput, Module } from '../../../../core/interfaces/permission.interface';
 import { PLUGIN_PACKAGES_SEED } from '../../../../core/seed/plugin-packages-seed';
 
@@ -55,6 +56,7 @@ export class PluginPackagesComponent implements OnInit {
   private modulesService  = inject(ModulesService);
   private adminService    = inject(SuperAdminService);
   private fb              = inject(FormBuilder);
+  private notifSvc        = inject(NotificationService);
 
   packages      = signal<PluginPackage[]>([]);
   allModules    = signal<Module[]>([]);
@@ -324,8 +326,16 @@ export class PluginPackagesComponent implements OnInit {
   async deletePackage(pkg: PluginPackage): Promise<void> {
     if (pkg.isSystem) { this.addNotification('warning', 'Los paquetes del sistema no pueden eliminarse.'); return; }
     const usage = this.companyUsage().get(pkg.code) ?? 0;
-    const warn = usage > 0 ? `\n\n⚠️ ${usage} empresa${usage > 1 ? 's tienen' : ' tiene'} este paquete activo.` : '';
-    if (!confirm(`¿Eliminar el paquete "${pkg.name}"?${warn}`)) return;
+    const warnText = usage > 0 ? `${usage} empresa${usage > 1 ? 's tienen' : ' tiene'} este paquete activo.` : undefined;
+    const ok = await this.notifSvc.confirm({
+      title: `¿Eliminar el paquete "${pkg.name}"?`,
+      text: warnText,
+      confirmText: 'Sí, eliminar',
+      cancelText: 'Cancelar',
+      icon: 'warning',
+      danger: true
+    });
+    if (!ok) return;
     try {
       await this.packagesService.deletePackage(pkg.id);
       this.addNotification('success', `Paquete "${pkg.name}" eliminado.`);
@@ -339,10 +349,18 @@ export class PluginPackagesComponent implements OnInit {
 
   async syncPackages(): Promise<void> {
     const n = this.outdatedCount();
-    const msg = n > 0
-      ? `Se actualizarán ${n} paquete${n > 1 ? 's' : ''} con los datos del seed.\n\n¿Continuar?`
-      : 'Todo está sincronizado.\n\n¿Forzar sincronización de todos de todas formas?';
-    if (!confirm(msg)) return;
+    const syncTitle = n > 0
+      ? `¿Actualizar ${n} paquete${n > 1 ? 's' : ''} con los datos del seed?`
+      : '¿Forzar sincronización de todos los paquetes?';
+    const syncText = n > 0 ? undefined : 'Todo está sincronizado. Se sobreescribirán igualmente.';
+    const ok = await this.notifSvc.confirm({
+      title: syncTitle,
+      text: syncText,
+      confirmText: 'Sí, sincronizar',
+      cancelText: 'Cancelar',
+      icon: 'question'
+    });
+    if (!ok) return;
     this.seeding.set(true);
     let created = 0, updated = 0, errors = 0;
     try {
@@ -367,7 +385,13 @@ export class PluginPackagesComponent implements OnInit {
     const existing = new Set(this.packages().map(p => p.code));
     const toInsert = PLUGIN_PACKAGES_SEED.filter(p => !existing.has(p.code));
     if (!toInsert.length) { this.addNotification('info', 'Todos los paquetes ya están registrados. Usa "Sincronizar" para actualizar existentes.'); return; }
-    if (!confirm(`Se crearán ${toInsert.length} paquete${toInsert.length > 1 ? 's' : ''}. ¿Continuar?`)) return;
+    const seedOk = await this.notifSvc.confirm({
+      title: `¿Crear ${toInsert.length} paquete${toInsert.length > 1 ? 's' : ''} desde el seed?`,
+      confirmText: 'Sí, crear',
+      cancelText: 'Cancelar',
+      icon: 'question'
+    });
+    if (!seedOk) return;
     this.seeding.set(true);
     let ok = 0;
     try {

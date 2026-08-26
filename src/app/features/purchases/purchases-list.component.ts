@@ -131,7 +131,14 @@ export class PurchasesListComponent implements OnInit, OnDestroy {
   }
 
   async receiveOrder(p: Purchase): Promise<void> {
-    if (!confirm(`¿Marcar compra ${p.fullNumber} como RECIBIDA?\nEsto actualizará el stock del almacén.`)) return;
+    const ok = await this.notifications.confirm({
+      title: `¿Marcar compra ${p.fullNumber} como recibida?`,
+      text: 'Esto actualizará el stock del almacén.',
+      confirmText: 'Sí, marcar recibida',
+      cancelText: 'Cancelar',
+      icon: 'question'
+    });
+    if (!ok) return;
     try {
       await this.svc.markReceived(p.id);
       this.notifications.success(`Compra ${p.fullNumber} marcada como recibida`);
@@ -145,7 +152,14 @@ export class PurchasesListComponent implements OnInit, OnDestroy {
       this.notifications.error('No se puede cancelar una compra ya recibida o pagada');
       return;
     }
-    if (!confirm(`¿Cancelar compra ${p.fullNumber}?`)) return;
+    const ok = await this.notifications.confirm({
+      title: `¿Cancelar compra ${p.fullNumber}?`,
+      confirmText: 'Sí, cancelar',
+      cancelText: 'No',
+      icon: 'warning',
+      danger: true
+    });
+    if (!ok) return;
     try {
       await this.svc.cancel(p.id);
       this.notifications.success(`Compra ${p.fullNumber} cancelada`);

@@ -16,7 +16,8 @@ import {
 } from '@coreui/angular';
 import { IconModule } from '@coreui/icons-angular';
 
-import { PlansService } from '../../core/services/plans.service';
+import { PlansService }      from '../../core/services/plans.service';
+import { NotificationService } from '../../core/services/notification.service';
 import { Plan } from '../../core/interfaces';
 import { HasPermissionDirective } from '../../shared/directives/has-permission.directive';
 import { PlanFormComponent } from './components/plan-form/plan-form.component';
@@ -46,7 +47,8 @@ import { PlanFormComponent } from './components/plan-form/plan-form.component';
   styleUrl: './plans.component.scss'
 })
 export class PlansComponent implements OnInit {
-  private plansService = inject(PlansService);
+  private plansService  = inject(PlansService);
+  private notifications = inject(NotificationService);
 
   // State
   plans = signal<Plan[]>([]);
@@ -161,16 +163,23 @@ export class PlansComponent implements OnInit {
     });
   }
 
-  deletePlan(plan: Plan): void {
-    if (confirm(`¿Está seguro de eliminar el plan "${plan.name}"? Esta acción no se puede deshacer.`)) {
-      this.plansService.remove(plan.id!).subscribe({
-        next: () => this.loadPlans(),
-        error: (err) => {
-          console.error('Error deleting plan:', err);
-          this.error.set('Error al eliminar el plan. Puede que tenga organizaciones asociadas.');
-        }
-      });
-    }
+  async deletePlan(plan: Plan): Promise<void> {
+    const ok = await this.notifications.confirm({
+      title: `¿Eliminar el plan "${plan.name}"?`,
+      text: 'Esta acción no se puede deshacer.',
+      confirmText: 'Sí, eliminar',
+      cancelText: 'Cancelar',
+      icon: 'warning',
+      danger: true
+    });
+    if (!ok) return;
+    this.plansService.remove(plan.id!).subscribe({
+      next: () => this.loadPlans(),
+      error: (err) => {
+        console.error('Error deleting plan:', err);
+        this.error.set('Error al eliminar el plan. Puede que tenga organizaciones asociadas.');
+      }
+    });
   }
 
   moveUp(plan: Plan): void {

@@ -6,6 +6,7 @@ import {
 } from '@coreui/angular';
 
 import { SchoolAccessoryService } from '../services/school-accessory.service';
+import { NotificationService }    from '../../../core/services/notification.service';
 import {
   SchoolAccessory, AccessoryStatus,
   ACCESSORY_CATALOG, ACCESSORY_PRICES
@@ -23,6 +24,7 @@ import {
 })
 export class SchoolAccessoriesListComponent implements OnInit {
   private accessoryService = inject(SchoolAccessoryService);
+  private notifications    = inject(NotificationService);
 
   accessories  = signal<SchoolAccessory[]>([]);
   processingId = signal<string | null>(null);
@@ -74,7 +76,13 @@ export class SchoolAccessoriesListComponent implements OnInit {
   }
 
   async deliver(acc: SchoolAccessory): Promise<void> {
-    if (!confirm(`¿Marcar como entregado el accesorio de ${acc.studentName}?`)) return;
+    const ok = await this.notifications.confirm({
+      title: `¿Marcar como entregado el accesorio de ${acc.studentName}?`,
+      confirmText: 'Sí, entregar',
+      cancelText: 'Cancelar',
+      icon: 'question'
+    });
+    if (!ok) return;
     this.processingId.set(acc.id!);
     try {
       await this.accessoryService.markDelivered(acc.id!);

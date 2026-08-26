@@ -103,12 +103,16 @@ service cloud.firestore {
     match /companies/{companyId} {
       allow read: if isAuthenticated() && (isSuperAdmin() || belongsToCompany(companyId));
       allow write: if isSuperAdmin();
-      // Company admin can update marketplace config and SRI settings
+      // Company admin can update marketplace config, SRI settings, and brand customization
       allow update: if isAuthenticated()
                     && belongsToCompany(companyId)
                     && isAdmin()
                     && request.resource.data.diff(resource.data).affectedKeys()
-                       .hasOnly(['marketplace', 'sri', 'updatedAt']);
+                       .hasOnly([
+                         'marketplace', 'sri', 'logoUrl', 'brandColor', 'brandAccentColor',
+                         'sidebarTheme', 'buttonStyle', 'cardRadius', 'appTitleSuffix',
+                         'showLogoOnPdf', 'pdfFooterMessage', 'name', 'updatedAt'
+                       ]);
 
       // ─── All tenant sub-collections ─────────────────────────────────
       match /personas/{id} {

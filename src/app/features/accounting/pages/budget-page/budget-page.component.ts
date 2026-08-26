@@ -176,7 +176,14 @@ export class BudgetPageComponent implements OnInit, OnDestroy {
 
   async deleteBudget(): Promise<void> {
     if (!this.selectedPeriod() || !this.hasBudget()) return;
-    if (!confirm('¿Eliminar el presupuesto de este período?')) return;
+    const ok = await this.notifications.confirm({
+      title: '¿Eliminar el presupuesto de este período?',
+      confirmText: 'Sí, eliminar',
+      cancelText: 'Cancelar',
+      icon: 'warning',
+      danger: true
+    });
+    if (!ok) return;
 
     this.deleting.set(true);
     try {

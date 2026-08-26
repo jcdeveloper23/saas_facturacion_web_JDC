@@ -79,7 +79,14 @@ export class PlatformDefaultsComponent implements OnInit, OnDestroy {
   }
 
   async seedDefaults(): Promise<void> {
-    if (!confirm('¿Inicializar con los datos de fábrica? Esto agregará los valores por defecto a cada sección vacía.')) return;
+    const ok = await this.notifications.confirm({
+      title: '¿Inicializar con los datos de fábrica?',
+      text: 'Esto agregará los valores por defecto a cada sección vacía.',
+      confirmText: 'Sí, inicializar',
+      cancelText: 'Cancelar',
+      icon: 'question'
+    });
+    if (!ok) return;
     this.seeding.set(true);
     try {
       await this.svc.seedDefaults();

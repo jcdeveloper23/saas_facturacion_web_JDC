@@ -4,8 +4,9 @@ import {
   CardModule, ButtonModule, GridModule, BadgeModule, FormModule, SpinnerModule
 } from '@coreui/angular';
 
-import { SchoolOrderService } from '../services/school-order.service';
+import { SchoolOrderService }  from '../services/school-order.service';
 import { SchoolOrder, SchoolOrderStatus } from '../models';
+import { NotificationService } from '../../../core/services/notification.service';
 
 @Component({
   selector: 'app-school-orders-board',
@@ -17,7 +18,8 @@ import { SchoolOrder, SchoolOrderStatus } from '../models';
   templateUrl: './school-orders-board.component.html'
 })
 export class SchoolOrdersBoardComponent implements OnInit {
-  private orderService = inject(SchoolOrderService);
+  private orderService  = inject(SchoolOrderService);
+  private notifications = inject(NotificationService);
 
   orders       = signal<SchoolOrder[]>([]);
   selectedDate = signal<string>(new Date().toISOString().split('T')[0]);
@@ -68,7 +70,14 @@ export class SchoolOrdersBoardComponent implements OnInit {
   }
 
   async cancel(id: string): Promise<void> {
-    if (!confirm('¿Cancelar esta orden?')) return;
+    const ok = await this.notifications.confirm({
+      title: '¿Cancelar esta orden?',
+      confirmText: 'Sí, cancelar',
+      cancelText: 'No',
+      icon: 'warning',
+      danger: true
+    });
+    if (!ok) return;
     await this.orderService.cancelOrder(id);
   }
 

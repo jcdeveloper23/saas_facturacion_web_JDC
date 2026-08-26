@@ -14,7 +14,8 @@ import { take } from 'rxjs/operators';
 import { SuperAdminService } from '../../services/super-admin.service';
 import { ModulesService } from '../../../../core/services/modules.service';
 import { PluginPackagesService } from '../../../../core/services/plugin-packages.service';
-import { AuthService } from '../../../../core/services/auth.service';
+import { AuthService }         from '../../../../core/services/auth.service';
+import { NotificationService } from '../../../../core/services/notification.service';
 import { Module, PluginPackage } from '../../../../core/interfaces/permission.interface';
 import { Company } from '../../models/company.interface';
 import { Plan } from '../../models/plan.interface';
@@ -57,6 +58,7 @@ export class CompanyPluginsComponent implements OnInit {
   private modulesService  = inject(ModulesService);
   private packagesService = inject(PluginPackagesService);
   private auth            = inject(AuthService);
+  private notifications   = inject(NotificationService);
 
   companyId    = signal<string>('');
   company      = signal<Company | null>(null);
@@ -200,7 +202,15 @@ export class CompanyPluginsComponent implements OnInit {
     if (row.enabled) {
       // DEACTIVATE add-on: confirm cascade then show deactivate modal
       if (row.willDisable.length) {
-        if (!confirm(`Desactivar "${row.pkg.name}" también desactivará: ${row.willDisable.join(', ')}\n\n¿Continuar?`)) return;
+        const ok = await this.notifications.confirm({
+          title: `¿Desactivar "${row.pkg.name}"?`,
+          text: `También desactivará: ${row.willDisable.join(', ')}`,
+          confirmText: 'Sí, desactivar',
+          cancelText: 'Cancelar',
+          icon: 'warning',
+          danger: true
+        });
+        if (!ok) return;
       }
       this.pendingAddonPkg.set(row.pkg);
       this.isAddonAction.set('deactivate');
@@ -310,7 +320,15 @@ export class CompanyPluginsComponent implements OnInit {
       const cascades = this.modulesService.getDependents(code, mods).filter(c => active.has(c));
       if (cascades.length) {
         const names = cascades.map(c => mods.find(m => m.code === c)?.name ?? c).join(', ');
-        if (!confirm(`Desactivar "${row.module.name}" también desactivará: ${names}\n\n¿Continuar?`)) return;
+        const ok = await this.notifications.confirm({
+          title: `¿Desactivar "${row.module.name}"?`,
+          text: `También desactivará: ${names}`,
+          confirmText: 'Sí, desactivar',
+          cancelText: 'Cancelar',
+          icon: 'warning',
+          danger: true
+        });
+        if (!ok) return;
         cascades.forEach(c => active.delete(c));
       }
       active.delete(code);

@@ -586,7 +586,14 @@ export class BankReconciliationPageComponent implements OnInit, OnDestroy {
     const stmtId = this.selectedStatementId();
     if (!stmtId) return;
 
-    if (!confirm('¿Marcar este estado de cuenta como conciliado? Esta acción no se puede deshacer fácilmente.')) return;
+    const ok = await this.notifications.confirm({
+      title: '¿Marcar este estado de cuenta como conciliado?',
+      text: 'Esta acción no se puede deshacer fácilmente.',
+      confirmText: 'Sí, conciliar',
+      cancelText: 'Cancelar',
+      icon: 'question'
+    });
+    if (!ok) return;
 
     try {
       await this.reconciliationSvc.markReconciled(stmtId);
@@ -601,7 +608,15 @@ export class BankReconciliationPageComponent implements OnInit, OnDestroy {
     const stmtId = this.selectedStatementId();
     if (!stmtId) return;
 
-    if (!confirm('¿Eliminar este estado de cuenta y todas sus transacciones? Esta acción no se puede deshacer.')) return;
+    const ok2 = await this.notifications.confirm({
+      title: '¿Eliminar este estado de cuenta y todas sus transacciones?',
+      text: 'Esta acción no se puede deshacer.',
+      confirmText: 'Sí, eliminar',
+      cancelText: 'Cancelar',
+      icon: 'warning',
+      danger: true
+    });
+    if (!ok2) return;
 
     try {
       await this.reconciliationSvc.deleteStatement(stmtId);

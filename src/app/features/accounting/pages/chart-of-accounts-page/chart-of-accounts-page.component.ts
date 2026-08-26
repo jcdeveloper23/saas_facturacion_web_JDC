@@ -10,7 +10,8 @@ import { catchError } from 'rxjs/operators';
 import {
   CardModule, ButtonModule, GridModule,
   SpinnerModule, TableModule, FormModule, ModalModule,
-  TooltipModule, InputGroupComponent, InputGroupTextDirective
+  TooltipModule, InputGroupComponent, InputGroupTextDirective,
+  AlertModule
 } from '@coreui/angular';
 import { IconModule } from '@coreui/icons-angular';
 
@@ -44,7 +45,7 @@ interface ImportRow {
     CommonModule, FormsModule, ReactiveFormsModule,
     CardModule, ButtonModule, GridModule, SpinnerModule,
     TableModule, FormModule, ModalModule, TooltipModule, IconModule,
-    InputGroupComponent, InputGroupTextDirective
+    InputGroupComponent, InputGroupTextDirective, AlertModule
   ]
 })
 export class ChartOfAccountsPageComponent implements OnInit, OnDestroy {
@@ -66,7 +67,10 @@ export class ChartOfAccountsPageComponent implements OnInit, OnDestroy {
   seeding = signal(false);
   typeFilter = signal<AccountType | null>(null);
 
-  // ── Selección múltiple / edición en lote (Fase 6.2) ────────────────────────
+  /** Cuenta padre seleccionada para creación contextual */
+  parentContext = signal<Account | null>(null);
+
+  // ── Selección múltiple / edición en lote ────────────────────────────────
   selectionMode = signal(false);
   selectedIds = signal<Set<string>>(new Set());
   bulkApplying = signal(false);
@@ -100,6 +104,15 @@ export class ChartOfAccountsPageComponent implements OnInit, OnDestroy {
   readonly TYPE_COLORS = ACCOUNT_TYPE_COLORS;
   readonly NATURE_LABELS = ACCOUNT_NATURE_LABELS;
   readonly accountTypes: AccountType[] = ['activo', 'pasivo', 'patrimonio', 'ingreso', 'costo', 'gasto', 'resultado'];
+
+  // ── Computed: indica si la cuenta que se está editando tiene hijos ─────────
+  editingHasChildren = computed(() => {
+    const id = this.editingId();
+    if (!id) return false;
+    const acc = this.accounts().find(a => a.id === id);
+    if (!acc) return false;
+    return this.accounts().some(a => a.parentCode === acc.code);
+  });
 
   // ── Computed: flat tree (visible nodes only) ──────────────────────────────
   visibleNodes = computed(() => {
@@ -157,7 +170,6 @@ export class ChartOfAccountsPageComponent implements OnInit, OnDestroy {
   toggleNode(node: AccountTreeNode, event: Event): void {
     event.stopPropagation();
     node.expanded = !node.expanded;
-    // Force re-render by rebuilding the flat list via signal mutation
     this.treeNodes.set([...this.treeNodes()]);
   }
 
@@ -178,31 +190,137 @@ export class ChartOfAccountsPageComponent implements OnInit, OnDestroy {
     }
   }
 
+  // ── Generación automática del siguiente código ────────────────────────────
+  /**
+   * Sugiere el próximo código disponible para una subcuenta del padre indicado.
+   * Analiza los hijos existentes para determinar el siguiente número y el formato
+   * de cero-padding según el nivel (nivel 2 → 1 dígito, nivel 3 → 2 dígitos, nivel 4+ → 3 dígitos).
+   */
+  private suggestNextCode(parentCode: string): string {
+    const parentLevel = parentCode.split('.').length;
+    const widthMap: Record<number, number> = { 1: 1, 2: 2, 3: 3 };
+    const width = widthMap[parentLevel] ?? 3;
+
+    const siblings = this.accounts().filter(a => a.parentCode === parentCode);
+    let maxNum = 0;
+    for (const sib of siblings) {
+      const parts = sib.code.split('.');
+      const lastPart = parseInt(parts[parts.length - 1], 10);
+      if (!isNaN(lastPart) && lastPart > maxNum) maxNum = lastPart;
+    }
+
+    const next = maxNum + 1;
+    return `${parentCode}.${String(next).padStart(width, '0')}`;
+  }
+
   // ── Modal ─────────────────────────────────────────────────────────────────
   openNew(): void {
     this.editingId.set(null);
+    this.parentContext.set(null);
+    this.form.enable();
     this.form.reset({ code: '', name: '', type: 'activo', nature: 'deudora', allowsMovement: false, isActive: true, description: '' });
+    this.showModal.set(true);
+  }
+
+  /** Abre el modal para crear una subcuenta/auxiliar bajo la cuenta padre indicada.
+   *
+   *  Si el padre tiene allowsMovement=true:
+   *    - Con movimientos registrados → error, flujo bloqueado.
+   *    - Sin movimientos             → confirmar conversión a cuenta agrupadora antes de continuar.
+   *
+   *  Las subcuentas nuevas tienen allowsMovement=true por defecto (son cuentas hoja).
+   *  El tipo se hereda del padre y queda bloqueado.
+   */
+  async openAddChild(parent: Account, event: Event): Promise<void> {
+    event.stopPropagation();
+
+    // Caso: la cuenta padre está marcada como cuenta de movimiento
+    if (parent.allowsMovement) {
+      const hasMovements = await this.svc.accountHasMovements(parent.code);
+
+      if (hasMovements) {
+        this.notifications.error(
+          `La cuenta "${parent.code} — ${parent.name}" ya tiene movimientos contables registrados. ` +
+          `No es posible agregarle subcuentas. ` +
+          `Solo se pueden crear subcuentas en cuentas sin movimientos.`
+        );
+        return;
+      }
+
+      const ok = await this.notifications.confirm({
+        title: 'Convertir en cuenta agrupadora',
+        text:
+          `"${parent.code} — ${parent.name}" está marcada como cuenta de movimiento. ` +
+          `Para agregarle subcuentas debe convertirse en cuenta agrupadora ` +
+          `y dejará de recibir asientos directos. ¿Continuar?`,
+        confirmText: 'Sí, convertir y agregar subcuenta',
+        cancelText: 'Cancelar',
+        icon: 'question'
+      });
+      if (!ok) return;
+
+      try {
+        await this.svc.demoteToGrouper(parent.id);
+      } catch (err: any) {
+        this.notifications.error('Error al convertir la cuenta: ' + (err?.message ?? err));
+        return;
+      }
+    }
+
+    this.editingId.set(null);
+    this.parentContext.set(parent);
+
+    const suggestedCode = this.suggestNextCode(parent.code);
+    this.form.enable();
+    this.form.reset({
+      code:           suggestedCode,
+      name:           '',
+      type:           parent.type,
+      nature:         defaultNatureForType(parent.type),
+      allowsMovement: true,   // las subcuentas/auxiliares reciben movimientos por defecto
+      isActive:       true,
+      description:    ''
+    });
+    // Tipo heredado del padre: bloqueado para garantizar consistencia de jerarquía
+    this.form.get('type')!.disable();
     this.showModal.set(true);
   }
 
   openEdit(acc: Account, event: Event): void {
     event.stopPropagation();
     this.editingId.set(acc.id);
+    this.parentContext.set(null);
+
+    const hasChildren = this.accounts().some(a => a.parentCode === acc.code);
+
+    // Habilitar todos primero para evitar estado sucio de una apertura anterior
+    this.form.enable();
+
     this.form.patchValue({
-      code: acc.code,
-      name: acc.name,
-      type: acc.type,
-      nature: acc.nature,
-      allowsMovement: acc.allowsMovement,
-      isActive: acc.isActive,
-      description: acc.description ?? ''
+      code:           acc.code,
+      name:           acc.name,
+      type:           acc.type,
+      nature:         acc.nature,
+      allowsMovement: hasChildren ? false : acc.allowsMovement,
+      isActive:       acc.isActive,
+      description:    acc.description ?? ''
     });
+
+    if (hasChildren) {
+      // Cuenta agrupadora: código y allowsMovement bloqueados
+      this.form.get('code')!.disable();
+      this.form.get('allowsMovement')!.disable();
+    }
+
     this.showModal.set(true);
   }
 
   closeModal(): void {
     this.showModal.set(false);
     this.editingId.set(null);
+    this.parentContext.set(null);
+    // Rehabilitar todos los controles para la próxima apertura
+    this.form.enable();
   }
 
   onTypeChange(): void {
@@ -215,19 +333,50 @@ export class ChartOfAccountsPageComponent implements OnInit, OnDestroy {
     if (this.form.invalid || this.saving()) return;
     this.saving.set(true);
 
-    const v = this.form.value;
+    // getRawValue() captura todos los campos incluyendo los deshabilitados
+    const raw = this.form.getRawValue();
+    const rawCode      = (raw.code ?? '').trim();
+    const allowsMovement = raw.allowsMovement ?? false;
+    const type         = raw.type! as AccountType;
+    const nature       = raw.nature! as AccountNature;
+
+    // Validación local: consistencia de tipo con la cuenta padre (solo en creación)
+    const parentCode = parentCodeFromCode(rawCode);
+    if (parentCode && !this.editingId()) {
+      const parent = this.accounts().find(a => a.code === parentCode);
+      if (parent && parent.type !== type) {
+        this.notifications.error(
+          `El tipo "${this.TYPE_LABELS[type]}" no coincide con el tipo de la cuenta padre ` +
+          `"${parentCode}" (${this.TYPE_LABELS[parent.type]}). La subcuenta hereda el tipo de su padre.`
+        );
+        this.saving.set(false);
+        return;
+      }
+    }
+
+    // Validación local: allowsMovement no puede ser true si la cuenta ya tiene subcuentas
+    const hasChildrenLocal = this.accounts().some(a => a.parentCode === rawCode);
+    if (allowsMovement && hasChildrenLocal) {
+      this.notifications.error(
+        `La cuenta "${rawCode}" tiene subcuentas y no puede marcarse como cuenta de movimiento. ` +
+        `Los movimientos deben registrarse en las subcuentas correspondientes.`
+      );
+      this.saving.set(false);
+      return;
+    }
+
     try {
       const input = {
-        code: v.code!.trim(),
-        name: v.name!.trim(),
-        type: v.type! as AccountType,
-        nature: v.nature! as AccountNature,
-        allowsMovement: v.allowsMovement ?? false,
-        isAuxiliary: v.allowsMovement ?? false,
-        isActive: v.isActive ?? true,
-        description: v.description ?? '',
-        level: levelFromCode(v.code!.trim()),
-        parentCode: parentCodeFromCode(v.code!.trim())
+        code:           rawCode,
+        name:           (raw.name ?? '').trim(),
+        type,
+        nature,
+        allowsMovement,
+        isAuxiliary:    allowsMovement,
+        isActive:       raw.isActive ?? true,
+        description:    raw.description ?? '',
+        level:          levelFromCode(rawCode),
+        parentCode:     parentCodeFromCode(rawCode)
       };
 
       const id = this.editingId();
@@ -257,10 +406,7 @@ export class ChartOfAccountsPageComponent implements OnInit, OnDestroy {
     }
   }
 
-  // ── Selección múltiple / edición en lote ───────────────────────────────────
-  // Alcance mínimo (Fase 6.2 del plan): activar/inactivar en lote. Renombrar o
-  // mover de padre en lote se deja fuera — afecta reportes históricos y merece
-  // su propia validación.
+  // ── Selección múltiple / edición en lote ─────────────────────────────────
   toggleSelectionMode(): void {
     this.selectionMode.update(v => !v);
     this.selectedIds.set(new Set());
@@ -298,7 +444,13 @@ export class ChartOfAccountsPageComponent implements OnInit, OnDestroy {
     const ids = [...this.selectedIds()];
     if (!ids.length) return;
     const verb = active ? 'activar' : 'inactivar';
-    if (!confirm(`¿${active ? 'Activar' : 'Inactivar'} ${ids.length} cuenta(s) seleccionada(s)?`)) return;
+    const ok = await this.notifications.confirm({
+      title: `¿${active ? 'Activar' : 'Inactivar'} ${ids.length} cuenta(s) seleccionada(s)?`,
+      confirmText: active ? 'Sí, activar' : 'Sí, inactivar',
+      cancelText: 'Cancelar',
+      icon: 'question'
+    });
+    if (!ok) return;
 
     this.bulkApplying.set(true);
     try {
@@ -321,7 +473,23 @@ export class ChartOfAccountsPageComponent implements OnInit, OnDestroy {
   // ── Delete ────────────────────────────────────────────────────────────────
   async delete(acc: Account, event: Event): Promise<void> {
     event.stopPropagation();
-    if (!confirm(`¿Eliminar la cuenta ${acc.code} - ${acc.name}?`)) return;
+    const hasChildren = this.accounts().some(a => a.parentCode === acc.code);
+    if (hasChildren) {
+      this.notifications.error(
+        `No se puede eliminar la cuenta "${acc.code} — ${acc.name}": tiene subcuentas dependientes. ` +
+        `Elimine primero todas las subcuentas.`
+      );
+      return;
+    }
+
+    const ok = await this.notifications.confirm({
+      title: `¿Eliminar la cuenta ${acc.code} - ${acc.name}?`,
+      confirmText: 'Sí, eliminar',
+      cancelText: 'Cancelar',
+      icon: 'warning',
+      danger: true
+    });
+    if (!ok) return;
     try {
       await this.svc.deleteAccount(acc.id);
       this.notifications.success('Cuenta eliminada');
@@ -332,7 +500,14 @@ export class ChartOfAccountsPageComponent implements OnInit, OnDestroy {
 
   // ── Seed ─────────────────────────────────────────────────────────────────
   async seedAccounts(): Promise<void> {
-    if (!confirm('¿Cargar el plan de cuentas estándar Ecuador? Se agregarán las cuentas base.')) return;
+    const ok = await this.notifications.confirm({
+      title: '¿Cargar el plan de cuentas estándar Ecuador?',
+      text: 'Se agregarán las cuentas base al catálogo. Las cuentas con códigos ya existentes serán omitidas.',
+      confirmText: 'Sí, cargar',
+      cancelText: 'Cancelar',
+      icon: 'question'
+    });
+    if (!ok) return;
     this.seeding.set(true);
     try {
       await this.svc.seedChartOfAccounts();
@@ -342,6 +517,24 @@ export class ChartOfAccountsPageComponent implements OnInit, OnDestroy {
     } finally {
       this.seeding.set(false);
     }
+  }
+
+  // ── Export ────────────────────────────────────────────────────────────────
+  exportAccounts(): void {
+    const rows = this.accounts()
+      .sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }))
+      .map(a => ({
+        codigo:             a.code,
+        nombre:             a.name,
+        tipo:               a.type,
+        naturaleza:         a.nature,
+        nivel:              a.level,
+        cuenta_padre:       a.parentCode ?? '',
+        permite_movimiento: a.allowsMovement ? 'SI' : 'NO',
+        activa:             a.isActive ? 'SI' : 'NO',
+        descripcion:        a.description ?? ''
+      }));
+    this.excelExport.export('plan_de_cuentas', [{ name: 'Plan de Cuentas', rows }]);
   }
 
   // ── Import / Export ───────────────────────────────────────────────────────
@@ -399,6 +592,7 @@ export class ChartOfAccountsPageComponent implements OnInit, OnDestroy {
   private parseImportRows(raw: any[]): ImportRow[] {
     const validTypes: AccountType[] = ['activo', 'pasivo', 'patrimonio', 'ingreso', 'costo', 'gasto', 'resultado'];
     const validNatures: AccountNature[] = ['deudora', 'acreedora'];
+    const seenCodes = new Set<string>();
 
     return raw.map((r, i) => {
       const errors: string[] = [];
@@ -409,8 +603,15 @@ export class ChartOfAccountsPageComponent implements OnInit, OnDestroy {
       const rawNature = String(r['naturaleza'] ?? r['nature'] ?? r['Naturaleza'] ?? r['Nature'] ?? '').trim().toLowerCase();
       const rawMov = String(r['permite_movimiento'] ?? r['allowsMovement'] ?? r['Permite_Movimiento'] ?? '').trim().toLowerCase();
 
-      if (!code) errors.push('Código requerido');
-      else if (!/^[\d.]+$/.test(code)) errors.push('Código inválido (solo números y puntos)');
+      if (!code) {
+        errors.push('Código requerido');
+      } else if (!/^[\d.]+$/.test(code)) {
+        errors.push('Código inválido (solo números y puntos)');
+      } else if (seenCodes.has(code)) {
+        errors.push(`Código duplicado en el archivo: "${code}"`);
+      } else {
+        seenCodes.add(code);
+      }
 
       if (!name) errors.push('Nombre requerido');
       else if (name.length < 2) errors.push('Nombre muy corto');
@@ -445,7 +646,7 @@ export class ChartOfAccountsPageComponent implements OnInit, OnDestroy {
       const { created, skipped } = await this.svc.importAccounts(
         valid.map(r => ({ code: r.code, name: r.name, type: r.type, nature: r.nature, allowsMovement: r.allowsMovement }))
       );
-      this.notifications.success(`Importación completada: ${created} cuentas creadas, ${skipped} omitidas`);
+      this.notifications.success(`Importación completada: ${created} cuentas creadas, ${skipped} omitidas (código ya existente)`);
       this.closeImportModal();
     } catch (err: any) {
       this.notifications.error('Error al importar: ' + (err?.message ?? err));
@@ -460,6 +661,11 @@ export class ChartOfAccountsPageComponent implements OnInit, OnDestroy {
   setTypeFilter(type: AccountType | null): void { this.typeFilter.set(type); }
 
   indentPx(level: number): string { return `${(level - 1) * 20}px`; }
+
+  /** Indica si una cuenta tiene subcuentas (para mostrar/ocultar botón eliminar) */
+  nodeHasChildren(code: string): boolean {
+    return this.accounts().some(a => a.parentCode === code);
+  }
 
   /** Clases para badge subtle (Norma 1). 'dark' no tiene subtle usable en dark mode → badge-neutral-subtle. */
   badgeClasses(color: string): string {

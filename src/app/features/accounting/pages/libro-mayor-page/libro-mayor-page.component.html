@@ -1,7 +1,7 @@
 <!-- ── Header ──────────────────────────────────────────────────────────────── -->
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h4 class="mb-0">Libro Mayor</h4>
-  @if (lines().length > 0) {
+  @if (filteredLines().length > 0) {
     <div class="d-flex gap-2">
       <button cButton color="secondary" variant="outline" size="sm" (click)="printReport()">
         <svg cIcon name="cilPrint" size="sm" class="me-1"></svg>
@@ -22,12 +22,14 @@
   }
 </div>
 
-<!-- ── Selector ───────────────────────────────────────────────────────────── -->
+<!-- ── Selector / Filters ─────────────────────────────────────────────────── -->
 <c-card class="mb-3">
-  <c-card-body>
-    <div class="row g-3 align-items-end">
-      <div class="col-md-8">
-        <label cLabel>Cuenta Contable <span class="text-danger">*</span></label>
+  <c-card-body class="py-3 px-3">
+
+    <!-- Row 1: Account + Cost Center + Period -->
+    <div class="row g-2 mb-2">
+      <div class="col-md-6">
+        <label class="filter-label">Cuenta Contable <span class="text-danger">*</span></label>
         <app-account-select
           [accounts]="accounts()"
           [ngModel]="selectedCode()"
@@ -35,8 +37,19 @@
           placeholder="— Seleccionar cuenta —">
         </app-account-select>
       </div>
-      <div class="col-md-2">
-        <label cLabel>Período</label>
+
+      <div class="col-md-3">
+        <label class="filter-label">Centro de Costo</label>
+        <select cSelect [ngModel]="selectedCostCenter()" (ngModelChange)="selectedCostCenter.set($event)">
+          <option value="">Todos los centros</option>
+          @for (cc of costCenters(); track cc.id) {
+            <option [value]="cc.id">{{ cc.code }} — {{ cc.name }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="col-md-3">
+        <label class="filter-label">Período</label>
         <select cSelect class="select-period" [ngModel]="selectedPeriod()" (ngModelChange)="selectedPeriod.set($event)">
           <option value="">Todos los períodos</option>
           @for (p of periods(); track p.id) {
@@ -44,27 +57,66 @@
           }
         </select>
       </div>
-      @if (costCenters().length > 0) {
-        <div class="col-md-2">
-          <label cLabel>Centro de Costo</label>
-          <select cSelect [ngModel]="selectedCostCenter()" (ngModelChange)="selectedCostCenter.set($event)">
-            <option value="">Todos</option>
-            @for (cc of costCenters(); track cc.id) {
-              <option [value]="cc.id">{{ cc.code }} — {{ cc.name }}</option>
-            }
-          </select>
-        </div>
-      }
-      <div class="col-md-1">
-        <button cButton color="primary" class="w-100" (click)="loadMayor()" [disabled]="!selectedCode() || searching()">
-          @if (searching()) {
-            <c-spinner size="sm"></c-spinner>
-          } @else {
+    </div>
+
+    <!-- Row 2: Dates + Search + Actions -->
+    <div class="row g-2 align-items-end">
+      <div class="col-md-2">
+        <label class="filter-label">
+          Desde <span class="text-danger">*</span>
+        </label>
+        <input cFormControl type="date"
+               [ngModel]="dateFrom()" (ngModelChange)="dateFrom.set($event)"
+               [class.is-invalid]="dateTo() && dateFrom() > dateTo()" />
+        @if (dateTo() && dateFrom() > dateTo()) {
+          <div class="invalid-feedback d-block" style="font-size:.72rem">
+            Desde no puede ser mayor que Hasta
+          </div>
+        }
+      </div>
+
+      <div class="col-md-2">
+        <label class="filter-label">
+          Hasta <span class="text-danger">*</span>
+        </label>
+        <input cFormControl type="date"
+               [ngModel]="dateTo()" (ngModelChange)="dateTo.set($event)"
+               [class.is-invalid]="dateTo() && dateFrom() > dateTo()" />
+      </div>
+
+      <div class="col-md-4">
+        <label class="filter-label">Filtro / texto</label>
+        <c-input-group>
+          <span cInputGroupText>
             <svg cIcon name="cilSearch" size="sm"></svg>
+          </span>
+          <input cFormControl type="text"
+                 placeholder="Filtrar por N° asiento, descripción o referencia..."
+                 [ngModel]="searchTerm()" (ngModelChange)="searchTerm.set($event)" />
+        </c-input-group>
+      </div>
+
+      <div class="col-md-4 d-flex gap-2 justify-content-end">
+        @if (hasActiveFilters || hasQueried()) {
+          <button cButton color="secondary" variant="ghost" size="sm"
+                  (click)="clearFilters()">
+            <svg cIcon name="cilX" size="sm" class="me-1"></svg>
+            Limpiar
+          </button>
+        }
+        <button cButton color="primary" size="sm"
+                [disabled]="searching() || !selectedCode() || !dateFrom() || !dateTo() || !dateRangeValid"
+                (click)="loadMayor()">
+          @if (searching()) {
+            <c-spinner size="sm" class="me-1"></c-spinner>
+          } @else {
+            <svg cIcon name="cilSearch" size="sm" class="me-1"></svg>
           }
+          Consultar
         </button>
       </div>
     </div>
+
   </c-card-body>
 </c-card>
 
@@ -77,7 +129,7 @@
         <div class="d-flex gap-3 text-xs">
           <span>Tipo: <strong>{{ ACC_TYPES[selectedAccount()!.type] }}</strong></span>
           <span>Naturaleza: <strong>{{ ACC_NATURES[selectedAccount()!.nature] }}</strong></span>
-          <span>Período: <strong>{{ getPeriodName(selectedPeriod()) }}</strong></span>
+          <span>Período: <strong>{{ selectedPeriod() ? getPeriodName(selectedPeriod()) : (dateFrom() + ' al ' + dateTo()) }}</strong></span>
         </div>
       </div>
       <div class="text-end">
@@ -117,7 +169,7 @@
           </thead>
           <tbody>
             <!-- Opening balance row if there are entries -->
-            @if (lines().length > 0) {
+            @if (filteredLines().length > 0) {
               <tr class="bg-tertiary">
                 <td colspan="7" class="text-end text-xs-muted">
                   Saldo Inicial
@@ -125,7 +177,7 @@
                 <td class="bal text-end">0.00</td>
               </tr>
             }
-            @for (line of lines(); track $index) {
+            @for (line of filteredLines(); track $index) {
               <tr>
                 <td class="je-num">{{ line.entryNumber }}</td>
                 <td>{{ formatDate(line.date) }}</td>
@@ -140,13 +192,16 @@
               </tr>
             } @empty {
               <tr>
-                <td colspan="8" class="text-center text-secondary py-4">
-                  No hay movimientos para esta cuenta en el período seleccionado
+                <td colspan="8" class="text-center py-5">
+                  <div class="empty-state-hint">
+                    <svg cIcon name="cilInbox" size="xl" class="mb-2 text-secondary"></svg>
+                    <p class="mb-0 text-secondary">No hay movimientos para esta cuenta en el período seleccionado.</p>
+                  </div>
                 </td>
               </tr>
             }
           </tbody>
-          @if (lines().length > 0) {
+          @if (filteredLines().length > 0) {
             <tfoot>
               <tr>
                 <td colspan="5" class="text-end">TOTALES</td>
@@ -173,7 +228,7 @@
         </div>
         <div>
           <div class="lbl">Movimientos</div>
-          <div class="val">{{ lines().length }}</div>
+          <div class="val">{{ filteredLines().length }}</div>
         </div>
       </div>
     }
@@ -182,7 +237,11 @@
 
 @if (!selectedAccount() && !searching()) {
   <div class="text-center py-5 text-secondary">
-    <svg cIcon name="cilChart" size="xl" class="mb-3 opacity-25"></svg>
-    <p>Seleccione una cuenta contable y haga clic en buscar para ver el Libro Mayor</p>
+    <div class="empty-state-hint">
+      <svg cIcon name="cilFilter" size="xl" class="mb-3 text-secondary"></svg>
+      <p class="mb-1 text-secondary">Selecciona una cuenta contable, configura el período o rango de fechas y presiona <strong>Consultar</strong>.</p>
+      <small class="text-muted">Las fechas Desde y Hasta son obligatorias.</small>
+    </div>
   </div>
 }
+

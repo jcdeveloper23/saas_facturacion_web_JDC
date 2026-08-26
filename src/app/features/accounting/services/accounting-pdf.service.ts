@@ -7,7 +7,8 @@ export type AccountingReportType =
   | 'balance-comprobacion'
   | 'estado-resultados'
   | 'balance-general'
-  | 'flujo-efectivo';
+  | 'flujo-efectivo'
+  | 'cost-centers';
 
 interface GeneratePdfInput {
   reportType:  AccountingReportType;

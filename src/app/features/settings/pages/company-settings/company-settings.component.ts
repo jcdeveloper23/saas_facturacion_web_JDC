@@ -101,6 +101,23 @@ export class CompanySettingsComponent implements OnInit, OnDestroy {
   pdfFooterMessage  = signal<string>('');
   savingPdfBranding = signal(false);
 
+  // Palette colors are intentional UI data — hex values are preview swatches, not design tokens
+  readonly presetPalettes = [
+    { label: 'Azul',    primary: '#0d6efd', accent: '#0dcaf0' },
+    { label: 'Verde',   primary: '#198754', accent: '#20c997' },
+    { label: 'Púrpura', primary: '#6f42c1', accent: '#d63384' },
+    { label: 'Naranja', primary: '#fd7e14', accent: '#ffc107' },
+    { label: 'Rojo',    primary: '#dc3545', accent: '#fd7e14' },
+    { label: 'Gris',    primary: '#343a40', accent: '#6c757d' },
+  ];
+
+  readonly buttonStyleOptions: { value: 'square'|'sharp'|'rounded'|'pill'; label: string; radius: string }[] = [
+    { value: 'square',  label: 'Recto',      radius: '0px'  },
+    { value: 'sharp',   label: 'Fino',       radius: '4px'  },
+    { value: 'rounded', label: 'Redondeado', radius: '8px'  },
+    { value: 'pill',    label: 'Píldora',    radius: '50px' },
+  ];
+
   // ── Porcentaje de configuración completada ──────────────────────────────────
   readonly completionPercentage = computed(() => {
     let score = 0;

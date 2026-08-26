@@ -21,33 +21,104 @@
 
 <!-- ── Filters ────────────────────────────────────────────────────────────── -->
 <c-card class="mb-3">
-  <c-card-body class="py-2 px-3">
-    <div class="d-flex gap-2 align-items-center flex-wrap">
-      <c-input-group class="search-input">
-        <span cInputGroupText>
-          <svg cIcon name="cilSearch" size="sm"></svg>
-        </span>
-        <input cFormControl type="text" placeholder="N° asiento, descripción..."
-               [ngModel]="searchTerm()" (ngModelChange)="searchTerm.set($event)" />
-      </c-input-group>
+  <c-card-body class="py-3 px-3">
 
-      <select cSelect class="select-sm"
-              [ngModel]="yearFilter()" (ngModelChange)="changeYear(+$event)">
-        @for (y of years; track y) {
-          <option [value]="y">{{ y }}</option>
-        }
-      </select>
+    <!-- Row 1: Account + Cost Center + Type -->
+    <div class="row g-2 mb-2">
+      <div class="col-md-4">
+        <label class="filter-label">Cuenta contable</label>
+        <app-account-select
+          [accounts]="accounts()"
+          [ngModel]="accountCode()"
+          (ngModelChange)="accountCode.set($event)"
+          placeholder="Todas las cuentas">
+        </app-account-select>
+      </div>
 
-      <select cSelect class="select-sm"
-              [ngModel]="typeFilter()" (ngModelChange)="setTypeFilter($event || null)">
-        <option [value]="null">Todos los tipos</option>
-        @for (t of entryTypes; track t) {
-          <option [value]="t">{{ TYPE_LABELS[t] }}</option>
-        }
-      </select>
+      <div class="col-md-4">
+        <label class="filter-label">Centro de costo</label>
+        <select cSelect
+                [ngModel]="costCenterId()" (ngModelChange)="costCenterId.set($event)">
+          <option value="">Todos los centros</option>
+          @for (c of costCenters(); track c.id) {
+            <option [value]="c.id">{{ costCenterLabel(c) }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="col-md-4">
+        <label class="filter-label">Tipo de asiento</label>
+        <select cSelect
+                [ngModel]="typeFilter()" (ngModelChange)="setTypeFilter($event || null)">
+          <option [value]="null">Todos los tipos</option>
+          @for (t of entryTypes; track t) {
+            <option [value]="t">{{ TYPE_LABELS[t] }}</option>
+          }
+        </select>
+      </div>
     </div>
+
+    <!-- Row 2: Dates + Search + Actions -->
+    <div class="row g-2 align-items-end">
+      <div class="col-md-2">
+        <label class="filter-label">
+          Desde <span class="text-danger">*</span>
+        </label>
+        <input cFormControl type="date"
+               [ngModel]="dateFrom()" (ngModelChange)="dateFrom.set($event)"
+               [class.is-invalid]="dateTo() && dateFrom() > dateTo()" />
+        @if (dateTo() && dateFrom() > dateTo()) {
+          <div class="invalid-feedback d-block" style="font-size:.72rem">
+            Desde no puede ser mayor que Hasta
+          </div>
+        }
+      </div>
+
+      <div class="col-md-2">
+        <label class="filter-label">
+          Hasta <span class="text-danger">*</span>
+        </label>
+        <input cFormControl type="date"
+               [ngModel]="dateTo()" (ngModelChange)="dateTo.set($event)"
+               [class.is-invalid]="dateTo() && dateFrom() > dateTo()" />
+      </div>
+
+      <div class="col-md-4">
+        <label class="filter-label">Filtro / texto</label>
+        <c-input-group>
+          <span cInputGroupText>
+            <svg cIcon name="cilSearch" size="sm"></svg>
+          </span>
+          <input cFormControl type="text"
+                 placeholder="N° asiento, descripción, referencia..."
+                 [ngModel]="searchTerm()" (ngModelChange)="searchTerm.set($event)" />
+        </c-input-group>
+      </div>
+
+      <div class="col-md-4 d-flex gap-2 justify-content-end">
+        @if (hasActiveFilters || hasQueried()) {
+          <button cButton color="secondary" variant="ghost" size="sm"
+                  (click)="clearFilters()">
+            <svg cIcon name="cilX" size="sm" class="me-1"></svg>
+            Limpiar
+          </button>
+        }
+        <button cButton color="primary" size="sm"
+                [disabled]="loading() || !dateFrom() || !dateTo() || !dateRangeValid"
+                (click)="consultar()">
+          @if (loading()) {
+            <c-spinner size="sm" class="me-1"></c-spinner>
+          } @else {
+            <svg cIcon name="cilSearch" size="sm" class="me-1"></svg>
+          }
+          Consultar
+        </button>
+      </div>
+    </div>
+
   </c-card-body>
 </c-card>
+
 
 <!-- ── Table ──────────────────────────────────────────────────────────────── -->
 <c-card>
@@ -130,8 +201,19 @@
             </tr>
           } @empty {
             <tr>
-              <td colspan="9" class="text-center text-secondary py-4">
-                No hay asientos contables para los filtros seleccionados
+              <td colspan="9" class="text-center py-5">
+                @if (!hasQueried()) {
+                  <div class="empty-state-hint">
+                    <svg cIcon name="cilFilter" size="xl" class="mb-2 text-secondary"></svg>
+                    <p class="mb-1 text-secondary">Configura los filtros y presiona <strong>Consultar</strong> para ver los asientos.</p>
+                    <small class="text-muted">Las fechas Desde y Hasta son obligatorias.</small>
+                  </div>
+                } @else {
+                  <div class="empty-state-hint">
+                    <svg cIcon name="cilInbox" size="xl" class="mb-2 text-secondary"></svg>
+                    <p class="mb-0 text-secondary">No se encontraron asientos con los filtros seleccionados.</p>
+                  </div>
+                }
               </td>
             </tr>
           }
@@ -144,9 +226,21 @@
         @if (loadingPage()) { <c-spinner size="sm" class="ms-2"></c-spinner> }
       </span>
       <div class="d-flex gap-3 align-items-center">
-        <span class="text-secondary">
-          Total contabilizado: <strong class="ms-1">{{ totalPostedDebit() | number:'1.2-2' }} USD</strong>
-        </span>
+        @if (hasQueried() && filtered().length > 0) {
+          <span class="text-secondary">
+            Total contabilizado: <strong class="ms-1">{{ totalPostedDebit() | number:'1.2-2' }} USD</strong>
+          </span>
+          <button cButton color="success" variant="outline" size="sm"
+                  [disabled]="exportingExcel()"
+                  (click)="exportExcel()">
+            @if (exportingExcel()) {
+              <c-spinner size="sm" class="me-1"></c-spinner>
+            } @else {
+              <svg cIcon name="cilCloudDownload" size="sm" class="me-1"></svg>
+            }
+            Exportar Excel
+          </button>
+        }
         <div class="d-flex gap-1">
           <button cButton color="secondary" variant="outline" size="sm"
                   [disabled]="currentPage() === 1 || loadingPage()"

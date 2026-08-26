@@ -146,7 +146,14 @@ export class PosTerminalsComponent implements OnInit, OnDestroy {
   }
 
   async deactivate(t: PosTerminal): Promise<void> {
-    if (!confirm(`¿Desactivar terminal "${t.name}"?`)) return;
+    const ok = await this.notify.confirm({
+      title: `¿Desactivar terminal "${t.name}"?`,
+      confirmText: 'Sí, desactivar',
+      cancelText: 'Cancelar',
+      icon: 'warning',
+      danger: true
+    });
+    if (!ok) return;
     await this.cashService.updateTerminal(t.id, { isActive: false });
     this.notify.success('Terminal desactivado', t.name);
   }

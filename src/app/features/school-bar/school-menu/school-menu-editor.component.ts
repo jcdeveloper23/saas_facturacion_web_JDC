@@ -9,6 +9,7 @@ import { Timestamp } from '@angular/fire/firestore';
 
 import { SchoolMenuService } from '../services/school-menu.service';
 import { SchoolMenu } from '../models';
+import { NotificationService } from '../../../core/services/notification.service';
 import { ProductsService } from '../../products/services/products.service';
 import { Product } from '../../products/models/product.interface';
 
@@ -23,9 +24,10 @@ import { Product } from '../../products/models/product.interface';
   templateUrl: './school-menu-editor.component.html'
 })
 export class SchoolMenuEditorComponent implements OnInit {
-  private menuService  = inject(SchoolMenuService);
-  private productsSvc  = inject(ProductsService);
-  private fb           = inject(FormBuilder);
+  private menuService   = inject(SchoolMenuService);
+  private productsSvc   = inject(ProductsService);
+  private fb            = inject(FormBuilder);
+  private notifications = inject(NotificationService);
 
   menus      = signal<SchoolMenu[]>([]);
   products   = signal<Product[]>([]);
@@ -125,12 +127,25 @@ export class SchoolMenuEditorComponent implements OnInit {
   }
 
   async publishMenu(menu: SchoolMenu): Promise<void> {
-    if (!confirm(`¿Publicar el menú del ${menu.date}?`)) return;
+    const ok = await this.notifications.confirm({
+      title: `¿Publicar el menú del ${menu.date}?`,
+      confirmText: 'Sí, publicar',
+      cancelText: 'Cancelar',
+      icon: 'question'
+    });
+    if (!ok) return;
     await this.menuService.publishMenu(menu.id!, menu.orderCutoff as Timestamp);
   }
 
   async deleteMenu(id: string): Promise<void> {
-    if (!confirm('¿Eliminar este menú?')) return;
+    const ok = await this.notifications.confirm({
+      title: '¿Eliminar este menú?',
+      confirmText: 'Sí, eliminar',
+      cancelText: 'Cancelar',
+      icon: 'warning',
+      danger: true
+    });
+    if (!ok) return;
     await this.menuService.deleteMenu(id);
   }
 }

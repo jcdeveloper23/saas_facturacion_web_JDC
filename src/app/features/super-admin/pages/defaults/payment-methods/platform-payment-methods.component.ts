@@ -98,7 +98,14 @@ export class PlatformPaymentMethodsComponent implements OnInit, OnDestroy {
   }
 
   async delete(item: DefaultPaymentTerm): Promise<void> {
-    if (!confirm(`¿Eliminar "${item.name}"?`)) return;
+    const ok = await this.notifications.confirm({
+      title: `¿Eliminar "${item.name}"?`,
+      confirmText: 'Sí, eliminar',
+      cancelText: 'Cancelar',
+      icon: 'warning',
+      danger: true
+    });
+    if (!ok) return;
     try {
       await this.svc.deletePaymentTerm(item.id);
       this.notifications.success('Método eliminado');

@@ -131,7 +131,14 @@ export class CurrenciesComponent implements OnInit {
 
   async delete(item: Currency): Promise<void> {
     if (item.isDefault) { this.notifications.warning('No se puede eliminar la divisa predeterminada'); return; }
-    if (!confirm(`¿Eliminar la divisa "${item.name}" (${item.code})?`)) return;
+    const ok = await this.notifications.confirm({
+      title: `¿Eliminar la divisa "${item.name}" (${item.code})?`,
+      confirmText: 'Sí, eliminar',
+      cancelText: 'Cancelar',
+      icon: 'warning',
+      danger: true
+    });
+    if (!ok) return;
     try {
       await this.svc.deleteCurrency(item.id);
       this.notifications.success('Divisa eliminada');

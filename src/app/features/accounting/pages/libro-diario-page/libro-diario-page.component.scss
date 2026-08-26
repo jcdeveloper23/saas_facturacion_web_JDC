@@ -1,5 +1,27 @@
 @use '../../accounting-shared' as *;
 
+/* ── Filter labels ────────────────────────────────────────────────────────── */
+.filter-label {
+  display: block;
+  font-size: .72rem;
+  font-weight: 500;
+  color: var(--cui-secondary-color);
+  margin-bottom: .2rem;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+/* ── Empty state ──────────────────────────────────────────────────────────── */
+.empty-state-hint {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem;
+  svg { opacity: .4; margin-bottom: .4rem; }
+  p, small { max-width: 380px; text-align: center; }
+}
+
+
 /* ── Diario table ─────────────────────────────────────────────────────────── */
 .ld-table {
   width: 100%;

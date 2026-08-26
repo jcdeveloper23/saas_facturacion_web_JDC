@@ -124,7 +124,14 @@ export class DocumentSeriesComponent implements OnInit {
   }
 
   async delete(s: DocumentSeries): Promise<void> {
-    if (!confirm(`¿Eliminar la serie "${s.name}"?`)) return;
+    const ok = await this.notifications.confirm({
+      title: `¿Eliminar la serie "${s.name}"?`,
+      confirmText: 'Sí, eliminar',
+      cancelText: 'Cancelar',
+      icon: 'warning',
+      danger: true
+    });
+    if (!ok) return;
     try {
       await this.svc.deleteDocumentSeries(s.id);
       this.notifications.success('Serie eliminada');

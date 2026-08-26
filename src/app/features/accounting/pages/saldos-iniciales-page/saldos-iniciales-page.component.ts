@@ -93,8 +93,14 @@ export class SaldosInicialesPageComponent implements OnInit {
     this.rows.update(rs => [...rs]); // fuerza recomputo de los computed()
   }
 
-  clearAll(): void {
-    if (!confirm('¿Limpiar todos los montos ingresados?')) return;
+  async clearAll(): Promise<void> {
+    const ok = await this.notifications.confirm({
+      title: '¿Limpiar todos los montos ingresados?',
+      confirmText: 'Sí, limpiar',
+      cancelText: 'Cancelar',
+      icon: 'question'
+    });
+    if (!ok) return;
     this.rows.update(rs => rs.map(r => ({ ...r, amount: 0 })));
   }
 
@@ -119,7 +125,14 @@ export class SaldosInicialesPageComponent implements OnInit {
       this.notifications.error(`Los saldos no cuadran. Débitos: ${this.totalDebit().toFixed(2)}, Créditos: ${this.totalCredit().toFixed(2)}`);
       return;
     }
-    if (!confirm(`¿Generar el asiento de saldos iniciales con ${this.nonZeroRows().length} cuentas? Esta acción queda contabilizada de inmediato.`)) return;
+    const ok = await this.notifications.confirm({
+      title: `¿Generar el asiento de saldos iniciales con ${this.nonZeroRows().length} cuentas?`,
+      text: 'Esta acción queda contabilizada de inmediato.',
+      confirmText: 'Sí, generar',
+      cancelText: 'Cancelar',
+      icon: 'question'
+    });
+    if (!ok) return;
 
     this.saving.set(true);
     try {

@@ -122,7 +122,14 @@ export class PlatformCurrenciesComponent implements OnInit, OnDestroy {
   }
 
   async delete(item: DefaultCurrency): Promise<void> {
-    if (!confirm(`¿Eliminar la divisa "${item.name}" (${item.code})?`)) return;
+    const ok = await this.notifications.confirm({
+      title: `¿Eliminar la divisa "${item.name}" (${item.code})?`,
+      confirmText: 'Sí, eliminar',
+      cancelText: 'Cancelar',
+      icon: 'warning',
+      danger: true
+    });
+    if (!ok) return;
     try {
       await this.svc.deleteCurrency(item.id);
       this.notifications.success('Divisa eliminada');

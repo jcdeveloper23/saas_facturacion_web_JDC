@@ -18,7 +18,8 @@ import {
 import { IconModule } from '@coreui/icons-angular';
 
 import { OrganizationsService } from '../../core/services/organizations.service';
-import { PlansService } from '../../core/services/plans.service';
+import { PlansService }          from '../../core/services/plans.service';
+import { NotificationService }   from '../../core/services/notification.service';
 import {
   Organization,
   OrganizationFilters,
@@ -57,7 +58,8 @@ import { OrganizationDetailsComponent } from './components/organization-details/
 })
 export class OrganizationsComponent implements OnInit {
   private organizationsService = inject(OrganizationsService);
-  private plansService = inject(PlansService);
+  private plansService         = inject(PlansService);
+  private notifications        = inject(NotificationService);
 
   // Expose Math for template
   Math = Math;
@@ -316,19 +318,25 @@ export class OrganizationsComponent implements OnInit {
     });
   }
 
-  deleteOrganization(org: Organization): void {
-    if (confirm(`¿Está seguro de eliminar la organización "${org.name}"?`)) {
-      this.organizationsService.remove(org.id!).subscribe({
-        next: () => {
-          this.loadOrganizations();
-          this.loadSummary();
-        },
-        error: (err) => {
-          console.error('Error deleting organization:', err);
-          this.error.set('Error al eliminar la organización');
-        }
-      });
-    }
+  async deleteOrganization(org: Organization): Promise<void> {
+    const ok = await this.notifications.confirm({
+      title: `¿Eliminar la organización "${org.name}"?`,
+      confirmText: 'Sí, eliminar',
+      cancelText: 'Cancelar',
+      icon: 'warning',
+      danger: true
+    });
+    if (!ok) return;
+    this.organizationsService.remove(org.id!).subscribe({
+      next: () => {
+        this.loadOrganizations();
+        this.loadSummary();
+      },
+      error: (err) => {
+        console.error('Error deleting organization:', err);
+        this.error.set('Error al eliminar la organización');
+      }
+    });
   }
 
   // ==========================================================================

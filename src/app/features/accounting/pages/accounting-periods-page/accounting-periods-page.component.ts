@@ -193,7 +193,14 @@ export class AccountingPeriodsPageComponent implements OnInit, OnDestroy {
   // ── Status transitions ────────────────────────────────────────────────────
   async closePeriod(p: AccountingPeriod, event: Event): Promise<void> {
     event.stopPropagation();
-    if (!confirm(`¿Cerrar el ejercicio "${p.name}"? No se podrán agregar más asientos.`)) return;
+    const ok = await this.notifications.confirm({
+      title: `¿Cerrar "${p.name}"?`,
+      text: 'Una vez cerrado no se podrán agregar más asientos contables a este ejercicio.',
+      confirmText: 'Sí, cerrar',
+      cancelText: 'Cancelar',
+      icon: 'warning'
+    });
+    if (!ok) return;
     try {
       await this.svc.closePeriod(p.id);
       this.notifications.success('Ejercicio cerrado');
@@ -204,7 +211,15 @@ export class AccountingPeriodsPageComponent implements OnInit, OnDestroy {
 
   async lockPeriod(p: AccountingPeriod, event: Event): Promise<void> {
     event.stopPropagation();
-    if (!confirm(`¿Bloquear el ejercicio "${p.name}"? Esta acción no se puede revertir.`)) return;
+    const ok = await this.notifications.confirm({
+      title: `¿Bloquear "${p.name}"?`,
+      text: 'El ejercicio quedará bloqueado permanentemente. Esta acción no se puede revertir.',
+      confirmText: 'Sí, bloquear',
+      cancelText: 'Cancelar',
+      icon: 'warning',
+      danger: true
+    });
+    if (!ok) return;
     try {
       await this.svc.lockPeriod(p.id);
       this.notifications.success('Ejercicio bloqueado');
@@ -215,7 +230,14 @@ export class AccountingPeriodsPageComponent implements OnInit, OnDestroy {
 
   async reopenPeriod(p: AccountingPeriod, event: Event): Promise<void> {
     event.stopPropagation();
-    if (!confirm(`¿Reabrir el ejercicio "${p.name}"?`)) return;
+    const ok = await this.notifications.confirm({
+      title: `¿Reabrir "${p.name}"?`,
+      text: 'El ejercicio volverá a estar disponible para edición de asientos.',
+      confirmText: 'Sí, reabrir',
+      cancelText: 'Cancelar',
+      icon: 'question'
+    });
+    if (!ok) return;
     try {
       await this.svc.reopenPeriod(p.id);
       this.notifications.success('Ejercicio reabierto');
@@ -226,7 +248,14 @@ export class AccountingPeriodsPageComponent implements OnInit, OnDestroy {
 
   async generateOpening(p: AccountingPeriod, event: Event): Promise<void> {
     event.stopPropagation();
-    if (!confirm(`¿Generar asiento de apertura para "${p.name}"? Se tomarán los saldos del ejercicio anterior.`)) return;
+    const ok = await this.notifications.confirm({
+      title: `¿Generar apertura para "${p.name}"?`,
+      text: 'Se tomarán los saldos finales del ejercicio anterior como punto de partida.',
+      confirmText: 'Generar',
+      cancelText: 'Cancelar',
+      icon: 'question'
+    });
+    if (!ok) return;
     this.generatingOpening.set(p.id);
     try {
       const result = await this.svc.generateOpeningEntry(p.id);
@@ -242,9 +271,16 @@ export class AccountingPeriodsPageComponent implements OnInit, OnDestroy {
   async toggleMonthlyClose(p: AccountingPeriod, event: Event): Promise<void> {
     event.stopPropagation();
     const enabling = !p.monthlyCloseEnabled;
-    if (enabling && !confirm(
-      `¿Activar cierre mensual para "${p.name}"? Podrá cerrar meses individuales para bloquear la edición de asientos con fecha anterior.`
-    )) return;
+    if (enabling) {
+      const ok = await this.notifications.confirm({
+        title: `¿Activar cierre mensual para "${p.name}"?`,
+        text: 'Podrá cerrar meses individuales para bloquear la edición de asientos con fecha anterior.',
+        confirmText: 'Activar',
+        cancelText: 'Cancelar',
+        icon: 'question'
+      });
+      if (!ok) return;
+    }
 
     this.togglingMonthlyClose.set(p.id);
     try {

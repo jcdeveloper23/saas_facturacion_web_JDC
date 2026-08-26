@@ -1,50 +1,54 @@
-// ── Logo upload ──────────────────────────────────────────────────────────────
+// ── Encabezado de sección (icono + texto) ────────────────────────────────────
+.appearance-section-header {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  font-size: .82rem;
+  font-weight: 500;
+  color: var(--cui-body-color);
+  padding-bottom: .5rem;
+  border-bottom: 1px solid var(--cui-border-color);
+}
 
+// ── Logo upload zone ──────────────────────────────────────────────────────────
 .logo-upload-zone {
   border: 2px dashed var(--cui-border-color);
   border-radius: 8px;
-  transition: border-color 0.2s, background 0.2s;
+  transition: border-color .2s, background .2s;
   background: var(--cui-body-bg);
 
   &:hover,
   &.has-file {
     border-color: var(--cui-primary);
-    background: var(--cui-primary-bg-subtle, rgba(13, 110, 253, 0.04));
+    background: var(--cui-primary-bg-subtle);
   }
 
-  label {
-    user-select: none;
-  }
+  label { user-select: none; }
 }
 
 // ── Sidebar mockup preview ────────────────────────────────────────────────────
-
-.logo-preview-area {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
 .sidebar-mockup {
-  width: 200px;
+  // Colores intencionales: simulan el aspecto real del sidebar oscuro de la app
+  width: 180px;
   background: #2d3748;
   border-radius: 10px;
   overflow: hidden;
-  box-shadow: 0 4px 16px rgba(0,0,0,.25);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, .3);
 }
 
 .sidebar-mockup-header {
-  padding: 12px 16px;
+  // Color intencional: header del sidebar oscuro de la app
+  padding: 10px 14px;
   background: #1a202c;
-  min-height: 52px;
+  min-height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .mockup-logo-full {
-  max-height: 32px;
-  max-width: 130px;
+  max-height: 30px;
+  max-width: 120px;
   object-fit: contain;
   filter: brightness(1.1);
 }
@@ -53,72 +57,206 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  opacity: 0.5;
+  gap: 3px;
+  opacity: .45;
+  color: #fff;
+  font-size: .65rem;
 }
 
 .sidebar-mockup-nav {
-  padding: 12px 8px;
+  padding: 10px 8px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
 }
 
 .mockup-nav-item {
-  height: 8px;
+  height: 7px;
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, .14);
 
   &.active {
-    background: rgba(255, 255, 255, 0.35);
+    background: rgba(255, 255, 255, .38);
     width: 80%;
   }
+
+  &.short { width: 60%; }
 }
 
 // ── Color picker ──────────────────────────────────────────────────────────────
-
 .color-picker-wrap {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   align-items: flex-start;
 }
 
 .color-swatch {
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
   border-radius: 8px;
   border: 1px solid var(--cui-border-color);
   flex-shrink: 0;
-  transition: background 0.2s;
+  transition: background .2s;
 }
 
-.color-chip {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: 2px solid transparent;
-  cursor: pointer;
-  transition: transform 0.15s, border-color 0.15s;
+// ── Paletas sugeridas ─────────────────────────────────────────────────────────
+.palette-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+}
 
-  &:hover {
-    transform: scale(1.2);
+.palette-preset {
+  display: flex;
+  align-items: center;
+  gap: .3rem;
+  padding: .3rem .6rem;
+  border: 1px solid var(--cui-border-color);
+  border-radius: 6px;
+  background: var(--cui-body-bg);
+  cursor: pointer;
+  transition: border-color .15s, box-shadow .15s;
+
+  &:hover:not(:disabled) {
+    border-color: var(--cui-primary);
+    box-shadow: 0 0 0 2px var(--cui-primary-bg-subtle);
   }
 
-  &.selected {
-    border-color: var(--cui-body-color);
-    transform: scale(1.15);
-    box-shadow: 0 0 0 2px var(--cui-body-bg), 0 0 0 4px currentColor;
+  &:disabled { opacity: .5; cursor: not-allowed; }
+}
+
+.palette-chip {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 1px solid rgba(0, 0, 0, .1);
+}
+
+.palette-label {
+  font-size: .75rem;
+  color: var(--cui-body-color);
+  white-space: nowrap;
+}
+
+// ── Previsualización claro/oscuro ─────────────────────────────────────────────
+// Los fondos de .legibility-box--light y --dark son INTENCIONALES:
+// simulan cómo se ve el color en modo claro vs oscuro de la app.
+.legibility-box {
+  flex: 1;
+  padding: .75rem;
+  border-radius: 6px;
+  border: 1px solid var(--cui-border-color);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .4rem;
+
+  &--light { background: #fff; }
+  &--dark  { background: #1e2a3a; }
+}
+
+.legibility-label {
+  font-size: .68rem;
+  color: var(--cui-secondary-color);
+  font-family: monospace;
+}
+
+.legibility-btn {
+  border: none;
+  color: #fff;
+  padding: .2rem .65rem;
+  border-radius: 4px;
+  font-size: .75rem;
+  cursor: default;
+}
+
+.legibility-link {
+  font-size: .75rem;
+  font-weight: 500;
+}
+
+// ── Button style visual tiles ─────────────────────────────────────────────────
+.btn-style-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: .5rem;
+}
+
+.btn-style-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .35rem;
+  padding: .6rem .4rem;
+  border: 1px solid var(--cui-border-color);
+  border-radius: 6px;
+  background: var(--cui-body-bg);
+  cursor: pointer;
+  transition: border-color .15s, box-shadow .15s, background .15s;
+
+  &:hover:not(:disabled) {
+    border-color: var(--cui-primary);
+    background: var(--cui-primary-bg-subtle);
+  }
+
+  &.active {
+    border-color: var(--cui-primary);
+    background: var(--cui-primary-bg-subtle);
+    box-shadow: 0 0 0 2px var(--cui-primary-bg-subtle);
+
+    .btn-style-demo {
+      background: var(--cui-primary);
+      color: #fff;
+    }
+  }
+
+  &:disabled { opacity: .5; cursor: not-allowed; }
+}
+
+.btn-style-demo {
+  display: inline-block;
+  padding: .2rem .6rem;
+  background: var(--cui-secondary-bg);
+  color: var(--cui-body-color);
+  font-size: .75rem;
+  border: 1px solid var(--cui-border-color);
+  transition: background .15s, color .15s;
+}
+
+.btn-style-name {
+  font-size: .68rem;
+  color: var(--cui-secondary-color);
+  white-space: nowrap;
+}
+
+// ── Tips de marca ─────────────────────────────────────────────────────────────
+.appearance-tips {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: .6rem;
+
+  li {
+    display: flex;
+    align-items: flex-start;
+    gap: .5rem;
+    font-size: .82rem;
+    color: var(--cui-secondary-color);
+    line-height: 1.4;
+
+    svg { margin-top: .1rem; }
   }
 }
 
 // ── Plan-locked overlay ───────────────────────────────────────────────────────
-
 .plan-locked {
   position: relative;
   pointer-events: none;
   user-select: none;
 
-  // Re-enable callout and badges inside locked cards so the user can read them
   c-callout,
   .badge {
     pointer-events: auto;
@@ -126,7 +264,7 @@
   }
 }
 
-// ── Tab Badges & Navigation ───────────────────────────────────────────────────
+// ── Tab navigation badges ─────────────────────────────────────────────────────
 .settings-tabs {
   .nav-link {
     display: inline-flex;
@@ -136,29 +274,28 @@
 }
 
 .tab-badge {
-  font-size: 0.68rem;
+  font-size: .68rem;
   padding: 2px 7px;
   border-radius: 12px;
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1;
-  letter-spacing: 0.02em;
+  letter-spacing: .02em;
 
   &.success {
-    background: rgba(25, 135, 84, 0.12);
-    color: #198754;
-    border: 1px solid rgba(25, 135, 84, 0.25);
+    background: var(--cui-success-bg-subtle);
+    color: var(--cui-success);
+    border: 1px solid var(--cui-success-border-subtle, var(--cui-success-bg-subtle));
   }
 
   &.warning {
-    background: rgba(255, 193, 7, 0.15);
-    color: #b48505;
-    border: 1px solid rgba(255, 193, 7, 0.3);
+    background: var(--cui-warning-bg-subtle);
+    color: var(--cui-warning);
+    border: 1px solid var(--cui-warning-border-subtle, var(--cui-warning-bg-subtle));
   }
 
   &.info {
-    background: rgba(13, 202, 240, 0.12);
-    color: #059669;
-    border: 1px solid rgba(13, 202, 240, 0.25);
+    background: var(--cui-info-bg-subtle);
+    color: var(--cui-info);
+    border: 1px solid var(--cui-info-border-subtle, var(--cui-info-bg-subtle));
   }
 }
-

@@ -1,0 +1,21 @@
+<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1090;">
+    @for (toast of notifications(); track toast.id) {
+        @if (isVisible(toast.id)) {
+            <c-toast [visible]="true" class="toast-modern">
+                <c-toast-header [closeButton]="false" [ngClass]="getHeaderClass(toast.type)">
+                    <svg [cIcon]="getIcon(toast.type)" class="me-2" [ngClass]="getIconClass(toast.type)"></svg>
+                    <strong class="me-auto">{{ toast.title }}</strong>
+                    @if (toast.dismissible !== false) {
+                        <button type="button" class="btn-close ms-2" aria-label="Cerrar"
+                                (click)="dismiss(toast.id)"></button>
+                    }
+                </c-toast-header>
+                <c-toast-body>{{ toast.message }}</c-toast-body>
+                <div class="toast-progress-bar"
+                     [ngClass]="getProgressClass(toast.type)"
+                     [style.animation-duration]="(toast.duration ?? 5000) + 'ms'">
+                </div>
+            </c-toast>
+        }
+    }
+</div>

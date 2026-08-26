@@ -170,8 +170,15 @@ export class ProfilesComponent implements OnInit {
 
   // ── Delete ─────────────────────────────────────────────────────────────────
 
-  confirmDelete(role: Role): void {
-    if (!confirm(`¿Estás seguro de eliminar el rol "${role.name}"?`)) return;
+  async confirmDelete(role: Role): Promise<void> {
+    const ok = await this.notification.confirm({
+      title: `¿Eliminar el rol "${role.name}"?`,
+      confirmText: 'Sí, eliminar',
+      cancelText: 'Cancelar',
+      icon: 'warning',
+      danger: true
+    });
+    if (!ok) return;
     const companyId = this.authService.user()?.companyId;
 
     if (this.isSuperAdmin()) {

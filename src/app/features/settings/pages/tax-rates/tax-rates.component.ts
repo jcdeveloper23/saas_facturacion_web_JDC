@@ -133,7 +133,14 @@ export class TaxRatesComponent implements OnInit {
 
   async delete(t: TaxRate): Promise<void> {
     if (t.isDefault) { this.notifications.warning('No se puede eliminar el impuesto predeterminado'); return; }
-    if (!confirm(`¿Eliminar el impuesto "${t.name}"?`)) return;
+    const ok = await this.notifications.confirm({
+      title: `¿Eliminar el impuesto "${t.name}"?`,
+      confirmText: 'Sí, eliminar',
+      cancelText: 'Cancelar',
+      icon: 'warning',
+      danger: true
+    });
+    if (!ok) return;
     try {
       await this.svc.deleteTaxRate(t.id);
       this.notifications.success('Impuesto eliminado');

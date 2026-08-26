@@ -103,7 +103,14 @@ export class PlatformTaxRatesComponent implements OnInit, OnDestroy {
   }
 
   async delete(item: DefaultTaxRate): Promise<void> {
-    if (!confirm(`¿Eliminar "${item.name}"?`)) return;
+    const ok = await this.notifications.confirm({
+      title: `¿Eliminar "${item.name}"?`,
+      confirmText: 'Sí, eliminar',
+      cancelText: 'Cancelar',
+      icon: 'warning',
+      danger: true
+    });
+    if (!ok) return;
     try {
       await this.svc.deleteTaxRate(item.id);
       this.notifications.success('Impuesto eliminado');

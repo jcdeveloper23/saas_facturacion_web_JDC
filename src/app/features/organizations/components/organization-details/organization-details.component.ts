@@ -19,7 +19,8 @@ import { IconModule } from '@coreui/icons-angular';
 import { ReactiveFormsModule, FormBuilder, Validators, FormGroup } from '@angular/forms';
 
 import { OrganizationsService } from '../../../../core/services/organizations.service';
-import { UsersService } from '../../../../core/services/users.service';
+import { UsersService }         from '../../../../core/services/users.service';
+import { NotificationService }  from '../../../../core/services/notification.service';
 import {
   Organization,
   OrganizationStats,
@@ -60,8 +61,9 @@ export class OrganizationDetailsComponent implements OnInit {
   @Output() edit = new EventEmitter<void>();
 
   private organizationsService = inject(OrganizationsService);
-  private usersService = inject(UsersService);
-  private fb = inject(FormBuilder);
+  private usersService         = inject(UsersService);
+  private fb                   = inject(FormBuilder);
+  private notifications        = inject(NotificationService);
 
   organization = signal<Organization | null>(null);
   stats = signal<OrganizationStats | null>(null);
@@ -195,17 +197,24 @@ export class OrganizationDetailsComponent implements OnInit {
     }
   }
 
-  rotateApiKey(): void {
-    if (confirm('¿Está seguro de regenerar la API Key? La key anterior dejará de funcionar.')) {
-      this.organizationsService.rotateApiKey(this.organizationId).subscribe({
-        next: (org) => {
-          this.organization.set(org);
-        },
-        error: (err) => {
-          this.error.set('Error al regenerar API Key');
-        }
-      });
-    }
+  async rotateApiKey(): Promise<void> {
+    const ok = await this.notifications.confirm({
+      title: '¿Regenerar la API Key?',
+      text: 'La key anterior dejará de funcionar.',
+      confirmText: 'Sí, regenerar',
+      cancelText: 'Cancelar',
+      icon: 'warning',
+      danger: true
+    });
+    if (!ok) return;
+    this.organizationsService.rotateApiKey(this.organizationId).subscribe({
+      next: (org) => {
+        this.organization.set(org);
+      },
+      error: (err) => {
+        this.error.set('Error al regenerar API Key');
+      }
+    });
   }
 
   // Helpers

@@ -95,6 +95,8 @@ export class PlanLimitsService {
   isFeatureEnabled(flag: keyof PlanFeatureFlags): boolean {
     const features = this.companyDoc()?.planFeatures;
     if (!features) return true;
-    return features[flag] === true;
+    const val = features[flag];
+    if (val === undefined) return true;
+    return val === true;
   }
 }

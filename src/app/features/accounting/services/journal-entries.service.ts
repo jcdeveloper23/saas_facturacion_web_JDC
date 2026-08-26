@@ -22,12 +22,18 @@ export type JournalEntryCreateInput = Omit<JournalEntry,
 >;
 
 export interface JournalEntryFilters {
-  periodId?:  string;
-  year?:      number;
-  type?:      JournalEntryType;
-  status?:    JournalEntryStatus;
-  dateFrom?:  string;
-  dateTo?:    string;
+  periodId?:    string;
+  year?:        number;
+  type?:        JournalEntryType;
+  status?:      JournalEntryStatus;
+  /** YYYY-MM-DD — inclusive lower bound on entry date */
+  dateFrom?:    string;
+  /** YYYY-MM-DD — inclusive upper bound on entry date (end-of-day) */
+  dateTo?:      string;
+  /** Código de cuenta — applied client-side after Firestore query */
+  accountCode?: string;
+  /** Cost-center ID — applied client-side after Firestore query */
+  costCenterId?:string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -77,10 +83,23 @@ export class JournalEntriesService {
     const ref = collection(this.firestore, this.colPath);
     const constraints: QueryConstraint[] = [];
 
-    if (filters.periodId) constraints.push(where('periodId',   '==', filters.periodId));
-    if (filters.year)     constraints.push(where('periodYear', '==', filters.year));
-    if (filters.type)     constraints.push(where('type',       '==', filters.type));
-    if (filters.status)   constraints.push(where('status',     '==', filters.status));
+    if (filters.periodId) constraints.push(where('periodId', '==', filters.periodId));
+    if (filters.type)     constraints.push(where('type',     '==', filters.type));
+    if (filters.status)   constraints.push(where('status',   '==', filters.status));
+
+    // Date range takes priority over year filter
+    if (filters.dateFrom || filters.dateTo) {
+      if (filters.dateFrom) {
+        const tsFrom = Timestamp.fromDate(new Date(`${filters.dateFrom}T00:00:00`));
+        constraints.push(where('date', '>=', tsFrom));
+      }
+      if (filters.dateTo) {
+        const tsTo = Timestamp.fromDate(new Date(`${filters.dateTo}T23:59:59`));
+        constraints.push(where('date', '<=', tsTo));
+      }
+    } else if (filters.year) {
+      constraints.push(where('periodYear', '==', filters.year));
+    }
 
     constraints.push(orderBy('date', 'desc'), orderBy('number', 'desc'));
     constraints.push(limit(pageSize + 1)); // +1 para detectar si hay más
@@ -89,11 +108,69 @@ export class JournalEntriesService {
 
     const snap    = await getDocs(query(ref, ...constraints));
     const hasMore = snap.docs.length > pageSize;
-    const items   = snap.docs
+    let   items   = snap.docs
       .slice(0, pageSize)
       .map(d => ({ id: d.id, ...d.data() } as JournalEntry));
 
+    // Client-side filters (Firestore can't combine range + array-contains)
+    if (filters.accountCode) {
+      items = items.filter(e =>
+        e.lines.some(l => l.accountCode === filters.accountCode)
+      );
+    }
+    if (filters.costCenterId) {
+      items = items.filter(e =>
+        e.lines.some(l => l.costCenterId === filters.costCenterId)
+      );
+    }
+
     return { items, hasMore, nextCursor: hasMore ? snap.docs[pageSize - 1] : null };
+  }
+
+  /**
+   * Obtiene todos los asientos que coinciden con los filtros, sin paginación.
+   * Usar exclusivamente para exportación (Excel / PDF).
+   * Límite de 500 docs — suficiente para cualquier rango razonable en una PyME.
+   */
+  async getEntriesByRange(filters: JournalEntryFilters): Promise<JournalEntry[]> {
+    const ref = collection(this.firestore, this.colPath);
+    const constraints: QueryConstraint[] = [];
+
+    if (filters.periodId) constraints.push(where('periodId', '==', filters.periodId));
+    if (filters.type)     constraints.push(where('type',     '==', filters.type));
+    if (filters.status)   constraints.push(where('status',   '==', filters.status));
+
+    if (filters.dateFrom || filters.dateTo) {
+      if (filters.dateFrom) {
+        const tsFrom = Timestamp.fromDate(new Date(`${filters.dateFrom}T00:00:00`));
+        constraints.push(where('date', '>=', tsFrom));
+      }
+      if (filters.dateTo) {
+        const tsTo = Timestamp.fromDate(new Date(`${filters.dateTo}T23:59:59`));
+        constraints.push(where('date', '<=', tsTo));
+      }
+    } else if (filters.year) {
+      constraints.push(where('periodYear', '==', filters.year));
+    }
+
+    constraints.push(orderBy('date', 'asc'), orderBy('number', 'asc'), limit(500));
+
+    const snap = await getDocs(query(ref, ...constraints));
+    let items  = snap.docs.map(d => ({ id: d.id, ...d.data() } as JournalEntry));
+
+    // Client-side filters
+    if (filters.accountCode) {
+      items = items.filter(e =>
+        e.lines.some(l => l.accountCode === filters.accountCode)
+      );
+    }
+    if (filters.costCenterId) {
+      items = items.filter(e =>
+        e.lines.some(l => l.costCenterId === filters.costCenterId)
+      );
+    }
+
+    return items;
   }
 
   getEntry(id: string): Observable<JournalEntry | null> {
@@ -114,7 +191,13 @@ export class JournalEntriesService {
    * La búsqueda por accountCode se aplica en memoria sobre el resultado ya acotado por período.
    * Límite de 500 docs: ningún período debería superarlo en una PyME.
    */
-  async getLibroMayor(accountCode: string, periodId?: string, costCenterId?: string): Promise<LibroMayorLine[]> {
+  async getLibroMayor(
+    accountCode: string,
+    periodId?: string,
+    costCenterId?: string,
+    dateFrom?: string,
+    dateTo?: string
+  ): Promise<LibroMayorLine[]> {
     const ref = collection(this.firestore, this.colPath);
     const constraints: QueryConstraint[] = [
       where('status', '==', 'posted'),
@@ -123,6 +206,15 @@ export class JournalEntriesService {
       limit(500)
     ];
     if (periodId) constraints.unshift(where('periodId', '==', periodId));
+
+    if (dateFrom) {
+      const tsFrom = Timestamp.fromDate(new Date(`${dateFrom}T00:00:00`));
+      constraints.push(where('date', '>=', tsFrom));
+    }
+    if (dateTo) {
+      const tsTo = Timestamp.fromDate(new Date(`${dateTo}T23:59:59`));
+      constraints.push(where('date', '<=', tsTo));
+    }
 
     const snap   = await getDocs(query(ref, ...constraints));
     const result: LibroMayorLine[] = [];

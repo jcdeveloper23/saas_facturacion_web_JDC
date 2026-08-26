@@ -194,7 +194,15 @@ export class UserDetailComponent implements OnInit, OnDestroy {
         const companyId = this.authService.user()?.companyId;
         if (!companyId) return;
 
-        if (!confirm(`¿Eliminar permanentemente a ${u.displayName}? Esta acción no se puede deshacer.`)) return;
+        const ok = await this.notification.confirm({
+          title: `¿Eliminar permanentemente a ${u.displayName}?`,
+          text: 'Esta acción no se puede deshacer.',
+          confirmText: 'Sí, eliminar',
+          cancelText: 'Cancelar',
+          icon: 'warning',
+          danger: true
+        });
+        if (!ok) return;
 
         this.deleting.set(true);
         try {

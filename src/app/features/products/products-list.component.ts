@@ -871,7 +871,14 @@ export class ProductsListComponent implements OnInit, OnDestroy {
   }
 
   async delete(p: Product): Promise<void> {
-    if (!confirm(`¿Eliminar "${p.name}" (${p.sku})?`)) return;
+    const ok = await this.notifications.confirm({
+      title: `¿Eliminar "${p.name}" (${p.sku})?`,
+      confirmText: 'Sí, eliminar',
+      cancelText: 'Cancelar',
+      icon: 'warning',
+      danger: true
+    });
+    if (!ok) return;
     try {
       await this.svc.deleteProduct(p.id);
       this.notifications.success('Artículo eliminado');

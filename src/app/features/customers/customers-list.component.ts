@@ -80,7 +80,14 @@ export class CustomersListComponent implements OnInit {
   }
 
   async delete(c: Customer): Promise<void> {
-    if (!confirm(`¿Eliminar el cliente "${c.name}"?`)) return;
+    const ok = await this.notifications.confirm({
+      title: `¿Eliminar el cliente "${c.name}"?`,
+      confirmText: 'Sí, eliminar',
+      cancelText: 'Cancelar',
+      icon: 'warning',
+      danger: true
+    });
+    if (!ok) return;
     try {
       await this.svc.deleteCustomer(c.id);
       this.notifications.success('Cliente eliminado');

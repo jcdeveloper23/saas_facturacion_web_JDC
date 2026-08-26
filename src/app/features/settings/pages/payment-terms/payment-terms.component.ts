@@ -111,7 +111,14 @@ export class PaymentTermsComponent implements OnInit {
   }
 
   async delete(t: PaymentTerm): Promise<void> {
-    if (!confirm(`¿Eliminar la condición "${t.name}"?`)) return;
+    const ok = await this.notifications.confirm({
+      title: `¿Eliminar la condición "${t.name}"?`,
+      confirmText: 'Sí, eliminar',
+      cancelText: 'Cancelar',
+      icon: 'warning',
+      danger: true
+    });
+    if (!ok) return;
     try {
       await this.svc.deletePaymentTerm(t.id);
       this.notifications.success('Condición eliminada');

@@ -251,7 +251,14 @@ export class DebitNotesListComponent implements OnInit, OnDestroy {
   }
 
   async deleteDebitNote(dn: DebitNote): Promise<void> {
-    if (!confirm(`¿Eliminar nota de débito ${dn.fullNumber}?`)) return;
+    const ok = await this.notifications.confirm({
+      title: `¿Eliminar nota de débito ${dn.fullNumber}?`,
+      confirmText: 'Sí, eliminar',
+      cancelText: 'Cancelar',
+      icon: 'warning',
+      danger: true
+    });
+    if (!ok) return;
     try {
       await this.svc.deleteDebitNote(dn.id);
       this.notifications.success('Nota de débito eliminada');

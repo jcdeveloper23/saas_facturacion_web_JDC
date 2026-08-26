@@ -68,7 +68,8 @@ export class SuperAdminService {
   }
 
   async updatePlan(id: string, data: Partial<PlanFormData>): Promise<void> {
-    return this.fs.updateRootDocument<Plan>('plans', id, data);
+    await this.fs.updateRootDocument<Plan>('plans', id, data);
+    await this.syncPlanToCompanies(id);
   }
 
   async deactivatePlan(id: string): Promise<void> {
@@ -216,6 +217,144 @@ export class SuperAdminService {
     });
   }
 
+  /**
+   * Propaga los límites (planLimits), feature flags (planFeatures) y módulos (enabledModules)
+   * del plan a todas las empresas asignadas a este plan.
+   */
+  async syncPlanToCompanies(planId: string): Promise<number> {
+    const planSnap = await getDoc(doc(this.firestore, `plans/${planId}`));
+    if (!planSnap.exists()) return 0;
+    const plan = { id: planSnap.id, ...planSnap.data() } as Plan;
+
+    const pkgsSnap = await getDocs(collection(this.firestore, 'plugin-packages'));
+    const allPkgs = pkgsSnap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
+
+    const includedPkgCodes: string[] = plan.includedPackages ?? [];
+    const planModules: string[] = [
+      ...new Set(
+        allPkgs
+          .filter((p: any) => includedPkgCodes.includes(p.code))
+          .flatMap((p: any) => p.modules as string[])
+      )
+    ];
+
+    const companiesRef = collection(this.firestore, 'companies');
+    const snapPlanId = await getDocs(query(companiesRef, where('planId', '==', planId)));
+    const snapPlanName = await getDocs(query(companiesRef, where('plan', '==', planId)));
+
+    const mapDocs = new Map<string, any>();
+    snapPlanId.docs.forEach(d => mapDocs.set(d.id, d));
+    snapPlanName.docs.forEach(d => mapDocs.set(d.id, d));
+
+    if (plan.name) {
+      const snapName = await getDocs(query(companiesRef, where('planName', '==', plan.name)));
+      snapName.docs.forEach(d => mapDocs.set(d.id, d));
+    }
+
+    const docsToUpdate = Array.from(mapDocs.values());
+    if (docsToUpdate.length === 0) return 0;
+
+    const batch = writeBatch(this.firestore);
+    let count = 0;
+
+    for (const cDoc of docsToUpdate) {
+      const companyData = cDoc.data() as any;
+      const existingAddons: any[] = companyData?.addonPackages ?? [];
+      const addonCodes: string[] = existingAddons.map((a: any) => a.packageCode ?? a);
+      const addonModules: string[] = [
+        ...new Set(
+          allPkgs
+            .filter((p: any) => addonCodes.includes(p.code))
+            .flatMap((p: any) => p.modules as string[])
+        )
+      ];
+
+      batch.update(cDoc.ref, {
+        planLimits:        plan.limits   ?? null,
+        planFeatures:      plan.features ?? null,
+        enabledPackages:   [...new Set([...includedPkgCodes, ...addonCodes])],
+        enabledModules:    [...new Set([...planModules, ...addonModules])],
+        updatedAt:         Timestamp.now()
+      });
+      count++;
+    }
+
+    await batch.commit();
+    return count;
+  }
+
+  /**
+   * Sincroniza el 100% de las empresas registradas en Firestore con las especificaciones
+   * actuales de sus planes asignados (planLimits, planFeatures y enabledModules).
+   */
+  async syncAllCompaniesWithPlans(): Promise<number> {
+    const plansSnap = await getDocs(collection(this.firestore, 'plans'));
+    const rawPlans = plansSnap.docs.map(d => ({ id: d.id, ...d.data() })) as Plan[];
+    // Deduplicate by name — prefer canonical IDs (same logic as getPlans())
+    const seen = new Map<string, Plan>();
+    for (const p of rawPlans) {
+      const key = p.name?.toLowerCase() ?? p.id;
+      const existing = seen.get(key);
+      const isCanonical = SuperAdminService.CANONICAL_PLAN_IDS.has(p.id);
+      if (!existing || isCanonical) seen.set(key, p);
+    }
+    const plans = Array.from(seen.values());
+
+    const pkgsSnap = await getDocs(collection(this.firestore, 'plugin-packages'));
+    const allPkgs = pkgsSnap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
+
+    const companiesSnap = await getDocs(collection(this.firestore, 'companies'));
+    if (companiesSnap.empty) return 0;
+
+    const batch = writeBatch(this.firestore);
+    let count = 0;
+
+    for (const cDoc of companiesSnap.docs) {
+      const companyData = cDoc.data() as any;
+      const plan = plans.find(p =>
+        (companyData.planId && p.id === companyData.planId) ||
+        (companyData.plan && (p.id === companyData.plan || p.id === companyData.plan.toLowerCase())) ||
+        (companyData.planName && p.name?.toLowerCase() === companyData.planName.toLowerCase()) ||
+        (companyData.plan && p.name?.toLowerCase() === companyData.plan.toLowerCase())
+      ) ?? plans.find(p => p.id === 'emprendedor' || p.id === 'basic') ?? plans[0];
+
+      if (!plan) continue;
+
+      const includedPkgCodes: string[] = plan.includedPackages ?? [];
+      const planModules: string[] = [
+        ...new Set(
+          allPkgs
+            .filter((p: any) => includedPkgCodes.includes(p.code))
+            .flatMap((p: any) => p.modules as string[])
+        )
+      ];
+
+      const existingAddons: any[] = companyData?.addonPackages ?? [];
+      const addonCodes: string[] = existingAddons.map((a: any) => a.packageCode ?? a);
+      const addonModules: string[] = [
+        ...new Set(
+          allPkgs
+            .filter((p: any) => addonCodes.includes(p.code))
+            .flatMap((p: any) => p.modules as string[])
+        )
+      ];
+
+      batch.update(cDoc.ref, {
+        planId:            plan.id,
+        planName:          plan.name,
+        planLimits:        plan.limits   ?? null,
+        planFeatures:      plan.features ?? null,
+        enabledPackages:   [...new Set([...includedPkgCodes, ...addonCodes])],
+        enabledModules:    [...new Set([...planModules, ...addonModules])],
+        updatedAt:         Timestamp.now()
+      });
+      count++;
+    }
+
+    await batch.commit();
+    return count;
+  }
+
   // ─── Sync / Seed ─────────────────────────────────────────────────────────
 
   /**
@@ -291,7 +430,7 @@ export class SuperAdminService {
             operations:  { activeProjectsTotal:20, tasksPerMonth:500, exportsPerMonth:-1, scheduledReportsTotal:5, activeIntegrationsTotal:2, apiCallsPerMonth:0 },
             infra:       { storageGb:20, documentHistoryMonths:36, usageHistoryMonths:12 }
           },
-          features: { electronicInvoicing:true, purchasesModule:true, accountingModule:true, stockModule:true, teamManagementModule:true, publicCatalogModule:true, publicApiModule:false, prioritySupport:false, betaAccess:false, multiCompanyMode:true }
+          features: { electronicInvoicing:true, purchasesModule:true, accountingModule:true, stockModule:true, teamManagementModule:true, publicCatalogModule:true, publicApiModule:false, whiteLabelModule:true, prioritySupport:false, betaAccess:false, multiCompanyMode:true }
         }
       },
       {
@@ -311,7 +450,7 @@ export class SuperAdminService {
             operations:  { activeProjectsTotal:-1, tasksPerMonth:-1, exportsPerMonth:-1, scheduledReportsTotal:20, activeIntegrationsTotal:10, apiCallsPerMonth:10000 },
             infra:       { storageGb:100, documentHistoryMonths:-1, usageHistoryMonths:24 }
           },
-          features: { electronicInvoicing:true, purchasesModule:true, accountingModule:true, stockModule:true, teamManagementModule:true, publicCatalogModule:true, publicApiModule:true, prioritySupport:true, betaAccess:false, multiCompanyMode:true }
+          features: { electronicInvoicing:true, purchasesModule:true, accountingModule:true, stockModule:true, teamManagementModule:true, publicCatalogModule:true, publicApiModule:true, whiteLabelModule:true, prioritySupport:true, betaAccess:false, multiCompanyMode:true }
         }
       },
       {
@@ -331,7 +470,7 @@ export class SuperAdminService {
             operations:  { activeProjectsTotal:-1, tasksPerMonth:-1, exportsPerMonth:-1, scheduledReportsTotal:-1, activeIntegrationsTotal:-1, apiCallsPerMonth:-1 },
             infra:       { storageGb:-1, documentHistoryMonths:-1, usageHistoryMonths:-1 }
           },
-          features: { electronicInvoicing:true, purchasesModule:true, accountingModule:true, stockModule:true, teamManagementModule:true, publicCatalogModule:true, publicApiModule:true, prioritySupport:true, betaAccess:true, multiCompanyMode:true }
+          features: { electronicInvoicing:true, purchasesModule:true, accountingModule:true, stockModule:true, teamManagementModule:true, publicCatalogModule:true, publicApiModule:true, whiteLabelModule:true, prioritySupport:true, betaAccess:true, multiCompanyMode:true }
         }
       }
     ];
@@ -387,6 +526,10 @@ export class SuperAdminService {
     }
 
     await upsertBatch.commit();
+
+    // ── 3. Propagar automáticamente las actualizaciones a las empresas asignadas ────
+    await this.syncAllCompaniesWithPlans();
+
     return { plans: planDocs.length, packages: pkgDocs.length, deleted };
   }
 }

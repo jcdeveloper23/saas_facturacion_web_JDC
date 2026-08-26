@@ -73,7 +73,7 @@ export async function getAccountMapping(companyId: string): Promise<ResolvedAcco
   if (customCodes.length > 0) {
     // Firestore 'in' supports up to 30 values — safe here (max 7 unique codes)
     const accountsSnap = await db
-      .collection(`companies/${companyId}/accounts`)
+      .collection(`companies/${companyId}/chart_of_accounts`)
       .where('code', 'in', customCodes)
       .get();
 

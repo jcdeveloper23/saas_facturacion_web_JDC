@@ -33,6 +33,32 @@
 
 .cc-code { font-family: monospace; font-weight: 600; font-size: .8rem; }
 
+/* ── Tree node cell ───────────────────────────────────────────────────────── */
+.cc-node-cell {
+  display: flex;
+  align-items: center;
+  gap: .25rem;
+}
+
+.cc-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.1rem;
+  height: 1.1rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--cui-secondary-color);
+  cursor: pointer;
+  flex-shrink: 0;
+  &:hover { color: var(--cui-primary); }
+}
+
+.cc-leaf-spacer { display: inline-block; width: 1.1rem; flex-shrink: 0; }
+
+.badge-xs { font-size: .6rem; padding: .15em .45em; }
+
 .table-footer {
   padding: .4rem .75rem;
   font-size: .75rem;

@@ -26,45 +26,110 @@
 
 <!-- ── Filters ────────────────────────────────────────────────────────────── -->
 <c-card class="mb-3 no-print">
-  <c-card-body class="py-2 px-3">
-    <div class="d-flex gap-2 align-items-center flex-wrap">
-      <select cSelect class="select-sm"
-              [ngModel]="yearFilter()" (ngModelChange)="changeYear(+$event)">
-        @for (y of years; track y) {
-          <option [value]="y">{{ y }}</option>
+  <c-card-body class="py-3 px-3">
+
+    <!-- Row 1: Account + Cost Center + Type + Period -->
+    <div class="row g-2 mb-2">
+      <div class="col-md-3">
+        <label class="filter-label">Cuenta contable</label>
+        <app-account-select
+          [accounts]="accounts()"
+          [ngModel]="accountCode()"
+          (ngModelChange)="accountCode.set($event)"
+          placeholder="Todas las cuentas">
+        </app-account-select>
+      </div>
+
+      <div class="col-md-3">
+        <label class="filter-label">Centro de costo</label>
+        <select cSelect
+                [ngModel]="costCenterId()" (ngModelChange)="costCenterId.set($event)">
+          <option value="">Todos los centros</option>
+          @for (c of costCenters(); track c.id) {
+            <option [value]="c.id">{{ costCenterLabel(c) }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="col-md-3">
+        <label class="filter-label">Tipo de asiento</label>
+        <select cSelect
+                [ngModel]="typeFilter()" (ngModelChange)="setTypeFilter($event || null)">
+          <option [value]="null">Todos los tipos</option>
+          @for (t of entryTypes; track t) {
+            <option [value]="t">{{ TYPE_LABELS[t] }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="col-md-3">
+        <label class="filter-label">Período contable</label>
+        <select cSelect
+                [ngModel]="periodFilter()" (ngModelChange)="setPeriodFilter($event)">
+          <option value="">Todos los períodos</option>
+          @for (p of periods(); track p.id) {
+            <option [value]="p.id">{{ p.name }}</option>
+          }
+        </select>
+      </div>
+    </div>
+
+    <!-- Row 2: Dates + Search + Actions -->
+    <div class="row g-2 align-items-end">
+      <div class="col-md-2">
+        <label class="filter-label">
+          Desde <span class="text-danger">*</span>
+        </label>
+        <input cFormControl type="date"
+               [ngModel]="dateFrom()" (ngModelChange)="dateFrom.set($event)"
+               [class.is-invalid]="dateTo() && dateFrom() > dateTo()" />
+        @if (dateTo() && dateFrom() > dateTo()) {
+          <div class="invalid-feedback d-block" style="font-size:.72rem">
+            Desde no puede ser mayor que Hasta
+          </div>
         }
-      </select>
+      </div>
 
-      <select cSelect class="select-sm"
-              [ngModel]="periodFilter()" (ngModelChange)="periodFilter.set($event)">
-        <option value="">Todos los períodos</option>
-        @for (p of periods(); track p.id) {
-          <option [value]="p.id">{{ p.name }}</option>
+      <div class="col-md-2">
+        <label class="filter-label">
+          Hasta <span class="text-danger">*</span>
+        </label>
+        <input cFormControl type="date"
+               [ngModel]="dateTo()" (ngModelChange)="dateTo.set($event)"
+               [class.is-invalid]="dateTo() && dateFrom() > dateTo()" />
+      </div>
+
+      <div class="col-md-4">
+        <label class="filter-label">Filtro / texto</label>
+        <c-input-group>
+          <span cInputGroupText>
+            <svg cIcon name="cilSearch" size="sm"></svg>
+          </span>
+          <input cFormControl type="text"
+                 placeholder="Buscar por N° asiento, descripción o referencia..."
+                 [ngModel]="searchTerm()" (ngModelChange)="searchTerm.set($event)" />
+        </c-input-group>
+      </div>
+
+      <div class="col-md-4 d-flex gap-2 justify-content-end">
+        @if (hasActiveFilters || hasQueried()) {
+          <button cButton color="secondary" variant="ghost" size="sm"
+                  (click)="clearFilters()">
+            <svg cIcon name="cilX" size="sm" class="me-1"></svg>
+            Limpiar
+          </button>
         }
-      </select>
-
-      <select cSelect class="select-sm"
-              [ngModel]="typeFilter()" (ngModelChange)="typeFilter.set($event || null)">
-        <option [value]="null">Todos los tipos</option>
-        @for (t of entryTypes; track t) {
-          <option [value]="t">{{ TYPE_LABELS[t] }}</option>
-        }
-      </select>
-
-      <input cFormControl type="date" class="input-date-sm"
-             [ngModel]="dateFrom()" (ngModelChange)="dateFrom.set($event)"
-             placeholder="Desde" />
-      <input cFormControl type="date" class="input-date-sm"
-             [ngModel]="dateTo()" (ngModelChange)="dateTo.set($event)"
-             placeholder="Hasta" />
-
-      <c-input-group class="search-wrap-sm">
-        <span cInputGroupText>
-          <svg cIcon name="cilSearch" size="sm"></svg>
-        </span>
-        <input cFormControl type="text" placeholder="Buscar..."
-               [ngModel]="searchTerm()" (ngModelChange)="searchTerm.set($event)" />
-      </c-input-group>
+        <button cButton color="primary" size="sm"
+                [disabled]="loading() || !dateFrom() || !dateTo() || !dateRangeValid"
+                (click)="consultar()">
+          @if (loading()) {
+            <c-spinner size="sm" class="me-1"></c-spinner>
+          } @else {
+            <svg cIcon name="cilSearch" size="sm" class="me-1"></svg>
+          }
+          Consultar
+        </button>
+      </div>
     </div>
   </c-card-body>
 </c-card>
@@ -72,7 +137,7 @@
 <!-- ── Report header (solo impresión) ────────────────────────────────────── -->
 <div class="print-only text-center mb-3">
   <h3>LIBRO DIARIO</h3>
-  <p>Período {{ yearFilter() }}</p>
+  <p>Período: {{ dateFrom() }} al {{ dateTo() }}</p>
 </div>
 
 <!-- ── Table ──────────────────────────────────────────────────────────────── -->
@@ -144,8 +209,19 @@
             }
           } @empty {
             <tr>
-              <td colspan="7" class="text-center text-secondary py-4">
-                No hay asientos contabilizados para los filtros seleccionados
+              <td colspan="7" class="text-center py-5">
+                @if (!hasQueried()) {
+                  <div class="empty-state-hint">
+                    <svg cIcon name="cilFilter" size="xl" class="mb-2 text-secondary"></svg>
+                    <p class="mb-1 text-secondary">Configura los filtros y presiona <strong>Consultar</strong> para ver el libro diario.</p>
+                    <small class="text-muted">Las fechas Desde y Hasta son obligatorias.</small>
+                  </div>
+                } @else {
+                  <div class="empty-state-hint">
+                    <svg cIcon name="cilInbox" size="xl" class="mb-2 text-secondary"></svg>
+                    <p class="mb-0 text-secondary">No se encontraron asientos contabilizados con los filtros seleccionados.</p>
+                  </div>
+                }
               </td>
             </tr>
           }

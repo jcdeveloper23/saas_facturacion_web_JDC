@@ -118,7 +118,14 @@ export class WarehousesComponent implements OnInit {
 
   async delete(w: Warehouse): Promise<void> {
     if (w.isMain) { this.notifications.warning('No se puede eliminar el almacén principal'); return; }
-    if (!confirm(`¿Eliminar el almacén "${w.name}"?`)) return;
+    const ok = await this.notifications.confirm({
+      title: `¿Eliminar el almacén "${w.name}"?`,
+      confirmText: 'Sí, eliminar',
+      cancelText: 'Cancelar',
+      icon: 'warning',
+      danger: true
+    });
+    if (!ok) return;
     this.deletingId.set(w.id);
     try {
       await this.svc.deleteWarehouse(w.id);

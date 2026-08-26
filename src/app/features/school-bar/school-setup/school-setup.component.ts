@@ -8,6 +8,7 @@ import { FormCheckComponent, FormCheckInputDirective, FormCheckLabelDirective } 
 
 import { SchoolInstitutionService } from '../services/school-institution.service';
 import { SchoolAllergenService }    from '../services/school-allergen.service';
+import { NotificationService }      from '../../../core/services/notification.service';
 import {
   SchoolBarSettings, SchoolGrade, SchoolScheduleType,
   EduSubLevel, EDU_SUB_LEVEL_LABELS, EDU_SUB_LEVEL_COLORS,
@@ -28,9 +29,10 @@ type ActiveTab = 'institution' | 'grades' | 'bar-config' | 'allergens';
   templateUrl: './school-setup.component.html'
 })
 export class SchoolSetupComponent implements OnInit {
-  private svc         = inject(SchoolInstitutionService);
-  private allergenSvc = inject(SchoolAllergenService);
-  private fb          = inject(FormBuilder);
+  private svc           = inject(SchoolInstitutionService);
+  private allergenSvc   = inject(SchoolAllergenService);
+  private fb            = inject(FormBuilder);
+  private notifications = inject(NotificationService);
 
   // ── State ──────────────────────────────────────────────────────────────────
   grades         = signal<SchoolGrade[]>([]);
@@ -246,7 +248,15 @@ export class SchoolSetupComponent implements OnInit {
   }
 
   async deleteGrade(id: string): Promise<void> {
-    if (!confirm('¿Eliminar este curso? Esta acción no se puede deshacer.')) return;
+    const ok = await this.notifications.confirm({
+      title: '¿Eliminar este curso?',
+      text: 'Esta acción no se puede deshacer.',
+      confirmText: 'Sí, eliminar',
+      cancelText: 'Cancelar',
+      icon: 'warning',
+      danger: true
+    });
+    if (!ok) return;
     await this.svc.deleteGrade(id);
   }
 
@@ -313,7 +323,14 @@ export class SchoolSetupComponent implements OnInit {
   }
 
   async deleteAllergen(id: string): Promise<void> {
-    if (!confirm('¿Eliminar este alérgeno del catálogo?')) return;
+    const ok = await this.notifications.confirm({
+      title: '¿Eliminar este alérgeno del catálogo?',
+      confirmText: 'Sí, eliminar',
+      cancelText: 'Cancelar',
+      icon: 'warning',
+      danger: true
+    });
+    if (!ok) return;
     await this.allergenSvc.deleteAllergen(id);
   }
 

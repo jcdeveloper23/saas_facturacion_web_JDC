@@ -1,22 +1,43 @@
 <!-- ── Header ──────────────────────────────────────────────────────────────── -->
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h4 class="mb-0">Centros de Costo</h4>
-  <button cButton color="primary" size="sm" (click)="openNew()">
-    <svg cIcon name="cilPlus" class="me-1"></svg>
-    Nuevo Centro
-  </button>
+  <div class="d-flex gap-2">
+    <button cButton color="success" variant="outline" size="sm" (click)="exportExcel()">
+      <svg cIcon name="cilSpreadsheet" class="me-1"></svg> Excel
+    </button>
+    <button cButton color="danger" variant="outline" size="sm" (click)="exportPdf()" [disabled]="exportingPdf()">
+      @if (exportingPdf()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+      @else { <svg cIcon name="cilFile" class="me-1"></svg> }
+      PDF
+    </button>
+    <button cButton color="primary" size="sm" (click)="openNew()">
+      <svg cIcon name="cilPlus" class="me-1"></svg>
+      Nuevo Centro
+    </button>
+  </div>
 </div>
 
-<!-- ── Search ─────────────────────────────────────────────────────────────── -->
+<!-- ── Search + Filters ────────────────────────────────────────────────────── -->
 <c-card class="mb-3">
   <c-card-body class="py-2 px-3">
-    <c-input-group class="search-wrap-md">
-      <span cInputGroupText>
-        <svg cIcon name="cilSearch" size="sm"></svg>
-      </span>
-      <input cFormControl type="text" placeholder="Buscar por código o nombre..."
-             [ngModel]="searchTerm()" (ngModelChange)="searchTerm.set($event)" />
-    </c-input-group>
+    <div class="d-flex gap-2 align-items-center flex-wrap">
+      <c-input-group class="search-wrap">
+        <span cInputGroupText>
+          <svg cIcon name="cilSearch" size="sm"></svg>
+        </span>
+        <input cFormControl type="text" placeholder="Buscar por código o nombre..."
+               [ngModel]="searchTerm()" (ngModelChange)="searchTerm.set($event)"
+               class="form-control-sm" />
+      </c-input-group>
+      <div class="seg-tabs">
+        <button class="seg-tab" [class.active]="statusFilter() === 'all'"
+                (click)="statusFilter.set('all')">Todos</button>
+        <button class="seg-tab" [class.active]="statusFilter() === 'active'"
+                (click)="statusFilter.set('active')">Activo</button>
+        <button class="seg-tab" [class.active]="statusFilter() === 'inactive'"
+                (click)="statusFilter.set('inactive')">Inactivo</button>
+      </div>
+    </div>
   </c-card-body>
 </c-card>
 
@@ -42,39 +63,79 @@
           </tr>
         </thead>
         <tbody>
-          @for (cc of filtered(); track cc.id) {
-            <tr [class.row-inactive]="!cc.isActive" (click)="openEdit(cc, $event)">
-              <td class="cc-code">{{ cc.code }}</td>
-              <td>{{ cc.name }}</td>
+          @for (node of visibleNodes(); track node.id) {
+            <tr [class.row-inactive]="!node.isActive" (click)="openEdit(node, $event)">
+
+              <!-- Código -->
+              <td class="cc-code">{{ node.code }}</td>
+
+              <!-- Nombre con indentación de árbol -->
               <td>
-                <c-badge [color]="TYPE_COLORS[cc.type]" shape="rounded-pill">
-                  {{ TYPE_LABELS[cc.type] }}
+                <div class="cc-node-cell" [style.paddingLeft.px]="node.depth * 20">
+                  <!-- Botón expand/collapse si tiene hijos -->
+                  @if (nodeHasChildren(node.id)) {
+                    <button class="cc-toggle-btn" (click)="toggleExpand(node, $event)"
+                            [title]="node.expanded ? 'Colapsar' : 'Expandir'">
+                      <svg cIcon [name]="node.expanded ? 'cilChevronBottom' : 'cilChevronRight'" size="sm"></svg>
+                    </button>
+                  } @else {
+                    <span class="cc-leaf-spacer"></span>
+                  }
+                  <span>{{ node.name }}</span>
+                  @if (nodeHasChildren(node.id)) {
+                    <c-badge color="secondary" shape="rounded-pill" class="ms-1 badge-xs">Grupo</c-badge>
+                  }
+                </div>
+              </td>
+
+              <!-- Tipo -->
+              <td>
+                <c-badge [color]="TYPE_COLORS[node.type]" shape="rounded-pill">
+                  {{ TYPE_LABELS[node.type] }}
                 </c-badge>
               </td>
-              <td class="text-sm-muted">
-                {{ getParentName(cc.parentId) }}
-              </td>
-              <td class="text-sm-muted overflow-ellipsis">
-                {{ cc.description || '—' }}
-              </td>
+
+              <!-- Centro Superior -->
+              <td class="text-sm-muted">{{ getParentName(node.parentId) }}</td>
+
+              <!-- Descripción -->
+              <td class="text-sm-muted overflow-ellipsis">{{ node.description || '—' }}</td>
+
+              <!-- Estado -->
               <td>
-                @if (cc.isActive) {
+                @if (node.isActive) {
                   <c-badge color="success" shape="rounded-pill">Activo</c-badge>
                 } @else {
                   <c-badge color="secondary" shape="rounded-pill">Inactivo</c-badge>
                 }
               </td>
+
+              <!-- Acciones -->
               <td class="text-end" (click)="$event.stopPropagation()">
+                <!-- Agregar subcentro -->
+                @if (node.isActive) {
+                  <button cButton color="primary" variant="ghost" size="sm"
+                          (click)="openAddChild(node, $event)"
+                          title="Agregar subcentro">
+                    <svg cIcon name="cilPlus" size="sm"></svg>
+                  </button>
+                }
+                <!-- Editar -->
                 <button cButton color="secondary" variant="ghost" size="sm"
-                        (click)="openEdit(cc, $event)">
+                        (click)="openEdit(node, $event)" title="Editar">
                   <svg cIcon name="cilPencil" size="sm"></svg>
                 </button>
-                <button cButton [color]="cc.isActive ? 'warning' : 'success'" variant="ghost" size="sm"
-                        (click)="toggleActive(cc, $event)">
-                  <svg cIcon [name]="cc.isActive ? 'cilBan' : 'cilCheckCircle'" size="sm"></svg>
+                <!-- Activar / Inactivar -->
+                <button cButton [color]="node.isActive ? 'warning' : 'success'" variant="ghost" size="sm"
+                        (click)="toggleActive(node, $event)"
+                        [title]="node.isActive ? 'Inactivar' : 'Activar'">
+                  <svg cIcon [name]="node.isActive ? 'cilBan' : 'cilCheckCircle'" size="sm"></svg>
                 </button>
+                <!-- Eliminar -->
                 <button cButton color="danger" variant="ghost" size="sm"
-                        (click)="delete(cc, $event)">
+                        (click)="delete(node, $event)"
+                        [disabled]="nodeHasChildren(node.id)"
+                        [title]="nodeHasChildren(node.id) ? 'Tiene subcentros — elimínelos primero' : 'Eliminar'">
                   <svg cIcon name="cilTrash" size="sm"></svg>
                 </button>
               </td>
@@ -82,24 +143,51 @@
           } @empty {
             <tr>
               <td colspan="7" class="text-center text-secondary py-4">
-                No hay centros de costo registrados
+                @if (searchTerm()) {
+                  No hay centros de costo que coincidan con "{{ searchTerm() }}"
+                } @else {
+                  No hay centros de costo registrados
+                }
               </td>
             </tr>
           }
         </tbody>
       </table>
     </div>
-    <div class="table-footer">{{ filtered().length }} centros de costo</div>
+    <div class="table-footer">
+      {{ visibleNodes().length }} centros de costo
+      @if (searchTerm()) { <span class="ms-1">· búsqueda: "{{ searchTerm() }}"</span> }
+      @if (statusFilter() !== 'all') { <span class="ms-1">· Estado: {{ statusFilter() === 'active' ? 'Activos' : 'Inactivos' }}</span> }
+    </div>
   }
 </c-card>
 
 <!-- ── Modal ──────────────────────────────────────────────────────────────── -->
 <c-modal [visible]="showModal()" (visibleChange)="showModal.set($event)" backdrop="static" size="lg">
   <c-modal-header>
-    <h5 cModalTitle>{{ editingId() ? 'Editar Centro de Costo' : 'Nuevo Centro de Costo' }}</h5>
+    <h5 cModalTitle>
+      @if (editingId()) {
+        Editar Centro de Costo
+      } @else if (parentContext()) {
+        Agregar subcentro en {{ parentContext()!.code }} — {{ parentContext()!.name }}
+      } @else {
+        Nuevo Centro de Costo
+      }
+    </h5>
     <button type="button" class="btn-close" (click)="closeModal()"></button>
   </c-modal-header>
   <c-modal-body>
+    <!-- Contexto de padre si viene de openAddChild -->
+    @if (parentContext()) {
+      <div class="alert alert-info py-2 px-3 mb-3 d-flex align-items-center gap-2">
+        <svg cIcon name="cilInfo" size="sm"></svg>
+        <span>
+          Creando subcentro de
+          <strong>{{ parentContext()!.code }} — {{ parentContext()!.name }}</strong>
+        </span>
+      </div>
+    }
+
     <form [formGroup]="form">
       <div class="row g-3">
         <div class="col-md-4">
@@ -115,7 +203,7 @@
           <input cFormControl formControlName="name" placeholder="Nombre del centro de costo"
                  [class.is-invalid]="form.get('name')?.invalid && form.get('name')?.touched" />
           @if (form.get('name')?.invalid && form.get('name')?.touched) {
-            <div class="invalid-feedback">Nombre requerido</div>
+            <div class="invalid-feedback">Nombre requerido (mínimo 2 caracteres)</div>
           }
         </div>
         <div class="col-md-6">
@@ -129,7 +217,7 @@
         <div class="col-md-6">
           <label cLabel>Centro Superior</label>
           <select cSelect formControlName="parentId">
-            <option [value]="null">— Sin superior —</option>
+            <option [ngValue]="null">— Sin superior (raíz) —</option>
             @for (parent of parentOptions(); track parent.id) {
               <option [value]="parent.id">{{ parent.code }} — {{ parent.name }}</option>
             }

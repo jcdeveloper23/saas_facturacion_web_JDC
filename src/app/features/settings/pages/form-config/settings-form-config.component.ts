@@ -156,8 +156,14 @@ export class SettingsFormConfigComponent implements OnInit {
     }
   }
 
-  resetDefaults(): void {
-    if (!confirm('¿Restablecer los valores por defecto?')) return;
+  async resetDefaults(): Promise<void> {
+    const ok = await this.notifications.confirm({
+      title: '¿Restablecer los valores por defecto?',
+      confirmText: 'Sí, restablecer',
+      cancelText: 'Cancelar',
+      icon: 'question'
+    });
+    if (!ok) return;
     this.rawConfig.set(this.configSvc.buildDefault(this.entity()));
     this.save(false);
   }

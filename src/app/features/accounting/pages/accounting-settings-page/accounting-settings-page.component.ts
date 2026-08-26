@@ -101,8 +101,14 @@ export class AccountingSettingsPageComponent implements OnInit, OnDestroy {
     }
   }
 
-  resetToDefaults(): void {
-    if (!confirm('¿Restablecer todos los códigos de cuenta a los valores por defecto?')) return;
+  async resetToDefaults(): Promise<void> {
+    const ok = await this.notifications.confirm({
+      title: '¿Restablecer los códigos de cuenta a los valores por defecto?',
+      confirmText: 'Sí, restablecer',
+      cancelText: 'Cancelar',
+      icon: 'question'
+    });
+    if (!ok) return;
     this.form.patchValue(DEFAULT_ACCOUNT_MAPPING);
     this.isModified.set(true);
   }
