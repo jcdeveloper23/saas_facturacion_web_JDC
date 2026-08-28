@@ -174,7 +174,7 @@ export const PLUGIN_PACKAGES_SEED: PackageSeed[] = [
     code:          'pkg_reports',
     name:          'Reportes e Informes',
     description:   'Informes de ventas por período/cliente/producto, rotación de inventario y seguimiento de pedidos. Exportación a Excel y PDF.',
-    modules:       ['report_invoices', 'report_products', 'report_orders'],
+    modules:       ['report_invoices', 'report_products', 'report_orders', 'report_purchases'],
     dependencies:  ['pkg_sales'],
     price:         9,
     currency:      'USD',

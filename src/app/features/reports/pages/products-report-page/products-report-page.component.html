@@ -1,0 +1,433 @@
+<!-- ── Header ──────────────────────────────────────────────────────────────── -->
+<div class="mb-3 d-flex align-items-start gap-3 flex-wrap">
+  <div>
+    <h4 class="mb-0">Reporte de Productos</h4>
+    <small class="text-secondary">Catálogo, stock, rotación y revenue por producto — con datos del período</small>
+  </div>
+  @if (hasData()) {
+    <div class="ms-auto d-flex gap-2 no-print">
+      <button cButton color="success" variant="outline" size="sm" (click)="exportExcel()">
+        <svg cIcon name="cilSpreadsheet" size="sm" class="me-1"></svg>Excel
+      </button>
+      <button cButton color="secondary" variant="outline" size="sm" (click)="printReport()">
+        <svg cIcon name="cilPrint" size="sm" class="me-1"></svg>Imprimir
+      </button>
+    </div>
+  }
+</div>
+
+<!-- ── Filtros ──────────────────────────────────────────────────────────────── -->
+<c-card class="mb-3 no-print">
+  <c-card-body>
+    <div class="d-flex gap-3 align-items-end flex-wrap">
+
+      <div>
+        <label cLabel for="dateFrom">Desde</label>
+        <input cFormControl type="date" id="dateFrom"
+          [ngModel]="dateFrom()" (ngModelChange)="dateFrom.set($event)">
+      </div>
+
+      <div>
+        <label cLabel for="dateTo">Hasta</label>
+        <input cFormControl type="date" id="dateTo"
+          [ngModel]="dateTo()" (ngModelChange)="dateTo.set($event)">
+      </div>
+
+      <button cButton color="primary" (click)="loadData()" [disabled]="loading()">
+        @if (loading()) {
+          <c-spinner size="sm" class="me-1"></c-spinner>Cargando...
+        } @else {
+          <svg cIcon name="cilReload" size="sm" class="me-1"></svg>Generar
+        }
+      </button>
+    </div>
+
+    @if (dateError()) {
+      <c-alert color="danger" class="mt-2 mb-0 py-2">
+        La fecha "Desde" no puede ser posterior a la fecha "Hasta".
+      </c-alert>
+    }
+
+    <!-- Filtros secundarios -->
+    <div class="mt-3 pt-3 border-top d-flex gap-3 flex-wrap">
+      <div class="filter-field">
+        <label cLabel for="searchFilter">Nombre o SKU</label>
+        <input cFormControl type="text" id="searchFilter" placeholder="Buscar…"
+          [ngModel]="searchFilter()" (ngModelChange)="searchFilter.set($event)">
+      </div>
+      <div class="filter-field">
+        <label cLabel for="familyFilter">Familia</label>
+        <select cSelect id="familyFilter"
+          [ngModel]="familyFilter()" (ngModelChange)="familyFilter.set($event)">
+          <option value="">Todas</option>
+          @for (f of families(); track f.id) {
+            <option [value]="f.id">{{ f.name }}</option>
+          }
+        </select>
+      </div>
+      <div>
+        <label cLabel for="typeFilter">Tipo</label>
+        <select cSelect id="typeFilter"
+          [ngModel]="typeFilter()" (ngModelChange)="typeFilter.set($event)">
+          <option value="">Todos</option>
+          <option value="product">Producto</option>
+          <option value="service">Servicio</option>
+        </select>
+      </div>
+      <div>
+        <label cLabel for="stockFilter">Stock</label>
+        <select cSelect id="stockFilter"
+          [ngModel]="stockFilter()" (ngModelChange)="stockFilter.set($event)">
+          <option value="">Todos</option>
+          <option value="ok">Con stock</option>
+          <option value="zero">Sin stock</option>
+          <option value="low">Stock crítico</option>
+        </select>
+      </div>
+      <div>
+        <label cLabel for="pageSizeSelect">Filas por página</label>
+        <select cSelect id="pageSizeSelect"
+          [ngModel]="pageSize()" (ngModelChange)="pageSize.set(+$event)">
+          @for (s of pageSizeOptions; track s) {
+            <option [value]="s">{{ s }}</option>
+          }
+        </select>
+      </div>
+    </div>
+  </c-card-body>
+</c-card>
+
+<!-- ── Spinner ─────────────────────────────────────────────────────────────── -->
+@if (loading()) {
+  <div class="text-center py-5">
+    <c-spinner color="primary"></c-spinner>
+  </div>
+}
+
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<!-- ── Resultados ─────────────────────────────────────────────────────────── -->
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+@if (hasData() && !loading()) {
+
+  <!-- ═══ FILA 1: Resumen del Catálogo + Por Familia ════════════════════════ -->
+  <c-row class="mb-3 g-3">
+
+    <!-- ── Resumen del Catálogo ───────────────────────────────────────────── -->
+    <c-col xs="12" lg="6">
+      <c-card>
+        <c-card-header><strong>Resumen del Catálogo</strong></c-card-header>
+        <c-card-body>
+          <div class="doc-stat-grid mb-3">
+            <div class="doc-stat">
+              <div class="doc-stat__value">{{ catalogSummary().totalProducts }}</div>
+              <div class="doc-stat__label">Total Productos</div>
+            </div>
+            <div class="doc-stat doc-stat--success">
+              <div class="doc-stat__value">{{ catalogSummary().activeWithStock }}</div>
+              <div class="doc-stat__label">Con Stock</div>
+            </div>
+            <div class="doc-stat doc-stat--danger">
+              <div class="doc-stat__value">{{ catalogSummary().outOfStock }}</div>
+              <div class="doc-stat__label">Sin Stock</div>
+            </div>
+            <div class="doc-stat doc-stat--warning">
+              <div class="doc-stat__value">{{ catalogSummary().lowStock }}</div>
+              <div class="doc-stat__label">Stock Crítico</div>
+            </div>
+            <div class="doc-stat">
+              <div class="doc-stat__value">$ {{ fmt(catalogSummary().stockValue) }}</div>
+              <div class="doc-stat__label">Valor al Costo</div>
+            </div>
+            <div class="doc-stat doc-stat--purple">
+              <div class="doc-stat__value">$ {{ fmt(catalogSummary().stockValueSale) }}</div>
+              <div class="doc-stat__label">Valor Venta</div>
+            </div>
+          </div>
+        </c-card-body>
+      </c-card>
+    </c-col>
+
+    <!-- ── Por Familia ────────────────────────────────────────────────────── -->
+    <c-col xs="12" lg="6">
+      <c-card>
+        <c-card-header><strong>Por Familia</strong></c-card-header>
+        <c-card-body>
+          @if (familyBreakdown().length > 0) {
+            @for (item of familyBreakdown(); track item.familyName) {
+              <div class="mb-3">
+                <div class="d-flex justify-content-between" style="font-size:.85rem">
+                  <span class="fw-semibold">{{ item.familyName }}</span>
+                  @if (hasInvoiceData() && item.revenueSold > 0) {
+                    <span class="mono fw-semibold">
+                      $ {{ fmt(item.revenueSold) }}
+                      <span class="text-secondary fw-normal">({{ pct(item.pct) }})</span>
+                    </span>
+                  } @else {
+                    <span class="mono text-secondary fw-semibold">$ {{ fmt(item.stockValue) }}</span>
+                  }
+                </div>
+                <div class="progress mt-1" style="height:8px;border-radius:4px;background:var(--cui-border-color)">
+                  <div class="progress-bar" role="progressbar"
+                       [style.width]="item.pct + '%'"
+                       style="background: var(--cui-primary)">
+                  </div>
+                </div>
+              </div>
+            }
+          } @else {
+            <p class="text-secondary mb-0 small">Sin datos de familias.</p>
+          }
+        </c-card-body>
+      </c-card>
+    </c-col>
+  </c-row>
+
+  <!-- ═══ FILA 2: Stock Crítico + Margen Promedio ═══════════════════════════ -->
+  <c-row class="mb-3 g-3">
+
+    <!-- ── Stock Crítico ──────────────────────────────────────────────────── -->
+    <c-col xs="12" lg="7">
+      <c-card>
+        <c-card-header class="d-flex align-items-center gap-2">
+          <strong>Stock Crítico</strong>
+          <span class="badge bg-warning text-dark" style="font-size:.65rem">{{ stockCritical().length }}</span>
+        </c-card-header>
+        <c-card-body>
+          @if (stockCritical().length > 0) {
+            <div class="table-responsive">
+              <table cTable hover small class="mb-0 summary-table w-100">
+                <thead>
+                  <tr class="table-header-row">
+                    <th>Producto</th>
+                    <th>SKU</th>
+                    <th class="text-end">Stock</th>
+                    <th class="text-end">Mínimo</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (row of criticalPageData(); track row.productId) {
+                    <tr>
+                      <td>{{ row.name }}</td>
+                      <td class="mono text-secondary small">{{ row.sku }}</td>
+                      <td class="text-end mono">{{ fmtN(row.stockQty, 0) }}</td>
+                      <td class="text-end mono text-secondary">{{ fmtN(row.stockMin, 0) }}</td>
+                      <td>
+                        @if (row.stockQty <= 0) {
+                          <c-badge color="danger">Sin stock</c-badge>
+                        } @else {
+                          <c-badge color="warning">Crítico</c-badge>
+                        }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else {
+            <p class="text-secondary mb-0 small">Sin productos en estado crítico.</p>
+          }
+        </c-card-body>
+        @if (totalCriticalPages() > 1) {
+          <c-card-footer class="d-flex justify-content-between align-items-center">
+            <small class="text-body-secondary">
+              {{ (criticalPage() - 1) * pageSize() + 1 }}–{{ Math.min(criticalPage() * pageSize(), stockCritical().length) }}
+              de {{ stockCritical().length }}
+            </small>
+            <nav>
+              <ul class="pagination pagination-sm mb-0">
+                <li class="page-item" [class.disabled]="criticalPage() === 1">
+                  <a class="page-link" (click)="goToCriticalPage(criticalPage() - 1)">
+                    <svg cIcon name="cil-chevron-left" size="sm"></svg>
+                  </a>
+                </li>
+                @for (p of criticalPages(); track p) {
+                  <li class="page-item" [class.active]="p === criticalPage()">
+                    <a class="page-link" (click)="goToCriticalPage(p)">{{ p }}</a>
+                  </li>
+                }
+                <li class="page-item" [class.disabled]="criticalPage() === totalCriticalPages()">
+                  <a class="page-link" (click)="goToCriticalPage(criticalPage() + 1)">
+                    <svg cIcon name="cil-chevron-right" size="sm"></svg>
+                  </a>
+                </li>
+              </ul>
+            </nav>
+          </c-card-footer>
+        }
+      </c-card>
+    </c-col>
+
+    <!-- ── Margen Promedio ────────────────────────────────────────────────── -->
+    <c-col xs="12" lg="5">
+      <c-card>
+        <c-card-header><strong>Margen Promedio por Familia</strong></c-card-header>
+        <c-card-body>
+          @if (byFamily().length > 0) {
+            <table class="summary-table w-100">
+              <thead>
+                <tr class="table-header-row">
+                  <th>Familia</th>
+                  <th class="text-end">Margen %</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (f of byFamily(); track f.familyName) {
+                  <tr>
+                    <td>{{ f.familyName }}</td>
+                    <td class="text-end mono"
+                        [class.text-success]="f.avgMargin >= 30"
+                        [class.text-warning]="f.avgMargin > 0 && f.avgMargin < 15">
+                      {{ pct(f.avgMargin) }}
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
+          <div class="mt-3 pt-3 border-top">
+            <div class="section-label mb-1">Margen del catálogo</div>
+            <div class="doc-stat__value"
+                 [class.text-success]="globalMargin() >= 30"
+                 [class.text-warning]="globalMargin() > 0 && globalMargin() < 15">
+              {{ pct(globalMargin()) }}
+            </div>
+          </div>
+        </c-card-body>
+      </c-card>
+    </c-col>
+  </c-row>
+
+  <!-- ═══ Top 10 por Ventas (solo si hay datos de facturas) ════════════════ -->
+  @if (hasInvoiceData() && topSold().length > 0) {
+    <c-card class="mb-3">
+      <c-card-header>
+        <strong>Top 10 por Ventas</strong>
+        <small class="text-secondary ms-2">Revenue del período seleccionado</small>
+      </c-card-header>
+      <c-card-body>
+        <div class="chart-wrapper chart-wrapper--md">
+          <c-chart type="bar"
+            [data]="topSoldChartData()"
+            [options]="topSoldChartOptions">
+          </c-chart>
+        </div>
+      </c-card-body>
+    </c-card>
+  }
+
+  <!-- ═══ Catálogo Completo ════════════════════════════════════════════════ -->
+  <c-card class="mb-3">
+    <c-card-header class="d-flex align-items-center gap-2">
+      <strong>Catálogo Completo</strong>
+      <span class="badge bg-secondary" style="font-size:.65rem">{{ byProduct().length }}</span>
+    </c-card-header>
+    <c-card-body>
+      @if (byProduct().length > 0) {
+        <div class="table-responsive">
+          <table cTable hover class="mb-0">
+            <thead>
+              <tr>
+                <th style="width:2.5rem">#</th>
+                <th>SKU</th>
+                <th>Nombre</th>
+                <th>Familia</th>
+                <th>Tipo</th>
+                <th class="text-end">Costo</th>
+                <th class="text-end">Precio</th>
+                <th class="text-end">Margen %</th>
+                <th class="text-end">Stock</th>
+                @if (hasInvoiceData()) {
+                  <th class="text-end">Qtd. Vendida</th>
+                  <th class="text-end">Revenue</th>
+                  <th class="text-end">Rotación</th>
+                }
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of catalogPageData(); track row.productId; let idx = $index) {
+                <tr>
+                  <td class="text-secondary small">{{ (catalogPage() - 1) * pageSize() + idx + 1 }}</td>
+                  <td class="mono small text-secondary">{{ row.sku }}</td>
+                  <td>{{ row.name }}</td>
+                  <td class="small text-secondary">{{ row.familyName }}</td>
+                  <td>
+                    @if (row.type === 'product') {
+                      <c-badge color="info">Producto</c-badge>
+                    } @else {
+                      <c-badge color="secondary">Servicio</c-badge>
+                    }
+                  </td>
+                  <td class="text-end mono">$ {{ fmt(row.costPrice) }}</td>
+                  <td class="text-end mono">$ {{ fmt(row.salePrice) }}</td>
+                  <td class="text-end mono"
+                      [class.text-success]="row.margin >= 30"
+                      [class.text-warning]="row.margin > 0 && row.margin < 15">
+                    {{ pct(row.margin) }}
+                  </td>
+                  <td class="text-end">
+                    @if (row.trackStock) {
+                      @if (row.stockQty <= 0) {
+                        <span class="text-danger fw-semibold">{{ fmtN(row.stockQty, 0) }}</span>
+                      } @else if (row.stockQty <= row.stockMin) {
+                        <span class="text-warning fw-semibold">{{ fmtN(row.stockQty, 0) }}</span>
+                      } @else {
+                        <span>{{ fmtN(row.stockQty, 0) }}</span>
+                      }
+                    } @else {
+                      <span class="text-secondary">—</span>
+                    }
+                  </td>
+                  @if (hasInvoiceData()) {
+                    <td class="text-end">{{ fmtN(row.qtySold, 2) }}</td>
+                    <td class="text-end mono fw-semibold">$ {{ fmt(row.revenueSold) }}</td>
+                    <td class="text-end mono text-secondary">{{ fmtN(row.rotation, 2) }}</td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+      } @else {
+        <p class="text-secondary mb-0">Sin productos con los filtros aplicados.</p>
+      }
+    </c-card-body>
+    @if (totalCatalogPages() > 1) {
+      <c-card-footer class="d-flex justify-content-between align-items-center">
+        <small class="text-body-secondary">
+          Mostrando {{ (catalogPage() - 1) * pageSize() + 1 }}–{{ Math.min(catalogPage() * pageSize(), byProduct().length) }}
+          de {{ byProduct().length }} productos
+        </small>
+        <nav>
+          <ul class="pagination pagination-sm mb-0">
+            <li class="page-item" [class.disabled]="catalogPage() === 1">
+              <a class="page-link" (click)="goToCatalogPage(catalogPage() - 1)">
+                <svg cIcon name="cil-chevron-left" size="sm"></svg>
+              </a>
+            </li>
+            @for (p of catalogPages(); track p) {
+              <li class="page-item" [class.active]="p === catalogPage()">
+                <a class="page-link" (click)="goToCatalogPage(p)">{{ p }}</a>
+              </li>
+            }
+            <li class="page-item" [class.disabled]="catalogPage() === totalCatalogPages()">
+              <a class="page-link" (click)="goToCatalogPage(catalogPage() + 1)">
+                <svg cIcon name="cil-chevron-right" size="sm"></svg>
+              </a>
+            </li>
+          </ul>
+        </nav>
+      </c-card-footer>
+    }
+  </c-card>
+
+}
+
+<!-- ── Estado vacío ─────────────────────────────────────────────────────────── -->
+@if (!hasData() && !loading()) {
+  <c-alert color="warning">
+    <svg cIcon name="cilInfo" size="sm" class="me-1"></svg>
+    Selecciona un período y haz clic en <strong>Generar</strong> para cargar el reporte de productos.
+  </c-alert>
+}

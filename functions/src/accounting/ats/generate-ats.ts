@@ -111,6 +111,7 @@ interface PurchaseDoc {
 interface RetentionTaxDoc {
   taxCode: string;   // '1'=IR, '2'=IVA, '6'=ISD
   pctCode: string;
+  rate?: number;     // porcentaje almacenado (igual al catálogo SRI) — usado en porcentajeAir
   taxableBase: number;
   retainedAmount: number;
 }
@@ -129,12 +130,16 @@ interface RetentionDoc {
 interface GenerateAtsInput {
   companyId: string;
   year:      number;
-  month:     number; // 1-12
+  month:     number; // 1-12 (mensual) — para semestral: 6=S1, 12=S2
+  semestre?: 1 | 2; // undefined = mensual; 1 = Enero-Junio, 2 = Julio-Diciembre
+  excluirInformativa332?: boolean; // omite compras sin retención asignada del detalle air
+  includeExcelData?: boolean;      // cuando true, incluye AtsExcelData en el resultado
 }
 
 interface GenerateAtsResult {
-  zip:      string; // base64
-  filename: string;
+  zip:        string; // base64
+  filename:   string;
+  excelData?: AtsExcelData; // presente cuando includeExcelData=true
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -200,9 +205,52 @@ interface VoidedRef {
   autorizacion:    string;
 }
 
-function buildAnulados(root: any, voided: VoidedRef[]): void {
-  if (!voided.length) return;
-  const anuladosEl = ele(root, 'anulados');
+// ─── ATS Excel data rows (shared between XML and Excel to guarantee consistency) ─
+
+export interface AtsCompraRow {
+  codigoOper: string; codSustento: string; tpIdProv: string; idProv: string;
+  parteRel: string; tipoComprobante: string; fechaRegistro: string;
+  establecimiento: string; puntoEmision: string; secuencial: string;
+  fechaEmision: string; autorizacion: string;
+  baseNoGraIva: number; baseImponible: number; baseImpGrav: number;
+  baseImpExe: number; montoIce: number; montoIva: number;
+  valRetBien10: number; valRetServ20: number; valorRetBienes: number;
+  valRetServ50: number; valorRetServicios: number; valRetServ100: number;
+  pagoLocExt: string; formaPago: string;
+  codRetAir: string; baseImpAir: number; porcentajeAir: number; valRetAir: number;
+  estabRetencion: string; ptoEmiRetencion: string; secRetencion: string;
+  autRetencion: string; fechaEmiRetencion: string;
+}
+
+export interface AtsVentaRow {
+  tpIdCliente: string; idCliente: string; parteRel: string;
+  tipoComprobante: string; tipoEmision: string; numeroComprobantes: number;
+  baseNoGraIva: number; baseImponible: number; baseImpGrav: number;
+  montoIva: number; montoIce: number; valorRetIva: number; valorRetRenta: number;
+}
+
+export interface AtsVentaEstabRow {
+  codEstab: string; ventasEstab: number; ivaComp: number;
+}
+
+export interface AtsAnuladoRow {
+  tipoComprobante: string; establecimiento: string; puntoEmision: string;
+  secuencialInicio: number; secuencialFin: number; autorizacion: string;
+}
+
+export interface AtsExcelData {
+  companyRuc: string; companyName: string; year: number; mesXml: string;
+  numEstabRuc: number; totalVentas: number;
+  compras: AtsCompraRow[];
+  ventas: AtsVentaRow[];
+  ventasEstab: AtsVentaEstabRow[];
+  anulados: AtsAnuladoRow[];
+}
+
+/** Colapsa VoidedRef[] en rangos contiguos → AtsAnuladoRow[] (compartido entre XML y Excel). */
+function buildAnuladosRows(voided: VoidedRef[]): AtsAnuladoRow[] {
+  const rows: AtsAnuladoRow[] = [];
+  if (!voided.length) return rows;
 
   // Agrupa por (tipoComprobante, establecimiento, puntoEmision) y colapsa
   // secuenciales consecutivos en rangos — así es como lo modela el XSD
@@ -221,13 +269,14 @@ function buildAnulados(root: any, voided: VoidedRef[]): void {
     let rangeEnd   = refs[0];
 
     const flush = () => {
-      const d = ele(anuladosEl, 'detalleAnulados');
-      addReq(d, 'tipoComprobante', rangeStart.tipoComprobante);
-      addReq(d, 'establecimiento', rangeStart.establecimiento);
-      addReq(d, 'puntoEmision',    rangeStart.puntoEmision);
-      addReq(d, 'secuencialInicio', rangeStart.secuencial);
-      addReq(d, 'secuencialFin',    rangeEnd.secuencial);
-      addOpt(d, 'autorizacion', rangeStart.autorizacion);
+      rows.push({
+        tipoComprobante: rangeStart.tipoComprobante,
+        establecimiento: rangeStart.establecimiento,
+        puntoEmision:    rangeStart.puntoEmision,
+        secuencialInicio: rangeStart.secuencial,
+        secuencialFin:    rangeEnd.secuencial,
+        autorizacion:    rangeStart.autorizacion,
+      });
     };
 
     for (let i = 1; i < refs.length; i++) {
@@ -241,6 +290,23 @@ function buildAnulados(root: any, voided: VoidedRef[]): void {
     }
     flush();
   }
+  return rows;
+}
+
+function buildAnulados(root: any, voided: VoidedRef[]): AtsAnuladoRow[] {
+  const rows = buildAnuladosRows(voided);
+  if (!rows.length) return rows;
+  const anuladosEl = ele(root, 'anulados');
+  for (const row of rows) {
+    const d = ele(anuladosEl, 'detalleAnulados');
+    addReq(d, 'tipoComprobante', row.tipoComprobante);
+    addReq(d, 'establecimiento', row.establecimiento);
+    addReq(d, 'puntoEmision',    row.puntoEmision);
+    addReq(d, 'secuencialInicio', row.secuencialInicio);
+    addReq(d, 'secuencialFin',    row.secuencialFin);
+    addOpt(d, 'autorizacion', row.autorizacion);
+  }
+  return rows;
 }
 
 // ─── Main callable ─────────────────────────────────────────────────────────────
@@ -248,11 +314,14 @@ function buildAnulados(root: any, voided: VoidedRef[]): void {
 export const generateAts = onCall<GenerateAtsInput>(
   { timeoutSeconds: 120, memory: '512MiB' },
   async (request) => {
-    const { companyId, year, month } = request.data;
-    console.log('[generateAts] Solicitud:', { companyId, year, month });
+    const { companyId, year, month, semestre, excluirInformativa332, includeExcelData } = request.data;
+    console.log('[generateAts] Solicitud:', { companyId, year, month, semestre, excluirInformativa332 });
 
     if (!companyId || !year || !month || month < 1 || month > 12) {
       throw new HttpsError('invalid-argument', 'companyId, year y month (1-12) son requeridos');
+    }
+    if (semestre !== undefined && semestre !== 1 && semestre !== 2) {
+      throw new HttpsError('invalid-argument', 'semestre debe ser 1 (Enero-Junio) o 2 (Julio-Diciembre)');
     }
 
     // Mismo criterio de acceso que generateAccountingPdf — el ATS expone RUC,
@@ -278,10 +347,29 @@ export const generateAts = onCall<GenerateAtsInput>(
       );
     }
 
-    const monthStart = new Date(year, month - 1, 1, 0, 0, 0);
-    const monthEnd    = new Date(year, month, 1, 0, 0, 0); // exclusivo
-    const tsStart = admin.firestore.Timestamp.fromDate(monthStart);
-    const tsEnd   = admin.firestore.Timestamp.fromDate(monthEnd);
+    // ── Rango de fechas y campo Mes del XML ───────────────────────────────────
+    // Semestral S1: Enero-Junio (Mes=06), S2: Julio-Diciembre (Mes=12).
+    // Mensual: usa el mes recibido tal cual.
+    let periodStart: Date;
+    let periodEnd:   Date;
+    let mesXml:      string;
+
+    if (semestre === 1) {
+      periodStart = new Date(year, 0, 1, 0, 0, 0);      // 1 Ene
+      periodEnd   = new Date(year, 6, 1, 0, 0, 0);      // 1 Jul exclusivo
+      mesXml      = '06';
+    } else if (semestre === 2) {
+      periodStart = new Date(year, 6, 1, 0, 0, 0);      // 1 Jul
+      periodEnd   = new Date(year + 1, 0, 1, 0, 0, 0);  // 1 Ene año siguiente exclusivo
+      mesXml      = '12';
+    } else {
+      periodStart = new Date(year, month - 1, 1, 0, 0, 0);
+      periodEnd   = new Date(year, month,     1, 0, 0, 0); // exclusivo
+      mesXml      = pad(month, 2);
+    }
+
+    const tsStart = admin.firestore.Timestamp.fromDate(periodStart);
+    const tsEnd   = admin.firestore.Timestamp.fromDate(periodEnd);
 
     const invoicesCol   = db.collection(`companies/${companyId}/invoices`);
     const debitNotesCol = db.collection(`companies/${companyId}/debitNotes`);
@@ -334,29 +422,34 @@ export const generateAts = onCall<GenerateAtsInput>(
     // una por factura — ver ats.xsd, detalleVentasType)
     interface VentaAgg {
       tpIdCliente: string; idCliente: string; tipoComprobante: string; tipoEmision: string;
-      baseImpGrav: number; baseImponible: number; montoIva: number; numeroComprobantes: number;
+      baseNoGraIva: number; // exento / no objeto de IVA
+      baseImponible: number; // tarifa 0% IVA
+      baseImpGrav: number;   // tarifa IVA > 0%
+      montoIva: number; numeroComprobantes: number;
     }
     const ventasMap = new Map<string, VentaAgg>();
     const establecimientoTotals = new Map<string, number>();
     let totalVentasSum = 0;
 
+    // baseNoObj = exento/no objeto IVA; base0 = tarifa 0%; baseGrav = tarifa IVA > 0%
     const addVenta = (
       tpIdCliente: string, idCliente: string, tipoComprobante: string,
-      tipoEmision: string, baseGrav: number, baseNoGrav: number, iva: number,
+      tipoEmision: string, baseNoObj: number, base0: number, baseGrav: number, iva: number,
       establecimiento: string
     ) => {
       const key = `${tpIdCliente}|${idCliente}|${tipoComprobante}|${tipoEmision}`;
       const cur = ventasMap.get(key) ?? {
         tpIdCliente, idCliente, tipoComprobante, tipoEmision,
-        baseImpGrav: 0, baseImponible: 0, montoIva: 0, numeroComprobantes: 0
+        baseNoGraIva: 0, baseImponible: 0, baseImpGrav: 0, montoIva: 0, numeroComprobantes: 0
       };
+      cur.baseNoGraIva  += baseNoObj;
+      cur.baseImponible += base0;
       cur.baseImpGrav   += baseGrav;
-      cur.baseImponible += baseGrav + baseNoGrav;
       cur.montoIva      += iva;
       cur.numeroComprobantes += 1;
       ventasMap.set(key, cur);
 
-      const docTotal = baseGrav + baseNoGrav + iva;
+      const docTotal = baseNoObj + base0 + baseGrav + iva;
       establecimientoTotals.set(establecimiento, (establecimientoTotals.get(establecimiento) ?? 0) + docTotal);
       totalVentasSum += docTotal;
     };
@@ -377,26 +470,31 @@ export const generateAts = onCall<GenerateAtsInput>(
 
     for (const inv of invoices) {
       if (inv.isVoid) continue;
-      let baseGrav = 0, baseNoGrav = 0, iva = 0;
+      let baseGrav = 0, base0 = 0, baseNoObj = 0, iva = 0;
       for (const line of inv.lines ?? []) {
-        if ((line.vatPct ?? 0) > 0) { baseGrav += line.subtotal; iva += line.vatAmount; }
-        else baseNoGrav += line.subtotal;
+        if ((line.vatPct ?? 0) > 0) {
+          baseGrav += line.subtotal;
+          iva += line.vatAmount;
+        } else if (line.sriTaxCode === '6') {
+          baseNoObj += line.subtotal; // exento de IVA
+        } else {
+          base0 += line.subtotal;    // tarifa 0%
+        }
       }
       const tipoComprobante = inv.isCreditNote ? '04' : '01';
       addVenta(
         mapTipoIdentificacion(inv.customerTaxIdType), inv.customerTaxId,
         tipoComprobante, emisionTipo(inv.sriStatus),
-        baseGrav, baseNoGrav, iva, inv.seriesEstablishment
+        baseNoObj, base0, baseGrav, iva, inv.seriesEstablishment
       );
     }
     for (const dn of debitNotes) {
       if (dn.isVoid) continue;
-      // DebitNote no desglosa base gravada/no gravada por línea — se asume
-      // gravada (caso típico: recargo por mora, interés, etc.).
+      // DebitNote no desglosa líneas — se asume todo gravado (mora, interés, etc.)
       addVenta(
         mapTipoIdentificacion(dn.customerTaxIdType), dn.customerTaxId,
         '02', emisionTipo(dn.sriStatus),
-        dn.totalSinImpuestos, 0, dn.vatAmount, dn.seriesEstablishment
+        0, 0, dn.totalSinImpuestos, dn.vatAmount, dn.seriesEstablishment
       );
     }
 
@@ -415,7 +513,7 @@ export const generateAts = onCall<GenerateAtsInput>(
     addReq(root, 'IdInformante', companyRuc);
     addReq(root, 'razonSocial', companyName);
     addReq(root, 'Anio', year);
-    addReq(root, 'Mes', pad(month, 2));
+    addReq(root, 'Mes', mesXml);
     // numEstabRuc: aproximado como la cantidad de establecimientos con ventas
     // este mes (no hay en el sistema un catálogo de "establecimientos totales
     // registrados en el RUC" independiente de la actividad real).
@@ -424,7 +522,18 @@ export const generateAts = onCall<GenerateAtsInput>(
     addReq(root, 'codigoOperativo', 'IVA');
 
     // ─── COMPRAS — una fila por documento (no se agrega, ver ats.xsd) ─────────
-    const activePurchases = purchases.filter(p => p.status !== 'cancelled');
+    const allActivePurchases = purchases.filter(p => p.status !== 'cancelled');
+    // excluirInformativa332: omite compras sin retención vinculada (que en el ATS
+    // se reportarían con codRetAir 332 "sin retención"). Útil para simplificar el
+    // archivo cuando la empresa tiene muchas compras no sujetas a retención.
+    const activePurchases = excluirInformativa332
+      ? allActivePurchases.filter(p => !!p.retentionId)
+      : allActivePurchases;
+    // formaPago threshold: >$500 desde 2023-12-20, >$1000 antes (Resolución SRI NAC-DGERCGC23-00000052)
+    const FORMA_PAGO_DATE_SUP = new Date(2023, 11, 20); // 2023-12-20
+
+    const comprasRows: AtsCompraRow[] = [];
+
     if (activePurchases.length) {
       const comprasEl = ele(root, 'compras');
 
@@ -446,10 +555,20 @@ export const generateAts = onCall<GenerateAtsInput>(
           else baseNoGraIva += line.subtotal;
         }
 
+        const docDateForFp = (p.supplierInvoiceDate ?? p.date)?.toDate() ?? new Date();
+        const fpThreshold  = docDateForFp >= FORMA_PAGO_DATE_SUP ? 500 : 1000;
+        const docTotal     = (p.subtotal ?? 0) + (p.totalTax ?? 0);
+        const formaPagoVal = p.paymentMethodCode && docTotal > fpThreshold ? p.paymentMethodCode : '';
+
+        const autorizacion = digitsOnly(p.supplierAccessKey) || digitsOnly(p.supplierInvoiceNumber) || '000';
+
         addReq(d, 'codSustento', p.sriSustentoCode, '01');
         addReq(d, 'tpIdProv', mapTipoIdentificacionProveedor(p.supplierTaxIdType));
         addReq(d, 'idProv', p.supplierRuc);
         addReq(d, 'tipoComprobante', p.sriDocumentType, '01');
+        // parteRel: obligatorio — 'NO' por defecto; verificar manualmente si
+        // hay transacciones con partes relacionadas (Art. 4 LRTI).
+        addReq(d, 'parteRel', 'NO');
         addReq(d, 'fechaRegistro', fmtDate(p.date));
         addReq(d, 'establecimiento', establecimiento);
         addReq(d, 'puntoEmision', puntoEmision);
@@ -460,7 +579,7 @@ export const generateAts = onCall<GenerateAtsInput>(
         // N° de factura sin guiones. No es un número de autorización real —
         // si el proveedor imprime uno propio en la factura física, corregir
         // manualmente antes de presentar.
-        addReq(d, 'autorizacion', digitsOnly(p.supplierAccessKey) || digitsOnly(p.supplierInvoiceNumber) || '000');
+        addReq(d, 'autorizacion', autorizacion);
         addReq(d, 'baseNoGraIva', money(baseNoGraIva));
         addReq(d, 'baseImponible', money(baseImpGrav + baseNoGraIva));
         addReq(d, 'baseImpGrav', money(baseImpGrav));
@@ -472,36 +591,109 @@ export const generateAts = onCall<GenerateAtsInput>(
         addReq(d, 'montoIce', money(0));
         addReq(d, 'montoIva', money(montoIva));
 
-        if (p.totalVatRetention > 0) {
-          addOpt(d, 'valorRetBienes', money(p.totalVatRetention));
-          addOpt(d, 'valorRetServicios', money(0));
+        // IVA retention — mapeado por pctCode desde el comprobante de retención
+        // vinculado. Si no hay retención vinculada pero el campo totalVatRetention > 0,
+        // se reporta como valorRetBienes (30%, caso más común) como fallback.
+        const ret = p.retentionId ? retentionDocs.get(p.retentionId) : undefined;
+        const ivaRet = {
+          valRetBien10: 0, valRetServ20: 0, valorRetBienes: 0,
+          valRetServ50: 0, valorRetServicios: 0, valRetServ100: 0,
+        };
+        if (ret) {
+          for (const tax of ret.taxes ?? []) {
+            if (tax.taxCode !== '2') continue; // solo IVA
+            switch (tax.pctCode) {
+              case '9':  ivaRet.valRetBien10      += tax.retainedAmount; break;
+              case '10': ivaRet.valRetServ20      += tax.retainedAmount; break;
+              case '3':  ivaRet.valorRetBienes    += tax.retainedAmount; break;
+              case '4':  ivaRet.valorRetServicios += tax.retainedAmount; break;
+              case '5':
+              case '1':  ivaRet.valRetServ100     += tax.retainedAmount; break;
+            }
+          }
+        } else if (p.totalVatRetention > 0) {
+          ivaRet.valorRetBienes = p.totalVatRetention;
         }
+        if (ivaRet.valRetBien10      > 0) addOpt(d, 'valRetBien10',       money(ivaRet.valRetBien10));
+        if (ivaRet.valRetServ20      > 0) addOpt(d, 'valRetServ20',       money(ivaRet.valRetServ20));
+        if (ivaRet.valorRetBienes    > 0) addOpt(d, 'valorRetBienes',     money(ivaRet.valorRetBienes));
+        if (ivaRet.valRetServ50      > 0) addOpt(d, 'valRetServ50',       money(ivaRet.valRetServ50));
+        if (ivaRet.valorRetServicios > 0) addOpt(d, 'valorRetServicios',  money(ivaRet.valorRetServicios));
+        if (ivaRet.valRetServ100     > 0) addOpt(d, 'valRetServ100',      money(ivaRet.valRetServ100));
 
-        if (p.paymentMethodCode) {
+        // pagoLocExt: '01'=local/residente (obligatorio). Compras al exterior
+        // (pagoLocExt='02') no están distinguidas en el modelo actual de Purchase
+        // — verificar manualmente si hay importaciones de servicios.
+        addReq(d, 'pagoLocExt', '01');
+
+        if (formaPagoVal) {
           const fp = ele(d, 'formasDePago');
-          addReq(fp, 'formaPago', p.paymentMethodCode);
+          addReq(fp, 'formaPago', formaPagoVal);
         }
 
         // air (retenciones de Renta) va ANTES de estabRetencion1/etc en el
         // schema — ver ejemplo oficial del SRI.
-        const ret = p.retentionId ? retentionDocs.get(p.retentionId) : undefined;
-        if (ret) {
-          if (ret.taxes?.length) {
-            const airEl = ele(d, 'air');
-            for (const tax of ret.taxes) {
-              if (tax.taxCode !== '1') continue; // air = solo retenciones de Renta (IR)
-              const da = ele(airEl, 'detalleAir');
-              addReq(da, 'codRetAir', tax.pctCode);
-              addReq(da, 'baseImpAir', money(tax.taxableBase));
-              addReq(da, 'porcentajeAir', money(tax.retainedAmount && tax.taxableBase ? (tax.retainedAmount / tax.taxableBase) * 100 : 0));
-              addReq(da, 'valRetAir', money(tax.retainedAmount));
-            }
+        const irTaxes = (ret?.taxes ?? []).filter(t => t.taxCode === '1');
+        if (ret && irTaxes.length) {
+          const airEl = ele(d, 'air');
+          for (const tax of irTaxes) {
+            const da = ele(airEl, 'detalleAir');
+            addReq(da, 'codRetAir', tax.pctCode);
+            addReq(da, 'baseImpAir', money(tax.taxableBase));
+            // Usar tasa almacenada si está disponible; calcular como fallback.
+            const pctAir = tax.rate !== undefined
+              ? tax.rate
+              : (tax.taxableBase > 0 ? (tax.retainedAmount / tax.taxableBase) * 100 : 0);
+            addReq(da, 'porcentajeAir', money(pctAir));
+            addReq(da, 'valRetAir', money(tax.retainedAmount));
           }
+        }
+        if (ret) {
           addOpt(d, 'estabRetencion1', ret.seriesEstablishment);
           addOpt(d, 'ptoEmiRetencion1', ret.seriesEmissionPoint);
           addOpt(d, 'secRetencion1', String(ret.number));
           addOpt(d, 'autRetencion1', ret.authorizationNumber);
           addOpt(d, 'fechaEmiRet1', fmtDate(ret.date));
+        }
+
+        // ─── Recopilar filas para Excel (una fila por código IR; si no hay IR, una fila vacía) ─
+        const baseRowFields = {
+          codigoOper:  '',
+          codSustento: p.sriSustentoCode ?? '01',
+          tpIdProv:    mapTipoIdentificacionProveedor(p.supplierTaxIdType),
+          idProv:      p.supplierRuc,
+          parteRel:    'NO',
+          tipoComprobante: p.sriDocumentType ?? '01',
+          fechaRegistro:   fmtDate(p.date),
+          establecimiento, puntoEmision, secuencial,
+          fechaEmision:    fmtDate(p.supplierInvoiceDate),
+          autorizacion,
+          baseNoGraIva, baseImponible: baseImpGrav + baseNoGraIva,
+          baseImpGrav, baseImpExe: 0, montoIce: 0, montoIva,
+          ...ivaRet,
+          pagoLocExt: '01', formaPago: formaPagoVal,
+          estabRetencion: ret?.seriesEstablishment ?? '',
+          ptoEmiRetencion: ret?.seriesEmissionPoint ?? '',
+          secRetencion:   ret ? String(ret.number) : '',
+          autRetencion:   ret?.authorizationNumber ?? '',
+          fechaEmiRetencion: ret ? fmtDate(ret.date) : '',
+        };
+
+        if (irTaxes.length) {
+          for (const tax of irTaxes) {
+            const pctAir = tax.rate !== undefined
+              ? tax.rate
+              : (tax.taxableBase > 0 ? (tax.retainedAmount / tax.taxableBase) * 100 : 0);
+            comprasRows.push({
+              ...baseRowFields,
+              codRetAir: tax.pctCode,
+              baseImpAir: tax.taxableBase,
+              porcentajeAir: pctAir,
+              valRetAir: tax.retainedAmount,
+            });
+          }
+        } else {
+          comprasRows.push({ ...baseRowFields, codRetAir: '', baseImpAir: 0, porcentajeAir: 0, valRetAir: 0 });
         }
       }
     }
@@ -512,13 +704,17 @@ export const generateAts = onCall<GenerateAtsInput>(
         const d = ele(ventasEl, 'detalleVentas');
         addReq(d, 'tpIdCliente', v.tpIdCliente);
         addReq(d, 'idCliente', v.idCliente);
+        // parteRel: obligatorio — 'NO' por defecto; verificar si hay ventas a
+        // partes relacionadas (Art. 4 LRTI) y corregir manualmente.
+        addReq(d, 'parteRel', 'NO');
         addReq(d, 'tipoComprobante', v.tipoComprobante);
         addReq(d, 'tipoEmision', v.tipoEmision);
         addReq(d, 'numeroComprobantes', v.numeroComprobantes);
-        addReq(d, 'baseNoGraIva', money(0));
+        addReq(d, 'baseNoGraIva', money(v.baseNoGraIva));
         addReq(d, 'baseImponible', money(v.baseImponible));
         addReq(d, 'baseImpGrav', money(v.baseImpGrav));
         addReq(d, 'montoIva', money(v.montoIva));
+        addReq(d, 'montoIce', money(0));
         // valorRetIva/valorRetRenta: retenciones RECIBIDAS de clientes — este
         // sistema hoy no las registra (solo retenciones EMITIDAS a proveedores
         // en el módulo de Compras). Se reporta 0 — revisar manualmente si la
@@ -535,6 +731,7 @@ export const generateAts = onCall<GenerateAtsInput>(
         const d = ele(vEstEl, 'ventaEst');
         addReq(d, 'codEstab', codEstab);
         addReq(d, 'ventasEstab', money(total));
+        addReq(d, 'ivaComp', money(0)); // IVA compensado por Ley de Solidaridad — no aplica
       }
     }
 
@@ -609,7 +806,7 @@ export const generateAts = onCall<GenerateAtsInput>(
 
     console.log('[generateAts] Comprobantes anulados en el mes:', voided);
 
-    buildAnulados(root, voided);
+    const anuladosRows = buildAnulados(root, voided);
 
     // ─── Serializar + empaquetar en .zip ──────────────────────────────────────
     const xmlString = doc.end({ prettyPrint: true });
@@ -617,7 +814,8 @@ export const generateAts = onCall<GenerateAtsInput>(
     console.log('[generateAts] XML completo (debug):\n' + xmlString);
 
     const zip = new JSZip();
-    const filenameBase = `ATS-${companyRuc}-${year}${pad(month, 2)}`;
+    // El SRI exige el nombre ATmmaaaa.zip (ej. AT082026.zip).
+    const filenameBase = `AT${pad(mesXml, 2)}${year}`;
     zip.file(`${filenameBase}.xml`, Buffer.from(xmlString, 'latin1'));
     const zipBuffer = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
 
@@ -625,6 +823,33 @@ export const generateAts = onCall<GenerateAtsInput>(
       zip: zipBuffer.toString('base64'),
       filename: `${filenameBase}.zip`,
     };
+
+    if (includeExcelData) {
+      const ventasRows: AtsVentaRow[] = [...ventasMap.values()].map(v => ({
+        tpIdCliente: v.tpIdCliente, idCliente: v.idCliente, parteRel: 'NO',
+        tipoComprobante: v.tipoComprobante, tipoEmision: v.tipoEmision,
+        numeroComprobantes: v.numeroComprobantes,
+        baseNoGraIva: v.baseNoGraIva, baseImponible: v.baseImponible,
+        baseImpGrav: v.baseImpGrav, montoIva: v.montoIva, montoIce: 0,
+        valorRetIva: 0, valorRetRenta: 0,
+      }));
+
+      const ventasEstabRows: AtsVentaEstabRow[] = [...establecimientoTotals.entries()].map(([codEstab, total]) => ({
+        codEstab, ventasEstab: total, ivaComp: 0,
+      }));
+
+      result.excelData = {
+        companyRuc, companyName,
+        year, mesXml,
+        numEstabRuc: establecimientoTotals.size || 1,
+        totalVentas: totalVentasSum,
+        compras: comprasRows,
+        ventas: ventasRows,
+        ventasEstab: ventasEstabRows,
+        anulados: anuladosRows,
+      };
+    }
+
     console.log('[generateAts] Listo:', result.filename, '—', zipBuffer.length, 'bytes comprimidos');
     return result;
   }

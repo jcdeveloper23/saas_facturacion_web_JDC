@@ -57,6 +57,22 @@ export const SRI_IR_RETENTION_CODES: SriRetentionCode[] = [
   // antes de emitir con este código.
   { taxCode: '1', taxCodeName: 'IR', pctCode: '340', pctName: 'Pagos a no domiciliados / no residentes (verificar tarifa societaria vigente)', rate: 22 },
   { taxCode: '1', taxCodeName: 'IR', pctCode: '343', pctName: 'Otras retenciones IR (sin % específico — casillero 344)', rate: 3 },
+
+  // ── Nuevos códigos — Resolución NAC-DGERCGC24-00000008 (abril 2024) ──────────
+  // Tasas marcadas con ⚠ no verificadas contra el instructivo oficial vigente.
+  // Confirmar contra la resolución del SRI antes de emitir con estos códigos.
+  { taxCode: '1', taxCodeName: 'IR', pctCode: '3030', pctName: 'Servicios profesionales prestados por sociedades residentes — casillero 3030/3530', rate: 4 },    // ⚠ tasa por verificar
+  { taxCode: '1', taxCodeName: 'IR', pctCode: '3121', pctName: 'Compras a comercializador de bienes de origen agrícola, avícola, pecuario, apícola, cunícola, bioacuático, forestal y carnes en estado natural — casillero 3121/3621', rate: 1.75 }, // ⚠ tasa por verificar
+  { taxCode: '1', taxCodeName: 'IR', pctCode: '3430', pctName: 'Actividades de construcción de obra material inmueble, urbanización, lotización o similares — casillero 3430/3450', rate: 1 },  // ⚠ tasa por verificar
+  { taxCode: '1', taxCodeName: 'IR', pctCode: '3140', pctName: 'Comisiones pagadas a sociedades nacionales o extranjeras residentes en Ecuador y establecimientos permanentes — casillero 3140/3640', rate: 3 },
+  { taxCode: '1', taxCodeName: 'IR', pctCode: '3230', pctName: 'Otros rendimientos financieros, tarifa 0% — casillero 3230 (base imponible; sin retención)', rate: 0 },
+  // 3481: Autorretenciones — Grandes Contribuyentes. El porcentaje varía según el
+  // concepto de la autorretención; se deja rate=0 para que el usuario ingrese el
+  // porcentaje real al emitir el comprobante.
+  { taxCode: '1', taxCodeName: 'IR', pctCode: '3481', pctName: 'Autorretención — Sociedades Grandes Contribuyentes — casillero 3481/3981', rate: 0 },               // ⚠ tasa variable; ingresar manualmente
+  { taxCode: '1', taxCodeName: 'IR', pctCode: '3370', pctName: 'Retención por comercialización de productos forestales — casillero 3370/3870', rate: 1 },             // ⚠ tasa por verificar
+  // 3480: IR único sobre ingresos de operadores de pronósticos deportivos (15%).
+  { taxCode: '1', taxCodeName: 'IR', pctCode: '3480', pctName: 'IR único — operadores de pronósticos deportivos — casillero 3480/3980', rate: 15 },
 ];
 
 export const SRI_IVA_RETENTION_CODES: SriRetentionCode[] = [

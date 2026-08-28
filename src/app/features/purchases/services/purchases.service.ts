@@ -68,6 +68,39 @@ export class PurchasesService {
     });
   }
 
+  /**
+   * Load purchases within an optional date range and/or status filter.
+   * When dateFrom + dateTo are provided, uses Firestore range query on `date`.
+   * Client-side filtering by supplier/costCenter/status is done in the component.
+   */
+  getPurchases(filters: {
+    dateFrom?: Timestamp;
+    dateTo?:   Timestamp;
+    status?:   PurchaseStatus;
+  } = {}): Observable<Purchase[]> {
+    return new Observable<Purchase[]>(observer => {
+      const ref = collection(this.firestore, this.colPath);
+      let constraints: any[];
+
+      if (filters.dateFrom && filters.dateTo) {
+        constraints = [
+          where('date', '>=', filters.dateFrom),
+          where('date', '<=', filters.dateTo),
+          orderBy('date', 'desc'),
+        ];
+      } else if (filters.status) {
+        constraints = [where('status', '==', filters.status), orderBy('date', 'desc')];
+      } else {
+        constraints = [orderBy('date', 'desc')];
+      }
+
+      return onSnapshot(query(ref, ...constraints), {
+        next:  snap => observer.next(snap.docs.map(d => ({ id: d.id, ...d.data() }) as Purchase)),
+        error: err  => { console.error('[PurchasesService] getPurchases error:', err); observer.error(err); }
+      });
+    });
+  }
+
   // ─── Firestore safe serialization ─────────────────────────────────────────
 
   private cleanDoc<T>(obj: T): T {

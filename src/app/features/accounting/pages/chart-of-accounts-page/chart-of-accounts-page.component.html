@@ -16,16 +16,15 @@
   </div>
   <div class="d-flex gap-2 flex-wrap">
     <button cButton [color]="selectionMode() ? 'primary' : 'secondary'" variant="outline" size="sm"
-            (click)="toggleSelectionMode()">
+      (click)="toggleSelectionMode()">
       <svg cIcon name="cilTask" size="sm" class="me-1"></svg>
       {{ selectionMode() ? 'Cancelar Selección' : 'Selección Múltiple' }}
     </button>
-    <button cButton color="secondary" variant="outline" size="sm"
-            (click)="seedAccounts()" [disabled]="seeding()">
+    <button cButton color="secondary" variant="outline" size="sm" (click)="seedAccounts()" [disabled]="seeding()">
       @if (seeding()) {
-        <c-spinner size="sm" class="me-1"></c-spinner>
+      <c-spinner size="sm" class="me-1"></c-spinner>
       } @else {
-        <svg cIcon name="cilCloudDownload" size="sm" class="me-1"></svg>
+      <svg cIcon name="cilCloudDownload" size="sm" class="me-1"></svg>
       }
       Cargar Plan Estándar
     </button>
@@ -37,8 +36,8 @@
       <svg cIcon name="cilArrowTop" size="sm" class="me-1"></svg>
       Importar
     </button>
-    <button cButton color="secondary" variant="outline" size="sm"
-            (click)="exportAccounts()" [disabled]="!accounts().length">
+    <button cButton color="secondary" variant="outline" size="sm" (click)="exportAccounts()"
+      [disabled]="!accounts().length">
       <svg cIcon name="cilArrowBottom" size="sm" class="me-1"></svg>
       Exportar
     </button>
@@ -51,25 +50,25 @@
 
 <!-- ── Bulk action bar ────────────────────────────────────────────────────── -->
 @if (selectionMode() && selectedIds().size > 0) {
-  <div class="bulk-bar mb-3">
-    <span class="bulk-count">{{ selectedIds().size }} cuenta(s) seleccionada(s)</span>
-    <div class="ms-auto d-flex gap-2">
-      <button cButton color="success" variant="outline" size="sm"
-              [disabled]="bulkApplying()" (click)="bulkSetActive(true)">
-        @if (bulkApplying()) { <c-spinner size="sm" class="me-1"></c-spinner> } @else {
-          <svg cIcon name="cilCheckCircle" size="sm" class="me-1"></svg>
-        }
-        Activar
-      </button>
-      <button cButton color="warning" variant="outline" size="sm"
-              [disabled]="bulkApplying()" (click)="bulkSetActive(false)">
-        @if (bulkApplying()) { <c-spinner size="sm" class="me-1"></c-spinner> } @else {
-          <svg cIcon name="cilBan" size="sm" class="me-1"></svg>
-        }
-        Inactivar
-      </button>
-    </div>
+<div class="bulk-bar mb-3">
+  <span class="bulk-count">{{ selectedIds().size }} cuenta(s) seleccionada(s)</span>
+  <div class="ms-auto d-flex gap-2">
+    <button cButton color="success" variant="outline" size="sm" [disabled]="bulkApplying()"
+      (click)="bulkSetActive(true)">
+      @if (bulkApplying()) { <c-spinner size="sm" class="me-1"></c-spinner> } @else {
+      <svg cIcon name="cilCheckCircle" size="sm" class="me-1"></svg>
+      }
+      Activar
+    </button>
+    <button cButton color="warning" variant="outline" size="sm" [disabled]="bulkApplying()"
+      (click)="bulkSetActive(false)">
+      @if (bulkApplying()) { <c-spinner size="sm" class="me-1"></c-spinner> } @else {
+      <svg cIcon name="cilBan" size="sm" class="me-1"></svg>
+      }
+      Inactivar
+    </button>
   </div>
+</div>
 }
 
 <!-- ── Filters & View Toggle ─────────────────────────────────────────────── -->
@@ -80,41 +79,36 @@
         <span cInputGroupText>
           <svg cIcon name="cilSearch" size="sm"></svg>
         </span>
-        <input cFormControl type="text" placeholder="Buscar código o nombre..."
-               [ngModel]="searchTerm()" (ngModelChange)="searchTerm.set($event)"
-               class="form-control-sm" />
+        <input cFormControl type="text" placeholder="Buscar código o nombre..." [ngModel]="searchTerm()"
+          (ngModelChange)="searchTerm.set($event)" class="form-control-sm" />
       </c-input-group>
 
       <!-- Type pills -->
       <div class="seg-tabs">
-        <button class="seg-tab" [class.active]="typeFilter() === null"
-                (click)="setTypeFilter(null)">Todas</button>
+        <button class="seg-tab" [class.active]="typeFilter() === null" (click)="setTypeFilter(null)">Todas</button>
         @for (type of accountTypes; track type) {
-          <button class="seg-tab" [class.active]="typeFilter() === type"
-                  (click)="setTypeFilter(type)">
-            {{ TYPE_LABELS[type] }}
-          </button>
+        <button class="seg-tab" [class.active]="typeFilter() === type" (click)="setTypeFilter(type)">
+          {{ TYPE_LABELS[type] }}
+        </button>
         }
       </div>
 
       <div class="ms-auto d-flex gap-1">
-        <button cButton color="secondary" variant="outline" size="sm"
-                cTooltip="Vista árbol" (click)="treeMode.set(true)"
-                [class.active]="treeMode()">
+        <button cButton color="secondary" variant="outline" size="sm" cTooltip="Vista árbol"
+          (click)="treeMode.set(true)" [class.active]="treeMode()">
           <svg cIcon name="cilList" size="sm"></svg>
         </button>
-        <button cButton color="secondary" variant="outline" size="sm"
-                cTooltip="Vista plana" (click)="treeMode.set(false)"
-                [class.active]="!treeMode()">
+        <button cButton color="secondary" variant="outline" size="sm" cTooltip="Vista plana"
+          (click)="treeMode.set(false)" [class.active]="!treeMode()">
           <svg cIcon name="cilEqualizer" size="sm"></svg>
         </button>
         @if (treeMode() && !isSearching) {
-          <button cButton color="secondary" variant="ghost" size="sm" (click)="expandAll()">
-            <svg cIcon name="cilArrowBottom" size="sm"></svg>
-          </button>
-          <button cButton color="secondary" variant="ghost" size="sm" (click)="collapseAll()">
-            <svg cIcon name="cilArrowTop" size="sm"></svg>
-          </button>
+        <button cButton color="secondary" variant="ghost" size="sm" (click)="expandAll()">
+          <svg cIcon name="cilArrowBottom" size="sm"></svg>
+        </button>
+        <button cButton color="secondary" variant="ghost" size="sm" (click)="collapseAll()">
+          <svg cIcon name="cilArrowTop" size="sm"></svg>
+        </button>
         }
       </div>
     </div>
@@ -124,172 +118,168 @@
 <!-- ── Table ──────────────────────────────────────────────────────────────── -->
 <c-card>
   @if (loading()) {
-    <c-card-body class="text-center py-5">
-      <c-spinner color="primary"></c-spinner>
-      <p class="mt-2 text-secondary">Cargando plan de cuentas...</p>
-    </c-card-body>
+  <c-card-body class="text-center py-5">
+    <c-spinner color="primary"></c-spinner>
+    <p class="mt-2 text-secondary">Cargando plan de cuentas...</p>
+  </c-card-body>
   } @else {
-    <div class="table-responsive">
-      <table class="acc-table">
-        <thead>
-          <tr>
-            @if (selectionMode()) {
-              <th class="text-center">
-                <input type="checkbox" [checked]="allVisibleSelected()" (click)="toggleSelectAllVisible($event)" />
-              </th>
-            }
-            <th>Código</th>
-            <th>Nombre</th>
-            <th>Tipo</th>
-            <th>Naturaleza</th>
-            <th>Nivel</th>
-            <th>Estado</th>
-            <th class="text-end">Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          <!-- Tree mode -->
-          @if (treeMode() && !isSearching) {
-            @for (node of visibleNodes(); track node.code) {
-              <tr [class.row-inactive]="!node.isActive" (click)="openEdit(node, $event)">
-                @if (selectionMode()) {
-                  <td class="text-center" (click)="$event.stopPropagation()">
-                    <input type="checkbox" [checked]="isSelected(node.id)" (click)="toggleSelect(node.id, $event)" />
-                  </td>
-                }
-                <td class="acc-code">
-                  <span class="acc-indent" [style.width]="indentPx(node.level)"></span>
-                  @if (node.children.length > 0) {
-                    <button class="acc-expand-btn" (click)="toggleNode(node, $event)">
-                      {{ node.expanded ? '▾' : '▸' }}
-                    </button>
-                  } @else {
-                    <span class="acc-expand-btn"></span>
-                  }
-                  {{ node.code }}
-                </td>
-                <td>{{ node.name }}</td>
-                <td>
-                  <span [class]="badgeClasses(TYPE_COLORS[node.type])">
-                    {{ TYPE_LABELS[node.type] }}
-                  </span>
-                </td>
-                <td class="text-capitalize text-sm-muted">{{ NATURE_LABELS[node.nature] }}</td>
-                <td><span class="level-badge">N{{ node.level }}</span></td>
-                <td>
-                  @if (node.isActive) {
-                    <span class="badge bg-success-subtle text-success border border-success-subtle">Activa</span>
-                  } @else {
-                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">Inactiva</span>
-                  }
-                  @if (node.allowsMovement) {
-                    <span class="badge bg-info-subtle text-info border border-info-subtle ms-1">Movimiento</span>
-                  }
-                  @if (nodeHasChildren(node.code)) {
-                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle ms-1">Grupo</span>
-                  }
-                </td>
-                <td class="text-end">
-                  @if (node.allowsMovement) {
-                    <button cButton color="info" variant="ghost" size="sm"
-                            cTooltip="Ver movimientos (Libro Mayor)" (click)="viewMovements(node, $event)">
-                      <svg cIcon name="cilListRich" size="sm"></svg>
-                    </button>
-                  }
-                  <!-- Agregar subcuenta: solo si no es cuenta de movimiento -->
-                  @if (!node.allowsMovement) {
-                    <button cButton color="success" variant="ghost" size="sm"
-                            cTooltip="Agregar subcuenta" (click)="openAddChild(node, $event)">
-                      <svg cIcon name="cilPlus" size="sm"></svg>
-                    </button>
-                  }
-                  <button cButton color="secondary" variant="ghost" size="sm"
-                          cTooltip="Editar" (click)="openEdit(node, $event)">
-                    <svg cIcon name="cilPencil" size="sm"></svg>
-                  </button>
-                  <button cButton [color]="node.isActive ? 'warning' : 'success'" variant="ghost" size="sm"
-                          cTooltip="{{ node.isActive ? 'Inactivar' : 'Activar' }}"
-                          (click)="toggleActive(node, $event)">
-                    <svg cIcon [name]="node.isActive ? 'cilBan' : 'cilCheckCircle'" size="sm"></svg>
-                  </button>
-                  <button cButton color="danger" variant="ghost" size="sm"
-                          cTooltip="{{ nodeHasChildren(node.code) ? 'No se puede eliminar: tiene subcuentas' : 'Eliminar' }}"
-                          [disabled]="nodeHasChildren(node.code)"
-                          (click)="delete(node, $event)">
-                    <svg cIcon name="cilTrash" size="sm"></svg>
-                  </button>
-                </td>
-              </tr>
-            }
-          } @else {
-            <!-- Flat / search mode -->
-            @for (acc of filteredFlat(); track acc.id) {
-              <tr [class.row-inactive]="!acc.isActive" (click)="openEdit(acc, $event)">
-                @if (selectionMode()) {
-                  <td class="text-center" (click)="$event.stopPropagation()">
-                    <input type="checkbox" [checked]="isSelected(acc.id)" (click)="toggleSelect(acc.id, $event)" />
-                  </td>
-                }
-                <td class="acc-code">{{ acc.code }}</td>
-                <td>{{ acc.name }}</td>
-                <td>
-                  <span [class]="badgeClasses(TYPE_COLORS[acc.type])">
-                    {{ TYPE_LABELS[acc.type] }}
-                  </span>
-                </td>
-                <td class="text-sm-muted">{{ NATURE_LABELS[acc.nature] }}</td>
-                <td><span class="level-badge">N{{ acc.level }}</span></td>
-                <td>
-                  @if (acc.isActive) {
-                    <span class="badge bg-success-subtle text-success border border-success-subtle">Activa</span>
-                  } @else {
-                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">Inactiva</span>
-                  }
-                  @if (acc.allowsMovement) {
-                    <span class="badge bg-info-subtle text-info border border-info-subtle ms-1">Movimiento</span>
-                  }
-                  @if (nodeHasChildren(acc.code)) {
-                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle ms-1">Grupo</span>
-                  }
-                </td>
-                <td class="text-end">
-                  @if (acc.allowsMovement) {
-                    <button cButton color="info" variant="ghost" size="sm"
-                            cTooltip="Ver movimientos (Libro Mayor)" (click)="viewMovements(acc, $event)">
-                      <svg cIcon name="cilListRich" size="sm"></svg>
-                    </button>
-                  }
-                  @if (!acc.allowsMovement) {
-                    <button cButton color="success" variant="ghost" size="sm"
-                            cTooltip="Agregar subcuenta" (click)="openAddChild(acc, $event)">
-                      <svg cIcon name="cilPlus" size="sm"></svg>
-                    </button>
-                  }
-                  <button cButton color="secondary" variant="ghost" size="sm"
-                          (click)="openEdit(acc, $event)">
-                    <svg cIcon name="cilPencil" size="sm"></svg>
-                  </button>
-                  <button cButton [color]="acc.isActive ? 'warning' : 'success'" variant="ghost" size="sm"
-                          (click)="toggleActive(acc, $event)">
-                    <svg cIcon [name]="acc.isActive ? 'cilBan' : 'cilCheckCircle'" size="sm"></svg>
-                  </button>
-                  <button cButton color="danger" variant="ghost" size="sm"
-                          [disabled]="nodeHasChildren(acc.code)"
-                          cTooltip="{{ nodeHasChildren(acc.code) ? 'No se puede eliminar: tiene subcuentas' : 'Eliminar' }}"
-                          (click)="delete(acc, $event)">
-                    <svg cIcon name="cilTrash" size="sm"></svg>
-                  </button>
-                </td>
-              </tr>
-            }
+  <div class="table-responsive">
+    <table class="acc-table">
+      <thead>
+        <tr>
+          @if (selectionMode()) {
+          <th class="text-center">
+            <input type="checkbox" [checked]="allVisibleSelected()" (click)="toggleSelectAllVisible($event)" />
+          </th>
           }
-        </tbody>
-      </table>
-    </div>
-    <div class="table-footer">
-      Mostrando {{ isSearching ? filteredFlat().length : visibleNodes().length }}
-      de {{ accounts().length }} cuentas
-    </div>
+          <th>Código</th>
+          <th>Nombre</th>
+          <th>Tipo</th>
+          <th>Naturaleza</th>
+          <th>Nivel</th>
+          <th>Estado</th>
+          <th class="text-end">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Tree mode -->
+        @if (treeMode() && !isSearching) {
+        @for (node of visibleNodes(); track node.code) {
+        <tr [class.row-inactive]="!node.isActive" (click)="openEdit(node, $event)">
+          @if (selectionMode()) {
+          <td class="text-center" (click)="$event.stopPropagation()">
+            <input type="checkbox" [checked]="isSelected(node.id)" (click)="toggleSelect(node.id, $event)" />
+          </td>
+          }
+          <td class="acc-code">
+            <span class="acc-indent" [style.width]="indentPx(node.level)"></span>
+            @if (node.children.length > 0) {
+            <button class="acc-expand-btn" (click)="toggleNode(node, $event)">
+              {{ node.expanded ? '▾' : '▸' }}
+            </button>
+            } @else {
+            <span class="acc-expand-btn"></span>
+            }
+            {{ node.code }}
+          </td>
+          <td>{{ node.name }}</td>
+          <td>
+            <span [class]="badgeClasses(TYPE_COLORS[node.type])">
+              {{ TYPE_LABELS[node.type] }}
+            </span>
+          </td>
+          <td class="text-capitalize text-sm-muted">{{ NATURE_LABELS[node.nature] }}</td>
+          <td><span class="level-badge">N{{ node.level }}</span></td>
+          <td>
+            @if (node.isActive) {
+            <span class="badge bg-success-subtle text-success border border-success-subtle">Activa</span>
+            } @else {
+            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">Inactiva</span>
+            }
+            @if (node.allowsMovement) {
+            <span class="badge bg-info-subtle text-info border border-info-subtle ms-1">Movimiento</span>
+            }
+            @if (nodeHasChildren(node.code)) {
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle ms-1">Grupo</span>
+            }
+          </td>
+          <td class="text-end">
+            @if (node.allowsMovement) {
+            <button cButton color="info" variant="ghost" size="sm" cTooltip="Ver movimientos (Libro Mayor)"
+              (click)="viewMovements(node, $event)">
+              <svg cIcon name="cilListRich" size="sm"></svg>
+            </button>
+            }
+            <!-- Agregar subcuenta: solo si no es cuenta de movimiento -->
+            @if (!node.allowsMovement) {
+            <button cButton color="success" variant="ghost" size="sm" cTooltip="Agregar subcuenta"
+              (click)="openAddChild(node, $event)">
+              <svg cIcon name="cilPlus" size="sm"></svg>
+            </button>
+            }
+            <button cButton color="secondary" variant="ghost" size="sm" cTooltip="Editar"
+              (click)="openEdit(node, $event)">
+              <svg cIcon name="cilPencil" size="sm"></svg>
+            </button>
+            <button cButton [color]="node.isActive ? 'warning' : 'success'" variant="ghost" size="sm"
+              cTooltip="{{ node.isActive ? 'Inactivar' : 'Activar' }}" (click)="toggleActive(node, $event)">
+              <svg cIcon [name]="node.isActive ? 'cilBan' : 'cilCheckCircle'" size="sm"></svg>
+            </button>
+            <button cButton color="danger" variant="ghost" size="sm"
+              cTooltip="{{ nodeHasChildren(node.code) ? 'No se puede eliminar: tiene subcuentas' : 'Eliminar' }}"
+              [disabled]="nodeHasChildren(node.code)" (click)="delete(node, $event)">
+              <svg cIcon name="cilTrash" size="sm"></svg>
+            </button>
+          </td>
+        </tr>
+        }
+        } @else {
+        <!-- Flat / search mode -->
+        @for (acc of filteredFlat(); track acc.id) {
+        <tr [class.row-inactive]="!acc.isActive" (click)="openEdit(acc, $event)">
+          @if (selectionMode()) {
+          <td class="text-center" (click)="$event.stopPropagation()">
+            <input type="checkbox" [checked]="isSelected(acc.id)" (click)="toggleSelect(acc.id, $event)" />
+          </td>
+          }
+          <td class="acc-code">{{ acc.code }}</td>
+          <td>{{ acc.name }}</td>
+          <td>
+            <span [class]="badgeClasses(TYPE_COLORS[acc.type])">
+              {{ TYPE_LABELS[acc.type] }}
+            </span>
+          </td>
+          <td class="text-sm-muted">{{ NATURE_LABELS[acc.nature] }}</td>
+          <td><span class="level-badge">N{{ acc.level }}</span></td>
+          <td>
+            @if (acc.isActive) {
+            <span class="badge bg-success-subtle text-success border border-success-subtle">Activa</span>
+            } @else {
+            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">Inactiva</span>
+            }
+            @if (acc.allowsMovement) {
+            <span class="badge bg-info-subtle text-info border border-info-subtle ms-1">Movimiento</span>
+            }
+            @if (nodeHasChildren(acc.code)) {
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle ms-1">Grupo</span>
+            }
+          </td>
+          <td class="text-end">
+            @if (acc.allowsMovement) {
+            <button cButton color="info" variant="ghost" size="sm" cTooltip="Ver movimientos (Libro Mayor)"
+              (click)="viewMovements(acc, $event)">
+              <svg cIcon name="cilListRich" size="sm"></svg>
+            </button>
+            }
+            @if (!acc.allowsMovement) {
+            <button cButton color="success" variant="ghost" size="sm" cTooltip="Agregar subcuenta"
+              (click)="openAddChild(acc, $event)">
+              <svg cIcon name="cilPlus" size="sm"></svg>
+            </button>
+            }
+            <button cButton color="secondary" variant="ghost" size="sm" (click)="openEdit(acc, $event)">
+              <svg cIcon name="cilPencil" size="sm"></svg>
+            </button>
+            <button cButton [color]="acc.isActive ? 'warning' : 'success'" variant="ghost" size="sm"
+              (click)="toggleActive(acc, $event)">
+              <svg cIcon [name]="acc.isActive ? 'cilBan' : 'cilCheckCircle'" size="sm"></svg>
+            </button>
+            <button cButton color="danger" variant="ghost" size="sm" [disabled]="nodeHasChildren(acc.code)"
+              cTooltip="{{ nodeHasChildren(acc.code) ? 'No se puede eliminar: tiene subcuentas' : 'Eliminar' }}"
+              (click)="delete(acc, $event)">
+              <svg cIcon name="cilTrash" size="sm"></svg>
+            </button>
+          </td>
+        </tr>
+        }
+        }
+      </tbody>
+    </table>
+  </div>
+  <div class="table-footer">
+    Mostrando {{ isSearching ? filteredFlat().length : visibleNodes().length }}
+    de {{ accounts().length }} cuentas
+  </div>
   }
 </c-card>
 
@@ -298,11 +288,11 @@
   <c-modal-header>
     <h5 cModalTitle>
       @if (editingId()) {
-        Editar Cuenta
+      Editar Cuenta
       } @else if (parentContext()) {
-        Agregar subcuenta en {{ parentContext()!.code }} — {{ parentContext()!.name }}
+      Agregar subcuenta en {{ parentContext()!.code }} — {{ parentContext()!.name }}
       } @else {
-        Nueva Cuenta Contable
+      Nueva Cuenta Contable
       }
     </h5>
     <button type="button" class="btn-close" (click)="closeModal()"></button>
@@ -311,62 +301,60 @@
   <c-modal-body>
     <!-- Contexto de cuenta padre (solo en creación desde subcuenta) -->
     @if (parentContext() && !editingId()) {
-      <div class="alert alert-info py-2 mb-3 d-flex align-items-center gap-2">
-        <svg cIcon name="cilInfo" size="sm" class="flex-shrink-0"></svg>
-        <div class="small">
-          <strong>Cuenta padre:</strong> {{ parentContext()!.code }} — {{ parentContext()!.name }}
-          &nbsp;|&nbsp; Tipo: {{ TYPE_LABELS[parentContext()!.type] }}
-          &nbsp;|&nbsp; Nivel {{ parentContext()!.level }} → Subcuenta nivel {{ parentContext()!.level + 1 }}
-        </div>
+    <div class="alert alert-info py-2 mb-3 d-flex align-items-center gap-2">
+      <svg cIcon name="cilInfo" size="sm" class="flex-shrink-0"></svg>
+      <div class="small">
+        <strong>Cuenta padre:</strong> {{ parentContext()!.code }} — {{ parentContext()!.name }}
+        &nbsp;|&nbsp; Tipo: {{ TYPE_LABELS[parentContext()!.type] }}
+        &nbsp;|&nbsp; Nivel {{ parentContext()!.level }} → Subcuenta nivel {{ parentContext()!.level + 1 }}
       </div>
+    </div>
     }
 
     <!-- Advertencia cuando se edita una cuenta con hijos (código bloqueado) -->
     @if (editingId() && editingHasChildren()) {
-      <div class="alert alert-warning py-2 mb-3 d-flex align-items-center gap-2">
-        <svg cIcon name="cilWarning" size="sm" class="flex-shrink-0"></svg>
-        <div class="small">
-          <strong>Código bloqueado:</strong> Esta cuenta tiene subcuentas. No se puede cambiar el código
-          para evitar inconsistencias en la jerarquía.
-        </div>
+    <div class="alert alert-warning py-2 mb-3 d-flex align-items-center gap-2">
+      <svg cIcon name="cilWarning" size="sm" class="flex-shrink-0"></svg>
+      <div class="small">
+        <strong>Código bloqueado:</strong> Esta cuenta tiene subcuentas. No se puede cambiar el código
+        para evitar inconsistencias en la jerarquía.
       </div>
+    </div>
     }
 
     <form [formGroup]="form">
       <div class="row g-3">
         <div class="col-md-4">
           <label cLabel>Código <span class="text-danger">*</span></label>
-          <input cFormControl formControlName="code"
-                 placeholder="Ej: 1.1.01.001"
-                 [class.is-invalid]="form.get('code')?.invalid && form.get('code')?.touched" />
+          <input cFormControl formControlName="code" placeholder="Ej: 1.1.01.001"
+            [class.is-invalid]="form.get('code')?.invalid && form.get('code')?.touched" />
           @if (form.get('code')?.hasError('required') && form.get('code')?.touched) {
-            <div class="invalid-feedback">Código requerido</div>
+          <div class="invalid-feedback">Código requerido</div>
           }
           @if (form.get('code')?.hasError('pattern') && form.get('code')?.touched) {
-            <div class="invalid-feedback">Solo números y puntos (ej: 1.1.01)</div>
+          <div class="invalid-feedback">Solo números y puntos (ej: 1.1.01)</div>
           }
           @if (!editingId() && parentContext() && !form.get('code')?.disabled) {
-            <div class="form-text text-info">Código sugerido automáticamente. Puede ajustarlo si es necesario.</div>
+          <div class="form-text text-info">Código sugerido automáticamente. Puede ajustarlo si es necesario.</div>
           }
         </div>
         <div class="col-md-8">
           <label cLabel>Nombre <span class="text-danger">*</span></label>
-          <input cFormControl formControlName="name"
-                 placeholder="Nombre de la cuenta"
-                 [class.is-invalid]="form.get('name')?.invalid && form.get('name')?.touched" />
+          <input cFormControl formControlName="name" placeholder="Nombre de la cuenta"
+            [class.is-invalid]="form.get('name')?.invalid && form.get('name')?.touched" />
           @if (form.get('name')?.invalid && form.get('name')?.touched) {
-            <div class="invalid-feedback">Nombre requerido (mín. 2 caracteres)</div>
+          <div class="invalid-feedback">Nombre requerido (mín. 2 caracteres)</div>
           }
         </div>
         <div class="col-md-6">
           <label cLabel>Tipo de Cuenta <span class="text-danger">*</span></label>
           <select cSelect formControlName="type" (change)="onTypeChange()">
             @for (type of accountTypes; track type) {
-              <option [value]="type">{{ TYPE_LABELS[type] }}</option>
+            <option [value]="type">{{ TYPE_LABELS[type] }}</option>
             }
           </select>
           @if (form.get('type')?.disabled) {
-            <div class="form-text text-secondary">Heredado de la cuenta padre. No se puede cambiar.</div>
+          <div class="form-text text-secondary">Heredado de la cuenta padre. No se puede cambiar.</div>
           }
         </div>
         <div class="col-md-6">
@@ -379,28 +367,28 @@
         <div class="col-12">
           <label cLabel>Descripción</label>
           <textarea cFormControl formControlName="description" rows="2"
-                    placeholder="Descripción o notas de la cuenta"></textarea>
+            placeholder="Descripción o notas de la cuenta"></textarea>
         </div>
         <div class="col-md-6">
           <div class="form-check form-switch">
             <input class="form-check-input" type="checkbox" role="switch" id="allowsMovement"
-                   formControlName="allowsMovement" />
+              formControlName="allowsMovement" />
             <label class="form-check-label" for="allowsMovement">
               Permite Movimiento (cuenta auxiliar)
             </label>
           </div>
           <div class="form-text">
             @if (form.get('allowsMovement')?.disabled) {
-              <span class="text-warning">No disponible: esta cuenta tiene subcuentas. Los movimientos se registran en las subcuentas.</span>
+            <span class="text-warning">No disponible: esta cuenta tiene subcuentas. Los movimientos se registran en las
+              subcuentas.</span>
             } @else {
-              Activar para cuentas auxiliares que reciben débitos/créditos en asientos contables.
+            Activar para cuentas auxiliares que reciben débitos/créditos en asientos contables.
             }
           </div>
         </div>
         <div class="col-md-6">
           <div class="form-check form-switch">
-            <input class="form-check-input" type="checkbox" role="switch" id="isActive"
-                   formControlName="isActive" />
+            <input class="form-check-input" type="checkbox" role="switch" id="isActive" formControlName="isActive" />
             <label class="form-check-label" for="isActive">Cuenta Activa</label>
           </div>
         </div>
@@ -412,7 +400,7 @@
     <button cButton color="secondary" variant="outline" (click)="closeModal()">Cancelar</button>
     <button cButton color="primary" (click)="save()" [disabled]="form.invalid || saving()">
       @if (saving()) {
-        <c-spinner size="sm" class="me-1"></c-spinner>
+      <c-spinner size="sm" class="me-1"></c-spinner>
       }
       {{ editingId() ? 'Actualizar' : 'Crear' }}
     </button>
@@ -428,140 +416,138 @@
 
   <c-modal-body>
     @if (!importFileName() && !importParsing()) {
-      <div class="import-zone">
-        <div class="import-zone__icon">
-          <svg cIcon name="cilArrowTop" size="xxl"></svg>
-        </div>
-        <p class="import-zone__title">Sube tu archivo CSV o Excel</p>
-        <p class="import-zone__sub text-secondary">
-          Columnas requeridas: <code>codigo</code>, <code>nombre</code>, <code>tipo</code>,
-          <code>naturaleza</code>, <code>permite_movimiento</code>
-        </p>
-        <div class="d-flex gap-2 justify-content-center mt-3">
-          <button cButton color="primary" variant="outline" size="sm" (click)="fileInputRef.click()">
-            <svg cIcon name="cilFile" size="sm" class="me-1"></svg>
-            Seleccionar archivo
-          </button>
-          <button cButton color="success" variant="outline" size="sm" (click)="downloadTemplate()">
-            <svg cIcon name="cilCloudDownload" size="sm" class="me-1"></svg>
-            Descargar plantilla (.xlsx)
-          </button>
-        </div>
-        <p class="import-zone__hint text-secondary mt-3">
-          Los códigos ya existentes en el sistema serán omitidos automáticamente.
-        </p>
+    <div class="import-zone">
+      <div class="import-zone__icon">
+        <svg cIcon name="cilArrowTop" size="xxl"></svg>
       </div>
-      <input #fileInputRef type="file" accept=".csv,.xlsx,.xls" class="d-none"
-             (change)="onFileSelected($event)" />
+      <p class="import-zone__title">Sube tu archivo CSV o Excel</p>
+      <p class="import-zone__sub text-secondary">
+        Columnas requeridas: <code>codigo</code>, <code>nombre</code>, <code>tipo</code>,
+        <code>naturaleza</code>, <code>permite_movimiento</code>
+      </p>
+      <div class="d-flex gap-2 justify-content-center mt-3">
+        <button cButton color="primary" variant="outline" size="sm" (click)="fileInputRef.click()">
+          <svg cIcon name="cilFile" size="sm" class="me-1"></svg>
+          Seleccionar archivo
+        </button>
+        <button cButton color="success" variant="outline" size="sm" (click)="downloadTemplate()">
+          <svg cIcon name="cilCloudDownload" size="sm" class="me-1"></svg>
+          Descargar plantilla (.xlsx)
+        </button>
+      </div>
+      <p class="import-zone__hint text-secondary mt-3">
+        Los códigos ya existentes en el sistema serán omitidos automáticamente.
+      </p>
+    </div>
+    <input #fileInputRef type="file" accept=".csv,.xlsx,.xls" class="d-none" (change)="onFileSelected($event)" />
     }
 
     @if (importParsing()) {
-      <div class="text-center py-4">
-        <c-spinner color="primary"></c-spinner>
-        <p class="mt-2 text-secondary">Procesando archivo...</p>
-      </div>
+    <div class="text-center py-4">
+      <c-spinner color="primary"></c-spinner>
+      <p class="mt-2 text-secondary">Procesando archivo...</p>
+    </div>
     }
 
     @if (importFileName() && !importParsing()) {
-      <div class="import-summary mb-3">
-        <svg cIcon name="cilFile" size="sm" class="text-secondary flex-shrink-0"></svg>
-        <span class="import-summary__file ms-1">{{ importFileName() }}</span>
-        <div class="d-flex gap-2 ms-auto align-items-center">
-          <span class="badge bg-success-subtle text-success border border-success-subtle">
-            {{ importValid().length }} válidas
-          </span>
-          @if (importInvalid().length) {
-            <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
-              {{ importInvalid().length }} con errores
-            </span>
-          }
-          <button cButton color="secondary" variant="ghost" size="sm" (click)="fileInputRef2.click()">
-            <svg cIcon name="cilReload" size="sm" class="me-1"></svg>
-            Cambiar archivo
-          </button>
-          <input #fileInputRef2 type="file" accept=".csv,.xlsx,.xls" class="d-none"
-                 (change)="onFileSelected($event)" />
-        </div>
+    <div class="import-summary mb-3">
+      <svg cIcon name="cilFile" size="sm" class="text-secondary flex-shrink-0"></svg>
+      <span class="import-summary__file ms-1">{{ importFileName() }}</span>
+      <div class="d-flex gap-2 ms-auto align-items-center">
+        <span class="badge bg-success-subtle text-success border border-success-subtle">
+          {{ importValid().length }} válidas
+        </span>
+        @if (importInvalid().length) {
+        <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+          {{ importInvalid().length }} con errores
+        </span>
+        }
+        <button cButton color="secondary" variant="ghost" size="sm" (click)="fileInputRef2.click()">
+          <svg cIcon name="cilReload" size="sm" class="me-1"></svg>
+          Cambiar archivo
+        </button>
+        <input #fileInputRef2 type="file" accept=".csv,.xlsx,.xls" class="d-none" (change)="onFileSelected($event)" />
       </div>
+    </div>
 
-      @if (importInvalid().length) {
-        <div class="alert alert-warning py-2 mb-3 d-flex align-items-start gap-2">
-          <svg cIcon name="cilWarning" size="sm" class="mt-1 flex-shrink-0"></svg>
-          <div>
-            <strong>{{ importInvalid().length }} fila(s) tienen errores</strong> y serán omitidas.
-            Solo se importarán las {{ importValid().length }} filas válidas.
-          </div>
-        </div>
-      }
+    @if (importInvalid().length) {
+    <div class="alert alert-warning py-2 mb-3 d-flex align-items-start gap-2">
+      <svg cIcon name="cilWarning" size="sm" class="mt-1 flex-shrink-0"></svg>
+      <div>
+        <strong>{{ importInvalid().length }} fila(s) tienen errores</strong> y serán omitidas.
+        Solo se importarán las {{ importValid().length }} filas válidas.
+      </div>
+    </div>
+    }
 
-      @if (!importPreview().length) {
-        <div class="text-center py-4 text-secondary">
-          No se encontraron filas de datos en el archivo.
-        </div>
-      } @else {
-        <div class="import-preview-wrap">
-          <table class="import-table">
-            <thead>
-              <tr>
-                <th>Fila</th>
-                <th>Código</th>
-                <th>Nombre</th>
-                <th>Tipo</th>
-                <th>Naturaleza</th>
-                <th>Movimiento</th>
-                <th>Estado</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (row of importPreview(); track row.row) {
-                <tr [class.import-row-error]="!row.valid">
-                  <td class="text-secondary">{{ row.row }}</td>
-                  <td class="acc-code">{{ row.code || '—' }}</td>
-                  <td>{{ row.name || '—' }}</td>
-                  <td>
-                    @if (row.type) {
-                      <span [class]="badgeClasses(TYPE_COLORS[row.type])">
-                        {{ TYPE_LABELS[row.type] }}
-                      </span>
-                    }
-                  </td>
-                  <td class="text-capitalize">{{ row.nature }}</td>
-                  <td>
-                    @if (row.allowsMovement) {
-                      <span class="badge bg-info-subtle text-info border border-info-subtle">SI</span>
-                    } @else {
-                      <span class="text-secondary">NO</span>
-                    }
-                  </td>
-                  <td>
-                    @if (row.valid) {
-                      <span class="badge bg-success-subtle text-success border border-success-subtle">OK</span>
-                    } @else {
-                      <span class="text-danger" [cTooltip]="row.errors.join(', ')">
-                        <svg cIcon name="cilWarning" size="sm" class="me-1"></svg>Error
-                      </span>
-                    }
-                  </td>
-                </tr>
+    @if (!importPreview().length) {
+    <div class="text-center py-4 text-secondary">
+      No se encontraron filas de datos en el archivo.
+    </div>
+    } @else {
+    <div class="import-preview-wrap">
+      <table class="import-table">
+        <thead>
+          <tr>
+            <th>Fila</th>
+            <th>Código</th>
+            <th>Nombre</th>
+            <th>Tipo</th>
+            <th>Naturaleza</th>
+            <th>Movimiento</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of importPreview(); track row.row) {
+          <tr [class.import-row-error]="!row.valid">
+            <td class="text-secondary">{{ row.row }}</td>
+            <td class="acc-code">{{ row.code || '—' }}</td>
+            <td>{{ row.name || '—' }}</td>
+            <td>
+              @if (row.type) {
+              <span [class]="badgeClasses(TYPE_COLORS[row.type])">
+                {{ TYPE_LABELS[row.type] }}
+              </span>
               }
-            </tbody>
-          </table>
-        </div>
-      }
+            </td>
+            <td class="text-capitalize">{{ row.nature }}</td>
+            <td>
+              @if (row.allowsMovement) {
+              <span class="badge bg-info-subtle text-info border border-info-subtle">SI</span>
+              } @else {
+              <span class="text-secondary">NO</span>
+              }
+            </td>
+            <td>
+              @if (row.valid) {
+              <span class="badge bg-success-subtle text-success border border-success-subtle">OK</span>
+              } @else {
+              <span class="text-danger" [cTooltip]="row.errors.join(', ')">
+                <svg cIcon name="cilWarning" size="sm" class="me-1"></svg>Error
+              </span>
+              }
+            </td>
+          </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    }
     }
   </c-modal-body>
 
   <c-modal-footer>
     <button cButton color="secondary" variant="outline" (click)="closeImportModal()">Cancelar</button>
     @if (importFileName() && !importParsing() && importValid().length > 0) {
-      <button cButton color="primary" [disabled]="importing()" (click)="confirmImport()">
-        @if (importing()) {
-          <c-spinner size="sm" class="me-1"></c-spinner> Importando...
-        } @else {
-          <svg cIcon name="cilArrowTop" size="sm" class="me-1"></svg>
-          Confirmar importación ({{ importValid().length }} cuentas)
-        }
-      </button>
+    <button cButton color="primary" [disabled]="importing()" (click)="confirmImport()">
+      @if (importing()) {
+      <c-spinner size="sm" class="me-1"></c-spinner> Importando...
+      } @else {
+      <svg cIcon name="cilArrowTop" size="sm" class="me-1"></svg>
+      Confirmar importación ({{ importValid().length }} cuentas)
+      }
+    </button>
     }
   </c-modal-footer>
 </c-modal>

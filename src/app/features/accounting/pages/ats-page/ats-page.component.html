@@ -18,6 +18,17 @@
 <c-card class="mb-3">
   <c-card-body>
     <div class="d-flex gap-3 align-items-end flex-wrap">
+
+      <!-- Tipo de período -->
+      <div>
+        <label cLabel>Tipo de período</label>
+        <select cSelect [ngModel]="periodoTipo()" (ngModelChange)="setPeriodoTipo($event)">
+          <option value="mensual">Mensual</option>
+          <option value="semestral">Semestral (RIMPE)</option>
+        </select>
+      </div>
+
+      <!-- Año -->
       <div>
         <label cLabel>Año</label>
         <select cSelect [ngModel]="selectedYear()" (ngModelChange)="selectedYear.set(+$event); calculatePreview()">
@@ -26,14 +37,31 @@
           }
         </select>
       </div>
-      <div>
-        <label cLabel>Mes</label>
-        <select cSelect [ngModel]="selectedMonth()" (ngModelChange)="selectedMonth.set(+$event); calculatePreview()">
-          @for (m of months; track m.value) {
-            <option [value]="m.value">{{ m.label }}</option>
-          }
-        </select>
-      </div>
+
+      <!-- Mes (solo mensual) -->
+      @if (periodoTipo() === 'mensual') {
+        <div>
+          <label cLabel>Mes</label>
+          <select cSelect [ngModel]="selectedMonth()" (ngModelChange)="selectedMonth.set(+$event); calculatePreview()">
+            @for (m of months; track m.value) {
+              <option [value]="m.value">{{ m.label }}</option>
+            }
+          </select>
+        </div>
+      }
+
+      <!-- Semestre (solo semestral) -->
+      @if (periodoTipo() === 'semestral') {
+        <div>
+          <label cLabel>Semestre</label>
+          <select cSelect [ngModel]="selectedSemestre()" (ngModelChange)="setSemestre($event)">
+            @for (s of semestres; track s.value) {
+              <option [value]="s.value">{{ s.label }}</option>
+            }
+          </select>
+        </div>
+      }
+
       <button cButton color="secondary" variant="outline" (click)="calculatePreview()" [disabled]="loadingPreview()">
         @if (loadingPreview()) {
           <c-spinner size="sm" class="me-1"></c-spinner>
@@ -42,15 +70,46 @@
         }
         Actualizar resumen
       </button>
-      <button cButton color="primary" class="ms-auto" (click)="downloadAts()" [disabled]="downloading()">
-        @if (downloading()) {
-          <c-spinner size="sm" class="me-1"></c-spinner>
-          Generando...
-        } @else {
-          <svg cIcon name="cilCloudDownload" size="sm" class="me-1"></svg>
-          Generar y Descargar ATS
-        }
-      </button>
+      <div class="ms-auto d-flex gap-2">
+        <button cButton color="success" variant="outline" (click)="exportExcel()" [disabled]="exportingExcel() || downloading()">
+          @if (exportingExcel()) {
+            <c-spinner size="sm" class="me-1"></c-spinner>
+            Generando...
+          } @else {
+            <svg cIcon name="cilSpreadsheet" size="sm" class="me-1"></svg>
+            Exportar a Excel
+          }
+        </button>
+        <button cButton color="primary" (click)="downloadAts()" [disabled]="downloading() || exportingExcel()">
+          @if (downloading()) {
+            <c-spinner size="sm" class="me-1"></c-spinner>
+            Generando...
+          } @else {
+            <svg cIcon name="cilCloudDownload" size="sm" class="me-1"></svg>
+            Generar XML (.zip)
+          }
+        </button>
+      </div>
+    </div>
+
+    <!-- Opciones adicionales -->
+    <div class="mt-3 pt-3 border-top">
+      <div class="form-check">
+        <input
+          class="form-check-input"
+          type="checkbox"
+          id="excluir332"
+          [checked]="excluirInformativa332()"
+          (change)="excluirInformativa332.set($any($event.target).checked)"
+        >
+        <label class="form-check-label" for="excluir332">
+          Excluir retención informativa 332
+        </label>
+        <div class="text-secondary small mt-1">
+          Al activar esta opción, las compras sin retención asignada (código 332 — "no sujetas a retención")
+          no se incluirán en el detalle de retenciones del ATS.
+        </div>
+      </div>
     </div>
   </c-card-body>
 </c-card>

@@ -1,0 +1,130 @@
+// ─── Filtros ──────────────────────────────────────────────────────────────────
+.filter-field {
+  flex: 1 1 200px;
+}
+
+// ─── Tabla resumen (Resumen General / Cobros) ─────────────────────────────────
+.summary-table {
+  border-collapse: collapse;
+  font-size: .875rem;
+
+  td, th {
+    padding: .35rem .5rem;
+    vertical-align: middle;
+    border: none;
+  }
+
+  .summary-section-header td {
+    font-size: .67rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--cui-tertiary-color);
+    padding-top: .8rem;
+    padding-bottom: .25rem;
+  }
+
+  .summary-total-row td {
+    border-top: 1px solid var(--cui-border-color);
+    padding-top: .5rem;
+    font-size: .95rem;
+  }
+
+  .summary-neto-row td {
+    border-top: 2px solid var(--cui-border-color-translucent);
+    padding-top: .5rem;
+    font-size: 1rem;
+  }
+
+  .table-header-row th {
+    font-size: .72rem;
+    font-weight: 600;
+    color: var(--cui-secondary-color);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    border-bottom: 1px solid var(--cui-border-color);
+  }
+}
+
+// ─── Grid de documentos ───────────────────────────────────────────────────────
+.doc-stat-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  border: 1px solid var(--cui-border-color);
+  border-radius: var(--cui-border-radius);
+  overflow: hidden;
+}
+
+.doc-stat {
+  flex: 1 1 90px;
+  padding: .55rem .75rem;
+  border-right: 1px solid var(--cui-border-color);
+  border-bottom: 1px solid var(--cui-border-color);
+  text-align: center;
+
+  &:last-child { border-right: none; }
+
+  &--success .doc-stat__value { color: var(--cui-success); }
+  &--warning .doc-stat__value { color: var(--cui-warning); }
+  &--danger  .doc-stat__value { color: var(--cui-danger); }
+  &--purple  .doc-stat__value { color: #8250df; }
+}
+
+.doc-stat__value {
+  font-family: var(--cui-font-monospace, monospace);
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.doc-stat__label {
+  font-size: .68rem;
+  color: var(--cui-secondary-color);
+  margin-top: .15rem;
+}
+
+// ─── Etiqueta de sección ──────────────────────────────────────────────────────
+.section-label {
+  font-size: .67rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--cui-tertiary-color);
+}
+
+// ─── Monospace para números ───────────────────────────────────────────────────
+.mono {
+  font-family: var(--cui-font-monospace, monospace);
+}
+
+// ─── Contenedores de gráficas ─────────────────────────────────────────────────
+// position:relative es OBLIGATORIO — Chart.js usa getBoundingClientRect() del
+// padre para calcular sus dimensiones; sin él el canvas crece infinitamente.
+.chart-wrapper {
+  position: relative;
+  height: 260px;
+  width: 100%;
+
+  &--xs  { height: 145px; } // doughnuts compactos dentro de cards con mucho contenido
+  &--sm  { height: 180px; }
+  &--md  { height: 240px; }
+  &--lg  { height: 300px; }
+  &--pie { height: 200px; } // doughnuts/pies standalone en card propia
+}
+
+// ─── Print ────────────────────────────────────────────────────────────────────
+@media print {
+  .no-print { display: none !important; }
+  c-card { break-inside: avoid; box-shadow: none !important; border: 1px solid #ddd !important; }
+  .chart-wrapper { height: 200px !important; }
+}
+
+// ─── Responsive ───────────────────────────────────────────────────────────────
+@media (max-width: 576px) {
+  .doc-stat          { flex: 1 1 45%; }
+  .filter-field      { flex: 1 1 100%; }
+  .chart-wrapper--lg  { height: 220px; }
+  .chart-wrapper--pie { height: 160px; }
+  .chart-wrapper--xs  { height: 120px; }
+}

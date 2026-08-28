@@ -1,0 +1,448 @@
+<!-- ── Header ──────────────────────────────────────────────────────────────── -->
+<div class="mb-3 d-flex align-items-start gap-3 flex-wrap">
+  <div>
+    <h4 class="mb-0">Reporte de Ventas</h4>
+    <small class="text-secondary">Resumen de facturación por período — emitidas y cobradas</small>
+  </div>
+  @if (hasData()) {
+    <div class="ms-auto d-flex gap-2 no-print">
+      <button cButton color="success" variant="outline" size="sm" (click)="exportExcel()">
+        <svg cIcon name="cilSpreadsheet" size="sm" class="me-1"></svg>Excel
+      </button>
+      <button cButton color="secondary" variant="outline" size="sm" (click)="printReport()">
+        <svg cIcon name="cilPrint" size="sm" class="me-1"></svg>Imprimir
+      </button>
+    </div>
+  }
+</div>
+
+<!-- ── Filtros ──────────────────────────────────────────────────────────────── -->
+<c-card class="mb-3 no-print">
+  <c-card-body>
+    <div class="d-flex gap-3 align-items-end flex-wrap">
+
+      <div>
+        <label cLabel for="dateFrom">Desde</label>
+        <input cFormControl type="date" id="dateFrom"
+          [ngModel]="dateFrom()" (ngModelChange)="dateFrom.set($event)">
+      </div>
+
+      <div>
+        <label cLabel for="dateTo">Hasta</label>
+        <input cFormControl type="date" id="dateTo"
+          [ngModel]="dateTo()" (ngModelChange)="dateTo.set($event)">
+      </div>
+
+      <button cButton color="primary" (click)="loadData()" [disabled]="loading()">
+        @if (loading()) {
+          <c-spinner size="sm" class="me-1"></c-spinner>Cargando...
+        } @else {
+          <svg cIcon name="cilReload" size="sm" class="me-1"></svg>Generar
+        }
+      </button>
+    </div>
+
+    @if (dateError()) {
+      <c-alert color="danger" class="mt-2 mb-0 py-2">
+        La fecha "Desde" no puede ser posterior a la fecha "Hasta".
+      </c-alert>
+    }
+
+    <div class="mt-3 pt-3 border-top d-flex gap-3 flex-wrap">
+      <div class="filter-field">
+        <label cLabel for="customerFilter">Cliente</label>
+        <input cFormControl type="text" id="customerFilter" placeholder="Nombre o RUC…"
+          [ngModel]="customerFilter()" (ngModelChange)="customerFilter.set($event)">
+      </div>
+      <div class="filter-field">
+        <label cLabel for="productFilter">Producto / Servicio</label>
+        <input cFormControl type="text" id="productFilter" placeholder="Descripción…"
+          [ngModel]="productFilter()" (ngModelChange)="productFilter.set($event)">
+      </div>
+      <div class="filter-field">
+        <label cLabel for="costCenterFilter">Centro de Costo</label>
+        <input cFormControl type="text" id="costCenterFilter" placeholder="Centro…"
+          [ngModel]="costCenterFilter()" (ngModelChange)="costCenterFilter.set($event)">
+      </div>
+    </div>
+  </c-card-body>
+</c-card>
+
+<!-- ── Spinner ─────────────────────────────────────────────────────────────── -->
+@if (loading()) {
+  <div class="text-center py-5">
+    <c-spinner color="primary"></c-spinner>
+  </div>
+}
+
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<!-- ── Resultados ─────────────────────────────────────────────────────────── -->
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+@if (hasData() && !loading()) {
+
+  <!-- ═══ FILA 1: Resumen General + Documentos ══════════════════════════════ -->
+  <c-row class="mb-3 g-3">
+
+    <!-- ── Resumen General ─────────────────────────────────────────────────── -->
+    <c-col xs="12" lg="6">
+      <c-card>
+        <c-card-header><strong>Resumen General</strong></c-card-header>
+        <c-card-body>
+          <table class="summary-table w-100">
+            <tbody>
+              <tr class="summary-section-header">
+                <td colspan="2">Ventas del período</td>
+              </tr>
+              <tr>
+                <td>Subtotal 0%</td>
+                <td class="text-end mono">$ {{ fmt(summary().subtotal0) }}</td>
+              </tr>
+              <tr>
+                <td>Subtotal IVA <span class="text-secondary small">(gravado)</span></td>
+                <td class="text-end mono">$ {{ fmt(summary().subtotalIva) }}</td>
+              </tr>
+              <tr>
+                <td>IVA</td>
+                <td class="text-end mono">$ {{ fmt(summary().totalIva) }}</td>
+              </tr>
+              <tr>
+                <td>Descuento</td>
+                <td class="text-end mono text-warning">− $ {{ fmt(summary().totalDiscount) }}</td>
+              </tr>
+              <tr class="summary-total-row">
+                <td><strong>TOTAL</strong></td>
+                <td class="text-end mono"><strong>$ {{ fmt(summary().totalEmitido) }}</strong></td>
+              </tr>
+              <tr>
+                <td>Notas de Crédito</td>
+                <td class="text-end mono text-danger">− $ {{ fmt(summary().totalCreditNotes) }}</td>
+              </tr>
+              <tr class="summary-neto-row">
+                <td><strong>Total Neto</strong></td>
+                <td class="text-end mono"><strong>$ {{ fmt(summary().totalNeto) }}</strong></td>
+              </tr>
+            </tbody>
+          </table>
+
+          @if (vatBreakdown().length > 1) {
+            <div class="mt-3 pt-3 border-top">
+              <div class="section-label mb-2">Desglose por tarifa IVA</div>
+              <table class="summary-table w-100">
+                <thead>
+                  <tr class="table-header-row">
+                    <th>Tarifa</th>
+                    <th class="text-end">Base</th>
+                    <th class="text-end">IVA</th>
+                    <th class="text-end">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (row of vatBreakdown(); track row.vatPct) {
+                    <tr>
+                      <td>{{ row.vatPct }}%</td>
+                      <td class="text-end mono">$ {{ fmt(row.taxableBase) }}</td>
+                      <td class="text-end mono">$ {{ fmt(row.vatAmount) }}</td>
+                      <td class="text-end mono">$ {{ fmt(row.taxableBase + row.vatAmount) }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </c-card-body>
+      </c-card>
+    </c-col>
+
+    <!-- ── Documentos ──────────────────────────────────────────────────────── -->
+    <c-col xs="12" lg="6">
+      <c-card>
+        <c-card-header><strong>Documentos</strong></c-card-header>
+        <c-card-body>
+          <!-- Stats grid -->
+          <div class="doc-stat-grid mb-3">
+            <div class="doc-stat">
+              <div class="doc-stat__value">{{ docCounts().emitidos }}</div>
+              <div class="doc-stat__label">Emitidos</div>
+            </div>
+            <div class="doc-stat doc-stat--success">
+              <div class="doc-stat__value">{{ docCounts().cobrados }}</div>
+              <div class="doc-stat__label">Cobrados</div>
+            </div>
+            <div class="doc-stat doc-stat--warning">
+              <div class="doc-stat__value">{{ docCounts().pendientes }}</div>
+              <div class="doc-stat__label">Pendientes</div>
+            </div>
+            <div class="doc-stat doc-stat--danger">
+              <div class="doc-stat__value">{{ docCounts().anulados }}</div>
+              <div class="doc-stat__label">Anulados</div>
+            </div>
+            <div class="doc-stat doc-stat--purple">
+              <div class="doc-stat__value">{{ docCounts().creditNotes }}</div>
+              <div class="doc-stat__label">N. Crédito</div>
+            </div>
+            <div class="doc-stat">
+              <div class="doc-stat__value">$ {{ fmt(docCounts().promedio) }}</div>
+              <div class="doc-stat__label">Promedio/doc</div>
+            </div>
+          </div>
+
+          <!-- Tasa de cobro -->
+          <div class="mb-3">
+            <div class="d-flex justify-content-between small mb-1">
+              <span class="text-secondary">Tasa de cobro</span>
+              <span class="fw-semibold">{{ pct(docCounts().pctCobrado) }}</span>
+            </div>
+            <div class="progress" style="height: 6px; border-radius: 3px; background: var(--cui-border-color)">
+              <div class="progress-bar bg-success"
+                   role="progressbar"
+                   [style.width]="pct(docCounts().pctCobrado)"
+                   [attr.aria-valuenow]="docCounts().pctCobrado"
+                   aria-valuemin="0" aria-valuemax="100">
+              </div>
+            </div>
+          </div>
+
+          <!-- Distribución visual por estado (barras CSS) -->
+          @for (item of docBreakdown(); track item.label) {
+            <div class="mb-2">
+              <div class="d-flex justify-content-between" style="font-size:.8rem">
+                <span>{{ item.label }}</span>
+                <span class="mono fw-semibold">{{ item.value }}
+                  <span class="text-secondary fw-normal">({{ pct(item.pct) }})</span>
+                </span>
+              </div>
+              <div class="progress mt-1" style="height:7px;border-radius:4px;background:var(--cui-border-color)">
+                <div class="progress-bar" role="progressbar"
+                     [style.width]="item.pct + '%'"
+                     [style.background]="item.color">
+                </div>
+              </div>
+            </div>
+          }
+        </c-card-body>
+      </c-card>
+    </c-col>
+  </c-row>
+
+  <!-- ═══ FILA 2: Resumen de Cobros ════════════════════════════════════════ -->
+  <c-row class="mb-3 g-3">
+
+    <!-- ── Tabla cobros ────────────────────────────────────────────────────── -->
+    <c-col xs="12" lg="7">
+      <c-card>
+        <c-card-header><strong>Resumen de Cobros</strong></c-card-header>
+        <c-card-body>
+          <table class="summary-table w-100">
+            <tbody>
+              <tr class="summary-section-header">
+                <td colspan="2">Formas de pago (documentos cobrados)</td>
+              </tr>
+              @if (paymentSummary().cash > 0) {
+                <tr>
+                  <td>Efectivo / Cheque</td>
+                  <td class="text-end mono">$ {{ fmt(paymentSummary().cash) }}</td>
+                </tr>
+              }
+              @if (paymentSummary().credit > 0) {
+                <tr>
+                  <td>Tarjeta de Crédito</td>
+                  <td class="text-end mono">$ {{ fmt(paymentSummary().credit) }}</td>
+                </tr>
+              }
+              @if (paymentSummary().debit > 0) {
+                <tr>
+                  <td>Tarjeta de Débito</td>
+                  <td class="text-end mono">$ {{ fmt(paymentSummary().debit) }}</td>
+                </tr>
+              }
+              @if (paymentSummary().transfer > 0) {
+                <tr>
+                  <td>Transferencia</td>
+                  <td class="text-end mono">$ {{ fmt(paymentSummary().transfer) }}</td>
+                </tr>
+              }
+              @if (paymentSummary().digital > 0) {
+                <tr>
+                  <td>Dinero Electrónico</td>
+                  <td class="text-end mono">$ {{ fmt(paymentSummary().digital) }}</td>
+                </tr>
+              }
+              @if (paymentSummary().other > 0) {
+                <tr>
+                  <td>Otras formas de cobro</td>
+                  <td class="text-end mono">$ {{ fmt(paymentSummary().other) }}</td>
+                </tr>
+              }
+              <tr class="summary-total-row">
+                <td><strong>Total Cobrado</strong></td>
+                <td class="text-end mono"><strong class="text-success">$ {{ fmt(paymentSummary().totalCobrado) }}</strong></td>
+              </tr>
+              <tr class="summary-section-header">
+                <td colspan="2">Estado de las ventas emitidas</td>
+              </tr>
+              <tr>
+                <td>Cobrado (en el período)</td>
+                <td class="text-end mono text-success">$ {{ fmt(paymentSummary().totalCobrado) }}</td>
+              </tr>
+              <tr>
+                <td>Pendiente de cobro</td>
+                <td class="text-end mono text-warning">$ {{ fmt(paymentSummary().totalPendiente) }}</td>
+              </tr>
+              <tr class="summary-total-row">
+                <td><strong>Total Emitido</strong></td>
+                <td class="text-end mono"><strong>$ {{ fmt(paymentSummary().totalEmitido) }}</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </c-card-body>
+      </c-card>
+    </c-col>
+
+    <!-- ── Gráfica distribución de cobros ──────────────────────────────────── -->
+    <c-col xs="12" lg="5">
+      <c-card>
+        <c-card-header><strong>Distribución de Cobros</strong></c-card-header>
+        <c-card-body>
+          @if (paymentSummary().totalCobrado > 0) {
+            @for (item of paymentBreakdown(); track item.label) {
+              <div class="mb-3">
+                <div class="d-flex justify-content-between" style="font-size:.8rem">
+                  <span>{{ item.label }}</span>
+                  <span class="mono fw-semibold">$ {{ fmt(item.value) }}
+                    <span class="text-secondary fw-normal">({{ pct(item.pct) }})</span>
+                  </span>
+                </div>
+                <div class="progress mt-1" style="height:8px;border-radius:4px;background:var(--cui-border-color)">
+                  <div class="progress-bar" role="progressbar"
+                       [style.width]="item.pct + '%'"
+                       [style.background]="item.color">
+                  </div>
+                </div>
+              </div>
+            }
+          } @else {
+            <div class="text-center text-secondary py-4">
+              <p class="mb-0 small">Sin cobros registrados en el período</p>
+            </div>
+          }
+        </c-card-body>
+      </c-card>
+    </c-col>
+  </c-row>
+
+  <!-- ═══ FILA 3: Ventas por Hora ══════════════════════════════════════════ -->
+  <c-card class="mb-3">
+    <c-card-header>
+      <strong>Ventas por Hora del Día</strong>
+      <small class="text-secondary ms-2">Distribución horaria de documentos emitidos</small>
+    </c-card-header>
+    <c-card-body>
+      @if (byHour().length > 0) {
+        <!-- Gráfica de líneas -->
+        <div class="chart-wrapper chart-wrapper--lg">
+          <c-chart type="line"
+            [data]="hourChartData()"
+            [options]="hourChartOptions">
+          </c-chart>
+        </div>
+        <!-- Tabla compacta de referencia -->
+        <div class="mt-3">
+          <table cTable hover responsive small class="mb-0">
+            <thead>
+              <tr>
+                <th>Hora</th>
+                <th class="text-end">Documentos</th>
+                <th class="text-end">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of byHour(); track row.hour) {
+                <tr>
+                  <td class="mono">{{ row.label }}</td>
+                  <td class="text-end">{{ row.count }}</td>
+                  <td class="text-end mono">$ {{ fmt(row.total) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <p class="text-secondary mb-0">Sin datos de hora disponibles.</p>
+      }
+    </c-card-body>
+  </c-card>
+
+  <!-- ═══ FILA 4: Ventas por Producto ══════════════════════════════════════ -->
+  <c-card class="mb-3">
+    <c-card-header class="d-flex align-items-center gap-2">
+      <strong>Ventas por Producto / Servicio</strong>
+      <span class="badge bg-secondary" style="font-size:.65rem">{{ byProduct().length }}</span>
+    </c-card-header>
+    <c-card-body>
+      @if (byProduct().length > 0) {
+
+        <!-- Gráfica top 10 (barra horizontal) -->
+        @if (byProduct().length > 1) {
+          <div class="chart-wrapper chart-wrapper--md mb-4">
+            <c-chart type="bar"
+              [data]="productChartData()"
+              [options]="productChartOptions">
+            </c-chart>
+          </div>
+        }
+
+        <!-- Tabla detalle con scroll en mobile -->
+        <div class="table-responsive">
+          <table cTable hover class="mb-0">
+            <thead>
+              <tr>
+                <th style="width:2.5rem">#</th>
+                <th>Producto / Descripción</th>
+                <th class="text-end">Cant.</th>
+                <th class="text-end">Subtotal</th>
+                <th class="text-end">IVA</th>
+                <th class="text-end">Total</th>
+                <th class="text-end">%</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of byProduct(); track row.description; let idx = $index) {
+                <tr>
+                  <td class="text-secondary small">{{ idx + 1 }}</td>
+                  <td>{{ row.description }}</td>
+                  <td class="text-end">{{ row.qty | number:'1.0-2' }}</td>
+                  <td class="text-end mono">$ {{ fmt(row.subtotal) }}</td>
+                  <td class="text-end mono">$ {{ fmt(row.iva) }}</td>
+                  <td class="text-end mono fw-semibold">$ {{ fmt(row.total) }}</td>
+                  <td class="text-end small text-secondary">
+                    {{ pct(summary().totalEmitido > 0 ? (row.total / summary().totalEmitido) * 100 : 0) }}
+                  </td>
+                </tr>
+              }
+            </tbody>
+            <tfoot>
+              <tr class="table-secondary fw-semibold">
+                <td colspan="3">Total</td>
+                <td class="text-end mono">$ {{ fmt(summary().totalEmitido - summary().totalIva) }}</td>
+                <td class="text-end mono">$ {{ fmt(summary().totalIva) }}</td>
+                <td class="text-end mono">$ {{ fmt(summary().totalEmitido) }}</td>
+                <td class="text-end">100%</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      } @else {
+        <p class="text-secondary mb-0">Sin productos para mostrar con los filtros aplicados.</p>
+      }
+    </c-card-body>
+  </c-card>
+
+}
+
+<!-- ── Estado vacío ─────────────────────────────────────────────────────────── -->
+@if (!hasData() && !loading()) {
+  <c-alert color="warning">
+    <svg cIcon name="cilInfo" size="sm" class="me-1"></svg>
+    Selecciona un período y haz clic en <strong>Generar</strong> para cargar el reporte de ventas.
+  </c-alert>
+}

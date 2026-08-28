@@ -17,15 +17,40 @@
   <svg cIcon name="cilInfo" size="sm" class="me-1"></svg>
   Ayuda para la declaración mensual de retenciones en la fuente del Impuesto a la Renta.
   Los valores se calculan desde los comprobantes de retención emitidos (no anulados) del período
-  seleccionado. Cubre solo los conceptos que el sistema puede generar — quedan fuera relación de
-  dependencia, dividendos, loterías, banano y el detalle de pagos al exterior. Verifique con su
-  asesor tributario antes de declarar.
+  seleccionado. Los campos de pronósticos deportivos (3483, 3484) son editables manualmente.
+  Verifique con su asesor tributario antes de declarar.
 </c-alert>
 
-<!-- ── Filters ─────────────────────────────────────────────────────────────── -->
+<!-- ── Nuevo formulario (filtros) ──────────────────────────────────────────── -->
 <c-card class="mb-3 no-print">
+  <c-card-header>
+    <strong>Nuevo formulario</strong>
+  </c-card-header>
   <c-card-body>
     <div class="d-flex gap-3 align-items-end flex-wrap">
+
+      <!-- Tipo de declaracion -->
+      <div>
+        <label cLabel>Tipo de declaración</label>
+        <select cSelect
+          [ngModel]="declaracionTipo()"
+          (ngModelChange)="declaracionTipo.set($event)">
+          <option value="original">Original</option>
+          <option value="sustitutiva">Sustitutiva</option>
+        </select>
+      </div>
+
+      <!-- N° formulario que sustituye (solo si sustitutiva) -->
+      @if (declaracionTipo() === 'sustitutiva') {
+        <div>
+          <label cLabel>N° formulario que sustituye <span class="text-danger">*</span></label>
+          <input cFormControl type="text" placeholder="Ej. 1234567890"
+            [ngModel]="formNumeroSustituye()"
+            (ngModelChange)="formNumeroSustituye.set($event)">
+        </div>
+      }
+
+      <!-- Año -->
       <div>
         <label cLabel>Año</label>
         <select cSelect [ngModel]="selectedYear()" (ngModelChange)="selectedYear.set(+$event)">
@@ -34,6 +59,8 @@
           }
         </select>
       </div>
+
+      <!-- Mes -->
       <div>
         <label cLabel>Mes</label>
         <select cSelect [ngModel]="selectedMonth()" (ngModelChange)="selectedMonth.set(+$event)">
@@ -42,141 +69,325 @@
           }
         </select>
       </div>
+
       <button cButton color="primary" (click)="generate()" [disabled]="generating()">
         @if (generating()) {
           <c-spinner size="sm" class="me-1"></c-spinner>
           Calculando...
         } @else {
           <svg cIcon name="cilCalculator" size="sm" class="me-1"></svg>
-          Calcular
+          Generar
         }
       </button>
     </div>
   </c-card-body>
 </c-card>
 
-<!-- ── Report ──────────────────────────────────────────────────────────────── -->
-@if (generated() && form103(); as f) {
-  <div class="report-header mb-3">
-    <div class="report-title">FORMULARIO 103 — RETENCIONES EN LA FUENTE DEL IR</div>
-    <div class="report-period">{{ selectedMonthLabel() }} {{ selectedYear() }}</div>
-  </div>
-
-  <c-card class="mb-3">
-    <c-card-body>
-
-      <!-- POR PAGOS EFECTUADOS EN EL PAÍS -->
-      <div class="form-section">
-        <div class="section-title">Por Pagos Efectuados en el País</div>
-        <table class="casilla-table">
-          <tr>
-            <td class="casilla-num">303</td>
-            <td class="casilla-desc">Honorarios profesionales</td>
-            <td class="casilla-val">{{ fmt(f.c303) }}</td>
-          </tr>
-          <tr>
-            <td class="casilla-num">304</td>
-            <td class="casilla-desc">Servicios donde predomina el intelecto</td>
-            <td class="casilla-val">{{ fmt(f.c304) }}</td>
-          </tr>
-          <tr>
-            <td class="casilla-num">307</td>
-            <td class="casilla-desc">Servicios donde predomina la mano de obra</td>
-            <td class="casilla-val">{{ fmt(f.c307) }}</td>
-          </tr>
-          <tr>
-            <td class="casilla-num">308</td>
-            <td class="casilla-desc">Utilización o aprovechamiento de imagen o renombre</td>
-            <td class="casilla-val">{{ fmt(f.c308) }}</td>
-          </tr>
-          <tr>
-            <td class="casilla-num">309</td>
-            <td class="casilla-desc">Transporte privado de pasajeros</td>
-            <td class="casilla-val">{{ fmt(f.c309) }}</td>
-          </tr>
-          <tr>
-            <td class="casilla-num">310</td>
-            <td class="casilla-desc">Transferencia de bienes muebles corporales</td>
-            <td class="casilla-val">{{ fmt(f.c310) }}</td>
-          </tr>
-          <tr>
-            <td class="casilla-num">312</td>
-            <td class="casilla-desc">
-              Transferencia de bienes inmuebles
-              <span class="casilla-warn" cTooltip="Tasa sin verificar contra la resolución vigente — confirmar antes de declarar">⚠</span>
-            </td>
-            <td class="casilla-val">{{ fmt(f.c312) }}</td>
-          </tr>
-          <tr>
-            <td class="casilla-num">314</td>
-            <td class="casilla-desc">Regalías, derechos de autor, marcas y patentes</td>
-            <td class="casilla-val">{{ fmt(f.c314) }}</td>
-          </tr>
-          <tr>
-            <td class="casilla-num">319</td>
-            <td class="casilla-desc">Arrendamiento de bienes inmuebles</td>
-            <td class="casilla-val">{{ fmt(f.c319) }}</td>
-          </tr>
-          <tr>
-            <td class="casilla-num">322</td>
-            <td class="casilla-desc">Seguros y reaseguros</td>
-            <td class="casilla-val">{{ fmt(f.c322) }}</td>
-          </tr>
-          <tr>
-            <td class="casilla-num">323</td>
-            <td class="casilla-desc">Rendimientos financieros</td>
-            <td class="casilla-val">{{ fmt(f.c323) }}</td>
-          </tr>
-          <tr>
-            <td class="casilla-num">344</td>
-            <td class="casilla-desc">Otras retenciones sin porcentaje específico (3%)</td>
-            <td class="casilla-val">{{ fmt(f.c344) }}</td>
-          </tr>
-        </table>
-      </div>
-
-      <!-- PAGOS AL EXTERIOR -->
-      @if (f.exterior > 0) {
-        <div class="form-section">
-          <div class="section-title">Por Pagos al Exterior</div>
-          <table class="casilla-table">
-            <tr>
-              <td class="casilla-num">—</td>
-              <td class="casilla-desc">
-                Pagos a no domiciliados / exterior
-                <span class="casilla-warn" cTooltip="El sistema no distingue convenio de doble tributación ni tipo de pago — verificar manualmente el casillero exacto (401/411/413/415/429/431/433) antes de declarar">⚠</span>
-              </td>
-              <td class="casilla-val">{{ fmt(f.exterior) }}</td>
-            </tr>
-          </table>
-        </div>
-      }
-
-      <!-- TOTAL -->
-      <div class="form-section">
-        <table class="casilla-table">
-          <tr class="row-total">
-            <td class="casilla-num">—</td>
-            <td class="casilla-desc">TOTAL RETENIDO EN EL PERÍODO</td>
-            <td class="casilla-val">{{ fmt(f.total) }}</td>
-          </tr>
-        </table>
-      </div>
-
-      <p class="note-text mt-2">
-        * No incluye relación de dependencia (302), liquidaciones de compra por rusticidad (311),
-        dividendos (324), loterías/rifas (325), compra de banano (329/330) ni la sección de
-        declaración sustitutiva (890-999) — el sistema no genera retenciones con esos conceptos.
-        Verifique estos valores directamente en el formulario oficial del SRI (www.sri.gob.ec) si aplican.
-      </p>
-
-    </c-card-body>
-  </c-card>
-}
-
+<!-- ── Estado vacío ─────────────────────────────────────────────────────────── -->
 @if (!generated() && !generating()) {
   <div class="text-center py-5 text-secondary">
     <svg cIcon name="cilFile" size="xl" class="mb-3 opacity-25"></svg>
-    <p>Seleccione año y mes, luego haga clic en "Calcular"</p>
+    <p>Configure el período y haga clic en "Generar"</p>
   </div>
 }
+
+<!-- ── Reporte ──────────────────────────────────────────────────────────────── -->
+@if (generated() && form103(); as f) {
+  @if (pronosticosActualizados(); as pron) {
+
+    <div class="report-header mb-3">
+      <div class="report-title">FORMULARIO 103 — RETENCIONES EN LA FUENTE DEL IR</div>
+      <div class="report-period">
+        {{ selectedMonthLabel() }} {{ selectedYear() }}
+        @if (f.declaracionTipo === 'sustitutiva') {
+          <span class="badge-sustitutiva">SUSTITUTIVA</span>
+          @if (f.formNumeroSustituye) {
+            <span class="text-secondary ms-2" style="font-size: 0.85rem;">Sustituye al N° {{ f.formNumeroSustituye }}</span>
+          }
+        }
+      </div>
+    </div>
+
+    <!-- Advertencia pronósticos inconsistentes -->
+    @if (pron.inconsistente) {
+      <c-alert color="warning" class="mb-3">
+        <svg cIcon name="cilWarning" size="sm" class="me-1"></svg>
+        <strong>Advertencia:</strong> Los valores de comisiones (3483) y premios (3484) ingresados
+        generan una inconsistencia con la base imponible del casillero 3480.
+        Revise los valores antes de declarar.
+      </c-alert>
+    }
+
+    <c-card class="mb-3">
+      <c-card-body>
+
+        <!-- POR PAGOS EFECTUADOS EN EL PAÍS — Casilleros existentes -->
+        <div class="form-section">
+          <div class="section-title">Por Pagos Efectuados en el País</div>
+          <table class="casilla-table">
+            <thead>
+              <tr class="casilla-header">
+                <th class="casilla-num">#</th>
+                <th class="casilla-desc">Concepto</th>
+                <th class="casilla-val">Valor Retenido</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="casilla-num">303</td>
+                <td class="casilla-desc">Honorarios profesionales</td>
+                <td class="casilla-val">{{ fmt(f.c303) }}</td>
+              </tr>
+              <tr>
+                <td class="casilla-num">304</td>
+                <td class="casilla-desc">Servicios donde predomina el intelecto</td>
+                <td class="casilla-val">{{ fmt(f.c304) }}</td>
+              </tr>
+              <tr>
+                <td class="casilla-num">307</td>
+                <td class="casilla-desc">Servicios donde predomina la mano de obra</td>
+                <td class="casilla-val">{{ fmt(f.c307) }}</td>
+              </tr>
+              <tr>
+                <td class="casilla-num">308</td>
+                <td class="casilla-desc">Utilización o aprovechamiento de imagen o renombre</td>
+                <td class="casilla-val">{{ fmt(f.c308) }}</td>
+              </tr>
+              <tr>
+                <td class="casilla-num">309</td>
+                <td class="casilla-desc">Transporte privado de pasajeros</td>
+                <td class="casilla-val">{{ fmt(f.c309) }}</td>
+              </tr>
+              <tr>
+                <td class="casilla-num">310</td>
+                <td class="casilla-desc">Transferencia de bienes muebles corporales</td>
+                <td class="casilla-val">{{ fmt(f.c310) }}</td>
+              </tr>
+              <tr>
+                <td class="casilla-num">312</td>
+                <td class="casilla-desc">
+                  Transferencia de bienes inmuebles
+                  <span class="casilla-warn" cTooltip="Tasa sin verificar contra la resolución vigente — confirmar antes de declarar">⚠</span>
+                </td>
+                <td class="casilla-val">{{ fmt(f.c312) }}</td>
+              </tr>
+              <tr>
+                <td class="casilla-num">314</td>
+                <td class="casilla-desc">Regalías, derechos de autor, marcas y patentes</td>
+                <td class="casilla-val">{{ fmt(f.c314) }}</td>
+              </tr>
+              <tr>
+                <td class="casilla-num">319</td>
+                <td class="casilla-desc">Arrendamiento de bienes inmuebles</td>
+                <td class="casilla-val">{{ fmt(f.c319) }}</td>
+              </tr>
+              <tr>
+                <td class="casilla-num">322</td>
+                <td class="casilla-desc">Seguros y reaseguros</td>
+                <td class="casilla-val">{{ fmt(f.c322) }}</td>
+              </tr>
+              <tr>
+                <td class="casilla-num">323</td>
+                <td class="casilla-desc">Rendimientos financieros</td>
+                <td class="casilla-val">{{ fmt(f.c323) }}</td>
+              </tr>
+              <tr>
+                <td class="casilla-num">344</td>
+                <td class="casilla-desc">Otras retenciones sin porcentaje específico (3%)</td>
+                <td class="casilla-val">{{ fmt(f.c344) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- NUEVOS CASILLEROS — Abril 2024 (pares Base Imponible / Valor Retenido) -->
+        <div class="form-section">
+          <div class="section-title">
+            Nuevos conceptos — Resolución NAC-DGERCGC24-00000008 (abril 2024)
+            <span class="casilla-warn ms-1"
+              cTooltip="Tasas y códigos por verificar contra la resolución SRI vigente antes de declarar">⚠</span>
+          </div>
+          <table class="casilla-table casilla-table-doble">
+            <thead>
+              <tr class="casilla-header">
+                <th class="casilla-num">#</th>
+                <th class="casilla-desc">Concepto</th>
+                <th class="casilla-val">Base Imponible</th>
+                <th class="casilla-num">#</th>
+                <th class="casilla-val">Valor Retenido</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="casilla-num">3030</td>
+                <td class="casilla-desc">Servicios profesionales prestados por sociedades residentes</td>
+                <td class="casilla-val">{{ fmt(f.c3030) }}</td>
+                <td class="casilla-num">3530</td>
+                <td class="casilla-val">{{ fmt(f.c3530) }}</td>
+              </tr>
+              <tr>
+                <td class="casilla-num">3121</td>
+                <td class="casilla-desc">Compras al comercializador de bienes de origen agrícola, avícola, pecuario, apícola, cunícola, bioacuático, forestal y carnes en estado natural</td>
+                <td class="casilla-val">{{ fmt(f.c3121) }}</td>
+                <td class="casilla-num">3621</td>
+                <td class="casilla-val">{{ fmt(f.c3621) }}</td>
+              </tr>
+              <tr>
+                <td class="casilla-num">3430</td>
+                <td class="casilla-desc">Actividades de construcción de obra material inmueble, urbanización, lotización o actividades similares</td>
+                <td class="casilla-val">{{ fmt(f.c3430) }}</td>
+                <td class="casilla-num">3450</td>
+                <td class="casilla-val">{{ fmt(f.c3450) }}</td>
+              </tr>
+              <tr>
+                <td class="casilla-num">3140</td>
+                <td class="casilla-desc">Comisiones pagadas a sociedades nacionales o extranjeras residentes en Ecuador y establecimientos permanentes domiciliados en el país</td>
+                <td class="casilla-val">{{ fmt(f.c3140) }}</td>
+                <td class="casilla-num">3640</td>
+                <td class="casilla-val">{{ fmt(f.c3640) }}</td>
+              </tr>
+              <tr>
+                <td class="casilla-num">3230</td>
+                <td class="casilla-desc">Otros rendimientos financieros, tarifa 0% (sin valor retenido)</td>
+                <td class="casilla-val">{{ fmt(f.c3230) }}</td>
+                <td class="casilla-num">—</td>
+                <td class="casilla-val">0.00</td>
+              </tr>
+              <tr>
+                <td class="casilla-num">3481</td>
+                <td class="casilla-desc">
+                  Autorretenciones — Sociedades Grandes Contribuyentes
+                  <span class="casilla-warn" cTooltip="Tasa variable según el concepto de autorretención — confirmar antes de declarar">⚠</span>
+                </td>
+                <td class="casilla-val">{{ fmt(f.c3481) }}</td>
+                <td class="casilla-num">3981</td>
+                <td class="casilla-val">{{ fmt(f.c3981) }}</td>
+              </tr>
+              <tr>
+                <td class="casilla-num">3370</td>
+                <td class="casilla-desc">Retención a cargo del propio sujeto pasivo por comercialización de productos forestales</td>
+                <td class="casilla-val">{{ fmt(f.c3370) }}</td>
+                <td class="casilla-num">3870</td>
+                <td class="casilla-val">{{ fmt(f.c3870) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- PRONÓSTICOS DEPORTIVOS -->
+        <div class="form-section">
+          <div class="section-title">Pronósticos Deportivos (julio 2024)</div>
+          <table class="casilla-table casilla-table-doble">
+            <thead>
+              <tr class="casilla-header">
+                <th class="casilla-num">#</th>
+                <th class="casilla-desc">Concepto</th>
+                <th class="casilla-val">Base / Valor</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- 3483 editable -->
+              <tr class="row-editable">
+                <td class="casilla-num">3483
+                  <span class="editable-badge">editable</span>
+                </td>
+                <td class="casilla-desc">
+                  Comisiones derivadas de la actividad de pronósticos deportivos
+                  <svg cIcon name="cilInfo" size="sm" class="casilla-info"
+                    cTooltip="Ingrese manualmente. No hay comprobante de retención que alimente este casillero automáticamente.">
+                  </svg>
+                </td>
+                <td class="casilla-val" colspan="2">
+                  <input type="number" class="casilla-input"
+                    min="0" step="0.01"
+                    [value]="editable3483()"
+                    (change)="onEditable3483Change($any($event.target).value)"
+                    (input)="onEditable3483Change($any($event.target).value)">
+                </td>
+              </tr>
+
+              <!-- 3484 editable -->
+              <tr class="row-editable">
+                <td class="casilla-num">3484
+                  <span class="editable-badge">editable</span>
+                </td>
+                <td class="casilla-desc">
+                  Premios pagados de pronósticos deportivos (se resta en el cálculo de 3480)
+                  <svg cIcon name="cilInfo" size="sm" class="casilla-info"
+                    cTooltip="Ingrese el valor de los premios pagados. Se resta de la base imponible del casillero 3480. Ingrese como valor positivo.">
+                  </svg>
+                </td>
+                <td class="casilla-val" colspan="2">
+                  <input type="number" class="casilla-input"
+                    min="0" step="0.01"
+                    [value]="editable3484()"
+                    (change)="onEditable3484Change($any($event.target).value)"
+                    (input)="onEditable3484Change($any($event.target).value)">
+                </td>
+              </tr>
+
+              <!-- 3480 / 3980 calculados -->
+              <tr>
+                <td class="casilla-num">3480</td>
+                <td class="casilla-desc">
+                  IR único sobre ingresos percibidos por operadores de pronósticos deportivos
+                  <svg cIcon name="cilInfo" size="sm" class="casilla-info"
+                    cTooltip="Base imponible = comprobantes con código 3480 + comisiones (3483) − premios (3484)">
+                  </svg>
+                </td>
+                <td class="casilla-val">{{ fmt(pron.c3480) }}</td>
+                <td></td>
+              </tr>
+              <tr>
+                <td class="casilla-num">3980</td>
+                <td class="casilla-desc">Valor retenido de pronósticos deportivos (15% del casillero 3480)</td>
+                <td class="casilla-val">{{ fmt(pron.c3980) }}</td>
+                <td></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- PAGOS AL EXTERIOR -->
+        @if (f.exterior > 0) {
+          <div class="form-section">
+            <div class="section-title">Por Pagos al Exterior</div>
+            <table class="casilla-table">
+              <tr>
+                <td class="casilla-num">—</td>
+                <td class="casilla-desc">
+                  Pagos a no domiciliados / exterior
+                  <span class="casilla-warn" cTooltip="El sistema no distingue convenio de doble tributación ni tipo de pago — verificar manualmente el casillero exacto (401/411/413/415/429/431/433) antes de declarar">⚠</span>
+                </td>
+                <td class="casilla-val">{{ fmt(f.exterior) }}</td>
+              </tr>
+            </table>
+          </div>
+        }
+
+        <!-- TOTAL -->
+        <div class="form-section">
+          <table class="casilla-table">
+            <tr class="row-total">
+              <td class="casilla-num">—</td>
+              <td class="casilla-desc">TOTAL RETENIDO EN EL PERÍODO</td>
+              <td class="casilla-val">{{ fmt(f.total) }}</td>
+            </tr>
+          </table>
+        </div>
+
+        <p class="note-text mt-2">
+          * No incluye relación de dependencia (302), liquidaciones de compra por rusticidad (311),
+          dividendos (324), loterías/rifas (325), compra de banano (329/330) ni la sección de
+          declaración sustitutiva (890-999). Los casilleros de pronósticos (3483/3484) requieren
+          ingreso manual. Los códigos de los nuevos casilleros de abril 2024 están marcados como
+          pendientes de verificación contra la resolución SRI vigente.
+          Verifique en el formulario oficial del SRI (www.sri.gob.ec) antes de declarar.
+        </p>
+
+      </c-card-body>
+    </c-card>
+
+  } <!-- fin pronosticosActualizados -->
+} <!-- fin generated && form103 -->

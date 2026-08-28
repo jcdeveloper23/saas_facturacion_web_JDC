@@ -1,5 +1,5 @@
 import { Injectable, inject, signal, computed, effect } from '@angular/core';
-import { Firestore, doc, collection, onSnapshot } from '@angular/fire/firestore';
+import { Firestore, doc, collection, onSnapshot, getDocs } from '@angular/fire/firestore';
 import { PlanLimitsService } from './plan-limits.service';
 
 export interface ManagedCompany {
@@ -86,6 +86,10 @@ export class TenantService {
   private _managedCompanies = signal<ManagedCompany[]>([]);
   private _switchingCompany = signal(false);
   private _managedLoaded    = false;
+
+  /** Catálogo de paquetes cargado una vez desde /plugin-packages (root). */
+  private _catalog          = signal<{ code: string; modules: string[] }[]>([]);
+  private _catalogLoaded    = false;
 
   constructor() {
     effect(() => {
@@ -308,13 +312,31 @@ export class TenantService {
 
   /**
    * Reactive list of active module codes for the current company.
-   * Derived from enabledModules stored on the company document,
-   * which is computed when packages are assigned.
-   * Equivalent to $GLOBALS['plugins'] in FacturaScripts runtime.
+   *
+   * Se computa dinámicamente desde enabledPackages + catálogo live de Firestore,
+   * de modo que si se agrega un módulo nuevo a un paquete en el catálogo, la empresa
+   * lo recibe automáticamente sin necesidad de re-activar el paquete.
+   *
+   * Mientras el catálogo no ha cargado, hace fallback a enabledModules guardado
+   * (comportamiento previo, sin regresión).
+   *
+   * Equivalente a $GLOBALS['plugins'] en FacturaScripts runtime.
    */
-  readonly activeModules = computed<string[]>(() =>
-    this._company()?.enabledModules ?? []
-  );
+  readonly activeModules = computed<string[]>(() => {
+    const catalog = this._catalog();
+    const packages = this._company()?.enabledPackages ?? [];
+
+    // Fallback mientras el catálogo no está disponible
+    if (catalog.length === 0) return this._company()?.enabledModules ?? [];
+
+    return [
+      ...new Set(
+        catalog
+          .filter(p => packages.includes(p.code))
+          .flatMap(p => p.modules)
+      )
+    ];
+  });
 
   /**
    * True when the company has the 'sri' module enabled (electronic invoicing).
@@ -354,6 +376,7 @@ export class TenantService {
     if (!id || id === this._companyId()) return;
     this._companyId.set(id);
     this._managedLoaded = false;   // reset al cambiar de empresa
+    this.loadCatalog();            // una vez por sesión; idempotente
     this.loadCompany(id);
     this.planLimits.init(id);
   }
@@ -361,6 +384,30 @@ export class TenantService {
   /** Almacena el uid del usuario para carga lazy de managed companies. */
   setUid(uid: string): void {
     this._uid.set(uid);
+  }
+
+  /**
+   * Carga el catálogo de plugin-packages una sola vez por sesión.
+   * Es una lectura simple (getDocs) — el catálogo cambia raramente y solo
+   * el super_admin lo edita. Los usuarios obtendrán la versión actualizada
+   * en el próximo login / recarga de página.
+   */
+  private loadCatalog(): void {
+    if (this._catalogLoaded) return;
+    this._catalogLoaded = true;
+    getDocs(collection(this.firestore, 'plugin-packages'))
+      .then(snap => {
+        this._catalog.set(
+          snap.docs.map(d => ({
+            code:    d.data()['code']    as string,
+            modules: d.data()['modules'] as string[] ?? [],
+          }))
+        );
+      })
+      .catch(() => {
+        // Sin permisos (super_admin no logueado como tenant) — no es crítico;
+        // se usará el fallback de enabledModules guardado.
+      });
   }
 
   private loadCompany(companyId: string): void {

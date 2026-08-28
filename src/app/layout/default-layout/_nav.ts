@@ -251,28 +251,28 @@ export const navItems: INavData[] = [
   },
 
   // ─── Reports ─────────────────────────────────────────────────────────────
-  // {
-  //   title: true,
-  //   name: 'Informes'
-  // },
-  // {
-  //   name: 'Informe Facturas',
-  //   url: '/reports/invoices',
-  //   iconComponent: { name: 'cil-chart-line' },
-  //   attributes: { module: 'report_invoices', roles: ['admin'] }
-  // },
-  // {
-  //   name: 'Informe Artículos',
-  //   url: '/reports/products',
-  //   iconComponent: { name: 'cil-bar-chart' },
-  //   attributes: { module: 'report_products', roles: ['admin'] }
-  // },
-  // {
-  //   name: 'Informe Pedidos',
-  //   url: '/reports/orders',
-  //   iconComponent: { name: 'cil-chart' },
-  //   attributes: { module: 'report_orders', roles: ['admin'] }
-  // },
+  {
+    title: true,
+    name: 'Informes'
+  },
+  {
+    name: 'Reporte de Ventas',
+    url: '/reports/invoices',
+    iconComponent: { name: 'cil-chart-line' },
+    attributes: { module: 'report_invoices', roles: ['admin', 'accountant', 'seller'] }
+  },
+  {
+    name: 'Reporte de Compras',
+    url: '/reports/purchases',
+    iconComponent: { name: 'cil-basket' },
+    attributes: { module: 'report_purchases', roles: ['admin', 'accountant'] }
+  },
+  {
+    name: 'Reporte de Productos',
+    url: '/reports/products',
+    iconComponent: { name: 'cil-bar-chart' },
+    attributes: { module: 'report_products', roles: ['admin', 'accountant'] }
+  },
 
   // ─── Team Management ─────────────────────────────────────────────────────
   {

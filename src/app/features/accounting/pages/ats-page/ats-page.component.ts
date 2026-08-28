@@ -56,16 +56,41 @@ export class AtsPageComponent implements OnInit, OnDestroy {
     { value: 11, label: 'Noviembre' },  { value: 12, label: 'Diciembre' }
   ];
 
-  selectedYear  = signal(this.currentYear);
-  selectedMonth = signal(new Date().getMonth() + 1);
+  readonly semestres = [
+    { value: 1 as const, label: 'S1 — Enero a Junio' },
+    { value: 2 as const, label: 'S2 — Julio a Diciembre' },
+  ];
 
-  loadingPreview = signal(false);
-  preview        = signal<AtsPreview | null>(null);
-  downloading    = signal(false);
+  selectedYear           = signal(this.currentYear);
+  selectedMonth          = signal(new Date().getMonth() + 1);
+  periodoTipo            = signal<'mensual' | 'semestral'>('mensual');
+  selectedSemestre       = signal<1 | 2>(1);
+  excluirInformativa332  = signal(false);
+
+  loadingPreview  = signal(false);
+  preview         = signal<AtsPreview | null>(null);
+  downloading     = signal(false);
+  exportingExcel  = signal(false);
 
   selectedMonthLabel = computed(() =>
     this.months.find(m => m.value === this.selectedMonth())?.label ?? ''
   );
+
+  setPeriodoTipo(value: unknown): void {
+    const v = String(value ?? '');
+    if (v === 'mensual' || v === 'semestral') {
+      this.periodoTipo.set(v);
+      this.calculatePreview();
+    }
+  }
+
+  setSemestre(value: unknown): void {
+    const n = Number(value);
+    if (n === 1 || n === 2) {
+      this.selectedSemestre.set(n);
+      this.calculatePreview();
+    }
+  }
 
   ngOnInit(): void {
     this.calculatePreview();
@@ -83,7 +108,17 @@ export class AtsPageComponent implements OnInit, OnDestroy {
 
     const year  = this.selectedYear();
     const month = this.selectedMonth();
-    const inMonth = (d: Date) => d.getFullYear() === year && d.getMonth() + 1 === month;
+    const tipo  = this.periodoTipo();
+    const sem   = this.selectedSemestre();
+
+    const inMonth = (d: Date): boolean => {
+      if (d.getFullYear() !== year) return false;
+      if (tipo === 'semestral') {
+        const m = d.getMonth() + 1;
+        return sem === 1 ? m >= 1 && m <= 6 : m >= 7 && m <= 12;
+      }
+      return d.getMonth() + 1 === month;
+    };
 
     forkJoin({
       invoices:    this.invoicesSvc.getInvoices({ year: String(year) }).pipe(take(1), catchError(() => of([]))),
@@ -116,19 +151,38 @@ export class AtsPageComponent implements OnInit, OnDestroy {
     });
   }
 
+  private buildAtsInput() {
+    const esSemestral = this.periodoTipo() === 'semestral';
+    return {
+      companyId:             this.tenant.companyId,
+      year:                  this.selectedYear(),
+      month:                 esSemestral ? (this.selectedSemestre() === 1 ? 6 : 12) : this.selectedMonth(),
+      semestre:              esSemestral ? this.selectedSemestre() : undefined,
+      excluirInformativa332: this.excluirInformativa332(),
+    };
+  }
+
   async downloadAts(): Promise<void> {
     this.downloading.set(true);
     try {
-      await this.atsSvc.downloadAts({
-        companyId: this.tenant.companyId,
-        year:      this.selectedYear(),
-        month:     this.selectedMonth(),
-      });
+      await this.atsSvc.downloadAts(this.buildAtsInput());
       this.notifications.success('ATS generado correctamente');
     } catch (err: any) {
       this.notifications.error('Error al generar el ATS: ' + (err?.message ?? err));
     } finally {
       this.downloading.set(false);
+    }
+  }
+
+  async exportExcel(): Promise<void> {
+    this.exportingExcel.set(true);
+    try {
+      await this.atsSvc.downloadExcel(this.buildAtsInput());
+      this.notifications.success('Excel ATS generado correctamente');
+    } catch (err: any) {
+      this.notifications.error('Error al generar el Excel: ' + (err?.message ?? err));
+    } finally {
+      this.exportingExcel.set(false);
     }
   }
 }

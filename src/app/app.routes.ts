@@ -8,7 +8,7 @@ const APP_SEGMENTS = new Set([
   'dashboard', 'personas', 'customers', 'products', 'invoices',
   'retentions', 'debit-notes', 'stock', 'purchases', 'team-management',
   'pos', 'users', 'profiles', 'profile', 'accounting', 'settings',
-  'benefits', 'school-bar', 'api-docs', 'test-data',
+  'benefits', 'school-bar', 'api-docs', 'test-data', 'reports',
   'base', 'forms', 'icons', 'notifications', 'charts', 'widgets', 'legal',
 ]);
 
@@ -214,6 +214,15 @@ export const routes: Routes = [
         data: { roles: ['admin', 'accountant'], module: 'accounting', featureFlag: 'accountingModule', title: 'Contabilidad' },
         loadChildren: () =>
           import('./features/accounting/accounting.routes').then(m => m.ACCOUNTING_ROUTES)
+      },
+
+      // ── Reports ────────────────────────────────────────────────────────────
+      {
+        path: 'reports',
+        canActivate: [roleGuard],
+        data: { roles: ['admin', 'accountant', 'seller'], title: 'Reportes' },
+        loadChildren: () =>
+          import('./features/reports/reports.routes').then(m => m.REPORTS_ROUTES)
       },
 
       // ── Bar Escolar ────────────────────────────────────────────────────

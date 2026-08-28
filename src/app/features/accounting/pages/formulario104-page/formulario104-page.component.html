@@ -2,172 +2,388 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
   <div>
     <h4 class="mb-0">Formulario 104</h4>
-    <small class="text-secondary">Declaración mensual de IVA (ayuda para declaración)</small>
+    <small class="text-secondary">Declaracion mensual/semestral de IVA (ayuda para declaracion)</small>
   </div>
   @if (generated()) {
-    <button cButton color="secondary" variant="outline" size="sm" (click)="printReport()">
-      <svg cIcon name="cilPrint" size="sm" class="me-1"></svg>
-      Imprimir
-    </button>
+    <div class="d-flex gap-2">
+      <button cButton color="success" variant="outline" size="sm" (click)="generateXml()">
+        <svg cIcon name="cilCloudDownload" size="sm" class="me-1"></svg>
+        Generar XML
+      </button>
+      <button cButton color="secondary" variant="outline" size="sm" (click)="printReport()">
+        <svg cIcon name="cilPrint" size="sm" class="me-1"></svg>
+        Imprimir
+      </button>
+    </div>
   }
 </div>
 
 <!-- ── Info alert ──────────────────────────────────────────────────────────── -->
 <c-alert color="info" class="mb-3 no-print">
   <svg cIcon name="cilInfo" size="sm" class="me-1"></svg>
-  Ayuda para la declaración mensual de IVA. Los valores se calculan desde los asientos contables
-  contabilizados del período seleccionado. Verifique con su asesor tributario antes de declarar.
+  Los valores se calculan automaticamente desde las facturas y compras registradas en el sistema para
+  el periodo seleccionado. Las ventas tarifa 0% se agrupan en casillero 404 (con CT) por defecto —
+  ajuste manualmente si tiene ventas sin CT. Los campos 565, 624 y 625 son editables. Verifique con
+  su asesor tributario antes de declarar.
 </c-alert>
 
-<!-- ── Filters ─────────────────────────────────────────────────────────────── -->
+<!-- ── Nuevo formulario (filtros) ──────────────────────────────────────────── -->
 <c-card class="mb-3 no-print">
+  <c-card-header>
+    <strong>Nuevo formulario</strong>
+  </c-card-header>
   <c-card-body>
     <div class="d-flex gap-3 align-items-end flex-wrap">
+
+      <!-- Tipo de declaracion -->
       <div>
-        <label cLabel>Año</label>
+        <label cLabel>Tipo de declaracion</label>
+        <select cSelect
+          [ngModel]="declaracionTipo()"
+          (ngModelChange)="declaracionTipo.set($event)">
+          <option value="original">Original</option>
+          <option value="sustitutiva">Sustitutiva</option>
+        </select>
+      </div>
+
+      <!-- Tipo de periodo -->
+      <div>
+        <label cLabel>Tipo de periodo</label>
+        <select cSelect
+          [ngModel]="periodoTipo()"
+          (ngModelChange)="periodoTipo.set($event)">
+          <option value="mensual">Mensual</option>
+          <option value="semestral">Semestral</option>
+        </select>
+      </div>
+
+      <!-- Ano -->
+      <div>
+        <label cLabel>Ano</label>
         <select cSelect [ngModel]="selectedYear()" (ngModelChange)="selectedYear.set(+$event)">
           @for (y of years; track y) {
             <option [value]="y">{{ y }}</option>
           }
         </select>
       </div>
-      <div>
-        <label cLabel>Mes</label>
-        <select cSelect [ngModel]="selectedMonth()" (ngModelChange)="selectedMonth.set(+$event)">
-          @for (m of months; track m.value) {
-            <option [value]="m.value">{{ m.label }}</option>
-          }
-        </select>
-      </div>
+
+      <!-- Mes (solo si mensual) -->
+      @if (periodoTipo() === 'mensual') {
+        <div>
+          <label cLabel>Mes</label>
+          <select cSelect [ngModel]="selectedMonth()" (ngModelChange)="selectedMonth.set(+$event)">
+            @for (m of months; track m.value) {
+              <option [value]="m.value">{{ m.label }}</option>
+            }
+          </select>
+        </div>
+      }
+
+      <!-- Semestre (solo si semestral) -->
+      @if (periodoTipo() === 'semestral') {
+        <div>
+          <label cLabel>Semestre</label>
+          <select cSelect
+            [ngModel]="selectedSemestre()"
+            (ngModelChange)="setSemestre($event)">
+            @for (s of semestres; track s.value) {
+              <option [value]="s.value">{{ s.label }}</option>
+            }
+          </select>
+        </div>
+      }
+
       <button cButton color="primary" (click)="generate()" [disabled]="generating()">
         @if (generating()) {
           <c-spinner size="sm" class="me-1"></c-spinner>
           Calculando...
         } @else {
           <svg cIcon name="cilCalculator" size="sm" class="me-1"></svg>
-          Calcular
+          Generar
         }
       </button>
     </div>
   </c-card-body>
 </c-card>
 
-<!-- ── Report ──────────────────────────────────────────────────────────────── -->
-@if (generated() && form104(); as f) {
-  <div class="report-header mb-3">
-    <div class="report-title">FORMULARIO 104 — DECLARACIÓN DE IVA</div>
-    <div class="report-period">{{ selectedMonthLabel() }} {{ selectedYear() }}</div>
-  </div>
-
-  <c-card class="mb-3">
-    <c-card-body>
-
-      <!-- VENTAS -->
-      <div class="form-section">
-        <div class="section-title">Ventas y Otras Operaciones</div>
-        <table class="casilla-table">
-          <tr>
-            <td class="casilla-num">401</td>
-            <td class="casilla-desc">Ventas locales tarifa 15% (excluye activos fijos)</td>
-            <td class="casilla-val">{{ fmt(f.c401) }}</td>
-          </tr>
-          <tr>
-            <td class="casilla-num">403</td>
-            <td class="casilla-desc">Ventas locales tarifa 0% que NO dan crédito tributario</td>
-            <td class="casilla-val">{{ fmt(f.c403) }}</td>
-          </tr>
-          <tr>
-            <td class="casilla-num">404</td>
-            <td class="casilla-desc">Ventas locales tarifa 0% que SÍ dan crédito tributario</td>
-            <td class="casilla-val">{{ fmt(f.c404) }}</td>
-          </tr>
-          <tr class="row-total">
-            <td class="casilla-num">408</td>
-            <td class="casilla-desc">TOTAL VENTAS Y OTRAS OPERACIONES</td>
-            <td class="casilla-val">{{ fmt(f.c408) }}</td>
-          </tr>
-        </table>
-      </div>
-
-      <!-- IVA GENERADO -->
-      <div class="form-section">
-        <div class="section-title">IVA Generado en Ventas</div>
-        <table class="casilla-table">
-          <tr class="row-total">
-            <td class="casilla-num">411</td>
-            <td class="casilla-desc">IVA generado en ventas y prestaciones de servicios</td>
-            <td class="casilla-val">{{ fmt(f.c411) }}</td>
-          </tr>
-        </table>
-      </div>
-
-      <!-- CRÉDITO TRIBUTARIO -->
-      <div class="form-section">
-        <div class="section-title">Adquisiciones y Crédito Tributario</div>
-        <table class="casilla-table">
-          <tr>
-            <td class="casilla-num">500</td>
-            <td class="casilla-desc">IVA pagado en compras y adquisiciones tarifa 15%</td>
-            <td class="casilla-val">{{ fmt(f.c500) }}</td>
-          </tr>
-        </table>
-      </div>
-
-      <!-- LIQUIDACIÓN -->
-      <div class="form-section">
-        <div class="section-title">Impuesto a Liquidar</div>
-        <table class="casilla-table">
-          <tr>
-            <td class="casilla-num">601</td>
-            <td class="casilla-desc">IVA cobrado en ventas (=411)</td>
-            <td class="casilla-val">{{ fmt(f.c601) }}</td>
-          </tr>
-          <tr>
-            <td class="casilla-num">602</td>
-            <td class="casilla-desc">Crédito tributario aplicable en este período (=500 si ≤ 601)</td>
-            <td class="casilla-val">{{ fmt(f.c602) }}</td>
-          </tr>
-          @if (f.c609 > 0) {
-            <tr class="row-pagar">
-              <td class="casilla-num">609</td>
-              <td class="casilla-desc">IMPUESTO A LIQUIDAR (IVA A PAGAR)</td>
-              <td class="casilla-val">{{ fmt(f.c609) }}</td>
-            </tr>
-          } @else {
-            <tr>
-              <td class="casilla-num">609</td>
-              <td class="casilla-desc">Impuesto a liquidar</td>
-              <td class="casilla-val">0.00</td>
-            </tr>
-          }
-          @if (f.c699 > 0) {
-            <tr class="row-favor">
-              <td class="casilla-num">699</td>
-              <td class="casilla-desc">SALDO A FAVOR (CRÉDITO TRIBUTARIO)</td>
-              <td class="casilla-val">{{ fmt(f.c699) }}</td>
-            </tr>
-          } @else {
-            <tr>
-              <td class="casilla-num">699</td>
-              <td class="casilla-desc">Saldo a favor</td>
-              <td class="casilla-val">0.00</td>
-            </tr>
-          }
-        </table>
-      </div>
-
-      <p class="note-text mt-2">
-        * Los valores de retenciones de IVA recibidas (casilla 721) y otros ajustes deben
-        ingresarse manualmente en el formulario oficial del SRI (www.sri.gob.ec).
-      </p>
-
-    </c-card-body>
-  </c-card>
-}
-
+<!-- ── Estado vacio ─────────────────────────────────────────────────────────── -->
 @if (!generated() && !generating()) {
   <div class="text-center py-5 text-secondary">
     <svg cIcon name="cilFile" size="xl" class="mb-3 opacity-25"></svg>
-    <p>Seleccione año y mes, luego haga clic en "Calcular"</p>
+    <p>Configure el periodo y haga clic en "Generar"</p>
   </div>
 }
+
+<!-- ── Reporte ──────────────────────────────────────────────────────────────── -->
+@if (generated() && form104(); as f) {
+  @if (liquidacionActualizada(); as liq) {
+
+    <div class="report-header mb-3">
+      <div class="report-title">FORMULARIO 104 — DECLARACION DE IVA</div>
+      <div class="report-period">
+        {{ periodoLabel() }} {{ selectedYear() }}
+        @if (f.declaracionTipo === 'sustitutiva') {
+          <span class="badge-sustitutiva">SUSTITUTIVA</span>
+        }
+      </div>
+    </div>
+
+    <!-- ── VENTAS Y OTRAS OPERACIONES ────────────────────────────────────────── -->
+    <c-card class="mb-3">
+      <c-card-body>
+        <div class="form-section">
+          <div class="section-title">Ventas y Otras Operaciones</div>
+          <table class="casilla-table">
+            <tr>
+              <td class="casilla-num">401</td>
+              <td class="casilla-desc">Ventas locales tarifa 15% (excluye activos fijos)</td>
+              <td class="casilla-val">{{ fmt(f.c401) }}</td>
+            </tr>
+            <tr>
+              <td class="casilla-num">425</td>
+              <td class="casilla-desc">Ventas locales tarifa 5% — valor bruto (excluye activos fijos)</td>
+              <td class="casilla-val">{{ fmt(f.c425) }}</td>
+            </tr>
+            <tr>
+              <td class="casilla-num">435</td>
+              <td class="casilla-desc">Ventas locales tarifa 5% — valor neto (425 menos notas de crédito emitidas con IVA 5%)</td>
+              <td class="casilla-val">{{ fmt(f.c435) }}</td>
+            </tr>
+            <tr>
+              <td class="casilla-num">403</td>
+              <td class="casilla-desc">Ventas locales tarifa 0% que NO dan credito tributario</td>
+              <td class="casilla-val">{{ fmt(f.c403) }}</td>
+            </tr>
+            <tr>
+              <td class="casilla-num">404</td>
+              <td class="casilla-desc">
+                Ventas locales tarifa 0% que SI dan credito tributario
+                <svg cIcon name="cilInfo" size="sm" class="casilla-info"
+                  cTooltip="Las ventas tarifa 0% se agrupan aqui por defecto. Ajuste manualmente en el formulario del SRI si tiene ventas sin CT.">
+                </svg>
+              </td>
+              <td class="casilla-val">{{ fmt(f.c404) }}</td>
+            </tr>
+            <tr class="row-total">
+              <td class="casilla-num">408</td>
+              <td class="casilla-desc">TOTAL VENTAS Y OTRAS OPERACIONES</td>
+              <td class="casilla-val">{{ fmt(f.c408) }}</td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- Notas de credito en ventas 15%/0% (informativos; 5% ya incorporado en c435) -->
+        @if (f.c431 > 0 || f.c433 > 0) {
+          <div class="form-section">
+            <div class="section-title">Notas de Credito en Ventas</div>
+            <table class="casilla-table">
+              @if (f.c431 > 0) {
+                <tr>
+                  <td class="casilla-num">431</td>
+                  <td class="casilla-desc">NC en ventas tarifa 15%</td>
+                  <td class="casilla-val">{{ fmt(f.c431) }}</td>
+                </tr>
+              }
+              @if (f.c433 > 0) {
+                <tr>
+                  <td class="casilla-num">433</td>
+                  <td class="casilla-desc">NC en ventas tarifa 0%</td>
+                  <td class="casilla-val">{{ fmt(f.c433) }}</td>
+                </tr>
+              }
+            </table>
+          </div>
+        }
+
+        <!-- IVA generado en ventas -->
+        <div class="form-section">
+          <div class="section-title">IVA Generado en Ventas</div>
+          <table class="casilla-table">
+            <tr>
+              <td class="casilla-num">411</td>
+              <td class="casilla-desc">IVA generado en ventas tarifa 15%</td>
+              <td class="casilla-val">{{ fmt(f.c411) }}</td>
+            </tr>
+            <tr>
+              <td class="casilla-num">445</td>
+              <td class="casilla-desc">IVA generado en ventas tarifa 5%</td>
+              <td class="casilla-val">{{ fmt(f.c445) }}</td>
+            </tr>
+            <tr class="row-total">
+              <td class="casilla-num">429</td>
+              <td class="casilla-desc">TOTAL IVA GENERADO EN VENTAS</td>
+              <td class="casilla-val">{{ fmt(f.c429) }}</td>
+            </tr>
+          </table>
+        </div>
+      </c-card-body>
+    </c-card>
+
+    <!-- ── ADQUISICIONES Y CREDITO TRIBUTARIO ─────────────────────────────────── -->
+    <c-card class="mb-3">
+      <c-card-body>
+        <div class="form-section">
+          <div class="section-title">Adquisiciones y Credito Tributario</div>
+          <table class="casilla-table">
+            <tr>
+              <td class="casilla-num">500</td>
+              <td class="casilla-desc">Adquisiciones locales tarifa 15% con derecho a CT (excluye activos fijos)</td>
+              <td class="casilla-val">{{ fmt(f.c500) }}</td>
+            </tr>
+            @if (f.c510 > 0) {
+              <tr>
+                <td class="casilla-num">510</td>
+                <td class="casilla-desc">NC en adquisiciones tarifa 15% (resta del CT)</td>
+                <td class="casilla-val">{{ fmt(f.c510) }}</td>
+              </tr>
+            }
+            <tr>
+              <td class="casilla-num">540</td>
+              <td class="casilla-desc">Adquisiciones locales tarifa 5% con derecho a CT — valor bruto (excluye activos fijos)</td>
+              <td class="casilla-val">{{ fmt(f.c540) }}</td>
+            </tr>
+            <tr>
+              <td class="casilla-num">550</td>
+              <td class="casilla-desc">Adquisiciones locales tarifa 5% con CT — valor neto (540 menos notas de crédito recibidas con IVA 5%)</td>
+              <td class="casilla-val">{{ fmt(f.c550) }}</td>
+            </tr>
+            <tr>
+              <td class="casilla-num">560</td>
+              <td class="casilla-desc">IVA 5% en adquisiciones con derecho a CT</td>
+              <td class="casilla-val">{{ fmt(f.c560) }}</td>
+            </tr>
+            <tr class="row-total">
+              <td class="casilla-num">529</td>
+              <td class="casilla-desc">TOTAL CREDITO TRIBUTARIO IVA DISPONIBLE</td>
+              <td class="casilla-val">{{ fmt(f.c529) }}</td>
+            </tr>
+          </table>
+        </div>
+      </c-card-body>
+    </c-card>
+
+    <!-- ── LIQUIDACION DEL IMPUESTO ───────────────────────────────────────────── -->
+    <c-card class="mb-3">
+      <c-card-body>
+        <div class="form-section">
+          <div class="section-title">Impuesto a Liquidar</div>
+          <table class="casilla-table">
+            <tr>
+              <td class="casilla-num">601</td>
+              <td class="casilla-desc">IVA cobrado en ventas (=429)</td>
+              <td class="casilla-val">{{ fmt(f.c601) }}</td>
+            </tr>
+            <tr>
+              <td class="casilla-num">602</td>
+              <td class="casilla-desc">Credito tributario aplicable en este periodo</td>
+              <td class="casilla-val">{{ fmt(f.c602) }}</td>
+            </tr>
+
+            <!-- 565 — Editable -->
+            <tr class="row-editable">
+              <td class="casilla-num">565
+                <span class="editable-badge">editable</span>
+              </td>
+              <td class="casilla-desc">
+                IVA no considerado como CT por factor de proporcionalidad
+                <svg cIcon name="cilInfo" size="sm" class="casilla-info"
+                  cTooltip="Fórmula SRI: 564 − 529 (CT aplicable − CT disponible). Prellenado con el valor sugerido calculado. Ajuste según su factor de proporcionalidad (Art. 66 LRTI) si tiene actividades mixtas gravadas y no gravadas.">
+                </svg>
+                <div class="sugerido-note">Sugerido calculado: {{ fmt(f.c565Sugerido) }}</div>
+              </td>
+              <td class="casilla-val">
+                <input type="number" class="casilla-input"
+                  min="0" step="0.01"
+                  [value]="editable565()"
+                  (change)="onEditable565Change($any($event.target).value)"
+                  (input)="onEditable565Change($any($event.target).value)">
+              </td>
+            </tr>
+
+            @if (liq.c609 > 0) {
+              <tr class="row-pagar">
+                <td class="casilla-num">609</td>
+                <td class="casilla-desc">IMPUESTO A LIQUIDAR (IVA A PAGAR)</td>
+                <td class="casilla-val">{{ fmt(liq.c609) }}</td>
+              </tr>
+            } @else {
+              <tr>
+                <td class="casilla-num">609</td>
+                <td class="casilla-desc">Impuesto a liquidar</td>
+                <td class="casilla-val">0.00</td>
+              </tr>
+            }
+
+            @if (liq.c699 > 0) {
+              <tr class="row-favor">
+                <td class="casilla-num">699</td>
+                <td class="casilla-desc">SALDO A FAVOR (CREDITO TRIBUTARIO)</td>
+                <td class="casilla-val">{{ fmt(liq.c699) }}</td>
+              </tr>
+            } @else {
+              <tr>
+                <td class="casilla-num">699</td>
+                <td class="casilla-desc">Saldo a favor</td>
+                <td class="casilla-val">0.00</td>
+              </tr>
+            }
+          </table>
+        </div>
+
+        <!-- Ajustes manuales -->
+        <div class="form-section">
+          <div class="section-title">Ajustes Adicionales (Ingreso Manual)</div>
+          <table class="casilla-table">
+
+            <!-- 624 — Editable -->
+            <tr class="row-editable">
+              <td class="casilla-num">624
+                <span class="editable-badge">editable</span>
+              </td>
+              <td class="casilla-desc">
+                IVA pagado y no compensado en adquisicion local o importacion que se carga al gasto de IR
+                <svg cIcon name="cilInfo" size="sm" class="casilla-info"
+                  cTooltip="Ingrese manualmente si existe IVA pagado que no puede usarse como CT y se carga como gasto de IR. El sistema no puede calcular esto automaticamente.">
+                </svg>
+              </td>
+              <td class="casilla-val">
+                <input type="number" class="casilla-input"
+                  min="0" step="0.01"
+                  [value]="editable624()"
+                  (change)="onEditable624Change($any($event.target).value)"
+                  (input)="onEditable624Change($any($event.target).value)">
+              </td>
+            </tr>
+
+            <!-- 625 — Editable -->
+            <tr class="row-editable">
+              <td class="casilla-num">625
+                <span class="editable-badge">editable</span>
+              </td>
+              <td class="casilla-desc">
+                Ajuste del credito tributario IVA superior a cinco anos
+                <svg cIcon name="cilInfo" size="sm" class="casilla-info"
+                  cTooltip="Ajuste de CT cuando el saldo a favor supera los cinco anos de generacion. Ingrese manualmente si aplica.">
+                </svg>
+              </td>
+              <td class="casilla-val">
+                <input type="number" class="casilla-input"
+                  min="0" step="0.01"
+                  [value]="editable625()"
+                  (change)="onEditable625Change($any($event.target).value)"
+                  (input)="onEditable625Change($any($event.target).value)">
+              </td>
+            </tr>
+          </table>
+        </div>
+
+        <p class="note-text mt-2">
+          * Los valores de retenciones de IVA recibidas (casilla 721), importaciones, exportaciones
+          y otros ajustes deben ingresarse directamente en el formulario oficial del SRI
+          (www.sri.gob.ec). Los campos marcados como "editable" requieren criterio tributario.
+        </p>
+      </c-card-body>
+    </c-card>
+
+  } <!-- fin liquidacionActualizada -->
+} <!-- fin generated && form104 -->
