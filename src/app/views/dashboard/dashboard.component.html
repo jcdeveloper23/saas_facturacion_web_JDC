@@ -4,22 +4,26 @@
     <h4 class="mb-0">Bienvenido</h4>
     <p class="text-muted mb-0 small">{{ companyName() }} · {{ monthName }}</p>
   </c-col>
-  <c-col xs="auto">
-    <a routerLink="/invoices/new" cButton color="primary" size="sm">
-      <svg cIcon name="cilPlus" class="me-1"></svg> Nueva Factura
-    </a>
-  </c-col>
+  @if (canCreateInvoice()) {
+    <c-col xs="auto">
+      <a routerLink="/invoices/new" cButton color="primary" size="sm">
+        <svg cIcon name="cilPlus" class="me-1"></svg> Nueva Factura
+      </a>
+    </c-col>
+  }
 </c-row>
 
 <!-- ── Acciones rápidas ───────────────────────────────────────────────────── -->
 <div class="quick-actions mb-4">
-  <a routerLink="/invoices/new" class="quick-action-btn">
-    <div class="quick-action-icon quick-action-icon--primary">
-      <svg cIcon name="cilFile" size="sm"></svg>
-    </div>
-    <span>Nueva Factura</span>
-  </a>
-  @if (hasModule('retentions')) {
+  @if (canCreateInvoice()) {
+    <a routerLink="/invoices/new" class="quick-action-btn">
+      <div class="quick-action-icon quick-action-icon--primary">
+        <svg cIcon name="cilFile" size="sm"></svg>
+      </div>
+      <span>Nueva Factura</span>
+    </a>
+  }
+  @if (hasModule('retentions') && canViewRetentions()) {
     <a routerLink="/retentions/new" class="quick-action-btn">
       <div class="quick-action-icon quick-action-icon--info">
         <svg cIcon name="cilDescription" size="sm"></svg>
@@ -27,7 +31,7 @@
       <span>Nueva Retención</span>
     </a>
   }
-  @if (hasModule('purchases')) {
+  @if (hasModule('purchases') && canCreatePurchase()) {
     <a routerLink="/purchases/new" class="quick-action-btn">
       <div class="quick-action-icon quick-action-icon--warning">
         <svg cIcon name="cilCart" size="sm"></svg>
@@ -35,23 +39,27 @@
       <span>Nueva Compra</span>
     </a>
   }
-  <a routerLink="/invoices" class="quick-action-btn">
-    <div class="quick-action-icon" [class.quick-action-icon--danger]="overdueInvoices().length > 0" [class.quick-action-icon--secondary]="overdueInvoices().length === 0">
-      <svg cIcon name="cilClock" size="sm"></svg>
-    </div>
-    <span>Ver Vencidas
-      @if (overdueInvoices().length > 0) {
-        <span class="quick-action-badge">{{ overdueInvoices().length }}</span>
-      }
-    </span>
-  </a>
-  <a routerLink="/personas" class="quick-action-btn">
-    <div class="quick-action-icon quick-action-icon--success">
-      <svg cIcon name="cilPeople" size="sm"></svg>
-    </div>
-    <span>Clientes</span>
-  </a>
-  @if (hasModule('stock')) {
+  @if (canViewInvoices()) {
+    <a routerLink="/invoices" class="quick-action-btn">
+      <div class="quick-action-icon" [class.quick-action-icon--danger]="overdueInvoices().length > 0" [class.quick-action-icon--secondary]="overdueInvoices().length === 0">
+        <svg cIcon name="cilClock" size="sm"></svg>
+      </div>
+      <span>Ver Vencidas
+        @if (overdueInvoices().length > 0) {
+          <span class="quick-action-badge">{{ overdueInvoices().length }}</span>
+        }
+      </span>
+    </a>
+  }
+  @if (canViewPersonas()) {
+    <a routerLink="/personas" class="quick-action-btn">
+      <div class="quick-action-icon quick-action-icon--success">
+        <svg cIcon name="cilPeople" size="sm"></svg>
+      </div>
+      <span>Clientes</span>
+    </a>
+  }
+  @if (hasModule('stock') && canViewStock()) {
     <a routerLink="/stock" class="quick-action-btn">
       <div class="quick-action-icon" [class.quick-action-icon--danger]="lowStockProducts().length > 0" [class.quick-action-icon--secondary]="lowStockProducts().length === 0">
         <svg cIcon name="cilStorage" size="sm"></svg>
@@ -73,11 +81,13 @@
       <span class="small">
         <strong>{{ overdueInvoices().length }} factura{{ overdueInvoices().length === 1 ? '' : 's' }} vencida{{ overdueInvoices().length === 1 ? '' : 's' }}.</strong>
         Tienen fecha de vencimiento superada y siguen en estado "Emitida".
-        <a routerLink="/invoices" class="alert-link ms-1">Ver facturas →</a>
+        @if (canViewInvoices()) {
+          <a routerLink="/invoices" class="alert-link ms-1">Ver facturas →</a>
+        }
       </span>
     </c-alert>
   }
-  @if (hasModule('stock') && lowStockProducts().length > 0) {
+  @if (hasModule('stock') && canViewStock() && lowStockProducts().length > 0) {
     <c-alert color="warning" class="mb-2 py-2 d-flex align-items-center gap-2">
       <svg cIcon name="cilWarning" size="sm"></svg>
       <span class="small">
@@ -179,7 +189,9 @@
             </div>
             <div class="kpi-value">{{ lowStockProducts().length }}</div>
             <div class="kpi-label">Bajo stock mínimo</div>
-            <div class="kpi-sub"><a routerLink="/stock" class="text-primary small">Ver stock →</a></div>
+            @if (canViewStock()) {
+              <div class="kpi-sub"><a routerLink="/stock" class="text-primary small">Ver stock →</a></div>
+            }
           </c-card-body>
         </c-card>
       } @else {
@@ -190,7 +202,9 @@
             </div>
             <div class="kpi-value">{{ customersCount() }}</div>
             <div class="kpi-label">Clientes registrados</div>
-            <div class="kpi-sub"><a routerLink="/personas" class="text-primary small">Ver directorio →</a></div>
+            @if (canViewPersonas()) {
+              <div class="kpi-sub"><a routerLink="/personas" class="text-primary small">Ver directorio →</a></div>
+            }
           </c-card-body>
         </c-card>
       }
@@ -290,7 +304,9 @@
               <div class="flex-grow-1">
                 <div class="kpi-value kpi-value--sm">{{ customersCount() }}</div>
                 <div class="kpi-label mb-0">Clientes registrados</div>
-                <div class="kpi-sub mt-1"><a routerLink="/personas" class="text-primary small">Ver directorio →</a></div>
+                @if (canViewPersonas()) {
+                  <div class="kpi-sub mt-1"><a routerLink="/personas" class="text-primary small">Ver directorio →</a></div>
+                }
               </div>
             </c-card-body>
           </c-card>
@@ -396,7 +412,9 @@
                 </option>
               }
             </select>
-            <a routerLink="/invoices" class="text-primary small text-nowrap">Ver facturas →</a>
+            @if (canViewInvoices()) {
+              <a routerLink="/invoices" class="text-primary small text-nowrap">Ver facturas →</a>
+            }
           </div>
         </c-card-header>
         <c-card-body>
@@ -404,7 +422,7 @@
             <div class="text-center py-4 text-muted">
               <svg cIcon name="cilChartLine" size="xl" class="mb-2 text-secondary"></svg>
               <p class="mb-1">Sin ventas registradas en {{ selectedMonthLabel() }}.</p>
-              @if (selectedChartMonth() === currentMonth) {
+              @if (selectedChartMonth() === currentMonth && canCreateInvoice()) {
                 <a routerLink="/invoices/new" cButton color="primary" size="sm">
                   Crear primera factura
                 </a>
@@ -424,7 +442,9 @@
       <c-card class="h-100">
         <c-card-header class="d-flex align-items-center justify-content-between">
           <strong>Últimas facturas</strong>
-          <a routerLink="/invoices" class="text-primary small">Ver todas →</a>
+          @if (canViewInvoices()) {
+            <a routerLink="/invoices" class="text-primary small">Ver todas →</a>
+          }
         </c-card-header>
         <c-card-body class="p-0">
           @if (recentInvoices().length === 0) {
@@ -518,7 +538,7 @@
   <c-row class="mb-4 g-3">
 
     <!-- Top 5 clientes del mes -->
-    @if (topCustomers().length > 0) {
+    @if (topCustomers().length > 0 && canViewPersonas()) {
       <c-col xs="12" lg="6">
         <c-card class="h-100">
           <c-card-header class="d-flex align-items-center justify-content-between">

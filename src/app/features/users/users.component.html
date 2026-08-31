@@ -1,203 +1,251 @@
-<!-- Stats Cards -->
-<c-row class="mb-4">
-    <c-col sm="6" lg="3">
-        <c-card class="text-white bg-primary">
-            <c-card-body class="pb-0 d-flex justify-content-between align-items-start">
-                <div>
-                    <div class="fs-4 fw-semibold">{{ stats().total }}</div>
-                    <div>Total Usuarios</div>
-                </div>
-                <svg cIcon name="cilPeople" size="xl"></svg>
-            </c-card-body>
-        </c-card>
-    </c-col>
-    <c-col sm="6" lg="3">
-        <c-card class="text-white bg-info">
-            <c-card-body class="pb-0 d-flex justify-content-between align-items-start">
-                <div>
-                    <div class="fs-4 fw-semibold">{{ stats().admins }}</div>
-                    <div>Administradores</div>
-                </div>
-                <svg cIcon name="cilShieldAlt" size="xl"></svg>
-            </c-card-body>
-        </c-card>
-    </c-col>
-    <c-col sm="6" lg="3">
-        <c-card class="text-white bg-success">
-            <c-card-body class="pb-0 d-flex justify-content-between align-items-start">
-                <div>
-                    <div class="fs-4 fw-semibold">{{ stats().active }}</div>
-                    <div>Activos</div>
-                </div>
-                <svg cIcon name="cilCheckCircle" size="xl"></svg>
-            </c-card-body>
-        </c-card>
-    </c-col>
-    <c-col sm="6" lg="3">
-        <c-card class="text-white bg-warning">
-            <c-card-body class="pb-0 d-flex justify-content-between align-items-start">
-                <div>
-                    <div class="fs-4 fw-semibold">{{ stats().inactive }}</div>
-                    <div>Inactivos</div>
-                </div>
-                <svg cIcon name="cilBan" size="xl"></svg>
-            </c-card-body>
-        </c-card>
-    </c-col>
-</c-row>
+<!-- ── Page Header ─────────────────────────────────────────────────── -->
+<div class="users-page-header d-flex justify-content-between align-items-center mb-3">
+    <div class="d-flex align-items-center gap-3">
+        <div class="page-icon">
+            <svg cIcon name="cilPeople" class="text-white"></svg>
+        </div>
+        <div>
+            <h4 class="page-title mb-0">Usuarios</h4>
+            <span class="page-subtitle">Gestión de usuarios y permisos del sistema</span>
+        </div>
+    </div>
+    <button cButton color="primary" size="sm" routerLink="new"
+            *hasPermission="['users.create']"
+            class="d-flex align-items-center gap-1 shadow-sm">
+        <svg cIcon name="cilPlus"></svg>
+        Nuevo Usuario
+    </button>
+</div>
 
-<!-- Main Content -->
-<c-row>
-    <c-col xs="12">
-        <c-card>
-            <c-card-header class="d-flex justify-content-between align-items-center">
-                <strong>Usuarios del Sistema</strong>
-                <div class="d-flex gap-2">
-                    <button cButton color="light" size="sm" (click)="refresh()" title="Actualizar">
-                        <svg cIcon name="cilReload"></svg>
-                    </button>
-                    <button cButton color="primary" routerLink="new" *hasPermission="['users.create']">
-                        <svg cIcon name="cilPlus" class="me-2"></svg>
-                        Nuevo Usuario
-                    </button>
-                </div>
-            </c-card-header>
-            <c-card-body>
-                <!-- Error Alert -->
-                @if (error()) {
-                <c-alert color="danger" [dismissible]="true" (visibleChange)="error.set(null)">
-                    {{ error() }}
-                    <button cButton color="danger" size="sm" variant="outline" class="ms-2" (click)="loadUsers()">
-                        Reintentar
-                    </button>
-                </c-alert>
+<!-- ── Stat Strip ──────────────────────────────────────────────────── -->
+@if (!loading()) {
+<div class="stat-strip mb-3">
+    <div class="stat-item">
+        <span class="stat-value text-primary">{{ stats().total }}</span>
+        <span class="stat-label">Total usuarios</span>
+    </div>
+    <div class="stat-sep"></div>
+    <div class="stat-item">
+        <span class="stat-value">{{ stats().admins }}</span>
+        <span class="stat-label">Administradores</span>
+    </div>
+    <div class="stat-sep"></div>
+    <div class="stat-item stat-item--success" (click)="stateFilter.set('active')">
+        <span class="stat-value text-success">{{ stats().active }}</span>
+        <span class="stat-label">Activos</span>
+    </div>
+    @if (stats().inactive > 0) {
+        <div class="stat-sep"></div>
+        <div class="stat-item stat-item--warn" (click)="stateFilter.set('inactive')">
+            <span class="stat-value text-warning">{{ stats().inactive }}</span>
+            <span class="stat-label">Inactivos</span>
+        </div>
+    }
+</div>
+}
+
+<!-- ── Filter Card ─────────────────────────────────────────────────── -->
+<c-card class="filter-card mb-3 border-0 shadow-sm overflow-hidden">
+
+    <!-- Fila 1: tabs + clear -->
+    <div class="filter-top px-3 pt-2 pb-0">
+        <div class="d-flex align-items-center gap-3 flex-wrap">
+            <div class="seg-tabs">
+                @for (opt of stateOptions; track opt.value) {
+                <button class="seg-tab"
+                        [class.active]="stateFilter() === opt.value"
+                        (click)="stateFilter.set(opt.value)">
+                    {{ opt.label }}
+                    @if (opt.value === 'inactive' && stats().inactive > 0) {
+                    <span class="seg-count">{{ stats().inactive }}</span>
+                    }
+                </button>
                 }
+            </div>
+            <div class="flex-grow-1"></div>
+            @if (totalActiveFilters() > 0) {
+            <button class="filter-clear-btn" (click)="clearAll()">
+                <svg cIcon name="cilX" size="sm"></svg>
+                Limpiar {{ totalActiveFilters() }} filtro{{ totalActiveFilters() !== 1 ? 's' : '' }}
+            </button>
+            }
+        </div>
+        <div class="filter-divider mt-2"></div>
+    </div>
 
-                <!-- Filters -->
-                <c-row class="mb-3 g-3">
-                    <c-col md="4">
-                        <c-input-group>
-                            <span cInputGroupText>
-                                <svg cIcon name="cilSearch"></svg>
+    <!-- Fila 2: búsqueda + rol -->
+    <div class="px-3 py-2">
+        <div class="d-flex gap-2 align-items-center flex-wrap">
+
+            <div class="search-wrap">
+                <svg cIcon name="cilSearch" size="sm" class="search-icon"></svg>
+                <input class="search-input"
+                       type="text"
+                       placeholder="Buscar por nombre o email..."
+                       [value]="searchTerm()"
+                       (input)="searchTerm.set($any($event.target).value)" />
+                @if (searchTerm()) {
+                <button class="search-clear" (click)="searchTerm.set('')">
+                    <svg cIcon name="cilX" size="sm"></svg>
+                </button>
+                }
+            </div>
+
+            <div class="filter-select-wrap" [class.active]="!!roleFilter()">
+                <svg cIcon name="cilShieldAlt" size="sm" class="filter-select-icon"></svg>
+                <select class="filter-select"
+                        [value]="roleFilter()"
+                        (change)="roleFilter.set($any($event.target).value)">
+                    <option value="">Rol: Todos</option>
+                    @for (role of roles(); track role.id) {
+                    <option [value]="role.code">{{ role.name }}</option>
+                    }
+                </select>
+                <svg cIcon name="cilChevronBottom" size="sm" class="filter-select-caret"></svg>
+            </div>
+
+        </div>
+    </div>
+
+</c-card>
+
+<!-- ── Table Card ─────────────────────────────────────────────────── -->
+<c-card class="border-0 shadow-sm overflow-hidden">
+    <c-card-body class="p-0">
+
+        <!-- Error alert -->
+        @if (error()) {
+        <div class="px-3 pt-3">
+            <c-alert color="danger" [dismissible]="true" (visibleChange)="error.set(null)">
+                {{ error() }}
+                <button cButton color="danger" size="sm" variant="outline" class="ms-2"
+                        (click)="loadUsers()">
+                    Reintentar
+                </button>
+            </c-alert>
+        </div>
+        }
+
+        <!-- Loading -->
+        @if (loading()) {
+        <div class="text-center py-5">
+            <c-spinner color="primary"></c-spinner>
+            <p class="mt-2 td-meta">Cargando usuarios...</p>
+        </div>
+        }
+
+        <!-- Empty state (not loading, no results) -->
+        @if (!loading() && filteredUsers().length === 0) {
+        <div class="text-center py-5 bg-body-secondary">
+            <svg cIcon name="cilPeople" size="3xl" class="mb-3 opacity-25 d-block mx-auto"></svg>
+            <p class="mb-1 fw-semibold">No se encontraron usuarios</p>
+            @if (totalActiveFilters() > 0) {
+            <p class="td-meta mb-2">Intenta ajustar los filtros de búsqueda</p>
+            <button cButton color="primary" size="sm" variant="outline" (click)="clearAll()">
+                Limpiar filtros
+            </button>
+            } @else {
+            <button cButton color="primary" size="sm" routerLink="new"
+                    *hasPermission="['users.create']">
+                <svg cIcon name="cilPlus" class="me-1"></svg> Nuevo Usuario
+            </button>
+            }
+        </div>
+        }
+
+        <!-- Table -->
+        @if (!loading() && filteredUsers().length > 0) {
+        <div class="table-responsive">
+            <table cTable hover class="users-table mb-0" align="middle">
+                <thead class="bg-body-secondary table-head">
+                    <tr>
+                        <th class="ps-3 py-2">Usuario</th>
+                        <th class="py-2">Email</th>
+                        <th class="py-2">Rol</th>
+                        <th class="py-2">Estado</th>
+                        <th class="py-2">Creado</th>
+                        <th class="py-2 text-end pe-3">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (user of filteredUsers(); track user.uid) {
+                    <tr class="border-bottom border-body-secondary">
+                        <!-- Avatar + Nombre -->
+                        <td class="ps-3">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="user-avatar">
+                                    {{ getUserInitials(user) }}
+                                </div>
+                                <div>
+                                    <a [routerLink]="['/users', user.uid]"
+                                       class="user-name text-decoration-none">
+                                        {{ user.displayName }}
+                                    </a>
+                                </div>
+                            </div>
+                        </td>
+                        <!-- Email -->
+                        <td class="td-meta">{{ user.email }}</td>
+                        <!-- Rol -->
+                        <td>
+                            <span [class]="getRoleBadgeClass(user.platformRole)">
+                                {{ getRoleName(user) }}
                             </span>
-                            <input cFormControl [formControl]="searchControl"
-                                placeholder="Buscar por nombre o email..." />
-                        </c-input-group>
-                    </c-col>
-                    <c-col md="2">
-                        <select cSelect (change)="onRoleFilterChange($any($event.target).value)">
-                            <option value="">Rol: Todos</option>
-                            @for (role of roles(); track role.id) {
-                            <option [value]="role.code">{{ role.name }}</option>
-                            }
-                        </select>
-                    </c-col>
-                    <c-col md="2">
-                        <select cSelect (change)="onStateFilterChange($any($event.target).value)">
-                            <option value="all">Todos los registros</option>
-                            <option value="true">Activos</option>
-                            <option value="false">Inactivos</option>
-                        </select>
-                    </c-col>
-                    <c-col md="4" class="d-flex justify-content-end align-items-center">
-                        <small class="text-muted">
-                            Mostrando {{ filteredUsers().length }} de {{ stats().total }} usuarios
-                        </small>
-                    </c-col>
-                </c-row>
+                        </td>
+                        <!-- Estado -->
+                        <td>
+                            <span [class]="user.isActive
+                                ? 'badge bg-success-subtle text-success border border-success-subtle'
+                                : 'badge bg-warning-subtle text-warning border border-warning-subtle'">
+                                {{ getStateLabel(user.isActive) }}
+                            </span>
+                        </td>
+                        <!-- Creado -->
+                        <td class="td-meta">{{ formatDate(user.createdAt) }}</td>
+                        <!-- Acciones -->
+                        <td class="text-end pe-3">
+                            <c-button-group role="group" size="sm">
+                                <button cButton color="info" variant="ghost"
+                                        [routerLink]="['/users', user.uid]"
+                                        title="Ver detalles">
+                                    <svg cIcon name="cilOptions"></svg>
+                                </button>
+                                <button cButton color="primary" variant="ghost"
+                                        [routerLink]="['/users', user.uid, 'edit']"
+                                        *hasPermission="['users.edit']"
+                                        title="Editar">
+                                    <svg cIcon name="cilPencil"></svg>
+                                </button>
+                                <button cButton
+                                        [color]="user.isActive ? 'warning' : 'success'"
+                                        variant="ghost"
+                                        (click)="toggleUserState(user)"
+                                        *hasPermission="['users.manage']"
+                                        [title]="user.isActive ? 'Desactivar' : 'Activar'">
+                                    <svg cIcon [name]="user.isActive ? 'cilXCircle' : 'cilCheckCircle'"></svg>
+                                </button>
+                            </c-button-group>
+                        </td>
+                    </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        }
 
-                <!-- Loading State -->
-                @if (loading()) {
-                <div class="text-center py-5">
-                    <c-spinner color="primary"></c-spinner>
-                    <p class="mt-2 text-muted">Cargando usuarios...</p>
-                </div>
-                }
+        <!-- Footer -->
+        @if (!loading()) {
+        <div class="bg-body-secondary px-4 py-2 border-top d-flex justify-content-between align-items-center">
+            <span class="td-meta">
+                Mostrando <strong>{{ filteredUsers().length }}</strong> de
+                <strong>{{ stats().total }}</strong> usuarios
+            </span>
+            <button cButton color="secondary" variant="ghost" size="sm"
+                    (click)="refresh()" title="Actualizar">
+                <svg cIcon name="cilReload"></svg>
+            </button>
+        </div>
+        }
 
-                <!-- Table -->
-                @if (!loading()) {
-                <div class="table-responsive">
-                    <table cTable hover striped align="middle">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Usuario</th>
-                                <th>Email</th>
-                                <th class="text-center">Rol</th>
-                                <th class="text-center">Estado</th>
-                                <th>Creado</th>
-                                <th class="text-end">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @for (user of filteredUsers(); track user.uid) {
-                            <tr>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <div class="user-avatar me-3">
-                                            {{ getUserInitials(user) }}
-                                        </div>
-                                        <div>
-                                            <a [routerLink]="['/users', user.uid]"
-                                                class="text-decoration-none fw-semibold">
-                                                {{ user.displayName }}
-                                            </a>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>{{ user.email }}</td>
-                                <td class="text-center">
-                                    <c-badge [color]="getRoleColor(user.platformRole)" shape="rounded-pill">
-                                        {{ getRoleName(user) }}
-                                    </c-badge>
-                                </td>
-                                <td class="text-center">
-                                    <c-badge [color]="getStateColor(user.isActive)" shape="rounded-pill">
-                                        {{ getStateLabel(user.isActive) }}
-                                    </c-badge>
-                                </td>
-                                <td>{{ formatDate(user.createdAt) }}</td>
-                                <td class="text-end">
-                                    <c-button-group role="group" size="sm">
-                                        <button cButton color="info" variant="ghost"
-                                            [routerLink]="['/users', user.uid]" title="Ver Detalles">
-                                            <svg cIcon name="cilOptions"></svg>
-                                        </button>
-                                        <button cButton color="primary" variant="ghost"
-                                            [routerLink]="['/users', user.uid, 'edit']"
-                                            *hasPermission="['users.edit']" title="Editar">
-                                            <svg cIcon name="cilPencil"></svg>
-                                        </button>
-                                        <button cButton [color]="user.isActive ? 'warning' : 'success'" variant="ghost"
-                                            (click)="toggleUserState(user)"
-                                            *hasPermission="['users.manage']"
-                                            [title]="user.isActive ? 'Desactivar' : 'Activar'">
-                                            <svg cIcon [name]="user.isActive ? 'cilXCircle' : 'cilCheckCircle'"></svg>
-                                        </button>
-                                    </c-button-group>
-                                </td>
-                            </tr>
-                            }
-
-                            <!-- Empty State -->
-                            @if (filteredUsers().length === 0) {
-                            <tr>
-                                <td colspan="6" class="text-center py-5">
-                                    <div class="text-muted">
-                                        <svg cIcon name="cilPeople" size="3xl" class="mb-3 opacity-25"></svg>
-                                        <p class="mb-0">No se encontraron usuarios</p>
-                                        @if (searchControl.value || roleFilter() !== undefined) {
-                                        <small>Intenta ajustar los filtros de busqueda</small>
-                                        }
-                                    </div>
-                                </td>
-                            </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-                }
-
-            </c-card-body>
-        </c-card>
-    </c-col>
-</c-row>
+    </c-card-body>
+</c-card>

@@ -1,5 +1,6 @@
-import { Injectable, inject, computed, signal } from '@angular/core';
+import { Injectable, inject, computed, signal, effect } from '@angular/core';
 import { Observable, of, tap } from 'rxjs';
+import { Firestore, doc, getDoc } from '@angular/fire/firestore';
 import { AuthService } from './auth.service';
 import { RolesService } from './roles.service';
 import { PermissionsCatalogService } from './permissions-catalog.service';
@@ -178,11 +179,103 @@ export class PermissionsService {
   private rolesSvc    = inject(RolesService);
   private catalogSvc  = inject(PermissionsCatalogService);
   private tenantSvc   = inject(TenantService);
+  private firestore   = inject(Firestore);
 
   readonly role = computed(() => this.authService.user()?.role ?? null);
 
   // Cache de permisos cargados del catálogo Firestore.
   private _cachedPermissions = signal<Permission[]>([]);
+
+  /**
+   * Permisos del rol cargados desde Firestore al login.
+   * - null  = no cargado aún, o rol sin documento en Firestore → usar ROLE_MATRIX como fallback.
+   * - []    = documento existe pero no tiene permisos asignados.
+   * - [...] = permisos cargados de Firestore (fuente de verdad cuando existe).
+   */
+  private _dynamicPermissions = signal<PermissionString[] | null>(null);
+
+  /**
+   * Indica que los permisos del usuario actual ya están disponibles para consulta.
+   * permissionGuard observa este signal antes de evaluar el acceso,
+   * evitando falsos 403 por race condition en la carga inicial.
+   */
+  private _permissionsReady = signal<boolean>(false);
+  readonly permissionsReady = this._permissionsReady.asReadonly();
+
+  constructor() {
+    effect(() => {
+      const role      = this.role();
+      const companyId = this.authService.user()?.companyId;
+      const email     = this.authService.user()?.email ?? '—';
+
+      console.group(`%c[PermissionsService] Usuario: ${email}`, 'color:#6366f1;font-weight:bold');
+      console.log('role:', role, '| companyId:', companyId ?? '(sin empresa)');
+
+      if (!role) {
+        console.log('→ Sin rol. Permisos vacíos.');
+        console.groupEnd();
+        this._dynamicPermissions.set(null);
+        this._permissionsReady.set(false);
+        return;
+      }
+
+      // super_admin no tiene companyId — siempre usa ROLE_MATRIX
+      if (role === 'super_admin') {
+        console.log('→ super_admin: usa ROLE_MATRIX (sin Firestore lookup).');
+        console.groupEnd();
+        this._dynamicPermissions.set(null);
+        this._permissionsReady.set(true);
+        return;
+      }
+
+      if (!companyId) {
+        console.log('→ Sin companyId: usa ROLE_MATRIX como fallback.');
+        console.groupEnd();
+        this._dynamicPermissions.set(null);
+        this._permissionsReady.set(true);
+        return;
+      }
+
+      console.log('→ Cargando permisos desde Firestore...');
+      console.groupEnd();
+      // Para todos los usuarios de empresa: intentar cargar rol desde Firestore.
+      // Mientras carga, null → ROLE_MATRIX actúa como fallback inmediato.
+      this._permissionsReady.set(false);
+      this._loadRolePermissions(companyId, role);
+    });
+  }
+
+  private async _loadRolePermissions(companyId: string, roleCode: string): Promise<void> {
+    try {
+      // 1. Rol personalizado de empresa (seller, cashier, roles custom, y admin si la empresa lo sobreescribió)
+      let snap = await getDoc(doc(this.firestore, `companies/${companyId}/roles/${roleCode}`));
+      let source = `companies/${companyId}/roles/${roleCode}`;
+
+      // 2. Rol de plataforma (admin y otros roles de sistema almacenados en /roles/)
+      if (!snap.exists()) {
+        snap = await getDoc(doc(this.firestore, `roles/${roleCode}`));
+        source = `roles/${roleCode}`;
+      }
+
+      if (snap.exists()) {
+        const roleData = snap.data() as Role;
+        const perms    = roleData.permissions ?? [];
+        console.group(`%c[PermissionsService] Rol cargado desde Firestore`, 'color:#22c55e;font-weight:bold');
+        console.log('fuente:', source);
+        console.log('permisos (' + perms.length + '):', JSON.stringify(perms, null, 3));
+        console.groupEnd();
+        this._dynamicPermissions.set(perms);
+      } else {
+        console.warn(`[PermissionsService] Rol '${roleCode}' no encontrado en Firestore → ROLE_MATRIX como fallback.`);
+        this._dynamicPermissions.set(null);
+      }
+    } catch (err) {
+      console.warn('[PermissionsService] Error cargando rol desde Firestore:', err);
+      this._dynamicPermissions.set(null);
+    } finally {
+      this._permissionsReady.set(true);
+    }
+  }
 
   // Mapeo CRUD action → permission code
   private readonly _crudToCode: Record<string, string> = {
@@ -191,13 +284,27 @@ export class PermissionsService {
 
   /**
    * Signal reactivo con los permission strings efectivos del usuario actual.
-   * Derivado del ROLE_MATRIX. Permite que HasPermissionDirective reaccione
-   * a cambios de sesión usando effect().
+   *
+   * - Roles de sistema (en ROLE_MATRIX): se derivan de la matriz hardcodeada.
+   * - Roles custom (no en ROLE_MATRIX): se usan los permissions[] cargados
+   *   desde Firestore en companies/{companyId}/roles/{roleCode}.
+   *
+   * Permite que HasPermissionDirective y filterNav() reaccionen a cambios
+   * de sesión y a la carga asíncrona de permisos custom.
    */
   readonly permissions = computed<PermissionString[]>(() => {
     const role = this.role();
     if (!role) return [];
-    const matrix = ROLE_MATRIX[role] ?? {};
+
+    // Datos de Firestore disponibles → tienen prioridad sobre ROLE_MATRIX.
+    // null significa "no cargado aún" o "no existe en Firestore" → usar matriz.
+    const dynamic = this._dynamicPermissions();
+    if (dynamic !== null) return dynamic;
+
+    // Fallback: ROLE_MATRIX (super_admin o rol sin documento Firestore)
+    const matrix = ROLE_MATRIX[role];
+    if (!matrix) return [];
+
     const perms: PermissionString[] = [];
     for (const [module, actions] of Object.entries(matrix)) {
       for (const [action, allowed] of Object.entries(actions)) {
@@ -242,18 +349,19 @@ export class PermissionsService {
     const role = this.role();
     if (!role) return false;
 
-    // Paso 1: verificar la matriz de roles.
-    const allowed = ROLE_MATRIX[role]?.[module]?.[action] ?? false;
-    if (!allowed) return false;
+    // super_admin: acceso total vía ROLE_MATRIX (no tiene companyId ni Firestore role)
+    if (role === 'super_admin') {
+      return ROLE_MATRIX['super_admin']?.[module]?.[action] ?? false;
+    }
 
-    // super_admin: acceso total, no está sujeto al plan del tenant.
-    if (role === 'super_admin') return true;
+    // Para todos los demás roles: verificar en permissions() (Firestore o ROLE_MATRIX fallback)
+    const permCode = `${module}.${this._crudToCode[action] ?? action}`;
+    if (!this.permissions().includes(permCode)) return false;
 
-    // Paso 2: si es módulo de plataforma, no requiere verificación del tenant.
+    // Módulos de plataforma: no requieren verificación del tenant
     if (PLATFORM_MODULES.has(module)) return true;
 
-    // Paso 3: verificar que el módulo esté habilitado en el plan del tenant.
-    // TenantService puede usar camelCase; normalizamos antes de consultar.
+    // Módulos de empresa: verificar que estén habilitados en el plan del tenant
     const moduleKey = SNAKE_TO_CAMEL_MODULE[module] ?? module;
     return this.tenantSvc.hasModule(moduleKey);
   }
@@ -264,6 +372,22 @@ export class PermissionsService {
   canDelete(module: string): boolean { return this.can(module, 'delete'); }
 
   canAccessModule(module: string): boolean { return this.canRead(module); }
+
+  /**
+   * Devuelve los permission strings efectivos para un rol dado (no el usuario actual).
+   * Útil para visualizar los permisos de otro usuario sin modificar el estado global.
+   */
+  getPermissionsForRole(roleCode: string): PermissionString[] {
+    const matrix = ROLE_MATRIX[roleCode];
+    if (!matrix) return [];
+    const perms: PermissionString[] = [];
+    for (const [module, actions] of Object.entries(matrix)) {
+      for (const [action, allowed] of Object.entries(actions)) {
+        if (allowed) perms.push(`${module}.${this._crudToCode[action] ?? action}`);
+      }
+    }
+    return perms;
+  }
 
   // ── Roles CRUD (delegates to RolesService) ────────────────────────────────
 

@@ -1,37 +1,66 @@
 /**
- * modules-seed.ts
+ * seed-modules.ts — Seed del catálogo de módulos en Firestore /modules
  *
- * Catálogo canónico de módulos del sistema. Auditado contra app.routes.ts
- * y cada features/**.routes.ts. El doc ID en Firestore es igual al `code`.
+ * Siembra todos los módulos reales del sistema (auditados contra app.routes.ts
+ * y cada features/**.routes.ts). El doc ID es igual al code del módulo para
+ * trazabilidad y lookup O(1).
  *
- * USADO POR:
- *   PermissionsComponent.syncModules()  → botón "Sincronizar catálogo" en /super-admin
- *   PermissionsComponent.seedDefaults() → botón "Registrar defaults"
+ * EJECUCIÓN:
+ *   GOOGLE_APPLICATION_CREDENTIALS=./serviceAccount.json \
+ *     npx ts-node --esm scripts/seed-modules.ts
  *
- * REGLAS:
- *   - showInMenu: false → módulo no implementado o sub-vista interna.
- *   - state: false      → deshabilitado en el catálogo de plataforma.
- *   - parent_id         → code del módulo padre (null = raíz).
- *   - order             → orden global en el sidebar.
+ *   # Con emulador:
+ *   FIRESTORE_EMULATOR_HOST=localhost:8080 \
+ *     npx ts-node scripts/seed-modules.ts
+ *
+ * COMPORTAMIENTO:
+ *   - Usa setDoc con merge:true → idempotente, re-ejecutable.
+ *   - No borra módulos existentes fuera del catálogo.
+ *   - Los módulos no implementados (quotes, orders, proformas) se siembran con
+ *     showInMenu:false para que no aparezcan en el sidebar hasta estar listos.
+ *
+ * ESTRUCTURA Firestore /modules/{code}:
+ *   code        — slug único, coincide con el doc ID y con permission strings
+ *   name        — nombre visible en el sidebar
+ *   description — descripción breve
+ *   url         — ruta Angular (null para títulos de sección)
+ *   icon        — ícono CoreUI (formato 'cil-speedometer')
+ *   isTitle     — true = separador de sección en el sidebar
+ *   parent_id   — code del módulo padre (null = raíz)
+ *   showInMenu  — false = oculto hasta implementar
+ *   dependencies— codes de módulos que deben estar activos primero
+ *   order       — orden de aparición en el sidebar (global)
+ *   state       — true = habilitado en el catálogo de la plataforma
  */
 
-export interface ModuleSeed {
+import * as admin from 'firebase-admin';
+
+if (!admin.apps.length) {
+  admin.initializeApp();
+}
+
+const db  = admin.firestore();
+const now = admin.firestore.Timestamp.now();
+
+// ─── Tipo ─────────────────────────────────────────────────────────────────────
+
+interface SeedModule {
   code:         string;
   name:         string;
   description:  string;
-  dependencies: string[];
   url:          string | null;
   icon:         string;
   isTitle:      boolean;
   parent_id:    string | null;
   showInMenu:   boolean;
+  dependencies: string[];
   order:        number;
   state:        boolean;
 }
 
 // ─── Catálogo de módulos ──────────────────────────────────────────────────────
 
-export const MODULES_SEED: ModuleSeed[] = [
+const modules: SeedModule[] = [
 
   // ═══════════════════════════════════════════════════════
   //  VENTAS
@@ -78,22 +107,22 @@ export const MODULES_SEED: ModuleSeed[] = [
     dependencies: ['invoices'], order: 6, state: true,
   },
 
-  // ── No implementados aún ───────────────────────────────────────────────────
+  // ── No implementados — showInMenu:false ────────────────────────────────────
   {
     code: 'quotes', name: 'Presupuestos',
-    description: 'Cotizaciones y presupuestos convertibles a pedido o factura. Pendiente.',
+    description: 'Generación de cotizaciones y presupuestos. Pendiente de implementación.',
     url: '/quotes', icon: 'cil-clipboard', isTitle: false, parent_id: null, showInMenu: false,
     dependencies: ['personas', 'products'], order: 7, state: false,
   },
   {
     code: 'orders', name: 'Pedidos',
-    description: 'Pedidos de cliente con estado y conversión a factura. Pendiente.',
+    description: 'Órdenes de venta. Pendiente de implementación.',
     url: '/orders', icon: 'cil-list', isTitle: false, parent_id: null, showInMenu: false,
     dependencies: ['personas', 'products'], order: 8, state: false,
   },
   {
     code: 'proformas', name: 'Proformas',
-    description: 'Documentos proforma previos a la factura. Pendiente.',
+    description: 'Documentos proforma previos a la factura. Pendiente de implementación.',
     url: '/proformas', icon: 'cil-note', isTitle: false, parent_id: null, showInMenu: false,
     dependencies: ['personas', 'products'], order: 9, state: false,
   },
@@ -127,6 +156,7 @@ export const MODULES_SEED: ModuleSeed[] = [
     url: null, icon: '', isTitle: true, parent_id: null, showInMenu: true,
     dependencies: [], order: 20, state: true,
   },
+  // stock — padre con hijos: overview y movements
   {
     code: 'stock', name: 'Inventario',
     description: 'Control de inventario por bodega, kardex y valorización de existencias.',
@@ -145,6 +175,7 @@ export const MODULES_SEED: ModuleSeed[] = [
     url: '/stock/movements', icon: '', isTitle: false, parent_id: 'stock', showInMenu: true,
     dependencies: ['stock'], order: 212, state: true,
   },
+  // purchases — padre con hijos
   {
     code: 'purchases', name: 'Compras',
     description: 'Registro y gestión de órdenes de compra con homologación desde XML del SRI.',
@@ -180,7 +211,7 @@ export const MODULES_SEED: ModuleSeed[] = [
   },
   {
     code: 'benefits', name: 'Beneficios',
-    description: 'Dashboard de beneficios para socios: liquidaciones y distribución.',
+    description: 'Dashboard de beneficios para socios: liquidaciones y historial de distribución.',
     url: '/benefits', icon: 'cil-chart-pie', isTitle: false, parent_id: null, showInMenu: true,
     dependencies: ['invoices'], order: 31, state: true,
   },
@@ -205,6 +236,7 @@ export const MODULES_SEED: ModuleSeed[] = [
     url: '/accounting/journal-entries', icon: 'cil-description', isTitle: false, parent_id: null, showInMenu: true,
     dependencies: ['accounting'], order: 42, state: true,
   },
+  // Reportes contables — padre con hijos
   {
     code: 'accounting_reports', name: 'Reportes Contables',
     description: 'Libro Diario, Mayor, Balance de Comprobación, Estado de Resultados y más.',
@@ -246,9 +278,10 @@ export const MODULES_SEED: ModuleSeed[] = [
     url: '/accounting/aging', icon: '', isTitle: false, parent_id: 'accounting_reports', showInMenu: true,
     description: 'Análisis de antigüedad de cuentas por cobrar y pagar.', dependencies: ['accounting_reports'], order: 437, state: true,
   },
+  // Declaraciones SRI — padre con hijos
   {
     code: 'accounting_sri', name: 'Declaraciones SRI',
-    description: 'Formularios F104 (IVA), F103 (Retenciones), F101 (IR) y ATS.',
+    description: 'Formularios de declaración al SRI: IVA, Retenciones, Impuesto a la Renta y ATS.',
     url: '/accounting/formulario-104', icon: 'cil-file', isTitle: false, parent_id: null, showInMenu: true,
     dependencies: ['accounting'], order: 44, state: true,
   },
@@ -272,6 +305,7 @@ export const MODULES_SEED: ModuleSeed[] = [
     url: '/accounting/ats', icon: '', isTitle: false, parent_id: 'accounting_sri', showInMenu: true,
     description: 'Anexo Transaccional Simplificado.', dependencies: ['accounting_sri'], order: 444, state: true,
   },
+  // Conciliación bancaria — padre con hijos
   {
     code: 'accounting_banking', name: 'Conciliación Bancaria',
     description: 'Conciliación de extractos bancarios, anticipos y caja chica.',
@@ -298,6 +332,7 @@ export const MODULES_SEED: ModuleSeed[] = [
     url: '/accounting/petty-cash', icon: '', isTitle: false, parent_id: 'accounting_banking', showInMenu: true,
     description: 'Control de fondo de caja chica.', dependencies: ['accounting_banking'], order: 454, state: true,
   },
+  // Presupuesto — padre con hijos
   {
     code: 'accounting_budget', name: 'Presupuesto',
     description: 'Definición y seguimiento de presupuesto vs ejecución real.',
@@ -314,6 +349,7 @@ export const MODULES_SEED: ModuleSeed[] = [
     url: '/accounting/presupuesto-vs-real', icon: '', isTitle: false, parent_id: 'accounting_budget', showInMenu: true,
     description: 'Comparación de presupuesto planificado vs ejecución real.', dependencies: ['accounting_budget'], order: 462, state: true,
   },
+  // Extras contables (sin hijos)
   {
     code: 'accounting_cost_centers', name: 'Centros de Costo',
     description: 'Gestión de centros de costo para contabilidad analítica.',
@@ -480,6 +516,7 @@ export const MODULES_SEED: ModuleSeed[] = [
     url: null, icon: '', isTitle: true, parent_id: null, showInMenu: true,
     dependencies: [], order: 90, state: true,
   },
+  // settings — padre con hijos
   {
     code: 'settings', name: 'Configuración',
     description: 'Configuración de la empresa: series de documentos, impuestos, almacenes y parámetros generales.',
@@ -546,6 +583,7 @@ export const MODULES_SEED: ModuleSeed[] = [
     url: '/settings/subscription', icon: '', isTitle: false, parent_id: 'settings', showInMenu: true,
     description: 'Estado del plan y suscripción actual.', dependencies: ['settings'], order: 922, state: true,
   },
+  // users y profiles
   {
     code: 'users', name: 'Usuarios',
     description: 'Gestión de usuarios de la empresa: creación, roles y estado.',
@@ -560,14 +598,63 @@ export const MODULES_SEED: ModuleSeed[] = [
   },
 ];
 
-// ─── Acciones del sistema ─────────────────────────────────────────────────────
+// ─── Runner ───────────────────────────────────────────────────────────────────
 
-export const ACTIONS_SEED = [
-  { code: 'view',    name: 'Ver',       description: 'Visualizar listados y detalles',          state: true },
-  { code: 'create',  name: 'Crear',     description: 'Crear nuevos registros',                  state: true },
-  { code: 'edit',    name: 'Editar',    description: 'Modificar registros existentes',           state: true },
-  { code: 'delete',  name: 'Eliminar',  description: 'Eliminar o desactivar registros',          state: true },
-  { code: 'export',  name: 'Exportar',  description: 'Exportar datos a Excel/PDF',              state: true },
-  { code: 'print',   name: 'Imprimir',  description: 'Generar e imprimir documentos',           state: true },
-  { code: 'approve', name: 'Aprobar',   description: 'Aprobar documentos o ajustes críticos',   state: true },
-];
+async function seedModules(): Promise<void> {
+  console.log('\n🧩  Seeding /modules…');
+
+  // Firestore admite máximo 500 operaciones por batch; dividimos si hace falta.
+  const BATCH_SIZE = 400;
+  let batch        = db.batch();
+  let opCount      = 0;
+  let totalWritten = 0;
+
+  for (const mod of modules) {
+    const ref = db.collection('modules').doc(mod.code);
+    batch.set(ref, {
+      ...mod,
+      createdAt: now,
+      updatedAt: now,
+    }, { merge: true });
+
+    const isTitle = mod.isTitle ? ' [TITLE]' : '';
+    const hidden  = !mod.showInMenu ? ' [hidden]' : '';
+    const parent  = mod.parent_id ? ` → ${mod.parent_id}` : '';
+    console.log(`  ✓ modules/${mod.code.padEnd(36)} ${mod.name}${isTitle}${hidden}${parent}`);
+
+    opCount++;
+    totalWritten++;
+
+    if (opCount >= BATCH_SIZE) {
+      await batch.commit();
+      batch    = db.batch();
+      opCount  = 0;
+      console.log(`  → Batch de ${BATCH_SIZE} enviado.`);
+    }
+  }
+
+  if (opCount > 0) {
+    await batch.commit();
+  }
+
+  console.log(`  → ${totalWritten} módulos escritos.\n`);
+}
+
+async function main(): Promise<void> {
+  console.log('🚀  SaasFacturacion — Seed de Módulos del Sistema');
+  console.log('   Proyecto :', admin.app().options.projectId ?? '(default)');
+  console.log('   Timestamp:', now.toDate().toISOString());
+  console.log('   Total    :', modules.length, 'módulos');
+  console.log('─'.repeat(60));
+
+  await seedModules();
+
+  console.log('─'.repeat(60));
+  console.log('✅  Seed completado.\n');
+  process.exit(0);
+}
+
+main().catch(err => {
+  console.error('❌  Error durante el seed:', err);
+  process.exit(1);
+});

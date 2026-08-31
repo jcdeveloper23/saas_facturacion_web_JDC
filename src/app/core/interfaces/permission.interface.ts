@@ -42,6 +42,8 @@ export interface Module {
   // UI hierarchy display (added by flattenModules — not persisted)
   _level?: number;                  // 0 = root, 1 = child
   _parentName?: string | null;
+  _parentCode?: string | null;
+  _isLastChild?: boolean;
 }
 
 /**

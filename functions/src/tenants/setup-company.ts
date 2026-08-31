@@ -124,16 +124,31 @@ export const setupCompany = onCall(async (request) => {
   // ── Load plan data (if planId provided) ────────────────────────────────────
   let planLimits: Record<string, any> | null = null;
   let planFeatures: Record<string, any> | null = null;
+  let includedPackages: string[] = [];
   let includedModules: string[] = [];
 
   if (data.planId) {
     const planSnap = await db.doc(`plans/${data.planId}`).get();
     if (planSnap.exists) {
       const plan = planSnap.data()!;
-      planLimits      = plan['limits']          ?? null;
-      planFeatures    = plan['features']         ?? null;
-      includedModules = plan['includedModules']  ?? [];
-      console.log('[setupCompany] Plan cargado:', data.planId, '| modules:', includedModules.length);
+      planLimits       = plan['limits']           ?? null;
+      planFeatures     = plan['features']          ?? null;
+      includedPackages = plan['includedPackages']  ?? [];
+
+      // Resolver módulos desde los paquetes del plan (igual que assignPlanToCompany en el frontend)
+      if (includedPackages.length > 0) {
+        const pkgsSnap = await db.collection('plugin-packages').get();
+        const allPkgs = pkgsSnap.docs.map(d => ({ ...d.data() }));
+        includedModules = [
+          ...new Set(
+            allPkgs
+              .filter((p: any) => includedPackages.includes(p['code']))
+              .flatMap((p: any) => (p['modules'] as string[]) ?? [])
+          )
+        ];
+      }
+
+      console.log('[setupCompany] Plan cargado:', data.planId, '| packages:', includedPackages.length, '| modules:', includedModules.length);
     } else {
       console.warn('[setupCompany] planId no encontrado en /plans:', data.planId);
     }
@@ -254,6 +269,7 @@ export const setupCompany = onCall(async (request) => {
       : Timestamp.fromMillis(Date.now() + 30 * 24 * 60 * 60 * 1000),
     planLimits,
     planFeatures,
+    enabledPackages:         includedPackages,
     enabledModules:          includedModules,
     totalPersonasActive:     0,
     totalCustomersActive:    0,

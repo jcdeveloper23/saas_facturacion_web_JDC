@@ -1,0 +1,2007 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Propuesta Comercial — FacturasSEC: Sistema SaaS de Facturación Electrónica para Ecuador</title>
+  <style>
+    :root {
+      --primary: #1a56db;
+      --primary-dark: #1041ab;
+      --accent: #0ea5e9;
+      --success: #16a34a;
+      --warning: #d97706;
+      --danger: #dc2626;
+      --dark: #0f172a;
+      --gray-900: #111827;
+      --gray-800: #1f2937;
+      --gray-700: #374151;
+      --gray-600: #4b5563;
+      --gray-500: #6b7280;
+      --gray-300: #d1d5db;
+      --gray-100: #f3f4f6;
+      --gray-50: #f9fafb;
+      --white: #ffffff;
+      --border: #e5e7eb;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--gray-800);
+      background: var(--white);
+    }
+
+    /* COVER PAGE */
+    .cover {
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #1a56db 100%);
+      color: var(--white);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 60px 40px;
+      page-break-after: always;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cover::before {
+      content: '';
+      position: absolute;
+      top: -100px; right: -100px;
+      width: 400px; height: 400px;
+      background: rgba(14, 165, 233, 0.1);
+      border-radius: 50%;
+    }
+
+    .cover::after {
+      content: '';
+      position: absolute;
+      bottom: -80px; left: -80px;
+      width: 300px; height: 300px;
+      background: rgba(26, 86, 219, 0.15);
+      border-radius: 50%;
+    }
+
+    .cover-badge {
+      display: inline-block;
+      background: rgba(14, 165, 233, 0.2);
+      border: 1px solid rgba(14, 165, 233, 0.5);
+      color: #7dd3fc;
+      padding: 6px 18px;
+      border-radius: 100px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 32px;
+      position: relative; z-index: 1;
+    }
+
+    .cover h1 {
+      font-size: 52px;
+      font-weight: 800;
+      line-height: 1.15;
+      margin-bottom: 16px;
+      position: relative; z-index: 1;
+    }
+
+    .cover h1 span { color: #38bdf8; }
+
+    .cover-subtitle {
+      font-size: 20px;
+      color: rgba(255,255,255,0.75);
+      max-width: 680px;
+      margin: 0 auto 48px;
+      position: relative; z-index: 1;
+    }
+
+    .cover-stats {
+      display: flex;
+      gap: 48px;
+      justify-content: center;
+      margin-bottom: 56px;
+      position: relative; z-index: 1;
+      flex-wrap: wrap;
+    }
+
+    .cover-stat { text-align: center; }
+    .cover-stat-num {
+      font-size: 40px;
+      font-weight: 800;
+      color: #38bdf8;
+      display: block;
+      line-height: 1;
+    }
+    .cover-stat-label {
+      font-size: 12px;
+      color: rgba(255,255,255,0.6);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 4px;
+    }
+
+    .cover-divider {
+      width: 60px; height: 3px;
+      background: linear-gradient(90deg, #38bdf8, #1a56db);
+      border-radius: 2px;
+      margin: 0 auto 40px;
+      position: relative; z-index: 1;
+    }
+
+    .cover-meta {
+      display: grid;
+      grid-template-columns: repeat(3, auto);
+      gap: 0;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative; z-index: 1;
+    }
+
+    .cover-meta-item {
+      padding: 16px 28px;
+      border-right: 1px solid rgba(255,255,255,0.15);
+      text-align: center;
+    }
+    .cover-meta-item:last-child { border-right: none; }
+    .cover-meta-label {
+      font-size: 10px;
+      color: rgba(255,255,255,0.5);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .cover-meta-value {
+      font-size: 14px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.9);
+    }
+
+    /* LAYOUT */
+    .page {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 60px 48px;
+    }
+
+    .section { margin-bottom: 56px; }
+
+    /* SECTION HEADERS */
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--primary);
+      margin-bottom: 8px;
+    }
+
+    h2 {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--dark);
+      margin-bottom: 8px;
+      line-height: 1.2;
+    }
+
+    h3 {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--dark);
+      margin-bottom: 12px;
+    }
+
+    h4 {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--gray-700);
+      margin-bottom: 8px;
+    }
+
+    .lead {
+      font-size: 16px;
+      color: var(--gray-600);
+      line-height: 1.7;
+      margin-bottom: 24px;
+    }
+
+    p { margin-bottom: 12px; color: var(--gray-700); line-height: 1.7; }
+
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 48px 0;
+    }
+
+    /* PAGE BREAK */
+    .page-break { page-break-before: always; padding-top: 60px; }
+
+    /* HIGHLIGHT BOX */
+    .highlight-box {
+      background: linear-gradient(135deg, #eff6ff, #dbeafe);
+      border-left: 4px solid var(--primary);
+      border-radius: 0 8px 8px 0;
+      padding: 20px 24px;
+      margin-bottom: 24px;
+    }
+
+    .highlight-box p { color: var(--gray-700); margin: 0; }
+
+    .success-box {
+      background: #f0fdf4;
+      border-left: 4px solid var(--success);
+      border-radius: 0 8px 8px 0;
+      padding: 20px 24px;
+      margin-bottom: 24px;
+    }
+
+    .warning-box {
+      background: #fffbeb;
+      border-left: 4px solid var(--warning);
+      border-radius: 0 8px 8px 0;
+      padding: 20px 24px;
+      margin-bottom: 24px;
+    }
+
+    /* CARDS GRID */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .cards-grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .card {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+      background: var(--white);
+    }
+
+    .card-icon {
+      font-size: 28px;
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    .card h4 { font-size: 14px; margin-bottom: 6px; }
+    .card p { font-size: 13px; color: var(--gray-600); margin: 0; }
+
+    .card-primary {
+      border-color: var(--primary);
+      background: linear-gradient(135deg, #eff6ff, #fff);
+    }
+
+    /* MODULE LIST */
+    .module-list {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 24px;
+    }
+
+    .module-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--gray-100);
+      font-size: 13.5px;
+      color: var(--gray-700);
+    }
+
+    .module-list li:last-child { border-bottom: none; }
+
+    .module-list li .check {
+      width: 18px; height: 18px;
+      background: var(--success);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+      color: white;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .module-list li strong { color: var(--dark); }
+
+    /* BADGE */
+    .badge {
+      display: inline-block;
+      padding: 2px 9px;
+      border-radius: 100px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .badge-blue { background: #dbeafe; color: #1d4ed8; }
+    .badge-green { background: #dcfce7; color: #15803d; }
+    .badge-orange { background: #ffedd5; color: #c2410c; }
+    .badge-gray { background: var(--gray-100); color: var(--gray-600); }
+    .badge-purple { background: #f3e8ff; color: #7e22ce; }
+
+    /* TABLE */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 24px;
+      font-size: 13px;
+    }
+
+    thead th {
+      background: var(--gray-800);
+      color: var(--white);
+      padding: 10px 14px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 12px;
+      letter-spacing: 0.3px;
+    }
+
+    thead th:first-child { border-radius: 6px 0 0 0; }
+    thead th:last-child { border-radius: 0 6px 0 0; }
+
+    tbody tr { border-bottom: 1px solid var(--border); }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:nth-child(even) { background: var(--gray-50); }
+
+    td {
+      padding: 10px 14px;
+      color: var(--gray-700);
+      vertical-align: top;
+    }
+
+    td strong { color: var(--dark); }
+
+    /* STACK GRID */
+    .stack-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .stack-item {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      text-align: center;
+      background: var(--gray-50);
+    }
+
+    .stack-item-icon { font-size: 24px; display: block; margin-bottom: 6px; }
+    .stack-item-name { font-size: 12px; font-weight: 700; color: var(--dark); display: block; }
+    .stack-item-detail { font-size: 11px; color: var(--gray-500); display: block; }
+
+    /* PRICING */
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .pricing-card {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      text-align: center;
+      position: relative;
+    }
+
+    .pricing-card.featured {
+      border-color: var(--primary);
+      background: linear-gradient(135deg, #eff6ff, #fff);
+      box-shadow: 0 4px 20px rgba(26, 86, 219, 0.1);
+    }
+
+    .pricing-card .featured-badge {
+      position: absolute;
+      top: -12px; left: 50%; transform: translateX(-50%);
+      background: var(--primary);
+      color: white;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 14px;
+      border-radius: 100px;
+      white-space: nowrap;
+    }
+
+    .pricing-card-name {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--dark);
+      margin-bottom: 8px;
+    }
+
+    .pricing-card-price {
+      font-size: 36px;
+      font-weight: 800;
+      color: var(--primary);
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .pricing-card-period { font-size: 12px; color: var(--gray-500); margin-bottom: 16px; }
+
+    .pricing-card ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      text-align: left;
+    }
+
+    .pricing-card ul li {
+      font-size: 12.5px;
+      color: var(--gray-600);
+      padding: 4px 0;
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+    }
+
+    .pricing-card ul li::before {
+      content: '✓';
+      color: var(--success);
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    /* DELIVERABLES */
+    .deliverables-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+
+    .deliverable-card {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .deliverable-card-header {
+      background: var(--gray-800);
+      color: white;
+      padding: 12px 16px;
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .deliverable-card-body {
+      padding: 16px;
+    }
+
+    .deliverable-card-body ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .deliverable-card-body ul li {
+      font-size: 12.5px;
+      color: var(--gray-600);
+      padding: 5px 0;
+      border-bottom: 1px solid var(--gray-100);
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+    }
+
+    .deliverable-card-body ul li:last-child { border-bottom: none; }
+    .deliverable-card-body ul li::before {
+      content: '→';
+      color: var(--primary);
+      font-weight: 700;
+      flex-shrink: 0;
+      font-size: 12px;
+    }
+
+    /* TIMELINE */
+    .timeline {
+      position: relative;
+      padding-left: 32px;
+      margin-bottom: 24px;
+    }
+
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 10px;
+      top: 0; bottom: 0;
+      width: 2px;
+      background: linear-gradient(180deg, var(--primary), var(--accent));
+    }
+
+    .timeline-item {
+      position: relative;
+      margin-bottom: 24px;
+    }
+
+    .timeline-item::before {
+      content: '';
+      position: absolute;
+      left: -26px;
+      top: 4px;
+      width: 12px; height: 12px;
+      background: var(--primary);
+      border-radius: 50%;
+      border: 2px solid white;
+      box-shadow: 0 0 0 2px var(--primary);
+    }
+
+    .timeline-item h4 {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--dark);
+      margin-bottom: 4px;
+    }
+
+    .timeline-item p {
+      font-size: 13px;
+      color: var(--gray-600);
+      margin: 0;
+    }
+
+    .timeline-week {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--primary);
+      background: #dbeafe;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-bottom: 4px;
+    }
+
+    /* GUARANTEE */
+    .guarantee-box {
+      background: linear-gradient(135deg, #0f172a, #1e3a5f);
+      color: white;
+      border-radius: 12px;
+      padding: 32px;
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .guarantee-box h3 { color: #38bdf8; font-size: 22px; margin-bottom: 8px; }
+    .guarantee-box p { color: rgba(255,255,255,0.7); margin-bottom: 0; }
+
+    .guarantee-items {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 24px;
+      text-align: left;
+    }
+
+    .guarantee-item {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .guarantee-item-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #7dd3fc;
+      margin-bottom: 6px;
+    }
+
+    .guarantee-item-text {
+      font-size: 12px;
+      color: rgba(255,255,255,0.6);
+      line-height: 1.5;
+    }
+
+    /* FOOTER */
+    .doc-footer {
+      background: var(--gray-800);
+      color: rgba(255,255,255,0.6);
+      padding: 32px 48px;
+      text-align: center;
+      font-size: 12px;
+      line-height: 1.8;
+      margin-top: 60px;
+    }
+
+    .doc-footer strong { color: rgba(255,255,255,0.9); }
+
+    /* SIGNATURE LINE */
+    .signature-section {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 48px;
+      margin-top: 48px;
+    }
+
+    .signature-block {
+      border-top: 2px solid var(--dark);
+      padding-top: 10px;
+    }
+
+    .signature-label { font-size: 12px; color: var(--gray-500); }
+    .signature-name { font-size: 13px; font-weight: 700; color: var(--dark); margin-top: 4px; }
+    .signature-role { font-size: 12px; color: var(--gray-600); }
+
+    /* PRINT */
+    @media print {
+      body { font-size: 12px; }
+      .cover { min-height: auto; padding: 80px 48px; }
+      .page { padding: 40px 48px; }
+      h2 { font-size: 22px; }
+      .cover h1 { font-size: 38px; }
+      .cover-stat-num { font-size: 30px; }
+    }
+
+    @page {
+      margin: 0;
+    }
+
+    /* SECTION NUMBER */
+    .section-number {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px; height: 28px;
+      background: var(--primary);
+      color: white;
+      border-radius: 50%;
+      font-size: 13px;
+      font-weight: 700;
+      margin-right: 10px;
+      flex-shrink: 0;
+    }
+
+    .section-title-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .section-title-row h2 { margin-bottom: 0; }
+
+    /* PRICE HIGHLIGHT */
+    .price-highlight {
+      background: linear-gradient(135deg, #0f172a, #1e3a5f);
+      color: white;
+      border-radius: 12px;
+      padding: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    .price-highlight-label { font-size: 14px; color: rgba(255,255,255,0.6); margin-bottom: 4px; }
+    .price-highlight-amount { font-size: 52px; font-weight: 800; color: #38bdf8; line-height: 1; }
+    .price-highlight-period { font-size: 16px; color: rgba(255,255,255,0.5); }
+    .price-highlight-note { font-size: 13px; color: rgba(255,255,255,0.5); margin-top: 6px; }
+
+    .price-highlight-right { text-align: right; }
+    .price-highlight-right p { color: rgba(255,255,255,0.65); font-size: 13px; margin: 0; }
+
+    /* INCLUDED MARKER */
+    .incl { color: var(--success); font-weight: 700; }
+    .not-incl { color: var(--gray-400); }
+  </style>
+
+  <!-- DOWNLOAD BUTTON STYLES -->
+  <style>
+    .dl-fab {
+      position: fixed;
+      bottom: 32px;
+      right: 32px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 10px;
+    }
+
+    .dl-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 13px 22px;
+      border: none;
+      border-radius: 50px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.22);
+      transition: transform 0.15s, box-shadow 0.15s;
+      text-decoration: none;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      letter-spacing: 0.2px;
+    }
+
+    .dl-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.28);
+    }
+
+    .dl-btn:active { transform: translateY(0); }
+
+    .dl-btn-doc {
+      background: #2b5eb8;
+      color: #fff;
+    }
+
+    .dl-btn-pdf {
+      background: #c0392b;
+      color: #fff;
+    }
+
+    .dl-btn svg {
+      width: 18px; height: 18px;
+      flex-shrink: 0;
+    }
+
+    @media print { .dl-fab { display: none; } }
+  </style>
+</head>
+<body>
+
+  <!-- FLOATING DOWNLOAD PANEL -->
+  <div class="dl-fab">
+    <button class="dl-btn dl-btn-doc" onclick="descargarDoc()">
+      <svg viewBox="0 0 24 24" fill="currentColor">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM6 20V4h5v7h7v9H6z"/>
+      </svg>
+      Descargar .DOC (editable)
+    </button>
+    <button class="dl-btn dl-btn-pdf" onclick="window.print()">
+      <svg viewBox="0 0 24 24" fill="currentColor">
+        <path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"/>
+      </svg>
+      Imprimir / PDF
+    </button>
+  </div>
+
+  <script>
+    function descargarDoc() {
+      // Word acepta HTML con namespace MIME específico
+      const mimeType = 'application/msword';
+      const html = `
+        <html xmlns:o='urn:schemas-microsoft-com:office:office'
+              xmlns:w='urn:schemas-microsoft-com:office:word'
+              xmlns='http://www.w3.org/TR/REC-html40'>
+        <head>
+          <meta charset='UTF-8'>
+          <meta name=ProgId content=Word.Document>
+          <meta name=Generator content='Microsoft Word 15'>
+          <meta name=Originator content='Microsoft Word 15'>
+          <!--[if gte mso 9]>
+          <xml>
+            <w:WordDocument>
+              <w:View>Print</w:View>
+              <w:Zoom>90</w:Zoom>
+              <w:DoNotOptimizeForBrowser/>
+            </w:WordDocument>
+          </xml>
+          <![endif]-->
+          <style>
+            body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; color: #1f2937; margin: 2cm; }
+            h1 { font-size: 26pt; color: #1a56db; page-break-before: always; }
+            h2 { font-size: 16pt; color: #0f172a; border-bottom: 2pt solid #1a56db; padding-bottom: 4pt; margin-top: 18pt; }
+            h3 { font-size: 13pt; color: #1f2937; margin-top: 12pt; }
+            h4 { font-size: 11pt; color: #374151; margin-top: 8pt; }
+            p  { line-height: 1.6; margin-bottom: 8pt; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 12pt; font-size: 10pt; }
+            th { background: #1f2937; color: white; padding: 7pt 10pt; text-align: left; }
+            td { padding: 7pt 10pt; border-bottom: 1pt solid #e5e7eb; }
+            tr:nth-child(even) td { background: #f9fafb; }
+            ul { margin: 0 0 10pt 18pt; }
+            li { margin-bottom: 4pt; line-height: 1.5; }
+            .cover-section { background: #0f172a; color: white; padding: 30pt; margin-bottom: 20pt; }
+            .cover-section h1 { color: #38bdf8; font-size: 28pt; border: none; }
+            .badge-blue { background: #dbeafe; color: #1d4ed8; padding: 1pt 6pt; border-radius: 4pt; font-size: 9pt; }
+            .badge-green { background: #dcfce7; color: #15803d; padding: 1pt 6pt; border-radius: 4pt; font-size: 9pt; }
+            .badge-orange { background: #ffedd5; color: #c2410c; padding: 1pt 6pt; border-radius: 4pt; font-size: 9pt; }
+            .badge-purple { background: #f3e8ff; color: #7e22ce; padding: 1pt 6pt; border-radius: 4pt; font-size: 9pt; }
+            .highlight { background: #eff6ff; border-left: 4pt solid #1a56db; padding: 10pt 14pt; margin: 10pt 0; }
+            .success-box { background: #f0fdf4; border-left: 4pt solid #16a34a; padding: 10pt 14pt; margin: 10pt 0; }
+            .warning-box { background: #fffbeb; border-left: 4pt solid #d97706; padding: 10pt 14pt; margin: 10pt 0; }
+            .section-label { font-size: 9pt; color: #1a56db; font-weight: bold; letter-spacing: 1pt; text-transform: uppercase; margin-bottom: 4pt; }
+            .price-big { font-size: 32pt; font-weight: bold; color: #1a56db; }
+            .signature-line { border-top: 2pt solid #0f172a; margin-top: 40pt; padding-top: 6pt; width: 45%; display: inline-block; }
+            .divider { border: none; border-top: 1pt solid #e5e7eb; margin: 20pt 0; }
+          </style>
+        </head>
+        <body>
+
+        <!-- PORTADA -->
+        <div style="background:#0f172a;color:white;padding:40pt;text-align:center;margin-bottom:24pt;">
+          <p style="font-size:9pt;color:#7dd3fc;letter-spacing:2pt;text-transform:uppercase;margin-bottom:12pt;">PROPUESTA COMERCIAL CONFIDENCIAL</p>
+          <h1 style="font-size:30pt;color:#38bdf8;border:none;margin-bottom:8pt;page-break-before:avoid;">FacturasSEC</h1>
+          <h2 style="font-size:18pt;color:white;border:none;margin-bottom:12pt;">Sistema SaaS de Facturación Electrónica Ecuador</h2>
+          <p style="color:rgba(255,255,255,0.7);font-size:12pt;max-width:500pt;margin:0 auto 24pt;">Plataforma multi-tenant completa con facturación electrónica SRI, contabilidad, inventario, compras y gestión de equipos.</p>
+          <table style="width:auto;margin:0 auto;font-size:10pt;border:1pt solid rgba(255,255,255,0.2);">
+            <tr>
+              <td style="color:rgba(255,255,255,0.6);padding:8pt 18pt;border-right:1pt solid rgba(255,255,255,0.2);">Tipo: <b style="color:white;">Código Fuente + Licencia</b></td>
+              <td style="color:rgba(255,255,255,0.6);padding:8pt 18pt;border-right:1pt solid rgba(255,255,255,0.2);">Preparado por: <b style="color:white;">FacturasSEC Dev Team</b></td>
+              <td style="color:rgba(255,255,255,0.6);padding:8pt 18pt;">Fecha: <b style="color:white;">Agosto 2026</b></td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- 01 RESUMEN -->
+        <p class="section-label">01 — Resumen Ejecutivo</p>
+        <h2>¿Qué es FacturasSEC?</h2>
+        <p>FacturasSEC es una plataforma SaaS de facturación electrónica, contabilidad y gestión empresarial 100% desarrollada para el mercado ecuatoriano, con integración nativa al SRI (Servicio de Rentas Internas).</p>
+        <div class="highlight">
+          <b>No es un prototipo.</b> El sistema está en estado de producción avanzado, con más de 20 módulos operativos, facturación electrónica certificada contra el SRI, contabilidad completa con estados financieros, y arquitectura multi-tenant lista para soportar múltiples empresas simultáneamente desde el día uno.
+        </div>
+        <table>
+          <tr><th>Característica</th><th>Detalle</th></tr>
+          <tr><td><b>🇪🇨 Hecho para Ecuador</b></td><td>Cumplimiento SRI, clave de acceso 49 dígitos, formularios 104 y 101, ATS, firma electrónica .p12</td></tr>
+          <tr><td><b>☁️ 100% en la nube</b></td><td>Firebase/Google Cloud. Sin servidor propio. Escala automáticamente. Alta disponibilidad garantizada.</td></tr>
+          <tr><td><b>🏢 Multi-empresa</b></td><td>Un solo despliegue sirve a múltiples RUCs. Aislamiento total de datos por tenant. Roles granulares.</td></tr>
+          <tr><td><b>📦 Modelo SaaS listo</b></td><td>5 planes de suscripción, 11 paquetes de módulos, enforcement de límites, panel de super admin.</td></tr>
+          <tr><td><b>📊 Contabilidad completa</b></td><td>Plan de cuentas, asientos, libro diario/mayor, balance general, estado de resultados, depreciaciones.</td></tr>
+          <tr><td><b>🔐 Seguridad por diseño</b></td><td>Custom Claims Firebase, reglas Firestore por rol, aislamiento multi-tenant en cada query.</td></tr>
+        </table>
+
+        <hr class="divider"/>
+
+        <!-- 02 MÓDULOS -->
+        <p class="section-label">02 — Alcance Funcional</p>
+        <h2>Módulos incluidos en la entrega</h2>
+        <p>Todo el código fuente entregado cubre los siguientes módulos, todos operativos y probados en ambiente de producción.</p>
+
+        <h3>🧾 Facturación Electrónica SRI</h3>
+        <ul>
+          <li>Facturas de venta electrónicas (XML + RIDE)</li>
+          <li>Notas de crédito y débito electrónicas</li>
+          <li>Comprobantes de retención electrónicos</li>
+          <li>Firma electrónica con certificado .p12</li>
+          <li>Envío y consulta de autorización SRI (pruebas y producción)</li>
+          <li>Clave de acceso 49 dígitos (módulo 11)</li>
+          <li>Generación y envío de RIDE por email</li>
+          <li>Numeración automática por serie</li>
+        </ul>
+
+        <h3>📚 Contabilidad Completa</h3>
+        <ul>
+          <li>Plan de cuentas (chart of accounts)</li>
+          <li>Asientos manuales y automáticos desde documentos</li>
+          <li>Libro Diario y Libro Mayor</li>
+          <li>Balance de Comprobación, Estado de Resultados, Balance General</li>
+          <li>Formulario 104 IVA — Formulario 101 IR</li>
+          <li>Conciliación bancaria automática</li>
+          <li>Depreciaciones automáticas de activos fijos (Cloud Function mensual)</li>
+          <li>Presupuesto vs. Real — Centros de costo — Períodos contables con cierre</li>
+        </ul>
+
+        <h3>🛍️ Ventas e Inventario</h3>
+        <ul>
+          <li>Catálogo de productos y servicios con múltiples precios</li>
+          <li>Gestión de clientes (personas naturales y jurídicas)</li>
+          <li>Control de stock con múltiples bodegas</li>
+          <li>Proformas, cotizaciones y órdenes de venta</li>
+          <li>Catálogo público (marketplace) con integración WhatsApp Business</li>
+        </ul>
+
+        <h3>🏦 Compras y Bancos</h3>
+        <ul>
+          <li>Facturas de compra con retención automática</li>
+          <li>Cuentas bancarias, movimientos manuales, saldos iniciales</li>
+          <li>Anticipos de proveedores y caja chica</li>
+          <li>Conciliación automática de transacciones</li>
+          <li>ATS (Anexo Transaccional Simplificado)</li>
+        </ul>
+
+        <h3>⚙️ Super Admin y Motor SaaS</h3>
+        <ul>
+          <li>Panel de super administrador completo</li>
+          <li>Gestión de 5 planes de suscripción y 11 paquetes de módulos</li>
+          <li>Activación de add-ons por empresa con registro de acuerdo comercial</li>
+          <li>Enforcement automático de límites por plan</li>
+          <li>Panel de uso y métricas por empresa</li>
+          <li>Setup automático de empresa nueva</li>
+        </ul>
+
+        <hr class="divider"/>
+
+        <!-- 03 STACK -->
+        <p class="section-label">03 — Tecnología</p>
+        <h2>Stack tecnológico</h2>
+        <table>
+          <tr><th>Capa</th><th>Tecnología</th><th>Versión</th><th>Rol</th></tr>
+          <tr><td><b>Frontend</b></td><td>Angular + CoreUI</td><td>v21 / v5.x</td><td>Aplicación SPA, UI completa</td></tr>
+          <tr><td><b>Backend</b></td><td>Cloud Functions (Node.js)</td><td>v20 LTS</td><td>Lógica de negocio, SRI, PDF, XML</td></tr>
+          <tr><td><b>Base de datos</b></td><td>Firestore</td><td>NoSQL</td><td>Datos de empresa, multi-tenant</td></tr>
+          <tr><td><b>Autenticación</b></td><td>Firebase Auth</td><td>—</td><td>Login, roles, custom claims</td></tr>
+          <tr><td><b>Archivos</b></td><td>Firebase Storage</td><td>—</td><td>XMLs firmados, PDFs, certificados</td></tr>
+          <tr><td><b>Hosting</b></td><td>Firebase Hosting</td><td>—</td><td>CDN global, HTTPS automático</td></tr>
+          <tr><td><b>Generación docs</b></td><td>PDFKit + xmlbuilder2</td><td>—</td><td>RIDE, reportes, XML SRI</td></tr>
+          <tr><td><b>Firma electrónica</b></td><td>node-forge</td><td>—</td><td>Firma XAdES-BES con cert .p12</td></tr>
+        </table>
+
+        <hr class="divider"/>
+
+        <!-- 04 ENTREGABLES -->
+        <p class="section-label">04 — Entregables</p>
+        <h2>¿Qué se entrega exactamente?</h2>
+        <p>La venta incluye la totalidad del código fuente, sin restricciones de uso ni pago de royalties.</p>
+        <table>
+          <tr><th>#</th><th>Entregable</th><th>Descripción</th><th>Formato</th></tr>
+          <tr><td>1</td><td><b>Código fuente Frontend</b></td><td>Repositorio Angular completo. Todos los módulos, componentes, servicios, guards, layouts, rutas y assets.</td><td>Repositorio Git (ZIP + acceso)</td></tr>
+          <tr><td>2</td><td><b>Código fuente Backend</b></td><td>Repositorio Cloud Functions. Todas las funciones Node.js: generación XML, firma, SRI, PDF, contabilidad, triggers.</td><td>Repositorio Git (ZIP + acceso)</td></tr>
+          <tr><td>3</td><td><b>Reglas Firestore y Storage</b></td><td>Reglas de seguridad por rol y tenant. Índices optimizados. Estructura de colecciones documentada.</td><td>Archivos .rules + JSON</td></tr>
+          <tr><td>4</td><td><b>Scripts de seed y configuración</b></td><td>Scripts para poblar Firestore: planes, paquetes, cuentas contables por defecto, configuraciones iniciales.</td><td>TypeScript / Node.js</td></tr>
+          <tr><td>5</td><td><b>Documentación técnica</b></td><td>Guías de arquitectura, paths Firestore, esquemas de datos, guías de despliegue, configuración SRI.</td><td>Markdown / PDF</td></tr>
+          <tr><td>6</td><td><b>Configuración Firebase</b></td><td>firebase.json, .firebaserc, environments, configuración de emuladores para desarrollo local.</td><td>JSON / config files</td></tr>
+          <tr><td>7</td><td><b>Schemas XSD SRI</b></td><td>Schemas oficiales del SRI para Facturas, Notas de Crédito, Notas de Débito, Retenciones, ATS.</td><td>XSD + XML de ejemplo</td></tr>
+          <tr><td>8</td><td><b>Colección Postman</b></td><td>Colección completa para probar Cloud Functions y flujos de facturación electrónica.</td><td>JSON Postman</td></tr>
+        </table>
+        <div class="success-box">
+          <b>✔ Propiedad intelectual transferida.</b> Al completar la compra, el adquirente recibe la titularidad completa del código. Puede modificarlo, redistribuirlo, sublicenciarlo o usarlo como base para otros productos sin restricción ni pago adicional al vendedor.
+        </div>
+
+        <hr class="divider"/>
+
+        <!-- 05 CLOUD FUNCTIONS -->
+        <p class="section-label">05 — Inventario Técnico</p>
+        <h2>Cloud Functions entregadas</h2>
+        <table>
+          <tr><th>Función</th><th>Tipo</th><th>Descripción</th></tr>
+          <tr><td><b>generate-invoice-xml</b></td><td>Callable</td><td>Genera XML de factura según esquema SRI</td></tr>
+          <tr><td><b>sign-xml</b></td><td>Callable</td><td>Firma XAdES-BES con certificado .p12 del cliente</td></tr>
+          <tr><td><b>send-to-sri</b></td><td>Callable</td><td>Envía al webservice SRI (pruebas/producción), guarda respuesta SOAP</td></tr>
+          <tr><td><b>check-sri-status</b></td><td>Callable</td><td>Consulta estado de autorización en SRI</td></tr>
+          <tr><td><b>generate-credit-note-xml/pdf</b></td><td>Callable</td><td>Notas de crédito electrónicas</td></tr>
+          <tr><td><b>generate-debit-note-xml/pdf</b></td><td>Callable</td><td>Notas de débito electrónicas</td></tr>
+          <tr><td><b>generate-retention-xml/pdf</b></td><td>Callable</td><td>Comprobantes de retención electrónicos</td></tr>
+          <tr><td><b>generateJournalEntryFrom*</b></td><td>Trigger</td><td>Asientos automáticos desde facturas, retenciones, notas, compras</td></tr>
+          <tr><td><b>generateReversalFrom*</b></td><td>Trigger</td><td>Reversas al anular documentos</td></tr>
+          <tr><td><b>closeAccountingPeriod</b></td><td>Callable</td><td>Cierre de período contable</td></tr>
+          <tr><td><b>generateOpeningEntry</b></td><td>Callable</td><td>Asiento de apertura de período</td></tr>
+          <tr><td><b>generateAccountingPdf</b></td><td>Callable</td><td>Genera PDFs de reportes contables</td></tr>
+          <tr><td><b>runMonthlyDepreciation</b></td><td>Scheduled</td><td>Depreciaciones automáticas el 1° de cada mes</td></tr>
+          <tr><td><b>runDepreciationForMonth</b></td><td>Callable</td><td>Depreciar manualmente un mes específico</td></tr>
+          <tr><td><b>setup-company</b></td><td>Trigger Auth</td><td>Inicializa empresa nueva con defaults del plan</td></tr>
+          <tr><td><b>on-invoice-emit / on-retention-emit</b></td><td>Trigger</td><td>Contadores de uso, enforcement de límites por plan</td></tr>
+          <tr><td><b>generateAts</b></td><td>Callable</td><td>Genera Anexo Transaccional Simplificado XML</td></tr>
+        </table>
+
+        <hr class="divider"/>
+
+        <!-- 06 PLANES -->
+        <p class="section-label">06 — Modelo Comercial SaaS Listo</p>
+        <h2>Planes de suscripción preconfigurados</h2>
+        <p>El sistema incluye el motor SaaS completo con 5 planes listos para comercializar desde el primer día.</p>
+        <table>
+          <tr><th>Plan</th><th>Precio/mes</th><th>Precio/mes (anual)</th><th>Facturas/mes</th><th>Usuarios</th><th>Empresas</th><th>Storage</th></tr>
+          <tr><td><b>Emprendedor</b></td><td>$15</td><td>$12</td><td>50</td><td>1</td><td>1</td><td>0.5 GB</td></tr>
+          <tr><td><b>PYME</b></td><td>$39</td><td>$32</td><td>300</td><td>5</td><td>1</td><td>2 GB</td></tr>
+          <tr><td><b>Profesional ★</b></td><td>$79</td><td>$65</td><td>1.000</td><td>15</td><td>5</td><td>10 GB</td></tr>
+          <tr><td><b>Empresarial</b></td><td>$149</td><td>$120</td><td>5.000</td><td>50</td><td>25</td><td>50 GB</td></tr>
+          <tr><td><b>Ilimitado</b></td><td>$299</td><td>$240</td><td>Ilimitado</td><td>Ilimitado</td><td>Ilimitado</td><td>Ilimitado</td></tr>
+        </table>
+
+        <hr class="divider"/>
+
+        <!-- 07 CAPACITACIÓN -->
+        <p class="section-label">07 — Capacitación</p>
+        <h2>Plan de capacitación incluido (14 horas)</h2>
+        <table>
+          <tr><th>Sesión</th><th>Tema</th><th>Duración</th><th>Contenido</th></tr>
+          <tr><td>1</td><td>Arquitectura general</td><td>2 h</td><td>Estructura del proyecto, Firestore paths, patrones de código, convenciones.</td></tr>
+          <tr><td>2</td><td>Firebase y Cloud Functions</td><td>2 h</td><td>Setup local con emuladores, deploy de funciones, reglas Firestore, Admin SDK.</td></tr>
+          <tr><td>3</td><td>Facturación SRI</td><td>3 h</td><td>Flujo completo: generación XML → firma → envío SRI → RIDE. Config certificado .p12.</td></tr>
+          <tr><td>4</td><td>Módulo contabilidad</td><td>3 h</td><td>Plan de cuentas, asientos automáticos, cierre de período, estados financieros.</td></tr>
+          <tr><td>5</td><td>Super Admin y planes</td><td>2 h</td><td>Gestión de empresas, asignación de planes, activación de add-ons, métricas de uso.</td></tr>
+          <tr><td>6</td><td>Deploy y operaciones</td><td>2 h</td><td>Firebase deploy, environments, hosting, monitoreo de funciones, costos GCP.</td></tr>
+        </table>
+        <h3>Cronograma de onboarding</h3>
+        <table>
+          <tr><th>Semana</th><th>Actividad</th></tr>
+          <tr><td><b>Semana 1</b></td><td>Entrega de repositorios y setup del entorno de desarrollo local</td></tr>
+          <tr><td><b>Semana 2</b></td><td>Sesiones 1–3: Arquitectura, Firebase/Cloud Functions, flujo SRI completo</td></tr>
+          <tr><td><b>Semana 3</b></td><td>Sesiones 4–6: Contabilidad, super admin, primer deploy a producción supervisado</td></tr>
+          <tr><td><b>Semana 4</b></td><td>Período de preguntas, ajustes y revisión de customizaciones iniciales</td></tr>
+        </table>
+        <div class="success-box">
+          <b>📹 Sesiones grabadas.</b> Todas las sesiones de capacitación son grabadas y entregadas al comprador para consulta futura e incorporación de nuevos desarrolladores.
+        </div>
+
+        <hr class="divider"/>
+
+        <!-- 08 GARANTÍA -->
+        <p class="section-label">08 — Garantía</p>
+        <h2>Términos de garantía — 90 días</h2>
+        <table>
+          <tr><th>Concepto</th><th>Cubierto por garantía</th><th>No cubierto</th></tr>
+          <tr><td><b>Bugs del sistema entregado</b></td><td>✓ Sí — corrección gratuita</td><td>Bugs introducidos por modificaciones del comprador</td></tr>
+          <tr><td><b>Cambios SRI durante garantía</b></td><td>✓ Sí — actualización incluida</td><td>Cambios SRI posteriores a los 90 días</td></tr>
+          <tr><td><b>Nuevas funcionalidades</b></td><td>✗ No incluido</td><td>Desarrollo adicional cotizable por separado</td></tr>
+          <tr><td><b>Soporte operativo post-garantía</b></td><td>✗ No incluido</td><td>Contrato de soporte opcional disponible</td></tr>
+          <tr><td><b>Infraestructura Firebase (GCP)</b></td><td>✗ No incluido</td><td>Costos GCP van por cuenta del comprador</td></tr>
+          <tr><td><b>Certificados SRI (.p12)</b></td><td>✗ No incluido</td><td>Cada empresa adquiere su propio certificado electrónico</td></tr>
+        </table>
+        <div class="warning-box">
+          <b>⚠ Condición:</b> La garantía aplica sobre el código tal como fue entregado. Modificaciones realizadas por el equipo comprador sin coordinar con el equipo vendedor podrían anular la garantía sobre los componentes modificados.
+        </div>
+
+        <hr class="divider"/>
+
+        <!-- 09 SOPORTE -->
+        <p class="section-label">09 — Soporte Post-venta</p>
+        <h2>Opciones de soporte continuo (opcional)</h2>
+        <table>
+          <tr><th>Plan de soporte</th><th>Incluye</th><th>Precio referencial</th></tr>
+          <tr><td><b>Soporte Básico</b></td><td>Canal de consultas por email/WhatsApp. Respuesta 48 h hábiles. Hasta 4 consultas/mes.</td><td>Desde $200/mes</td></tr>
+          <tr><td><b>Soporte Técnico Activo</b></td><td>Canal prioritario. Corrección de bugs en 24 h. Videollamadas mensuales. Revisión de código.</td><td>Desde $500/mes</td></tr>
+          <tr><td><b>Desarrollo Continuo</b></td><td>Horas de desarrollo mensuales del equipo original. Nuevas funcionalidades, integraciones.</td><td>Cotizable por requerimiento</td></tr>
+        </table>
+
+        <hr class="divider"/>
+
+        <!-- 10 PRECIO -->
+        <p class="section-label">10 — Inversión</p>
+        <h2>Propuesta de precio</h2>
+        <div style="background:#0f172a;color:white;padding:24pt;border-radius:8pt;margin-bottom:16pt;">
+          <p style="color:rgba(255,255,255,0.6);margin-bottom:4pt;">Inversión única — Licencia perpetua</p>
+          <p style="font-size:36pt;font-weight:bold;color:#38bdf8;margin:0 0 4pt;">A convenir</p>
+          <p style="color:rgba(255,255,255,0.5);margin:0;">Precio único, sin royalties ni pagos periódicos al vendedor</p>
+        </div>
+        <ul>
+          <li>✓ Código fuente 100% transferido</li>
+          <li>✓ 14 horas de capacitación incluidas</li>
+          <li>✓ Garantía 90 días</li>
+          <li>✓ Documentación técnica completa</li>
+          <li>✓ Sin pago de licencias al vendedor</li>
+          <li>✓ Libre para comercializar el sistema</li>
+        </ul>
+        <h3>¿Por qué es rentable esta inversión?</h3>
+        <table>
+          <tr><th>Escenario</th><th>Clientes para cubrir inversión</th><th>Tiempo de recupero estimado</th></tr>
+          <tr><td>Suscripción Plan PYME ($39/mes)</td><td>~13 clientes activos</td><td>12 meses de ingresos</td></tr>
+          <tr><td>Suscripción Plan Profesional ($79/mes)</td><td>~7 clientes activos</td><td>12 meses de ingresos</td></tr>
+          <tr><td>Suscripción Plan Empresarial ($149/mes)</td><td>~4 clientes activos</td><td>12 meses de ingresos</td></tr>
+          <tr><td>Implementación personalizada (one-shot)</td><td>1–2 proyectos</td><td>Inmediato</td></tr>
+        </table>
+        <div class="highlight">
+          <b>Referencia de mercado:</b> Desarrollar un sistema equivalente desde cero con un equipo de 2–3 desarrolladores mid/senior tomaría entre 18 y 24 meses de trabajo, con un costo estimado de $80.000 a $150.000 USD. Esta propuesta representa una fracción de ese costo con un sistema ya funcional y certificado.
+        </div>
+
+        <hr class="divider"/>
+
+        <!-- 11 PROCESO -->
+        <p class="section-label">11 — Proceso de Compra</p>
+        <h2>¿Cómo se realiza la adquisición?</h2>
+        <table>
+          <tr><th>Paso</th><th>Actividad</th><th>Descripción</th></tr>
+          <tr><td>1</td><td><b>Demostración</b></td><td>Sesión demo del sistema en vivo. Sin costo ni compromiso.</td></tr>
+          <tr><td>2</td><td><b>Revisión técnica</b></td><td>El equipo técnico del comprador revisa muestras de código bajo NDA.</td></tr>
+          <tr><td>3</td><td><b>Negociación y contrato</b></td><td>Firma del contrato de compraventa con transferencia de propiedad intelectual.</td></tr>
+          <tr><td>4</td><td><b>Pago y entrega</b></td><td>Pago acordado (puede negociarse en hitos). Entrega de acceso a repositorios y documentación.</td></tr>
+          <tr><td>5</td><td><b>Capacitación y arranque</b></td><td>Ejecución del plan de capacitación de 4 semanas hasta el primer deploy en producción.</td></tr>
+        </table>
+
+        <hr class="divider"/>
+
+        <!-- 12 TÉRMINOS -->
+        <p class="section-label">12 — Términos y Condiciones</p>
+        <h2>Términos legales</h2>
+        <h3>Propiedad intelectual</h3>
+        <ul>
+          <li>El comprador adquiere la titularidad completa del código fuente entregado, libre de gravámenes.</li>
+          <li>El vendedor renuncia a cualquier derecho de explotación sobre el código una vez perfeccionada la venta.</li>
+          <li>El comprador puede sublicenciar, redistribuir, modificar y comercializar el sistema sin restricción.</li>
+          <li>El comprador no está obligado a mencionar ni dar crédito al vendedor original en ningún contexto.</li>
+        </ul>
+        <h3>Condiciones de pago</h3>
+        <ul>
+          <li>El pago puede estructurarse en máximo 2 hitos: 50% al firma del contrato, 50% a la entrega y verificación del código.</li>
+          <li>Medios de pago: transferencia bancaria, PayPal, o acuerdo entre partes.</li>
+          <li>El acceso al repositorio completo se entrega una vez acreditado el pago total.</li>
+        </ul>
+        <h3>Limitaciones y exclusiones</h3>
+        <ul>
+          <li>El sistema requiere un proyecto Firebase (Google Cloud) a nombre del comprador. Los costos de infraestructura GCP son responsabilidad del comprador.</li>
+          <li>Cada empresa usuaria del SaaS debe obtener su propio certificado de firma electrónica ante una EC acreditada por el SRI.</li>
+          <li>El vendedor no es responsable de cambios normativos del SRI posteriores al período de garantía.</li>
+          <li>Esta propuesta es confidencial. La información técnica y comercial no debe compartirse con terceros sin autorización escrita del vendedor.</li>
+        </ul>
+        <h3>Jurisdicción</h3>
+        <p>Las partes acuerdan que cualquier controversia derivada de este contrato se resolverá conforme a las leyes de la República del Ecuador.</p>
+
+        <hr class="divider"/>
+
+        <!-- FIRMAS -->
+        <p class="section-label">Aceptación</p>
+        <h2>Aceptación de la propuesta</h2>
+        <p>La firma de este documento por ambas partes constituye la aceptación de los términos comerciales descritos y el inicio del proceso de formalización del contrato de compraventa.</p>
+        <br/><br/>
+        <table style="width:100%;border:none;">
+          <tr>
+            <td style="width:45%;border:none;vertical-align:top;padding:0;">
+              <div style="border-top:2pt solid #0f172a;padding-top:8pt;">
+                <p style="color:#6b7280;font-size:9pt;margin:0;">Vendedor</p>
+                <p style="margin:20pt 0 4pt;font-weight:bold;">________________________________</p>
+                <p style="font-size:10pt;margin:0;">FacturasSEC — Representante legal</p>
+                <p style="font-size:10pt;color:#6b7280;">Fecha: ____ / ____ / 2026</p>
+              </div>
+            </td>
+            <td style="width:10%;border:none;"></td>
+            <td style="width:45%;border:none;vertical-align:top;padding:0;">
+              <div style="border-top:2pt solid #0f172a;padding-top:8pt;">
+                <p style="color:#6b7280;font-size:9pt;margin:0;">Comprador</p>
+                <p style="margin:20pt 0 4pt;font-weight:bold;">________________________________</p>
+                <p style="font-size:10pt;margin:0;">Empresa / Persona: _________________</p>
+                <p style="font-size:10pt;color:#6b7280;">Fecha: ____ / ____ / 2026</p>
+              </div>
+            </td>
+          </tr>
+        </table>
+
+        <br/><br/>
+        <p style="font-size:9pt;color:#9ca3af;text-align:center;border-top:1pt solid #e5e7eb;padding-top:12pt;">
+          FacturasSEC — Sistema SaaS de Facturación Electrónica para Ecuador · Agosto 2026 · Documento Confidencial
+        </p>
+
+        </body></html>`;
+
+      const blob = new Blob(['\ufeff', html], { type: mimeType });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = 'Propuesta_Venta_FacturasSEC.doc';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 3000);
+    }
+  </script>
+
+<!-- ═══════════════════════════════════════════════════════ PORTADA -->
+<div class="cover">
+  <div class="cover-badge">Propuesta Comercial Confidencial</div>
+
+  <h1>FacturasSEC<br /><span>Sistema SaaS de Facturación</span><br />Electrónica Ecuador</h1>
+
+  <p class="cover-subtitle">
+    Plataforma multi-tenant completa con facturación electrónica SRI, contabilidad, inventario, compras y gestión de equipos — lista para operar y escalar.
+  </p>
+
+  <div class="cover-divider"></div>
+
+  <div class="cover-stats">
+    <div class="cover-stat">
+      <span class="cover-stat-num">+20</span>
+      <span class="cover-stat-label">Módulos incluidos</span>
+    </div>
+    <div class="cover-stat">
+      <span class="cover-stat-num">100%</span>
+      <span class="cover-stat-label">Código fuente</span>
+    </div>
+    <div class="cover-stat">
+      <span class="cover-stat-num">SRI</span>
+      <span class="cover-stat-label">Certificado &amp; Listo</span>
+    </div>
+    <div class="cover-stat">
+      <span class="cover-stat-num">Multi</span>
+      <span class="cover-stat-label">Tenant / Empresa</span>
+    </div>
+  </div>
+
+  <div class="cover-meta">
+    <div class="cover-meta-item">
+      <div class="cover-meta-label">Tipo de venta</div>
+      <div class="cover-meta-value">Código Fuente + Licencia</div>
+    </div>
+    <div class="cover-meta-item">
+      <div class="cover-meta-label">Preparado por</div>
+      <div class="cover-meta-value">FacturasSEC Dev Team</div>
+    </div>
+    <div class="cover-meta-item">
+      <div class="cover-meta-label">Fecha</div>
+      <div class="cover-meta-value">Agosto 2026</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ CONTENIDO -->
+<div class="page">
+
+  <!-- ─── 1. RESUMEN EJECUTIVO ─── -->
+  <div class="section">
+    <div class="section-label">01 — Resumen ejecutivo</div>
+    <div class="section-title-row">
+      <h2>¿Qué es FacturasSEC?</h2>
+    </div>
+
+    <p class="lead">
+      FacturasSEC es una plataforma SaaS de facturación electrónica, contabilidad y gestión empresarial 100% desarrollada para el mercado ecuatoriano, con integración nativa al SRI (Servicio de Rentas Internas).
+    </p>
+
+    <div class="highlight-box">
+      <p>
+        <strong>No es un prototipo.</strong> El sistema está en estado de producción avanzado, con más de 20 módulos operativos, facturación electrónica certificada contra el SRI, contabilidad completa con estados financieros, y arquitectura multi-tenant lista para soportar múltiples empresas simultáneamente desde el día uno.
+      </p>
+    </div>
+
+    <div class="cards-grid">
+      <div class="card card-primary">
+        <span class="card-icon">🇪🇨</span>
+        <h4>Hecho para Ecuador</h4>
+        <p>Cumplimiento SRI, clave de acceso 49 dígitos, formularios 104 y 101, ATS, firma electrónica p12.</p>
+      </div>
+      <div class="card">
+        <span class="card-icon">☁️</span>
+        <h4>100% en la nube</h4>
+        <p>Firebase/Google Cloud. Sin servidor propio. Escala automáticamente. Alta disponibilidad garantizada.</p>
+      </div>
+      <div class="card">
+        <span class="card-icon">🏢</span>
+        <h4>Multi-empresa</h4>
+        <p>Un solo despliegue sirve a múltiples RUCs. Aislamiento total de datos por tenant. Roles granulares.</p>
+      </div>
+      <div class="card">
+        <span class="card-icon">📦</span>
+        <h4>Modelo SaaS listo</h4>
+        <p>5 planes de suscripción, 11 paquetes de módulos, enforcement de límites, panel de super admin.</p>
+      </div>
+      <div class="card">
+        <span class="card-icon">📊</span>
+        <h4>Contabilidad completa</h4>
+        <p>Plan de cuentas, asientos, libro diario/mayor, balance general, estado de resultados, depreciaciones.</p>
+      </div>
+      <div class="card">
+        <span class="card-icon">🔐</span>
+        <h4>Seguridad por diseño</h4>
+        <p>Custom Claims Firebase, reglas Firestore por rol, aislamiento multi-tenant en cada query.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ─── 2. MÓDULOS INCLUIDOS ─── -->
+  <div class="section page-break">
+    <div class="section-label">02 — Alcance funcional</div>
+    <h2>Módulos incluidos en la entrega</h2>
+    <p class="lead">Todo el código fuente entregado cubre los siguientes módulos, todos operativos y probados en ambiente de producción.</p>
+
+    <div class="cards-grid-2">
+
+      <div class="deliverable-card">
+        <div class="deliverable-card-header">🧾 Facturación Electrónica SRI</div>
+        <div class="deliverable-card-body">
+          <ul>
+            <li>Facturas de venta electrónicas (XML + RIDE)</li>
+            <li>Notas de crédito y débito electrónicas</li>
+            <li>Comprobantes de retención electrónicos</li>
+            <li>Firma electrónica con certificado .p12</li>
+            <li>Envío y consulta de autorización SRI</li>
+            <li>Entornos pruebas y producción SRI</li>
+            <li>Clave de acceso 49 dígitos (módulo 11)</li>
+            <li>Generación y envío de RIDE por email</li>
+            <li>Numeración automática por serie</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="deliverable-card">
+        <div class="deliverable-card-header">📚 Contabilidad Completa</div>
+        <div class="deliverable-card-body">
+          <ul>
+            <li>Plan de cuentas (chart of accounts)</li>
+            <li>Asientos manuales y automáticos</li>
+            <li>Libro Diario y Libro Mayor</li>
+            <li>Balance de Comprobación</li>
+            <li>Estado de Resultados</li>
+            <li>Balance General</li>
+            <li>Formulario 104 IVA — Formulario 101 IR</li>
+            <li>Conciliación bancaria</li>
+            <li>Depreciaciones automáticas de activos fijos</li>
+            <li>Presupuesto vs. Real</li>
+            <li>Centros de costo</li>
+            <li>Períodos contables con cierre</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="deliverable-card">
+        <div class="deliverable-card-header">🛍️ Ventas e Inventario</div>
+        <div class="deliverable-card-body">
+          <ul>
+            <li>Catálogo de productos y servicios</li>
+            <li>Gestión de clientes (personas/empresas)</li>
+            <li>Control de stock con múltiples bodegas</li>
+            <li>Proformas, cotizaciones y órdenes</li>
+            <li>Precios por lista de precios</li>
+            <li>Catálogo público (marketplace)</li>
+            <li>Integración WhatsApp Business</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="deliverable-card">
+        <div class="deliverable-card-header">🏦 Compras y Bancos</div>
+        <div class="deliverable-card-body">
+          <ul>
+            <li>Facturas de compra con retención</li>
+            <li>Cuentas bancarias y movimientos</li>
+            <li>Saldos iniciales y movimientos manuales</li>
+            <li>Anticipos de proveedores</li>
+            <li>Caja chica</li>
+            <li>Reconciliación automática de transacciones</li>
+            <li>ATS (Anexo Transaccional Simplificado)</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="deliverable-card">
+        <div class="deliverable-card-header">👥 Equipo y Administración</div>
+        <div class="deliverable-card-body">
+          <ul>
+            <li>Gestión de usuarios y roles personalizados</li>
+            <li>Módulo de gestión de equipos (Team Mgmt)</li>
+            <li>Proyectos, tareas y seguimiento</li>
+            <li>Configuraciones por empresa</li>
+            <li>Multi-empresa con cambio de contexto</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="deliverable-card">
+        <div class="deliverable-card-header">⚙️ Super Admin &amp; SaaS Engine</div>
+        <div class="deliverable-card-body">
+          <ul>
+            <li>Panel de super administrador completo</li>
+            <li>Gestión de 5 planes de suscripción</li>
+            <li>11 paquetes de funcionalidades (plugins)</li>
+            <li>Activación manual de add-ons por empresa</li>
+            <li>Enforcement de límites por plan</li>
+            <li>Panel de uso y métricas por empresa</li>
+            <li>Setup automático de empresa nueva (CF)</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ─── 3. STACK TECNOLÓGICO ─── -->
+  <div class="section">
+    <div class="section-label">03 — Tecnología</div>
+    <h2>Stack tecnológico</h2>
+    <p class="lead">Tecnologías modernas, mantenibles y con soporte de largo plazo por Google y la comunidad.</p>
+
+    <div class="stack-grid">
+      <div class="stack-item">
+        <span class="stack-item-icon">🅰️</span>
+        <span class="stack-item-name">Angular 21</span>
+        <span class="stack-item-detail">Standalone components + Signals</span>
+      </div>
+      <div class="stack-item">
+        <span class="stack-item-icon">🔥</span>
+        <span class="stack-item-name">Firebase</span>
+        <span class="stack-item-detail">Firestore · Auth · Storage</span>
+      </div>
+      <div class="stack-item">
+        <span class="stack-item-icon">⚡</span>
+        <span class="stack-item-name">Cloud Functions</span>
+        <span class="stack-item-detail">Node.js 20 · Functions v2</span>
+      </div>
+      <div class="stack-item">
+        <span class="stack-item-icon">🎨</span>
+        <span class="stack-item-name">CoreUI 5.x</span>
+        <span class="stack-item-detail">UI components + Dark mode</span>
+      </div>
+      <div class="stack-item">
+        <span class="stack-item-icon">📄</span>
+        <span class="stack-item-name">TypeScript</span>
+        <span class="stack-item-detail">Frontend + Backend tipado</span>
+      </div>
+      <div class="stack-item">
+        <span class="stack-item-icon">🔑</span>
+        <span class="stack-item-name">Firebase Auth</span>
+        <span class="stack-item-detail">Custom Claims · Roles</span>
+      </div>
+      <div class="stack-item">
+        <span class="stack-item-icon">📊</span>
+        <span class="stack-item-name">PDFKit</span>
+        <span class="stack-item-detail">Generación RIDE / reportes</span>
+      </div>
+      <div class="stack-item">
+        <span class="stack-item-icon">🌐</span>
+        <span class="stack-item-name">Firebase Hosting</span>
+        <span class="stack-item-detail">CDN global · SSL automático</span>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Capa</th>
+          <th>Tecnología</th>
+          <th>Versión</th>
+          <th>Rol</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>Frontend</strong></td><td>Angular + CoreUI</td><td>v21 / v5.x</td><td>Aplicación SPA, UI completa</td></tr>
+        <tr><td><strong>Backend</strong></td><td>Cloud Functions (Node.js)</td><td>v20 LTS</td><td>Lógica de negocio, SRI, PDF, XML</td></tr>
+        <tr><td><strong>Base de datos</strong></td><td>Firestore</td><td>NoSQL</td><td>Datos de empresa, multi-tenant</td></tr>
+        <tr><td><strong>Autenticación</strong></td><td>Firebase Auth</td><td>—</td><td>Login, roles, custom claims</td></tr>
+        <tr><td><strong>Archivos</strong></td><td>Firebase Storage</td><td>—</td><td>XMLs firmados, PDFs, certificados</td></tr>
+        <tr><td><strong>Hosting</strong></td><td>Firebase Hosting</td><td>—</td><td>CDN global, HTTPS automático</td></tr>
+        <tr><td><strong>Generación docs</strong></td><td>PDFKit + xmlbuilder2</td><td>—</td><td>RIDE, reportes, XML SRI</td></tr>
+        <tr><td><strong>Firma electrónica</strong></td><td>node-forge</td><td>—</td><td>Firma XAdES-BES con cert .p12</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ─── 4. QUÉ SE ENTREGA ─── -->
+  <div class="section page-break">
+    <div class="section-label">04 — Entregables</div>
+    <h2>¿Qué se entrega exactamente?</h2>
+    <p class="lead">La venta incluye la totalidad del código fuente, sin restricciones de uso ni pago de royalties. El comprador obtiene propiedad completa del sistema para operar, modificar y comercializar.</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Entregable</th>
+          <th>Descripción</th>
+          <th>Formato</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td><strong>Código fuente Frontend</strong></td>
+          <td>Repositorio Angular completo. Todos los módulos, componentes, servicios, guards, layouts, rutas y assets.</td>
+          <td>Repositorio Git (ZIP + acceso)</td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td><strong>Código fuente Backend</strong></td>
+          <td>Repositorio Cloud Functions. Todas las funciones Node.js: generación XML, firma, SRI, PDF, contabilidad, triggers.</td>
+          <td>Repositorio Git (ZIP + acceso)</td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td><strong>Reglas Firestore &amp; Storage</strong></td>
+          <td>Reglas de seguridad por rol y tenant. Índices optimizados. Estructura de colecciones documentada.</td>
+          <td>Archivos .rules + JSON</td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td><strong>Scripts de seed y configuración</strong></td>
+          <td>Scripts para poblar Firestore: planes, paquetes, cuentas contables por defecto, configuraciones iniciales.</td>
+          <td>TypeScript / Node.js</td>
+        </tr>
+        <tr>
+          <td>5</td>
+          <td><strong>Documentación técnica</strong></td>
+          <td>Guías de arquitectura, paths Firestore, esquemas de datos, guías de despliegue, configuración SRI, planes de módulos.</td>
+          <td>Markdown / PDF</td>
+        </tr>
+        <tr>
+          <td>6</td>
+          <td><strong>Configuración Firebase</strong></td>
+          <td>firebase.json, .firebaserc, environments, configuración de emuladores para desarrollo local.</td>
+          <td>JSON / config files</td>
+        </tr>
+        <tr>
+          <td>7</td>
+          <td><strong>Schemas XSD SRI</strong></td>
+          <td>Schemas oficiales del SRI para Facturas, Notas de Crédito, Notas de Débito, Retenciones, ATS.</td>
+          <td>XSD + XML de ejemplo</td>
+        </tr>
+        <tr>
+          <td>8</td>
+          <td><strong>Colección Postman</strong></td>
+          <td>Colección completa para probar Cloud Functions y flujos de facturación electrónica.</td>
+          <td>JSON Postman</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="success-box">
+      <h4 style="color: var(--success); margin-bottom: 6px;">✔ Propiedad intelectual transferida</h4>
+      <p style="margin: 0;">Al completar la compra, el adquirente recibe la titularidad completa del código. Puede modificarlo, redistribuirlo, sublicenciarlo o usarlo como base para otros productos sin restricción ni pago adicional al vendedor.</p>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ─── 5. INVENTARIO CLOUD FUNCTIONS ─── -->
+  <div class="section">
+    <div class="section-label">05 — Inventario técnico</div>
+    <h2>Cloud Functions entregadas</h2>
+    <p>El backend incluye las siguientes Cloud Functions listas para deploy en Firebase Functions v2:</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Función</th>
+          <th>Tipo</th>
+          <th>Descripción</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>generate-invoice-xml</strong></td><td><span class="badge badge-blue">Callable</span></td><td>Genera XML de factura según esquema SRI</td></tr>
+        <tr><td><strong>sign-xml</strong></td><td><span class="badge badge-blue">Callable</span></td><td>Firma XAdES-BES con certificado .p12 del cliente</td></tr>
+        <tr><td><strong>send-to-sri</strong></td><td><span class="badge badge-blue">Callable</span></td><td>Envía al webservice SRI (pruebas/producción), guarda respuesta SOAP</td></tr>
+        <tr><td><strong>check-sri-status</strong></td><td><span class="badge badge-blue">Callable</span></td><td>Consulta estado de autorización en SRI</td></tr>
+        <tr><td><strong>generate-credit-note-xml/pdf</strong></td><td><span class="badge badge-blue">Callable</span></td><td>Notas de crédito electrónicas</td></tr>
+        <tr><td><strong>generate-debit-note-xml/pdf</strong></td><td><span class="badge badge-blue">Callable</span></td><td>Notas de débito electrónicas</td></tr>
+        <tr><td><strong>generate-retention-xml/pdf</strong></td><td><span class="badge badge-blue">Callable</span></td><td>Comprobantes de retención electrónicos</td></tr>
+        <tr><td><strong>generateJournalEntryFrom*</strong></td><td><span class="badge badge-purple">Trigger</span></td><td>Asientos automáticos desde facturas, retenciones, notas, compras</td></tr>
+        <tr><td><strong>generateReversalFrom*</strong></td><td><span class="badge badge-purple">Trigger</span></td><td>Reversas al anular documentos</td></tr>
+        <tr><td><strong>closeAccountingPeriod</strong></td><td><span class="badge badge-blue">Callable</span></td><td>Cierre de período contable</td></tr>
+        <tr><td><strong>generateOpeningEntry</strong></td><td><span class="badge badge-blue">Callable</span></td><td>Asiento de apertura de período</td></tr>
+        <tr><td><strong>generateAccountingPdf</strong></td><td><span class="badge badge-blue">Callable</span></td><td>Genera PDFs de reportes contables</td></tr>
+        <tr><td><strong>runMonthlyDepreciation</strong></td><td><span class="badge badge-orange">Scheduled</span></td><td>Depreciaciones automáticas el 1° de cada mes</td></tr>
+        <tr><td><strong>runDepreciationForMonth</strong></td><td><span class="badge badge-blue">Callable</span></td><td>Depreciar manualmente un mes específico</td></tr>
+        <tr><td><strong>setup-company</strong></td><td><span class="badge badge-purple">Trigger</span></td><td>Inicializa empresa nueva con defaults del plan</td></tr>
+        <tr><td><strong>on-invoice-emit / on-retention-emit</strong></td><td><span class="badge badge-purple">Trigger</span></td><td>Triggers de emisión, contadores de uso, enforcement de límites</td></tr>
+        <tr><td><strong>generateAts</strong></td><td><span class="badge badge-blue">Callable</span></td><td>Genera Anexo Transaccional Simplificado XML</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ─── 6. PLANES SaaS INCLUIDOS ─── -->
+  <div class="section page-break">
+    <div class="section-label">06 — Modelo comercial SaaS listo</div>
+    <h2>Planes de suscripción preconfigurados</h2>
+    <p class="lead">El sistema incluye el motor SaaS completo con 5 planes listos para comercializar desde el primer día.</p>
+
+    <div class="pricing-grid">
+      <div class="pricing-card">
+        <div class="pricing-card-name">Emprendedor</div>
+        <div class="pricing-card-price">$15</div>
+        <div class="pricing-card-period">/ mes · $12/mes anual</div>
+        <ul>
+          <li>50 facturas/mes</li>
+          <li>1 usuario</li>
+          <li>100 clientes · 200 productos</li>
+          <li>Facturación SRI incluida</li>
+          <li>Catálogo público</li>
+          <li>0.5 GB almacenamiento</li>
+        </ul>
+      </div>
+
+      <div class="pricing-card">
+        <div class="pricing-card-name">PYME</div>
+        <div class="pricing-card-price">$39</div>
+        <div class="pricing-card-period">/ mes · $32/mes anual</div>
+        <ul>
+          <li>300 facturas/mes</li>
+          <li>5 usuarios</li>
+          <li>Stock + Compras incluido</li>
+          <li>1.000 clientes · 2.000 productos</li>
+          <li>3 bodegas</li>
+          <li>2 GB almacenamiento</li>
+        </ul>
+      </div>
+
+      <div class="pricing-card featured">
+        <div class="featured-badge">★ Más popular</div>
+        <div class="pricing-card-name">Profesional</div>
+        <div class="pricing-card-price">$79</div>
+        <div class="pricing-card-period">/ mes · $65/mes anual</div>
+        <ul>
+          <li>1.000 facturas/mes</li>
+          <li>15 usuarios · 5 empresas</li>
+          <li>Contabilidad completa</li>
+          <li>Gestión de equipos</li>
+          <li>Clientes y productos ilimitados</li>
+          <li>API pública · 10 GB storage</li>
+        </ul>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Plan</th>
+          <th>Precio/mes</th>
+          <th>Facturas/mes</th>
+          <th>Usuarios</th>
+          <th>Empresas</th>
+          <th>Storage</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>Emprendedor</strong></td><td>$15</td><td>50</td><td>1</td><td>1</td><td>0.5 GB</td></tr>
+        <tr><td><strong>PYME</strong></td><td>$39</td><td>300</td><td>5</td><td>1</td><td>2 GB</td></tr>
+        <tr><td><strong>Profesional</strong></td><td>$79</td><td>1.000</td><td>15</td><td>5</td><td>10 GB</td></tr>
+        <tr><td><strong>Empresarial</strong></td><td>$149</td><td>5.000</td><td>50</td><td>25</td><td>50 GB</td></tr>
+        <tr><td><strong>Ilimitado</strong></td><td>$299</td><td>Ilimitado</td><td>Ilimitado</td><td>Ilimitado</td><td>Ilimitado</td></tr>
+      </tbody>
+    </table>
+
+    <p style="font-size: 12px; color: var(--gray-500);">
+      * Los planes pueden modificarse libremente por el comprador del código fuente. Precios son referencia del sistema actual.
+    </p>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ─── 7. CAPACITACIÓN ─── -->
+  <div class="section">
+    <div class="section-label">07 — Capacitación</div>
+    <h2>Plan de capacitación incluido</h2>
+    <p class="lead">La entrega incluye un plan de capacitación estructurado para garantizar que el equipo comprador pueda operar, administrar y continuar el desarrollo del sistema sin depender del equipo vendedor.</p>
+
+    <div class="cards-grid">
+      <div class="card">
+        <span class="card-icon">🎯</span>
+        <h4>Sesión 1 — Arquitectura general</h4>
+        <p>Estructura del proyecto, capas de la aplicación, Firestore paths, patrones de código, convenciones establecidas. <strong>2 horas</strong></p>
+      </div>
+      <div class="card">
+        <span class="card-icon">🔥</span>
+        <h4>Sesión 2 — Firebase y Cloud Functions</h4>
+        <p>Setup local con emuladores, deploy de funciones, reglas Firestore, Admin SDK, ciclo de vida de una función. <strong>2 horas</strong></p>
+      </div>
+      <div class="card">
+        <span class="card-icon">🧾</span>
+        <h4>Sesión 3 — Facturación SRI</h4>
+        <p>Flujo completo: generación XML → firma → envío SRI → RIDE. Configuración de certificado .p12 por empresa. <strong>3 horas</strong></p>
+      </div>
+      <div class="card">
+        <span class="card-icon">📊</span>
+        <h4>Sesión 4 — Módulo contabilidad</h4>
+        <p>Plan de cuentas, asientos automáticos, cierre de período, estados financieros, depreciaciones. <strong>3 horas</strong></p>
+      </div>
+      <div class="card">
+        <span class="card-icon">⚙️</span>
+        <h4>Sesión 5 — Super Admin y planes</h4>
+        <p>Gestión de empresas, asignación de planes, activación de add-ons, enforcement de límites, métricas de uso. <strong>2 horas</strong></p>
+      </div>
+      <div class="card">
+        <span class="card-icon">🚀</span>
+        <h4>Sesión 6 — Deploy y operaciones</h4>
+        <p>Firebase deploy, configuración de environments, hosting, monitoreo de funciones, rollback, costos GCP. <strong>2 horas</strong></p>
+      </div>
+    </div>
+
+    <div class="timeline">
+      <div class="timeline-item">
+        <span class="timeline-week">Semana 1</span>
+        <h4>Entrega de repositorios y setup del entorno</h4>
+        <p>Acceso a repositorios Git, configuración de Firebase project propio, ejecución local con emuladores, revisión de estructura de código.</p>
+      </div>
+      <div class="timeline-item">
+        <span class="timeline-week">Semana 2</span>
+        <h4>Sesiones de capacitación (Sesiones 1–3)</h4>
+        <p>Arquitectura, Firebase/Cloud Functions, flujo SRI completo. Sesiones por videollamada con grabación entregada.</p>
+      </div>
+      <div class="timeline-item">
+        <span class="timeline-week">Semana 3</span>
+        <h4>Sesiones de capacitación (Sesiones 4–6)</h4>
+        <p>Contabilidad, super admin, deploy a producción. El equipo realiza el primer deploy supervisado.</p>
+      </div>
+      <div class="timeline-item">
+        <span class="timeline-week">Semana 4</span>
+        <h4>Período de preguntas y ajustes</h4>
+        <p>Soporte en vivo para dudas surgidas durante la adopción. Revisión de customizaciones iniciales del comprador.</p>
+      </div>
+    </div>
+
+    <div class="success-box">
+      <h4 style="color: var(--success); margin-bottom: 6px;">📹 Sesiones grabadas y documentadas</h4>
+      <p style="margin: 0;">Todas las sesiones de capacitación son grabadas y entregadas al comprador junto con resúmenes escritos, para que puedan ser consultadas por el equipo en cualquier momento o usadas para incorporar nuevos desarrolladores.</p>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ─── 8. GARANTÍA ─── -->
+  <div class="section page-break">
+    <div class="section-label">08 — Garantía</div>
+    <h2>Términos de garantía</h2>
+
+    <div class="guarantee-box">
+      <h3>Garantía de 90 días sobre el código entregado</h3>
+      <p>FacturasSEC garantiza que el sistema funciona conforme a lo documentado en esta propuesta durante 90 días desde la entrega.</p>
+
+      <div class="guarantee-items">
+        <div class="guarantee-item">
+          <div class="guarantee-item-title">🔧 Corrección de bugs</div>
+          <div class="guarantee-item-text">Cualquier defecto funcional encontrado en el código entregado será corregido sin costo adicional dentro del período de garantía.</div>
+        </div>
+        <div class="guarantee-item">
+          <div class="guarantee-item-title">🇪🇨 Compatibilidad SRI</div>
+          <div class="guarantee-item-text">Si el SRI modifica sus schemas o webservices durante la garantía, se proveerá la actualización correspondiente sin costo.</div>
+        </div>
+        <div class="guarantee-item">
+          <div class="guarantee-item-title">📋 Documentación</div>
+          <div class="guarantee-item-text">Si se detectan vacíos de documentación críticos para operar el sistema, se complementará sin cargo durante el período de garantía.</div>
+        </div>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Concepto</th>
+          <th>Cubierto por garantía</th>
+          <th>No cubierto</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Bugs del sistema entregado</strong></td>
+          <td><span class="incl">✓ Sí — corrección gratuita</span></td>
+          <td>Bugs introducidos por modificaciones del comprador</td>
+        </tr>
+        <tr>
+          <td><strong>Cambios SRI durante garantía</strong></td>
+          <td><span class="incl">✓ Sí — actualización incluida</span></td>
+          <td>Cambios SRI posteriores a los 90 días</td>
+        </tr>
+        <tr>
+          <td><strong>Nuevas funcionalidades</strong></td>
+          <td><span class="not-incl">✗ No incluido</span></td>
+          <td>Desarrollo adicional cotizable por separado</td>
+        </tr>
+        <tr>
+          <td><strong>Soporte operativo post-garantía</strong></td>
+          <td><span class="not-incl">✗ No incluido</span></td>
+          <td>Contrato de soporte opcional disponible</td>
+        </tr>
+        <tr>
+          <td><strong>Infraestructura Firebase</strong></td>
+          <td><span class="not-incl">✗ No incluido</span></td>
+          <td>Costos GCP/Firebase van por cuenta del comprador</td>
+        </tr>
+        <tr>
+          <td><strong>Certificados SRI (.p12)</strong></td>
+          <td><span class="not-incl">✗ No incluido</span></td>
+          <td>Cada empresa adquiere su propio certificado electrónico</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="warning-box">
+      <h4 style="color: var(--warning); margin-bottom: 6px;">⚠ Condiciones de la garantía</h4>
+      <p style="margin: 0;">La garantía aplica sobre el código tal como fue entregado. Modificaciones realizadas por el equipo comprador sin coordinar con el equipo vendedor podrían anular la garantía sobre los componentes modificados. Se recomienda mantener una rama de producción limpia y trabajar en ramas separadas.</p>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ─── 9. SOPORTE POST-VENTA ─── -->
+  <div class="section">
+    <div class="section-label">09 — Soporte post-venta</div>
+    <h2>Opciones de soporte continuo</h2>
+    <p class="lead">Posterior al período de garantía, se ofrecen contratos de soporte opcionales para equipos que deseen respaldo continuo del equipo original de desarrollo.</p>
+
+    <div class="cards-grid">
+      <div class="card">
+        <span class="card-icon">📬</span>
+        <h4>Soporte Básico</h4>
+        <p>Canal de consultas por email/WhatsApp. Respuesta en 48 h hábiles. Hasta 4 consultas técnicas mensuales.</p>
+        <p style="margin-top: 8px; font-weight: 700; color: var(--primary);">Desde $200/mes</p>
+      </div>
+      <div class="card">
+        <span class="card-icon">🔧</span>
+        <h4>Soporte Técnico Activo</h4>
+        <p>Canal prioritario. Corrección de bugs en 24 h. Videollamadas mensuales. Revisión de código a demanda.</p>
+        <p style="margin-top: 8px; font-weight: 700; color: var(--primary);">Desde $500/mes</p>
+      </div>
+      <div class="card">
+        <span class="card-icon">🚀</span>
+        <h4>Desarrollo Continuo</h4>
+        <p>Horas de desarrollo mensuales del equipo original. Nuevas funcionalidades, integraciones, optimizaciones.</p>
+        <p style="margin-top: 8px; font-weight: 700; color: var(--primary);">Cotizable por requerimiento</p>
+      </div>
+    </div>
+
+    <p style="font-size: 13px; color: var(--gray-500); font-style: italic;">
+      Los contratos de soporte son opcionales y se contratan por separado. La operación del sistema no requiere de soporte pagado — el código está completamente documentado y es independiente del vendedor.
+    </p>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ─── 10. PRECIO ─── -->
+  <div class="section page-break">
+    <div class="section-label">10 — Inversión</div>
+    <h2>Propuesta de precio</h2>
+
+    <div class="price-highlight">
+      <div>
+        <div class="price-highlight-label">Inversión única — Licencia perpetua</div>
+        <div class="price-highlight-amount">A convenir</div>
+        <div class="price-highlight-period">Precio único, sin royalties ni pagos periódicos al vendedor</div>
+        <div class="price-highlight-note">* El precio exacto se define en negociación directa según el perfil y alcance del comprador.</div>
+      </div>
+      <div class="price-highlight-right">
+        <p>✓ Código fuente 100% transferido</p>
+        <p>✓ 14 horas de capacitación incluidas</p>
+        <p>✓ Garantía 90 días</p>
+        <p>✓ Documentación técnica completa</p>
+        <p>✓ Sin pago de licencias al vendedor</p>
+        <p>✓ Libre para comercializar el sistema</p>
+      </div>
+    </div>
+
+    <h3 style="margin-bottom: 16px;">¿Qué hace rentable esta inversión?</h3>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Escenario</th>
+          <th>Clientes necesarios para cubrir inversión</th>
+          <th>Tiempo estimado de recupero</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Suscripción Plan PYME ($39/mes)</strong></td>
+          <td>~13 clientes activos</td>
+          <td>12 meses de ingresos</td>
+        </tr>
+        <tr>
+          <td><strong>Suscripción Plan Profesional ($79/mes)</strong></td>
+          <td>~7 clientes activos</td>
+          <td>12 meses de ingresos</td>
+        </tr>
+        <tr>
+          <td><strong>Suscripción Plan Empresarial ($149/mes)</strong></td>
+          <td>~4 clientes activos</td>
+          <td>12 meses de ingresos</td>
+        </tr>
+        <tr>
+          <td><strong>Implementación personalizada (one-shot)</strong></td>
+          <td>1–2 proyectos</td>
+          <td>Inmediato</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="highlight-box">
+      <p>
+        <strong>Referencia de mercado:</strong> Desarrollar un sistema equivalente desde cero con un equipo de 2–3 desarrolladores mid/senior tomaría entre 18 y 24 meses de trabajo, con un costo estimado de $80.000 a $150.000 USD (sin incluir investigación del SRI, pruebas de certificación, y curva de aprendizaje del esquema multi-tenant). Esta propuesta representa una fracción de ese costo con un sistema ya funcional y certificado.
+      </p>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ─── 11. PROCESO DE COMPRA ─── -->
+  <div class="section">
+    <div class="section-label">11 — Proceso de compra</div>
+    <h2>¿Cómo se realiza la adquisición?</h2>
+
+    <div class="timeline">
+      <div class="timeline-item">
+        <span class="timeline-week">Paso 1 — Demostración</span>
+        <h4>Sesión demo del sistema</h4>
+        <p>Demostración en vivo de las funcionalidades principales: facturación electrónica SRI, contabilidad, super admin, planes. Sin costo ni compromiso.</p>
+      </div>
+      <div class="timeline-item">
+        <span class="timeline-week">Paso 2 — Revisión técnica</span>
+        <h4>Due diligence del código</h4>
+        <p>El equipo técnico del comprador puede revisar muestras de código, arquitectura y documentación bajo NDA para validar la calidad del sistema.</p>
+      </div>
+      <div class="timeline-item">
+        <span class="timeline-week">Paso 3 — Negociación y contrato</span>
+        <h4>Acuerdo de términos</h4>
+        <p>Firma del contrato de compraventa de código fuente con transferencia de propiedad intelectual, términos de garantía y plan de capacitación.</p>
+      </div>
+      <div class="timeline-item">
+        <span class="timeline-week">Paso 4 — Pago y entrega</span>
+        <h4>Transferencia de activos</h4>
+        <p>Pago acordado (puede negociarse en hitos). Entrega de acceso a repositorios, credenciales y toda la documentación.</p>
+      </div>
+      <div class="timeline-item">
+        <span class="timeline-week">Paso 5 — Capacitación y arranque</span>
+        <h4>Onboarding técnico</h4>
+        <p>Ejecución del plan de capacitación de 4 semanas. Acompañamiento hasta el primer deploy en producción del sistema a nombre del comprador.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ─── 12. TÉRMINOS Y CONDICIONES ─── -->
+  <div class="section page-break">
+    <div class="section-label">12 — Términos legales</div>
+    <h2>Términos y condiciones</h2>
+
+    <h3 style="margin-bottom: 12px;">Propiedad intelectual</h3>
+    <ul class="module-list">
+      <li><div class="check">✓</div><div>El comprador adquiere la titularidad completa del código fuente entregado, libre de gravámenes.</div></li>
+      <li><div class="check">✓</div><div>El vendedor renuncia a cualquier derecho de explotación sobre el código una vez perfeccionada la venta.</div></li>
+      <li><div class="check">✓</div><div>El comprador puede sublicenciar, redistribuir, modificar y comercializar el sistema sin restricción.</div></li>
+      <li><div class="check">✓</div><div>El comprador no está obligado a mencionar ni dar crédito al vendedor original en ningún contexto.</div></li>
+    </ul>
+
+    <h3 style="margin-bottom: 12px;">Condiciones de pago</h3>
+    <ul class="module-list">
+      <li><div class="check">✓</div><div>El pago puede estructurarse en máximo 2 hitos: 50% al firma del contrato, 50% a la entrega y verificación del código.</div></li>
+      <li><div class="check">✓</div><div>Medios de pago: transferencia bancaria, PayPal, o acuerdo entre partes.</div></li>
+      <li><div class="check">✓</div><div>El acceso al repositorio completo se entrega una vez acreditado el pago total.</div></li>
+    </ul>
+
+    <h3 style="margin-bottom: 12px;">Limitaciones y exclusiones</h3>
+    <ul class="module-list">
+      <li><div class="check" style="background: var(--warning);">!</div><div>El sistema requiere un proyecto Firebase (Google Cloud) a nombre del comprador. Los costos de infraestructura GCP son responsabilidad del comprador.</div></li>
+      <li><div class="check" style="background: var(--warning);">!</div><div>Cada empresa usuaria del SaaS debe obtener su propio certificado de firma electrónica ante una EC acreditada por el SRI (FirmaSegura, Security Data, BCE, etc.).</div></li>
+      <li><div class="check" style="background: var(--warning);">!</div><div>El vendedor no es responsable de cambios normativos del SRI posteriores al período de garantía.</div></li>
+      <li><div class="check" style="background: var(--warning);">!</div><div>Esta propuesta es confidencial. La información técnica y comercial contenida no debe compartirse con terceros sin autorización escrita del vendedor.</div></li>
+    </ul>
+
+    <h3 style="margin-bottom: 12px;">Jurisdicción</h3>
+    <p>Las partes acuerdan que cualquier controversia derivada de este contrato se resolverá conforme a las leyes de la República del Ecuador, con jurisdicción en los tribunales competentes de la ciudad de Quito / Guayaquil (a convenir entre partes).</p>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ─── FIRMA ─── -->
+  <div class="section">
+    <div class="section-label">Aceptación</div>
+    <h2>Aceptación de la propuesta</h2>
+    <p>La firma de este documento por ambas partes constituye la aceptación de los términos comerciales descritos y el inicio del proceso de formalización del contrato de compraventa.</p>
+
+    <div class="signature-section">
+      <div>
+        <div class="signature-block">
+          <div class="signature-label">Vendedor</div>
+          <div class="signature-name">________________________________</div>
+          <div class="signature-role">FacturasSEC — Representante legal</div>
+          <div class="signature-role" style="margin-top: 6px;">Fecha: ____ / ____ / 2026</div>
+        </div>
+      </div>
+      <div>
+        <div class="signature-block">
+          <div class="signature-label">Comprador</div>
+          <div class="signature-name">________________________________</div>
+          <div class="signature-role">Empresa / Persona: _________________</div>
+          <div class="signature-role" style="margin-top: 6px;">Fecha: ____ / ____ / 2026</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- FOOTER -->
+<div class="doc-footer">
+  <p><strong>FacturasSEC — Sistema SaaS de Facturación Electrónica para Ecuador</strong></p>
+  <p>Este documento es de carácter confidencial y está dirigido exclusivamente al destinatario indicado.</p>
+  <p>Cualquier reproducción, distribución o uso no autorizado está prohibido.</p>
+  <br />
+  <p>Para consultas: <strong>contacto@facturasec.com</strong> &nbsp;·&nbsp; Agosto 2026</p>
+</div>
+
+</body>
+</html>

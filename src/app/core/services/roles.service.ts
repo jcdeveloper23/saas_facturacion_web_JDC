@@ -95,9 +95,44 @@ export const DEFAULT_SYSTEM_ROLES: Omit<Role, 'id' | 'createdAt' | 'updatedAt'>[
  * Roles de EMPRESA — se siembran en companies/{companyId}/roles cuando se crea
  * una empresa nueva (setupCompany CF). Cada empresa los puede personalizar después.
  *
- * NO se incluyen en /roles global. Son propiedad de la empresa.
+ * Incluye 'admin' para que cada empresa pueda editar sus propios permisos de administrador
+ * desde la UI de Perfiles sin tocar el rol de plataforma en /roles/admin.
  */
 export const COMPANY_DEFAULT_ROLES: Omit<Role, 'id' | 'createdAt' | 'updatedAt'>[] = [
+  {
+    code: 'admin',
+    name: 'Administrador',
+    description: 'Administra la empresa: usuarios, módulos, configuración y todas las operaciones.',
+    type: 'system',
+    level: 1,
+    color: '#0d6efd',
+    icon: 'cilUser',
+    isDefault: true,
+    state: true,
+    permissions: [
+      'customers.view', 'customers.create', 'customers.edit', 'customers.delete',
+      'suppliers.view', 'suppliers.create', 'suppliers.edit', 'suppliers.delete',
+      'products.view', 'products.create', 'products.edit', 'products.delete',
+      'invoices.view', 'invoices.create', 'invoices.edit', 'invoices.delete',
+      'quotes.view', 'quotes.create', 'quotes.edit', 'quotes.delete',
+      'orders.view', 'orders.create', 'orders.edit', 'orders.delete',
+      'purchases.view', 'purchases.create', 'purchases.edit', 'purchases.delete',
+      'stock.view', 'stock.create', 'stock.edit', 'stock.delete',
+      'pos.view', 'pos.create', 'pos.edit', 'pos.delete',
+      'sri.view', 'sri.create', 'sri.edit', 'sri.delete',
+      'personas.view', 'personas.create', 'personas.edit', 'personas.delete',
+      'retentions.view', 'retentions.create', 'retentions.edit', 'retentions.delete',
+      'debit_notes.view', 'debit_notes.create', 'debit_notes.edit', 'debit_notes.delete',
+      'accounting.view', 'accounting.create', 'accounting.edit', 'accounting.delete',
+      'settings.view', 'settings.create', 'settings.edit', 'settings.delete',
+      'users.view', 'users.create', 'users.edit', 'users.delete',
+      'profiles.view', 'profiles.create', 'profiles.edit', 'profiles.delete',
+      'team_management.view', 'team_management.create', 'team_management.edit', 'team_management.delete',
+      'marketplace.view', 'marketplace.create', 'marketplace.edit', 'marketplace.delete',
+      'report_invoices.view', 'report_purchases.view', 'report_products.view',
+      'benefits.view',
+    ] as PermissionString[]
+  },
   {
     code: 'seller',
     name: 'Vendedor',

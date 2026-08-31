@@ -26,7 +26,15 @@
   </c-sidebar-header>
 
   <ng-scrollbar pointerEventsMethod="scrollbar" visibility="hover">
-    <c-sidebar-nav [navItems]="navItems()" dropdownMode="none" compact />
+    @if (navReady()) {
+      <c-sidebar-nav [navItems]="navItems()" dropdownMode="close" compact />
+    } @else {
+      <div class="px-3 py-4 d-flex flex-column gap-2 opacity-50">
+        @for (_ of [1,2,3,4,5,6]; track $index) {
+          <div class="rounded" style="height:34px;background:rgba(255,255,255,.08)"></div>
+        }
+      </div>
+    }
   </ng-scrollbar>
 
   @if (!sidebar1.narrow) {

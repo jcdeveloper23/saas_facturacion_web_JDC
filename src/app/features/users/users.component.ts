@@ -3,29 +3,25 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import {
     CardModule,
-    GridModule,
     ButtonModule,
     TableModule,
-    BadgeModule,
-    FormModule,
-    UtilitiesModule,
     ButtonGroupModule,
     SpinnerModule,
-    AlertModule
+    AlertModule,
 } from '@coreui/angular';
 import { IconModule } from '@coreui/icons-angular';
-import { ReactiveFormsModule, FormControl } from '@angular/forms';
-import { Subscription } from 'rxjs';
-import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { Subject, Subscription } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 
 import { HasPermissionDirective } from '../../shared/directives/has-permission.directive';
 import { CompanyUsersService } from '../../core/services/company-users.service';
 import { PermissionsService } from '../../core/services/permissions.service';
-import { AuthService } from '../../core/services/auth.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { CompanyUser } from '../../core/interfaces/company-user.interface';
 import { Role } from '../../core/interfaces/permission.interface';
 import { UserStats } from '../../core/interfaces/user.interface';
+
+type StateFilter = 'all' | 'active' | 'inactive';
 
 @Component({
     selector: 'app-users',
@@ -33,74 +29,65 @@ import { UserStats } from '../../core/interfaces/user.interface';
     imports: [
         CommonModule,
         RouterLink,
-        ReactiveFormsModule,
         CardModule,
-        GridModule,
         ButtonModule,
         ButtonGroupModule,
         TableModule,
-        BadgeModule,
-        FormModule,
-        UtilitiesModule,
         SpinnerModule,
         AlertModule,
         IconModule,
-        HasPermissionDirective
+        HasPermissionDirective,
     ],
     templateUrl: './users.component.html',
-    styleUrl: './users.component.scss'
+    styleUrl: './users.component.scss',
 })
 export class UsersComponent implements OnInit, OnDestroy {
     private companyUsersSvc = inject(CompanyUsersService);
     private permissionsService = inject(PermissionsService);
-    private authService = inject(AuthService);
     private notification = inject(NotificationService);
 
-    // State signals
-    users = signal<CompanyUser[]>([]);
-    loading = signal(false);
-    error = signal<string | null>(null);
+    private destroy$ = new Subject<void>();
+    private usersSubscription?: Subscription;
 
-    // Select options
-    roles = signal<Role[]>([]);
+    // State signals
+    users    = signal<CompanyUser[]>([]);
+    loading  = signal(true);
+    error    = signal<string | null>(null);
+    roles    = signal<Role[]>([]);
 
     // Filters
-    searchControl = new FormControl('');
-    searchTerm = signal('');
-    roleFilter = signal<string | undefined>(undefined);
-    stateFilter = signal<boolean | 'all'>('all');
+    searchTerm  = signal('');
+    roleFilter  = signal('');
+    stateFilter = signal<StateFilter>('all');
 
-    // Super admin check
-    isSuperAdmin = signal(false);
-
-    // Subscription reference for cleanup
-    private usersSubscription?: Subscription;
+    readonly stateOptions: { value: StateFilter; label: string }[] = [
+        { value: 'all',      label: 'Todos' },
+        { value: 'active',   label: 'Activos' },
+        { value: 'inactive', label: 'Inactivos' },
+    ];
 
     // Computed stats
     stats = computed<UserStats>(() => {
         const list = this.users();
         return {
-            total: list.length,
-            admins: list.filter(u => u.platformRole === 'admin' || u.platformRole === 'super_admin').length,
-            active: list.filter(u => u.isActive).length,
-            inactive: list.filter(u => !u.isActive).length
+            total:    list.length,
+            admins:   list.filter(u => u.platformRole === 'admin' || u.platformRole === 'super_admin').length,
+            active:   list.filter(u => u.isActive).length,
+            inactive: list.filter(u => !u.isActive).length,
         };
     });
 
     // Computed filtered users (client-side — Firestore stream already loaded)
     filteredUsers = computed(() => {
         let list = this.users();
-        const roleFilter = this.roleFilter();
-        const stateFilter = this.stateFilter();
-        const search = this.searchTerm().toLowerCase();
+        const state  = this.stateFilter();
+        const role   = this.roleFilter();
+        const search = this.searchTerm().toLowerCase().trim();
 
-        if (roleFilter !== undefined) {
-            list = list.filter(u => u.platformRole === roleFilter);
-        }
+        if (state === 'active')        list = list.filter(u => u.isActive);
+        else if (state === 'inactive') list = list.filter(u => !u.isActive);
 
-        if (stateFilter !== 'all') {
-            list = list.filter(u => u.isActive === stateFilter);
-        }
+        if (role) list = list.filter(u => u.platformRole === role);
 
         if (search) {
             list = list.filter(u =>
@@ -108,33 +95,32 @@ export class UsersComponent implements OnInit, OnDestroy {
                 u.email.toLowerCase().includes(search)
             );
         }
-
         return list;
     });
 
+    totalActiveFilters = computed(() =>
+        (this.searchTerm() ? 1 : 0) +
+        (this.roleFilter() ? 1 : 0) +
+        (this.stateFilter() !== 'all' ? 1 : 0)
+    );
+
     ngOnInit(): void {
-        this.isSuperAdmin.set(this.authService.isSuperAdmin());
-        this.setupFilters();
         this.loadRoles();
         this.loadUsers();
     }
 
     ngOnDestroy(): void {
-        this.usersSubscription?.unsubscribe();
+        this.destroy$.next();
+        this.destroy$.complete();
     }
 
     private loadRoles(): void {
-        this.permissionsService.getRoles().subscribe({
-            next: (roles) => this.roles.set(roles),
-            error: (err) => console.error('Error loading roles:', err)
-        });
-    }
-
-    setupFilters(): void {
-        this.searchControl.valueChanges.pipe(
-            debounceTime(400),
-            distinctUntilChanged()
-        ).subscribe(val => this.searchTerm.set(val ?? ''));
+        this.permissionsService.getRoles()
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+                next: (roles) => this.roles.set(roles),
+                error: (err) => console.error('Error loading roles:', err),
+            });
     }
 
     loadUsers(): void {
@@ -142,30 +128,26 @@ export class UsersComponent implements OnInit, OnDestroy {
         this.error.set(null);
 
         this.usersSubscription?.unsubscribe();
-        this.usersSubscription = this.companyUsersSvc.getCompanyUsers().subscribe({
-            next: (data) => {
-                this.users.set(data);
-                this.loading.set(false);
-            },
-            error: (err) => {
-                console.error('Error loading users', err);
-                this.error.set('No se pudieron cargar los usuarios');
-                this.loading.set(false);
-                this.notification.error('Error al cargar usuarios');
-            }
-        });
+        this.usersSubscription = this.companyUsersSvc.getCompanyUsers()
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+                next: (data) => {
+                    this.users.set(data);
+                    this.loading.set(false);
+                },
+                error: (err) => {
+                    console.error('Error loading users', err);
+                    this.error.set('No se pudieron cargar los usuarios');
+                    this.loading.set(false);
+                    this.notification.error('Error al cargar usuarios');
+                },
+            });
     }
 
-    onRoleFilterChange(value: string): void {
-        this.roleFilter.set(value || undefined);
-    }
-
-    onStateFilterChange(value: string): void {
-        if (value === 'all') {
-            this.stateFilter.set('all');
-        } else {
-            this.stateFilter.set(value === 'true');
-        }
+    clearAll(): void {
+        this.searchTerm.set('');
+        this.roleFilter.set('');
+        this.stateFilter.set('all');
     }
 
     refresh(): void {
@@ -175,7 +157,7 @@ export class UsersComponent implements OnInit, OnDestroy {
 
     toggleUserState(user: CompanyUser): void {
         const newState = !user.isActive;
-        const action = newState ? 'activar' : 'desactivar';
+        const action   = newState ? 'activar' : 'desactivar';
 
         const promise = newState
             ? this.companyUsersSvc.activateCompanyUser(user.uid)
@@ -187,41 +169,38 @@ export class UsersComponent implements OnInit, OnDestroy {
     }
 
     getRoleColor(platformRole?: string): string {
-        // Buscar primero en los roles cargados de Firestore (roles dinámicos)
         const dynamic = this.roles().find(r => r.code === platformRole);
         if (dynamic?.color) return dynamic.color;
 
-        // Fallback: colores de los roles del sistema
         const systemColors: { [code: string]: string } = {
-            super_admin:   'danger',
-            admin:         'primary',
-            accountant:    'warning',
-            seller:        'info',
-            cashier:       'success',
-            read_only:     'secondary',
+            super_admin: 'danger',
+            admin:       'primary',
+            accountant:  'warning',
+            seller:      'info',
+            cashier:     'success',
+            read_only:   'secondary',
         };
         return systemColors[platformRole ?? ''] ?? 'dark';
     }
 
     getRoleName(user: CompanyUser): string {
-        // Buscar primero en los roles cargados de Firestore (roles dinámicos)
         const dynamic = this.roles().find(r => r.code === user.platformRole);
         if (dynamic?.name) return dynamic.name;
 
-        // Fallback: nombres de los roles del sistema
         const systemNames: { [code: string]: string } = {
-            super_admin:   'Super Admin',
-            admin:         'Administrador',
-            accountant:    'Contador',
-            seller:        'Vendedor',
-            cashier:       'Cajero',
-            read_only:     'Solo lectura',
+            super_admin: 'Super Admin',
+            admin:       'Administrador',
+            accountant:  'Contador',
+            seller:      'Vendedor',
+            cashier:     'Cajero',
+            read_only:   'Solo lectura',
         };
         return systemNames[user.platformRole] ?? user.platformRole ?? 'Sin rol';
     }
 
-    getStateColor(isActive: boolean): string {
-        return isActive ? 'success' : 'warning';
+    getRoleBadgeClass(platformRole?: string): string {
+        const color = this.getRoleColor(platformRole);
+        return `badge bg-${color}-subtle text-${color} border border-${color}-subtle`;
     }
 
     getStateLabel(isActive: boolean): string {
@@ -230,14 +209,13 @@ export class UsersComponent implements OnInit, OnDestroy {
 
     getUserInitials(user: CompanyUser): string {
         const parts = user.displayName.trim().split(' ');
-        const first = parts[0]?.charAt(0) ?? '';
-        const last = parts[1]?.charAt(0) ?? '';
+        const first  = parts[0]?.charAt(0) ?? '';
+        const last   = parts[1]?.charAt(0) ?? '';
         return (first + last).toUpperCase() || user.email.charAt(0).toUpperCase();
     }
 
     formatDate(date: any): string {
         if (!date) return 'N/A';
-        // Firestore Timestamp tiene .toDate(); string/Date se convierten directamente
         const d = date?.toDate ? date.toDate() : new Date(date);
         return d.toLocaleDateString('es-EC');
     }

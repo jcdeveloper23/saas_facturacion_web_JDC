@@ -78,7 +78,9 @@ export class AuthService {
       const unsubscribe = onAuthStateChanged(this.auth, async (firebaseUser) => {
         if (firebaseUser) {
           try {
-            const authUser = await this.buildAuthUser(firebaseUser);
+            // forceRefresh=true: si un admin cambió el rol del usuario mientras
+            // estaba conectado, un simple F5 basta para que los nuevos claims entren en vigor.
+            const authUser = await this.buildAuthUser(firebaseUser, true);
             this._currentUser.set(authUser);
             this.tenantService.setCompanyId(authUser.companyId);
             this.tenantService.setUid(authUser.uid);
@@ -162,8 +164,13 @@ export class AuthService {
     return this.hasRole('admin', 'seller', 'cashier');
   }
 
-  private async buildAuthUser(firebaseUser: FirebaseUser): Promise<AuthUser> {
-    const tokenResult: IdTokenResult = await firebaseUser.getIdTokenResult();
+  /**
+   * @param forceRefresh — true en init() para obtener los claims más recientes
+   * de Firebase Auth. Garantiza que si un admin cambió el rol del usuario,
+   * el refresh de página sea suficiente para que los nuevos permisos entren en vigor.
+   */
+  private async buildAuthUser(firebaseUser: FirebaseUser, forceRefresh = false): Promise<AuthUser> {
+    const tokenResult: IdTokenResult = await firebaseUser.getIdTokenResult(forceRefresh);
     return {
       uid: firebaseUser.uid,
       email: firebaseUser.email ?? '',

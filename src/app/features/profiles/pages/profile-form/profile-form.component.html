@@ -148,13 +148,18 @@
                 <tr [class.row-full]="isRowSelected(row) === 'all'"
                     [class.row-partial]="isRowSelected(row) === 'some'">
                   <td class="col-module">
-                    <div class="d-flex align-items-center gap-2">
+                    <div class="d-flex align-items-center gap-2" [style.padding-left.rem]="row.moduleLevel * 1.25">
                       <input type="checkbox" class="form-check-input"
                         [checked]="isRowSelected(row) === 'all'"
                         [indeterminate]="isRowSelected(row) === 'some'"
                         (change)="toggleRow(row, $event)" />
-                      <svg cIcon [name]="row.moduleIcon" size="sm" class="text-muted flex-shrink-0"></svg>
-                      <span class="module-name">{{ row.moduleName }}</span>
+                      <svg cIcon [name]="row.moduleIcon" size="sm" class="flex-shrink-0"
+                           [class.text-muted]="row.moduleLevel > 0"
+                           [class.text-primary]="row.moduleLevel === 0"></svg>
+                      <span class="module-name"
+                            [class.small]="row.moduleLevel > 0"
+                            [class.text-body-secondary]="row.moduleLevel > 0"
+                            [class.fw-semibold]="row.moduleLevel === 0">{{ row.moduleName }}</span>
                     </div>
                   </td>
                   @for (action of matrixActions(); track action.code) {

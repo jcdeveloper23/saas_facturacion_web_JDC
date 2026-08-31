@@ -1,125 +1,111 @@
 import { inject } from '@angular/core';
-import { CanActivateFn, CanMatchFn, Router, ActivatedRouteSnapshot } from '@angular/router';
+import { CanActivateFn, CanMatchFn, Router } from '@angular/router';
+import { toObservable } from '@angular/core/rxjs-interop';
+import { filter, map, take } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 import { PermissionsService } from '../services/permissions.service';
-import { PermissionString, PermissionModule } from '../interfaces/permission.interface';
+import { PermissionString } from '../interfaces/permission.interface';
 
 /**
- * Permission Guard - Protects routes based on required permissions
+ * permissionGuard — protege rutas basándose en los permisos del usuario.
  *
- * Usage in routes:
- * {
- *   path: 'devices',
- *   component: DevicesComponent,
+ * Espera a que permissionsReady sea true antes de evaluar, lo que evita
+ * falsos 403 para roles custom cuya carga de permisos es asíncrona (Firestore).
+ *
+ * Uso:
  *   canActivate: [permissionGuard],
- *   data: { permissions: ['devices.view'] }
- * }
+ *   data: { permissions: ['invoices.view'] }
  *
- * For multiple permissions (AND):
- * data: { permissions: ['devices.view', 'devices.create'], permissionMode: 'all' }
+ * Múltiples permisos (AND por defecto):
+ *   data: { permissions: ['invoices.view', 'invoices.create'], permissionMode: 'all' }
  *
- * For multiple permissions (OR):
- * data: { permissions: ['devices.view', 'devices.manage'], permissionMode: 'any' }
+ * Múltiples permisos (OR):
+ *   data: { permissions: ['invoices.view', 'purchases.view'], permissionMode: 'any' }
  */
 export const permissionGuard: CanActivateFn = (route, state) => {
-  const authService = inject(AuthService);
+  const authService        = inject(AuthService);
   const permissionsService = inject(PermissionsService);
-  const router = inject(Router);
+  const router             = inject(Router);
 
-  console.log('[PermissionGuard] Checking access to:', state.url);
-
-  // First check if authenticated
   if (!authService.isAuthenticated()) {
-    console.log('[PermissionGuard] Not authenticated, redirecting to login');
     router.navigate(['/login'], { queryParams: { returnUrl: state.url } });
     return false;
   }
 
-  // Get required permissions from route data
   const requiredPermissions = route.data?.['permissions'] as PermissionString[] | undefined;
-  const permissionMode = (route.data?.['permissionMode'] as 'all' | 'any') || 'all';
+  const permissionMode      = (route.data?.['permissionMode'] as 'all' | 'any') ?? 'all';
 
-  // If no permissions required, allow access
   if (!requiredPermissions || requiredPermissions.length === 0) {
-    console.log('[PermissionGuard] No permissions required, access granted');
     return true;
   }
 
-  // Check permissions
-  const userPermissions = permissionsService.permissions();
-  const hasPermission = permissionMode === 'all'
-    ? permissionsService.hasAllPermissions(requiredPermissions)
-    : permissionsService.hasAnyPermission(requiredPermissions);
+  // Esperar a que los permisos estén listos.
+  // Para roles de sistema es inmediato (síncrono).
+  // Para roles custom espera el getDoc() de Firestore sin producir falsos 403.
+  return toObservable(permissionsService.permissionsReady).pipe(
+    filter(ready => ready === true),
+    take(1),
+    map(() => {
+      const hasPermission = permissionMode === 'all'
+        ? permissionsService.hasAllPermissions(requiredPermissions)
+        : permissionsService.hasAnyPermission(requiredPermissions);
 
-  console.log('[PermissionGuard] Check:', {
-    required: requiredPermissions,
-    userHas: userPermissions.length,
-    hasPermission
-  });
+      if (hasPermission) return true;
 
-  if (hasPermission) {
-    return true;
-  }
-
-  // Redirect to unauthorized page or home
-  console.warn(`[PermissionGuard] Access denied to ${state.url}. Required: ${requiredPermissions.join(', ')}. User has: ${userPermissions.join(', ') || 'none'}`);
-  router.navigate(['/unauthorized']);
-  return false;
+      console.warn(
+        `[PermissionGuard] Acceso denegado a ${state.url}.`,
+        `Requerido: ${requiredPermissions.join(', ')}.`,
+        `Usuario tiene: ${permissionsService.permissions().join(', ') || 'ninguno'}`
+      );
+      router.navigate(['/unauthorized']);
+      return false;
+    })
+  );
 };
 
 /**
- * Module Access Guard - Protects routes based on module access
- *
- * Usage:
- * {
- *   path: 'devices',
- *   canActivate: [moduleGuard],
- *   data: { module: 'devices' }
- * }
+ * moduleGuard — protege rutas basándose en los módulos del plan del tenant.
+ * Verifica que el módulo esté habilitado en company.enabledModules.
+ * Complementa a permissionGuard: uno verifica el plan de la empresa,
+ * el otro los permisos del usuario.
  */
 export const moduleGuard: CanActivateFn = (route, state) => {
-  const authService = inject(AuthService);
+  const authService        = inject(AuthService);
   const permissionsService = inject(PermissionsService);
-  const router = inject(Router);
+  const router             = inject(Router);
 
   if (!authService.isAuthenticated()) {
     router.navigate(['/login'], { queryParams: { returnUrl: state.url } });
     return false;
   }
 
-  const requiredModule = route.data?.['module'] as PermissionModule | undefined;
+  const requiredModule = route.data?.['module'] as string | undefined;
 
-  if (!requiredModule) {
-    return true;
-  }
+  if (!requiredModule) return true;
 
-  if (permissionsService.canAccessModule(requiredModule)) {
-    return true;
-  }
+  if (permissionsService.canAccessModule(requiredModule)) return true;
 
-  console.warn(`Access denied to module: ${requiredModule}`);
+  console.warn(`[ModuleGuard] Módulo no habilitado: ${requiredModule}`);
   router.navigate(['/unauthorized']);
   return false;
 };
 
 /**
- * Can Match Guard - For lazy loaded modules
- * Prevents loading the module if user doesn't have permission
+ * permissionMatchGuard — canMatch para módulos lazy-loaded.
+ * Impide cargar el bundle si el usuario no tiene el permiso.
+ * No necesita esperar permissionsReady porque canMatch se evalúa
+ * en cada intento de navegación, no solo en la inicial.
  */
-export const permissionMatchGuard: CanMatchFn = (route, segments) => {
-  const authService = inject(AuthService);
+export const permissionMatchGuard: CanMatchFn = (route) => {
+  const authService        = inject(AuthService);
   const permissionsService = inject(PermissionsService);
 
-  if (!authService.isAuthenticated()) {
-    return false;
-  }
+  if (!authService.isAuthenticated()) return false;
 
   const requiredPermissions = route.data?.['permissions'] as PermissionString[] | undefined;
-  const permissionMode = (route.data?.['permissionMode'] as 'all' | 'any') || 'all';
+  const permissionMode      = (route.data?.['permissionMode'] as 'all' | 'any') ?? 'all';
 
-  if (!requiredPermissions || requiredPermissions.length === 0) {
-    return true;
-  }
+  if (!requiredPermissions || requiredPermissions.length === 0) return true;
 
   return permissionMode === 'all'
     ? permissionsService.hasAllPermissions(requiredPermissions)

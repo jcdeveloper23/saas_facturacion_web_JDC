@@ -76,17 +76,44 @@ export class ModulesService {
   flattenModules(modules: Module[]): Module[] {
     const result: Module[] = [];
 
-    const process = (module: Module, level = 0, parentName?: string) => {
-      const { children, ...rest } = module;
-      result.push({ ...rest, _level: level, _parentName: parentName ?? null });
-      if (children?.length) {
-        [...children]
-          .sort((a, b) => a.order - b.order)
-          .forEach(child => process(child, level + 1, module.name));
+    // Mapa parent_id → hijos (compatible con doc ID y code, igual que el nav builder)
+    const childrenMap = new Map<string, Module[]>();
+    for (const m of modules) {
+      if (m.parent_id) {
+        const arr = childrenMap.get(m.parent_id) ?? [];
+        arr.push(m);
+        childrenMap.set(m.parent_id, arr);
       }
+    }
+
+    const getChildren = (mod: Module): Module[] => {
+      return [
+        ...(childrenMap.get(mod.id)   ?? []),
+        ...(childrenMap.get(mod.code) ?? [])
+      ]
+        .filter((m, i, arr) => arr.findIndex(x => x.id === m.id) === i)
+        .sort((a, b) => a.order - b.order);
     };
 
-    [...modules].sort((a, b) => a.order - b.order).forEach(m => process(m));
+    const process = (module: Module, level: number, parentName: string | null, parentCode: string | null, isLast: boolean) => {
+      result.push({
+        ...module,
+        _level:       level,
+        _parentName:  parentName,
+        _parentCode:  parentCode,
+        _isLastChild: isLast
+      } as Module);
+      const children = getChildren(module);
+      children.forEach((child, i) =>
+        process(child, level + 1, module.name, module.code, i === children.length - 1)
+      );
+    };
+
+    const roots = modules
+      .filter(m => !m.parent_id)
+      .sort((a, b) => a.order - b.order);
+
+    roots.forEach((m, i) => process(m, 0, null, null, i === roots.length - 1));
     return result;
   }
 

@@ -19,15 +19,18 @@ import {
 } from '@coreui/angular';
 import { IconModule } from '@coreui/icons-angular';
 
+import { combineLatest, take } from 'rxjs';
 import { PermissionsService } from '../../../../core/services/permissions.service';
 import { RolesService } from '../../../../core/services/roles.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { NotificationService } from '../../../../core/services/notification.service';
+import { ModulesService } from '../../../../core/services/modules.service';
+import { ActionsService } from '../../../../core/services/actions.service';
 import {
   Role,
   Permission,
   PermissionString,
-  MODULE_METADATA
+  Module
 } from '../../../../core/interfaces/permission.interface';
 
 function getModuleCode(p: Permission): string {
@@ -45,6 +48,7 @@ interface MatrixRow {
   module: string;
   moduleName: string;
   moduleIcon: string;
+  moduleLevel: number;
   cells: Record<string, { permCode: string; exists: boolean }>;
 }
 
@@ -75,6 +79,8 @@ export class ProfileFormComponent implements OnInit {
   private notification       = inject(NotificationService);
   private router             = inject(Router);
   private route              = inject(ActivatedRoute);
+  private modulesSvc         = inject(ModulesService);
+  private actionsSvc         = inject(ActionsService);
 
   // State
   isEditMode    = false;
@@ -136,34 +142,32 @@ export class ProfileFormComponent implements OnInit {
       .map(([code, name]) => ({ code, name }));
   });
 
-  /** Matrix rows: one per module */
+  /** Matrix rows: one per functional module, ordered by flattenModules tree order */
   matrixRows = computed<MatrixRow[]>(() => {
-    const perms = this.allPermissions();
-    const meta  = MODULE_METADATA;
-    const grouped = new Map<string, Permission[]>();
+    const perms = this.allPermissions(); // already ordered by getModulesFlat
 
+    // Use Map to preserve insertion order (= flattenModules DFS order)
+    const grouped = new Map<string, { mPerms: Permission[]; mod: Module | undefined }>();
     perms.forEach(p => {
       const mc = getModuleCode(p);
-      const cur = grouped.get(mc) || [];
-      cur.push(p);
-      grouped.set(mc, cur);
+      if (!grouped.has(mc)) grouped.set(mc, { mPerms: [], mod: p.module as Module | undefined });
+      grouped.get(mc)!.mPerms.push(p);
     });
 
-    return Array.from(grouped.entries())
-      .sort(([a], [b]) => (meta[a]?.order ?? 99) - (meta[b]?.order ?? 99))
-      .map(([mc, mPerms]) => {
-        const cells: Record<string, { permCode: string; exists: boolean }> = {};
-        mPerms.forEach(p => {
-          const ac = getActionCode(p);
-          if (ac) cells[ac] = { permCode: p.code, exists: true };
-        });
-        return {
-          module: mc,
-          moduleName: meta[mc]?.name || mc,
-          moduleIcon: meta[mc]?.icon || 'cilFolder',
-          cells
-        };
+    return Array.from(grouped.values()).map(({ mPerms, mod }) => {
+      const cells: Record<string, { permCode: string; exists: boolean }> = {};
+      mPerms.forEach(p => {
+        const ac = getActionCode(p);
+        if (ac) cells[ac] = { permCode: p.code, exists: true };
       });
+      return {
+        module:      mod?.code || getModuleCode(mPerms[0]),
+        moduleName:  mod?.name || getModuleCode(mPerms[0]),
+        moduleIcon:  mod?.icon || 'cilFolder',
+        moduleLevel: mod?._level ?? 0,
+        cells
+      };
+    });
   });
 
   // ── Selection helpers ─────────────────────────────────────────────────────
@@ -268,15 +272,43 @@ export class ProfileFormComponent implements OnInit {
   }
 
   private loadPermissions(): void {
-    this.permissionsService.getPermissionsCatalog().subscribe({
-      next: perms => {
-        // If Firestore catalog is empty, fall back to static built-in catalog
-        this.allPermissions.set(
-          perms.length > 0 ? perms : this.permissionsService.getAllPermissions()
-        );
+    combineLatest([
+      this.modulesSvc.getModulesFlat(false),   // all modules, pre-ordered with _level
+      this.actionsSvc.getActions()
+    ]).pipe(take(1)).subscribe({
+      next: ([modules, actions]) => {
+        // Exclude section title modules — they're UI separators, not functional modules
+        const functionalModules = modules.filter(m => !m.isTitle);
+
+        const perms: Permission[] = [];
+        const actionOrder = ['view', 'create', 'edit', 'delete', 'export', 'print', 'approve'];
+        const sortedActions = [...actions].sort((a, b) => {
+          const ia = actionOrder.indexOf(a.code);
+          const ib = actionOrder.indexOf(b.code);
+          if (ia === -1 && ib === -1) return a.code.localeCompare(b.code);
+          if (ia === -1) return 1;
+          if (ib === -1) return -1;
+          return ia - ib;
+        });
+        for (const mod of functionalModules) {
+          for (const act of sortedActions) {
+            perms.push({
+              id:        `${mod.code}.${act.code}`,
+              module_id: mod.code,
+              action_id: act.code,
+              code:      `${mod.code}.${act.code}`,
+              name:      `${act.name} ${mod.name}`,
+              isSystem:  true,
+              state:     true,
+              module:    mod,
+              action:    act,
+            });
+          }
+        }
+        this.allPermissions.set(perms);
       },
       error: err => {
-        console.error('Error loading permissions catalog', err);
+        console.error('[ProfileForm] Error loading modules/actions', err);
         this.allPermissions.set(this.permissionsService.getAllPermissions());
       }
     });
@@ -322,11 +354,7 @@ export class ProfileFormComponent implements OnInit {
       return;
     }
 
-    const currentPermissions = this.allPermissions();
     const selectedCodes = this.selectedPermissions();
-    const permissionIds = currentPermissions
-      .filter(p => selectedCodes.includes(p.code) && p.id)
-      .map(p => p.id!);
 
     const formValue = this.profileForm.getRawValue();
     const roleData: any = {
@@ -334,7 +362,7 @@ export class ProfileFormComponent implements OnInit {
       name:        formValue.name,
       description: formValue.description,
       type:        'custom',
-      permissions: permissionIds,
+      permissions: selectedCodes,
       level:       formValue.level,
       color:       formValue.color,
       icon:        formValue.icon,

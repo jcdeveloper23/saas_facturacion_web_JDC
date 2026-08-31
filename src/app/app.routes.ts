@@ -1,5 +1,6 @@
 import { Routes, CanMatchFn } from '@angular/router';
 import { authGuard, loginGuard, roleGuard, moduleGuard, featureFlagGuard } from './core/guards';
+import { permissionGuard } from './core/guards/permission.guard';
 
 // Segmentos reservados de la app — el catálogo público (:slug) no debe
 // interceptar estas rutas cuando el usuario navega dentro del ERP.
@@ -50,6 +51,8 @@ export const routes: Routes = [
   },
 
   // ─── Super Admin (no tenant context) ─────────────────────────────────────
+  // roleGuard se mantiene aquí: super_admin es un rol de plataforma global,
+  // no un rol de empresa. permissionGuard no aplica en este contexto.
   {
     path: 'super-admin',
     canActivate: [authGuard, roleGuard],
@@ -66,7 +69,7 @@ export const routes: Routes = [
     children: [
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
 
-      // Dashboard
+      // Dashboard — accesible para cualquier usuario autenticado
       {
         path: 'dashboard',
         loadChildren: () => import('./views/dashboard/routes').then(m => m.routes),
@@ -76,8 +79,8 @@ export const routes: Routes = [
       // ── Personas (clientes, proveedores, empleados) ────────────────────
       {
         path: 'personas',
-        canActivate: [roleGuard],
-        data: { roles: ['admin', 'seller'], title: 'Personas' },
+        canActivate: [permissionGuard],
+        data: { permissions: ['personas.view'], title: 'Personas' },
         loadChildren: () => import('./features/personas/personas.routes').then(m => m.PERSONAS_ROUTES)
       },
       {
@@ -89,70 +92,56 @@ export const routes: Routes = [
       // ── Products ───────────────────────────────────────────────────────
       {
         path: 'products',
-        canActivate: [roleGuard],
-        data: { roles: ['admin', 'seller'], title: 'Artículos' },
+        canActivate: [permissionGuard],
+        data: { permissions: ['products.view'], title: 'Artículos' },
         loadChildren: () => import('./features/products/products.routes').then(m => m.PRODUCTS_ROUTES)
       },
 
       // ── Invoices ───────────────────────────────────────────────────────
       {
         path: 'invoices',
-        canActivate: [roleGuard],
-        data: { roles: ['admin', 'seller', 'cashier'], title: 'Facturas de Venta' },
+        canActivate: [permissionGuard],
+        data: { permissions: ['invoices.view'], title: 'Facturas de Venta' },
         loadChildren: () => import('./features/invoices/invoices.routes').then(m => m.INVOICES_ROUTES)
       },
 
       // ── Retentions ─────────────────────────────────────────────────────
       {
         path: 'retentions',
-        canActivate: [roleGuard, moduleGuard],
-        data: { roles: ['admin', 'accountant'], module: 'retentions', title: 'Retenciones' },
+        canActivate: [permissionGuard, moduleGuard],
+        data: { permissions: ['retentions.view'], module: 'retentions', title: 'Retenciones' },
         loadChildren: () => import('./features/retentions/retentions.routes').then(m => m.RETENTIONS_ROUTES)
       },
 
       // ── Debit Notes ────────────────────────────────────────────────────
       {
         path: 'debit-notes',
-        canActivate: [roleGuard, moduleGuard],
-        data: { roles: ['admin', 'accountant', 'seller'], module: 'debitNotes', title: 'Notas de Débito' },
+        canActivate: [permissionGuard, moduleGuard],
+        data: { permissions: ['debit_notes.view'], module: 'debitNotes', title: 'Notas de Débito' },
         loadChildren: () => import('./features/debit-notes/debit-notes.routes').then(m => m.DEBIT_NOTES_ROUTES)
       },
-
-      // ── Quotes ─────────────────────────────────────────────────────────
-      // {
-      //   path: 'quotes',
-      //   loadChildren: () => import('./features/quotes/quotes.routes').then(m => m.QUOTES_ROUTES),
-      //   data: { title: 'Quotes' }
-      // },
-
-      // ── Orders ─────────────────────────────────────────────────────────
-      // {
-      //   path: 'orders',
-      //   loadChildren: () => import('./features/orders/orders.routes').then(m => m.ORDERS_ROUTES),
-      //   data: { title: 'Orders' }
-      // },
 
       // ── Stock ──────────────────────────────────────────────────────────
       {
         path: 'stock',
-        canActivate: [roleGuard, moduleGuard, featureFlagGuard],
-        data: { roles: ['admin', 'seller'], module: 'stock', featureFlag: 'stockModule', title: 'Inventario' },
+        canActivate: [permissionGuard, moduleGuard, featureFlagGuard],
+        data: { permissions: ['stock.view'], module: 'stock', featureFlag: 'stockModule', title: 'Inventario' },
         loadChildren: () => import('./features/stock/stock.routes').then(m => m.STOCK_ROUTES)
       },
 
       // ── Purchases ──────────────────────────────────────────────────────
       {
         path: 'purchases',
-        canActivate: [authGuard, roleGuard, moduleGuard, featureFlagGuard],
-        data: { roles: ['admin', 'accountant', 'seller'], module: 'purchases', featureFlag: 'purchasesModule', title: 'Compras' },
+        canActivate: [authGuard, permissionGuard, moduleGuard, featureFlagGuard],
+        data: { permissions: ['purchases.view'], module: 'purchases', featureFlag: 'purchasesModule', title: 'Compras' },
         loadChildren: () => import('./features/purchases/purchases.routes').then(m => m.PURCHASES_ROUTES)
       },
 
       // ── Team Management ────────────────────────────────────────────────────
       {
         path: 'team-management',
-        canActivate: [authGuard, roleGuard, moduleGuard, featureFlagGuard],
-        data: { roles: ['admin', 'seller'], module: 'teamManagement', featureFlag: 'teamManagementModule', title: 'Gestión de Equipo' },
+        canActivate: [authGuard, permissionGuard, moduleGuard, featureFlagGuard],
+        data: { permissions: ['team_management.view'], module: 'teamManagement', featureFlag: 'teamManagementModule', title: 'Gestión de Equipo' },
         loadChildren: () =>
           import('./features/team-management/team-management.routes')
             .then(m => m.TEAM_MANAGEMENT_ROUTES)
@@ -161,24 +150,16 @@ export const routes: Routes = [
       // ── POS ────────────────────────────────────────────────────────────
       {
         path: 'pos',
-        canActivate: [roleGuard, moduleGuard],
-        data: { roles: ['admin', 'cashier', 'seller'], module: 'pos', title: 'Punto de Venta' },
+        canActivate: [permissionGuard, moduleGuard],
+        data: { permissions: ['pos.view'], module: 'pos', title: 'Punto de Venta' },
         loadChildren: () => import('./features/pos/pos.routes').then(m => m.POS_ROUTES)
       },
-
-      // ── Electronic Invoicing (SRI) ─────────────────────────────────────
-      // {
-      //   path: 'electronic-invoicing',
-      //   canActivate: [roleGuard],
-      //   data: { roles: ['admin'], title: 'Electronic Invoicing' },
-      //   loadChildren: () => import('./features/electronic-invoicing/electronic-invoicing.routes').then(m => m.ELECTRONIC_INVOICING_ROUTES)
-      // },
 
       // ── Marketplace Orders ────────────────────────────────────────────
       {
         path: 'marketplace-orders',
-        canActivate: [roleGuard, moduleGuard],
-        data: { roles: ['admin', 'seller'], module: 'marketplace', title: 'Pedidos del Catálogo' },
+        canActivate: [permissionGuard, moduleGuard],
+        data: { permissions: ['invoices.view'], module: 'marketplace', title: 'Pedidos del Catálogo' },
         loadComponent: () =>
           import('./features/marketplace/admin/marketplace-orders.component')
             .then(m => m.MarketplaceOrdersComponent)
@@ -187,16 +168,16 @@ export const routes: Routes = [
       // ── Users ──────────────────────────────────────────────────────────
       {
         path: 'users',
-        canActivate: [roleGuard],
-        data: { roles: ['admin', 'super_admin'], title: 'Usuarios' },
+        canActivate: [permissionGuard],
+        data: { permissions: ['users.view'], title: 'Usuarios' },
         loadChildren: () => import('./features/users/routes').then(m => m.routes)
       },
 
       // ── Profiles & Roles ───────────────────────────────────────────────
       {
         path: 'profiles',
-        canActivate: [roleGuard],
-        data: { roles: ['admin', 'super_admin'], title: 'Perfiles y Roles' },
+        canActivate: [permissionGuard],
+        data: { permissions: ['users.view'], title: 'Perfiles y Roles' },
         loadChildren: () => import('./features/profiles/routes').then(m => m.routes)
       },
 
@@ -210,8 +191,8 @@ export const routes: Routes = [
       // ── Accounting ────────────────────────────────────────────────────────
       {
         path: 'accounting',
-        canActivate: [roleGuard, moduleGuard, featureFlagGuard],
-        data: { roles: ['admin', 'accountant'], module: 'accounting', featureFlag: 'accountingModule', title: 'Contabilidad' },
+        canActivate: [permissionGuard, moduleGuard, featureFlagGuard],
+        data: { permissions: ['accounting.view'], module: 'accounting', featureFlag: 'accountingModule', title: 'Contabilidad' },
         loadChildren: () =>
           import('./features/accounting/accounting.routes').then(m => m.ACCOUNTING_ROUTES)
       },
@@ -219,8 +200,8 @@ export const routes: Routes = [
       // ── Reports ────────────────────────────────────────────────────────────
       {
         path: 'reports',
-        canActivate: [roleGuard],
-        data: { roles: ['admin', 'accountant', 'seller'], title: 'Reportes' },
+        canActivate: [permissionGuard],
+        data: { permissions: ['invoices.view'], title: 'Reportes' },
         loadChildren: () =>
           import('./features/reports/reports.routes').then(m => m.REPORTS_ROUTES)
       },
@@ -228,8 +209,8 @@ export const routes: Routes = [
       // ── Bar Escolar ────────────────────────────────────────────────────
       {
         path: 'school-bar',
-        canActivate: [roleGuard, moduleGuard],
-        data: { roles: ['admin', 'cashier'], module: 'school_setup', title: 'Bar Escolar' },
+        canActivate: [permissionGuard, moduleGuard],
+        data: { permissions: ['pos.view'], module: 'school_setup', title: 'Bar Escolar' },
         loadChildren: () =>
           import('./features/school-bar/school-bar.routes')
             .then(m => m.SCHOOL_BAR_ROUTES)
@@ -238,24 +219,24 @@ export const routes: Routes = [
       // ── Benefits ───────────────────────────────────────────────────────
       {
         path: 'benefits',
-        canActivate: [roleGuard, moduleGuard],
-        data: { roles: ['admin'], module: 'benefits', title: 'Beneficios' },
+        canActivate: [permissionGuard, moduleGuard],
+        data: { permissions: ['invoices.view'], module: 'benefits', title: 'Beneficios' },
         loadChildren: () => import('./features/benefits/benefits.routes').then(m => m.BENEFITS_ROUTES)
       },
 
       // ── Settings ───────────────────────────────────────────────────────
       {
         path: 'settings',
-        canActivate: [roleGuard],
-        data: { roles: ['admin'], title: 'Settings' },
+        canActivate: [permissionGuard],
+        data: { permissions: ['settings.view'], title: 'Settings' },
         loadChildren: () => import('./features/settings/settings.routes').then(m => m.SETTINGS_ROUTES)
       },
 
       // ── API Docs (Swagger UI — referencia de Cloud Functions) ──────────────
       {
         path: 'api-docs',
-        canActivate: [roleGuard],
-        data: { roles: ['admin', 'super_admin'], title: 'API Docs' },
+        canActivate: [permissionGuard],
+        data: { permissions: ['users.view'], title: 'API Docs' },
         loadComponent: () =>
           import('./features/api-docs/api-docs-page.component').then(m => m.ApiDocsPageComponent)
       },
@@ -263,13 +244,14 @@ export const routes: Routes = [
       // ── Test Data Generator ────────────────────────────────────────────────
       {
         path: 'test-data',
-        canActivate: [roleGuard],
-        data: { roles: ['admin', 'super_admin'], title: 'Generador de Datos de Prueba' },
+        canActivate: [permissionGuard],
+        data: { permissions: ['users.view'], title: 'Generador de Datos de Prueba' },
         loadChildren: () =>
           import('./features/test-data/test-data.routes').then(m => m.TEST_DATA_ROUTES)
       },
 
       // ── CoreUI component library (acceso restringido a super_admin en producción) ─
+      // roleGuard se mantiene aquí: son rutas de desarrollo/plataforma, no de empresa.
       {
         path: 'base',
         canActivate: [authGuard, roleGuard],

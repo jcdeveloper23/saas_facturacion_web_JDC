@@ -34,7 +34,17 @@ import {
 import { MODULES_SEED, ACTIONS_SEED }  from '../../core/seed/modules-seed';
 import { NotificationService }         from '../../core/services/notification.service';
 
-type ActiveTab = 'permissions' | 'modules' | 'actions';
+type ActiveTab = 'permissions' | 'modules' | 'actions' | 'menu_preview' | 'organizar';
+
+interface OrganizerItem {
+    module: Module;
+    children: Module[];
+}
+
+interface OrganizerSection {
+    title: Module | null;
+    items: OrganizerItem[];
+}
 
 @Component({
     selector: 'app-permissions',
@@ -85,6 +95,79 @@ export class PermissionsComponent implements OnInit {
     editingModule     = signal<Module | null>(null);
     editingAction     = signal<Action | null>(null);
 
+    // ── Drag & drop ──────────────────────────────────────────────────────────────
+    draggedModule  = signal<Module | null>(null);
+    dragOverModule = signal<Module | null>(null);
+    dragOverPos    = signal<'before' | 'after' | 'inside'>('before');
+    savingOrder    = signal(false);
+
+    // ── Organizer DnD ─────────────────────────────────────────────────────────────
+    dzActive          = signal<string | null>(null);
+    orgExpanded       = signal<Set<string>>(new Set());
+    collapsedSections = signal<Set<string>>(new Set());
+    private _hoverExpandTimer: ReturnType<typeof setTimeout> | null = null;
+
+    // ── Menu preview ─────────────────────────────────────────────────────────────
+    menuPreviewExpanded = signal<Set<string>>(new Set());
+
+    menuPreviewTree = computed(() => {
+        const mods = this.modules().filter(m => m.showInMenu !== false && m.state);
+        const childrenMap = new Map<string, Module[]>();
+        for (const m of mods) {
+            if (m.parent_id) {
+                const arr = childrenMap.get(m.parent_id) ?? [];
+                arr.push(m);
+                childrenMap.set(m.parent_id, arr);
+            }
+        }
+        const getChildren = (mod: Module): Module[] =>
+            [...(childrenMap.get(mod.id) ?? []), ...(childrenMap.get(mod.code) ?? [])]
+                .filter((m, i, arr) => arr.findIndex(x => x.id === m.id) === i)
+                .sort((a, b) => a.order - b.order);
+
+        return mods
+            .filter(m => !m.parent_id)
+            .sort((a, b) => a.order - b.order)
+            .map(mod => ({ module: mod, children: getChildren(mod) }));
+    });
+
+    organizerSections = computed((): OrganizerSection[] => {
+        const mods = this.modules();
+
+        const childrenMap = new Map<string, Module[]>();
+        for (const m of mods) {
+            if (m.parent_id) {
+                const arr = childrenMap.get(m.parent_id) ?? [];
+                arr.push(m);
+                childrenMap.set(m.parent_id, arr);
+            }
+        }
+
+        const getChildren = (mod: Module): Module[] =>
+            [...(childrenMap.get(mod.id) ?? []), ...(childrenMap.get(mod.code) ?? [])]
+                .filter((m, i, arr) => arr.findIndex(x => x.id === m.id) === i)
+                .sort((a, b) => a.order - b.order);
+
+        const roots = mods
+            .filter(m => !m.parent_id)
+            .sort((a, b) => a.order - b.order);
+
+        const sections: OrganizerSection[] = [];
+        let current: OrganizerSection = { title: null, items: [] };
+
+        for (const mod of roots) {
+            if (mod.isTitle) {
+                sections.push(current);
+                current = { title: mod, items: [] };
+            } else {
+                current.items.push({ module: mod, children: getChildren(mod) });
+            }
+        }
+        sections.push(current);
+
+        return sections.filter(s => s.title !== null || s.items.length > 0 || sections.length === 1);
+    });
+
     permissionForm!: FormGroup;
     moduleForm!: FormGroup;
     actionForm!: FormGroup;
@@ -110,6 +193,35 @@ export class PermissionsComponent implements OnInit {
                 permissions: (byModule.get(m.id) ?? []).sort((a, b) => a.code.localeCompare(b.code))
             }))
             .sort((a, b) => a.module.order - b.module.order);
+    });
+
+    /** Grupos colapsados (por code del módulo padre). Empieza todo colapsado. */
+    collapsedGroups = signal<Set<string>>(new Set());
+
+    /** Set de codes que tienen al menos un hijo directo. */
+    parentCodes = computed<Set<string>>(() => {
+        const s = new Set<string>();
+        for (const m of this.modules()) {
+            if (m._parentCode) s.add(m._parentCode);
+        }
+        return s;
+    });
+
+    /** Mapa code → número de hijos directos (para el badge de grupo colapsado). */
+    childCountMap = computed<Map<string, number>>(() => {
+        const map = new Map<string, number>();
+        for (const m of this.modules()) {
+            if (m._parentCode) {
+                map.set(m._parentCode, (map.get(m._parentCode) ?? 0) + 1);
+            }
+        }
+        return map;
+    });
+
+    /** Módulos visibles según el estado de colapso. */
+    visibleModules = computed<Module[]>(() => {
+        const collapsed = this.collapsedGroups();
+        return this.modules().filter(m => !m._parentCode || !collapsed.has(m._parentCode));
     });
 
     // Available module codes for dependencies multi-select
@@ -164,12 +276,51 @@ export class PermissionsComponent implements OnInit {
                 this.modules.set(modules);
                 this.actions.set(actions);
                 this.permissions.set(permissions);
+                const parents = new Set(modules.filter(m => m._parentCode).map(m => m._parentCode!));
+                this.collapsedGroups.set(parents);
                 this.isLoading.set(false);
+                console.log(JSON.stringify({
+                    event: 'super-admin/catalog:read',
+                    timestamp: new Date().toISOString(),
+                    counts: { modules: modules.length, actions: actions.length, permissions: permissions.length },
+                    modules: modules.map(m => ({ id: m.id, code: m.code, name: m.name, order: m.order, state: m.state, parent_id: m.parent_id ?? null })),
+                    actions: actions.map(a => ({ id: a.id, code: a.code, name: a.name, state: a.state })),
+                    permissions: permissions.map(p => ({ id: p.id, name: p.name, module_id: p.module_id, action_id: p.action_id }))
+                }, null, 2));
             },
             error: err => {
                 console.error('[PermissionsComponent] Error loading data:', err);
                 this.isLoading.set(false);
             }
+        });
+    }
+
+    /** Promise-based reload for use inside async methods. */
+    private loadAllDataAsync(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            forkJoin({
+                modules:     this.modulesService.getModulesFlat(false).pipe(take(1)),
+                actions:     this.actionsService.getActions(false).pipe(take(1)),
+                permissions: this.permCatalogService.getPermissionsCatalog().pipe(take(1))
+            }).subscribe({
+                next: ({ modules, actions, permissions }) => {
+                    this.modules.set(modules);
+                    this.actions.set(actions);
+                    this.permissions.set(permissions);
+                    const parents = new Set(modules.filter(m => m._parentCode).map(m => m._parentCode!));
+                    this.collapsedGroups.set(parents);
+                    console.log(JSON.stringify({
+                        event: 'super-admin/catalog:read',
+                        timestamp: new Date().toISOString(),
+                        counts: { modules: modules.length, actions: actions.length, permissions: permissions.length },
+                        modules: modules.map(m => ({ id: m.id, code: m.code, name: m.name, order: m.order, state: m.state, parent_id: m.parent_id ?? null })),
+                        actions: actions.map(a => ({ id: a.id, code: a.code, name: a.name, state: a.state })),
+                        permissions: permissions.map(p => ({ id: p.id, name: p.name, module_id: p.module_id, action_id: p.action_id }))
+                    }, null, 2));
+                    resolve();
+                },
+                error: reject
+            });
         });
     }
 
@@ -559,9 +710,353 @@ export class PermissionsComponent implements OnInit {
         }
     }
 
+    toggleGroup(code: string): void {
+        this.collapsedGroups.update(s => {
+            const next = new Set(s);
+            if (next.has(code)) next.delete(code); else next.add(code);
+            return next;
+        });
+    }
+
+    // ============================================================================
+    // DRAG & DROP
+    // ============================================================================
+
+    onDragStart(mod: Module, event: DragEvent): void {
+        this.draggedModule.set(mod);
+        event.dataTransfer?.setData('text/plain', mod.id);
+        event.dataTransfer!.effectAllowed = 'move';
+    }
+
+    onDragOver(target: Module, event: DragEvent): void {
+        event.preventDefault();
+        const dragged = this.draggedModule();
+        if (!dragged || dragged.id === target.id) return;
+
+        const tr = (event.target as Element).closest('tr');
+        if (!tr) return;
+
+        const { top, height } = tr.getBoundingClientRect();
+        const relY = (event.clientY - top) / height;
+
+        if (this.isDescendantOrSelf(target, dragged.code)) {
+            // Never allow dropping into own subtree
+            event.dataTransfer!.dropEffect = 'none';
+            this.dragOverModule.set(null);
+            return;
+        }
+
+        event.dataTransfer!.dropEffect = 'move';
+
+        if (target.isTitle) {
+            // Titles: only before/after
+            this.dragOverPos.set(relY < 0.5 ? 'before' : 'after');
+        } else {
+            // Non-title: three zones — before / inside / after
+            if (relY < 0.3)      this.dragOverPos.set('before');
+            else if (relY > 0.7) this.dragOverPos.set('after');
+            else                 this.dragOverPos.set('inside');
+        }
+        this.dragOverModule.set(target);
+    }
+
+    onDragLeave(event: DragEvent): void {
+        const rel = event.relatedTarget as Element | null;
+        if (!rel?.closest('tr[draggable]')) this.dragOverModule.set(null);
+    }
+
+    onDragEnd(): void {
+        this.draggedModule.set(null);
+        this.dragOverModule.set(null);
+    }
+
+    async onDrop(target: Module, event: DragEvent): Promise<void> {
+        event.preventDefault();
+        const dragged = this.draggedModule();
+        const pos     = this.dragOverPos();
+        this.draggedModule.set(null);
+        this.dragOverModule.set(null);
+
+        if (!dragged || dragged.id === target.id) return;
+        // Titles can only be reordered (before/after), never nested inside
+        if (target.isTitle && pos === 'inside') return;
+        if (this.isDescendantOrSelf(target, dragged.code)) return;
+
+        this.savingOrder.set(true);
+        try {
+            if (pos === 'inside') {
+                // ── Nest dragged inside target ──────────────────────────────────
+                // Compute new order: last child's order + 10
+                const existingChildren = this.modules()
+                    .filter(m => (m.parent_id ?? null) === (target.code ?? null))
+                    .sort((a, b) => a.order - b.order);
+                const newOrder = existingChildren.length > 0
+                    ? existingChildren[existingChildren.length - 1].order + 10
+                    : 10;
+
+                await this.modulesService.updateModule(dragged.id, {
+                    parent_id: target.code,
+                    order:     newOrder
+                });
+
+                // Expand the target group so the child is visible
+                this.collapsedGroups.update(s => {
+                    const next = new Set(s);
+                    next.delete(target.code);
+                    return next;
+                });
+
+            } else {
+                // ── Reorder: place dragged before/after target, adopting target's parent ──
+                // This also handles "unparent": dragging a child next to a root module
+                // sets parent_id = target.parent_id (null for root).
+                const newParentId = target.parent_id ?? null;
+                const parentChanged = (dragged.parent_id ?? null) !== newParentId;
+
+                // All siblings at the target's level (include titles so order is preserved)
+                const siblings = this.modules()
+                    .filter(m => (m.parent_id ?? null) === newParentId)
+                    .sort((a, b) => a.order - b.order);
+
+                const withoutDragged = siblings.filter(m => m.id !== dragged.id);
+                const targetIdx = withoutDragged.findIndex(m => m.id === target.id);
+
+                if (targetIdx === -1) {
+                    console.warn('[DnD] target not found in siblings — aborting', target.code);
+                    return;
+                }
+
+                const insertAt = pos === 'before' ? targetIdx : targetIdx + 1;
+                withoutDragged.splice(insertAt, 0, dragged);
+
+                const updates = withoutDragged.map((m, i) => ({ id: m.id, order: (i + 1) * 10 }));
+
+                // If parent changed, update parent_id on the dragged module first
+                if (parentChanged) {
+                    await this.modulesService.updateModule(dragged.id, {
+                        parent_id: newParentId,
+                        order: (insertAt + 1) * 10
+                    });
+                }
+
+                await Promise.all(
+                    updates
+                        .filter(u => parentChanged ? u.id !== dragged.id : true)
+                        .map(u => this.modulesService.updateModule(u.id, { order: u.order }))
+                );
+            }
+
+            await this.loadAllDataAsync();
+            this.notifications.success('Orden actualizado.');
+        } catch (err) {
+            console.error('[DnD] Error:', err);
+            this.notifications.error('Error al guardar el orden.');
+        } finally {
+            this.savingOrder.set(false);
+        }
+    }
+
+    // ── Organizer Drag & Drop ─────────────────────────────────────────────────────
+
+    onOrgDragStart(mod: Module, event: DragEvent): void {
+        this.draggedModule.set(mod);
+        event.dataTransfer?.setData('text/plain', mod.id);
+        event.dataTransfer!.effectAllowed = 'move';
+    }
+
+    onOrgDragEnd(): void {
+        this.draggedModule.set(null);
+        this.dzActive.set(null);
+        if (this._hoverExpandTimer) { clearTimeout(this._hoverExpandTimer); this._hoverExpandTimer = null; }
+    }
+
+    onDzDragOver(dzId: string, event: DragEvent): void {
+        event.preventDefault();
+        event.stopPropagation();
+        const dragged = this.draggedModule();
+        if (!dragged) return;
+
+        if (dzId.startsWith('dz-inside-')) {
+            const parentCode = dzId.replace('dz-inside-', '');
+            const parentMod  = this.modules().find(m => m.code === parentCode);
+            if (parentMod && this.isDescendantOrSelf(parentMod, dragged.code)) {
+                event.dataTransfer!.dropEffect = 'none';
+                return;
+            }
+            // Hover-to-expand: open collapsed group after 600ms of hovering
+            if (!this.orgExpanded().has(parentCode)) {
+                if (this.dzActive() !== dzId) {
+                    // New zone — start timer
+                    if (this._hoverExpandTimer) { clearTimeout(this._hoverExpandTimer); }
+                    this._hoverExpandTimer = setTimeout(() => {
+                        this.orgExpanded.update(s => { const n = new Set(s); n.add(parentCode); return n; });
+                        this._hoverExpandTimer = null;
+                    }, 600);
+                }
+            }
+        } else {
+            // Not hovering over an inside zone — clear any pending expand timer
+            if (this._hoverExpandTimer) { clearTimeout(this._hoverExpandTimer); this._hoverExpandTimer = null; }
+        }
+
+        event.dataTransfer!.dropEffect = 'move';
+        this.dzActive.set(dzId);
+    }
+
+    onDzDragLeave(dzId: string, event: DragEvent): void {
+        const rel = event.relatedTarget as Element | null;
+        if (!rel?.closest(`[data-dzid="${dzId}"]`)) {
+            if (this.dzActive() === dzId) this.dzActive.set(null);
+            // Cancel expand timer when leaving the inside zone
+            if (dzId.startsWith('dz-inside-')) {
+                if (this._hoverExpandTimer) { clearTimeout(this._hoverExpandTimer); this._hoverExpandTimer = null; }
+            }
+        }
+    }
+
+    async onDzDrop(dzId: string, event: DragEvent): Promise<void> {
+        event.preventDefault();
+        event.stopPropagation();
+        const dragged = this.draggedModule();
+        this.draggedModule.set(null);
+        this.dzActive.set(null);
+        if (!dragged) return;
+
+        this.savingOrder.set(true);
+        try {
+            const allMods = this.modules();
+
+            if (dzId.startsWith('dz-before-')) {
+                const targetId = dzId.replace('dz-before-', '');
+                const target   = allMods.find(m => m.id === targetId || m.code === targetId);
+                if (!target) return;
+                if (this.isDescendantOrSelf(target, dragged.code)) return;
+
+                const newParentId   = target.parent_id ?? null;
+                const parentChanged = (dragged.parent_id ?? null) !== newParentId;
+                // Match siblings: same parent_id value (could be code or doc id)
+                const siblings = allMods
+                    .filter(m => (m.parent_id ?? null) === newParentId)
+                    .sort((a, b) => a.order - b.order);
+                // Guard: if target is not found among root siblings (happens when
+                // modules use parent_id = docId but target.parent_id is a code),
+                // try to find siblings using the parent module's code/id cross-match
+                let withoutDragged = siblings.filter(m => m.id !== dragged.id);
+                let targetIdx      = withoutDragged.findIndex(m => m.id === target.id);
+                if (targetIdx === -1 && newParentId) {
+                    // Fallback: find all modules whose parent_id matches either the
+                    // code or the id of the parent module
+                    const parentMod = allMods.find(m => m.code === newParentId || m.id === newParentId);
+                    if (parentMod) {
+                        const fallbackSiblings = allMods
+                            .filter(m => (m.parent_id ?? null) === parentMod.code ||
+                                         (m.parent_id ?? null) === parentMod.id)
+                            .sort((a, b) => a.order - b.order);
+                        withoutDragged = fallbackSiblings.filter(m => m.id !== dragged.id);
+                        targetIdx      = withoutDragged.findIndex(m => m.id === target.id);
+                    }
+                }
+                if (targetIdx === -1) return;
+
+                withoutDragged.splice(targetIdx, 0, dragged);
+
+                if (parentChanged) {
+                    await this.modulesService.updateModule(dragged.id, {
+                        parent_id: newParentId,
+                        order: targetIdx * 10
+                    });
+                }
+                await Promise.all(
+                    withoutDragged
+                        .filter(m => parentChanged ? m.id !== dragged.id : true)
+                        .map((m, i) => this.modulesService.updateModule(m.id, { order: (i + 1) * 10 }))
+                );
+
+            } else if (dzId.startsWith('dz-section-end-')) {
+                const titleKey = dzId.replace('dz-section-end-', '');
+                const section  = this.organizerSections().find(s =>
+                    titleKey === 'root' ? s.title === null : s.title?.code === titleKey
+                );
+                if (!section) return;
+                // Base: use title's own order so the dropped module lands AFTER
+                // the title separator. Falls back to 0 for the implicit root section.
+                const titleOrder = section.title?.order ?? 0;
+                const lastOrder  = section.items.length > 0
+                    ? Math.max(...section.items.map(i => i.module.order))
+                    : titleOrder;   // empty section → start right after its title
+                await this.modulesService.updateModule(dragged.id, {
+                    parent_id: null,
+                    order: lastOrder + 10
+                });
+
+            } else if (dzId.startsWith('dz-inside-')) {
+                const parentCode = dzId.replace('dz-inside-', '');
+                const parent     = allMods.find(m => m.code === parentCode);
+                if (!parent || parent.isTitle) return;
+                if (this.isDescendantOrSelf(parent, dragged.code)) return;
+
+                const existingChildren = allMods
+                    .filter(m => (m.parent_id ?? null) === parentCode)
+                    .sort((a, b) => a.order - b.order);
+                const newOrder = existingChildren.length > 0
+                    ? existingChildren[existingChildren.length - 1].order + 10
+                    : 10;
+
+                await this.modulesService.updateModule(dragged.id, {
+                    parent_id: parentCode,
+                    order: newOrder
+                });
+
+                this.orgExpanded.update(s => { const n = new Set(s); n.add(parentCode); return n; });
+            }
+
+            await this.loadAllDataAsync();
+            this.notifications.success('Orden actualizado.');
+        } catch (err) {
+            console.error('[OrgDnD]', err);
+            this.notifications.error('Error al guardar el orden.');
+        } finally {
+            this.savingOrder.set(false);
+        }
+    }
+
+    toggleOrgExpanded(code: string): void {
+        this.orgExpanded.update(s => {
+            const n = new Set(s);
+            if (n.has(code)) n.delete(code); else n.add(code);
+            return n;
+        });
+    }
+
+    toggleSection(key: string): void {
+        this.collapsedSections.update(s => {
+            const n = new Set(s);
+            if (n.has(key)) n.delete(key); else n.add(key);
+            return n;
+        });
+    }
+
+    /** Returns true if `mod` is `ancestorCode` itself or a descendant of it. */
+    private isDescendantOrSelf(mod: Module, ancestorCode: string): boolean {
+        if (mod.code === ancestorCode) return true;
+        const parentCode = mod.parent_id ?? null;
+        if (!parentCode) return false;
+        const parent = this.modules().find(m => m.code === parentCode || m.id === parentCode);
+        if (!parent) return false;
+        return this.isDescendantOrSelf(parent, ancestorCode);
+    }
+
     // ============================================================================
     // HELPERS
     // ============================================================================
+
+    toggleMenuPreviewGroup(code: string): void {
+        this.menuPreviewExpanded.update(s => {
+            const next = new Set(s);
+            if (next.has(code)) next.delete(code); else next.add(code);
+            return next;
+        });
+    }
 
     getModuleName(moduleId: string): string {
         return this.modules().find(m => m.id === moduleId)?.name ?? 'Desconocido';

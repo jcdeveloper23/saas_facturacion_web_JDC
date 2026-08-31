@@ -1,38 +1,42 @@
 import { Routes } from '@angular/router';
-import { roleGuard } from '../../core/guards';
+import { moduleGuard } from '../../core/guards';
+import { permissionGuard } from '../../core/guards/permission.guard';
 
 export const PURCHASES_ROUTES: Routes = [
   {
     path: '',
+    canActivate: [moduleGuard],
+    data: { module: 'purchases', title: 'Compras' },
     loadComponent: () =>
       import('./purchases-list.component').then(m => m.PurchasesListComponent),
-    data: { title: 'Compras' }
   },
   {
-    // Importación SRI y homologación — solo admin y accountant (operaciones avanzadas)
+    // Importación SRI y homologación — requiere permiso de creación
     path: 'import',
-    canActivate: [roleGuard],
+    canActivate: [permissionGuard, moduleGuard],
+    data: { permissions: ['purchases.create'], module: 'purchases', title: 'Importar Compras SRI' },
     loadComponent: () =>
       import('./purchase-import.component').then(m => m.PurchaseImportComponent),
-    data: { roles: ['admin', 'accountant'], title: 'Importar Compras SRI' }
   },
   {
     path: 'mappings',
-    canActivate: [roleGuard],
+    canActivate: [permissionGuard, moduleGuard],
+    data: { permissions: ['purchases.create'], module: 'purchases', title: 'Homologación de Productos' },
     loadComponent: () =>
       import('./purchases-mappings.component').then(m => m.PurchasesMappingsComponent),
-    data: { roles: ['admin', 'accountant'], title: 'Homologación de Productos' }
   },
   {
     path: 'new',
+    canActivate: [permissionGuard, moduleGuard],
+    data: { permissions: ['purchases.create'], module: 'purchases', title: 'Nueva Compra' },
     loadComponent: () =>
       import('./purchase-form.component').then(m => m.PurchaseFormComponent),
-    data: { title: 'Nueva Compra' }
   },
   {
     path: ':id',
+    canActivate: [moduleGuard],
+    data: { module: 'purchases', title: 'Detalle Compra' },
     loadComponent: () =>
       import('./purchase-form.component').then(m => m.PurchaseFormComponent),
-    data: { title: 'Detalle Compra' }
   },
 ];

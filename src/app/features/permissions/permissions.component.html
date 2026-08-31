@@ -91,6 +91,20 @@
             </c-badge>
           </a>
         </c-nav-item>
+        <c-nav-item>
+          <a cNavLink [active]="activeTab() === 'menu_preview'" (click)="setActiveTab('menu_preview')"
+            style="cursor:pointer">
+            <svg cIcon name="cil-layers" class="me-1" style="width:15px;height:15px"></svg>
+            Vista Menú
+          </a>
+        </c-nav-item>
+        <c-nav-item>
+          <a cNavLink [active]="activeTab() === 'organizar'" (click)="setActiveTab('organizar')"
+            style="cursor:pointer">
+            <svg cIcon name="cil-cursor-move" class="me-1" style="width:15px;height:15px"></svg>
+            Organizar
+          </a>
+        </c-nav-item>
       </c-nav>
     </c-card-header>
 
@@ -105,105 +119,168 @@
       </button>
     </c-card-header>
     <c-card-body class="p-0">
-      <table cTable hover responsive class="mb-0" style="font-size:.82rem">
+      <table cTable hover responsive class="mb-0" style="font-size:.8rem">
         <thead>
-          <tr>
-            <th style="width:4%;padding-left:1rem">#</th>
-            <th style="width:4%"></th>
-            <th style="width:13%">Código</th>
-            <th style="width:15%">Nombre</th>
-            <th style="width:12%">URL</th>
-            <th style="width:18%">Dependencias</th>
-            <th style="width:7%">Tipo</th>
-            <th style="width:7%">Menú</th>
-            <th style="width:7%">Estado</th>
-            <th style="width:13%" class="text-end" style="padding-right:1rem">Acciones</th>
+          <tr class="text-uppercase" style="font-size:.7rem;letter-spacing:.04em">
+            <th style="width:2%;padding:.4rem .5rem"></th>
+            <th style="width:3%;padding:.4rem .5rem">#</th>
+            <th style="width:4%;padding:.4rem .5rem"></th>
+            <th style="width:14%;padding:.4rem .5rem">Código</th>
+            <th style="width:20%;padding:.4rem .5rem">Nombre</th>
+            <th style="width:14%;padding:.4rem .5rem">URL</th>
+            <th style="width:16%;padding:.4rem .5rem">Dependencias</th>
+            <th style="width:6%;padding:.4rem .5rem">Tipo</th>
+            <th style="width:5%;padding:.4rem .5rem">Menú</th>
+            <th style="width:5%;padding:.4rem .5rem">Estado</th>
+            <th style="width:13%;padding:.4rem .5rem" class="text-end">Acciones</th>
           </tr>
         </thead>
         <tbody>
-          @for (mod of modules(); track mod.id) {
-          <tr [class.table-active]="mod.isTitle">
-            <td class="text-muted ps-3" style="font-size:.75rem">{{ mod.order }}</td>
-            <td>
-              @if (mod.icon) {
-              <svg cIcon [name]="mod.icon"
-                [class.text-primary]="!mod.isTitle"
-                [class.text-muted]="mod.isTitle"
-                style="width:15px;height:15px">
-              </svg>
+          @for (mod of visibleModules(); track mod.id) {
+          <tr [style.opacity]="mod.state ? 1 : 0.55"
+              [class.is-dragging]="draggedModule()?.id === mod.id"
+              [class.drag-over-before]="dragOverModule()?.id === mod.id && dragOverPos() === 'before'"
+              [class.drag-over-after]="dragOverModule()?.id === mod.id && dragOverPos() === 'after'"
+              [class.drag-over-inside]="dragOverModule()?.id === mod.id && dragOverPos() === 'inside'"
+              draggable="true"
+              (dragstart)="onDragStart(mod, $event)"
+              (dragover)="onDragOver(mod, $event)"
+              (dragleave)="onDragLeave($event)"
+              (dragend)="onDragEnd()"
+              (drop)="onDrop(mod, $event)">
+
+            <!-- Drag handle -->
+            <td class="drag-handle-cell" style="padding:.3rem .4rem;text-align:center">
+              <span class="drag-handle text-body-secondary" title="Arrastrar para reordenar">⠿</span>
+            </td>
+
+            <!-- # Orden -->
+            <td class="text-body-secondary" style="padding:.3rem .5rem;font-size:.72rem">{{ mod.order }}</td>
+
+            <!-- Ícono -->
+            <td style="padding:.3rem .5rem">
+              @if (mod.icon && !mod.isTitle) {
+                <svg cIcon [name]="mod.icon" style="width:14px;height:14px;opacity:.7"></svg>
               }
             </td>
-            <td>
-              <code style="font-size:.75rem">{{ mod.code }}</code>
+
+            <!-- Código -->
+            <td style="padding:.3rem .5rem">
+              <code style="font-size:.72rem">{{ mod.code }}</code>
             </td>
-            <td class="fw-semibold">
-              @if (mod._level && mod._level > 0) {
-              <span class="text-muted me-1"
-                [style.padding-left.px]="(mod._level - 1) * 14">└─</span>
-              }
-              @if (mod.isTitle) {
-              <em class="text-muted fw-normal">{{ mod.name }}</em>
-              } @else {
-              {{ mod.name }}
-              }
-            </td>
-            <td>
-              @if (mod.url) {
-              <code class="text-info" style="font-size:.74rem">{{ mod.url }}</code>
-              } @else {
-              <span class="text-muted">—</span>
-              }
-            </td>
-            <td>
-              @if (mod.dependencies?.length) {
-              <div class="d-flex flex-wrap gap-1">
-                @for (dep of mod.dependencies; track dep) {
-                <c-badge color="secondary" shape="rounded-pill" style="font-size:.68rem">
-                  {{ dep }}
-                </c-badge>
+
+            <!-- Nombre (árbol) -->
+            <td style="padding:.3rem .5rem">
+              <div class="d-flex align-items-center gap-1">
+                <!-- Sangría para hijos -->
+                @if (mod._level && mod._level > 0) {
+                  <span class="font-monospace text-body-secondary flex-shrink-0"
+                    [style.padding-left.px]="(mod._level - 1) * 12"
+                    style="font-size:.75rem;user-select:none;min-width:18px">
+                    {{ mod._isLastChild ? '└' : '├' }}
+                  </span>
+                }
+
+                <!-- Botón colapsar/expandir para padres -->
+                @if (parentCodes().has(mod.code)) {
+                  <button type="button" class="btn btn-link p-0 border-0 flex-shrink-0 text-body-secondary"
+                    style="font-size:.75rem;line-height:1;text-decoration:none"
+                    (click)="toggleGroup(mod.code)">
+                    <svg cIcon [name]="collapsedGroups().has(mod.code) ? 'cil-folder' : 'cil-folder-open'"
+                      style="width:13px;height:13px"></svg>
+                  </button>
+                } @else if (mod.isTitle) {
+                  <svg cIcon name="cil-layers" class="text-body-secondary flex-shrink-0" style="width:12px;height:12px"></svg>
+                }
+
+                <!-- Nombre -->
+                @if (mod.isTitle) {
+                  <em class="text-body-secondary fw-semibold" style="font-size:.78rem">{{ mod.name }}</em>
+                } @else if (parentCodes().has(mod.code)) {
+                  <span class="fw-semibold" style="font-size:.82rem">{{ mod.name }}</span>
+                } @else {
+                  <span>{{ mod.name }}</span>
+                }
+
+                <!-- Badge de hijos colapsados -->
+                @if (parentCodes().has(mod.code) && collapsedGroups().has(mod.code)) {
+                  <c-badge color="secondary" size="sm" shape="rounded-pill"
+                    class="ms-1" style="font-size:.65rem;cursor:pointer"
+                    (click)="toggleGroup(mod.code)">
+                    +{{ childCountMap().get(mod.code) }}
+                  </c-badge>
                 }
               </div>
+            </td>
+
+            <!-- URL -->
+            <td style="padding:.3rem .5rem">
+              @if (mod.url) {
+                <code class="text-body-secondary" style="font-size:.7rem">{{ mod.url }}</code>
               } @else {
-              <span class="text-muted">—</span>
+                <span class="text-body-secondary opacity-50">—</span>
               }
             </td>
-            <td>
+
+            <!-- Dependencias -->
+            <td style="padding:.3rem .5rem">
+              @if (mod.dependencies?.length) {
+                <div class="d-flex flex-wrap gap-1">
+                  @for (dep of mod.dependencies; track dep) {
+                    <c-badge color="secondary" shape="rounded-pill" style="font-size:.65rem">{{ dep }}</c-badge>
+                  }
+                </div>
+              } @else {
+                <span class="text-body-secondary opacity-50">—</span>
+              }
+            </td>
+
+            <!-- Tipo -->
+            <td style="padding:.3rem .5rem">
               @if (mod.isTitle) {
-              <c-badge color="warning" shape="rounded-pill" style="font-size:.7rem">título</c-badge>
+                <c-badge color="secondary" shape="rounded-pill" style="font-size:.68rem">título</c-badge>
+              } @else if (parentCodes().has(mod.code)) {
+                <c-badge color="secondary" shape="rounded-pill" style="font-size:.68rem">grupo</c-badge>
               } @else {
-              <c-badge color="info" shape="rounded-pill" style="font-size:.7rem">módulo</c-badge>
+                <c-badge color="secondary" shape="rounded-pill" style="font-size:.68rem">módulo</c-badge>
               }
             </td>
-            <td class="text-center">
+
+            <!-- Menú -->
+            <td class="text-center" style="padding:.3rem .5rem">
               @if (mod.showInMenu) {
-              <svg cIcon name="cil-check-circle" class="text-success" style="width:16px;height:16px"></svg>
+                <svg cIcon name="cil-check" style="width:13px;height:13px"></svg>
               } @else {
-              <svg cIcon name="cil-x-circle" class="text-muted" style="width:16px;height:16px"></svg>
+                <span class="text-body-secondary opacity-40">—</span>
               }
             </td>
-            <td>
+
+            <!-- Estado -->
+            <td style="padding:.3rem .5rem">
               @if (mod.state) {
-              <c-badge color="success" shape="rounded-pill" style="font-size:.7rem">activo</c-badge>
+                <c-badge color="success" shape="rounded-pill" style="font-size:.68rem">activo</c-badge>
               } @else {
-              <c-badge color="secondary" shape="rounded-pill" style="font-size:.7rem">inactivo</c-badge>
+                <c-badge color="secondary" shape="rounded-pill" style="font-size:.68rem">inactivo</c-badge>
               }
             </td>
-            <td class="text-end pe-3">
+
+            <!-- Acciones -->
+            <td class="text-end" style="padding:.3rem .5rem">
               <button cButton color="ghost" size="sm" class="p-1" cTooltip="Editar"
                 (click)="openModuleModal(mod)">
-                <svg cIcon name="cil-pencil" class="text-warning" style="width:14px;height:14px"></svg>
+                <svg cIcon name="cil-pencil" style="width:13px;height:13px"></svg>
               </button>
               <button cButton color="ghost" size="sm" class="p-1" cTooltip="Eliminar"
                 (click)="deleteModule(mod)">
-                <svg cIcon name="cil-trash" class="text-danger" style="width:14px;height:14px"></svg>
+                <svg cIcon name="cil-trash" style="width:13px;height:13px"></svg>
               </button>
             </td>
           </tr>
           } @empty {
           <tr>
-            <td colspan="10" class="text-center text-muted py-5">
-              <svg cIcon name="cil-puzzle" style="width:36px;height:36px;opacity:.3"></svg>
-              <p class="mt-2 mb-0">No hay módulos. Usa "Registrar por defecto" para inicializar.</p>
+            <td colspan="11" class="text-center text-body-secondary py-4">
+              <svg cIcon name="cil-puzzle" style="width:32px;height:32px;opacity:.25"></svg>
+              <p class="mt-2 mb-0 small">No hay módulos. Usa "Registrar por defecto" para inicializar.</p>
             </td>
           </tr>
           }
@@ -344,6 +421,292 @@
     </c-card-body>
     }
 
+    <!-- ── TAB: VISTA MENÚ ──────────────────────────────────────────────────── -->
+    @if (activeTab() === 'menu_preview') {
+    <c-card-header class="py-2">
+      <small class="text-muted">
+        <svg cIcon name="cil-info" style="width:13px;height:13px" class="me-1"></svg>
+        Vista previa del menú lateral — muestra módulos activos con showInMenu habilitado.
+      </small>
+    </c-card-header>
+    <c-card-body class="p-3">
+      <c-row>
+
+        <!-- Panel izquierdo: lista árbol -->
+        <c-col lg="6" class="mb-4 mb-lg-0">
+          <div class="tree-panel">
+            <div class="tree-panel__header">
+              <svg cIcon name="cil-list" style="width:14px;height:14px" class="me-2"></svg>
+              Estructura jerárquica
+            </div>
+            <div class="tree-panel__body">
+              @for (item of menuPreviewTree(); track item.module.id) {
+                @if (item.module.isTitle) {
+                  <div class="tree-section-title">{{ item.module.name }}</div>
+                } @else if (item.children.length > 0) {
+                  <div class="tree-group">
+                    <button type="button" class="tree-group__header"
+                      (click)="toggleMenuPreviewGroup(item.module.code)">
+                      <span class="tree-group__icon">
+                        <svg cIcon [name]="item.module.icon || 'cil-folder'" style="width:15px;height:15px"></svg>
+                      </span>
+                      <span class="tree-group__name">{{ item.module.name }}</span>
+                      @if (item.module.badgeText) {
+                        <span class="tree-badge">{{ item.module.badgeText }}</span>
+                      }
+                      <svg cIcon
+                        [name]="menuPreviewExpanded().has(item.module.code) ? 'cil-chevron-bottom' : 'cil-chevron-right'"
+                        style="width:12px;height:12px;margin-left:auto;opacity:.6"></svg>
+                    </button>
+                    @if (menuPreviewExpanded().has(item.module.code)) {
+                      <div class="tree-group__children">
+                        @for (child of item.children; track child.id) {
+                          <div class="tree-child">
+                            <span class="tree-child__bullet">·</span>
+                            <span class="tree-child__name">{{ child.name }}</span>
+                            @if (child.badgeText) {
+                              <span class="tree-badge">{{ child.badgeText }}</span>
+                            }
+                          </div>
+                        }
+                      </div>
+                    }
+                  </div>
+                } @else {
+                  <div class="tree-item">
+                    <span class="tree-item__icon">
+                      <svg cIcon [name]="item.module.icon || 'cil-puzzle'" style="width:15px;height:15px"></svg>
+                    </span>
+                    <span class="tree-item__name">{{ item.module.name }}</span>
+                    @if (item.module.badgeText) {
+                      <span class="tree-badge">{{ item.module.badgeText }}</span>
+                    }
+                  </div>
+                }
+              }
+            </div>
+          </div>
+        </c-col>
+
+        <!-- Panel derecho: simulación sidebar oscuro -->
+        <c-col lg="6">
+          <div class="sidebar-preview">
+            <div class="sidebar-preview__brand">
+              <svg cIcon name="cil-building" style="width:20px;height:20px;color:#6ea8fe"></svg>
+              <span>Mi Empresa</span>
+            </div>
+            <div class="sidebar-preview__nav">
+              @for (item of menuPreviewTree(); track item.module.id) {
+                @if (item.module.isTitle) {
+                  <div class="sp-title">{{ item.module.name }}</div>
+                } @else if (item.children.length > 0) {
+                  <div class="sp-group">
+                    <button type="button" class="sp-group__btn"
+                      (click)="toggleMenuPreviewGroup('preview_' + item.module.code)">
+                      <svg cIcon [name]="item.module.icon || 'cil-folder'" style="width:16px;height:16px"></svg>
+                      <span>{{ item.module.name }}</span>
+                      @if (item.module.badgeText) {
+                        <span class="sp-badge" [attr.data-color]="item.module.badgeColor || 'primary'">
+                          {{ item.module.badgeText }}
+                        </span>
+                      }
+                      <svg cIcon
+                        [name]="menuPreviewExpanded().has('preview_' + item.module.code) ? 'cil-chevron-bottom' : 'cil-chevron-right'"
+                        style="width:11px;height:11px;margin-left:auto;opacity:.5"></svg>
+                    </button>
+                    @if (menuPreviewExpanded().has('preview_' + item.module.code)) {
+                      <div class="sp-group__children">
+                        @for (child of item.children; track child.id) {
+                          <div class="sp-child">
+                            <span class="sp-child__bullet">·</span>
+                            {{ child.name }}
+                          </div>
+                        }
+                      </div>
+                    }
+                  </div>
+                } @else {
+                  <div class="sp-item">
+                    <svg cIcon [name]="item.module.icon || 'cil-puzzle'" style="width:16px;height:16px"></svg>
+                    <span>{{ item.module.name }}</span>
+                    @if (item.module.badgeText) {
+                      <span class="sp-badge">{{ item.module.badgeText }}</span>
+                    }
+                  </div>
+                }
+              }
+            </div>
+          </div>
+        </c-col>
+
+      </c-row>
+    </c-card-body>
+    }
+
+    <!-- ── TAB: ORGANIZAR ───────────────────────────────────────────────────── -->
+    @if (activeTab() === 'organizar') {
+    <c-card-header class="py-2 d-flex align-items-center justify-content-between">
+      <small class="text-muted">
+        <svg cIcon name="cil-cursor-move" style="width:13px;height:13px" class="me-1"></svg>
+        Arrastra las tarjetas para reordenar. Suelta dentro de una tarjeta para anidar como sub-menú.
+      </small>
+      @if (savingOrder()) {
+        <span class="d-flex align-items-center gap-2 text-muted small">
+          <c-spinner size="sm"></c-spinner> Guardando...
+        </span>
+      }
+    </c-card-header>
+    <c-card-body class="org-panel">
+
+      @for (section of organizerSections(); track (section.title?.id ?? 'root')) {
+      <div class="org-section"
+           (dragover)="onDzDragOver('dz-section-end-' + (section.title?.code ?? 'root'), $event)"
+           (drop)="onDzDrop('dz-section-end-' + (section.title?.code ?? 'root'), $event)">
+
+        <button type="button" class="org-section__title"
+                (click)="toggleSection(section.title?.code ?? 'root')">
+          <svg cIcon
+            [name]="collapsedSections().has(section.title?.code ?? 'root') ? 'cil-chevron-right' : 'cil-chevron-bottom'"
+            class="org-section__chevron"></svg>
+          @if (section.title) {
+            <span class="org-section__title-pill">{{ section.title.name }}</span>
+          } @else {
+            <span class="org-section__title-pill org-section__title-pill--root">Sin sección</span>
+          }
+          @if (collapsedSections().has(section.title?.code ?? 'root') && section.items.length > 0) {
+            <span class="org-section__count">{{ section.items.length }}</span>
+          }
+        </button>
+
+        @if (!collapsedSections().has(section.title?.code ?? 'root')) {
+        @for (item of section.items; track item.module.id; let itemIdx = $index) {
+
+          <!-- Drop zone before each card -->
+          <div class="org-dz org-dz--between"
+               [class.org-dz--active]="dzActive() === 'dz-before-' + item.module.id"
+               [attr.data-dzid]="'dz-before-' + item.module.id"
+               (dragover)="onDzDragOver('dz-before-' + item.module.id, $event)"
+               (dragleave)="onDzDragLeave('dz-before-' + item.module.id, $event)"
+               (drop)="onDzDrop('dz-before-' + item.module.id, $event)">
+          </div>
+
+          <!-- Module card -->
+          <div class="org-card"
+               [class.org-card--dragging]="draggedModule()?.id === item.module.id"
+               draggable="true"
+               (dragstart)="onOrgDragStart(item.module, $event)"
+               (dragend)="onOrgDragEnd()">
+
+            <div class="org-card__row">
+              <span class="org-card__handle">⠿</span>
+              @if (item.module.icon) {
+                <svg cIcon [name]="item.module.icon" class="org-card__icon" style="width:16px;height:16px"></svg>
+              }
+              <span class="org-card__name">{{ item.module.name }}</span>
+              @if (item.module.badgeText) {
+                <span class="org-card__badge org-card__badge--{{ item.module.badgeColor || 'primary' }}">
+                  {{ item.module.badgeText }}
+                </span>
+              }
+              <span class="org-card__spacer"></span>
+              @if (item.children.length > 0) {
+                <button type="button" class="org-card__chevron"
+                  (click)="toggleOrgExpanded(item.module.code)">
+                  <svg cIcon [name]="orgExpanded().has(item.module.code) ? 'cil-chevron-bottom' : 'cil-chevron-right'"
+                    style="width:12px;height:12px"></svg>
+                </button>
+              }
+              <button type="button" class="org-card__edit" (click)="openModuleModal(item.module)">
+                <svg cIcon name="cil-pencil" style="width:13px;height:13px"></svg>
+              </button>
+            </div>
+
+            @if (item.children.length > 0 && orgExpanded().has(item.module.code)) {
+            <div class="org-card__children">
+              @for (child of item.children; track child.id) {
+
+                <div class="org-dz org-dz--child-between"
+                     [class.org-dz--active]="dzActive() === 'dz-before-' + child.id"
+                     [attr.data-dzid]="'dz-before-' + child.id"
+                     (dragover)="onDzDragOver('dz-before-' + child.id, $event)"
+                     (dragleave)="onDzDragLeave('dz-before-' + child.id, $event)"
+                     (drop)="onDzDrop('dz-before-' + child.id, $event)">
+                </div>
+
+                <div class="org-child"
+                     [class.org-child--dragging]="draggedModule()?.id === child.id"
+                     draggable="true"
+                     (dragstart)="onOrgDragStart(child, $event)"
+                     (dragend)="onOrgDragEnd()">
+                  <span class="org-child__handle">⠿</span>
+                  @if (child.icon) {
+                    <svg cIcon [name]="child.icon" class="org-card__icon" style="width:15px;height:15px"></svg>
+                  }
+                  <span class="org-child__name">{{ child.name }}</span>
+                  @if (child.badgeText) {
+                    <span class="org-card__badge org-card__badge--{{ child.badgeColor || 'primary' }}">
+                      {{ child.badgeText }}
+                    </span>
+                  }
+                  <span class="org-card__spacer"></span>
+                  <button type="button" class="org-card__edit" (click)="openModuleModal(child)">
+                    <svg cIcon name="cil-pencil" style="width:12px;height:12px"></svg>
+                  </button>
+                </div>
+
+              }
+
+              <!-- Drop zone at end of children list -->
+              <div class="org-dz org-dz--child-between"
+                   [class.org-dz--active]="dzActive() === 'dz-inside-' + item.module.code + '-end'"
+                   [attr.data-dzid]="'dz-inside-' + item.module.code + '-end'"
+                   (dragover)="onDzDragOver('dz-inside-' + item.module.code, $event)"
+                   (dragleave)="onDzDragLeave('dz-inside-' + item.module.code + '-end', $event)"
+                   (drop)="onDzDrop('dz-inside-' + item.module.code, $event)">
+              </div>
+            </div>
+            }
+
+            <!-- Inside drop zone (nest here) -->
+            <div class="org-dz org-dz--inside"
+                 [class.org-dz--active]="dzActive() === 'dz-inside-' + item.module.code"
+                 [attr.data-dzid]="'dz-inside-' + item.module.code"
+                 (dragover)="onDzDragOver('dz-inside-' + item.module.code, $event)"
+                 (dragleave)="onDzDragLeave('dz-inside-' + item.module.code, $event)"
+                 (drop)="onDzDrop('dz-inside-' + item.module.code, $event)">
+              <span class="org-dz__inside-hint">+ Soltar para anidar como sub-menú</span>
+            </div>
+
+          </div><!-- org-card -->
+
+        } @empty {
+          <div class="org-dz org-dz--section-empty"
+               [class.org-dz--active]="dzActive() === 'dz-section-end-' + (section.title?.code ?? 'root')"
+               [attr.data-dzid]="'dz-section-end-' + (section.title?.code ?? 'root')"
+               (dragover)="onDzDragOver('dz-section-end-' + (section.title?.code ?? 'root'), $event)"
+               (dragleave)="onDzDragLeave('dz-section-end-' + (section.title?.code ?? 'root'), $event)"
+               (drop)="onDzDrop('dz-section-end-' + (section.title?.code ?? 'root'), $event)">
+            <span style="pointer-events:none">Arrastra módulos aquí</span>
+          </div>
+        }
+        } <!-- end @if !collapsedSections -->
+
+        <!-- Drop zone at end of section -->
+        <div class="org-dz org-dz--section-end"
+             [class.org-dz--active]="dzActive() === 'dz-section-end-' + (section.title?.code ?? 'root')"
+             [attr.data-dzid]="'dz-section-end-' + (section.title?.code ?? 'root')"
+             (dragover)="onDzDragOver('dz-section-end-' + (section.title?.code ?? 'root'), $event)"
+             (dragleave)="onDzDragLeave('dz-section-end-' + (section.title?.code ?? 'root'), $event)"
+             (drop)="onDzDrop('dz-section-end-' + (section.title?.code ?? 'root'), $event)">
+          <span class="org-dz__end-hint">Soltar aquí para agregar a esta sección</span>
+        </div>
+
+      </div><!-- org-section -->
+      }
+
+    </c-card-body>
+    }
+
   </c-card>
 
   }<!-- end @else isLoading -->
@@ -441,7 +804,7 @@
             <option [ngValue]="null">— Raíz —</option>
             @for (mod of moduleCodes(); track mod.id) {
             @if (mod.id !== editingModule()?.id) {
-            <option [ngValue]="mod.id">{{ mod.name }}</option>
+            <option [ngValue]="mod.code">{{ mod.name }}</option>
             }
             }
           </select>

@@ -21,15 +21,18 @@ import {
 } from '@coreui/angular';
 import { IconModule } from '@coreui/icons-angular';
 
+import { combineLatest, take } from 'rxjs';
 import { PermissionsService } from '../../core/services/permissions.service';
 import { RolesService } from '../../core/services/roles.service';
 import { AuthService } from '../../core/services/auth.service';
 import { NotificationService } from '../../core/services/notification.service';
+import { ModulesService } from '../../core/services/modules.service';
+import { ActionsService } from '../../core/services/actions.service';
 import {
   Role,
   Permission,
   PermissionString,
-  MODULE_METADATA
+  Module
 } from '../../core/interfaces/permission.interface';
 function getModuleCode(p: Permission): string {
   if (p.module && typeof p.module === 'object') return p.module.code;
@@ -62,10 +65,13 @@ export class ProfilesComponent implements OnInit {
   private authService        = inject(AuthService);
   private notification       = inject(NotificationService);
   private router             = inject(Router);
+  private modulesSvc         = inject(ModulesService);
+  private actionsSvc         = inject(ActionsService);
 
   // State
   roles            = signal<Role[]>([]);
   allPermissions   = signal<Permission[]>([]);
+  private _moduleMap = signal<Map<string, Module>>(new Map());
   isLoading        = signal(false);
   isSeeding        = signal(false);
   showViewModal    = signal(false);
@@ -121,20 +127,63 @@ export class ProfilesComponent implements OnInit {
   }
 
   loadPermissions(): void {
-    this.permissionsService.getPermissionsCatalog().subscribe({
-      next: perms => this.allPermissions.set(perms),
-      error: err  => console.error('Error loading permissions catalog', err)
+    combineLatest([
+      this.modulesSvc.getModules(),
+      this.actionsSvc.getActions()
+    ]).pipe(take(1)).subscribe({
+      next: ([modules, actions]) => {
+        this._moduleMap.set(new Map(modules.map(m => [m.code, m])));
+        const actionOrder = ['view', 'create', 'edit', 'delete', 'export', 'print', 'approve'];
+        const sortedActions = [...actions].sort((a, b) => {
+          const ia = actionOrder.indexOf(a.code);
+          const ib = actionOrder.indexOf(b.code);
+          if (ia === -1 && ib === -1) return a.code.localeCompare(b.code);
+          if (ia === -1) return 1;
+          if (ib === -1) return -1;
+          return ia - ib;
+        });
+        const perms: Permission[] = [];
+        for (const mod of modules) {
+          for (const act of sortedActions) {
+            perms.push({
+              id:        `${mod.code}.${act.code}`,
+              module_id: mod.code,
+              action_id: act.code,
+              code:      `${mod.code}.${act.code}`,
+              name:      `${act.name} ${mod.name}`,
+              isSystem:  true,
+              state:     true,
+              module:    mod,
+              action:    act,
+            });
+          }
+        }
+        this.allPermissions.set(perms);
+      },
+      error: err => console.error('[Profiles] Error loading modules/actions', err)
     });
   }
 
   loadRoles(): void {
     this.isLoading.set(true);
     const companyId = this.authService.user()?.companyId;
-    const roles$ = this.isSuperAdmin()
+    const email     = this.authService.user()?.email ?? '—';
+
+    const source  = this.isSuperAdmin() ? '/roles (plataforma)' : `companies/${companyId}/roles`;
+    const roles$  = this.isSuperAdmin()
       ? this.permissionsService.getRoles()
       : companyId ? this.rolesSvc.getCompanyRoles(companyId) : null;
 
-    if (!roles$) { this.isLoading.set(false); return; }
+    console.group(`%c[Profiles] loadRoles — ${email}`, 'color:#6366f1;font-weight:bold');
+    console.log('isSuperAdmin:', this.isSuperAdmin(), '| companyId:', companyId ?? '—');
+    console.log('colección Firestore:', source);
+
+    if (!roles$) {
+      console.warn('→ Sin roles$ (sin companyId). Abortando.');
+      console.groupEnd();
+      this.isLoading.set(false);
+      return;
+    }
 
     roles$.subscribe({
       next: (allRoles) => {
@@ -142,10 +191,17 @@ export class ProfilesComponent implements OnInit {
           ...role,
           permissions: role.permissions.map((p: any) => typeof p === 'string' ? p : p.code)
         }));
-        this.roles.set(processed.sort((a, b) => a.level - b.level));
+        const sorted = processed.sort((a, b) => a.level - b.level);
+        console.log('roles cargados (' + sorted.length + '):', JSON.stringify(sorted.map(r => ({ code: r.code, nombre: r.name, permisos: r.permissions.length, lista: r.permissions })), null, 3));
+        console.groupEnd();
+        this.roles.set(sorted);
         this.isLoading.set(false);
       },
-      error: (err) => { console.error(err); this.isLoading.set(false); }
+      error: (err) => {
+        console.error('[Profiles] Error cargando roles:', err);
+        console.groupEnd();
+        this.isLoading.set(false);
+      }
     });
   }
 
@@ -198,23 +254,27 @@ export class ProfilesComponent implements OnInit {
 
   getPermissionsGroupedForRole(role: Role): { module: string; moduleName: string; moduleIcon: string; permissions: Permission[] }[] {
     const rolePerms = new Set(role.permissions);
+    const moduleMap = this._moduleMap();
+    const catalog   = this.allPermissions();
     const grouped   = new Map<string, Permission[]>();
-    const catalog   = this.allPermissions().length > 0 ? this.allPermissions() : this.permissionsService.getAllPermissions();
 
     catalog.forEach(p => {
       if (rolePerms.has(p.code)) {
-        const mc  = getModuleCode(p);
+        const mc  = p.code.split('.')[0];
         const cur = grouped.get(mc) || [];
         cur.push(p);
         grouped.set(mc, cur);
       }
     });
 
-    return Array.from(grouped.entries()).map(([mc, perms]) => ({
-      module:     mc,
-      moduleName: MODULE_METADATA[mc]?.name || mc,
-      moduleIcon: MODULE_METADATA[mc]?.icon || 'cilFolder',
-      permissions: perms
-    }));
+    return Array.from(grouped.entries()).map(([mc, perms]) => {
+      const mod = moduleMap.get(mc);
+      return {
+        module:      mc,
+        moduleName:  mod?.name || mc,
+        moduleIcon:  mod?.icon || 'cilFolder',
+        permissions: perms
+      };
+    });
   }
 }

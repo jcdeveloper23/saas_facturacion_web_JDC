@@ -16,10 +16,11 @@ import {
 import { IconDirective } from '@coreui/icons-angular';
 import { ChartjsComponent } from '@coreui/angular-chartjs';
 
-import { InvoicesService }  from '../../features/invoices/services/invoices.service';
-import { ProductsService }  from '../../features/products/services/products.service';
-import { PosSalesService }  from '../../features/pos/services/pos-sales.service';
-import { TenantService }    from '../../core/services/tenant.service';
+import { InvoicesService }    from '../../features/invoices/services/invoices.service';
+import { ProductsService }    from '../../features/products/services/products.service';
+import { PosSalesService }    from '../../features/pos/services/pos-sales.service';
+import { TenantService }      from '../../core/services/tenant.service';
+import { PermissionsService } from '../../core/services/permissions.service';
 import {
   Invoice,
   INVOICE_STATUS_LABELS,
@@ -46,10 +47,27 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private productsSvc  = inject(ProductsService);
   private posSalesSvc  = inject(PosSalesService);
   private tenantSvc    = inject(TenantService);
+  private permsSvc     = inject(PermissionsService);
   private firestore    = inject(Firestore);
   private destroy$     = new Subject<void>();
 
   readonly hasModule = (m: string) => this.tenantSvc.hasModule(m);
+
+  // ── Permisos del usuario actual ──────────────────────────────────────────────
+  // Usados en el template para ocultar acciones que el usuario no puede realizar.
+  // Doble verificación: el módulo debe estar activo en el plan del tenant Y
+  // el usuario debe tener el permiso en su rol.
+  readonly canViewInvoices    = computed(() => this.permsSvc.hasAnyPermission(['invoices.view']));
+  readonly canCreateInvoice   = computed(() => this.permsSvc.hasAnyPermission(['invoices.create']));
+  readonly canViewPurchases   = computed(() => this.permsSvc.hasAnyPermission(['purchases.view']));
+  readonly canCreatePurchase  = computed(() => this.permsSvc.hasAnyPermission(['purchases.create']));
+  readonly canViewPersonas    = computed(() => this.permsSvc.hasAnyPermission(['personas.view']));
+  readonly canViewProducts    = computed(() => this.permsSvc.hasAnyPermission(['products.view']));
+  readonly canViewStock       = computed(() => this.permsSvc.hasAnyPermission(['stock.view']));
+  readonly canViewPos         = computed(() => this.permsSvc.hasAnyPermission(['pos.view']));
+  readonly canViewAccounting  = computed(() => this.permsSvc.hasAnyPermission(['accounting.view']));
+  readonly canViewRetentions  = computed(() => this.permsSvc.hasAnyPermission(['retentions.view']));
+  readonly canViewDebitNotes  = computed(() => this.permsSvc.hasAnyPermission(['debit_notes.view']));
 
   // ── Date context ─────────────────────────────────────────────────────────────
   private readonly _now = new Date();
