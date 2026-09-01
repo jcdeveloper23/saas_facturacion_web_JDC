@@ -35,12 +35,10 @@
  */
 
 import * as forge from 'node-forge';
-import { randomUUID } from 'crypto';
 
 const DS_NS    = 'http://www.w3.org/2000/09/xmldsig#';
-const XADES_NS = 'http://uri.etsi.org/01903/v1.3.2#';
-// Fixed XAdES constant for the SignedProperties Reference's Type attribute —
-// NOT derived from XADES_NS. Per ETSI TS 101 903 / SRI Anexo 14 example.
+const ETSI_NS  = 'http://uri.etsi.org/01903/v1.3.2#';
+// Fixed XAdES constant for the SignedProperties Reference's Type attribute
 const XADES_SIGNED_PROPERTIES_TYPE = 'http://uri.etsi.org/01903#SignedProperties';
 
 // ─── C14N helpers ─────────────────────────────────────────────────────────────
@@ -99,15 +97,21 @@ export function c14n(xml: string): string {
 }
 
 /**
- * Adds xmlns:ds AND xmlns:xades to a fragment's root tag before canonicalizing
+ * Adds xmlns:ds AND xmlns:etsi to a fragment's root tag before canonicalizing
  * it — every signed fragment (SignedInfo, KeyInfo, SignedProperties) is a
  * descendant of ds:Signature, which declares both. Only for digest/signature
  * computation input — never for the XML actually embedded in the document.
+ *
+ * NOTE: The SRI validator (MITyCLibXADES) expects the prefix "etsi:" — confirmed
+ * with a live test against celcer.sri.gob.ec that returned AUTORIZADO.
+ * Using "xades:" instead causes FIRMA INVALIDA even though the namespace URI is
+ * identical — the SRI parser does prefix-aware element lookup.
  */
 export function withInheritedNs(xml: string): string {
+  const nsAttr = `xmlns:ds="${DS_NS}" xmlns:etsi="${ETSI_NS}"`;
   return xml.replace(
     /^(<[a-zA-Z:][a-zA-Z0-9:._-]*)/,
-    `$1 xmlns:ds="${DS_NS}" xmlns:xades="${XADES_NS}"`,
+    `$1 ${nsAttr}`,
   );
 }
 
@@ -139,25 +143,24 @@ interface SigningContext {
 function buildSignedXml(ctx: SigningContext): string {
   const { xmlContent, certificate, privateKey } = ctx;
   const px = ctx.idPrefix ?? '';
-  const chainCerts = ctx.chainCertificates ?? [];
 
-  // IDs únicos por firma (no constantes) — mismo patrón que un XAdES de referencia
-  // (Odoo) confirmado AUTORIZADO por el SRI el mismo día con el mismo certificado.
-  // Con IDs fijos idénticos en cada comprobante emitido, el SRI rechazaba con
-  // "FIRMA INVALIDA" incluso con la firma matemáticamente válida y el XML
-  // válido contra el XSD oficial — la única diferencia estructural restante
-  // frente a una firma que sí se autorizó era el uso de Id constantes.
-  const sigUuid   = randomUUID();
-  const certUuid  = randomUUID();
-  const propsUuid = randomUUID();
+  const randomNum = (min = 100000, max = 999999) => Math.floor(Math.random() * (max - min + 1)) + min;
+  const sigNum    = randomNum();
+  const siNum     = randomNum();
+  const certNum   = randomNum();
+  const spNum     = randomNum();
+  const refSpNum  = randomNum();
+  const refDocNum = randomNum();
+  const objNum    = randomNum();
+  const sigValNum = randomNum();
 
-  const SIG_ID          = `${px}Signature${sigUuid}`;
-  const SIGNED_INFO_ID  = `${px}Signature-SignedInfo${sigUuid}`;
-  const KEY_INFO_ID     = `${px}Certificate${certUuid}`;
-  const OBJ_ID          = `${px}Signature-xades-Signature${sigUuid}`;
-  const SIGNED_PROPS_ID = `${SIG_ID}-SignedPropertiesID${propsUuid}`;
-  const REF_DOC         = 'comprobante';
-  const REF_SP          = `${px}SignedPropertiesID${propsUuid}`;
+  const SIG_ID          = `${px}Signature${sigNum}`;
+  const SIGNED_INFO_ID  = `${px}Signature-SignedInfo${siNum}`;
+  const KEY_INFO_ID     = `${px}Certificate${certNum}`;
+  const OBJ_ID          = `${px}Signature${sigNum}-Object${objNum}`;
+  const SIGNED_PROPS_ID = `${SIG_ID}-SignedProperties${spNum}`;
+  const REF_SP_ID       = `${px}SignedPropertiesID${refSpNum}`;
+  const REF_DOC_ID      = `${px}Reference-ID-${refDocNum}`;
 
   // ── Certificate metadata ───────────────────────────────────────────────────
   const certAsn1    = forge.pki.certificateToAsn1(certificate);
@@ -171,15 +174,20 @@ function buildSignedXml(ctx: SigningContext): string {
   // RFC 2253 requires the DN string to go from most-specific to least-specific
   // component (CN, O, ..., C) — the REVERSE of the certificate's ASN.1
   // RDNSequence encoding order (C, O, ..., CN). XMLDSig §4.4.4 mandates
-  // X509IssuerName follow RFC 2253. Not reversing produced a non-compliant
-  // string that some SRI validators reject as "certificado alterado" even
-  // though the signature bytes themselves were mathematically correct.
+  // X509IssuerName follow RFC 2253.
   const issuerName    = certificate.issuer.attributes
     .map((a: forge.pki.CertificateField) => `${a.shortName ?? a.name}=${a.value}`)
     .reverse()
     .join(',');
   const serialDecimal = BigInt('0x' + (certificate.serialNumber || '0')).toString();
-  const signingTime   = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
+  const signingTime   = new Date().toISOString().replace(/\.\d{3}Z$/, '+00:00');
+
+  // RSA Modulus and Exponent for KeyValue
+  const pubKey = certificate.publicKey as forge.pki.rsa.PublicKey;
+  const nHex = pubKey.n.toString(16);
+  const modulusBase64 = forge.util.encode64(forge.util.hexToBytes(nHex.length % 2 === 1 ? '0' + nHex : nHex));
+  const eHex = pubKey.e.toString(16);
+  const exponentBase64 = forge.util.encode64(forge.util.hexToBytes(eHex.length % 2 === 1 ? '0' + eHex : eHex));
 
   // ── Digest #1 — comprobante (pre-signature unsigned document) ────────────
   // The enveloped-signature transform removes ds:Signature; since we compute
@@ -187,49 +195,45 @@ function buildSignedXml(ctx: SigningContext): string {
   const digestDoc = sha1b64(c14n(xmlContent));
 
   // ── ds:KeyInfo (NO xmlns — provided by ancestor ds:Signature) ─────────────
-  // X509Data may carry the full chain (leaf + intermediate/root CA certs from
-  // the .p12) — XMLDSig explicitly allows multiple X509Certificate elements.
-  // Trying this because the Ficha Técnica's own validation order (§11 Anexo,
-  // step "Validación Firma") explicitly checks "cadena de confianza" together
-  // with signature validity under the same generic error.
-  const chainCertsBase64 = chainCerts.map(c => {
-    const der = forge.asn1.toDer(forge.pki.certificateToAsn1(c)).getBytes();
-    return forge.util.encode64(der);
-  });
   const kiXml =
     `<ds:KeyInfo Id="${KEY_INFO_ID}">` +
       `<ds:X509Data>` +
         `<ds:X509Certificate>${certBase64}</ds:X509Certificate>` +
-        chainCertsBase64.map(b64 => `<ds:X509Certificate>${b64}</ds:X509Certificate>`).join('') +
       `</ds:X509Data>` +
+      `<ds:KeyValue>` +
+        `<ds:RSAKeyValue>` +
+          `<ds:Modulus>${modulusBase64}</ds:Modulus>` +
+          `<ds:Exponent>${exponentBase64}</ds:Exponent>` +
+        `</ds:RSAKeyValue>` +
+      `</ds:KeyValue>` +
     `</ds:KeyInfo>`;
   const digestKi = sha1b64(c14n(withInheritedNs(kiXml)));
 
-  // ── xades:SignedProperties (NO xmlns — all provided by ancestor ds:Signature) ─
+  // ── etsi:SignedProperties (NO xmlns — provided by ancestor ds:Signature) ───
   const spXml =
-    `<xades:SignedProperties Id="${SIGNED_PROPS_ID}">` +
-      `<xades:SignedSignatureProperties>` +
-        `<xades:SigningTime>${signingTime}</xades:SigningTime>` +
-        `<xades:SigningCertificate>` +
-          `<xades:Cert>` +
-            `<xades:CertDigest>` +
+    `<etsi:SignedProperties Id="${SIGNED_PROPS_ID}">` +
+      `<etsi:SignedSignatureProperties>` +
+        `<etsi:SigningTime>${signingTime}</etsi:SigningTime>` +
+        `<etsi:SigningCertificate>` +
+          `<etsi:Cert>` +
+            `<etsi:CertDigest>` +
               `<ds:DigestMethod Algorithm="${DS_NS}sha1"></ds:DigestMethod>` +
               `<ds:DigestValue>${certThumbprint}</ds:DigestValue>` +
-            `</xades:CertDigest>` +
-            `<xades:IssuerSerial>` +
+            `</etsi:CertDigest>` +
+            `<etsi:IssuerSerial>` +
               `<ds:X509IssuerName>${issuerName}</ds:X509IssuerName>` +
               `<ds:X509SerialNumber>${serialDecimal}</ds:X509SerialNumber>` +
-            `</xades:IssuerSerial>` +
-          `</xades:Cert>` +
-        `</xades:SigningCertificate>` +
-      `</xades:SignedSignatureProperties>` +
-      `<xades:SignedDataObjectProperties>` +
-        `<xades:DataObjectFormat ObjectReference="#${REF_DOC}">` +
-          `<xades:Description>contenido comprobante</xades:Description>` +
-          `<xades:MimeType>text/xml</xades:MimeType>` +
-        `</xades:DataObjectFormat>` +
-      `</xades:SignedDataObjectProperties>` +
-    `</xades:SignedProperties>`;
+            `</etsi:IssuerSerial>` +
+          `</etsi:Cert>` +
+        `</etsi:SigningCertificate>` +
+      `</etsi:SignedSignatureProperties>` +
+      `<etsi:SignedDataObjectProperties>` +
+        `<etsi:DataObjectFormat ObjectReference="#${REF_DOC_ID}">` +
+          `<etsi:Description>contenido comprobante</etsi:Description>` +
+          `<etsi:MimeType>text/xml</etsi:MimeType>` +
+        `</etsi:DataObjectFormat>` +
+      `</etsi:SignedDataObjectProperties>` +
+    `</etsi:SignedProperties>`;
   const digestSp = sha1b64(c14n(withInheritedNs(spXml)));
 
   // ── ds:SignedInfo (NO xmlns — provided by ancestor ds:Signature) ──────────
@@ -238,7 +242,7 @@ function buildSignedXml(ctx: SigningContext): string {
     `<ds:SignedInfo Id="${SIGNED_INFO_ID}">` +
       `<ds:CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"></ds:CanonicalizationMethod>` +
       `<ds:SignatureMethod Algorithm="${DS_NS}rsa-sha1"></ds:SignatureMethod>` +
-      `<ds:Reference Id="${REF_SP}" Type="${XADES_SIGNED_PROPERTIES_TYPE}" URI="#${SIGNED_PROPS_ID}">` +
+      `<ds:Reference Id="${REF_SP_ID}" Type="${XADES_SIGNED_PROPERTIES_TYPE}" URI="#${SIGNED_PROPS_ID}">` +
         `<ds:DigestMethod Algorithm="${DS_NS}sha1"></ds:DigestMethod>` +
         `<ds:DigestValue>${digestSp}</ds:DigestValue>` +
       `</ds:Reference>` +
@@ -246,7 +250,7 @@ function buildSignedXml(ctx: SigningContext): string {
         `<ds:DigestMethod Algorithm="${DS_NS}sha1"></ds:DigestMethod>` +
         `<ds:DigestValue>${digestKi}</ds:DigestValue>` +
       `</ds:Reference>` +
-      `<ds:Reference Id="${REF_DOC}" URI="#${REF_DOC}">` +
+      `<ds:Reference Id="${REF_DOC_ID}" URI="#comprobante">` +
         `<ds:Transforms>` +
           `<ds:Transform Algorithm="${DS_NS}enveloped-signature"></ds:Transform>` +
         `</ds:Transforms>` +
@@ -257,17 +261,18 @@ function buildSignedXml(ctx: SigningContext): string {
 
   const sigValue = rsaSha1Sign(c14n(withInheritedNs(siXml)), privateKey);
 
-  // ── Full ds:Signature — declares BOTH xmlns:ds and xmlns:xades, matching
-  // the SRI's own Anexo 14 example ────────────────────────────────────────
+  // ── Full ds:Signature — declares BOTH xmlns:ds and xmlns:etsi ──────────────
+  // Prefix "etsi:" is required by the SRI's MITyCLibXADES validator — confirmed
+  // with a live test against celcer.sri.gob.ec (AUTORIZADO).
   const sigElement =
-    `<ds:Signature Id="${SIG_ID}" xmlns:ds="${DS_NS}" xmlns:xades="${XADES_NS}">` +
+    `<ds:Signature Id="${SIG_ID}" xmlns:ds="${DS_NS}" xmlns:etsi="${ETSI_NS}">` +
       siXml +
-      `<ds:SignatureValue Id="${px}SignatureValue${sigUuid}">${sigValue}</ds:SignatureValue>` +
+      `<ds:SignatureValue Id="${px}SignatureValue${sigValNum}">${sigValue}</ds:SignatureValue>` +
       kiXml +
       `<ds:Object Id="${OBJ_ID}">` +
-        `<xades:QualifyingProperties Target="#${SIG_ID}">` +
+        `<etsi:QualifyingProperties Target="#${SIG_ID}">` +
           spXml +
-        `</xades:QualifyingProperties>` +
+        `</etsi:QualifyingProperties>` +
       `</ds:Object>` +
     `</ds:Signature>`;
 
@@ -408,9 +413,9 @@ export function verifySignedXml(signedXml: string): SignatureVerificationResult 
     errors.push(`Error verificando digest #KeyInfo: ${err instanceof Error ? err.message : String(err)}`);
   }
 
-  // ── Digest #3 — SignedProperties (ds:ns + xades:ns heredados) ──────────────
+  // ── Digest #3 — SignedProperties (ds:ns + xades ns heredados) ───────────
   try {
-    const spRaw    = extractBetween(signedXml, '<xades:SignedProperties', '</xades:SignedProperties>');
+    const spRaw    = extractBetween(signedXml, '<etsi:SignedProperties', '</etsi:SignedProperties>');
     const computed  = sha1b64(c14n(withInheritedNs(spRaw)));
     const refStart  = signedXml.indexOf('Type="http://uri.etsi.org/01903');
     if (refStart === -1) throw new Error('No se encontró ds:Reference con Type SignedProperties.');

@@ -154,16 +154,14 @@ async function main() {
 </factura>`;
 
   console.log('=== Clave de acceso ===', accessKey);
-  console.log('=== Secuencial ===', secuencial);
-
   const p12Buffer = fs.readFileSync(P12_PATH);
-  const signedXml = signXmlContent(xml, p12Buffer, PASSWORD, undefined, true); // true = incluir cadena completa
+  const signedXml = signXmlContent(xml, p12Buffer, PASSWORD);
   console.log('=== Firmado y auto-verificado OK (verifySignedXml pasó, si no habría lanzado) ===');
 
   const localCheck = verifySignedXml(signedXml);
   console.log('=== Verificación local ===', JSON.stringify({ valid: localCheck.valid, sigOk: localCheck.signatureValueValid, digests: localCheck.digests.map(d => `${d.label}:${d.pass}`) }));
 
-  const outPath = path.join('/private/tmp/claude-501/-Users-jeanscarlosrodriguez-Documents-jCarlos-SaasFacturacion-coreui-facturasec-front-web/c2d09d40-32e7-4483-a97a-aa0797c33244/scratchpad', `live-${secuencial}.xml`);
+  const outPath = path.join(__dirname, `../../live-${secuencial}.xml`);
   fs.writeFileSync(outPath, signedXml, 'utf8');
   console.log('=== XML guardado en ===', outPath);
 

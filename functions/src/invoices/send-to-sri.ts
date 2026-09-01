@@ -48,7 +48,13 @@ async function callSriReception(wsdlUrl: string, xmlBase64: string): Promise<str
       'SOAPAction': '',
     },
     timeout: 30000,
+    // Aceptar cualquier HTTP status: el SRI a veces devuelve 500 con un SOAP Fault
+    // en el body. Sin esto axios lanza la excepción y perdemos el cuerpo de respuesta.
+    validateStatus: () => true,
   });
+  if (response.status >= 500) {
+    console.warn('[send-to-sri] SRI recepción HTTP', response.status, '— body:', String(response.data).substring(0, 1000));
+  }
   return String(response.data);
 }
 
@@ -69,7 +75,11 @@ async function callSriAuthorization(wsdlUrl: string, accessKey: string): Promise
       'SOAPAction': '',
     },
     timeout: 30000,
+    validateStatus: () => true,
   });
+  if (response.status >= 500) {
+    console.warn('[send-to-sri] SRI autorización HTTP', response.status, '— body:', String(response.data).substring(0, 1000));
+  }
   return String(response.data);
 }
 
@@ -104,6 +114,12 @@ function parseAllMessages(soapResponse: string): SriMessage[] {
 }
 
 function parseReceptionState(soapResponse: string): { state: string; mensaje: string; detalle: string } {
+  // SOAP Fault (HTTP 500): el SRI retorna <faultstring> en vez de <estado>
+  const faultMatch = soapResponse.match(/<faultstring>([^<]+)<\/faultstring>/i);
+  if (faultMatch) {
+    return { state: 'FAULT', mensaje: faultMatch[1].trim(), detalle: '' };
+  }
+
   const estadoMatch      = soapResponse.match(/<estado>([^<]+)<\/estado>/i);
   const mensajeMatch     = soapResponse.match(/<mensaje>([^<]+)<\/mensaje>/i);
   const informacionMatch = soapResponse.match(/<informacionAdicional>([^<]+)<\/informacionAdicional>/i);

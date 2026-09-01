@@ -86,8 +86,16 @@ export class SettingsService {
   }
 
   async saveSriConfig(sri: Partial<Company['sri']>): Promise<void> {
-    const ref = doc(this.firestore, `companies/${this.tenantService.companyId}/configuration/sri-main`);
+    const companyId = this.tenantService.companyId;
+
+    // 1. Guardar en configuration/sri-main (fuente del formulario)
+    const ref = doc(this.firestore, `companies/${companyId}/configuration/sri-main`);
     await setDoc(ref, { ...sri, updatedAt: Timestamp.now() }, { merge: true });
+
+    // 2. Sincronizar en companies/{id}.sri (fuente que leen las Cloud Functions
+    //    para ruc, environment, establishment, emissionPoint, etc.)
+    const rootRef = doc(this.firestore, `companies/${companyId}`);
+    await setDoc(rootRef, { sri: { ...sri }, updatedAt: Timestamp.now() }, { merge: true });
   }
 
   // ── SRI Company Config (datos XML por empresa) ─────────────────────────────

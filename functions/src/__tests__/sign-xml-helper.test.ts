@@ -103,8 +103,8 @@ describe('signXmlContent + verifySignedXml — firma real', () => {
   test('Caso 9: modificar xades:SignedProperties (SigningTime) invalida la firma', () => {
     const signedXml = signXmlContent(TEST_XML, p12, password);
     const tampered = signedXml.replace(
-      /<xades:SigningTime>[^<]+<\/xades:SigningTime>/,
-      '<xades:SigningTime>2099-01-01T00:00:00Z</xades:SigningTime>',
+      /<(etsi|xades):SigningTime>[^<]+<\/\1:SigningTime>/,
+      '<$1:SigningTime>2099-01-01T00:00:00+00:00</$1:SigningTime>',
     );
     expect(tampered).not.toBe(signedXml); // aseguramos que el replace sí encontró el nodo
     const result = verifySignedXml(tampered);

@@ -1,0 +1,1294 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<autorizacion>
+   <estado>AUTORIZADO</estado>
+   <numeroAutorizacion>0808202601019007200200120019090006249990529690411</numeroAutorizacion>
+   <fechaAutorizacion>2026-08-08T17:41:42-05:00</fechaAutorizacion>
+   <comprobante><![CDATA[<?xml version = '1.0' encoding = 'UTF-8'?>
+<factura id="comprobante" version="1.1.0">
+<infoTributaria>
+<ambiente>2</ambiente>
+<tipoEmision>1</tipoEmision>
+<razonSocial>GERARDO ORTIZ E HIJOS CIA LTDA</razonSocial>
+<ruc>0190072002001</ruc>
+<claveAcceso>0808202601019007200200120019090006249990529690411</claveAcceso>
+<codDoc>01</codDoc>
+<estab>001</estab>
+<ptoEmi>909</ptoEmi>
+<secuencial>000624999</secuencial>
+<dirMatriz>AV. CARLOS JULIO AROSEMENA S/N</dirMatriz>
+</infoTributaria>
+<infoFactura>
+<fechaEmision>08/08/2026</fechaEmision>
+<dirEstablecimiento>AV DE LA AMERICAS Y NICOLAS DE ROCHA</dirEstablecimiento>
+<contribuyenteEspecial>3517</contribuyenteEspecial>
+<obligadoContabilidad>SI</obligadoContabilidad>
+<tipoIdentificacionComprador>05</tipoIdentificacionComprador>
+<razonSocialComprador>JEAN RODRIGUEZ</razonSocialComprador>
+<identificacionComprador>0151950045</identificacionComprador>
+<direccionComprador>AV. LOJA</direccionComprador>
+<totalSinImpuestos>99.31</totalSinImpuestos>
+<totalDescuento>5.04</totalDescuento>
+<totalConImpuestos>
+<totalImpuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>0</codigoPorcentaje>
+<baseImponible>10.88</baseImponible>
+<valor>0.00</valor>
+</totalImpuesto>
+<totalImpuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>4</codigoPorcentaje>
+<baseImponible>88.43</baseImponible>
+<valor>13.26</valor>
+</totalImpuesto>
+</totalConImpuestos>
+<propina>0.00</propina>
+<importeTotal>112.57</importeTotal>
+<moneda>DOLAR</moneda>
+<pagos>
+<pago>
+<formaPago>19</formaPago>
+<total>112.57</total>
+</pago>
+</pagos>
+</infoFactura>
+<detalles>
+<detalle>
+<codigoPrincipal>5PAPE01</codigoPrincipal>
+<descripcion>PAPEL A4 50HOJAS CARDINAL</descripcion>
+<cantidad>1.0000</cantidad>
+<precioUnitario>0.5900</precioUnitario>
+<descuento>0.12</descuento>
+<precioTotalSinImpuesto>0.47</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>0</codigoPorcentaje>
+<tarifa>0.00</tarifa>
+<baseImponible>0.47</baseImponible>
+<valor>0.00</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>5PAPE06</codigoPrincipal>
+<descripcion>PAPEL BOND A4 75G CRAYOLA</descripcion>
+<cantidad>1.0000</cantidad>
+<precioUnitario>2.7506</precioUnitario>
+<descuento>0.08</descuento>
+<precioTotalSinImpuesto>2.67</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>0</codigoPorcentaje>
+<tarifa>0.00</tarifa>
+<baseImponible>2.67</baseImponible>
+<valor>0.00</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>X900K76</codigoPrincipal>
+<descripcion>"TOALLA LADYSOFT NOCTURNA MAXI X240,34GR</descripcion>
+<cantidad>1.0000</cantidad>
+<precioUnitario>5.9766</precioUnitario>
+<descuento>1.14</descuento>
+<precioTotalSinImpuesto>4.84</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>0</codigoPorcentaje>
+<tarifa>0.00</tarifa>
+<baseImponible>4.84</baseImponible>
+<valor>0.00</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>XY8A101</codigoPrincipal>
+<descripcion>ACEITE GIRASOL 1L</descripcion>
+<cantidad>1.0000</cantidad>
+<precioUnitario>3.4051</precioUnitario>
+<descuento>0.51</descuento>
+<precioTotalSinImpuesto>2.90</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>0</codigoPorcentaje>
+<tarifa>0.00</tarifa>
+<baseImponible>2.90</baseImponible>
+<valor>0.00</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>5UEA00H</codigoPrincipal>
+<descripcion>TIJERA ESCOL#5PLK 8000005/8213/300000069</descripcion>
+<cantidad>2.0000</cantidad>
+<precioUnitario>1.3153</precioUnitario>
+<descuento>0.08</descuento>
+<precioTotalSinImpuesto>2.55</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>4</codigoPorcentaje>
+<tarifa>15.00</tarifa>
+<baseImponible>2.55</baseImponible>
+<valor>0.38</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>5UEA03F</codigoPrincipal>
+<descripcion>JUEGO GEOMETRIC MED 5PZS PELIK15540101</descripcion>
+<cantidad>1.0000</cantidad>
+<precioUnitario>2.4321</precioUnitario>
+<descuento>0.07</descuento>
+<precioTotalSinImpuesto>2.36</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>4</codigoPorcentaje>
+<tarifa>15.00</tarifa>
+<baseImponible>2.36</baseImponible>
+<valor>0.35</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>5UEA04B</codigoPrincipal>
+<descripcion>LAPIZ ESCRIT MED 2HB TRIA PELIK 30330203</descripcion>
+<cantidad>1.0000</cantidad>
+<precioUnitario>4.0008</precioUnitario>
+<descuento>0.12</descuento>
+<precioTotalSinImpuesto>3.88</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>4</codigoPorcentaje>
+<tarifa>15.00</tarifa>
+<baseImponible>3.88</baseImponible>
+<valor>0.58</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>5UEAT09</codigoPrincipal>
+<descripcion>BORRADOR BLN X3 PZ-20 PELIKAN 06140204</descripcion>
+<cantidad>1.0000</cantidad>
+<precioUnitario>0.9143</precioUnitario>
+<descuento>0.03</descuento>
+<precioTotalSinImpuesto>0.88</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>4</codigoPorcentaje>
+<tarifa>15.00</tarifa>
+<baseImponible>0.88</baseImponible>
+<valor>0.13</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>5UEAT1V</codigoPrincipal>
+<descripcion>RESALTADOR 414 PASTEL C/4 PELIK 30161141</descripcion>
+<cantidad>1.0000</cantidad>
+<precioUnitario>2.8040</precioUnitario>
+<descuento>0.08</descuento>
+<precioTotalSinImpuesto>2.72</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>4</codigoPorcentaje>
+<tarifa>15.00</tarifa>
+<baseImponible>2.72</baseImponible>
+<valor>0.41</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>5UEAT3P</codigoPrincipal>
+<descripcion>BOL HS PUNTA AGUJA C/10 COL PELK 800039</descripcion>
+<cantidad>1.0000</cantidad>
+<precioUnitario>1.5600</precioUnitario>
+<descuento>0.23</descuento>
+<precioTotalSinImpuesto>1.33</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>4</codigoPorcentaje>
+<tarifa>15.00</tarifa>
+<baseImponible>1.33</baseImponible>
+<valor>0.20</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>5UEC215</codigoPrincipal>
+<descripcion>NOTAS ADHESIVAS EN SET CRAYOLA</descripcion>
+<cantidad>1.0000</cantidad>
+<precioUnitario>0.7935</precioUnitario>
+<descuento>0.02</descuento>
+<precioTotalSinImpuesto>0.77</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>4</codigoPorcentaje>
+<tarifa>15.00</tarifa>
+<baseImponible>0.77</baseImponible>
+<valor>0.12</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>5UEC289</codigoPrincipal>
+<descripcion>NOTAS ADHE NEON CUADERNO CRAYOLA</descripcion>
+<cantidad>1.0000</cantidad>
+<precioUnitario>0.6287</precioUnitario>
+<descuento>0.02</descuento>
+<precioTotalSinImpuesto>0.61</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>4</codigoPorcentaje>
+<tarifa>15.00</tarifa>
+<baseImponible>0.61</baseImponible>
+<valor>0.09</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>5UEC295</codigoPrincipal>
+<descripcion>PEGA EN BARRA 36GR CRAYOLA</descripcion>
+<cantidad>2.0000</cantidad>
+<precioUnitario>0.2179</precioUnitario>
+<descuento>0.01</descuento>
+<precioTotalSinImpuesto>0.43</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>4</codigoPorcentaje>
+<tarifa>15.00</tarifa>
+<baseImponible>0.43</baseImponible>
+<valor>0.06</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>5UEC303</codigoPrincipal>
+<descripcion>PEGA EN BARRA COLORES 3X9G CRAYOLA</descripcion>
+<cantidad>1.0000</cantidad>
+<precioUnitario>0.9436</precioUnitario>
+<descuento>0.03</descuento>
+<precioTotalSinImpuesto>0.91</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>4</codigoPorcentaje>
+<tarifa>15.00</tarifa>
+<baseImponible>0.91</baseImponible>
+<valor>0.14</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>5UECR45</codigoPrincipal>
+<descripcion>CINTA MASKING CRAYOLA 0.135X36MMX40M</descripcion>
+<cantidad>1.0000</cantidad>
+<precioUnitario>1.3589</precioUnitario>
+<descuento>0.04</descuento>
+<precioTotalSinImpuesto>1.32</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>4</codigoPorcentaje>
+<tarifa>15.00</tarifa>
+<baseImponible>1.32</baseImponible>
+<valor>0.20</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>5UECR79</codigoPrincipal>
+<descripcion>SACAPUNTAS 2SERV CONTENEDOR CRAYOLA</descripcion>
+<cantidad>2.0000</cantidad>
+<precioUnitario>0.5844</precioUnitario>
+<descuento>0.04</descuento>
+<precioTotalSinImpuesto>1.13</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>4</codigoPorcentaje>
+<tarifa>15.00</tarifa>
+<baseImponible>1.13</baseImponible>
+<valor>0.17</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>5UEE06W</codigoPrincipal>
+<descripcion>CARTUCHERA 2 CIERRES ROJO CELESTE CRAYOL</descripcion>
+<cantidad>1.0000</cantidad>
+<precioUnitario>3.4119</precioUnitario>
+<descuento>0.10</descuento>
+<precioTotalSinImpuesto>3.31</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>4</codigoPorcentaje>
+<tarifa>15.00</tarifa>
+<baseImponible>3.31</baseImponible>
+<valor>0.50</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>5UEH017</codigoPrincipal>
+<descripcion>LAMINA EVA NEGRO 50X100X0.2CM K040</descripcion>
+<cantidad>1.0000</cantidad>
+<precioUnitario>0.4486</precioUnitario>
+<descuento>0.01</descuento>
+<precioTotalSinImpuesto>0.44</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>4</codigoPorcentaje>
+<tarifa>15.00</tarifa>
+<baseImponible>0.44</baseImponible>
+<valor>0.07</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>5UEH02D</codigoPrincipal>
+<descripcion>LAMINA EVA BLANCO 50X100X0.2CM K036</descripcion>
+<cantidad>1.0000</cantidad>
+<precioUnitario>0.4486</precioUnitario>
+<descuento>0.01</descuento>
+<precioTotalSinImpuesto>0.44</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>4</codigoPorcentaje>
+<tarifa>15.00</tarifa>
+<baseImponible>0.44</baseImponible>
+<valor>0.07</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>5UEH10N</codigoPrincipal>
+<descripcion>PAPEL BOND DE COLORES A4 X25 120GSM</descripcion>
+<cantidad>1.0000</cantidad>
+<precioUnitario>0.6416</precioUnitario>
+<descuento>0.02</descuento>
+<precioTotalSinImpuesto>0.62</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>4</codigoPorcentaje>
+<tarifa>15.00</tarifa>
+<baseImponible>0.62</baseImponible>
+<valor>0.09</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>5UEJ003</codigoPrincipal>
+<descripcion>MARCADOR PERMANENTE 3PZS MF2251A-J</descripcion>
+<cantidad>1.0000</cantidad>
+<precioUnitario>0.6156</precioUnitario>
+<descuento>0.02</descuento>
+<precioTotalSinImpuesto>0.60</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>4</codigoPorcentaje>
+<tarifa>15.00</tarifa>
+<baseImponible>0.60</baseImponible>
+<valor>0.09</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>5UEJ02W</codigoPrincipal>
+<descripcion>FOAMY MOLDEABL 50G 406FC-H27 VERDE CLARO</descripcion>
+<cantidad>1.0000</cantidad>
+<precioUnitario>0.5091</precioUnitario>
+<descuento>0.10</descuento>
+<precioTotalSinImpuesto>0.41</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>4</codigoPorcentaje>
+<tarifa>15.00</tarifa>
+<baseImponible>0.41</baseImponible>
+<valor>0.06</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>5UEJ06A</codigoPrincipal>
+<descripcion>SILICONA LIQUIDA 100ML 7120123</descripcion>
+<cantidad>2.0000</cantidad>
+<precioUnitario>0.7341</precioUnitario>
+<descuento>0.04</descuento>
+<precioTotalSinImpuesto>1.43</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>4</codigoPorcentaje>
+<tarifa>15.00</tarifa>
+<baseImponible>1.43</baseImponible>
+<valor>0.21</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>5UEJ06B</codigoPrincipal>
+<descripcion>SILICONA LIQUIDA 250ML 7120120</descripcion>
+<cantidad>1.0000</cantidad>
+<precioUnitario>1.2644</precioUnitario>
+<descuento>0.04</descuento>
+<precioTotalSinImpuesto>1.22</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>4</codigoPorcentaje>
+<tarifa>15.00</tarifa>
+<baseImponible>1.22</baseImponible>
+<valor>0.18</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>5UEJ13Y</codigoPrincipal>
+<descripcion>PLASTILINA 12 BARRAS CARDINAL 13020030</descripcion>
+<cantidad>1.0000</cantidad>
+<precioUnitario>0.4930</precioUnitario>
+<descuento>0.01</descuento>
+<precioTotalSinImpuesto>0.48</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>4</codigoPorcentaje>
+<tarifa>15.00</tarifa>
+<baseImponible>0.48</baseImponible>
+<valor>0.07</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>5UEP3DY</codigoPrincipal>
+<descripcion>SET PLASTILINA 12 COLORES PASTEL</descripcion>
+<cantidad>1.0000</cantidad>
+<precioUnitario>0.5370</precioUnitario>
+<descuento>0.02</descuento>
+<precioTotalSinImpuesto>0.52</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>4</codigoPorcentaje>
+<tarifa>15.00</tarifa>
+<baseImponible>0.52</baseImponible>
+<valor>0.08</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>X73M01F</codigoPrincipal>
+<descripcion>BOLIGRAFO P.GRU BIC DURA MAS PAGUE4LLEVE</descripcion>
+<cantidad>2.0000</cantidad>
+<precioUnitario>1.2672</precioUnitario>
+<descuento>0.08</descuento>
+<precioTotalSinImpuesto>2.45</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>4</codigoPorcentaje>
+<tarifa>15.00</tarifa>
+<baseImponible>2.45</baseImponible>
+<valor>0.37</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>X7891BX</codigoPrincipal>
+<descripcion>CORRECTOR BIC SHAKE 8ML 947741</descripcion>
+<cantidad>2.0000</cantidad>
+<precioUnitario>1.3771</precioUnitario>
+<descuento>0.08</descuento>
+<precioTotalSinImpuesto>2.67</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>4</codigoPorcentaje>
+<tarifa>15.00</tarifa>
+<baseImponible>2.67</baseImponible>
+<valor>0.40</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>X79972P25</codigoPrincipal>
+<descripcion>MARCADOR 24 COL.REDON.2.3M SH.MA.110</descripcion>
+<cantidad>1.0000</cantidad>
+<precioUnitario>2.1692</precioUnitario>
+<descuento>0.07</descuento>
+<precioTotalSinImpuesto>2.10</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>4</codigoPorcentaje>
+<tarifa>15.00</tarifa>
+<baseImponible>2.10</baseImponible>
+<valor>0.32</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>X79972P31</codigoPrincipal>
+<descripcion>MARCADOR PIZARRAX2NEG/ROJ SH.MA.328-F1</descripcion>
+<cantidad>1.0000</cantidad>
+<precioUnitario>0.9669</precioUnitario>
+<descuento>0.03</descuento>
+<precioTotalSinImpuesto>0.94</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>4</codigoPorcentaje>
+<tarifa>15.00</tarifa>
+<baseImponible>0.94</baseImponible>
+<valor>0.14</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>X79972P7</codigoPrincipal>
+<descripcion>LAPIZ BICOL.TRIAN.DEL.-3MX3 SH.LA.305B</descripcion>
+<cantidad>1.0000</cantidad>
+<precioUnitario>0.6055</precioUnitario>
+<descuento>0.02</descuento>
+<precioTotalSinImpuesto>0.59</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>4</codigoPorcentaje>
+<tarifa>15.00</tarifa>
+<baseImponible>0.59</baseImponible>
+<valor>0.09</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>X799ZAAV</codigoPrincipal>
+<descripcion>BICOLOR LAPIZ DE COLOR HEXAGONAL BOX 18</descripcion>
+<cantidad>1.0000</cantidad>
+<precioUnitario>5.0158</precioUnitario>
+<descuento>0.15</descuento>
+<precioTotalSinImpuesto>4.87</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>4</codigoPorcentaje>
+<tarifa>15.00</tarifa>
+<baseImponible>4.87</baseImponible>
+<valor>0.73</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>X79EF98C</codigoPrincipal>
+<descripcion>PLAST. MARQUETA GRIS SH.PS.180-26</descripcion>
+<cantidad>2.0000</cantidad>
+<precioUnitario>0.4904</precioUnitario>
+<descuento>0.03</descuento>
+<precioTotalSinImpuesto>0.95</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>4</codigoPorcentaje>
+<tarifa>15.00</tarifa>
+<baseImponible>0.95</baseImponible>
+<valor>0.14</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>X7AM20E</codigoPrincipal>
+<descripcion>MEMBRETES ESCOLARES IDEAL STITCH 12 U</descripcion>
+<cantidad>2.0000</cantidad>
+<precioUnitario>0.5894</precioUnitario>
+<descuento>0.04</descuento>
+<precioTotalSinImpuesto>1.14</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>4</codigoPorcentaje>
+<tarifa>15.00</tarifa>
+<baseImponible>1.14</baseImponible>
+<valor>0.17</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>X7AM20G</codigoPrincipal>
+<descripcion>SOBRE REX A4 STITCH</descripcion>
+<cantidad>1.0000</cantidad>
+<precioUnitario>0.6771</precioUnitario>
+<descuento>0.02</descuento>
+<precioTotalSinImpuesto>0.66</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>4</codigoPorcentaje>
+<tarifa>15.00</tarifa>
+<baseImponible>0.66</baseImponible>
+<valor>0.10</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>X7P003A</codigoPrincipal>
+<descripcion>CUADERNO UNIV 100H 2L 207X280MM 1125</descripcion>
+<cantidad>1.0000</cantidad>
+<precioUnitario>1.3332</precioUnitario>
+<descuento>0.04</descuento>
+<precioTotalSinImpuesto>1.29</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>4</codigoPorcentaje>
+<tarifa>15.00</tarifa>
+<baseImponible>1.29</baseImponible>
+<valor>0.19</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>X7P00B7</codigoPrincipal>
+<descripcion>CUADERNO UNV 100H 1L/ SURTIDO 1115/30903</descripcion>
+<cantidad>1.0000</cantidad>
+<precioUnitario>1.3332</precioUnitario>
+<descuento>0.04</descuento>
+<precioTotalSinImpuesto>1.29</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>4</codigoPorcentaje>
+<tarifa>15.00</tarifa>
+<baseImponible>1.29</baseImponible>
+<valor>0.19</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>X7P800P</codigoPrincipal>
+<descripcion>BOLIGRAFO BIC PRECISION PAGUE 4 LLEVE 5</descripcion>
+<cantidad>1.0000</cantidad>
+<precioUnitario>1.7216</precioUnitario>
+<descuento>0.05</descuento>
+<precioTotalSinImpuesto>1.67</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>4</codigoPorcentaje>
+<tarifa>15.00</tarifa>
+<baseImponible>1.67</baseImponible>
+<valor>0.25</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>X7PH042</codigoPrincipal>
+<descripcion>HOJAS CUADROS TAMANO A4 56G C/MARGEN 50U</descripcion>
+<cantidad>4.0000</cantidad>
+<precioUnitario>0.4049</precioUnitario>
+<descuento>0.05</descuento>
+<precioTotalSinImpuesto>1.57</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>4</codigoPorcentaje>
+<tarifa>15.00</tarifa>
+<baseImponible>1.57</baseImponible>
+<valor>0.24</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>X7PI00Q</codigoPrincipal>
+<descripcion>CUADERNO DE MUSICA GRANDE T/OFICIO 30H</descripcion>
+<cantidad>1.0000</cantidad>
+<precioUnitario>0.7144</precioUnitario>
+<descuento>0.02</descuento>
+<precioTotalSinImpuesto>0.69</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>4</codigoPorcentaje>
+<tarifa>15.00</tarifa>
+<baseImponible>0.69</baseImponible>
+<valor>0.10</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>X7PL0BE</codigoPrincipal>
+<descripcion>CUADERNO UNIV 100H CDR CRAYOLA</descripcion>
+<cantidad>9.0000</cantidad>
+<precioUnitario>1.0370</precioUnitario>
+<descuento>0.28</descuento>
+<precioTotalSinImpuesto>9.05</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>4</codigoPorcentaje>
+<tarifa>15.00</tarifa>
+<baseImponible>9.05</baseImponible>
+<valor>1.36</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>X7PL0FK</codigoPrincipal>
+<descripcion>BORRADOR RETRACTIL STITCH SH.BR.DIS754B</descripcion>
+<cantidad>1.0000</cantidad>
+<precioUnitario>1.7095</precioUnitario>
+<descuento>0.17</descuento>
+<precioTotalSinImpuesto>1.54</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>4</codigoPorcentaje>
+<tarifa>15.00</tarifa>
+<baseImponible>1.54</baseImponible>
+<valor>0.23</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>X80002B</codigoPrincipal>
+<descripcion>AGUA SIN GAS PURE WATER PLUS 625ML</descripcion>
+<cantidad>3.0000</cantidad>
+<precioUnitario>0.2899</precioUnitario>
+<descuento>0.09</descuento>
+<precioTotalSinImpuesto>0.78</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>4</codigoPorcentaje>
+<tarifa>15.00</tarifa>
+<baseImponible>0.78</baseImponible>
+<valor>0.12</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>X900E65</codigoPrincipal>
+<descripcion>SAVITAL SH  CASPA TE Y SEDAX12526GR</descripcion>
+<cantidad>1.0000</cantidad>
+<precioUnitario>5.5527</precioUnitario>
+<descuento>0.17</descuento>
+<precioTotalSinImpuesto>5.38</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>4</codigoPorcentaje>
+<tarifa>15.00</tarifa>
+<baseImponible>5.38</baseImponible>
+<valor>0.81</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>X9601XB</codigoPrincipal>
+<descripcion>CAFE SELLO ROJO 425G</descripcion>
+<cantidad>1.0000</cantidad>
+<precioUnitario>6.4103</precioUnitario>
+<descuento>0.19</descuento>
+<precioTotalSinImpuesto>6.22</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>4</codigoPorcentaje>
+<tarifa>15.00</tarifa>
+<baseImponible>6.22</baseImponible>
+<valor>0.93</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>X9606I8</codigoPrincipal>
+<descripcion>CUADERNO A4 DIBUJO CON MARGEN 60H ESPIRA</descripcion>
+<cantidad>1.0000</cantidad>
+<precioUnitario>1.3200</precioUnitario>
+<descuento>0.04</descuento>
+<precioTotalSinImpuesto>1.28</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>4</codigoPorcentaje>
+<tarifa>15.00</tarifa>
+<baseImponible>1.28</baseImponible>
+<valor>0.19</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>X9608OUG</codigoPrincipal>
+<descripcion>FOLDER TAPA T OFICIO CELESTE</descripcion>
+<cantidad>1.0000</cantidad>
+<precioUnitario>0.4092</precioUnitario>
+<descuento>0.01</descuento>
+<precioTotalSinImpuesto>0.40</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>4</codigoPorcentaje>
+<tarifa>15.00</tarifa>
+<baseImponible>0.40</baseImponible>
+<valor>0.06</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>X9608OUK</codigoPrincipal>
+<descripcion>FOLDER TAPA T OFICIO MORADO</descripcion>
+<cantidad>1.0000</cantidad>
+<precioUnitario>0.4092</precioUnitario>
+<descuento>0.01</descuento>
+<precioTotalSinImpuesto>0.40</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>4</codigoPorcentaje>
+<tarifa>15.00</tarifa>
+<baseImponible>0.40</baseImponible>
+<valor>0.06</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>X9608OZ</codigoPrincipal>
+<descripcion>FOLDER OFICIO T.T. NARANJA 1111</descripcion>
+<cantidad>1.0000</cantidad>
+<precioUnitario>0.4092</precioUnitario>
+<descuento>0.01</descuento>
+<precioTotalSinImpuesto>0.40</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>4</codigoPorcentaje>
+<tarifa>15.00</tarifa>
+<baseImponible>0.40</baseImponible>
+<valor>0.06</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>X9608PV</codigoPrincipal>
+<descripcion>FOLDER OFICIO T.T. FUCSIA 1107</descripcion>
+<cantidad>1.0000</cantidad>
+<precioUnitario>0.4092</precioUnitario>
+<descuento>0.01</descuento>
+<precioTotalSinImpuesto>0.40</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>4</codigoPorcentaje>
+<tarifa>15.00</tarifa>
+<baseImponible>0.40</baseImponible>
+<valor>0.06</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>X966AA51</codigoPrincipal>
+<descripcion>CARTUCHERA GEMELA DOBLE</descripcion>
+<cantidad>1.0000</cantidad>
+<precioUnitario>2.6001</precioUnitario>
+<descuento>0.08</descuento>
+<precioTotalSinImpuesto>2.52</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>4</codigoPorcentaje>
+<tarifa>15.00</tarifa>
+<baseImponible>2.52</baseImponible>
+<valor>0.38</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>X969CC30</codigoPrincipal>
+<descripcion>FORMADOR NINA  HA20222</descripcion>
+<cantidad>1.0000</cantidad>
+<precioUnitario>1.5653</precioUnitario>
+<descuento>0.05</descuento>
+<precioTotalSinImpuesto>1.52</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>4</codigoPorcentaje>
+<tarifa>15.00</tarifa>
+<baseImponible>1.52</baseImponible>
+<valor>0.23</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>X969CC31</codigoPrincipal>
+<descripcion>FORMADOR NINA  HA8191</descripcion>
+<cantidad>2.0000</cantidad>
+<precioUnitario>1.5652</precioUnitario>
+<descuento>0.09</descuento>
+<precioTotalSinImpuesto>3.04</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>4</codigoPorcentaje>
+<tarifa>15.00</tarifa>
+<baseImponible>3.04</baseImponible>
+<valor>0.46</valor>
+</impuesto>
+</impuestos>
+</detalle>
+<detalle>
+<codigoPrincipal>X9G018V</codigoPrincipal>
+<descripcion>JABON BAMBOO 3PACK REXONA 125G</descripcion>
+<cantidad>2.0000</cantidad>
+<precioUnitario>2.1934</precioUnitario>
+<descuento>0.13</descuento>
+<precioTotalSinImpuesto>4.26</precioTotalSinImpuesto>
+<detallesAdicionales>
+<detAdicional nombre="Medida" valor="UN"/>
+<detAdicional nombre="Centro Logistico" valor="1"/>
+</detallesAdicionales>
+<impuestos>
+<impuesto>
+<codigo>2</codigo>
+<codigoPorcentaje>4</codigoPorcentaje>
+<tarifa>15.00</tarifa>
+<baseImponible>4.26</baseImponible>
+<valor>0.64</valor>
+</impuesto>
+</impuestos>
+</detalle>
+</detalles>
+<infoAdicional>
+<campoAdicional nombre="Tipo Contribuyente">Gran Contribuyente, no aplica retencion en la fuente Impuesto a la Renta Resolucion NAC-GCFOIOC21-00000889-E</campoAdicional>
+<campoAdicional nombre="Lugar Venta">CORAL CENTRO</campoAdicional>
+<campoAdicional nombre="ICE FUNDA EXCENTO">Resolucion Nro. MPCEIP-SCIT-2020-0041-R</campoAdicional>
+<campoAdicional nombre="Codigo">9999999</campoAdicional>
+<campoAdicional nombre="Deducible Alimentacion">9.90</campoAdicional>
+<campoAdicional nombre="Deducible Educacion">18.87</campoAdicional>
+</infoAdicional>
+<ds:Signature xmlns:ds="http://www.w3.org/2000/09/xmldsig#" Id="Signature963384" xmlns:etsi="http://uri.etsi.org/01903/v1.3.2#">
+<ds:SignedInfo Id="Signature-SignedInfo484452">
+<ds:CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/>
+<ds:SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1"/>
+<ds:Reference URI="#Signature963384-SignedProperties962582" Id="SignedPropertiesID724821" Type="http://uri.etsi.org/01903#SignedProperties">
+<ds:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"/>
+<ds:DigestValue>LobumBaJr6AA+rIRZ/0+rjn6F8o=</ds:DigestValue>
+</ds:Reference>
+<ds:Reference URI="#Certificate1168728">
+<ds:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"/>
+<ds:DigestValue>ocrcxS9jDs9hynn6WlztDYPbbow=</ds:DigestValue>
+</ds:Reference>
+<ds:Reference URI="#comprobante" Id="Reference-ID-275744">
+<ds:Transforms>
+<ds:Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"/>
+</ds:Transforms>
+<ds:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"/>
+<ds:DigestValue>I5GIOI3JiGXIHJ6+ulfMzHDYnIs=</ds:DigestValue>
+</ds:Reference>
+</ds:SignedInfo>
+<ds:SignatureValue Id="SignatureValue959581">
+GSJsBztu3M64ol2bL1HSIbCQJdhbfI8/XXqDp/LMI7hA911Us2Z4PXC/2s2VVpKgpF1iet5d1dYQ
+IifeSamCzC6XAaMU45vPtJZr6DnUQExe8H6LxXCGMabenELFO/RJvZz6ZSAmp+bd1hzPQ6Bn4yFz
+RlkX+3L5dXt+vDJSK0qn2uAeDATYToR+RQD+wHqQi9Wh8RpC7AwjDkNYztI8MoE9quBEAkctTQzv
+S9/8FNifuA/I3dl4Qft427nhnf4GeVw+KS+6vs2fuhD9yQ5wRKOvbADQ3Ib8tqhS64AJRR5Hwtxn
+LyI9EcbVhzAap0JfK/jFgH4jabcZhwKR91OWSg==
+</ds:SignatureValue>
+<ds:KeyInfo Id="Certificate1168728">
+<ds:X509Data>
+<ds:X509Certificate>
+MIIK0TCCCLmgAwIBAgIIT+5gpJcyO/swDQYJKoZIhvcNAQELBQAwgZkxCzAJBgNVBAYTAkVDMR0w
+GwYDVQQKDBRTRUNVUklUWSBEQVRBIFMuQS4gMjEwMC4GA1UECwwnRU5USURBRCBERSBDRVJUSUZJ
+Q0FDSU9OIERFIElORk9STUFDSU9OMTkwNwYDVQQDDDBBVVRPUklEQUQgREUgQ0VSVElGSUNBQ0lP
+TiBTVUJDQS0yIFNFQ1VSSVRZIERBVEEwHhcNMjUxMjI0MjIyNjA5WhcNMjcxMjI0MjIyNjA5WjCB
+qDEmMCQGA1UEAwwdSFVHTyBBTkRSRVMgUVVFWkFEQSBJWlFVSUVSRE8xIDAeBgNVBAUTFzAxMDQ3
+MTQwMTktMjQxMjI1MTczNjAxMTAwLgYDVQQLDCdFTlRJREFEIERFIENFUlRJRklDQUNJT04gREUg
+SU5GT1JNQUNJT04xHTAbBgNVBAoMFFNFQ1VSSVRZIERBVEEgUy5BLiAyMQswCQYDVQQGEwJFQzCC
+ASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAM7IBuEyytdoBhh5Z+QUMCatDOfwwePTUKeX
+khWZktuAdg0U3bPPkIZb2CsyCRWoMBL16d2EMM7mNhXdVKSHVWCOnM5e5gt9swablZpa2C+DCkY+
++ncZoYLLfmADLWfvVWeyiGlYpgZ85XuijuLXP+J06Kh3D7Rr3Ww/d/N9//TibiYnNGhQhU7tr4EE
+Q78lPv1ZsWcCztNX6heGWwQ+/XdI3CL9I8GUutH2tviJHKf8EE4ol9vv2bZRO8NJozJYfth7IoNm
+s1Aw9FHSUo/NpLfJWzvinXvIhJs+RmttmSG+nX/wrWr8byy4Nx4PXBgc+0C4dymWHrKmag+rjnXB
+E1UCAwEAAaOCBgowggYGMAwGA1UdEwEB/wQCMAAwHwYDVR0jBBgwFoAUjLrKEVd4JYAdawpLVb+N
+rmLdvY8wWQYIKwYBBQUHAQEETTBLMEkGCCsGAQUFBzABhj1odHRwOi8vb2NzcGd3LnNlY3VyaXR5
+ZGF0YS5uZXQuZWMvZWpiY2EvcHVibGljd2ViL3N0YXR1cy9vY3NwMCYGA1UdEQQfMB2BG2dlcmFy
+b3J0aXpAZ2VyYXJkb29ydGl6LmNvbTCCARUGA1UdIASCAQwwggEIMGIGCisGAQQBgqZyAgkwVDBS
+BggrBgEFBQcCAjBGHkQAQwBlAHIAdABpAGYAaQBjAGEAZABvACAAZABlACAAUgBlAHAAcgBlAHMA
+ZQBuAHQAYQBuAHQAZQAgAEwAZQBnAGEAbDCBoQYKKwYBBAGCpnICAzCBkjCBjwYIKwYBBQUHAgEW
+gYJodHRwczovL3d3dy5zZWN1cml0eWRhdGEubmV0LmVjL3dwLWNvbnRlbnQvZG93bmxvYWRzL05v
+cm1hdGl2YXMvUF9kZV9DZXJ0aWZpY2Fkb3MvUG9saXRpY2FzIGRlIENlcnRpZmljYWRvIFJlcHJl
+c2VudGFudGUgTGVnYWwucGRmMB0GA1UdJQQWMBQGCCsGAQUFBwMCBggrBgEFBQcDBDCCAg8GA1Ud
+HwSCAgYwggICMIHeoDqgOIY2aHR0cDovL2NybDEuc2VjdXJpdHlkYXRhLm5ldC5lYy9zdWJjYTJj
+cmwxL2NybGZpbGUuY3JsooGfpIGcMIGZMTkwNwYDVQQDDDBBVVRPUklEQUQgREUgQ0VSVElGSUNB
+Q0lPTiBTVUJDQS0yIFNFQ1VSSVRZIERBVEExMDAuBgNVBAsMJ0VOVElEQUQgREUgQ0VSVElGSUNB
+Q0lPTiBERSBJTkZPUk1BQ0lPTjEdMBsGA1UECgwUU0VDVVJJVFkgREFUQSBTLkEuIDIxCzAJBgNV
+BAYTAkVDMDygOqA4hjZodHRwOi8vY3JsMi5zZWN1cml0eWRhdGEubmV0LmVjL3N1YmNhMmNybDIv
+Y3JsZmlsZS5jcmwwgeCggd2ggdqGgddodHRwczovL3BvcnRhbC1vcGVyYWRvcjIuc2VjdXJpdHlk
+YXRhLm5ldC5lYy9lamJjYS9wdWJsaWN3ZWIvd2ViZGlzdC9jZXJ0ZGlzdD9jbWQ9Y3JsJmlzc3Vl
+cj1DTj1BVVRPUklEQUQgREUgQ0VSVElGSUNBQ0lPTiBTVUJDQS0yIFNFQ1VSSVRZIERBVEEsT1U9
+RU5USURBRCBERSBDRVJUSUZJQ0FDSU9OIERFIElORk9STUFDSU9OLE89U0VDVVJJVFkgREFUQSBT
+LkEuIDIsQz1FQzAdBgNVHQ4EFgQUTTQBQJhD+fLYNHLRztWwh67j0KUwKwYDVR0QBCQwIoAPMjAy
+NTEyMjQyMjI2MDlagQ8yMDI3MTIyNDIyMjYwOVowCwYDVR0PBAQDAgXgMBoGCisGAQQBgqZyAwUE
+DAwKUFJFU0lERU5URTAaBgorBgEEAYKmcgMBBAwMCjAxMDQ3MTQwMTkwFgYKKwYBBAGCpnIDCQQI
+DAZUQVJRVUkwEQYKKwYBBAGCpnIDIgQDDAEuMC0GCisGAQQBgqZyAwcEHwwdQVYgQ0FSTE9TIEpV
+TElPIEFST1NFTUVOQSBTIE4wGwYKKwYBBAGCpnIDAgQNDAtIVUdPIEFORFJFUzAfBgorBgEEAYKm
+cgMgBBEMDzY2NjY2NjY2NjY2NjY2NjATBgorBgEEAYKmcgMhBAUMA1BGWDAXBgorBgEEAYKmcgMM
+BAkMB0VDVUFET1IwFwYKKwYBBAGCpnIDAwQJDAdRVUVaQURBMC4GCisGAQQBgqZyAwoEIAweR0VS
+QVJETyBPUlRJWiBFIEhJSk9TIENJQSBMVERBMB0GCisGAQQBgqZyAwsEDwwNMDE5MDA3MjAwMjAw
+MTARBgorBgEEAYKmcgMdBAMMAS4wGQYKKwYBBAGCpnIDBAQLDAlJWlFVSUVSRE8wGgYKKwYBBAGC
+pnIDCAQMDAowOTY3MzcxNzAyMA0GCSqGSIb3DQEBCwUAA4ICAQAZHJkkPcgD9avISssT2+jpBk27
+SEA3k9PDYhek0Gdqu26UiacEulM6CssUg6o2wIirqmQktI5lfeoCKzBptNL+0nb8oCfqahPJxUsY
+LYTUOPcchbXSX4CrntlDjlet7BAR48NYJPOKqu8J8Z+Cj/4c2yhgkXZHd8xVHu/qZbacynSijKuB
+yuWGsQ4NQ8HSozKAugjuh4M5sRiQDK/roV1lsPu3NxoLgX30kFWdZEWFHEADt8Fd85ufoe3GBx3+
+mHg4oJeI6bj4jdejkJXJvavi/doKPIsxBsHJD9BGzJRIS+qd8IZrx6yUo3oh2jDFp400orvRQOaK
+kefIGZhf9xMpNBOGLPs0smdQLV+sy13+aUg7o250e4HlkHbJ8fA++O3xmYrbwnOyF8pVqlhE88Bh
+aXGg1tgMgCZY3uJXWFo+LccCvDc1GavJr6H18dQIf72DH/xVMq/cA/BBEs8VtCdq/0YjXoTGFtUJ
+p5zsSo70JaKalXFGP1WiVuBmYBqxSuvSVgcez23cTyQNPNXjJMj1YX4QGmuVat72RcuNTOtjiyPJ
+X9Ds4G0qVqky39ZrrZ2RT1PdzQKld9qJ8da3MRpHJuVlEbnq0Ank3uzGugr11pXLjYUXc0tqQZI9
+TZJabpJQK3g0iVG5puyFMwJfoKGkzt0vEYNhNO3q6CwDJuj9lw==
+</ds:X509Certificate>
+</ds:X509Data>
+<ds:KeyValue>
+<ds:RSAKeyValue>
+<ds:Modulus>
+zsgG4TLK12gGGHln5BQwJq0M5/DB49NQp5eSFZmS24B2DRTds8+QhlvYKzIJFagwEvXp3YQwzuY2
+Fd1UpIdVYI6czl7mC32zBpuVmlrYL4MKRj76dxmhgst+YAMtZ+9VZ7KIaVimBnzle6KO4tc/4nTo
+qHcPtGvdbD93833/9OJuJic0aFCFTu2vgQRDvyU+/VmxZwLO01fqF4ZbBD79d0jcIv0jwZS60fa2
++Ikcp/wQTiiX2+/ZtlE7w0mjMlh+2Hsig2azUDD0UdJSj82kt8lbO+Kde8iEmz5Ga22ZIb6df/Ct
+avxvLLg3Hg9cGBz7QLh3KZYesqZqD6uOdcETVQ==
+</ds:Modulus>
+<ds:Exponent>AQAB</ds:Exponent>
+</ds:RSAKeyValue>
+</ds:KeyValue>
+</ds:KeyInfo>
+<ds:Object Id="Signature963384-Object865896"><etsi:QualifyingProperties Target="#Signature963384"><etsi:SignedProperties Id="Signature963384-SignedProperties962582"><etsi:SignedSignatureProperties><etsi:SigningTime>2026-08-08T17:41:40-05:00</etsi:SigningTime><etsi:SigningCertificate><etsi:Cert><etsi:CertDigest><ds:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"/><ds:DigestValue>5GHD3haE6AdwVZL/hTET+lTa+ok=</ds:DigestValue></etsi:CertDigest><etsi:IssuerSerial><ds:X509IssuerName>CN=AUTORIDAD DE CERTIFICACION SUBCA-2 SECURITY DATA,OU=ENTIDAD DE CERTIFICACION DE INFORMACION,O=SECURITY DATA S.A. 2,C=EC</ds:X509IssuerName><ds:X509SerialNumber>5759647233480997883</ds:X509SerialNumber></etsi:IssuerSerial></etsi:Cert></etsi:SigningCertificate></etsi:SignedSignatureProperties><etsi:SignedDataObjectProperties><etsi:DataObjectFormat ObjectReference="#Reference-ID-275744"><etsi:Description>Contenido comprobante</etsi:Description><etsi:MimeType>text/xml</etsi:MimeType></etsi:DataObjectFormat></etsi:SignedDataObjectProperties></etsi:SignedProperties></etsi:QualifyingProperties></ds:Object></ds:Signature></factura>]]></comprobante>
+</autorizacion>

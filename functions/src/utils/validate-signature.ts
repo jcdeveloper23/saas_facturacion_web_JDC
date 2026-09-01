@@ -119,15 +119,15 @@ async function main() {
     // Remove ds:Signature child for enveloped-signature transform
     const withoutSig = factura.replace(/<ds:Signature[\s\S]*<\/ds:Signature>/, '');
     const computed = sha1b64(c14n(withoutSig));
-    const inXml    = extractText(
-      between(signedXml, 'Id="comprobante"', '</ds:Reference>'), 'ds:DigestValue');
+    const refBlock = signedXml.slice(signedXml.indexOf('URI="#comprobante"'), signedXml.indexOf('</ds:Reference>', signedXml.indexOf('URI="#comprobante"')) + '</ds:Reference>'.length);
+    const inXml    = extractText(refBlock, 'ds:DigestValue');
     check('Digest #comprobante', computed === inXml,
       computed === inXml ? '' : `\n    computed=${computed}\n    inXml   =${inXml}`);
   } catch (e) { check('Digest #comprobante', false, String(e)); }
 
-  // Reference 2: #Certificate<uuid> (ds:KeyInfo) — el Id es dinámico por firma
+  // Reference 2: #Certificate<id> (ds:KeyInfo)
   try {
-    const kiRaw    = between(signedXml, '<ds:KeyInfo Id=', '</ds:KeyInfo>');
+    const kiRaw    = between(signedXml, '<ds:KeyInfo', '</ds:KeyInfo>');
     const computed  = sha1b64(c14n(withInheritedNs(kiRaw)));
     const kiId      = kiRaw.match(/Id="([^"]+)"/)?.[1];
     if (!kiId) throw new Error('No se encontró Id en ds:KeyInfo');
@@ -142,7 +142,7 @@ async function main() {
 
   // Reference 3: #Signature-SignedProperties
   try {
-    const spRaw   = between(signedXml, '<xades:SignedProperties Id=', '</xades:SignedProperties>');
+    const spRaw   = between(signedXml, '<etsi:SignedProperties', '</etsi:SignedProperties>');
     const computed = sha1b64(c14n(withInheritedNs(spRaw)));
     const inXml   = (() => {
       const refStart = signedXml.indexOf('Type="http://uri.etsi.org/01903');
