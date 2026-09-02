@@ -1,0 +1,36 @@
+[debug] [2026-09-02T13:31:53.418Z] ----------------------------------------------------------------------
+[debug] [2026-09-02T13:31:53.419Z] Command:       /Users/jeanscarlosrodriguez/.nvm/versions/node/v22.12.0/bin/node /Users/jeanscarlosrodriguez/.nvm/versions/node/v20.0.0/bin/firebase deploy
+[debug] [2026-09-02T13:31:53.419Z] CLI Version:   15.13.0
+[debug] [2026-09-02T13:31:53.419Z] Platform:      darwin
+[debug] [2026-09-02T13:31:53.419Z] Node Version:  v22.12.0
+[debug] [2026-09-02T13:31:53.419Z] Time:          Wed Sep 02 2026 08:31:53 GMT-0500 (Ecuador Time)
+[debug] [2026-09-02T13:31:53.420Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-09-02T13:31:53.764Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-09-02T13:31:53.764Z] > authorizing via signed-in user (jeanscarod@gmail.com)
+[debug] [2026-09-02T13:31:53.764Z] [iam] checking project accounting-system-a5c9f for permissions ["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebasehosting.sites.update","firebaserules.releases.create","firebaserules.releases.update","firebaserules.rulesets.create"]
+[debug] [2026-09-02T13:31:53.764Z] Checked if tokens are valid: true, expires at: 1788359463951
+[debug] [2026-09-02T13:31:53.764Z] Checked if tokens are valid: true, expires at: 1788359463951
+[debug] [2026-09-02T13:31:53.765Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/accounting-system-a5c9f:testIamPermissions [none]
+[debug] [2026-09-02T13:31:53.765Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/accounting-system-a5c9f:testIamPermissions  x-goog-user-project=accounting-system-a5c9f
+[debug] [2026-09-02T13:31:53.765Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/accounting-system-a5c9f:testIamPermissions {"permissions":["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebasehosting.sites.update","firebaserules.releases.create","firebaserules.releases.update","firebaserules.rulesets.create"]}
+[debug] [2026-09-02T13:31:55.257Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/accounting-system-a5c9f:testIamPermissions 200
+[debug] [2026-09-02T13:31:55.257Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/accounting-system-a5c9f:testIamPermissions {"permissions":["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebasehosting.sites.update","firebaserules.releases.create","firebaserules.releases.update","firebaserules.rulesets.create"]}
+[debug] [2026-09-02T13:31:55.257Z] Checked if tokens are valid: true, expires at: 1788359463951
+[debug] [2026-09-02T13:31:55.257Z] Checked if tokens are valid: true, expires at: 1788359463951
+[debug] [2026-09-02T13:31:55.257Z] >>> [apiv2][query] POST https://iam.googleapis.com/v1/projects/accounting-system-a5c9f/serviceAccounts/accounting-system-a5c9f@appspot.gserviceaccount.com:testIamPermissions [none]
+[debug] [2026-09-02T13:31:55.257Z] >>> [apiv2][body] POST https://iam.googleapis.com/v1/projects/accounting-system-a5c9f/serviceAccounts/accounting-system-a5c9f@appspot.gserviceaccount.com:testIamPermissions {"permissions":["iam.serviceAccounts.actAs"]}
+[debug] [2026-09-02T13:31:55.979Z] <<< [apiv2][status] POST https://iam.googleapis.com/v1/projects/accounting-system-a5c9f/serviceAccounts/accounting-system-a5c9f@appspot.gserviceaccount.com:testIamPermissions 404
+[debug] [2026-09-02T13:31:55.980Z] <<< [apiv2][body] POST https://iam.googleapis.com/v1/projects/accounting-system-a5c9f/serviceAccounts/accounting-system-a5c9f@appspot.gserviceaccount.com:testIamPermissions {"error":{"code":404,"message":"Unknown service account","status":"NOT_FOUND"}}
+[debug] [2026-09-02T13:31:55.980Z] [functions] service account IAM check errored, deploy may fail: Request to https://iam.googleapis.com/v1/projects/accounting-system-a5c9f/serviceAccounts/accounting-system-a5c9f@appspot.gserviceaccount.com:testIamPermissions had HTTP Error: 404, Unknown service account {"name":"FirebaseError","children":[],"context":{"body":{"error":{"code":404,"message":"Unknown service account","status":"NOT_FOUND"}},"response":{"statusCode":404}},"exit":1,"message":"Request to https://iam.googleapis.com/v1/projects/accounting-system-a5c9f/serviceAccounts/accounting-system-a5c9f@appspot.gserviceaccount.com:testIamPermissions had HTTP Error: 404, Unknown service account","status":404}
+[debug] [2026-09-02T13:31:55.982Z] Checked if tokens are valid: true, expires at: 1788359463951
+[debug] [2026-09-02T13:31:55.982Z] Checked if tokens are valid: true, expires at: 1788359463951
+[debug] [2026-09-02T13:31:55.982Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/accounting-system-a5c9f [none]
+[debug] [2026-09-02T13:31:56.370Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/accounting-system-a5c9f 200
+[debug] [2026-09-02T13:31:56.370Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/accounting-system-a5c9f {"projectId":"accounting-system-a5c9f","projectNumber":"509785089298","displayName":"accounting-system","name":"projects/accounting-system-a5c9f","resources":{"hostingSite":"accounting-system-a5c9f"},"state":"ACTIVE","labels":{"firebase":"enabled","firebase/storage-default-bucket":"created"},"etag":"1_a7e7e8e5-dbd6-484b-8a23-2888ba1ec30b"}
+[info] 
+[info] === Deploying to 'accounting-system-a5c9f'...
+[info] 
+[info] i  deploying storage, firestore, functions, hosting 
+[info] Running command: npm --prefix "$RESOURCE_DIR" install
+[info] Running command: npm --prefix "$RESOURCE_DIR" run build

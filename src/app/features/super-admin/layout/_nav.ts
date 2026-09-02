@@ -54,6 +54,7 @@ export const superAdminNavItems: INavData[] = [
     url: '/super-admin/__datos-plataforma',
     iconComponent: { name: 'cil-settings' },
     children: [
+      { name: 'Config General',       url: '/super-admin/defaults'                 },
       { name: 'Divisas',              url: '/super-admin/defaults/currencies'      },
       { name: 'Países',               url: '/super-admin/defaults/countries'       },
       { name: 'Impuestos',            url: '/super-admin/defaults/tax-rates'       },
