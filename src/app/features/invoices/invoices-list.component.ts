@@ -196,6 +196,17 @@ export interface LineMatch { invoice: Invoice; lineDesc: string; lineSku: string
     .line-result-row:hover { background:var(--cui-tertiary-bg); }
     .line-result-inv { font-family:monospace; font-size:.8rem; font-weight:500; }
     .line-result-detail { font-size:.75rem; color:var(--cui-secondary-color); }
+
+    /* ── Bulk action toolbar ─────────────────────────────────────────── */
+    .bulk-toolbar {
+      display:flex; align-items:center; gap:.5rem; flex-wrap:wrap;
+      padding:.5rem .75rem; background:var(--cui-tertiary-bg);
+      border:1px solid var(--cui-border-color); border-radius:8px;
+      animation:slideDown .15s ease;
+    }
+    .bulk-count { font-size:.82rem; font-weight:600; color:var(--cui-body-color); white-space:nowrap; margin-right:.25rem; }
+    .bulk-sep { width:1px; height:18px; background:var(--cui-border-color); flex-shrink:0; }
+    .cb-cell { width:36px; text-align:center; }
   `],
   imports: [
     CommonModule, RouterLink,
@@ -233,6 +244,166 @@ export class InvoicesListComponent implements OnInit, OnDestroy {
   showLineSearch = signal(false);
   lineSearchTerm = signal('');
   showGapsModal  = signal(false);
+
+  // ── Module flags ───────────────────────────────────────────────────────────
+  readonly isSriEnabled        = this.tenantSvc.isSriEnabled;
+  readonly isAccountingEnabled = computed(() => this.tenantSvc.hasModule('accounting'));
+
+  // ── Multi-select ──────────────────────────────────────────────────────────
+  selectedIds = signal<Set<string>>(new Set());
+
+  selectedInvoices = computed(() => {
+    const sel = this.selectedIds();
+    return this.filtered().filter(i => sel.has(i.id));
+  });
+  allVisibleSelected = computed(() => {
+    const list = this.filtered();
+    return list.length > 0 && list.every(i => this.selectedIds().has(i.id));
+  });
+  someVisibleSelected = computed(() =>
+    this.filtered().some(i => this.selectedIds().has(i.id))
+  );
+  masterIndeterminate = computed(() =>
+    this.someVisibleSelected() && !this.allVisibleSelected()
+  );
+
+  canBulkMarkPaid = computed(() =>
+    this.selectedInvoices().some(i => i.status === 'issued')
+  );
+  canBulkMarkVoid = computed(() =>
+    this.selectedInvoices().some(i => i.status !== 'void' && i.status !== 'draft')
+  );
+  canBulkDelete = computed(() =>
+    this.selectedInvoices().some(i => i.status === 'draft')
+  );
+  canBulkReenviar = computed(() =>
+    this.isSriEnabled() && this.selectedInvoices().some(i => i.sriStatus === 'rejected')
+  );
+  canBulkAsiento = computed(() =>
+    this.isAccountingEnabled() &&
+    this.selectedInvoices().some(i =>
+      (i.status === 'issued' || i.status === 'paid') && !i.isVoid && !i.accountingEntryId
+    )
+  );
+
+  showBulkMarkPaidModal  = signal(false);
+  confirmingBulkMarkPaid = signal(false);
+  bulkActionInProgress   = signal(false);
+
+  toggleSelect(id: string, event: Event): void {
+    event.stopPropagation();
+    const current = new Set(this.selectedIds());
+    if (current.has(id)) current.delete(id); else current.add(id);
+    this.selectedIds.set(current);
+  }
+
+  toggleSelectAll(): void {
+    if (this.allVisibleSelected()) {
+      this.selectedIds.set(new Set());
+    } else {
+      this.selectedIds.set(new Set(this.filtered().map(i => i.id)));
+    }
+  }
+
+  clearSelection(): void { this.selectedIds.set(new Set()); }
+
+  async confirmBulkMarkPaid(result: MarkPaidResult): Promise<void> {
+    const targets = this.selectedInvoices().filter(i => i.status === 'issued');
+    if (!targets.length) return;
+    this.confirmingBulkMarkPaid.set(true);
+    let ok = 0, fail = 0;
+    await Promise.allSettled(
+      targets.map(inv =>
+        this.svc.markPaid(inv.id, result.bankAccountId, result.date)
+          .then(() => ok++).catch(() => fail++)
+      )
+    );
+    this.confirmingBulkMarkPaid.set(false);
+    this.showBulkMarkPaidModal.set(false);
+    if (ok)   this.notifications.success(`${ok} factura${ok > 1 ? 's' : ''} marcada${ok > 1 ? 's' : ''} como pagada${ok > 1 ? 's' : ''}`);
+    if (fail) this.notifications.error(`${fail} no se pudieron actualizar`);
+    this.clearSelection();
+  }
+
+  async bulkMarkVoid(): Promise<void> {
+    const targets = this.selectedInvoices().filter(i => i.status !== 'void' && i.status !== 'draft');
+    if (!targets.length) return;
+    const ok = await this.notifications.confirm({
+      title: `¿Anular ${targets.length} factura${targets.length > 1 ? 's' : ''}?`,
+      confirmText: 'Sí, anular', cancelText: 'Cancelar', icon: 'warning', danger: true
+    });
+    if (!ok) return;
+    this.bulkActionInProgress.set(true);
+    let success = 0, fail = 0;
+    await Promise.allSettled(
+      targets.map(inv =>
+        this.svc.markVoid(inv.id).then(() => success++).catch(() => fail++)
+      )
+    );
+    this.bulkActionInProgress.set(false);
+    if (success) this.notifications.success(`${success} factura${success > 1 ? 's' : ''} anulada${success > 1 ? 's' : ''}`);
+    if (fail)    this.notifications.error(`${fail} no se pudieron anular`);
+    this.clearSelection();
+  }
+
+  async bulkDelete(): Promise<void> {
+    const targets = this.selectedInvoices().filter(i => i.status === 'draft');
+    if (!targets.length) return;
+    const ok = await this.notifications.confirm({
+      title: `¿Eliminar ${targets.length} borrador${targets.length > 1 ? 'es' : ''}?`,
+      confirmText: 'Sí, eliminar', cancelText: 'Cancelar', icon: 'warning', danger: true
+    });
+    if (!ok) return;
+    this.bulkActionInProgress.set(true);
+    let success = 0, fail = 0;
+    await Promise.allSettled(
+      targets.map(inv =>
+        this.svc.deleteInvoice(inv.id).then(() => success++).catch(() => fail++)
+      )
+    );
+    this.bulkActionInProgress.set(false);
+    if (success) this.notifications.success(`${success} borrador${success > 1 ? 'es' : ''} eliminado${success > 1 ? 's' : ''}`);
+    if (fail)    this.notifications.error(`${fail} no se pudieron eliminar`);
+    this.clearSelection();
+  }
+
+  async bulkReenviarSri(): Promise<void> {
+    const targets = this.selectedInvoices().filter(i => i.sriStatus === 'rejected');
+    if (!targets.length) return;
+    this.bulkActionInProgress.set(true);
+    let success = 0, fail = 0;
+    const fn = httpsCallable<{ invoiceId: string; companyId: string }, { success: boolean }>(this.functions, 'sendToSri');
+    await Promise.allSettled(
+      targets.map(inv =>
+        fn({ invoiceId: inv.id, companyId: this.tenantSvc.companyId })
+          .then(() => success++).catch(() => fail++)
+      )
+    );
+    this.bulkActionInProgress.set(false);
+    if (success) this.notifications.success(`${success} factura${success > 1 ? 's' : ''} enviada${success > 1 ? 's' : ''} al SRI`);
+    if (fail)    this.notifications.error(`${fail} no se pudieron enviar al SRI`);
+    this.clearSelection();
+  }
+
+  async bulkGenerarAsiento(): Promise<void> {
+    const targets = this.selectedInvoices().filter(i =>
+      (i.status === 'issued' || i.status === 'paid') && !i.isVoid && !i.accountingEntryId
+    );
+    if (!targets.length) return;
+    this.bulkActionInProgress.set(true);
+    let success = 0, fail = 0;
+    const fn = httpsCallable<{ documentId: string; companyId: string; documentType: string }, { entryId: string }>(this.functions, 'regenerateJournalEntry');
+    await Promise.allSettled(
+      targets.map(inv =>
+        fn({ documentId: inv.id, companyId: this.tenantSvc.companyId, documentType: inv.isCreditNote ? 'credit_note' : 'invoice' })
+          .then(() => success++).catch(() => fail++)
+      )
+    );
+    this.bulkActionInProgress.set(false);
+    if (success) this.notifications.success(`${success} asiento${success > 1 ? 's' : ''} generado${success > 1 ? 's' : ''}`);
+    if (fail)    this.notifications.error(`${fail} no se pudieron generar`);
+    this.clearSelection();
+  }
 
   // ── SRI actions state ──────────────────────────────────────────────────────
   reenviarLoading     = signal<string | null>(null); // invoiceId being retried
@@ -428,7 +599,10 @@ export class InvoicesListComponent implements OnInit, OnDestroy {
   openEdit(inv: Invoice): void { this.router.navigate(['/invoices', inv.id, 'edit']); }
 
   // ── Filters ───────────────────────────────────────────────────────────────
-  setStatusFilter(status: InvoiceStatus | null): void { this.statusFilter.set(status); }
+  setStatusFilter(status: InvoiceStatus | null): void {
+    this.statusFilter.set(status);
+    this.clearSelection();
+  }
 
   clearFilters(): void {
     this.searchTerm.set('');
@@ -436,6 +610,7 @@ export class InvoicesListComponent implements OnInit, OnDestroy {
     this.dateFrom.set('');
     this.dateTo.set('');
     this.seriesFilter.set('');
+    this.clearSelection();
   }
 
   // ── Row helpers ───────────────────────────────────────────────────────────

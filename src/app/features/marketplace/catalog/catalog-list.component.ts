@@ -8,11 +8,11 @@ import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { PublicCatalogService } from '../services/public-catalog.service';
 import { PublicCatalog, PublicProduct } from '../models/catalog.interface';
-import { CatalogSearchService } from '../services/catalog-search.service';
+import { CatalogSearchService, CatalogSortKey, CatalogViewMode } from '../services/catalog-search.service';
 import { CartService } from '../services/cart.service';
 
-type SortKey = 'top_sellers' | 'recent' | 'price_asc' | 'price_desc';
-type ViewMode = 'grid' | 'list';
+type SortKey = CatalogSortKey;
+type ViewMode = CatalogViewMode;
 
 interface CategoryLeaf { id: string; name: string; count: number; }
 interface CategoryNode extends CategoryLeaf { children: CategoryLeaf[]; }
@@ -46,20 +46,19 @@ export class CatalogListComponent implements OnInit, OnDestroy, AfterViewInit {
   allProducts = signal<PublicProduct[]>([]);
   loading     = signal(true);
 
+  // ─── Filtros persistentes (singleton service — sobreviven navegación lista ↔ detalle) ──
   searchQuery      = this.searchSvc.query;
-  selectedFamilyId = signal<string | null>(null);
-  sortKey          = signal<SortKey>('top_sellers');
-  viewMode         = signal<ViewMode>('grid');
-  onlyInStock      = signal(false);
+  selectedFamilyId = this.searchSvc.familyId;
+  sortKey          = this.searchSvc.sortKey;
+  viewMode         = this.searchSvc.viewMode;
+  onlyInStock      = this.searchSvc.onlyInStock;
+  expandedNodeIds  = this.searchSvc.expandedNodeIds;
 
   // ─── Mini carrusel en tarjetas de grid ────────────────────────────────────
   readonly cardImageIdx = signal<Record<string, number>>({});
 
   // ─── Mobile Sidebar State ────────────────────────────────────────────────
   isSidebarOpen = signal(false);
-
-  // ─── Expand/collapse de categorías padre en el sidebar ───────────────────
-  expandedNodeIds = signal<Set<string>>(new Set());
 
   // Árbol jerárquico de categorías usando catalog.familyTree para resolver jerarquías
   categoryTree = computed<CategoryNode[]>(() => {
@@ -261,7 +260,7 @@ export class CatalogListComponent implements OnInit, OnDestroy, AfterViewInit {
   addedFeedback = signal<string | null>(null);
 
   isOutOfStock(p: PublicProduct): boolean {
-    return p.trackStock && !p.noStock && p.stockAvailable === 0;
+    return !p.noStock && p.stockAvailable <= 0;
   }
 
   addToCart(e: Event, product: PublicProduct): void {

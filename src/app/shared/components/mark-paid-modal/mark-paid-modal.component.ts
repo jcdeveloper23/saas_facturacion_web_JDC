@@ -57,7 +57,7 @@ export class MarkPaidModalComponent implements OnChanges {
   }
 
   confirmClick(): void {
-    if (!this.selectedBankAccountId()) return;
+    if (this.bankAccounts().length > 0 && !this.selectedBankAccountId()) return;
     this.confirm.emit({ bankAccountId: this.selectedBankAccountId(), date: this.date() });
   }
 

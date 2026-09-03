@@ -49,3 +49,8 @@ Thumbs.db
 docs/*.p12
 docs/*.pfx
 docs/pass.txt
+
+
+.firebase/*
+
+

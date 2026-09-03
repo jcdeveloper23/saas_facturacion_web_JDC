@@ -216,6 +216,70 @@
   </c-card-body>
 </c-card>
 
+<!-- ── Selección múltiple: toolbar de acciones masivas ────────────────────── -->
+@if (selectedIds().size > 0) {
+  <div class="bulk-toolbar mb-2">
+    <span class="bulk-count">{{ selectedIds().size }} seleccionada{{ selectedIds().size !== 1 ? 's' : '' }}</span>
+    <button cButton color="secondary" variant="ghost" size="sm" (click)="clearSelection()">
+      <svg cIcon name="cilX" size="sm" class="me-1"></svg>
+      Deseleccionar
+    </button>
+    <div class="bulk-sep"></div>
+    @if (canBulkMarkPaid()) {
+      <button cButton color="success" variant="outline" size="sm"
+              [disabled]="bulkActionInProgress()"
+              (click)="showBulkMarkPaidModal.set(true)">
+        <svg cIcon name="cilCheckCircle" size="sm" class="me-1"></svg>
+        Marcar pagadas
+      </button>
+    }
+    @if (canBulkMarkVoid()) {
+      <button cButton color="danger" variant="outline" size="sm"
+              [disabled]="bulkActionInProgress()"
+              (click)="bulkMarkVoid()">
+        @if (bulkActionInProgress()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+        <svg cIcon name="cilBan" size="sm" class="me-1"></svg>
+        Anular
+      </button>
+    }
+    @if (canBulkDelete()) {
+      <button cButton color="danger" variant="outline" size="sm"
+              [disabled]="bulkActionInProgress()"
+              (click)="bulkDelete()">
+        @if (bulkActionInProgress()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+        <svg cIcon name="cilTrash" size="sm" class="me-1"></svg>
+        Eliminar borradores
+      </button>
+    }
+    @if (canBulkReenviar()) {
+      <button cButton color="warning" variant="outline" size="sm"
+              [disabled]="bulkActionInProgress()"
+              (click)="bulkReenviarSri()">
+        @if (bulkActionInProgress()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+        <svg cIcon name="cilReload" size="sm" class="me-1"></svg>
+        Reenviar SRI
+      </button>
+    }
+    @if (canBulkAsiento()) {
+      <button cButton color="secondary" variant="outline" size="sm"
+              [disabled]="bulkActionInProgress()"
+              (click)="bulkGenerarAsiento()">
+        @if (bulkActionInProgress()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+        <svg cIcon name="cilSpreadsheet" size="sm" class="me-1"></svg>
+        Generar asientos
+      </button>
+    }
+  </div>
+}
+
+<app-mark-paid-modal
+  [visible]="showBulkMarkPaidModal()"
+  title="Marcar seleccionadas como pagadas"
+  [confirming]="confirmingBulkMarkPaid()"
+  (visibleChange)="showBulkMarkPaidModal.set($event)"
+  (confirm)="confirmBulkMarkPaid($event)">
+</app-mark-paid-modal>
+
 <!-- ── Tabla ──────────────────────────────────────────────────────────────── -->
 <c-card class="border shadow-none overflow-hidden">
   <c-card-body class="p-0">
@@ -244,7 +308,13 @@
         <table class="inv-table">
           <thead>
             <tr>
-              <th style="width:24px"></th>
+              <th class="cb-cell">
+                <input type="checkbox"
+                       [checked]="allVisibleSelected()"
+                       [indeterminate]="masterIndeterminate()"
+                       (change)="toggleSelectAll()"
+                       (click)="$event.stopPropagation()">
+              </th>
               <th>Número</th>
               <th>Fecha</th>
               <th>Vencimiento</th>
@@ -255,7 +325,7 @@
               <th style="text-align:right">IVA</th>
               <th style="text-align:right">Total</th>
               <th>Estado</th>
-              <th>SRI</th>
+              @if (isSriEnabled()) { <th>SRI</th> }
               <th></th>
             </tr>
           </thead>
@@ -263,6 +333,13 @@
             @for (inv of filtered(); track trackById($index, inv)) {
               <tr [class.row-void]="inv.isVoid" (click)="openEdit(inv)">
 
+                <!-- Checkbox de selección -->
+                <td class="cb-cell" (click)="$event.stopPropagation()">
+                  <input type="checkbox"
+                         [checked]="selectedIds().has(inv.id)"
+                         (change)="toggleSelect(inv.id, $event)"
+                         (click)="$event.stopPropagation()">
+                </td>
                 <!-- Indicadores visuales (columna de íconos) -->
                 <td (click)="$event.stopPropagation()">
                   <div class="row-indicators">
@@ -353,7 +430,8 @@
                   </c-badge>
                 </td>
 
-                <!-- Estado SRI -->
+                <!-- Estado SRI (solo si módulo SRI activo) -->
+                @if (isSriEnabled()) {
                 <td (click)="$event.stopPropagation()">
                   @if (inv.sriStatus && inv.sriStatus !== 'not_required') {
                     <c-badge [color]="SRI_STATUS_COLORS[inv.sriStatus]" shape="rounded-pill" style="font-size:.68rem">
@@ -363,6 +441,7 @@
                     <span class="text-muted" style="font-size:.75rem">—</span>
                   }
                 </td>
+                }
 
                 <!-- Acciones rápidas -->
                 <td>
@@ -388,16 +467,16 @@
                         <svg cIcon name="cilTrash" size="sm"></svg>
                       </button>
                     }
-                    <!-- Nota de Crédito (solo facturas emitidas/pagadas, no anuladas, no ya NC) -->
-                    @if ((inv.status === 'issued' || inv.status === 'paid') && !inv.isVoid && !inv.isCreditNote) {
+                    <!-- Nota de Crédito (solo facturas emitidas/pagadas, no anuladas, no ya NC; requiere SRI) -->
+                    @if (isSriEnabled() && (inv.status === 'issued' || inv.status === 'paid') && !inv.isVoid && !inv.isCreditNote) {
                       <button cButton color="info" variant="ghost" size="sm"
                               cTooltip="Crear Nota de Crédito"
                               (click)="createCreditNote(inv, $event)">
                         <svg cIcon name="cilReload" size="sm"></svg>
                       </button>
                     }
-                    <!-- SRI: Consultar estado (pending o rejected con accessKey) -->
-                    @if ((inv.sriStatus === 'pending' || inv.sriStatus === 'rejected') && inv.accessKey) {
+                    <!-- SRI: Consultar estado (pending o rejected con accessKey; requiere SRI activo) -->
+                    @if (isSriEnabled() && (inv.sriStatus === 'pending' || inv.sriStatus === 'rejected') && inv.accessKey) {
                       <button cButton color="secondary" variant="ghost" size="sm"
                               cTooltip="Consultar estado en SRI"
                               [disabled]="checkStatusLoading() === inv.id"
@@ -409,8 +488,8 @@
                         }
                       </button>
                     }
-                    <!-- SRI: Reenviar (solo si fue rechazada) -->
-                    @if (inv.sriStatus === 'rejected') {
+                    <!-- SRI: Reenviar (solo si fue rechazada; requiere SRI activo) -->
+                    @if (isSriEnabled() && inv.sriStatus === 'rejected') {
                       <button cButton color="warning" variant="ghost" size="sm"
                               cTooltip="Reenviar al SRI"
                               [disabled]="reenviarLoading() === inv.id"
@@ -422,8 +501,8 @@
                         }
                       </button>
                     }
-                    <!-- Contabilidad: generar asiento manualmente (documento emitido sin asiento) -->
-                    @if ((inv.status === 'issued' || inv.status === 'paid') && !inv.isVoid && !inv.accountingEntryId) {
+                    <!-- Contabilidad: generar asiento manualmente (requiere módulo Contabilidad activo) -->
+                    @if (isAccountingEnabled() && (inv.status === 'issued' || inv.status === 'paid') && !inv.isVoid && !inv.accountingEntryId) {
                       <button cButton color="warning" variant="ghost" size="sm"
                               cTooltip="Generar asiento contable (pendiente)"
                               [disabled]="generatingEntry() === inv.id"

@@ -115,10 +115,6 @@
             <span class="cd-pill cd-pill--service">
               <span class="cd-pill__dot"></span> Servicio disponible
             </span>
-          } @else if (!product()!.trackStock) {
-            <span class="cd-pill cd-pill--service">
-              <span class="cd-pill__dot"></span> Disponible
-            </span>
           } @else if (product()!.stockAvailable > 0) {
             <span class="cd-pill cd-pill--in">
               <span class="cd-pill__dot"></span> En stock

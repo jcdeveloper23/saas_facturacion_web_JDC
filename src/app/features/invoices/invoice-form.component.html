@@ -778,8 +778,9 @@
             </div>
             }
 
-            <!-- 5. Botones de acción (rejected / pending / sin sriStatus, y no es void ni not_required) -->
+            <!-- 5. Botones de acción (rejected / pending / sin sriStatus, y no es void ni not_required; requiere SRI activo) -->
             @if (
+              isSriEnabled() &&
               !isNew() &&
               invoice()!.status !== 'void' &&
               invoice()!.sriStatus !== 'not_required' &&

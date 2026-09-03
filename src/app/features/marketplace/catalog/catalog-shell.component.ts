@@ -34,8 +34,14 @@ export class CatalogShellComponent implements OnInit, OnDestroy {
 
   headerSearch  = this.searchSvc.query;
 
+  private _lastSlug = '';
+
   ngOnInit(): void {
     const slug = this.route.snapshot.paramMap.get('slug') ?? '';
+    if (slug !== this._lastSlug) {
+      this._lastSlug = slug;
+      this.searchSvc.reset();
+    }
     this.catalogSlug.set(slug);
     this.subs.add(
       this.catalogSvc.getCatalogBySlug(slug).subscribe({
