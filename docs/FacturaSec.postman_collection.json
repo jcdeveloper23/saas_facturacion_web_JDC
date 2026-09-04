@@ -1,21 +1,21 @@
 {
   "info": {
     "name": "FacturaSec — Cloud Functions",
-    "description": "Colección completa para validar todas las Cloud Functions de facturación electrónica SRI Ecuador.\n\n**Setup:**\n1. Configura las variables de entorno en el Environment adjunto.\n2. Ejecuta primero '0. Auth > Get ID Token' para obtener el token.\n3. Sigue el orden numérico de las carpetas para cada flujo.",
+    "description": "Colección completa para validar todas las Cloud Functions de facturación electrónica SRI Ecuador.\n\n**Setup:**\n1. Configura las variables de colección (ícono de ojo arriba a la derecha).\n2. Ejecuta primero **0. Auth > getAuthToken (nuevo)** — guarda el idToken automáticamente.\n3. Sigue el orden numérico de las carpetas.\n\n**Flujo rápido de prueba para integración externa:**\n`0. Auth → 8. Integración Externa`",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "baseUrl", "value": "https://us-central1-facturasproec.cloudfunctions.net", "type": "string" },
-    { "key": "firebaseApiKey", "value": "AIza...", "description": "Web API Key del proyecto Firebase (Firebase Console > Project Settings)", "type": "string" },
-    { "key": "idToken", "value": "", "description": "Se llena automáticamente al ejecutar 'Get ID Token'", "type": "string" },
-    { "key": "companyId", "value": "COMPANY_ID_AQUI", "type": "string" },
-    { "key": "invoiceId", "value": "", "type": "string" },
+    { "key": "baseUrl",      "value": "https://us-central1-facturasproec.cloudfunctions.net", "type": "string" },
+    { "key": "firebaseApiKey","value": "AIzaSyAN8TSjffljKHfErfJ3O_GCG3EWxfyYR14", "description": "Web API Key pública del proyecto Firebase", "type": "string" },
+    { "key": "idToken",      "value": "", "description": "Se llena automáticamente al ejecutar getAuthToken", "type": "string" },
+    { "key": "companyId",    "value": "COMPANY_ID_AQUI", "type": "string" },
+    { "key": "invoiceId",    "value": "", "description": "Se llena automáticamente con createAndEmitInvoice", "type": "string" },
     { "key": "creditNoteId", "value": "", "type": "string" },
-    { "key": "debitNoteId", "value": "", "type": "string" },
-    { "key": "retentionId", "value": "", "type": "string" },
-    { "key": "testEmail", "value": "tucorreo@email.com", "type": "string" },
-    { "key": "testRuc", "value": "1713175071001", "description": "RUC de empresa de prueba", "type": "string" },
-    { "key": "certBase64", "value": "", "description": "Certificado .p12 en Base64", "type": "string" },
+    { "key": "debitNoteId",  "value": "", "type": "string" },
+    { "key": "retentionId",  "value": "", "type": "string" },
+    { "key": "testEmail",    "value": "tucorreo@email.com", "type": "string" },
+    { "key": "testRuc",      "value": "1713175071001", "description": "RUC de empresa de prueba", "type": "string" },
+    { "key": "certBase64",   "value": "", "description": "Certificado .p12 en Base64", "type": "string" },
     { "key": "certPassword", "value": "", "description": "Contraseña del certificado .p12", "type": "string" }
   ],
   "item": [
@@ -24,7 +24,40 @@
       "description": "Autenticación Firebase. Ejecutar primero para obtener idToken.",
       "item": [
         {
-          "name": "Get ID Token (email + password)",
+          "name": "getAuthToken ★ (nuevo — sin SDK)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Tiene idToken', () => pm.expect(res.idToken).to.be.a('string'));",
+                  "if (res.idToken) {",
+                  "  pm.collectionVariables.set('idToken', res.idToken);",
+                  "  console.log('✅ Token guardado — expira en:', res.expiresIn, 'segundos');",
+                  "  console.log('👤 Usuario:', res.uid, '| companyId:', res.companyId, '| role:', res.role);",
+                  "} else {",
+                  "  pm.test('ERROR: no se obtuvo token', () => false);",
+                  "  console.log(JSON.stringify(res));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/getAuthToken",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@tuempresa.com\",\n  \"password\": \"tu_password\"\n}"
+            },
+            "description": "Endpoint HTTP simple (no callable). Retorna el Firebase ID Token decodificando también companyId y role de los custom claims.\n\nVentaja sobre el endpoint de Google: este también retorna companyId y role listos para usar."
+          }
+        },
+        {
+          "name": "Get ID Token (Google Identity — alternativa)",
           "event": [
             {
               "listen": "test",
@@ -50,7 +83,8 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"admin@tuempresa.com\",\n  \"password\": \"tu_password\",\n  \"returnSecureToken\": true\n}"
-            }
+            },
+            "description": "Alternativa directa a Google Identity Toolkit. No retorna companyId ni role."
           }
         }
       ]
@@ -178,7 +212,7 @@
     },
     {
       "name": "2. Factura Electrónica",
-      "description": "Flujo completo: XML → Firma → SRI → PDF → Email",
+      "description": "Flujo paso a paso: XML → Firma → SRI → PDF → Email.\n\n⚠️ Requiere invoiceId existente en Firestore. Para crear la factura desde cero usar la carpeta **8. Integración Externa**.",
       "item": [
         {
           "name": "2.1 generateInvoiceXml",
@@ -198,13 +232,10 @@
                   "const digits = key.split('').map(Number);",
                   "const weights = [2,3,4,5,6,7];",
                   "let sum = 0;",
-                  "for (let i = 0; i < 48; i++) {",
-                  "  sum += digits[i] * weights[i % 6];",
-                  "}",
+                  "for (let i = 0; i < 48; i++) { sum += digits[i] * weights[i % 6]; }",
                   "const remainder = sum % 11;",
                   "const verifier = remainder === 0 ? 0 : remainder === 1 ? 1 : 11 - remainder;",
                   "pm.test('Dígito verificador módulo 11 correcto', () => pm.expect(digits[48]).to.equal(verifier));",
-                  "",
                   "console.log('accessKey:', key);",
                   "console.log('xmlUrl:', res.result.xmlUrl);"
                 ]
@@ -262,18 +293,14 @@
                   "const res = pm.response.json();",
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
                   "pm.test('Tiene sriStatus', () => pm.expect(res.result.sriStatus).to.be.a('string'));",
-                  "",
                   "const status = res.result.sriStatus;",
                   "console.log('sriStatus:', status);",
-                  "",
                   "if (status === 'authorized') {",
-                  "  pm.test('AUTORIZADO: tiene authorizationNumber', () => pm.expect(res.result.authorizationNumber).to.be.a('string'));",
-                  "  pm.test('AUTORIZADO: tiene authorizedAt', () => pm.expect(res.result.authorizedAt).to.exist);",
-                  "  pm.test('authorizationNumber tiene 49 dígitos', () => pm.expect(res.result.authorizationNumber.length).to.equal(49));",
-                  "  console.log('Número autorización:', res.result.authorizationNumber);",
+                  "  pm.test('Tiene authorizationNumber', () => pm.expect(res.result.authorizationNumber).to.be.a('string'));",
+                  "  pm.test('authorizationNumber 49 dígitos', () => pm.expect(res.result.authorizationNumber.length).to.equal(49));",
+                  "  console.log('✅ Número autorización:', res.result.authorizationNumber);",
                   "} else if (status === 'rejected') {",
-                  "  console.log('RECHAZADO - Error SRI:', res.result.sriError);",
-                  "  pm.test('RECHAZADO: tiene sriError', () => pm.expect(res.result.sriError).to.be.a('string'));",
+                  "  console.log('❌ RECHAZADO:', res.result.sriError);",
                   "}"
                 ]
               }
@@ -395,8 +422,7 @@
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
                   "pm.test('Tiene accessKey', () => pm.expect(res.result.accessKey).to.be.a('string'));",
                   "pm.test('accessKey tiene 49 dígitos', () => pm.expect(res.result.accessKey.length).to.equal(49));",
-                  "// Validar codDoc = 04 (posición 8-9 del accessKey)",
-                  "pm.test('codDoc es 04 (Nota de Crédito)', () => pm.expect(res.result.accessKey.substring(8,10)).to.equal('04'));",
+                  "pm.test('codDoc es 04 (NC)', () => pm.expect(res.result.accessKey.substring(8,10)).to.equal('04'));",
                   "console.log('accessKey NC:', res.result.accessKey);"
                 ]
               }
@@ -505,7 +531,7 @@
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
                   "pm.test('Tiene accessKey', () => pm.expect(res.result.accessKey).to.be.a('string'));",
                   "pm.test('accessKey tiene 49 dígitos', () => pm.expect(res.result.accessKey.length).to.equal(49));",
-                  "pm.test('codDoc es 05 (Nota de Débito)', () => pm.expect(res.result.accessKey.substring(8,10)).to.equal('05'));"
+                  "pm.test('codDoc es 05 (ND)', () => pm.expect(res.result.accessKey.substring(8,10)).to.equal('05'));"
                 ]
               }
             }
@@ -808,6 +834,324 @@
               "mode": "raw",
               "raw": "{\n  \"data\": {\n    \"invoiceId\": \"ID_QUE_NO_EXISTE_XXXXXXXX\",\n    \"companyId\": \"{{companyId}}\"\n  }\n}"
             }
+          }
+        },
+        {
+          "name": "createAndEmitInvoice — vatPct inválido → invalid-argument",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Debe retornar 400', () => pm.response.to.have.status(400));",
+                  "const res = pm.response.json();",
+                  "pm.test('Error invalid-argument', () => pm.expect(res.error.status).to.equal('INVALID_ARGUMENT'));",
+                  "pm.test('Mensaje menciona vatPct', () => pm.expect(res.error.message).to.include('vatPct'));",
+                  "console.log('Error esperado:', res.error.message);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{idToken}}" }
+            ],
+            "url": "{{baseUrl}}/createAndEmitInvoice",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"companyId\": \"{{companyId}}\",\n    \"customer\": {\n      \"taxId\": \"1712345678\",\n      \"taxIdType\": \"CI\",\n      \"name\": \"Test Error\"\n    },\n    \"lines\": [\n      {\n        \"description\": \"Producto con IVA inválido\",\n        \"quantity\": 1,\n        \"unitPrice\": 10.00,\n        \"vatPct\": 12\n      }\n    ]\n  }\n}"
+            },
+            "description": "vatPct=12 no es válido. Valores permitidos: 0, 5, 15."
+          }
+        },
+        {
+          "name": "createAndEmitInvoice — sin líneas → invalid-argument",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Debe retornar 400', () => pm.response.to.have.status(400));",
+                  "const res = pm.response.json();",
+                  "pm.test('Error invalid-argument', () => pm.expect(res.error.status).to.equal('INVALID_ARGUMENT'));",
+                  "console.log('Error esperado:', res.error.message);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{idToken}}" }
+            ],
+            "url": "{{baseUrl}}/createAndEmitInvoice",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"companyId\": \"{{companyId}}\",\n    \"customer\": {\n      \"taxId\": \"1712345678\",\n      \"taxIdType\": \"CI\",\n      \"name\": \"Test Error\"\n    },\n    \"lines\": []\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "getAuthToken — credenciales incorrectas → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Debe retornar 401', () => pm.response.to.have.status(401));",
+                  "const res = pm.response.json();",
+                  "pm.test('Error INVALID_CREDENTIALS', () => pm.expect(res.error).to.equal('INVALID_CREDENTIALS'));",
+                  "console.log('Error esperado:', res.message);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/getAuthToken",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"usuario@empresa.com\",\n  \"password\": \"PASSWORD_INCORRECTA_XYZ\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Integración Externa ★",
+      "description": "createAndEmitInvoice — flujo completo para sistemas externos.\n\n**Flujo recomendado:**\n1. Ejecutar cualquier request de creación (8.1 a 8.5)\n2. El invoiceId se guarda automáticamente en la variable de colección\n3. Ejecutar 8.6 checkSriStatus para ver el resultado",
+      "item": [
+        {
+          "name": "8.1 createAndEmitInvoice — Cliente CI (async)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Tiene invoiceId', () => pm.expect(res.result.invoiceId).to.be.a('string'));",
+                  "pm.test('Tiene fullNumber', () => pm.expect(res.result.fullNumber).to.be.a('string'));",
+                  "pm.test('Status es processing o authorized', () => {",
+                  "  pm.expect(['processing','authorized','not_required']).to.include(res.result.status);",
+                  "});",
+                  "if (res.result.invoiceId) {",
+                  "  pm.collectionVariables.set('invoiceId', res.result.invoiceId);",
+                  "  console.log('✅ invoiceId guardado:', res.result.invoiceId);",
+                  "  console.log('📄 fullNumber:', res.result.fullNumber);",
+                  "  console.log('⏳ status:', res.result.status);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{idToken}}" }
+            ],
+            "url": "{{baseUrl}}/createAndEmitInvoice",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"companyId\": \"{{companyId}}\",\n    \"externalId\": \"test-ci-{{$timestamp}}\",\n    \"source\": \"postman_test\",\n    \"mode\": \"async\",\n    \"date\": \"2026-09-03\",\n    \"customer\": {\n      \"taxId\": \"1712345678\",\n      \"taxIdType\": \"CI\",\n      \"name\": \"Juan Carlos Pérez\",\n      \"email\": \"juan@email.com\",\n      \"address\": \"Av. Amazonas 123, Quito\"\n    },\n    \"lines\": [\n      {\n        \"sku\": \"SERV-001\",\n        \"description\": \"Servicio de consultoría técnica\",\n        \"quantity\": 2,\n        \"unitPrice\": 100.00,\n        \"vatPct\": 15\n      }\n    ],\n    \"paymentMethods\": [\n      { \"code\": \"01\", \"amount\": 230.00, \"deadline\": 0, \"timeUnit\": \"dias\" }\n    ],\n    \"notes\": \"Factura de prueba Postman — CI\"\n  }\n}"
+            },
+            "description": "Crea una factura para un cliente con Cédula de Identidad. Usa mode:async — el pipeline SRI corre en background. Ejecutar 8.6 checkSriStatus después de ~10 segundos para ver el resultado."
+          }
+        },
+        {
+          "name": "8.2 createAndEmitInvoice — Cliente RUC (async)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Tiene invoiceId', () => pm.expect(res.result.invoiceId).to.be.a('string'));",
+                  "if (res.result.invoiceId) {",
+                  "  pm.collectionVariables.set('invoiceId', res.result.invoiceId);",
+                  "  console.log('✅ invoiceId:', res.result.invoiceId, '| fullNumber:', res.result.fullNumber);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{idToken}}" }
+            ],
+            "url": "{{baseUrl}}/createAndEmitInvoice",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"companyId\": \"{{companyId}}\",\n    \"externalId\": \"test-ruc-{{$timestamp}}\",\n    \"source\": \"postman_test\",\n    \"mode\": \"async\",\n    \"date\": \"2026-09-03\",\n    \"customer\": {\n      \"taxId\": \"0912345678001\",\n      \"taxIdType\": \"RUC\",\n      \"name\": \"EMPRESA CLIENTE S.A.\",\n      \"email\": \"contabilidad@cliente.com\",\n      \"address\": \"Av. Patria 456, Guayaquil\"\n    },\n    \"lines\": [\n      {\n        \"sku\": \"PROD-001\",\n        \"description\": \"Producto con IVA 15% y descuento 5%\",\n        \"quantity\": 10,\n        \"unitPrice\": 25.00,\n        \"discountPct\": 5,\n        \"vatPct\": 15\n      },\n      {\n        \"sku\": \"PROD-002\",\n        \"description\": \"Producto exento IVA 0%\",\n        \"quantity\": 3,\n        \"unitPrice\": 50.00,\n        \"vatPct\": 0\n      }\n    ],\n    \"paymentMethods\": [\n      { \"code\": \"19\", \"amount\": 437.50, \"deadline\": 30, \"timeUnit\": \"dias\" }\n    ]\n  }\n}"
+            },
+            "description": "Factura con cliente RUC, múltiples líneas, descuento por línea y mezcla de IVA 15% + IVA 0%."
+          }
+        },
+        {
+          "name": "8.3 createAndEmitInvoice — Consumidor Final (async)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Tiene invoiceId', () => pm.expect(res.result.invoiceId).to.be.a('string'));",
+                  "if (res.result.invoiceId) {",
+                  "  pm.collectionVariables.set('invoiceId', res.result.invoiceId);",
+                  "  console.log('✅ invoiceId:', res.result.invoiceId, '| fullNumber:', res.result.fullNumber);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{idToken}}" }
+            ],
+            "url": "{{baseUrl}}/createAndEmitInvoice",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"companyId\": \"{{companyId}}\",\n    \"externalId\": \"test-cf-{{$timestamp}}\",\n    \"source\": \"postman_test\",\n    \"mode\": \"async\",\n    \"customer\": {\n      \"taxId\": \"9999999999999\",\n      \"taxIdType\": \"CONSUMIDOR_FINAL\",\n      \"name\": \"CONSUMIDOR FINAL\"\n    },\n    \"lines\": [\n      {\n        \"description\": \"Venta al por menor — artículos varios\",\n        \"quantity\": 3,\n        \"unitPrice\": 12.50,\n        \"vatPct\": 15\n      }\n    ]\n  }\n}"
+            },
+            "description": "Consumidor Final con taxId 9999999999999. Sin email ni dirección. Sin paymentMethods — usa efectivo (01) por defecto."
+          }
+        },
+        {
+          "name": "8.4 createAndEmitInvoice — Modo SYNC (espera resultado completo)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Tiene invoiceId', () => pm.expect(res.result.invoiceId).to.be.a('string'));",
+                  "if (res.result.invoiceId) {",
+                  "  pm.collectionVariables.set('invoiceId', res.result.invoiceId);",
+                  "}",
+                  "const status = res.result.status;",
+                  "console.log('status final:', status);",
+                  "if (status === 'authorized') {",
+                  "  pm.test('✅ SRI autorizó', () => pm.expect(status).to.equal('authorized'));",
+                  "  pm.test('Tiene accessKey', () => pm.expect(res.result.accessKey).to.be.a('string'));",
+                  "  pm.test('accessKey 49 dígitos', () => pm.expect(res.result.accessKey.length).to.equal(49));",
+                  "  console.log('✅ Autorizado. accessKey:', res.result.accessKey);",
+                  "  console.log('📄 pdfUrl:', res.result.pdfUrl);",
+                  "} else if (status === 'processing') {",
+                  "  console.log('⏳ SRI tardó — ejecutar 8.6 checkSriStatus');",
+                  "} else if (status === 'rejected') {",
+                  "  pm.test('SRI rechazó (revisar datos)', () => false);",
+                  "  console.log('❌ SRI error:', res.result.sriError);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{idToken}}" }
+            ],
+            "url": "{{baseUrl}}/createAndEmitInvoice",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"companyId\": \"{{companyId}}\",\n    \"externalId\": \"test-sync-{{$timestamp}}\",\n    \"source\": \"postman_test\",\n    \"mode\": \"sync\",\n    \"syncTimeoutMs\": 60000,\n    \"date\": \"2026-09-03\",\n    \"customer\": {\n      \"taxId\": \"1712345678\",\n      \"taxIdType\": \"CI\",\n      \"name\": \"Test Modo Sync\",\n      \"email\": \"sync@test.com\"\n    },\n    \"lines\": [\n      {\n        \"sku\": \"SYNC-001\",\n        \"description\": \"Servicio prueba modo synchronous\",\n        \"quantity\": 1,\n        \"unitPrice\": 50.00,\n        \"vatPct\": 15\n      }\n    ],\n    \"paymentMethods\": [\n      { \"code\": \"01\", \"amount\": 57.50 }\n    ]\n  }\n}"
+            },
+            "description": "⚠️ Este request puede tardar hasta 60 segundos esperando la respuesta del SRI. Si el SRI responde a tiempo, retorna el resultado completo (accessKey, pdfUrl, authorizationNumber) en una sola llamada."
+          }
+        },
+        {
+          "name": "8.5 createAndEmitInvoice — Idempotencia (mismo externalId)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Primero creamos la factura con un externalId fijo",
+                  "// Luego ejecutamos este request DOS veces — la segunda debe retornar isDuplicate:true"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Tiene invoiceId', () => pm.expect(res.result.invoiceId).to.be.a('string'));",
+                  "if (res.result.isDuplicate) {",
+                  "  pm.test('✅ Idempotencia correcta — isDuplicate=true', () => pm.expect(res.result.isDuplicate).to.be.true);",
+                  "  console.log('♻️ Documento existente retornado. invoiceId:', res.result.invoiceId);",
+                  "} else {",
+                  "  console.log('🆕 Primera ejecución. Ejecuta de nuevo para ver isDuplicate=true. invoiceId:', res.result.invoiceId);",
+                  "  pm.collectionVariables.set('invoiceId', res.result.invoiceId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{idToken}}" }
+            ],
+            "url": "{{baseUrl}}/createAndEmitInvoice",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"companyId\": \"{{companyId}}\",\n    \"externalId\": \"idempotencia-test-FIJO-001\",\n    \"source\": \"postman_idempotencia\",\n    \"mode\": \"async\",\n    \"customer\": {\n      \"taxId\": \"1712345678\",\n      \"taxIdType\": \"CI\",\n      \"name\": \"Test Idempotencia\"\n    },\n    \"lines\": [\n      {\n        \"description\": \"Producto prueba idempotencia\",\n        \"quantity\": 1,\n        \"unitPrice\": 10.00,\n        \"vatPct\": 15\n      }\n    ]\n  }\n}"
+            },
+            "description": "⚠️ Ejecutar DOS veces con el mismo externalId (FIJO). La segunda ejecución debe retornar isDuplicate:true sin crear un documento nuevo."
+          }
+        },
+        {
+          "name": "8.6 checkSriStatus — Polling resultado pipeline",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Tiene sriStatus', () => pm.expect(res.result.sriStatus).to.be.a('string'));",
+                  "const status = res.result.sriStatus;",
+                  "console.log('sriStatus:', status, '| estado SRI:', res.result.estado);",
+                  "if (status === 'authorized') {",
+                  "  pm.test('✅ AUTORIZADO', () => pm.expect(status).to.equal('authorized'));",
+                  "  console.log('🔑 authorizationNumber:', res.result.authorizationNumber);",
+                  "} else if (status === 'rejected') {",
+                  "  console.log('❌ RECHAZADO:', res.result.mensaje);",
+                  "} else if (status === 'pending' || status === 'xml_generated' || status === 'signed') {",
+                  "  console.log('⏳ Aún procesando. Estado:', status, '— volver a ejecutar en ~5 segundos.');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{idToken}}" }
+            ],
+            "url": "{{baseUrl}}/checkSriStatus",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"invoiceId\": \"{{invoiceId}}\",\n    \"companyId\": \"{{companyId}}\",\n    \"documentType\": \"invoice\"\n  }\n}"
+            },
+            "description": "Consulta el estado de autorización SRI para la última factura creada. El invoiceId se llena automáticamente desde los requests 8.1-8.5.\n\n**Estados del pipeline:**\n- `pending` → recibida, en cola\n- `xml_generated` → XML generado\n- `signed` → XML firmado XAdES-BES\n- `authorized` → ✅ autorizada por el SRI\n- `rejected` → ❌ rechazada\n- `not_required` → empresa sin facturación electrónica"
           }
         }
       ]
