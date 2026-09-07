@@ -16,7 +16,7 @@
         </select>
       } @else {
         <div class="text-secondary small">
-          No hay cuentas bancarias activas. Cree una en Contabilidad → Cuentas Bancarias.
+          Sin cuentas bancarias activas — el pago se registrará sin asiento contable.
         </div>
       }
     </div>
@@ -28,7 +28,7 @@
 
   <c-modal-footer>
     <button cButton color="secondary" variant="outline" (click)="onVisibleChange(false)">Cancelar</button>
-    <button cButton color="primary" [disabled]="!selectedBankAccountId() || confirming" (click)="confirmClick()">
+    <button cButton color="primary" [disabled]="(bankAccounts().length > 0 && !selectedBankAccountId()) || confirming" (click)="confirmClick()">
       @if (confirming) {
         <c-spinner size="sm" class="me-1"></c-spinner>
       }

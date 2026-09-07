@@ -351,8 +351,6 @@
                   <div class="cl-card__stock-row">
                     @if (p.noStock) {
                       <span class="cl-stock cl-stock--service">Servicio</span>
-                    } @else if (!p.trackStock) {
-                      <span class="cl-stock cl-stock--service">Disponible</span>
                     } @else if (p.stockAvailable > 0) {
                       <span class="cl-stock cl-stock--in">Disponible</span>
                     } @else {

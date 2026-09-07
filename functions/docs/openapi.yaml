@@ -920,6 +920,288 @@ components:
           format: uri
           description: "URL pública de Cloud Storage del archivo solicitado."
 
+    # ── DevTools ──────────────────────────────────────────────────────────────────
+    GetAuthTokenRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          description: "Email del usuario registrado en Firebase Auth."
+          example: "admin@miempresa.com"
+        password:
+          type: string
+          format: password
+          description: "Contraseña del usuario."
+          example: "micontraseña123"
+
+    GetAuthTokenResponse:
+      type: object
+      properties:
+        idToken:
+          type: string
+          description: |
+            Firebase ID Token JWT. Úsalo en el header de todas las Cloud Functions callable:
+            `Authorization: Bearer <idToken>`
+          example: "eyJhbGciOiJSUzI1NiIsImtpZCI6..."
+        expiresIn:
+          type: string
+          description: "Tiempo de vida del token en segundos. Default Firebase: 3600 (1 hora)."
+          example: "3600"
+        tokenType:
+          type: string
+          example: "Bearer"
+        uid:
+          type: string
+          description: "UID del usuario en Firebase Auth."
+        companyId:
+          type: string
+          nullable: true
+          description: "companyId del custom claim. null si el usuario es super_admin sin empresa vinculada."
+        role:
+          type: string
+          nullable: true
+          description: "Rol del usuario: admin, seller, accountant, cashier, read_only, super_admin."
+        usage:
+          type: string
+          example: "Agrega el idToken en el header: Authorization: Bearer <idToken>"
+
+    # ── createAndEmitInvoice ──────────────────────────────────────────────────────
+    ExternalInvoiceLine:
+      type: object
+      required: [description, quantity, unitPrice, vatPct]
+      properties:
+        sku:
+          type: string
+          nullable: true
+          description: "Código del producto en el sistema de origen."
+          example: "PROD-001"
+        description:
+          type: string
+          description: "Descripción del producto o servicio."
+          example: "Servicio de consultoría mensual"
+        quantity:
+          type: number
+          format: float
+          description: "Cantidad. Acepta decimales (hasta 6 según XSD del SRI)."
+          example: 2
+        unitPrice:
+          type: number
+          format: float
+          description: "Precio unitario sin IVA."
+          example: 100.00
+        discountPct:
+          type: number
+          format: float
+          nullable: true
+          description: "Porcentaje de descuento sobre la línea (0-100). Default: 0."
+          example: 0
+        vatPct:
+          type: number
+          enum: [0, 5, 15]
+          description: |
+            Porcentaje de IVA según tarifas vigentes Ecuador 2024+:
+            - `0` — Tarifa 0% (exento o no objeto de IVA)
+            - `5` — Tarifa 5%
+            - `15` — Tarifa 15% (tarifa general vigente)
+          example: 15
+        unit:
+          type: string
+          nullable: true
+          description: "Unidad de medida. Default: UNIDAD."
+          example: "HORA"
+
+    ExternalCustomer:
+      type: object
+      required: [taxId, taxIdType, name]
+      properties:
+        taxId:
+          type: string
+          description: |
+            Número de identificación del comprador.
+            - RUC: 13 dígitos
+            - Cédula: 10 dígitos
+            - Pasaporte: alfanumérico
+            - Consumidor Final: exactamente `9999999999999`
+          example: "1712345678001"
+        taxIdType:
+          type: string
+          enum: [RUC, CI, PASAPORTE, CONSUMIDOR_FINAL, EXTERIOR]
+          description: "Tipo de identificación del comprador."
+          example: "RUC"
+        name:
+          type: string
+          description: "Razón social o nombre completo del comprador."
+          example: "EMPRESA CLIENTE S.A."
+        email:
+          type: string
+          format: email
+          nullable: true
+          description: "Email del comprador. Se usa para envío automático del PDF RIDE."
+          example: "facturacion@cliente.com"
+        address:
+          type: string
+          nullable: true
+          description: "Dirección del comprador (para infoAdicional del XML)."
+          example: "Av. Amazonas 123, Quito"
+
+    ExternalPaymentMethod:
+      type: object
+      required: [code]
+      properties:
+        code:
+          type: string
+          description: |
+            Código SRI de forma de pago (Tabla 24 Ficha Técnica SRI):
+            - `01` — Sin utilización del sistema financiero (efectivo)
+            - `15` — Compensación de deudas
+            - `16` — Tarjeta de débito
+            - `17` — Dinero electrónico
+            - `18` — Tarjeta prepago
+            - `19` — Tarjeta de crédito
+            - `20` — Otros con utilización del sistema financiero
+            - `21` — Endoso de títulos
+          example: "01"
+        amount:
+          type: number
+          format: float
+          nullable: true
+          description: "Monto de este método de pago. Si se omite, se usa el total de la factura."
+          example: 230.00
+        deadline:
+          type: integer
+          nullable: true
+          description: "Plazo en unidades de tiempo. Para pago inmediato: 0."
+          example: 0
+        timeUnit:
+          type: string
+          nullable: true
+          description: "Unidad de tiempo del plazo: dias, meses, anios."
+          example: "dias"
+
+    CreateAndEmitInvoiceRequest:
+      type: object
+      required: [companyId, customer, lines]
+      properties:
+        companyId:
+          type: string
+          description: |
+            ID de la empresa en Firestore (`companies/{companyId}`).
+            **Seguridad:** se valida contra el `companyId` del Firebase ID Token.
+            Un usuario no puede emitir facturas en nombre de otra empresa.
+          example: "abc123xyz"
+        externalId:
+          type: string
+          nullable: true
+          description: |
+            ID de la factura en el sistema de origen (idempotencia).
+            Si ya existe un documento con el mismo `externalId` para este `companyId`,
+            se retorna ese documento sin crear uno nuevo.
+          example: "buseta-inv-2026-001"
+        source:
+          type: string
+          nullable: true
+          description: "Etiqueta del sistema que origina la factura (trazabilidad)."
+          example: "flutter_app"
+        date:
+          type: string
+          format: date
+          nullable: true
+          description: "Fecha de emisión YYYY-MM-DD. Default: fecha actual (zona Ecuador)."
+          example: "2026-09-03"
+        customer:
+          $ref: '#/components/schemas/ExternalCustomer'
+        lines:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/ExternalInvoiceLine'
+        paymentMethods:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/ExternalPaymentMethod'
+          description: "Si se omite, se usa pago inmediato en efectivo (código 01) por el total."
+        notes:
+          type: string
+          nullable: true
+          description: "Notas internas. No aparecen en el XML del SRI."
+        mode:
+          type: string
+          enum: [async, sync]
+          default: async
+          description: |
+            - `async` (default): retorna `{ invoiceId, status: 'processing' }` inmediatamente.
+              El pipeline SRI corre en background. Usar `checkSriStatus` para consultar el resultado.
+            - `sync`: espera hasta que el SRI responda (o hasta `syncTimeoutMs`).
+              Retorna el resultado completo en una sola llamada. Riesgo de timeout con SRI lento.
+        syncTimeoutMs:
+          type: integer
+          nullable: true
+          description: "Solo en mode=sync. Tiempo máximo de espera en ms. Default: 45000. Máximo: 90000."
+          example: 45000
+
+    CreateAndEmitInvoiceResponse:
+      type: object
+      properties:
+        invoiceId:
+          type: string
+          description: "ID del documento creado en `companies/{companyId}/invoices/{invoiceId}`."
+          example: "Kj8mN2pQrT4w"
+        fullNumber:
+          type: string
+          description: "Número de factura asignado: estab-ptoEmi-secuencial."
+          example: "001-001-000000042"
+        status:
+          type: string
+          enum: [processing, authorized, rejected, not_required, plan_limit_reached]
+          description: |
+            - `processing`: factura creada, pipeline SRI corriendo en background (modo async o timeout sync).
+            - `authorized`: SRI autorizó el comprobante (solo en modo sync con respuesta a tiempo).
+            - `rejected`: SRI rechazó el comprobante (solo en modo sync).
+            - `not_required`: empresa sin facturación electrónica habilitada en el plan.
+            - `plan_limit_reached`: límite mensual de facturas SRI alcanzado.
+        isDuplicate:
+          type: boolean
+          nullable: true
+          description: "true si se retornó un documento existente por coincidencia de externalId."
+        message:
+          type: string
+          nullable: true
+          description: "Mensaje descriptivo del estado. Incluye instrucción de polling en modo async."
+        accessKey:
+          type: string
+          nullable: true
+          description: "Clave de acceso SRI de 49 dígitos. Solo disponible en modo sync cuando authorized."
+        authorizationNumber:
+          type: string
+          nullable: true
+          description: "Número de autorización SRI. Solo disponible en modo sync cuando authorized."
+        authorizedAt:
+          type: object
+          nullable: true
+          description: "Timestamp de autorización SRI."
+        xmlUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: "URL del XML original en Cloud Storage. Solo en modo sync."
+        signedXmlUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: "URL del XML firmado XAdES-BES en Cloud Storage. Solo en modo sync."
+        pdfUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: "URL del PDF RIDE en Cloud Storage. Solo en modo sync cuando authorized."
+        sriError:
+          type: string
+          nullable: true
+          description: "Mensaje de error del SRI. Solo en modo sync cuando rejected."
+
 tags:
   - name: Auth
     description: "Autenticación y asignación de roles custom claims."
@@ -945,6 +1227,10 @@ tags:
     description: "Funciones background disparadas por cambios en Firestore. Sin endpoint HTTP directo. Solo referencia."
   - name: Scheduled
     description: "Funciones que corren en horario automático (Cloud Scheduler). Sin endpoint HTTP directo. Solo referencia."
+  - name: DevTools
+    description: |
+      Herramientas de desarrollo e integración. Facilitan pruebas desde Postman, Swagger UI, curl
+      o cualquier cliente HTTP sin SDK de Firebase. No forman parte del flujo de usuario final.
 
 paths:
   # ────────────────────────────────────────────────────────────────────────────────
@@ -1060,6 +1346,318 @@ paths:
                 $ref: '#/components/schemas/CallableError'
         '500':
           description: Error interno.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+
+  # ────────────────────────────────────────────────────────────────────────────────
+  # DEVTOOLS — Autenticación rápida para pruebas e integraciones
+  # ────────────────────────────────────────────────────────────────────────────────
+  /getAuthToken:
+    post:
+      tags: [DevTools]
+      summary: "Obtener Firebase ID Token a partir de email + password"
+      description: |
+        Endpoint HTTP (no callable) para obtener un Firebase ID Token sin necesidad
+        del SDK de Firebase. Diseñado para pruebas rápidas desde Postman, Swagger UI,
+        curl o cualquier cliente HTTP, y para sistemas externos (Spring Boot, scripts,
+        CI/CD) que necesitan autenticarse.
+
+        **Flujo:**
+        1. Envía `{ email, password }` en el body.
+        2. La función llama a la Firebase Auth REST API y retorna el `idToken`.
+        3. Usa el `idToken` en el header `Authorization: Bearer <idToken>` en todas
+           las llamadas a las Cloud Functions callable.
+
+        **Nota:** El token expira en 1 hora (3600 segundos). Puedes guardarlo y
+        reutilizarlo hasta su expiración.
+
+        **Nota de seguridad:** Este endpoint es una herramienta de desarrollo.
+        Para producción, usar el SDK de Firebase en el cliente.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GetAuthTokenRequest'
+            examples:
+              admin:
+                summary: "Login como admin de empresa"
+                value:
+                  email: "admin@miempresa.com"
+                  password: "contraseña123"
+              superadmin:
+                summary: "Login como super_admin"
+                value:
+                  email: "superadmin@facturasec.com"
+                  password: "contraseña123"
+      responses:
+        '200':
+          description: "Token generado correctamente."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetAuthTokenResponse'
+              example:
+                idToken: "eyJhbGciOiJSUzI1NiIsImtpZCI6..."
+                expiresIn: "3600"
+                tokenType: "Bearer"
+                uid: "aBcDeFgH123"
+                companyId: "empresa-xyz-001"
+                role: "admin"
+                usage: "Agrega el idToken en el header: Authorization: Bearer <idToken>"
+        '400':
+          description: "Email o password faltante."
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error: { type: string, example: "INVALID_ARGUMENT" }
+                  message: { type: string, example: "email es requerido." }
+        '401':
+          description: "Credenciales incorrectas."
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error: { type: string, example: "INVALID_CREDENTIALS" }
+                  message: { type: string, example: "Email o contraseña incorrectos." }
+        '403':
+          description: "Usuario deshabilitado."
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error: { type: string, example: "USER_DISABLED" }
+                  message: { type: string }
+        '429':
+          description: "Demasiados intentos fallidos."
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error: { type: string, example: "TOO_MANY_ATTEMPTS" }
+                  message: { type: string }
+        '500':
+          description: "Error interno."
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error: { type: string, example: "INTERNAL" }
+                  message: { type: string }
+
+  # ────────────────────────────────────────────────────────────────────────────────
+  # INVOICES — createAndEmitInvoice (puerta de entrada para sistemas externos)
+  # ────────────────────────────────────────────────────────────────────────────────
+  /createAndEmitInvoice:
+    post:
+      tags: [Invoices]
+      summary: "Crear y emitir factura electrónica desde un sistema externo"
+      description: |
+        **Función puente para sistemas externos** (Flutter, Spring Boot, ERPs, Zapier, etc.)
+        que necesitan emitir facturas electrónicas sin acceso directo a Firestore.
+
+        Acepta el payload completo de la factura, crea el documento en Firestore con el
+        secuencial correcto, y dispara automáticamente el pipeline SRI completo:
+        `XML → firma XAdES-BES → SRI → PDF RIDE → email`.
+
+        ### Modos de operación
+
+        **Modo async (recomendado):**
+        Retorna `{ invoiceId, status: 'processing' }` inmediatamente.
+        Luego hacer polling con `checkSriStatus` hasta obtener `authorized` o `rejected`.
+
+        **Modo sync:**
+        Espera hasta que el SRI responda. Retorna el resultado completo en una sola llamada.
+        Útil para integraciones simples. Riesgo de timeout si el SRI tarda más de `syncTimeoutMs`.
+
+        ### Idempotencia
+        Si se envía el campo `externalId`, la función es idempotente: si ya existe un documento
+        con ese `externalId` para el mismo `companyId`, retorna ese documento sin crear uno nuevo.
+
+        ### Seguridad multi-tenant
+        El `companyId` se valida contra el claim del token JWT. Un usuario no puede emitir
+        facturas en nombre de una empresa diferente a la suya.
+
+        ### Cálculo automático de totales
+        No es necesario calcular `subtotal`, `vatAmount` ni `total` — la función los calcula
+        automáticamente desde `quantity`, `unitPrice`, `discountPct` y `vatPct` de cada línea.
+
+        ### Polling con checkSriStatus (modo async)
+        ```
+        POST /checkSriStatus
+        { "data": { "invoiceId": "<invoiceId>", "companyId": "<companyId>" } }
+        ```
+        Consultar cada 2-3 segundos hasta que `sriStatus` sea `authorized` o `rejected`.
+      security:
+        - FirebaseIdToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: '#/components/schemas/CreateAndEmitInvoiceRequest'
+            examples:
+              flutter_async:
+                summary: "Desde Flutter — modo async (recomendado)"
+                value:
+                  data:
+                    companyId: "empresa-xyz-001"
+                    externalId: "flutter-inv-2026-001"
+                    source: "flutter_app"
+                    mode: "async"
+                    date: "2026-09-03"
+                    customer:
+                      taxId: "1712345678"
+                      taxIdType: "CI"
+                      name: "Juan Pérez"
+                      email: "juan@email.com"
+                    lines:
+                      - sku: "SERV-001"
+                        description: "Servicio de consultoría"
+                        quantity: 2
+                        unitPrice: 100.00
+                        vatPct: 15
+                    paymentMethods:
+                      - code: "01"
+                        amount: 230.00
+              spring_boot_sync:
+                summary: "Desde Spring Boot — modo sync"
+                value:
+                  data:
+                    companyId: "empresa-xyz-001"
+                    externalId: "buseta-factura-20260903-001"
+                    source: "buseta_backend"
+                    mode: "sync"
+                    syncTimeoutMs: 45000
+                    date: "2026-09-03"
+                    customer:
+                      taxId: "0912345678001"
+                      taxIdType: "RUC"
+                      name: "EMPRESA CLIENTE S.A."
+                      email: "contabilidad@cliente.com"
+                      address: "Av. Patria 123, Quito"
+                    lines:
+                      - sku: "RUTA-001"
+                        description: "Servicio de transporte urbano — Ruta Norte"
+                        quantity: 1
+                        unitPrice: 200.00
+                        vatPct: 15
+                      - sku: "RUTA-002"
+                        description: "Servicio de transporte urbano — Ruta Sur"
+                        quantity: 1
+                        unitPrice: 150.00
+                        vatPct: 0
+                    paymentMethods:
+                      - code: "19"
+                        amount: 230.00
+              consumidor_final:
+                summary: "Consumidor Final (sin identificación)"
+                value:
+                  data:
+                    companyId: "empresa-xyz-001"
+                    mode: "async"
+                    customer:
+                      taxId: "9999999999999"
+                      taxIdType: "CONSUMIDOR_FINAL"
+                      name: "CONSUMIDOR FINAL"
+                    lines:
+                      - description: "Producto varios"
+                        quantity: 3
+                        unitPrice: 10.00
+                        vatPct: 15
+      responses:
+        '200':
+          description: "Factura creada. Pipeline SRI iniciado."
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    $ref: '#/components/schemas/CreateAndEmitInvoiceResponse'
+              examples:
+                async_processing:
+                  summary: "Respuesta modo async"
+                  value:
+                    result:
+                      invoiceId: "Kj8mN2pQrT4w"
+                      fullNumber: "001-001-000000042"
+                      status: "processing"
+                      message: "Factura creada. Use checkSriStatus({ invoiceId, companyId }) para consultar el resultado."
+                sync_authorized:
+                  summary: "Respuesta modo sync — SRI autorizó"
+                  value:
+                    result:
+                      invoiceId: "Kj8mN2pQrT4w"
+                      fullNumber: "001-001-000000042"
+                      status: "authorized"
+                      accessKey: "0309202601179012345678001120010010000000421234567812"
+                      authorizationNumber: "0309202601179012345678001120010010000000421234567812"
+                      pdfUrl: "https://storage.googleapis.com/facturasproec.appspot.com/companies/.../pdf/Kj8mN2pQrT4w.pdf"
+                duplicate:
+                  summary: "Respuesta de duplicado (mismo externalId)"
+                  value:
+                    result:
+                      invoiceId: "Kj8mN2pQrT4w"
+                      fullNumber: "001-001-000000042"
+                      status: "authorized"
+                      isDuplicate: true
+        '400':
+          description: "Payload inválido."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+              examples:
+                missing_lines:
+                  value:
+                    error:
+                      status: "INVALID_ARGUMENT"
+                      message: "lines debe ser un arreglo con al menos un elemento."
+                invalid_vat:
+                  value:
+                    error:
+                      status: "INVALID_ARGUMENT"
+                      message: "lines[0].vatPct debe ser 0, 5 o 15. Recibido: 12"
+        '401':
+          description: "No autenticado."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '403':
+          description: "Sin permisos para operar en esa empresa."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '404':
+          description: "Empresa no encontrada."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '412':
+          description: "Empresa sin configuración SRI completa (establishment/emissionPoint faltante)."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallableError'
+        '500':
+          description: "Error interno."
           content:
             application/json:
               schema:

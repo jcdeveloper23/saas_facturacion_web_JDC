@@ -13,8 +13,9 @@ export { onPlanUpdated }         from './tenants/on-plan-updated';
 export { checkPlanLimit }        from './tenants/check-plan-limit';
 
 // Invoices / SRI
-export { uploadCertificate }    from './invoices/upload-certificate';
-export { generateInvoiceXml }   from './invoices/generate-invoice-xml';
+export { uploadCertificate }        from './invoices/upload-certificate';
+export { createAndEmitInvoice }     from './invoices/create-and-emit-invoice';
+export { generateInvoiceXml }       from './invoices/generate-invoice-xml';
 export { generateCreditNoteXml } from './invoices/generate-credit-note-xml';
 export { signXml }              from './invoices/sign-xml';
 export { sendToSri }            from './invoices/send-to-sri';
@@ -87,6 +88,7 @@ export { schoolScanQr }            from './school-bar/school-scan-qr';
 
 // Utils
 export { downloadDocument } from './utils/download-document';
+export { getAuthToken }     from './utils/get-auth-token';
 
 // Docs
 export { serveApiDocs } from './utils/serve-api-docs';

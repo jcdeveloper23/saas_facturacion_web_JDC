@@ -144,12 +144,13 @@ export class InvoicesService {
   }
 
   async markPaid(id: string, bankAccountId: string, date: string): Promise<void> {
-    await this.updateInvoice(id, {
+    const update: Record<string, any> = {
       status: 'paid',
       isPaid: true,
       paidAt: Timestamp.fromDate(new Date(date + 'T00:00:00')),
-      paymentBankAccountId: bankAccountId,
-    });
+    };
+    if (bankAccountId) update['paymentBankAccountId'] = bankAccountId;
+    await this.updateInvoice(id, update);
   }
 
   async markVoid(id: string): Promise<void> {

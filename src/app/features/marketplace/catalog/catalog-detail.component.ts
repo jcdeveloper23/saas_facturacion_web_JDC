@@ -125,9 +125,8 @@ export class CatalogDetailComponent implements OnInit, OnDestroy {
   decrementQty(): void { this.qty.update(q => Math.max(1, q - 1)); }
   incrementQty(): void { this.qty.update(q => q + 1); }
 
-  isOutOfStock(p: { stockAvailable: number; noStock: boolean; trackStock: boolean }): boolean {
-    // Solo está agotado si controla stock Y no es servicio Y no hay unidades disponibles
-    return p.trackStock && !p.noStock && p.stockAvailable === 0;
+  isOutOfStock(p: { stockAvailable: number; noStock: boolean }): boolean {
+    return !p.noStock && p.stockAvailable <= 0;
   }
 
   addToCart(e: MouseEvent): void {
