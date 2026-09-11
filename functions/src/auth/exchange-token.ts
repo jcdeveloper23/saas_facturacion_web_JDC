@@ -1,0 +1,165 @@
+import { onRequest } from 'firebase-functions/v2/https';
+import * as admin from 'firebase-admin';
+import { Timestamp } from 'firebase-admin/firestore';
+
+/**
+ * exchangeToken — Federación de identidad entre proyectos Firebase
+ *
+ * El SaaS de facturación es el sistema central. Los sistemas satélite
+ * (WeWorksCloud/Conectate y Mi Buseta) tienen su propio proyecto Firebase y su
+ * propio Auth, así que sus tokens NO sirven acá: un ID token solo es válido en
+ * el proyecto que lo emitió.
+ *
+ * Esta función recibe el ID token del proyecto de origen, lo verifica contra ese
+ * proyecto, busca la identidad en el registro `identity-links` y devuelve un
+ * custom token DE ESTE proyecto. El cliente hace signInWithCustomToken con una
+ * FirebaseApp secundaria y desde ahí ya puede llamar a las callables normales.
+ *
+ * Es onRequest y no onCall a propósito: en este punto el cliente todavía no
+ * tiene sesión en este proyecto, así que no hay request.auth que validar.
+ *
+ * Body:    { idToken: string, origin: 'work-cloud' | 'mi-buseta' }
+ * Returns: { customToken: string, uid: string, role: string, companyId: string | null }
+ */
+
+// ── Proyectos de origen autorizados ─────────────────────────────────────────
+// La credencial de cada uno llega por Secret Manager como JSON de service
+// account. Un origen sin credencial configurada queda deshabilitado.
+const ALLOWED_ORIGINS: Record<string, { projectId: string; credentialEnv: string }> = {
+  'work-cloud': {
+    projectId: 'work-cloud-df68a',
+    credentialEnv: 'WORK_CLOUD_SERVICE_ACCOUNT',
+  },
+  'mi-buseta': {
+    projectId: 'mi-buseta-357902',
+    credentialEnv: 'MI_BUSETA_SERVICE_ACCOUNT',
+  },
+};
+
+// Apps de Admin SDK secundarias, una por origen. Se cachean entre invocaciones
+// porque inicializar una app en cada request agota la instancia.
+const originApps = new Map<string, admin.app.App>();
+
+function getOriginApp(origin: string): admin.app.App {
+  const cached = originApps.get(origin);
+  if (cached) return cached;
+
+  const config = ALLOWED_ORIGINS[origin];
+  const raw = process.env[config.credentialEnv];
+  if (!raw) {
+    throw new Error(`Falta la credencial ${config.credentialEnv} para el origen '${origin}'.`);
+  }
+
+  const app = admin.initializeApp(
+    { credential: admin.credential.cert(JSON.parse(raw)) },
+    `origin-${origin}`,
+  );
+  originApps.set(origin, app);
+  return app;
+}
+
+export const exchangeToken = onRequest(
+  {
+    cors: true,
+    // Los secrets se declaran acá para que Functions los monte en el entorno.
+    secrets: ['WORK_CLOUD_SERVICE_ACCOUNT', 'MI_BUSETA_SERVICE_ACCOUNT'],
+  },
+  async (req, res) => {
+    if (req.method !== 'POST') {
+      res.status(405).json({ error: 'method-not-allowed', message: 'Usar POST.' });
+      return;
+    }
+
+    const { idToken, origin } = (req.body ?? {}) as { idToken?: string; origin?: string };
+
+    if (!idToken || typeof idToken !== 'string') {
+      res.status(400).json({ error: 'invalid-argument', message: 'idToken es requerido.' });
+      return;
+    }
+    if (!origin || !ALLOWED_ORIGINS[origin]) {
+      res.status(400).json({ error: 'invalid-argument', message: `Origen '${origin}' no autorizado.` });
+      return;
+    }
+
+    try {
+      // ── 1. Verificar el token contra el proyecto que lo emitió ─────────────
+      // checkRevoked: una sesión cerrada en el sistema de origen deja de servir acá.
+      const originAuth = getOriginApp(origin).auth();
+      const decoded = await originAuth.verifyIdToken(idToken, true);
+
+      const originUid = decoded.uid;
+      console.log('[exchangeToken] Token verificado:', { origin, originUid });
+
+      // ── 2. Buscar la identidad en el registro ──────────────────────────────
+      // El cliente NO decide su rol. Lo decide este registro, y nada más.
+      const db = admin.firestore();
+      const linkId = `${origin}:${originUid}`;
+      const linkSnap = await db.doc(`identity-links/${linkId}`).get();
+
+      if (!linkSnap.exists) {
+        console.warn('[exchangeToken] Identidad sin vincular:', linkId);
+        res.status(403).json({
+          error: 'permission-denied',
+          message: 'Esta cuenta no tiene acceso al sistema de facturación.',
+        });
+        return;
+      }
+
+      const link = linkSnap.data() as {
+        saasUid: string;
+        role: string;
+        companyId?: string | null;
+        enabled?: boolean;
+      };
+
+      if (link.enabled === false) {
+        res.status(403).json({
+          error: 'permission-denied',
+          message: 'El acceso de esta cuenta está deshabilitado.',
+        });
+        return;
+      }
+
+      // ── 3. Verificar que el usuario destino exista en este proyecto ────────
+      const auth = admin.auth();
+      try {
+        await auth.getUser(link.saasUid);
+      } catch {
+        console.error('[exchangeToken] saasUid inexistente:', link.saasUid);
+        res.status(500).json({
+          error: 'internal',
+          message: 'La cuenta vinculada ya no existe. Contacte al administrador.',
+        });
+        return;
+      }
+
+      // ── 4. Emitir el custom token con los claims del registro ──────────────
+      const claims: Record<string, unknown> = { role: link.role, origin, originUid };
+      if (link.companyId) claims['companyId'] = link.companyId;
+
+      const customToken = await auth.createCustomToken(link.saasUid, claims);
+
+      // Dejar rastro del último canje. Sirve para auditar accesos cruzados.
+      await linkSnap.ref.set({ lastExchangeAt: Timestamp.now() }, { merge: true });
+
+      res.status(200).json({
+        customToken,
+        uid: link.saasUid,
+        role: link.role,
+        companyId: link.companyId ?? null,
+      });
+    } catch (err: any) {
+      // Token expirado, revocado o firmado por otro proyecto.
+      if (typeof err?.code === 'string' && err.code.startsWith('auth/')) {
+        console.warn('[exchangeToken] Token rechazado:', err.code);
+        res.status(401).json({
+          error: 'unauthenticated',
+          message: 'La sesión de origen no es válida. Vuelva a iniciar sesión.',
+        });
+        return;
+      }
+      console.error('[exchangeToken] Error:', err);
+      res.status(500).json({ error: 'internal', message: 'No se pudo completar el intercambio.' });
+    }
+  },
+);
