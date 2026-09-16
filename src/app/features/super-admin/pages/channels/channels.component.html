@@ -1,0 +1,173 @@
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h5 class="mb-0">Canales</h5>
+    <small class="text-muted">Productos que venden la plataforma bajo su marca. Cada uno administra solo sus empresas.</small>
+  </div>
+  <button cButton color="primary" size="sm" (click)="openNew()">
+    <svg cIcon name="cilPlus" class="me-1"></svg> Nuevo Canal
+  </button>
+</div>
+
+<c-card>
+  <c-card-body>
+    @if (loading()) {
+    <div class="text-center py-4"><c-spinner color="primary"></c-spinner></div>
+    } @else if (channels().length === 0) {
+    <p class="text-center text-muted py-4">
+      Todavía no hay canales. Crea el primero, por ejemplo <code>conectate</code>.
+    </p>
+    } @else {
+    <table cTable hover responsive>
+      <thead>
+        <tr>
+          <th>Identificador</th>
+          <th>Nombre</th>
+          <th>Contacto</th>
+          <th class="text-end">Empresas</th>
+          <th>Administradores</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (c of channels(); track c.id) {
+        <tr>
+          <td class="font-monospace fw-semibold">{{ c.id }}</td>
+          <td>{{ c.name }}</td>
+          <td class="text-muted">{{ c.contactEmail || '—' }}</td>
+          <td class="text-end">
+            @if (companyCounts()[c.id] === undefined) {
+            <c-spinner size="sm" color="secondary"></c-spinner>
+            } @else {
+            {{ companyCounts()[c.id] ?? '—' }}
+            }
+          </td>
+          <td>
+            @for (a of admins(c); track a.uid) {
+            <div class="small">{{ a.email }}</div>
+            } @empty {
+            <span class="text-muted small">Sin administrador</span>
+            }
+          </td>
+          <td>
+            <c-badge [color]="c.status === 'active' ? 'success' : 'danger'">
+              {{ c.status === 'active' ? 'Activo' : 'Suspendido' }}
+            </c-badge>
+          </td>
+          <td>
+            <div class="d-flex gap-2">
+              <button cButton color="outline-primary" size="sm" (click)="openEdit(c)" title="Editar">
+                <svg cIcon name="cilPencil"></svg>
+              </button>
+              <button cButton color="outline-info" size="sm" (click)="openAdmins(c)" title="Administradores">
+                <svg cIcon name="cilPeople"></svg>
+              </button>
+              <button cButton [color]="c.status === 'active' ? 'outline-danger' : 'outline-success'" size="sm"
+                (click)="toggleStatus(c)" [title]="c.status === 'active' ? 'Suspender' : 'Reactivar'">
+                <svg cIcon [name]="c.status === 'active' ? 'cilBan' : 'cilCheck'"></svg>
+              </button>
+            </div>
+          </td>
+        </tr>
+        }
+      </tbody>
+    </table>
+    <small class="text-muted">
+      Los canales no se eliminan: tienen empresas y claims apuntando a su identificador. Para cortar el acceso, suspéndelo.
+    </small>
+    }
+  </c-card-body>
+</c-card>
+
+<!-- ─── Alta / edición ─────────────────────────────────────────────────── -->
+<c-modal [visible]="showModal()" (visibleChange)="showModal.set($event)" alignment="center">
+  <c-modal-header>
+    <h5 cModalTitle>{{ editingId() ? 'Editar Canal' : 'Nuevo Canal' }}</h5>
+    <button cButtonClose (click)="showModal.set(false)"></button>
+  </c-modal-header>
+  <c-modal-body>
+    @if (errorMessage()) { <c-alert color="danger" class="mb-3">{{ errorMessage() }}</c-alert> }
+    <form [formGroup]="form">
+      <c-row class="g-3">
+        <c-col md="12">
+          <label cLabel>Identificador *</label>
+          <input cFormControl formControlName="id" placeholder="conectate" class="font-monospace"
+            [class.is-invalid]="hasError('id')">
+          @if (hasError('id')) {
+          <div class="invalid-feedback">Minúsculas, dígitos y guiones; empieza con letra (2 a 40 caracteres)</div>
+          } @else {
+          <div cFormText>Permanente: queda en el acceso de su administrador y en cada empresa del canal.</div>
+          }
+        </c-col>
+        <c-col md="12">
+          <label cLabel>Nombre *</label>
+          <input cFormControl formControlName="name" placeholder="Conectate" [class.is-invalid]="hasError('name')">
+          @if (hasError('name')) { <div class="invalid-feedback">Requerido</div> }
+        </c-col>
+        <c-col md="12">
+          <label cLabel>Correo de contacto</label>
+          <input cFormControl type="email" formControlName="contactEmail" placeholder="soporte@conectate.ec"
+            [class.is-invalid]="hasError('contactEmail')">
+          @if (hasError('contactEmail')) { <div class="invalid-feedback">Correo inválido</div> }
+        </c-col>
+      </c-row>
+    </form>
+  </c-modal-body>
+  <c-modal-footer>
+    <button cButton color="secondary" (click)="showModal.set(false)" [disabled]="saving()">Cancelar</button>
+    <button cButton color="primary" (click)="save()" [disabled]="saving()">
+      @if (saving()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+      Guardar
+    </button>
+  </c-modal-footer>
+</c-modal>
+
+<!-- ─── Administradores ────────────────────────────────────────────────── -->
+<c-modal [visible]="adminsChannelId() !== null" (visibleChange)="!$event && closeAdmins()" alignment="center">
+  <c-modal-header>
+    <h5 cModalTitle>Administradores · {{ adminsChannel()?.name }}</h5>
+    <button cButtonClose (click)="closeAdmins()"></button>
+  </c-modal-header>
+  <c-modal-body>
+    @if (adminError()) { <c-alert color="danger" class="mb-3">{{ adminError() }}</c-alert> }
+
+    @if (adminsChannel()?.status === 'suspended') {
+    <c-alert color="warning" class="mb-3">
+      El canal está suspendido: sus administradores no pueden operar hasta reactivarlo.
+    </c-alert>
+    }
+
+    <table cTable small class="mb-3">
+      <tbody>
+        @for (a of admins(adminsChannel()); track a.uid) {
+        <tr>
+          <td class="align-middle">{{ a.email }}</td>
+          <td class="text-end">
+            <button cButton color="outline-danger" size="sm" (click)="revoke(a)" [disabled]="adminBusy()"
+              title="Retirar">
+              <svg cIcon name="cilTrash"></svg>
+            </button>
+          </td>
+        </tr>
+        } @empty {
+        <tr><td class="text-muted">Este canal todavía no tiene administrador.</td></tr>
+        }
+      </tbody>
+    </table>
+
+    <form [formGroup]="adminForm" (ngSubmit)="grant()">
+      <label cLabel>Agregar administrador</label>
+      <div class="d-flex gap-2">
+        <input cFormControl type="email" formControlName="email" placeholder="admin@conectate.ec"
+          [class.is-invalid]="adminForm.get('email')?.invalid && adminForm.get('email')?.touched">
+        <button cButton color="primary" type="submit" [disabled]="adminBusy()">
+          @if (adminBusy()) { <c-spinner size="sm"></c-spinner> } @else { Agregar }
+        </button>
+      </div>
+      <div cFormText>
+        El usuario debe estar registrado. Al agregarlo deja de pertenecer a cualquier empresa, y tiene que cerrar sesión
+        y volver a entrar para que el cambio tome efecto.
+      </div>
+    </form>
+  </c-modal-body>
+</c-modal>

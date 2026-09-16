@@ -12,6 +12,7 @@ export { setupCompany }          from './tenants/setup-company';
 export { assignPlanToCompany }   from './tenants/assign-plan-to-company';
 export { onPlanUpdated }         from './tenants/on-plan-updated';
 export { checkPlanLimit }        from './tenants/check-plan-limit';
+export { manageChannelAdmin }    from './tenants/manage-channel-admin';
 
 // Invoices / SRI
 export { uploadCertificate }        from './invoices/upload-certificate';

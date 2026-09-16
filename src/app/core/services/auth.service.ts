@@ -16,7 +16,7 @@ import { TenantService } from './tenant.service';
  * Roles del sistema (built-in). Los roles personalizados creados desde la UI
  * de administración son válidos pero no están listados aquí — se aceptan como string.
  */
-export type UserRole = 'admin' | 'seller' | 'cashier' | 'read_only' | 'super_admin' | 'accountant' | 'padre_familia';
+export type UserRole = 'admin' | 'seller' | 'cashier' | 'read_only' | 'super_admin' | 'channel_admin' | 'accountant' | 'padre_familia';
 
 export interface AuthUser {
   uid: string;
@@ -24,11 +24,14 @@ export interface AuthUser {
   displayName: string;
   companyId: string;
   role: string; // UserRole o cualquier rol personalizado
+  /** Canal al que pertenece un channel_admin. '' para todos los demás roles. */
+  channelId: string;
 }
 
 /**
  * AuthService — Firebase Auth with custom claims.
- * Custom claims set by Cloud Function: { companyId: string, role: UserRole }
+ * Custom claims set by Cloud Function: { companyId, role } y, para el
+ * administrador de un canal, { role: 'channel_admin', channelId }.
  */
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -144,7 +147,7 @@ export class AuthService {
   getDefaultRoute(): string {
     const user = this._currentUser();
     if (!user) return '/login';
-    return user.role === 'super_admin' ? '/super-admin' : '/dashboard';
+    return user.role === 'super_admin' || user.role === 'channel_admin' ? '/super-admin' : '/dashboard';
   }
 
   hasRole(...roles: UserRole[]): boolean {
@@ -158,6 +161,16 @@ export class AuthService {
 
   isSuperAdmin(): boolean {
     return this.hasRole('super_admin');
+  }
+
+  /** Administra las empresas de UN canal (Conectate, Mi Buseta). */
+  isChannelAdmin(): boolean {
+    return this.hasRole('channel_admin');
+  }
+
+  /** Canal del usuario. '' si no es administrador de canal. */
+  get channelId(): string {
+    return this._currentUser()?.channelId ?? '';
   }
 
   canWrite(): boolean {
@@ -176,7 +189,8 @@ export class AuthService {
       email: firebaseUser.email ?? '',
       displayName: firebaseUser.displayName ?? firebaseUser.email ?? '',
       companyId: (tokenResult.claims['companyId'] as string) ?? '',
-      role: (tokenResult.claims['role'] as UserRole) ?? 'read_only'
+      role: (tokenResult.claims['role'] as UserRole) ?? 'read_only',
+      channelId: (tokenResult.claims['channelId'] as string) ?? ''
     };
   }
 }

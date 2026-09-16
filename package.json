@@ -17,7 +17,11 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "seed:plans": "GOOGLE_APPLICATION_CREDENTIALS=./serviceAccount.json npx ts-node --esm scripts/seed-plans.ts",
-    "seed:plans:emulator": "FIRESTORE_EMULATOR_HOST=localhost:8080 npx ts-node --esm scripts/seed-plans.ts"
+    "seed:plans:emulator": "FIRESTORE_EMULATOR_HOST=localhost:8080 npx ts-node --esm scripts/seed-plans.ts",
+    "seed:channel": "GOOGLE_APPLICATION_CREDENTIALS=./serviceAccount.json npx ts-node --esm scripts/seed-channel.ts",
+    "seed:channel:emulator": "FIRESTORE_EMULATOR_HOST=localhost:8080 npx ts-node scripts/seed-channel.ts",
+    "migrate:channels": "GOOGLE_APPLICATION_CREDENTIALS=./serviceAccount.json npx ts-node --esm scripts/migrate-channels.ts",
+    "migrate:channels:emulator": "FIRESTORE_EMULATOR_HOST=localhost:8080 npx ts-node scripts/migrate-channels.ts"
   },
   "private": true,
   "dependencies": {

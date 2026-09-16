@@ -1,9 +1,10 @@
 import { Injectable, inject } from '@angular/core';
 import { Functions, httpsCallable } from '@angular/fire/functions';
-import { Firestore, arrayUnion, doc, getDoc, getDocs, updateDoc, setDoc, writeBatch, collection, query, where, Timestamp, orderBy } from '@angular/fire/firestore';
+import { Firestore, arrayUnion, doc, getDoc, getDocs, updateDoc, setDoc, writeBatch, collection, query, where, Timestamp, orderBy, QueryConstraint } from '@angular/fire/firestore';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { FirestoreService } from '../../../core/services/firestore.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { Plan, PlanFormData } from '../models/plan.interface';
 import { Company, CompanyFormData } from '../models/company.interface';
 import { PluginPackage } from '../../../core/interfaces/permission.interface';
@@ -13,6 +14,22 @@ export class SuperAdminService {
   private fs        = inject(FirestoreService);
   private firestore = inject(Firestore);
   private functions = inject(Functions);
+  private auth      = inject(AuthService);
+
+  /**
+   * Filtro de canal para las consultas de plataforma.
+   *
+   * Un channel_admin ve solo lo suyo; el super admin de plataforma ve todo y
+   * por eso no agrega filtro. Va en el servidor porque las reglas niegan los
+   * documentos de otros canales: una consulta sin filtro no devuelve menos,
+   * falla. Ver docs/PLAN_CANALES_MULTIMARCA.md.
+   */
+  private channelConstraints(): QueryConstraint[] {
+    const channelId = this.auth.channelId;
+    return this.auth.isChannelAdmin() && channelId
+      ? [where('channelId', '==', channelId)]
+      : [];
+  }
 
   // ─── Plans ───────────────────────────────────────────────────────────────
 
@@ -26,7 +43,7 @@ export class SuperAdminService {
    * Prefiere el doc cuyo ID está en CANONICAL_PLAN_IDS sobre los auto-generados.
    */
   getPlans(): Observable<Plan[]> {
-    return this.fs.getRootCollection<Plan>('plans').pipe(
+    return this.fs.getRootCollectionWhere<Plan>('plans', ...this.channelConstraints()).pipe(
       map(plans => {
         const seen = new Map<string, Plan>();
         for (const p of plans) {
@@ -64,7 +81,10 @@ export class SuperAdminService {
   }
 
   async createPlan(data: PlanFormData): Promise<string> {
-    return this.fs.addRootDocument<PlanFormData>('plans', data);
+    // Un channel_admin crea planes en SU catálogo: las reglas exigen que el
+    // channelId del documento coincida con su claim.
+    const channelId = this.auth.isChannelAdmin() ? this.auth.channelId : undefined;
+    return this.fs.addRootDocument('plans', channelId ? { ...data, channelId } : data);
   }
 
   async updatePlan(id: string, data: Partial<PlanFormData>): Promise<void> {
@@ -79,7 +99,7 @@ export class SuperAdminService {
   // ─── Companies ───────────────────────────────────────────────────────────
 
   getCompanies(): Observable<Company[]> {
-    return this.fs.getRootCollection<Company>('companies');
+    return this.fs.getRootCollectionWhere<Company>('companies', ...this.channelConstraints());
   }
 
   getCompany(id: string): Observable<Company | undefined> {
@@ -239,15 +259,16 @@ export class SuperAdminService {
     ];
 
     const companiesRef = collection(this.firestore, 'companies');
-    const snapPlanId = await getDocs(query(companiesRef, where('planId', '==', planId)));
-    const snapPlanName = await getDocs(query(companiesRef, where('plan', '==', planId)));
+    const channelFilter = this.channelConstraints();
+    const snapPlanId = await getDocs(query(companiesRef, where('planId', '==', planId), ...channelFilter));
+    const snapPlanName = await getDocs(query(companiesRef, where('plan', '==', planId), ...channelFilter));
 
     const mapDocs = new Map<string, any>();
     snapPlanId.docs.forEach(d => mapDocs.set(d.id, d));
     snapPlanName.docs.forEach(d => mapDocs.set(d.id, d));
 
     if (plan.name) {
-      const snapName = await getDocs(query(companiesRef, where('planName', '==', plan.name)));
+      const snapName = await getDocs(query(companiesRef, where('planName', '==', plan.name), ...channelFilter));
       snapName.docs.forEach(d => mapDocs.set(d.id, d));
     }
 
@@ -288,7 +309,7 @@ export class SuperAdminService {
    * actuales de sus planes asignados (planLimits, planFeatures y enabledModules).
    */
   async syncAllCompaniesWithPlans(): Promise<number> {
-    const plansSnap = await getDocs(collection(this.firestore, 'plans'));
+    const plansSnap = await getDocs(query(collection(this.firestore, 'plans'), ...this.channelConstraints()));
     const rawPlans = plansSnap.docs.map(d => ({ id: d.id, ...d.data() })) as Plan[];
     // Deduplicate by name — prefer canonical IDs (same logic as getPlans())
     const seen = new Map<string, Plan>();
@@ -303,7 +324,7 @@ export class SuperAdminService {
     const pkgsSnap = await getDocs(collection(this.firestore, 'plugin-packages'));
     const allPkgs = pkgsSnap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
 
-    const companiesSnap = await getDocs(collection(this.firestore, 'companies'));
+    const companiesSnap = await getDocs(query(collection(this.firestore, 'companies'), ...this.channelConstraints()));
     if (companiesSnap.empty) return 0;
 
     const batch = writeBatch(this.firestore);

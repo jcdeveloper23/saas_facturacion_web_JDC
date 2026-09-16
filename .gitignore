@@ -54,3 +54,10 @@ docs/pass.txt
 .firebase/*
 
 
+
+# Credenciales de cuentas de servicio: nunca al repo
+serviceAccount*.json
+**/serviceAccount*.json
+*-firebase-adminsdk-*.json
+accounting-system-a5c9f-*.json
+work-cloud-df68a-*.json

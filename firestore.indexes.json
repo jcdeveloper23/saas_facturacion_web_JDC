@@ -556,6 +556,31 @@
         { "fieldPath": "userId",    "order": "ASCENDING" },
         { "fieldPath": "companyId", "order": "ASCENDING" }
       ]
+    },
+
+    {
+      "collectionGroup": "companies",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "channelId", "order": "ASCENDING" },
+        { "fieldPath": "planId",    "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "companies",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "channelId", "order": "ASCENDING" },
+        { "fieldPath": "plan",      "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "companies",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "channelId", "order": "ASCENDING" },
+        { "fieldPath": "planName",  "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

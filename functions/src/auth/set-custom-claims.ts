@@ -1,8 +1,10 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
+import { CHANNEL_ADMIN_ROLE, loadCompanyForCaller, readCaller } from '../utils/channels';
 
-// Solo super_admin puede asignar este rol.
-const SUPER_ADMIN_ONLY_ROLES = ['super_admin'];
+// Roles que solo puede asignar el super admin de plataforma.
+// channel_admin está acá para que el admin de un canal no pueda fabricarse otro.
+const SUPER_ADMIN_ONLY_ROLES = ['super_admin', CHANNEL_ADMIN_ROLE];
 
 /**
  * Valida que un código de rol sea sintácticamente correcto.
@@ -61,8 +63,11 @@ export const setUserCustomClaims = onCall(async (request) => {
     throw new HttpsError('permission-denied', 'Admin can only manage users within their own company.');
   }
 
-  // Only admin or super_admin can call this
-  if (callerRole !== 'admin' && callerRole !== 'super_admin') {
+  // Un channel_admin solo administra usuarios de empresas de su propio canal.
+  // loadCompanyForCaller también verifica que el canal esté activo.
+  if (callerRole === CHANNEL_ADMIN_ROLE) {
+    await loadCompanyForCaller(admin.firestore(), readCaller(request), companyId);
+  } else if (callerRole !== 'admin' && callerRole !== 'super_admin') {
     throw new HttpsError('permission-denied', 'Insufficient permissions.');
   }
 

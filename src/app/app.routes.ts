@@ -53,10 +53,12 @@ export const routes: Routes = [
   // ─── Super Admin (no tenant context) ─────────────────────────────────────
   // roleGuard se mantiene aquí: super_admin es un rol de plataforma global,
   // no un rol de empresa. permissionGuard no aplica en este contexto.
+  // channel_admin entra a la misma área, acotado a su canal; las pantallas de
+  // plataforma quedan solo para super_admin en super-admin.routes.ts.
   {
     path: 'super-admin',
     canActivate: [authGuard, roleGuard],
-    data: { roles: ['super_admin'] },
+    data: { roles: ['super_admin', 'channel_admin'] },
     loadChildren: () => import('./features/super-admin/super-admin.routes').then(m => m.SUPER_ADMIN_ROUTES)
   },
 

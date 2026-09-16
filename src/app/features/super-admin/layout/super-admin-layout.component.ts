@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { RouterLink, RouterOutlet } from '@angular/router';
 import { NgScrollbar } from 'ngx-scrollbar';
 import { IconDirective } from '@coreui/icons-angular';
@@ -16,7 +16,21 @@ import {
 
 import { DefaultFooterComponent, DefaultHeaderComponent } from '../../../layout/default-layout';
 import { ToastContainerComponent } from '../../../shared/components';
+import { AuthService } from '../../../core/services/auth.service';
 import { superAdminNavItems } from './_nav';
+
+/**
+ * Lo que ve un channel_admin: su cartera. Las pantallas de plataforma quedan
+ * fuera, igual que en super-admin.routes.ts.
+ */
+const CHANNEL_ADMIN_URLS = new Set([
+  '/super-admin/companies',
+  '/super-admin/plans',
+  '/super-admin/plans/guide',
+]);
+const CHANNEL_ADMIN_NAV = superAdminNavItems.filter(
+  item => (item.title && item.name === 'Gestión') || CHANNEL_ADMIN_URLS.has(String(item.url ?? ''))
+);
 
 @Component({
   selector: 'app-super-admin-layout',
@@ -43,5 +57,10 @@ import { superAdminNavItems } from './_nav';
   ]
 })
 export class SuperAdminLayoutComponent {
-  readonly navItems = signal(superAdminNavItems);
+  private auth = inject(AuthService);
+
+  // computed y no signal fijo: el rol llega cuando AuthService termina de leer el token.
+  readonly navItems = computed(() =>
+    this.auth.user()?.role === 'channel_admin' ? CHANNEL_ADMIN_NAV : superAdminNavItems
+  );
 }

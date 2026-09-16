@@ -12,6 +12,12 @@ export const superAdminNavItems: INavData[] = [
     url: '/super-admin/companies',
     iconComponent: { name: 'cil-building' }
   },
+  // Solo super admin: el layout lo oculta al channel_admin
+  {
+    name: 'Canales',
+    url: '/super-admin/channels',
+    iconComponent: { name: 'cil-sitemap' }
+  },
   {
     name: 'Planes',
     url: '/super-admin/plans',

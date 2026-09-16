@@ -1,12 +1,14 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import { Timestamp } from 'firebase-admin/firestore';
+import { CHANNEL_ADMIN_ROLE, loadCompanyForCaller, readCaller } from '../utils/channels';
 
-// Roles del sistema que solo super_admin puede asignar.
-// Agregar aquí solo roles de plataforma que requieren protección especial.
-const PROTECTED_ROLES = ['super_admin'];
+// Roles del sistema que no se asignan desde esta función.
+// channel_admin está acá para que un canal no pueda fabricarse otro admin de canal.
+const PROTECTED_ROLES = ['super_admin', CHANNEL_ADMIN_ROLE];
 
-// Roles que solo super_admin puede asignar (ej: admin es el dueño de empresa)
+// Roles que solo asigna quien administra la plataforma o el canal
+// (ej: admin es el dueño de empresa, y lo crea el aprovisionamiento).
 const ROLES_SUPER_ADMIN_ONLY = ['admin'];
 
 /**
@@ -59,8 +61,8 @@ export const createCompanyUser = onCall(async (request): Promise<CreateCompanyUs
   const callerRole      = request.auth.token['role'] as string | undefined;
   const callerCompanyId = request.auth.token['companyId'] as string | undefined;
 
-  if (callerRole !== 'admin' && callerRole !== 'super_admin') {
-    throw new HttpsError('permission-denied', 'Solo admin o super_admin pueden crear usuarios.');
+  if (callerRole !== 'admin' && callerRole !== 'super_admin' && callerRole !== CHANNEL_ADMIN_ROLE) {
+    throw new HttpsError('permission-denied', 'Solo admin, super_admin o channel_admin pueden crear usuarios.');
   }
 
   // ── Input validation ──────────────────────────────────────────────────────
@@ -88,7 +90,11 @@ export const createCompanyUser = onCall(async (request): Promise<CreateCompanyUs
 
   // El rol 'admin' es exclusivo del primer usuario de empresa (creado por setupCompany).
   // Un admin de empresa NO puede crear otro admin — solo super_admin puede hacerlo.
-  if (ROLES_SUPER_ADMIN_ONLY.includes(platformRole) && callerRole !== 'super_admin') {
+  if (
+    ROLES_SUPER_ADMIN_ONLY.includes(platformRole) &&
+    callerRole !== 'super_admin' &&
+    callerRole !== CHANNEL_ADMIN_ROLE
+  ) {
     throw new HttpsError(
       'permission-denied',
       `Solo super_admin puede asignar el rol '${platformRole}'.`
@@ -101,6 +107,12 @@ export const createCompanyUser = onCall(async (request): Promise<CreateCompanyUs
       'permission-denied',
       'Admin solo puede crear usuarios para su propia empresa.'
     );
+  }
+
+  // Un channel_admin solo crea usuarios en empresas de su canal.
+  // loadCompanyForCaller también verifica que el canal esté activo.
+  if (callerRole === CHANNEL_ADMIN_ROLE) {
+    await loadCompanyForCaller(admin.firestore(), readCaller(request), companyId);
   }
 
   const auth = admin.auth();

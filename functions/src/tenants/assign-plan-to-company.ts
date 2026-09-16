@@ -1,11 +1,12 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import { Timestamp } from 'firebase-admin/firestore';
+import { assertPlanMatchesCompany, loadCompanyForCaller, readCaller } from '../utils/channels';
 
 /**
  * assignPlanToCompany
  *
- * Callable CF — solo super_admin.
+ * Callable CF — super_admin de plataforma, o el channel_admin del canal de la empresa.
  * Asigna un plan a una empresa: lee el plan, calcula enabledModules y
  * desnormaliza planLimits + planFeatures en el documento de la empresa.
  *
@@ -14,12 +15,8 @@ import { Timestamp } from 'firebase-admin/firestore';
  */
 export const assignPlanToCompany = onCall(async (request) => {
   // ── Auth guard ──────────────────────────────────────────────────────────────
-  if (!request.auth) {
-    throw new HttpsError('unauthenticated', 'No autenticado.');
-  }
-  if (request.auth.token['role'] !== 'super_admin') {
-    throw new HttpsError('permission-denied', 'Solo super_admin puede asignar planes.');
-  }
+  // El acceso real se verifica contra el canal de la empresa, más abajo.
+  const caller = readCaller(request);
 
   // ── Input validation ────────────────────────────────────────────────────────
   const data = request.data as { companyId?: string; planId?: string };
@@ -47,12 +44,11 @@ export const assignPlanToCompany = onCall(async (request) => {
   }
   console.log('[assignPlanToCompany] Plan leído:', { name: plan['name'], isActive: plan['isActive'] });
 
-  // ── 2. Leer empresa ───────────────────────────────────────────────────────
-  const companySnap = await db.doc(`companies/${companyId}`).get();
-  if (!companySnap.exists) {
-    throw new HttpsError('not-found', `La empresa '${companyId}' no existe.`);
-  }
-  const company = companySnap.data() as Record<string, any>;
+  // ── 2. Leer empresa y verificar el canal ──────────────────────────────────
+  // Niega si la empresa es de otro canal: es el aislamiento entre productos.
+  const company = await loadCompanyForCaller(db, caller, companyId);
+  assertPlanMatchesCompany(plan['channelId'], company['channelId']);
+
   const enabledPackages: string[] = Array.isArray(company['enabledPackages']) ? company['enabledPackages'] : [];
   console.log('[assignPlanToCompany] enabledPackages actuales:', enabledPackages);
 

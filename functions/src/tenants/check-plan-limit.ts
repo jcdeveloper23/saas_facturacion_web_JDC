@@ -1,10 +1,12 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
+import { assertCallerChannelActive, assertChannelAccess, isChannelAdmin, readCaller } from '../utils/channels';
 
 /**
  * checkPlanLimit
  *
  * Callable CF — any authenticated user with access to the company.
+ * Un channel_admin solo puede consultar empresas de su propio canal.
  * Checks whether a company has reached a specific plan limit.
  *
  * Payload: { companyId: string; limitType: string }
@@ -21,9 +23,7 @@ import * as admin from 'firebase-admin';
  */
 export const checkPlanLimit = onCall(async (request) => {
   // ── Auth guard ──────────────────────────────────────────────────────────────
-  if (!request.auth) {
-    throw new HttpsError('unauthenticated', 'No autenticado.');
-  }
+  const caller = readCaller(request);
 
   // ── Input validation ────────────────────────────────────────────────────────
   const data = request.data as { companyId?: string; limitType?: string };
@@ -86,6 +86,14 @@ export const checkPlanLimit = onCall(async (request) => {
     throw new HttpsError('not-found', `Empresa no encontrada: ${companyId}`);
   }
   const company = companySnap.data() as Record<string, any>;
+
+  // El cupo de un canal no se consulta desde otro. Los usuarios de la propia
+  // empresa siguen pasando como antes: acá solo se acota al admin de canal.
+  if (isChannelAdmin(caller)) {
+    await assertCallerChannelActive(db, caller);
+    assertChannelAccess(caller, company['channelId'], `la empresa '${companyId}'`);
+  }
+
   const planLimits = company['planLimits'] as Record<string, any> | null | undefined;
 
   // ── If no planLimits, company is legacy — always allow ──────────────────────

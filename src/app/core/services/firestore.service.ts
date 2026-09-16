@@ -144,6 +144,28 @@ export class FirestoreService {
     });
   }
 
+  /**
+   * Igual que getRootCollection, pero filtrando en el SERVIDOR.
+   *
+   * Necesario para el aislamiento por canal: un channel_admin no puede
+   * escuchar la colección entera, porque las reglas le niegan los documentos
+   * de los otros canales y el listener falla completo — no devuelve la parte
+   * que sí puede ver. Ver docs/PLAN_CANALES_MULTIMARCA.md.
+   */
+  getRootCollectionWhere<T>(
+    collectionName: string,
+    ...constraints: QueryConstraint[]
+  ): Observable<T[]> {
+    return new Observable<T[]>(observer => {
+      const ref = collection(this.firestore, collectionName);
+      const q = query(ref, ...constraints);
+      return onSnapshot(q, {
+        next: (snap) => observer.next(snap.docs.map(d => ({ id: d.id, ...d.data() }) as T)),
+        error: (err) => observer.error(err)
+      });
+    });
+  }
+
   getRootCollectionQuery<T>(
     collectionName: string,
     ...constraints: QueryConstraint[]

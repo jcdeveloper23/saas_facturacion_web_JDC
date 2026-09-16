@@ -19,8 +19,12 @@ import { Role, PermissionString } from '../interfaces/permission.interface';
 
 /**
  * Roles de PLATAFORMA — se siembran en /roles (colección raíz).
- * Solo super_admin y admin: son los únicos roles de sistema global.
+ * super_admin, channel_admin y admin: son los únicos roles de sistema global.
  * El resto de roles son de empresa y se gestionan por cada compañía.
+ *
+ * channel_admin administra las empresas de UN canal (Conectate, Mi Buseta).
+ * Su alcance no sale de esta lista de permisos, sino del claim channelId que
+ * verifican los callables y las reglas. Ver docs/PLAN_CANALES_MULTIMARCA.md.
  *
  * Doc ID = role.code para idempotencia y O(1) lookup.
  */
@@ -57,6 +61,24 @@ export const DEFAULT_SYSTEM_ROLES: Omit<Role, 'id' | 'createdAt' | 'updatedAt'>[
       'retentions.view', 'retentions.create', 'retentions.edit', 'retentions.delete',
       'debit_notes.view', 'debit_notes.create', 'debit_notes.edit', 'debit_notes.delete',
       'accounting.view', 'accounting.create', 'accounting.edit', 'accounting.delete',
+    ] as PermissionString[]
+  },
+  {
+    code: 'channel_admin',
+    name: 'Administrador de Canal',
+    description: 'Administra las empresas de SU canal: alta, plan, módulos y usuarios. No ve los otros canales.',
+    type: 'system',
+    level: 0,
+    color: '#fd7e14',
+    icon: 'cilBuilding',
+    isDefault: true,
+    state: true,
+    permissions: [
+      // Plataforma, acotada al canal propio por el claim channelId
+      'companies.view', 'companies.create', 'companies.edit',
+      'plans.view',
+      'users.view', 'users.create', 'users.edit',
+      'settings.view',
     ] as PermissionString[]
   },
   {

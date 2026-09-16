@@ -1,6 +1,12 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import { Timestamp } from 'firebase-admin/firestore';
+import {
+  assertCallerChannelActive,
+  assertPlanMatchesCompany,
+  readCaller,
+  resolveChannelForNewCompany,
+} from '../utils/channels';
 
 /**
  * Roles de empresa sembrados en companies/{companyId}/roles al crear una empresa.
@@ -81,12 +87,9 @@ const COMPANY_DEFAULT_ROLES = [
  * Returns: { companyId }
  */
 export const setupCompany = onCall(async (request) => {
-  if (!request.auth) {
-    throw new HttpsError('unauthenticated', 'Must be authenticated.');
-  }
-  if (request.auth.token['role'] !== 'super_admin') {
-    throw new HttpsError('permission-denied', 'Only super_admin can create companies.');
-  }
+  // Canal: un channel_admin da de alta siempre en el suyo; el super admin de
+  // plataforma puede indicar uno. Lanza si el rol no alcanza. Ver utils/channels.ts.
+  const caller = readCaller(request);
 
   const data = request.data as {
     name: string;
@@ -100,6 +103,8 @@ export const setupCompany = onCall(async (request) => {
     planName: string;
     status: string;
     subscriptionEnd: string;
+    /** Solo lo respeta el super admin de plataforma; un channel_admin usa el suyo. */
+    channelId?: string;
     sri: {
       environment: string;
       ruc: string;
@@ -118,8 +123,12 @@ export const setupCompany = onCall(async (request) => {
     throw new HttpsError('invalid-argument', 'name, taxId and planId are required.');
   }
 
+  const channelId = resolveChannelForNewCompany(caller, data.channelId);
+  console.log('[setupCompany] Canal de la empresa:', channelId, '| llamador:', caller.uid);
+
   const db = admin.firestore();
   const now = Timestamp.now();
+  await assertCallerChannelActive(db, caller);
 
   // ── Load plan data (if planId provided) ────────────────────────────────────
   let planLimits: Record<string, any> | null = null;
@@ -131,6 +140,8 @@ export const setupCompany = onCall(async (request) => {
     const planSnap = await db.doc(`plans/${data.planId}`).get();
     if (planSnap.exists) {
       const plan = planSnap.data()!;
+      // Un plan solo se vende en su propio canal: cruzarlos rompe el cobro.
+      assertPlanMatchesCompany(plan['channelId'], channelId);
       planLimits       = plan['limits']           ?? null;
       planFeatures     = plan['features']          ?? null;
       includedPackages = plan['includedPackages']  ?? [];
@@ -263,6 +274,8 @@ export const setupCompany = onCall(async (request) => {
 
   batch.set(companyRef, {
     ...companyDataToSave,
+    // Va después del spread a propósito: el canal sale del token, no del payload.
+    channelId,
     subscriptionStart: now,
     subscriptionEnd: data.subscriptionEnd
       ? Timestamp.fromDate(new Date(data.subscriptionEnd))
@@ -297,7 +310,7 @@ export const setupCompany = onCall(async (request) => {
     contribuyenteEspecial:    data.sri?.contribuyenteEspecial || '',
     additionalInfoFields:     [],
     updatedAt:                now,
-    updatedBy:                request.auth.uid
+    updatedBy:                caller.uid
   });
 
   // ── configuration/general ──────────────────────────────────────────────────
@@ -314,7 +327,7 @@ export const setupCompany = onCall(async (request) => {
     vatRate: defaultVatRate,
     fiscalYear: new Date().getFullYear(),
     updatedAt: now,
-    updatedBy: request.auth.uid
+    updatedBy: caller.uid
   });
 
   // ── Warehouses ─────────────────────────────────────────────────────────────
@@ -328,7 +341,7 @@ export const setupCompany = onCall(async (request) => {
       city:    data.city,
       isActive: true,
       createdAt: now, updatedAt: now,
-      createdBy: request.auth.uid, updatedBy: request.auth.uid
+      createdBy: caller.uid, updatedBy: caller.uid
     });
   }
 
@@ -343,7 +356,7 @@ export const setupCompany = onCall(async (request) => {
       isDefault: tax['isDefault'] ?? false,
       isActive: true,
       createdAt: now, updatedAt: now,
-      createdBy: request.auth.uid, updatedBy: request.auth.uid
+      createdBy: caller.uid, updatedBy: caller.uid
     });
   }
 
@@ -356,7 +369,7 @@ export const setupCompany = onCall(async (request) => {
       days: term['days'],
       isActive: true,
       createdAt: now, updatedAt: now,
-      createdBy: request.auth.uid, updatedBy: request.auth.uid
+      createdBy: caller.uid, updatedBy: caller.uid
     });
   }
 
@@ -371,7 +384,7 @@ export const setupCompany = onCall(async (request) => {
       emissionPoint:  data.sri?.emissionPoint  || '001',
       isActive: true,
       createdAt: now, updatedAt: now,
-      createdBy: request.auth.uid, updatedBy: request.auth.uid
+      createdBy: caller.uid, updatedBy: caller.uid
     });
   }
 
@@ -389,7 +402,7 @@ export const setupCompany = onCall(async (request) => {
       isDefault: c['isDefault'] ?? false,
       isActive: true,
       createdAt: now, updatedAt: now,
-      createdBy: request.auth.uid, updatedBy: request.auth.uid
+      createdBy: caller.uid, updatedBy: caller.uid
     });
   }
 
@@ -407,7 +420,7 @@ export const setupCompany = onCall(async (request) => {
       isActive:  true,
       createdAt: now,
       updatedAt: now,
-      createdBy: request.auth.uid,
+      createdBy: caller.uid,
     });
   }
 
@@ -430,7 +443,7 @@ export const setupCompany = onCall(async (request) => {
         name:     c['name'],
         isActive: true,
         createdAt: now, updatedAt: now,
-        createdBy: request.auth.uid, updatedBy: request.auth.uid
+        createdBy: caller.uid, updatedBy: caller.uid
       });
     }
     await countryBatch.commit();
@@ -448,7 +461,7 @@ export const setupCompany = onCall(async (request) => {
   for (const roleData of COMPANY_DEFAULT_ROLES) {
     rolesBatch.set(
       db.doc(`companies/${companyId}/roles/${roleData.code}`),
-      { ...roleData, createdAt: now, updatedAt: now, createdBy: request.auth.uid }
+      { ...roleData, createdAt: now, updatedAt: now, createdBy: caller.uid }
     );
   }
   await rolesBatch.commit();

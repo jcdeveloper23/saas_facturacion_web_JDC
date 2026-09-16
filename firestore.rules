@@ -22,6 +22,52 @@ service cloud.firestore {
       return hasRole('admin');
     }
 
+    // ─── Canales (multimarca) ────────────────────────────────────────────
+    // Conectate y Mi Buseta no son tenants: son canales. Cada uno tiene su
+    // channel_admin, que administra SOLO las empresas de su canal.
+    // Ver docs/PLAN_CANALES_MULTIMARCA.md.
+    function isChannelAdmin() {
+      return hasRole('channel_admin');
+    }
+
+    // Canal del llamador. '' cuando el token no trae el claim.
+    function callerChannel() {
+      return 'channelId' in request.auth.token ? request.auth.token.channelId : '';
+    }
+
+    // El canal del llamador existe y está activo. Suspender un canal corta a su
+    // admin sin tocarle los claims. callerChannel() != '' va primero: un path
+    // con segmento vacío haría fallar la regla.
+    function callerChannelActive() {
+      return callerChannel() != ''
+        && exists(/databases/$(database)/documents/channels/$(callerChannel()))
+        && get(/databases/$(database)/documents/channels/$(callerChannel())).data.status == 'active';
+    }
+
+    // Niega por defecto: sin canal en el token, sin canal en el documento, o
+    // con el canal suspendido, no hay acceso. El super admin pasa siempre.
+    // Se invoca con resource.data.get('channelId', '').
+    function inCallerChannel(resourceChannelId) {
+      return isSuperAdmin()
+        || (isChannelAdmin()
+            && resourceChannelId != ''
+            && resourceChannelId == callerChannel()
+            && callerChannelActive());
+    }
+
+    // Alta de un documento con canal (empresa o plan) por un channel_admin.
+    function canCreateInCallerChannel() {
+      return isChannelAdmin()
+        && request.resource.data.get('channelId', '') == callerChannel()
+        && callerChannelActive();
+    }
+
+    // El canal de un documento no se cambia desde el cliente: mover una
+    // empresa de canal es una operación de plataforma, por Admin SDK.
+    function channelUnchanged() {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['channelId']);
+    }
+
     function canWrite() {
       return request.auth.token.role in ['admin', 'seller', 'cashier'];
     }
@@ -101,8 +147,21 @@ service cloud.firestore {
 
     // ─── Companies (tenants) ──────────────────────────────────────────────
     match /companies/{companyId} {
-      allow read: if isAuthenticated() && (isSuperAdmin() || belongsToCompany(companyId));
-      allow write: if isSuperAdmin();
+      allow read: if isAuthenticated()
+                  && (isSuperAdmin()
+                      || belongsToCompany(companyId)
+                      || inCallerChannel(resource.data.get('channelId', '')));
+
+      // El channel_admin crea solo dentro de su canal, y el canal viaja en el
+      // documento: si no coincide con su claim, no se escribe.
+      allow create: if isAuthenticated()
+                    && (isSuperAdmin()
+                        || canCreateInCallerChannel());
+
+      allow update, delete: if isAuthenticated()
+                    && (isSuperAdmin()
+                        || (inCallerChannel(resource.data.get('channelId', ''))
+                            && channelUnchanged()));
       // Company admin can update marketplace config, SRI settings, and brand customization
       allow update: if isAuthenticated()
                     && belongsToCompany(companyId)
@@ -593,8 +652,31 @@ service cloud.firestore {
     }
 
     // ─── Subscription plans ───────────────────────────────────────────────
+    // Catálogo propio por canal: cada canal define sus planes y precios.
+    // Los usuarios de empresa siguen leyendo el catálogo como antes (necesitan
+    // su plan y la landing muestra los públicos); el acotado es el channel_admin,
+    // que no debe ver ni tocar el catálogo de otro producto.
     match /plans/{planId} {
-      allow read: if isAuthenticated();
+      allow read: if isAuthenticated()
+                  && (!isChannelAdmin()
+                      || inCallerChannel(resource.data.get('channelId', '')));
+
+      allow create: if isAuthenticated()
+                    && (isSuperAdmin()
+                        || canCreateInCallerChannel());
+
+      allow update, delete: if isAuthenticated()
+                    && (isSuperAdmin()
+                        || (inCallerChannel(resource.data.get('channelId', ''))
+                            && channelUnchanged()));
+    }
+
+    // ─── Canales ──────────────────────────────────────────────────────────
+    // Los crea SOLO el super admin de plataforma (scripts/seed-channel.ts).
+    // Un channel_admin puede leer el suyo, para mostrar nombre y estado.
+    match /channels/{channelId} {
+      allow read: if isAuthenticated()
+                  && (isSuperAdmin() || (isChannelAdmin() && channelId == callerChannel()));
       allow write: if isSuperAdmin();
     }
 
