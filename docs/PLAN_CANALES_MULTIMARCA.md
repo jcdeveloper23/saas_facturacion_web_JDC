@@ -49,6 +49,34 @@ Por eso esta tarea **absorbe y reemplaza** la tarea 0.1 del plan de Conectate y 
 de Buseta, que hablaban de un rol `integration` sin canal. Va **antes** de la Fase 1.a
 (`provisionCompany`) y antes de desplegar cualquiera de los dos gateways.
 
+## Estado al 2026-09-16
+
+**Rama:** `feat/canales-multimarca` (sin push). Panel: `feat/gateway-canal-conectate`
+en `App_AdminWeb_Conectate` (sin push).
+
+| Pieza | Estado |
+|---|---|
+| C1 modelo y claims · C2 callables · C3 reglas · C4 Angular · C5 migración | ✅ código |
+| Pantalla de canales (crea el admin y le envía el correo para definir contraseña) | ✅ código |
+| Reglas e índices en `accounting-system-a5c9f` | ✅ **desplegados** |
+| `manageChannelAdmin`, `setupCompany`, `assignPlanToCompany`, `checkPlanLimit`, `createCompanyUser`, `setUserCustomClaims` | ✅ **desplegadas** |
+| Canal `conectate` y su admin | ✅ creados desde la pantalla (localhost contra producción) |
+| C6 pruebas de reglas | 🟡 12 casos pasan en emulador (script fuera del repo); falta versionarlos |
+| Hosting con la pantalla de canales | ⏳ sin desplegar (`npm run build` + `firebase deploy --only hosting`) |
+| Migración `migrate:channels` en producción | ⏳ sin correr; las empresas actuales no tienen canal |
+| Gateway de Conectate (`callFacturaEc`) | ⏳ sin desplegar; IAM ya configurado sin claves |
+| Planes del canal Conectate | ⏳ catálogo vacío; propuesto botón «Copiar planes base» |
+
+Operación: `admin@weconnect.com.ec` tiene en este proyecto Administrador de Firebase,
+Usuario de cuenta de servicio y Consumidor de Service Usage. La API de Secret Manager se
+habilitó porque el CLI la exige para desplegar functions (la usa `exchangeToken`).
+
+Deuda detectada, fuera de este trabajo:
+- `functions/node_modules` y `functions/lib` están versionados en git.
+- Node.js 20 deja de poder desplegarse el **2026-10-30**; `firebase-functions` desactualizado.
+- `npm install` del Angular solo funciona con `--legacy-peer-deps` (`@angular/fire@20` vs Angular 21).
+- El CLI de Firebase borra `firebase-debug.log`, que está versionado.
+
 ## 3. El modelo
 
 ### 3.1 `channels/{channelId}`

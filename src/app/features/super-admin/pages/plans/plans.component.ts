@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
+import { Component, computed, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
@@ -11,6 +11,7 @@ import { IconDirective } from '@coreui/icons-angular';
 import { SuperAdminService } from '../../services/super-admin.service';
 import { Plan } from '../../models/plan.interface';
 import { NotificationService } from '../../../../core/services/notification.service';
+import { AuthService } from '../../../../core/services/auth.service';
 
 @Component({
   selector: 'app-plans',
@@ -29,7 +30,14 @@ export class PlansComponent implements OnInit, OnDestroy {
   private svc           = inject(SuperAdminService);
   private notifications = inject(NotificationService);
   private router        = inject(Router);
+  private auth          = inject(AuthService);
   private subs          = new Subscription();
+
+  /**
+   * La sincronización reescribe los planes y paquetes base de TODA la plataforma
+   * y borra duplicados: no es una acción de un canal.
+   */
+  readonly isPlatformAdmin = computed(() => this.auth.user()?.role === 'super_admin');
 
   plans             = signal<Plan[]>([]);
   loading           = signal(true);

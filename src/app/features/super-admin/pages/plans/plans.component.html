@@ -7,6 +7,7 @@
     <a cButton color="outline-secondary" size="sm" routerLink="guide">
       <svg cIcon name="cilBook" class="me-1"></svg> Guía comercial
     </a>
+    @if (isPlatformAdmin()) {
     <button cButton color="outline-warning" size="sm"
             [disabled]="syncing()"
             (click)="syncPlans()"
@@ -17,6 +18,7 @@
         <svg cIcon name="cilCloudUpload" class="me-1"></svg> Sincronizar planes
       }
     </button>
+    }
     <button cButton color="primary" size="sm" (click)="openNew()">
       <svg cIcon name="cilPlus" class="me-1"></svg> Nuevo Plan
     </button>
