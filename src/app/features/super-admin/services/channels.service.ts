@@ -4,6 +4,7 @@ import {
   Firestore, Timestamp, collection, doc, getCountFromServer, getDoc, query, setDoc, updateDoc, where
 } from '@angular/fire/firestore';
 import { Observable } from 'rxjs';
+import { AuthService } from '../../../core/services/auth.service';
 import { FirestoreService } from '../../../core/services/firestore.service';
 import { Channel, ChannelFormData, ChannelStatus } from '../models/channel.interface';
 
@@ -22,6 +23,7 @@ export class ChannelsService {
   private fs        = inject(FirestoreService);
   private firestore = inject(Firestore);
   private functions = inject(Functions);
+  private authSvc   = inject(AuthService);
 
   getChannels(): Observable<Channel[]> {
     return this.fs.getRootCollection<Channel>('channels');
@@ -66,19 +68,41 @@ export class ChannelsService {
     await updateDoc(doc(this.firestore, `channels/${channelId}`), { status, updatedAt: Timestamp.now() });
   }
 
-  async grantAdmin(channelId: string, email: string): Promise<void> {
-    await this.manageAdmin(channelId, email, 'grant');
+  /**
+   * Nombra administrador. Si el correo no tenía usuario, el backend lo crea sin
+   * contraseña y acá se le envía el correo de Firebase para que la defina.
+   *
+   * @returns created — si el usuario se creó; resetEmailSent — si el correo salió.
+   */
+  async grantAdmin(channelId: string, email: string): Promise<{ created: boolean; resetEmailSent: boolean }> {
+    const { created } = await this.manageAdmin(channelId, email, 'grant');
+    if (!created) return { created, resetEmailSent: false };
+    try {
+      await this.authSvc.resetPassword(email);
+      return { created, resetEmailSent: true };
+    } catch (err) {
+      console.error('No se pudo enviar el correo para definir contraseña:', err);
+      return { created, resetEmailSent: false };
+    }
   }
 
   async revokeAdmin(channelId: string, email: string): Promise<void> {
     await this.manageAdmin(channelId, email, 'revoke');
   }
 
-  private async manageAdmin(channelId: string, email: string, action: 'grant' | 'revoke'): Promise<void> {
-    const fn = httpsCallable<{ channelId: string; email: string; action: string }, unknown>(
-      this.functions,
-      'manageChannelAdmin'
-    );
-    await fn({ channelId, email, action });
+  /** Reenvía el correo de Firebase para (re)definir la contraseña. */
+  async sendPasswordSetupEmail(email: string): Promise<void> {
+    await this.authSvc.resetPassword(email);
+  }
+
+  private async manageAdmin(
+    channelId: string, email: string, action: 'grant' | 'revoke'
+  ): Promise<{ created: boolean }> {
+    const fn = httpsCallable<
+      { channelId: string; email: string; action: string },
+      { created?: boolean }
+    >(this.functions, 'manageChannelAdmin');
+    const res = await fn({ channelId, email, action });
+    return { created: res.data?.created === true };
   }
 }

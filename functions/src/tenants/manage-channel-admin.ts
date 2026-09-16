@@ -19,8 +19,12 @@ import {
  * canales pasa por acá. Además del claim, deja registro en
  * channels/{channelId}.admins.{uid} para que la pantalla muestre quién es admin.
  *
+ * Si al nombrar admin el correo no tiene usuario, lo crea sin contraseña y
+ * devuelve `created: true`; la pantalla se encarga de enviarle el correo para
+ * definirla.
+ *
  * Payload: { channelId: string; email: string; action: 'grant' | 'revoke' }
- * Returns: { success: true; uid: string; channelId: string; action }
+ * Returns: { success: true; uid: string; channelId: string; action; created: boolean }
  *
  * Ver docs/PLAN_CANALES_MULTIMARCA.md.
  */
@@ -51,11 +55,31 @@ export const manageChannelAdmin = onCall(async (request) => {
     throw new HttpsError('not-found', `El canal '${channelId}' no existe.`);
   }
 
+  // Si el usuario no existe y se lo está nombrando admin, se crea SIN contraseña:
+  // la pantalla le envía después el correo de Firebase para que la defina él.
+  // Nadie maneja contraseñas temporales.
   let user: admin.auth.UserRecord;
+  let created = false;
   try {
     user = await admin.auth().getUserByEmail(email.trim());
-  } catch {
-    throw new HttpsError('not-found', `No hay ningún usuario con el correo ${email}. Debe registrarse primero.`);
+  } catch (err: any) {
+    if (err?.code !== 'auth/user-not-found') {
+      console.error('[manageChannelAdmin] Error buscando usuario', err);
+      throw new HttpsError('internal', 'No se pudo consultar el usuario.');
+    }
+    if (action === 'revoke') {
+      throw new HttpsError('not-found', `No hay ningún usuario con el correo ${email}.`);
+    }
+    try {
+      user = await admin.auth().createUser({ email: email.trim(), emailVerified: false });
+      created = true;
+    } catch (createErr: any) {
+      console.error('[manageChannelAdmin] Error creando usuario', createErr);
+      throw new HttpsError(
+        createErr?.code === 'auth/invalid-email' ? 'invalid-argument' : 'internal',
+        createErr?.code === 'auth/invalid-email' ? 'El correo no es válido.' : 'No se pudo crear el usuario.'
+      );
+    }
   }
 
   const claims = { ...(user.customClaims ?? {}) } as Record<string, unknown>;
@@ -91,6 +115,6 @@ export const manageChannelAdmin = onCall(async (request) => {
     });
   }
 
-  console.log('[manageChannelAdmin]', { action, channelId, uid: user.uid, by: caller.uid });
-  return { success: true, uid: user.uid, channelId, action };
+  console.log('[manageChannelAdmin]', { action, channelId, uid: user.uid, created, by: caller.uid });
+  return { success: true, uid: user.uid, channelId, action, created };
 });

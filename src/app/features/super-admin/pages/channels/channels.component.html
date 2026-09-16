@@ -12,6 +12,8 @@
   <c-card-body>
     @if (loading()) {
     <div class="text-center py-4"><c-spinner color="primary"></c-spinner></div>
+    } @else if (loadError()) {
+    <c-alert color="danger" class="mb-0">{{ loadError() }}</c-alert>
     } @else if (channels().length === 0) {
     <p class="text-center text-muted py-4">
       Todavía no hay canales. Crea el primero, por ejemplo <code>conectate</code>.
@@ -142,7 +144,11 @@
         @for (a of admins(adminsChannel()); track a.uid) {
         <tr>
           <td class="align-middle">{{ a.email }}</td>
-          <td class="text-end">
+          <td class="text-end text-nowrap">
+            <button cButton color="outline-secondary" size="sm" class="me-2" (click)="resendSetupEmail(a)"
+              [disabled]="adminBusy()" title="Enviar correo para definir contraseña">
+              <svg cIcon name="cilEnvelopeClosed"></svg>
+            </button>
             <button cButton color="outline-danger" size="sm" (click)="revoke(a)" [disabled]="adminBusy()"
               title="Retirar">
               <svg cIcon name="cilTrash"></svg>
@@ -165,8 +171,8 @@
         </button>
       </div>
       <div cFormText>
-        El usuario debe estar registrado. Al agregarlo deja de pertenecer a cualquier empresa, y tiene que cerrar sesión
-        y volver a entrar para que el cambio tome efecto.
+        Si el correo no tiene usuario, se crea y recibe un correo para definir su contraseña. Si ya existía, deja de
+        pertenecer a cualquier empresa y tiene que cerrar sesión y volver a entrar para que el cambio tome efecto.
       </div>
     </form>
   </c-modal-body>

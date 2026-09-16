@@ -45,6 +45,8 @@ export class ChannelsComponent implements OnInit, OnDestroy {
   channels = signal<Channel[]>([]);
   companyCounts = signal<Record<string, number | null>>({});
   loading = signal(true);
+  /** Mensaje de por qué no se pudo leer la lista; vacío si cargó bien. */
+  loadError = signal('');
 
   // Modal de alta / edición
   showModal = signal(false);
@@ -72,11 +74,17 @@ export class ChannelsComponent implements OnInit, OnDestroy {
     this.subs.add(this.svc.getChannels().subscribe({
       next: list => {
         this.channels.set([...list].sort((a, b) => a.name.localeCompare(b.name)));
+        this.loadError.set('');
         this.loading.set(false);
         this.loadCounts(list);
       },
       error: err => {
         console.error('Error al cargar canales:', err);
+        // permission-denied casi siempre significa que las reglas con el bloque
+        // `channels` no están desplegadas, o que la sesión no es de super admin.
+        this.loadError.set(err?.code === 'permission-denied'
+          ? 'Sin permiso para leer canales. Verifica que las reglas de Firestore con el modelo de canales estén desplegadas y que tu usuario sea super admin (cierra sesión y vuelve a entrar si te lo asignaron hace poco).'
+          : `No se pudieron cargar los canales: ${err?.message ?? err}`);
         this.notifications.error('Error al cargar canales');
         this.loading.set(false);
       }
@@ -182,11 +190,31 @@ export class ChannelsComponent implements OnInit, OnDestroy {
     this.adminError.set('');
     try {
       const email = this.adminForm.getRawValue().email!.trim();
-      await this.svc.grantAdmin(channelId, email);
-      this.notifications.success(`${email} ahora administra el canal. Debe cerrar sesión y volver a entrar.`);
+      const { created, resetEmailSent } = await this.svc.grantAdmin(channelId, email);
+      if (!created) {
+        this.notifications.success(`${email} ahora administra el canal. Debe cerrar sesión y volver a entrar.`);
+      } else if (resetEmailSent) {
+        this.notifications.success(`Usuario creado. Enviamos a ${email} un correo para que defina su contraseña.`);
+      } else {
+        // El usuario y el rol quedaron; solo falló el correo.
+        this.adminError.set(`Usuario creado, pero no se pudo enviar el correo a ${email}. Usa el botón de sobre para reenviarlo.`);
+      }
       this.adminForm.reset({ email: '' });
     } catch (err: any) {
       this.adminError.set(err?.message || 'No se pudo asignar el administrador');
+    } finally {
+      this.adminBusy.set(false);
+    }
+  }
+
+  async resendSetupEmail(row: AdminRow): Promise<void> {
+    this.adminBusy.set(true);
+    this.adminError.set('');
+    try {
+      await this.svc.sendPasswordSetupEmail(row.email);
+      this.notifications.success(`Enviamos a ${row.email} el correo para definir su contraseña`);
+    } catch (err: any) {
+      this.adminError.set(err?.message || 'No se pudo enviar el correo');
     } finally {
       this.adminBusy.set(false);
     }
