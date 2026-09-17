@@ -18,10 +18,10 @@ Lo que cambia respecto de los planes escritos hasta hoy es **quién administra a
 
 ```
 FacturaEc (central)
-├── channels/conectate      ← su super admin activa módulos a SUS empresas
+├── channels/conecta-app    ← su super admin activa módulos a SUS empresas
 ├── channels/mi-buseta      ← su super admin activa módulos a SUS empresas
 └── companies/{companyId}
-      channelId: 'conectate' | 'mi-buseta' | 'directo'
+      channelId: 'conecta-app' | 'mi-buseta' | 'directo'
 ```
 
 Conectate y Mi Buseta **no son tenants**. Son canales: marcas bajo las que se vende el
@@ -53,7 +53,9 @@ de Buseta, que hablaban de un rol `integration` sin canal. Va **antes** de la Fa
 
 **Ramas (sin push):** `feat/canales-multimarca` y, encima, `feat/portal-canal`
 (commits `351d03b` portal y `92ee185` `portalWhoAmI`). Panel: `feat/gateway-canal-conectate` y, encima,
-`feat/contabilidad-flutter` (commits `04d7a98` Contabilidad y `c8cbf8e` semáforo de conexión) en `App_AdminWeb_Conectate`.
+`feat/contabilidad-flutter` (commits `04d7a98` Contabilidad, `c8cbf8e` semáforo de conexión,
+`94dd873` encabezado sin desborde y `1243ca8` canal real `conecta-app` + semáforo sin parpadeo)
+en `App_AdminWeb_Conectate`.
 Bitácora con los comandos exactos: `App_AdminWeb_Conectate/weworkscloud/docs/BITACORA_INTEGRACION.md`.
 
 | Pieza | Estado |
@@ -62,19 +64,19 @@ Bitácora con los comandos exactos: `App_AdminWeb_Conectate/weworkscloud/docs/BI
 | Pantalla de canales (crea el admin y le envía el correo para definir contraseña) | ✅ código |
 | Reglas e índices en `accounting-system-a5c9f` | ✅ **desplegados** |
 | `manageChannelAdmin`, `setupCompany`, `assignPlanToCompany`, `checkPlanLimit`, `createCompanyUser`, `setUserCustomClaims` | ✅ **desplegadas** |
-| Canal `conectate` y su admin | ✅ creados desde la pantalla (localhost contra producción) |
+| Canal `conecta-app` («Conecta», `status: active`, 2 admins) y su admin | ✅ creados desde la pantalla (localhost contra producción). El id del documento es `conecta-app`; «Conecta» es el nombre |
 | Portal de canal: `portalListCompanies`, `portalGetCompany`, `portalSetCompanyStatus`, `portalSetAddon`, `portalListPlans`, `portalUpsertPlan`, `portalListPackages` (`functions/src/channel-portal/`) | ✅ **desplegadas el 2026-09-17** (rama `feat/portal-canal`, 7 creadas) |
 | Fix de módulos en `assignPlanToCompany` y `onPlanUpdated` (leían `includedModules`) | ✅ **desplegadas el 2026-09-17** (2 actualizadas) |
 | `portalWhoAmI` (solo lectura: uid, correo, rol, canal y estado del canal del llamador, sin exigir canal activo) | ✅ **desplegada el 2026-09-17** (rama `feat/portal-canal`, commit `92ee185`, 1 creada); en la lista blanca del gateway |
-| IAM: `facturaec-gateway@work-cloud-df68a.iam.gserviceaccount.com` con «Consumidor de Service Usage» en este proyecto | ✅ otorgado el 2026-09-17 (la firma por impersonación se contabiliza aquí; sin él falla con `auth/insufficient-permission`) |
+| IAM: `facturaec-gateway@work-cloud-df68a.iam.gserviceaccount.com` con «Consumidor de Service Usage» en este proyecto | ✅ otorgado el 2026-09-17, **en este proyecto** (el primer intento quedó en `work-cloud-df68a`). Va en IAM, no en la página de Cuentas de servicio, y el correo hay que pegarlo: no aparece en el autocompletado por ser de otro proyecto |
 | C6 pruebas de reglas | 🟡 12 casos pasan en emulador (script fuera del repo); falta versionarlos |
 | Hosting con la pantalla de canales | ⏳ sin desplegar (`npm run build` + `firebase deploy --only hosting`) |
 | Migración `migrate:channels` en producción | ⏳ sin correr; las empresas actuales no tienen canal |
-| Gateway de Conectate (`callFacturaEc`, `grantPlatformRole`) en `work-cloud-df68a` | ~~⏳ sin desplegar~~ → ✅ **desplegado el 2026-09-17**, firma como `channel_admin` de `conectate`, IAM sin claves |
+| Gateway de Conectate (`callFacturaEc`, `grantPlatformRole`) en `work-cloud-df68a` | ~~⏳ sin desplegar~~ → ✅ **desplegado el 2026-09-17**, firma como `channel_admin` de `conecta-app` (~~`conectate`~~ → `conecta-app` el mismo día, redesplegado `callFacturaEc`), IAM sin claves |
 | `platformRole: super_admin` en Conecta para `juandiegocontrerass@gmail.com` | ✅ asignado el 2026-09-17 |
 | Sección «Contabilidad» del panel Flutter (consume el portal por el gateway) | ⏳ código listo, hosting de Conecta sin desplegar |
-| Prueba de punta a punta Flutter → gateway → portal | 🟡 primera llamada real el 2026-09-17: falló por el permiso de Service Usage, ya corregido; **pendiente de confirmar** en verde. Hasta correr `migrate:channels`, las empresas actuales no tienen canal y el portal no las muestra |
-| Planes del canal Conectate | ⏳ catálogo vacío; propuesto botón «Copiar planes base» |
+| Prueba de punta a punta Flutter → gateway → portal | ✅ **pasa el 2026-09-17**: «Contabilidad» lista el catálogo real de paquetes y cargan Empresas y Planes. Semáforo en 🟡 por un solo motivo correcto: el canal aún no tiene planes. Hasta correr `migrate:channels`, las empresas actuales no tienen canal y el portal no las muestra |
+| Planes del canal `conecta-app` | ⏳ catálogo vacío — falta crear el primero; propuesto botón «Copiar planes base» |
 
 Operación: `admin@weconnect.com.ec` tiene en este proyecto Administrador de Firebase,
 Usuario de cuenta de servicio y Consumidor de Service Usage. La API de Secret Manager se
@@ -126,7 +128,7 @@ Nuevo rol **`channel_admin`**, con claims `{ role: 'channel_admin', channelId }`
 
 - Es el rol con el que **firman los dos gateways** su token de integración, en lugar de
   `super_admin`. En Conectate es poner `FACTURAEC_INTEGRATION_ROLE=channel_admin` y la
-  nueva variable `FACTURAEC_CHANNEL_ID=conectate`.
+  nueva variable `FACTURAEC_CHANNEL_ID=conecta-app` (~~`conectate`~~ → `conecta-app`, 2026-09-17).
 - `super_admin` queda para el dueño de la plataforma, que ve todos los canales. Deja de
   ser el rol de uso diario.
 - `channel_admin` **no puede** otorgar `super_admin` ni `channel_admin`: ambos entran en
@@ -142,7 +144,7 @@ en el catálogo de roles de plataforma, y script para crear un canal y su primer
 | Archivo | Qué es |
 |---|---|
 | `functions/src/utils/channels.ts` | El modelo en código: roles, `canOperateOnChannel`, `assertChannelAccess`, `resolveChannelForNewCompany`, `assertPlanMatchesCompany`, `loadCompanyForCaller` |
-| `scripts/seed-channel.ts` | Crea el canal y le pone los claims a su super admin (`npm run seed:channel -- conectate "Conectate" correo@dominio.com`) |
+| `scripts/seed-channel.ts` | Crea el canal y le pone los claims a su super admin (`npm run seed:channel -- conecta-app "Conecta" correo@dominio.com`) |
 | `src/app/core/services/roles.service.ts` | `channel_admin` en `DEFAULT_SYSTEM_ROLES` |
 
 ### C2 · Guard de canal en los callables · 1 día — ✅ implementado el 2026-09-16
@@ -230,9 +232,9 @@ con `channelId: ''`) y no toca los de `conectate`; una segunda corrida no encuen
 > El emulador de firebase-tools 15 exige **Java 21+**.
 
 Además, el gateway de Conectate (`weworkscloud/functions/facturaec.js`) ahora firma por
-defecto con `role: 'channel_admin'` y `channelId: 'conectate'` (variables
+defecto con `role: 'channel_admin'` y `channelId: 'conecta-app'` (~~`conectate`~~ → `conecta-app`, 2026-09-17; variables
 `FACTURAEC_INTEGRATION_ROLE` y `FACTURAEC_CHANNEL_ID`). Antes firmaba como `super_admin`
-y sin canal. Sus 8 pruebas pasan.
+y sin canal. Sus pruebas pasan (10 al 2026-09-17).
 
 ### Pantalla de canales — ✅ implementada el 2026-09-16
 
