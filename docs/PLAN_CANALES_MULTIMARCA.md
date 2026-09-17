@@ -52,8 +52,8 @@ de Buseta, que hablaban de un rol `integration` sin canal. Va **antes** de la Fa
 ## Estado al 2026-09-17
 
 **Ramas (sin push):** `feat/canales-multimarca` y, encima, `feat/portal-canal`
-(commit `351d03b`). Panel: `feat/gateway-canal-conectate` y, encima,
-`feat/contabilidad-flutter` (commit `04d7a98`) en `App_AdminWeb_Conectate`.
+(commits `351d03b` portal y `92ee185` `portalWhoAmI`). Panel: `feat/gateway-canal-conectate` y, encima,
+`feat/contabilidad-flutter` (commits `04d7a98` Contabilidad y `c8cbf8e` semáforo de conexión) en `App_AdminWeb_Conectate`.
 Bitácora con los comandos exactos: `App_AdminWeb_Conectate/weworkscloud/docs/BITACORA_INTEGRACION.md`.
 
 | Pieza | Estado |
@@ -65,13 +65,15 @@ Bitácora con los comandos exactos: `App_AdminWeb_Conectate/weworkscloud/docs/BI
 | Canal `conectate` y su admin | ✅ creados desde la pantalla (localhost contra producción) |
 | Portal de canal: `portalListCompanies`, `portalGetCompany`, `portalSetCompanyStatus`, `portalSetAddon`, `portalListPlans`, `portalUpsertPlan`, `portalListPackages` (`functions/src/channel-portal/`) | ✅ **desplegadas el 2026-09-17** (rama `feat/portal-canal`, 7 creadas) |
 | Fix de módulos en `assignPlanToCompany` y `onPlanUpdated` (leían `includedModules`) | ✅ **desplegadas el 2026-09-17** (2 actualizadas) |
+| `portalWhoAmI` (solo lectura: uid, correo, rol, canal y estado del canal del llamador, sin exigir canal activo) | ✅ **desplegada el 2026-09-17** (rama `feat/portal-canal`, commit `92ee185`, 1 creada); en la lista blanca del gateway |
+| IAM: `facturaec-gateway@work-cloud-df68a.iam.gserviceaccount.com` con «Consumidor de Service Usage» en este proyecto | ✅ otorgado el 2026-09-17 (la firma por impersonación se contabiliza aquí; sin él falla con `auth/insufficient-permission`) |
 | C6 pruebas de reglas | 🟡 12 casos pasan en emulador (script fuera del repo); falta versionarlos |
 | Hosting con la pantalla de canales | ⏳ sin desplegar (`npm run build` + `firebase deploy --only hosting`) |
 | Migración `migrate:channels` en producción | ⏳ sin correr; las empresas actuales no tienen canal |
 | Gateway de Conectate (`callFacturaEc`, `grantPlatformRole`) en `work-cloud-df68a` | ~~⏳ sin desplegar~~ → ✅ **desplegado el 2026-09-17**, firma como `channel_admin` de `conectate`, IAM sin claves |
 | `platformRole: super_admin` en Conecta para `juandiegocontrerass@gmail.com` | ✅ asignado el 2026-09-17 |
 | Sección «Contabilidad» del panel Flutter (consume el portal por el gateway) | ⏳ código listo, hosting de Conecta sin desplegar |
-| Prueba de punta a punta Flutter → gateway → portal | ⏳ pendiente; hasta correr `migrate:channels`, las empresas actuales no tienen canal y el portal no las muestra |
+| Prueba de punta a punta Flutter → gateway → portal | 🟡 primera llamada real el 2026-09-17: falló por el permiso de Service Usage, ya corregido; **pendiente de confirmar** en verde. Hasta correr `migrate:channels`, las empresas actuales no tienen canal y el portal no las muestra |
 | Planes del canal Conectate | ⏳ catálogo vacío; propuesto botón «Copiar planes base» |
 
 Operación: `admin@weconnect.com.ec` tiene en este proyecto Administrador de Firebase,
