@@ -278,6 +278,47 @@ export const portalUpsertPlan = onCall(async (request) => {
   return { success: true, planId: ref.id, created: true };
 });
 
+// ─── Conexión ────────────────────────────────────────────────────────────────
+
+/**
+ * Con qué identidad llega la app a FacturaEc y en qué estado está su canal.
+ * Lo usa el indicador de conexión de la app del canal.
+ *
+ * No exige canal activo: justamente debe poder informar que está suspendido.
+ */
+export const portalWhoAmI = onCall(async (request) => {
+  const db = admin.firestore();
+  const caller = readCaller(request);
+  if (!isSuperAdmin(caller) && !isChannelAdmin(caller)) {
+    throw new HttpsError('permission-denied', 'Solo administradores de plataforma o de canal.');
+  }
+
+  let email: string | null = null;
+  try {
+    email = (await admin.auth().getUser(caller.uid)).email ?? null;
+  } catch {
+    // Identidad de integración sin registro de usuario: se informa sin correo.
+  }
+
+  let channel: Record<string, unknown> | null = null;
+  if (caller.channelId) {
+    const snap = await db.doc(`channels/${caller.channelId}`).get();
+    channel = snap.exists
+      ? { id: snap.id, name: snap.data()?.['name'] ?? snap.id, status: snap.data()?.['status'] ?? 'unknown' }
+      : { id: caller.channelId, name: caller.channelId, status: 'missing' };
+  }
+
+  return {
+    uid: caller.uid,
+    email,
+    role: caller.role ?? null,
+    channelId: caller.channelId ?? null,
+    channel,
+    project: process.env.GCLOUD_PROJECT ?? null,
+    checkedAt: new Date().toISOString(),
+  };
+});
+
 // ─── Catálogo ────────────────────────────────────────────────────────────────
 
 /** Catálogo de paquetes (lo comparten todos los canales; solo lectura). */

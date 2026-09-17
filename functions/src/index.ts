@@ -17,7 +17,7 @@ export { manageChannelAdmin }    from './tenants/manage-channel-admin';
 // Portal de canal (apps de cada canal, vía su gateway)
 export {
   portalListCompanies, portalGetCompany, portalSetCompanyStatus, portalSetAddon,
-  portalListPlans, portalUpsertPlan, portalListPackages,
+  portalListPlans, portalUpsertPlan, portalListPackages, portalWhoAmI,
 } from './channel-portal/portal-callables';
 
 // Invoices / SRI
