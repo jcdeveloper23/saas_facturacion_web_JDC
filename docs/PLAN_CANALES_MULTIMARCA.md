@@ -49,10 +49,12 @@ Por eso esta tarea **absorbe y reemplaza** la tarea 0.1 del plan de Conectate y 
 de Buseta, que hablaban de un rol `integration` sin canal. Va **antes** de la Fase 1.a
 (`provisionCompany`) y antes de desplegar cualquiera de los dos gateways.
 
-## Estado al 2026-09-16
+## Estado al 2026-09-17
 
-**Rama:** `feat/canales-multimarca` (sin push). Panel: `feat/gateway-canal-conectate`
-en `App_AdminWeb_Conectate` (sin push).
+**Ramas (sin push):** `feat/canales-multimarca` y, encima, `feat/portal-canal`
+(commit `351d03b`). Panel: `feat/gateway-canal-conectate` y, encima,
+`feat/contabilidad-flutter` (commit `04d7a98`) en `App_AdminWeb_Conectate`.
+Bitácora con los comandos exactos: `App_AdminWeb_Conectate/weworkscloud/docs/BITACORA_INTEGRACION.md`.
 
 | Pieza | Estado |
 |---|---|
@@ -61,10 +63,15 @@ en `App_AdminWeb_Conectate` (sin push).
 | Reglas e índices en `accounting-system-a5c9f` | ✅ **desplegados** |
 | `manageChannelAdmin`, `setupCompany`, `assignPlanToCompany`, `checkPlanLimit`, `createCompanyUser`, `setUserCustomClaims` | ✅ **desplegadas** |
 | Canal `conectate` y su admin | ✅ creados desde la pantalla (localhost contra producción) |
+| Portal de canal: `portalListCompanies`, `portalGetCompany`, `portalSetCompanyStatus`, `portalSetAddon`, `portalListPlans`, `portalUpsertPlan`, `portalListPackages` (`functions/src/channel-portal/`) | ✅ **desplegadas el 2026-09-17** (rama `feat/portal-canal`, 7 creadas) |
+| Fix de módulos en `assignPlanToCompany` y `onPlanUpdated` (leían `includedModules`) | ✅ **desplegadas el 2026-09-17** (2 actualizadas) |
 | C6 pruebas de reglas | 🟡 12 casos pasan en emulador (script fuera del repo); falta versionarlos |
 | Hosting con la pantalla de canales | ⏳ sin desplegar (`npm run build` + `firebase deploy --only hosting`) |
 | Migración `migrate:channels` en producción | ⏳ sin correr; las empresas actuales no tienen canal |
-| Gateway de Conectate (`callFacturaEc`) | ⏳ sin desplegar; IAM ya configurado sin claves |
+| Gateway de Conectate (`callFacturaEc`, `grantPlatformRole`) en `work-cloud-df68a` | ~~⏳ sin desplegar~~ → ✅ **desplegado el 2026-09-17**, firma como `channel_admin` de `conectate`, IAM sin claves |
+| `platformRole: super_admin` en Conecta para `juandiegocontrerass@gmail.com` | ✅ asignado el 2026-09-17 |
+| Sección «Contabilidad» del panel Flutter (consume el portal por el gateway) | ⏳ código listo, hosting de Conecta sin desplegar |
+| Prueba de punta a punta Flutter → gateway → portal | ⏳ pendiente; hasta correr `migrate:channels`, las empresas actuales no tienen canal y el portal no las muestra |
 | Planes del canal Conectate | ⏳ catálogo vacío; propuesto botón «Copiar planes base» |
 
 Operación: `admin@weconnect.com.ec` tiene en este proyecto Administrador de Firebase,
@@ -274,7 +281,7 @@ escribiendo directo contra Firestore. El super admin de plataforma sí ve todo.
 
 | Riesgo | Mitigación |
 |---|---|
-| Desplegar un gateway antes de esta tarea | no desplegar `callFacturaEc` con `super_admin`: el orden es este plan, después los gateways |
+| Desplegar un gateway antes de esta tarea | no desplegar `callFacturaEc` con `super_admin`: el orden es este plan, después los gateways. **Cumplido para Conectate (2026-09-17):** canales primero, gateway después, firmando como `channel_admin` |
 | Empresa sin `channelId` tras la migración | el guard niega por defecto cuando falta el campo, y el script reporta las que quedaron sin estampar |
 | Reglas al día pero Angular sin filtrar | C3 y C4 se despliegan juntos |
 | El canal se manda en el payload | el `channelId` sale **siempre** del token, igual que el rol |
