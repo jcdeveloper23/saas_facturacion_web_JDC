@@ -2,6 +2,7 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import { Timestamp } from 'firebase-admin/firestore';
 import { assertPlanMatchesCompany, loadCompanyForCaller, readCaller } from '../utils/channels';
+import { PackageDef, addonCodesOf, effectivePackages } from '../channel-portal/portal-core';
 
 /**
  * assignPlanToCompany
@@ -49,14 +50,15 @@ export const assignPlanToCompany = onCall(async (request) => {
   const company = await loadCompanyForCaller(db, caller, companyId);
   assertPlanMatchesCompany(plan['channelId'], company['channelId']);
 
-  const enabledPackages: string[] = Array.isArray(company['enabledPackages']) ? company['enabledPackages'] : [];
-  console.log('[assignPlanToCompany] enabledPackages actuales:', enabledPackages);
-
-  // ── 3. Calcular enabledModules ─────────────────────────────────────────────
-  // Unión de includedModules del plan + módulos de enabledPackages existentes
-  const planModules: string[] = Array.isArray(plan['includedModules']) ? plan['includedModules'] : [];
-  const enabledModules: string[] = Array.from(new Set([...planModules, ...enabledPackages]));
-  console.log('[assignPlanToCompany] enabledModules calculados:', enabledModules.length, 'módulos');
+  // ── 3. Calcular paquetes y módulos ────────────────────────────────────────
+  // Paquetes del plan nuevo + add-on contratados aparte; los módulos salen del
+  // catálogo. Antes se leía plan.includedModules, que los planes no tienen, y
+  // se mezclaban códigos de paquete con módulos.
+  const pkgsSnap = await db.collection('plugin-packages').get();
+  const catalog = pkgsSnap.docs.map(d => d.data() as PackageDef).filter(p => !!p.code);
+  const planPackages: string[] = Array.isArray(plan['includedPackages']) ? plan['includedPackages'] : [];
+  const { enabledPackages, enabledModules } = effectivePackages(planPackages, addonCodesOf(company), catalog);
+  console.log('[assignPlanToCompany] paquetes:', enabledPackages.length, '| módulos:', enabledModules.length);
 
   // ── 4. Calcular subscriptionEnd ────────────────────────────────────────────
   const now = Timestamp.now();
@@ -74,6 +76,7 @@ export const assignPlanToCompany = onCall(async (request) => {
     planName:          plan['name'] ?? '',
     planLimits:        plan['limits'] ?? null,
     planFeatures:      plan['features'] ?? null,
+    enabledPackages,
     enabledModules,
     subscriptionStart: now,
     subscriptionEnd,

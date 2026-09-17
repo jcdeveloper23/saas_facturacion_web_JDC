@@ -1,5 +1,6 @@
 import { onDocumentUpdated } from 'firebase-functions/v2/firestore';
 import * as admin from 'firebase-admin';
+import { PackageDef, addonCodesOf, effectivePackages } from '../channel-portal/portal-core';
 
 /**
  * onPlanUpdated
@@ -29,10 +30,13 @@ export const onPlanUpdated = onDocumentUpdated(
     // ── Early exit: only propagate if relevant fields changed ────────────────
     const limitsChanged    = JSON.stringify(before['limits'])         !== JSON.stringify(after['limits']);
     const featuresChanged  = JSON.stringify(before['features'])       !== JSON.stringify(after['features']);
-    const modulesChanged   = JSON.stringify(before['includedModules']) !== JSON.stringify(after['includedModules']);
+    // Los planes guardan paquetes (includedPackages), no módulos. Antes se
+    // miraba includedModules, que no existe, y editar los paquetes de un plan
+    // no llegaba a sus empresas.
+    const packagesChanged  = JSON.stringify(before['includedPackages']) !== JSON.stringify(after['includedPackages']);
 
-    if (!limitsChanged && !featuresChanged && !modulesChanged) {
-      console.log('[onPlanUpdated] Sin cambios en limits/features/includedModules — sin propagación.', { planId });
+    if (!limitsChanged && !featuresChanged && !packagesChanged) {
+      console.log('[onPlanUpdated] Sin cambios en limits/features/includedPackages — sin propagación.', { planId });
       return;
     }
 
@@ -40,13 +44,16 @@ export const onPlanUpdated = onDocumentUpdated(
       planId,
       limitsChanged,
       featuresChanged,
-      modulesChanged,
+      packagesChanged,
     });
 
     const db = admin.firestore();
     const newLimits:   Record<string, any> | null = after['limits']  ?? null;
     const newFeatures: Record<string, any> | null = after['features'] ?? null;
-    const newModules:  string[] = Array.isArray(after['includedModules']) ? after['includedModules'] : [];
+    const planPackages: string[] = Array.isArray(after['includedPackages']) ? after['includedPackages'] : [];
+    const catalog = (await db.collection('plugin-packages').get()).docs
+      .map(d => d.data() as PackageDef)
+      .filter(p => !!p.code);
 
     // ── Query companies on this plan ─────────────────────────────────────────
     const companiesSnap = await db.collection('companies')
@@ -71,15 +78,15 @@ export const onPlanUpdated = onDocumentUpdated(
       const batch = db.batch();
 
       for (const companyDoc of chunk) {
-        // Recalculate enabledModules for this company:
-        // union of new plan modules + modules from company's enabledPackages
-        const companyData     = companyDoc.data() as Record<string, any>;
-        const enabledPackages: string[] = Array.isArray(companyData['enabledPackages']) ? companyData['enabledPackages'] : [];
-        const enabledModules: string[] = Array.from(new Set([...newModules, ...enabledPackages]));
+        // Paquetes del plan + add-on de la empresa; módulos desde el catálogo.
+        const companyData = companyDoc.data() as Record<string, any>;
+        const { enabledPackages, enabledModules } =
+          effectivePackages(planPackages, addonCodesOf(companyData), catalog);
 
         batch.update(companyDoc.ref, {
           planLimits:    newLimits,
           planFeatures:  newFeatures,
+          enabledPackages,
           enabledModules,
           updatedAt:     now,
         });

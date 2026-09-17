@@ -14,6 +14,12 @@ export { onPlanUpdated }         from './tenants/on-plan-updated';
 export { checkPlanLimit }        from './tenants/check-plan-limit';
 export { manageChannelAdmin }    from './tenants/manage-channel-admin';
 
+// Portal de canal (apps de cada canal, vía su gateway)
+export {
+  portalListCompanies, portalGetCompany, portalSetCompanyStatus, portalSetAddon,
+  portalListPlans, portalUpsertPlan, portalListPackages,
+} from './channel-portal/portal-callables';
+
 // Invoices / SRI
 export { uploadCertificate }        from './invoices/upload-certificate';
 export { createAndEmitInvoice }     from './invoices/create-and-emit-invoice';
