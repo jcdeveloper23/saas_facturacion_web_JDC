@@ -49,7 +49,7 @@ Por eso esta tarea **absorbe y reemplaza** la tarea 0.1 del plan de Conectate y 
 de Buseta, que hablaban de un rol `integration` sin canal. Va **antes** de la Fase 1.a
 (`provisionCompany`) y antes de desplegar cualquiera de los dos gateways.
 
-## Estado al 2026-09-17
+## Estado al 2026-09-21
 
 **Ramas (sin push):** `feat/canales-multimarca` y, encima, `feat/portal-canal`
 (commits `351d03b` portal y `92ee185` `portalWhoAmI`). Panel: `feat/gateway-canal-conectate` y, encima,
@@ -76,7 +76,14 @@ Bitácora con los comandos exactos: `App_AdminWeb_Conectate/weworkscloud/docs/BI
 | `platformRole: super_admin` en Conecta para `juandiegocontrerass@gmail.com` | ✅ asignado el 2026-09-17 |
 | Sección «Contabilidad» del panel Flutter (consume el portal por el gateway) | ⏳ código listo, hosting de Conecta sin desplegar |
 | Prueba de punta a punta Flutter → gateway → portal | ✅ **pasa el 2026-09-17**: «Contabilidad» lista el catálogo real de paquetes y cargan Empresas y Planes. Semáforo en 🟡 por un solo motivo correcto: el canal aún no tiene planes. Hasta correr `migrate:channels`, las empresas actuales no tienen canal y el portal no las muestra |
-| Planes del canal `conecta-app` | ⏳ catálogo vacío — falta crear el primero; propuesto botón «Copiar planes base» |
+| Planes del canal `conecta-app` | 🚧 **bloqueante (2026-09-21)** — catálogo vacío; falta crear el primero (propuesto botón «Copiar planes base»). Ya no deja solo el semáforo en 🟡: desde el 2026-09-21 el dueño de un grupo de Conecta puede pedir la activación, y **sin plan `setupCompany` no tiene qué asignar, así que cualquier activación falla** |
+| Activación desde el grupo de Conecta (`requestAccountingActivation`, `approveAccountingRequest`, `rejectAccountingRequest` en `work-cloud-df68a`) | ✅ **desplegadas el 2026-09-21**, del lado de Conecta. Entran a FacturaEc como el canal `conecta-app` y **siempre** en ambiente de pruebas del SRI (`sri.environment = '1'`). Sin probar con un grupo real: espera el primer plan del canal |
+
+> **Nada nuevo que desplegar de este lado (2026-09-21).** Lo del 2026-09-21 fue todo en
+> Conecta (`work-cloud-df68a`): tres callables y una regla de Firestore. Lo que falta aquí
+> sigue siendo lo mismo: el **primer plan del canal**, `migrate:channels` y el hosting.
+> Detalle en `App_AdminWeb_Conectate/weworkscloud/docs/BITACORA_INTEGRACION.md`
+> (entrada del 2026-09-21) y en `weworkscloud/docs/PLAN_CONTABILIDAD_DESDE_GRUPO.md`.
 
 Operación: `admin@weconnect.com.ec` tiene en este proyecto Administrador de Firebase,
 Usuario de cuenta de servicio y Consumidor de Service Usage. La API de Secret Manager se
