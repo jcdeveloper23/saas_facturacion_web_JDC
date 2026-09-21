@@ -98,7 +98,20 @@ export const exchangeToken = onRequest(
       // identity-links, que se revisa en cada canje (enabled). Para cortar el
       // acceso de alguien: enabled = false en su vínculo.
       const originAuth = getOriginApp(origin).auth();
-      const decoded = await originAuth.verifyIdToken(idToken);
+      let decoded: admin.auth.DecodedIdToken;
+      try {
+        decoded = await originAuth.verifyIdToken(idToken);
+      } catch (verifyErr: any) {
+        // Solo esto es «tu sesión no sirve». Cualquier otro error de Auth más
+        // abajo es de este servidor (permisos, configuración), no del usuario:
+        // mandarlo a iniciar sesión otra vez no lo arregla.
+        console.warn('[exchangeToken] Token rechazado:', verifyErr?.code);
+        res.status(401).json({
+          error: 'unauthenticated',
+          message: 'La sesión de origen no es válida. Vuelva a iniciar sesión.',
+        });
+        return;
+      }
 
       const originUid = decoded.uid;
       console.log('[exchangeToken] Token verificado:', { origin, originUid });
@@ -185,17 +198,14 @@ export const exchangeToken = onRequest(
         companyId: scope.companyId,
       });
     } catch (err: any) {
-      // Token expirado, revocado o firmado por otro proyecto.
-      if (typeof err?.code === 'string' && err.code.startsWith('auth/')) {
-        console.warn('[exchangeToken] Token rechazado:', err.code);
-        res.status(401).json({
-          error: 'unauthenticated',
-          message: 'La sesión de origen no es válida. Vuelva a iniciar sesión.',
-        });
-        return;
-      }
-      console.error('[exchangeToken] Error:', err);
-      res.status(500).json({ error: 'internal', message: 'No se pudo completar el intercambio.' });
+      // auth/insufficient-permission al firmar el custom token: a la cuenta de
+      // ejecución le falta «Creador de tokens de cuenta de servicio» sobre sí
+      // misma (visto el 2026-09-21, primera vez que esta función corrió).
+      console.error('[exchangeToken] Error:', { code: err?.code, detail: err?.message });
+      res.status(500).json({
+        error: 'internal',
+        message: 'El sistema de facturación no pudo abrir la sesión. Avise al administrador.',
+      });
     }
   },
 );
