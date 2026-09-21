@@ -135,6 +135,10 @@ export const setupCompany = onCall(async (request) => {
   let planFeatures: Record<string, any> | null = null;
   let includedPackages: string[] = [];
   let includedModules: string[] = [];
+  // El nombre del plan sale del plan, no del payload: quien llama puede mandar
+  // solo el id, y un planName vacío deja la empresa «sin plan» en toda pantalla
+  // que lo muestre (pasó el 2026-09-21). Así lo hace ya assignPlanToCompany.
+  let planName: string = data.planName ?? '';
 
   if (data.planId) {
     const planSnap = await db.doc(`plans/${data.planId}`).get();
@@ -145,6 +149,7 @@ export const setupCompany = onCall(async (request) => {
       planLimits       = plan['limits']           ?? null;
       planFeatures     = plan['features']          ?? null;
       includedPackages = plan['includedPackages']  ?? [];
+      planName         = plan['name'] || planName;
 
       // Resolver módulos desde los paquetes del plan (igual que assignPlanToCompany en el frontend)
       if (includedPackages.length > 0) {
@@ -274,8 +279,10 @@ export const setupCompany = onCall(async (request) => {
 
   batch.set(companyRef, {
     ...companyDataToSave,
-    // Va después del spread a propósito: el canal sale del token, no del payload.
+    // Van después del spread a propósito: el canal sale del token y el nombre
+    // del plan, del plan; ninguno se toma del payload.
     channelId,
+    planName,
     subscriptionStart: now,
     subscriptionEnd: data.subscriptionEnd
       ? Timestamp.fromDate(new Date(data.subscriptionEnd))

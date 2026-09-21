@@ -23,17 +23,15 @@ import { Timestamp } from 'firebase-admin/firestore';
  */
 
 // ── Proyectos de origen autorizados ─────────────────────────────────────────
-// La credencial de cada uno llega por Secret Manager como JSON de service
-// account. Un origen sin credencial configurada queda deshabilitado.
-const ALLOWED_ORIGINS: Record<string, { projectId: string; credentialEnv: string }> = {
-  'work-cloud': {
-    projectId: 'work-cloud-df68a',
-    credentialEnv: 'WORK_CLOUD_SERVICE_ACCOUNT',
-  },
-  'mi-buseta': {
-    projectId: 'mi-buseta-357902',
-    credentialEnv: 'MI_BUSETA_SERVICE_ACCOUNT',
-  },
+// Sin credenciales: verificar un ID token de otro proyecto solo necesita su
+// projectId (audiencia y emisor del token) y los certificados públicos de
+// Google, que el SDK descarga solo. Antes se cargaba el JSON de una cuenta de
+// servicio de cada origen; se quitó (2026-09-21) porque es una clave de larga
+// duración que no hacía falta, y la plataforma decidió no usar claves
+// descargadas. Ver App_AdminWeb_Conectate/weworkscloud/docs/PLAN_MODULO_CONTABILIDAD_CLIENTE.md.
+export const ALLOWED_ORIGINS: Record<string, { projectId: string }> = {
+  'work-cloud': { projectId: 'work-cloud-df68a' },
+  'mi-buseta': { projectId: 'mi-buseta-357902' },
 };
 
 // Apps de Admin SDK secundarias, una por origen. Se cachean entre invocaciones
@@ -45,25 +43,13 @@ function getOriginApp(origin: string): admin.app.App {
   if (cached) return cached;
 
   const config = ALLOWED_ORIGINS[origin];
-  const raw = process.env[config.credentialEnv];
-  if (!raw) {
-    throw new Error(`Falta la credencial ${config.credentialEnv} para el origen '${origin}'.`);
-  }
-
-  const app = admin.initializeApp(
-    { credential: admin.credential.cert(JSON.parse(raw)) },
-    `origin-${origin}`,
-  );
+  const app = admin.initializeApp({ projectId: config.projectId }, `origin-${origin}`);
   originApps.set(origin, app);
   return app;
 }
 
 export const exchangeToken = onRequest(
-  {
-    cors: true,
-    // Los secrets se declaran acá para que Functions los monte en el entorno.
-    secrets: ['WORK_CLOUD_SERVICE_ACCOUNT', 'MI_BUSETA_SERVICE_ACCOUNT'],
-  },
+  { cors: true },
   async (req, res) => {
     if (req.method !== 'POST') {
       res.status(405).json({ error: 'method-not-allowed', message: 'Usar POST.' });
@@ -83,9 +69,13 @@ export const exchangeToken = onRequest(
 
     try {
       // ── 1. Verificar el token contra el proyecto que lo emitió ─────────────
-      // checkRevoked: una sesión cerrada en el sistema de origen deja de servir acá.
+      // Firma, audiencia, emisor y vencimiento (1 h). Sin checkRevoked: eso
+      // obliga a consultar el Auth del proyecto de origen, o sea credenciales
+      // cruzadas. No hace falta, porque lo que da acceso es el vínculo de
+      // identity-links, que se revisa en cada canje (enabled). Para cortar el
+      // acceso de alguien: enabled = false en su vínculo.
       const originAuth = getOriginApp(origin).auth();
-      const decoded = await originAuth.verifyIdToken(idToken, true);
+      const decoded = await originAuth.verifyIdToken(idToken);
 
       const originUid = decoded.uid;
       console.log('[exchangeToken] Token verificado:', { origin, originUid });

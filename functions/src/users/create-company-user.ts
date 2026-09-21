@@ -2,6 +2,7 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import { Timestamp } from 'firebase-admin/firestore';
 import { CHANNEL_ADMIN_ROLE, loadCompanyForCaller, readCaller } from '../utils/channels';
+import { ALLOWED_ORIGINS } from '../auth/exchange-token';
 
 // Roles del sistema que no se asignan desde esta función.
 // channel_admin está acá para que un canal no pueda fabricarse otro admin de canal.
@@ -21,20 +22,51 @@ function isValidRoleCode(role: unknown): role is string {
   return typeof role === 'string' && /^[a-z][a-z0-9_]{0,49}$/.test(role);
 }
 
+/**
+ * Identidad de un sistema satélite (Conecta, Mi Buseta) que entrará como este
+ * usuario sin contraseña propia, canjeando su token en exchangeToken.
+ */
+interface ExternalIdentity {
+  origin: string;
+  uid:    string;
+}
+
 interface CreateCompanyUserData {
-  email:        string;
-  password:     string;
-  displayName:  string;
-  platformRole: string;
-  companyId:    string;
-  personaId?:   string;
+  email:             string;
+  password?:         string;
+  displayName:       string;
+  platformRole:      string;
+  companyId:         string;
+  personaId?:        string;
+  externalIdentity?: ExternalIdentity;
 }
 
 interface CreateCompanyUserResult {
-  uid:          string;
-  email:        string;
-  displayName:  string;
-  platformRole: string;
+  uid:            string;
+  email:          string;
+  displayName:    string;
+  platformRole:   string;
+  linked?:        boolean;
+  alreadyLinked?: boolean;
+}
+
+/** Id del documento en identity-links; el mismo formato que busca exchangeToken. */
+export function identityLinkId(origin: string, uid: string): string {
+  return `${origin}:${uid}`;
+}
+
+/** Valida la identidad externa. Devuelve el motivo si no sirve, o null. */
+export function validateExternalIdentity(ext: unknown): string | null {
+  if (!ext || typeof ext !== 'object') return 'externalIdentity debe ser un objeto.';
+  const { origin, uid } = ext as Record<string, unknown>;
+  if (typeof origin !== 'string' || !ALLOWED_ORIGINS[origin]) {
+    return `Origen '${String(origin)}' no autorizado.`;
+  }
+  // Los uid de Firebase Auth son de 1 a 128 caracteres, sin '/'.
+  if (typeof uid !== 'string' || uid.length === 0 || uid.length > 128 || uid.includes('/')) {
+    return 'externalIdentity.uid no es un uid válido.';
+  }
+  return null;
 }
 
 /**
@@ -66,14 +98,30 @@ export const createCompanyUser = onCall(async (request): Promise<CreateCompanyUs
   }
 
   // ── Input validation ──────────────────────────────────────────────────────
-  const { email, password, displayName, platformRole, companyId, personaId } =
+  const { email, password, displayName, platformRole, companyId, personaId, externalIdentity } =
     request.data as CreateCompanyUserData;
 
-  if (!email || !password || !displayName || !platformRole || !companyId) {
+  // Con identidad externa no hay contraseña: esa persona entra canjeando el
+  // token de su sistema, nunca con correo y clave de este proyecto.
+  const federated = externalIdentity !== undefined && externalIdentity !== null;
+
+  if (!email || !displayName || !platformRole || !companyId || (!federated && !password)) {
     throw new HttpsError(
       'invalid-argument',
-      'email, password, displayName, platformRole y companyId son requeridos.'
+      federated
+        ? 'email, displayName, platformRole y companyId son requeridos.'
+        : 'email, password, displayName, platformRole y companyId son requeridos.'
     );
+  }
+
+  if (federated) {
+    const problem = validateExternalIdentity(externalIdentity);
+    if (problem) throw new HttpsError('invalid-argument', problem);
+    // Vincular una identidad externa es darle a otro sistema la llave de este
+    // usuario: lo decide la plataforma o el canal, nunca un admin de empresa.
+    if (callerRole !== 'super_admin' && callerRole !== CHANNEL_ADMIN_ROLE) {
+      throw new HttpsError('permission-denied', 'Solo super_admin o channel_admin vinculan identidades externas.');
+    }
   }
 
   if (!isValidRoleCode(platformRole)) {
@@ -119,12 +167,29 @@ export const createCompanyUser = onCall(async (request): Promise<CreateCompanyUs
   const db   = admin.firestore();
   const now  = Timestamp.now();
 
+  // ── Reintento de una vinculación ya hecha ────────────────────────────────
+  // Si el vínculo ya existe para esta empresa, no se crea nada más.
+  const linkRef = federated
+    ? db.doc(`identity-links/${identityLinkId(externalIdentity!.origin, externalIdentity!.uid)}`)
+    : null;
+  if (linkRef) {
+    const existing = await linkRef.get();
+    if (existing.exists) {
+      const link = existing.data()!;
+      if (link['companyId'] !== companyId) {
+        throw new HttpsError('already-exists', 'Esa identidad ya está vinculada a otra empresa.');
+      }
+      return { uid: link['saasUid'], email, displayName, platformRole, linked: true, alreadyLinked: true };
+    }
+  }
+
   // ── Crear usuario en Firebase Auth ────────────────────────────────────────
   let uid: string;
+  let reused = false;
   try {
     const userRecord = await auth.createUser({
       email,
-      password,
+      ...(password ? { password } : {}),
       displayName,
       emailVerified: false,
     });
@@ -132,16 +197,30 @@ export const createCompanyUser = onCall(async (request): Promise<CreateCompanyUs
     console.log(`[createCompanyUser] Firebase Auth user created: ${uid} (${email})`);
   } catch (err: any) {
     if (err.code === 'auth/email-already-exists') {
-      throw new HttpsError('already-exists', 'Ya existe un usuario con ese correo electrónico.');
+      // Un reintento que se cortó después de crear el usuario y antes del
+      // vínculo. Se reutiliza SOLO si ese usuario ya pertenece a esta empresa:
+      // enlazar por correo una cuenta ajena le daría a quien controle ese correo
+      // en el otro sistema una cuenta que no es suya.
+      const prior = federated ? await auth.getUserByEmail(email).catch(() => null) : null;
+      const belongs = prior
+        ? (await db.doc(`companies/${companyId}/company-users/${prior.uid}`).get()).exists
+        : false;
+      if (!prior || !belongs) {
+        throw new HttpsError('already-exists', 'Ya existe un usuario con ese correo electrónico.');
+      }
+      uid = prior.uid;
+      reused = true;
+      console.log(`[createCompanyUser] Reusing user ${uid} for federated link`);
+    } else {
+      if (err.code === 'auth/weak-password') {
+        throw new HttpsError('invalid-argument', 'La contraseña debe tener al menos 6 caracteres.');
+      }
+      if (err.code === 'auth/invalid-email') {
+        throw new HttpsError('invalid-argument', 'El correo electrónico no es válido.');
+      }
+      console.error('[createCompanyUser] Auth error:', err);
+      throw new HttpsError('internal', `Error al crear el usuario: ${err.message}`);
     }
-    if (err.code === 'auth/weak-password') {
-      throw new HttpsError('invalid-argument', 'La contraseña debe tener al menos 6 caracteres.');
-    }
-    if (err.code === 'auth/invalid-email') {
-      throw new HttpsError('invalid-argument', 'El correo electrónico no es válido.');
-    }
-    console.error('[createCompanyUser] Auth error:', err);
-    throw new HttpsError('internal', `Error al crear el usuario: ${err.message}`);
   }
 
   // ── Escribir en Firestore PRIMERO (rollback si claims falla) ─────────────
@@ -160,7 +239,8 @@ export const createCompanyUser = onCall(async (request): Promise<CreateCompanyUs
   if (personaId) docData['personaId'] = personaId;
 
   const docRef = db.doc(`companies/${companyId}/company-users/${uid}`);
-  await docRef.set(docData);
+  // Si se reutiliza, el perfil ya existe: se completa sin pisar su historia.
+  await docRef.set(docData, { merge: reused });
   console.log(`[createCompanyUser] Firestore doc written: companies/${companyId}/company-users/${uid}`);
 
   // ── Asignar custom claims ─────────────────────────────────────────────────
@@ -170,6 +250,11 @@ export const createCompanyUser = onCall(async (request): Promise<CreateCompanyUs
     console.log(`[createCompanyUser] Claims set: companyId=${companyId}, role=${platformRole}`);
   } catch (claimsErr: any) {
     console.error('[createCompanyUser] Claims failed — rolling back Firestore doc:', claimsErr);
+    // Un perfil reutilizado ya existía antes de esta llamada: no es nuestro
+    // para borrarlo.
+    if (reused) {
+      throw new HttpsError('internal', `Error al asignar permisos al usuario: ${claimsErr.message}`);
+    }
     try {
       await docRef.delete();
       console.log('[createCompanyUser] Rollback: Firestore doc deleted.');
@@ -179,5 +264,22 @@ export const createCompanyUser = onCall(async (request): Promise<CreateCompanyUs
     throw new HttpsError('internal', `Error al asignar permisos al usuario: ${claimsErr.message}`);
   }
 
-  return { uid, email, displayName, platformRole };
+  // ── Vínculo con la identidad externa ──────────────────────────────────────
+  // Al final, cuando el usuario ya tiene claims: un vínculo que apunta a un
+  // usuario a medio crear dejaría entrar a alguien sin permisos coherentes.
+  if (linkRef) {
+    await linkRef.set({
+      saasUid:   uid,
+      role:      platformRole,
+      companyId,
+      origin:    externalIdentity!.origin,
+      originUid: externalIdentity!.uid,
+      enabled:   true,
+      createdAt: now,
+      createdBy: request.auth.uid,
+    });
+    console.log(`[createCompanyUser] Identity linked: ${linkRef.id} → ${uid}`);
+  }
+
+  return { uid, email, displayName, platformRole, linked: !!linkRef };
 });
