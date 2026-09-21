@@ -18,8 +18,13 @@ import { Timestamp } from 'firebase-admin/firestore';
  * Es onRequest y no onCall a propósito: en este punto el cliente todavía no
  * tiene sesión en este proyecto, así que no hay request.auth que validar.
  *
- * Body:    { idToken: string, origin: 'work-cloud' | 'mi-buseta' }
+ * Body:    { idToken: string, origin: 'work-cloud' | 'mi-buseta', companyId?: string }
  * Returns: { customToken: string, uid: string, role: string, companyId: string | null }
+ *
+ * Una persona es UN usuario de este proyecto, miembro de una o varias empresas
+ * (companies/{cid}/company-users/{uid}). `companyId` elige con cuál trabaja en
+ * esta sesión, y el rol sale de su membresía en esa empresa. Sin `companyId`
+ * se usa la empresa con la que se vinculó por primera vez.
  */
 
 // ── Proyectos de origen autorizados ─────────────────────────────────────────
@@ -33,6 +38,23 @@ export const ALLOWED_ORIGINS: Record<string, { projectId: string }> = {
   'work-cloud': { projectId: 'work-cloud-df68a' },
   'mi-buseta': { projectId: 'mi-buseta-357902' },
 };
+
+/**
+ * Empresa y rol de la sesión. El rol sale de la membresía en la empresa pedida,
+ * nunca de lo que diga el cliente. Devuelve null si no tiene acceso.
+ */
+export function resolveSessionScope(
+  link: { role?: string; companyId?: string | null },
+  requestedCompanyId: string | null,
+  membership: { exists: boolean; isActive?: boolean; platformRole?: string } | null,
+): { companyId: string | null; role: string } | null {
+  if (!requestedCompanyId) {
+    return link.role ? { companyId: link.companyId ?? null, role: link.role } : null;
+  }
+  if (!membership || !membership.exists || membership.isActive === false) return null;
+  const role = membership.platformRole || link.role;
+  return role ? { companyId: requestedCompanyId, role } : null;
+}
 
 // Apps de Admin SDK secundarias, una por origen. Se cachean entre invocaciones
 // porque inicializar una app en cada request agota la instancia.
@@ -56,7 +78,8 @@ export const exchangeToken = onRequest(
       return;
     }
 
-    const { idToken, origin } = (req.body ?? {}) as { idToken?: string; origin?: string };
+    const { idToken, origin, companyId: requestedCompanyId } =
+      (req.body ?? {}) as { idToken?: string; origin?: string; companyId?: string };
 
     if (!idToken || typeof idToken !== 'string') {
       res.status(400).json({ error: 'invalid-argument', message: 'idToken es requerido.' });
@@ -123,9 +146,32 @@ export const exchangeToken = onRequest(
         return;
       }
 
-      // ── 4. Emitir el custom token con los claims del registro ──────────────
-      const claims: Record<string, unknown> = { role: link.role, origin, originUid };
-      if (link.companyId) claims['companyId'] = link.companyId;
+      // ── 4. Empresa y rol de esta sesión ────────────────────────────────────
+      const wanted =
+        typeof requestedCompanyId === 'string' && requestedCompanyId.trim() !== ''
+          ? requestedCompanyId.trim()
+          : null;
+      let membership: { exists: boolean; isActive?: boolean; platformRole?: string } | null = null;
+      if (wanted) {
+        const snap = await db.doc(`companies/${wanted}/company-users/${link.saasUid}`).get();
+        membership = {
+          exists: snap.exists,
+          isActive: snap.get('isActive'),
+          platformRole: snap.get('platformRole'),
+        };
+      }
+      const scope = resolveSessionScope(link, wanted, membership);
+      if (!scope) {
+        res.status(403).json({
+          error: 'permission-denied',
+          message: 'Esta cuenta no tiene acceso a esa empresa.',
+        });
+        return;
+      }
+
+      // ── 5. Emitir el custom token ──────────────────────────────────────────
+      const claims: Record<string, unknown> = { role: scope.role, origin, originUid };
+      if (scope.companyId) claims['companyId'] = scope.companyId;
 
       const customToken = await auth.createCustomToken(link.saasUid, claims);
 
@@ -135,8 +181,8 @@ export const exchangeToken = onRequest(
       res.status(200).json({
         customToken,
         uid: link.saasUid,
-        role: link.role,
-        companyId: link.companyId ?? null,
+        role: scope.role,
+        companyId: scope.companyId,
       });
     } catch (err: any) {
       // Token expirado, revocado o firmado por otro proyecto.

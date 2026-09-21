@@ -43,3 +43,30 @@ describe('ALLOWED_ORIGINS', () => {
     expect(ALLOWED_ORIGINS['work-cloud'].projectId).toBe('work-cloud-df68a');
   });
 });
+
+import { resolveSessionScope } from '../auth/exchange-token';
+
+describe('resolveSessionScope — una persona, varias empresas', () => {
+  const link = { role: 'admin', companyId: 'c_primera' };
+
+  it('sin empresa pedida usa la del primer vínculo', () => {
+    expect(resolveSessionScope(link, null, null)).toEqual({ companyId: 'c_primera', role: 'admin' });
+  });
+
+  it('con empresa pedida, el rol sale de SU membresía en esa empresa', () => {
+    const r = resolveSessionScope(link, 'c_segunda', { exists: true, platformRole: 'accountant' });
+    expect(r).toEqual({ companyId: 'c_segunda', role: 'accountant' });
+  });
+
+  it('niega una empresa de la que no es miembro', () => {
+    expect(resolveSessionScope(link, 'c_ajena', { exists: false })).toBeNull();
+  });
+
+  it('niega una membresía desactivada', () => {
+    expect(resolveSessionScope(link, 'c_segunda', { exists: true, isActive: false, platformRole: 'admin' })).toBeNull();
+  });
+
+  it('sin rol en ningún lado no hay sesión', () => {
+    expect(resolveSessionScope({}, null, null)).toBeNull();
+  });
+});

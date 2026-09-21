@@ -167,19 +167,35 @@ export const createCompanyUser = onCall(async (request): Promise<CreateCompanyUs
   const db   = admin.firestore();
   const now  = Timestamp.now();
 
-  // ── Reintento de una vinculación ya hecha ────────────────────────────────
-  // Si el vínculo ya existe para esta empresa, no se crea nada más.
+  // ── Identidad ya vinculada ────────────────────────────────────────────────
+  // Una persona es UN usuario de este proyecto, miembro de una o varias
+  // empresas. Si ya está vinculada, no se crea otro usuario: se la suma como
+  // miembro de esta empresa (quien tiene dos grupos en Conecta tiene dos
+  // empresas acá), o no se hace nada si ya lo era.
   const linkRef = federated
     ? db.doc(`identity-links/${identityLinkId(externalIdentity!.origin, externalIdentity!.uid)}`)
     : null;
   if (linkRef) {
     const existing = await linkRef.get();
     if (existing.exists) {
-      const link = existing.data()!;
-      if (link['companyId'] !== companyId) {
-        throw new HttpsError('already-exists', 'Esa identidad ya está vinculada a otra empresa.');
+      const saasUid = existing.data()!['saasUid'] as string;
+      const memberRef = db.doc(`companies/${companyId}/company-users/${saasUid}`);
+      if ((await memberRef.get()).exists) {
+        return { uid: saasUid, email, displayName, platformRole, linked: true, alreadyLinked: true };
       }
-      return { uid: link['saasUid'], email, displayName, platformRole, linked: true, alreadyLinked: true };
+      await memberRef.set({
+        uid: saasUid,
+        email,
+        displayName,
+        platformRole,
+        isActive:  true,
+        federated: true,
+        createdAt: now,
+        updatedAt: now,
+        createdBy: request.auth.uid,
+      });
+      console.log(`[createCompanyUser] Federated user ${saasUid} added to company ${companyId}`);
+      return { uid: saasUid, email, displayName, platformRole, linked: true };
     }
   }
 
