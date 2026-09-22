@@ -8,6 +8,9 @@ export interface CreateCompanyUserPayload {
   platformRole: string;
   companyId:    string;
   personaId?:   string;
+  /** Puntos de emisión «001-002». Vacío = todos. */
+  emissionPoints?:       string[];
+  defaultEmissionPoint?: string | null;
 }
 
 export interface CreateCompanyUserResult {
@@ -24,6 +27,9 @@ export interface UpdateCompanyUserPayload {
   platformRole?: string;
   isActive?:     boolean;
   personaId?:    string;
+  /** Puntos de emisión «001-002». Vacío = todos. Va junto con defaultEmissionPoint. */
+  emissionPoints?:       string[];
+  defaultEmissionPoint?: string | null;
 }
 
 export interface DeleteCompanyUserPayload {

@@ -282,28 +282,30 @@
               </select>
             </div>
 
-            <!-- Serie/Año colapsable al final -->
-            <div class="inv-field" style="min-width:150px">
+            <!-- Punto de emisión: la serie fija establecimiento y punto -->
+            <div class="inv-field" style="min-width:230px">
+              <label class="inv-label">Punto de emisión</label>
+              @if (seriesOptions().length > 0) {
+              <select cSelect class="inv-ctrl" formControlName="seriesCode"
+                [attr.disabled]="!isNew() ? true : null">
+                @for (s of seriesOptions(); track s.code) {
+                <option [value]="s.code">{{ seriesLabel(s) }}</option>
+                }
+              </select>
+              } @else {
+              <input cFormControl class="inv-ctrl" formControlName="seriesCode" placeholder="A">
+              }
+            </div>
+
+            <!-- Año colapsable al final -->
+            <div class="inv-field" style="min-width:110px">
               <details class="doc-advanced" style="margin:0">
                 <summary class="doc-advanced__toggle" style="font-size:.72rem">
                   <svg cIcon name="cilSettings" size="sm" class="me-1"></svg>
-                  Serie · Año
-                  <span class="doc-advanced__values">{{ form.get('seriesCode')?.value }} · {{
-                    form.get('fiscalYear')?.value }}</span>
+                  Año
+                  <span class="doc-advanced__values">{{ form.get('fiscalYear')?.value }}</span>
                 </summary>
                 <div class="d-flex gap-2 mt-1">
-                  <div class="inv-field" style="flex:1">
-                    <label class="inv-label">Serie</label>
-                    @if (seriesList().length > 0) {
-                    <select cSelect class="inv-ctrl" formControlName="seriesCode">
-                      @for (s of seriesList(); track s.code) {
-                      <option [value]="s.code">{{ s.code }} — {{ s.name }}</option>
-                      }
-                    </select>
-                    } @else {
-                    <input cFormControl class="inv-ctrl" formControlName="seriesCode" placeholder="A">
-                    }
-                  </div>
                   <div class="inv-field" style="width:70px">
                     <label class="inv-label">Año</label>
                     <input cFormControl class="inv-ctrl" formControlName="fiscalYear" placeholder="2025"

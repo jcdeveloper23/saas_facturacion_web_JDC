@@ -34,6 +34,10 @@ import {
 import { Person, TaxIdType } from '../personas/models/person.interface';
 import { Product } from '../products/models/product.interface';
 import { PaymentTerm, Warehouse, DocumentSeries } from '../settings/models/settings.interfaces';
+import {
+  EmissionPointAccess, EmissionPointAccessService,
+  pickDefaultSeries, seriesForDocument, seriesGuardMessage, seriesLabel,
+} from '../../core/services/emission-point-access.service';
 import { CostCentersService } from '../accounting/services/cost-centers.service';
 import { CostCenter } from '../accounting/models/cost-center.interface';
 
@@ -228,6 +232,22 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
   private personasSvc   = inject(PersonasService);
   private productsSvc   = inject(ProductsService);
   private settingsSvc   = inject(SettingsService);
+  private emissionPointAccess = inject(EmissionPointAccessService);
+  /** Puntos de emisión del usuario: filtran las series que se ofrecen. */
+  private access: EmissionPointAccess = { allowed: [], defaultPoint: null, unrestricted: true };
+  readonly seriesLabel = seriesLabel;
+  /** Todas las series, para no perder la de un comprobante abierto que ya no está en la lista. */
+  private allSeries: DocumentSeries[] = [];
+
+  /** Opciones del selector: las del usuario, más la del comprobante abierto si ya no está. */
+  seriesOptions(): DocumentSeries[] {
+    const code = this.form.get('seriesCode')?.value;
+    const list = this.seriesList();
+    if (!code || list.some(s => s.code === code)) return list;
+    const own = this.allSeries.find(s => s.code === code && s.documentType === 'invoice')
+             ?? this.allSeries.find(s => s.code === code);
+    return own ? [...list, own] : list;
+  }
   private notifications = inject(NotificationService);
   private tenantSvc     = inject(TenantService);
   private functions     = inject(Functions);
@@ -571,15 +591,22 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
         }
       }
     });
-    this.settingsSvc.getDocumentSeries().pipe(take(1)).subscribe({
-      next: list => {
-        const invoiceSeries = list.filter(s => s.documentType === 'invoice' && s.isActive);
-        this.seriesList.set(invoiceSeries);
-        if (invoiceSeries.length && !this.form.get('seriesCode')?.value) {
-          this.form.patchValue({ seriesCode: invoiceSeries[0].code });
-        }
+    // Solo las series de los puntos de emisión del usuario; un comprobante nuevo
+    // abre con la de su punto por defecto.
+    Promise.all([
+      firstValueFrom(this.settingsSvc.getDocumentSeries()),
+      this.emissionPointAccess.load(),
+    ]).then(([list, access]) => {
+      this.access = access;
+      this.allSeries = list;
+      const invoiceSeries = seriesForDocument(list, 'invoice', access);
+      this.seriesList.set(invoiceSeries);
+      const current = this.form.get('seriesCode')?.value;
+      if (this.isNew() && !invoiceSeries.some(s => s.code === current)) {
+        const pick = pickDefaultSeries(invoiceSeries, access);
+        if (pick) this.form.patchValue({ seriesCode: pick.code });
       }
-    });
+    }).catch(err => console.error('Error al cargar las series:', err));
     this.costCentersSvc.getCostCenters().pipe(take(1)).subscribe({
       next: list => this.costCenters.set(list.filter(c => c.isActive))
     });
@@ -1009,11 +1036,16 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // En uno nuevo solo valen las series del usuario (seriesList, no seriesOptions).
+    const seriesProblem = seriesGuardMessage(
+      this.seriesList(), this.form.get('seriesCode')?.value, this.access, this.isNew());
+    if (seriesProblem) { this.notifications.error(seriesProblem); return; }
+
     this.saving.set(true);
     try {
       const fv = this.form.value;
       const customer = this.selectedCustomer() ?? this.invoice();
-      const series   = this.seriesList().find(s => s.code === fv.seriesCode);
+      const series   = this.seriesOptions().find(s => s.code === fv.seriesCode);
 
       const lines: InvoiceLine[] = this.linesArray.controls.map((c, idx) => {
         const val = (c as FormGroup).getRawValue() as InvoiceLine;

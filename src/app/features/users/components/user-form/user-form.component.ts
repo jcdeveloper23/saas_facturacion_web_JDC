@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import {
@@ -21,6 +21,15 @@ import { Role }                  from '../../../../core/interfaces/permission.in
 import { CompanyUser }           from '../../../../core/interfaces/company-user.interface';
 import { PersonasService, EmployeeDataInput } from '../../../personas/services/personas.service';
 import { Person }                             from '../../../personas/models/person.interface';
+import { SettingsService }                    from '../../../settings/services/settings.service';
+import { Establishment }                      from '../../../settings/models/settings.interfaces';
+
+/** Un punto de emisión que se puede asignar: «001-002» con sus nombres. */
+export interface EmissionPointOption {
+    key: string;
+    establishmentName: string;
+    pointName: string;
+}
 
 export type PersonaMode = 'none' | 'existing' | 'new';
 
@@ -51,6 +60,7 @@ export class UserFormComponent implements OnInit, OnDestroy {
     private authService    = inject(AuthService);
     private notification   = inject(NotificationService);
     private personasSvc    = inject(PersonasService);
+    private settingsSvc    = inject(SettingsService);
     private router         = inject(Router);
     private route          = inject(ActivatedRoute);
 
@@ -67,13 +77,36 @@ export class UserFormComponent implements OnInit, OnDestroy {
     personaMode     = signal<PersonaMode>('none');
     linkedEmployee  = signal<Person | null>(null);
 
+    // ── Puntos de emisión (company-users.emissionPoints, «001-002») ──────────
+    establishments  = signal<Establishment[]>([]);
+    selectedPoints  = signal<string[]>([]);
+    defaultPoint    = signal<string | null>(null);
+
+    /** Puntos activos de establecimientos activos, en orden. */
+    readonly pointOptions = computed<EmissionPointOption[]>(() =>
+        this.establishments()
+            .filter(e => e.isActive !== false)
+            .flatMap(e => (e.emissionPoints ?? [])
+                .filter(p => p.isActive !== false)
+                .map(p => ({ key: `${e.code}-${p.code}`, establishmentName: `${e.code} ${e.name}`, pointName: `${p.code} ${p.name}` })))
+            .sort((a, b) => a.key.localeCompare(b.key)));
+
+    /** Los que el usuario tenía asignados y ya no existen (se muestran para poder quitarlos). */
+    readonly orphanPoints = computed(() =>
+        this.selectedPoints().filter(k => !this.pointOptions().some(o => o.key === k)));
+
     private userSub?:      Subscription;
+    private establishmentsSub?: Subscription;
     private employeesSub?: Subscription;
 
     ngOnInit(): void {
         this.initForm();
         this.loadRoles();
         this.loadEmployees();
+        this.establishmentsSub = this.settingsSvc.getEstablishments().subscribe({
+            next: list => this.establishments.set(list),
+            error: err => console.error('Error loading establishments:', err)
+        });
 
         this.route.params.subscribe(params => {
             if (params['id']) {
@@ -89,6 +122,7 @@ export class UserFormComponent implements OnInit, OnDestroy {
     ngOnDestroy(): void {
         this.userSub?.unsubscribe();
         this.employeesSub?.unsubscribe();
+        this.establishmentsSub?.unsubscribe();
     }
 
     private initForm(): void {
@@ -155,6 +189,8 @@ export class UserFormComponent implements OnInit, OnDestroy {
                     isActive:     user.isActive,
                     personaId:    user.personaId ?? null,
                 });
+                this.selectedPoints.set([...(user.emissionPoints ?? [])].sort());
+                this.defaultPoint.set(user.defaultEmissionPoint ?? null);
 
                 if (user.personaId) {
                     this.personaMode.set('existing');
@@ -248,6 +284,9 @@ export class UserFormComponent implements OnInit, OnDestroy {
                     platformRole: v.platformRole,
                     isActive:     v.isActive,
                     personaId:    resolvedPersonaId,
+                    // Siempre se mandan: quitar todos es volver a «todos los puntos».
+                    emissionPoints:       this.selectedPoints(),
+                    defaultEmissionPoint: this.defaultPoint(),
                 });
                 // Escribir personaId directo en Firestore (fuente de verdad garantizada,
                 // independiente de si el CF ya fue desplegado con el campo)
@@ -266,6 +305,8 @@ export class UserFormComponent implements OnInit, OnDestroy {
                     platformRole: v.platformRole,
                     companyId,
                     personaId:    resolvedPersonaId,
+                    emissionPoints:       this.selectedPoints(),
+                    defaultEmissionPoint: this.defaultPoint(),
                 });
                 // Escribir personaId directo en Firestore si aplica
                 if (resolvedPersonaId) {
@@ -290,6 +331,37 @@ export class UserFormComponent implements OnInit, OnDestroy {
         } finally {
             this.loading.set(false);
         }
+    }
+
+    // ── Puntos de emisión ────────────────────────────────────────────────────
+
+    /** El admin emite desde todos: no se le asignan puntos. */
+    isAdminRole(): boolean {
+        return this.userForm.get('platformRole')?.value === 'admin';
+    }
+
+    isPointSelected(key: string): boolean {
+        return this.selectedPoints().includes(key);
+    }
+
+    togglePoint(key: string): void {
+        const next = this.isPointSelected(key)
+            ? this.selectedPoints().filter(k => k !== key)
+            : [...this.selectedPoints(), key].sort();
+        this.selectedPoints.set(next);
+        // El de por defecto tiene que estar entre los asignados (con ninguno, vale cualquiera).
+        const def = this.defaultPoint();
+        if (next.length && (!def || !next.includes(def))) this.defaultPoint.set(next[0]);
+    }
+
+    /** Opciones del punto por defecto: los asignados o, sin asignados, todos. */
+    defaultPointOptions(): EmissionPointOption[] {
+        const selected = this.selectedPoints();
+        return selected.length ? this.pointOptions().filter(o => selected.includes(o.key)) : this.pointOptions();
+    }
+
+    onDefaultPointChange(value: string): void {
+        this.defaultPoint.set(value || null);
     }
 
     // ── Template helpers ─────────────────────────────────────────────────────

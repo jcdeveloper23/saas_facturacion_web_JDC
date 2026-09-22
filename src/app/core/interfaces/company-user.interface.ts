@@ -17,6 +17,10 @@ export interface CompanyUser {
   platformRole: string;  // Código del rol; puede ser un rol del sistema o uno personalizado
   isActive: boolean;
   personaId?: string;    // ref a companies/{cId}/personas/{id}
+  /** Puntos de emisión «001-002» desde los que puede emitir. Vacío o ausente = todos. */
+  emissionPoints?: string[];
+  /** Punto con el que abren sus comprobantes nuevos. */
+  defaultEmissionPoint?: string;
   restUserId?: number;   // id en el REST API legacy (si aplica)
   createdAt?: any;       // Firestore Timestamp
   updatedAt?: any;       // Firestore Timestamp

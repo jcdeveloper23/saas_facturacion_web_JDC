@@ -290,6 +290,65 @@
                 </c-card-body>
             </c-card>
 
+            <!-- Puntos de emisión -->
+            <c-card class="mb-4">
+                <c-card-header>
+                    <svg cIcon name="cilBuilding" class="me-2"></svg>
+                    <strong>Puntos de emisión</strong>
+                </c-card-header>
+                <c-card-body>
+                    @if (isAdminRole()) {
+                    <div class="small text-muted">
+                        <svg cIcon name="cilInfo" size="sm" class="me-1"></svg>
+                        El administrador emite desde todos los puntos de emisión.
+                    </div>
+                    } @else if (pointOptions().length === 0 && orphanPoints().length === 0) {
+                    <div class="small text-muted">
+                        <svg cIcon name="cilInfo" size="sm" class="me-1"></svg>
+                        No hay establecimientos con puntos de emisión. Regístralos en
+                        <strong>Configuración → Establecimientos</strong>.
+                    </div>
+                    } @else {
+                    <div class="form-text mt-0 mb-2">
+                        Desde qué puntos puede emitir facturas, retenciones y notas de débito.
+                        Sin ninguno marcado, puede emitir desde todos.
+                    </div>
+                    @for (o of pointOptions(); track o.key; let i = $index) {
+                    @if (i === 0 || pointOptions()[i - 1].establishmentName !== o.establishmentName) {
+                    <div class="fw-semibold small mt-2">{{ o.establishmentName }}</div>
+                    }
+                    <c-form-check>
+                        <input cFormCheckInput type="checkbox" [id]="'ep-' + o.key"
+                            [checked]="isPointSelected(o.key)" (change)="togglePoint(o.key)" />
+                        <label cFormCheckLabel [for]="'ep-' + o.key">
+                            <span class="font-monospace">{{ o.key }}</span> · {{ o.pointName }}
+                        </label>
+                    </c-form-check>
+                    }
+                    @for (k of orphanPoints(); track k) {
+                    <c-form-check>
+                        <input cFormCheckInput type="checkbox" [id]="'ep-' + k" checked (change)="togglePoint(k)" />
+                        <label cFormCheckLabel [for]="'ep-' + k" class="text-danger">
+                            <span class="font-monospace">{{ k }}</span> · ya no existe o está inactivo
+                        </label>
+                    </c-form-check>
+                    }
+
+                    <label cLabel for="defaultPoint" class="mt-3">Punto por defecto</label>
+                    <select cSelect id="defaultPoint" [value]="defaultPoint() ?? ''"
+                        (change)="onDefaultPointChange($any($event.target).value)">
+                        @if (selectedPoints().length === 0) {
+                        <option value="">— El primero disponible —</option>
+                        }
+                        @for (o of defaultPointOptions(); track o.key) {
+                        <option [value]="o.key" [selected]="o.key === defaultPoint()">{{ o.key }} · {{ o.pointName }}</option>
+                        }
+                    </select>
+                    <div class="form-text">Con este abren sus comprobantes nuevos.</div>
+                    }
+                </c-card-body>
+            </c-card>
+
             <!-- Acciones -->
             <c-card>
                 <c-card-body>

@@ -4,7 +4,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormGroup, FormArray, Validators, ReactiveFormsModule } from '@angular/forms';
-import { Subject, takeUntil, take } from 'rxjs';
+import { Subject, takeUntil, take, firstValueFrom } from 'rxjs';
 import { Timestamp } from '@angular/fire/firestore';
 import {
   CardModule, ButtonModule, GridModule, BadgeModule,
@@ -24,6 +24,10 @@ import {
 import { SRI_STATUS_LABELS, SRI_STATUS_COLORS } from '../invoices/models/invoice.interface';
 import { Person, TaxIdType } from '../personas/models/person.interface';
 import { DocumentSeries } from '../settings/models/settings.interfaces';
+import {
+  EmissionPointAccess, EmissionPointAccessService,
+  pickDefaultSeries, seriesForDocument, seriesGuardMessage, seriesLabel,
+} from '../../core/services/emission-point-access.service';
 
 @Component({
   selector: 'app-debit-note-form',
@@ -53,6 +57,22 @@ export class DebitNoteFormComponent implements OnInit, OnDestroy {
   private svc          = inject(DebitNotesService);
   private personasSvc  = inject(PersonasService);
   private settingsSvc  = inject(SettingsService);
+  private emissionPointAccess = inject(EmissionPointAccessService);
+  /** Puntos de emisión del usuario: filtran las series que se ofrecen. */
+  private access: EmissionPointAccess = { allowed: [], defaultPoint: null, unrestricted: true };
+  readonly seriesLabel = seriesLabel;
+  /** Todas las series, para no perder la de un comprobante abierto que ya no está en la lista. */
+  private allSeries: DocumentSeries[] = [];
+
+  /** Opciones del selector: las del usuario, más la del comprobante abierto si ya no está. */
+  seriesOptions(): DocumentSeries[] {
+    const code = this.form.get('seriesCode')?.value;
+    const list = this.seriesList();
+    if (!code || list.some(s => s.code === code)) return list;
+    const own = this.allSeries.find(s => s.code === code && s.documentType === 'debitNote')
+             ?? this.allSeries.find(s => s.code === code);
+    return own ? [...list, own] : list;
+  }
   private notifications = inject(NotificationService);
   protected router     = inject(Router);
   private route        = inject(ActivatedRoute);
@@ -158,16 +178,23 @@ export class DebitNoteFormComponent implements OnInit, OnDestroy {
   }
 
   private loadReferenceData(): void {
-    this.settingsSvc.getDocumentSeries().pipe(take(1)).subscribe({
-      next: list => {
-        const dnSeries = list.filter(s => s.documentType === 'debitNote' && s.isActive);
-        const series   = dnSeries.length ? dnSeries : list.filter(s => s.isActive).slice(0, 1);
-        this.seriesList.set(series);
-        if (series.length && !this.form.get('seriesCode')?.value) {
-          this.form.patchValue({ seriesCode: series[0].code });
-        }
+    // Sin series de nota de débito, la primera activa de otro tipo (como antes).
+    // Solo las series de los puntos de emisión del usuario; un comprobante nuevo
+    // abre con la de su punto por defecto.
+    Promise.all([
+      firstValueFrom(this.settingsSvc.getDocumentSeries()),
+      this.emissionPointAccess.load(),
+    ]).then(([list, access]) => {
+      this.access = access;
+      this.allSeries = list;
+      const series = seriesForDocument(list, 'debitNote', access, true);
+      this.seriesList.set(series);
+      const current = this.form.get('seriesCode')?.value;
+      if (this.isNew() && !series.some(s => s.code === current)) {
+        const pick = pickDefaultSeries(series, access);
+        if (pick) this.form.patchValue({ seriesCode: pick.code });
       }
-    });
+    }).catch(err => console.error('Error al cargar las series:', err));
     this.personasSvc.getPersonas('customer').pipe(take(1)).subscribe({
       next: list => this.customers.set(list.filter(p => p.isActive))
     });
@@ -256,12 +283,16 @@ export class DebitNoteFormComponent implements OnInit, OnDestroy {
     if (!this.selectedCustomer()) {
       this.notifications.error('Seleccione un cliente'); return;
     }
+    // En uno nuevo solo valen las series del usuario (seriesList, no seriesOptions).
+    const seriesProblem = seriesGuardMessage(
+      this.seriesList(), this.form.get('seriesCode')?.value, this.access, this.isNew());
+    if (seriesProblem) { this.notifications.error(seriesProblem); return; }
 
     this.saving.set(true);
     try {
       const fv       = this.form.getRawValue();
       const customer = this.selectedCustomer()!;
-      const series   = this.seriesList().find(s => s.code === fv.seriesCode);
+      const series   = this.seriesOptions().find(s => s.code === fv.seriesCode);
 
       const motivos: DebitNoteMotivo[] = this.motivosArray.controls.map(c => ({
         id:    c.get('id')?.value    ?? crypto.randomUUID(),

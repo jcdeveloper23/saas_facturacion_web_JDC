@@ -34,11 +34,12 @@
     <c-card-body class="py-2">
       <p class="section-title">Encabezado</p>
       <c-row [gutter]="2">
-        <c-col [sm]="2">
-          <label class="inv-label">Serie</label>
-          <select class="form-select inv-ctrl" formControlName="seriesCode">
-            @for (s of seriesList(); track s.code) {
-            <option [value]="s.code">{{ s.code }}</option>
+        <c-col [sm]="3">
+          <label class="inv-label">Punto de emisión</label>
+          <select class="form-select inv-ctrl" formControlName="seriesCode"
+            [attr.disabled]="!isNew() ? true : null">
+            @for (s of seriesOptions(); track s.code) {
+            <option [value]="s.code">{{ seriesLabel(s) }}</option>
             }
           </select>
         </c-col>
