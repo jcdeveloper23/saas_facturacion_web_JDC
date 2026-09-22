@@ -3,7 +3,11 @@ import * as admin from 'firebase-admin';
 import { Timestamp } from 'firebase-admin/firestore';
 import { CHANNEL_ADMIN_ROLE, loadCompanyForCaller, readCaller } from '../utils/channels';
 import { ALLOWED_ORIGINS } from '../auth/exchange-token';
-import { normalizeEstablishmentList } from '../utils/establishments';
+import {
+  assertEmissionPointsExist,
+  normalizeEmissionPointList,
+  resolveDefaultEmissionPoint,
+} from '../utils/establishments';
 
 // Roles del sistema que no se asignan desde esta función.
 // channel_admin está acá para que un canal no pueda fabricarse otro admin de canal.
@@ -40,8 +44,10 @@ interface CreateCompanyUserData {
   companyId:         string;
   personaId?:        string;
   externalIdentity?: ExternalIdentity;
-  /** Establecimientos a los que tiene acceso. Vacío = todos. */
-  establishments?:   string[];
+  /** Puntos de emisión «001-002» desde los que puede emitir. Vacío = todos. */
+  emissionPoints?:       string[];
+  /** Punto con el que abren sus formularios. Si no está en la lista, el primero. */
+  defaultEmissionPoint?: string;
 }
 
 interface CreateCompanyUserResult {
@@ -101,12 +107,14 @@ export const createCompanyUser = onCall(async (request): Promise<CreateCompanyUs
   }
 
   // ── Input validation ──────────────────────────────────────────────────────
-  const { email, password, displayName, platformRole, companyId, personaId, externalIdentity, establishments } =
-    request.data as CreateCompanyUserData;
+  const { email, password, displayName, platformRole, companyId, personaId, externalIdentity,
+    emissionPoints, defaultEmissionPoint } = request.data as CreateCompanyUserData;
 
-  let normalizedEstablishments: string[] = [];
+  let normalizedPoints: string[] = [];
+  let resolvedDefaultPoint: string | null = null;
   try {
-    normalizedEstablishments = normalizeEstablishmentList(establishments);
+    normalizedPoints = normalizeEmissionPointList(emissionPoints);
+    resolvedDefaultPoint = resolveDefaultEmissionPoint(defaultEmissionPoint, normalizedPoints);
   } catch (err: any) {
     throw new HttpsError('invalid-argument', err.message);
   }
@@ -176,6 +184,12 @@ export const createCompanyUser = onCall(async (request): Promise<CreateCompanyUs
   const auth = admin.auth();
   const db   = admin.firestore();
   const now  = Timestamp.now();
+
+  try {
+    await assertEmissionPointsExist(db, companyId, normalizedPoints);
+  } catch (err: any) {
+    throw new HttpsError('invalid-argument', err.message);
+  }
 
   // ── Identidad ya vinculada ────────────────────────────────────────────────
   // Una persona es UN usuario de este proyecto, miembro de una o varias
@@ -263,7 +277,8 @@ export const createCompanyUser = onCall(async (request): Promise<CreateCompanyUs
     createdBy: request.auth.uid,
   };
   if (personaId) docData['personaId'] = personaId;
-  if (normalizedEstablishments.length) docData['establishments'] = normalizedEstablishments;
+  if (normalizedPoints.length) docData['emissionPoints'] = normalizedPoints;
+  if (resolvedDefaultPoint) docData['defaultEmissionPoint'] = resolvedDefaultPoint;
 
   const docRef = db.doc(`companies/${companyId}/company-users/${uid}`);
   // Si se reutiliza, el perfil ya existe: se completa sin pisar su historia.

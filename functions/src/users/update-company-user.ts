@@ -1,6 +1,10 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
-import { normalizeEstablishmentList } from '../utils/establishments';
+import {
+  assertEmissionPointsExist,
+  normalizeEmissionPointList,
+  resolveDefaultEmissionPoint,
+} from '../utils/establishments';
 import { Timestamp } from 'firebase-admin/firestore';
 
 // Roles que no pueden asignarse desde esta función.
@@ -20,8 +24,10 @@ interface UpdateCompanyUserData {
   displayName?:  string;
   platformRole?: string;
   isActive?:     boolean;
-  /** Establecimientos a los que tiene acceso. Vacío = todos. */
-  establishments?: string[];
+  /** Puntos de emisión «001-002» desde los que puede emitir. Vacío = todos. */
+  emissionPoints?:       string[];
+  /** Punto con el que abren sus formularios. Solo se aplica junto con emissionPoints. */
+  defaultEmissionPoint?: string | null;
   personaId?:    string;
 }
 
@@ -51,13 +57,17 @@ export const updateCompanyUser = onCall(async (request) => {
   }
 
   // ── Input validation ──────────────────────────────────────────────────────
-  const { uid, companyId, displayName, platformRole, isActive, personaId, establishments } =
-    request.data as UpdateCompanyUserData;
+  const { uid, companyId, displayName, platformRole, isActive, personaId,
+    emissionPoints, defaultEmissionPoint } = request.data as UpdateCompanyUserData;
 
-  let normalizedEstablishments: string[] | undefined;
-  if (establishments !== undefined) {
+  // Los puntos y el de por defecto van juntos: cambiar la lista puede dejar
+  // fuera al de por defecto.
+  let normalizedPoints: string[] | undefined;
+  let resolvedDefaultPoint: string | null = null;
+  if (emissionPoints !== undefined) {
     try {
-      normalizedEstablishments = normalizeEstablishmentList(establishments);
+      normalizedPoints = normalizeEmissionPointList(emissionPoints);
+      resolvedDefaultPoint = resolveDefaultEmissionPoint(defaultEmissionPoint, normalizedPoints);
     } catch (err: any) {
       throw new HttpsError('invalid-argument', err.message);
     }
@@ -86,6 +96,14 @@ export const updateCompanyUser = onCall(async (request) => {
   const auth = admin.auth();
   const db   = admin.firestore();
   const now  = Timestamp.now();
+
+  if (normalizedPoints !== undefined) {
+    try {
+      await assertEmissionPointsExist(db, companyId, normalizedPoints);
+    } catch (err: any) {
+      throw new HttpsError('invalid-argument', err.message);
+    }
+  }
 
   // ── Verificar que el usuario existe ───────────────────────────────────────
   let existingUser: admin.auth.UserRecord;
@@ -128,7 +146,10 @@ export const updateCompanyUser = onCall(async (request) => {
   if (platformRole !== undefined) firestoreUpdates.platformRole = platformRole;
   if (isActive     !== undefined) firestoreUpdates.isActive     = isActive;
   if (personaId    !== undefined) firestoreUpdates.personaId    = personaId;
-  if (normalizedEstablishments !== undefined) firestoreUpdates.establishments = normalizedEstablishments;
+  if (normalizedPoints !== undefined) {
+    firestoreUpdates.emissionPoints       = normalizedPoints;
+    firestoreUpdates.defaultEmissionPoint = resolvedDefaultPoint ?? admin.firestore.FieldValue.delete();
+  }
 
   await docRef.update(firestoreUpdates);
   console.log(`[updateCompanyUser] Firestore updated for ${uid}`);

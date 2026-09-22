@@ -11,8 +11,8 @@ const num = v => ({ doubleValue: v });
   await seed('channels', 'conecta-app', { status: str('active') });
   await seed('channels', 'mi-buseta', { status: str('active') });
   await seed('companies/c1/establishments', '001', { code: str('001'), name: str('Matriz') });
-  await seed('companies/c1/company-users', 'caja2', { platformRole: str('cashier'), establishments: list(['002']) });
-  await seed('companies/c1/company-users', 'vende2', { platformRole: str('seller'), establishments: list(['002']) });
+  await seed('companies/c1/company-users', 'caja2', { platformRole: str('cashier'), emissionPoints: list(['002-001']) });
+  await seed('companies/c1/company-users', 'vende2', { platformRole: str('seller'), emissionPoints: list(['002-001']) });
   await seed('companies/c1/company-users', 'libre', { platformRole: str('seller') });
   await seed('companies/c1/invoices', 'f001', {
     seriesEstablishment: str('001'), status: str('issued'), isPaid: bool(false), total: num(10) });
@@ -36,7 +36,7 @@ const num = v => ({ doubleValue: v });
 
   const est = code => ({ code: str(code), name: str('Sucursal'), address: str('Av. Solano'), isActive: bool(true) });
   const inv = estab => ({ seriesEstablishment: str(estab), seriesEmissionPoint: str('001'), status: str('draft'), total: num(10) });
-  const fiscal = estab => ({ seriesEstablishment: str(estab), status: str('draft'), companyId: str('c1') });
+  const fiscal = estab => ({ seriesEstablishment: str(estab), seriesEmissionPoint: str('001'), status: str('draft'), companyId: str('c1') });
 
   // ── establecimientos ─────────────────────────────────────────────────────
   await expectStatus('admin crea la sucursal 002',
@@ -68,12 +68,16 @@ const num = v => ({ doubleValue: v });
   await expectStatus('el super admin, la lista entera',
     await req('companies/c1/establishments', superAdm), S.OK);
 
-  // ── establecimiento de cada usuario ──────────────────────────────────────
+  // ── punto de emisión de cada usuario (company-users.emissionPoints) ──────
   await expectStatus('cajero de la 002 factura desde la 002',
     await create('companies/c1/invoices', 'a1', caja2, inv('002')), S.OK);
   await expectStatus('cajero de la 002 NO factura desde la matriz 001',
     await create('companies/c1/invoices', 'a2', caja2, inv('001')), S.DENIED);
-  await expectStatus('seller SIN establecimientos asignados factura desde cualquiera',
+  await expectStatus('cajero del punto 002-001 NO factura desde el 002-002 (mismo establecimiento)',
+    await create('companies/c1/invoices', 'a2b', caja2, { ...inv('002'), seriesEmissionPoint: str('002') }), S.DENIED);
+  await expectStatus('cajero con punto asignado NO factura sin serie',
+    await create('companies/c1/invoices', 'a2c', caja2, { status: str('draft'), total: num(10) }), S.DENIED);
+  await expectStatus('seller SIN puntos asignados factura desde cualquiera',
     await create('companies/c1/invoices', 'a3', seller, inv('001')), S.OK);
   await expectStatus('usuario sin perfil de empresa (legado) factura desde cualquiera',
     await create('companies/c1/invoices', 'a4', sinPerfil, inv('001')), S.OK);
@@ -164,6 +168,16 @@ const num = v => ({ doubleValue: v });
     await patch('companies/c1/invoices/anulada2', seller, { status: str('issued') }), S.DENIED);
   await expectStatus('cajero NO cobra una factura anulada',
     await patch('companies/c1/invoices/anulada2', cashier, { isPaid: bool(true), status: str('paid') }), S.DENIED);
+
+  // ── los puntos asignados solo los cambia el admin ────────────────────────
+  await expectStatus('el cajero NO vacía sus propios puntos de emisión',
+    await patch('companies/c1/company-users/caja2', caja2, { emissionPoints: list([]) }), S.DENIED);
+  await expectStatus('el cajero NO se cambia el punto por defecto',
+    await patch('companies/c1/company-users/caja2', caja2, { defaultEmissionPoint: str('001-001') }), S.DENIED);
+  await expectStatus('el cajero sí edita otros datos de su perfil',
+    await patch('companies/c1/company-users/caja2', caja2, { displayName: str('Caja dos') }), S.OK);
+  await expectStatus('el admin asigna puntos de emisión',
+    await patch('companies/c1/company-users/vende2', admin, { emissionPoints: list(['001-001', '002-001']) }), S.OK);
 
   report();
 })();

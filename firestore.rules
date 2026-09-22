@@ -94,6 +94,23 @@ service cloud.firestore {
         .hasOnly(['status', 'isPaid', 'paidAt', 'paymentBankAccountId', 'paymentEntryId', 'updatedAt', 'updatedBy']);
     }
 
+    // Puntos de emisión desde los que el usuario puede emitir
+    // (company-users/{uid}.emissionPoints, «001-002»: establecimiento-punto).
+    // Sin lista, o vacía, son todos: decisión del 2026-09-22 para no dejar sin
+    // facturar a los usuarios que ya existían. El admin y el super admin, siempre
+    // todos. Un usuario sin perfil de empresa (legado) cuenta como «todos».
+    function canUseEmissionPoint(companyId) {
+      let profile = /databases/$(database)/documents/companies/$(companyId)/company-users/$(request.auth.uid);
+      let allowed = exists(profile) ? get(profile).data.get('emissionPoints', []) : [];
+      return isAdmin() || isSuperAdmin() || allowed.size() == 0 || docEmissionPoint() in allowed;
+    }
+
+    // Punto de emisión del comprobante que se escribe, como «001-002».
+    function docEmissionPoint() {
+      return request.resource.data.get('seriesEstablishment', '') + '-'
+           + request.resource.data.get('seriesEmissionPoint', '');
+    }
+
     // Collections that already have their own dedicated `match` block below
     // with admin/accountant-only restrictions (chart_of_accounts,
     // accounting_periods, journal_entries, etc.). Firestore evaluates every
@@ -102,20 +119,6 @@ service cloud.firestore {
     // this file MUST exclude these names explicitly. Otherwise its broader
     // canWrite() (which includes seller/cashier) silently re-grants access
     // that the specific rule above just denied.
-    // Establecimientos desde los que el usuario puede emitir
-    // (company-users/{uid}.establishments). Sin lista, o vacía, son todos:
-    // decisión del 2026-09-22 para no dejar sin facturar a los usuarios que ya
-    // existían. El admin y el super admin, siempre todos.
-    function canUseEstablishment(companyId, establishment) {
-      let profile = /databases/$(database)/documents/companies/$(companyId)/company-users/$(request.auth.uid);
-      let allowed = exists(profile) ? get(profile).data.get('establishments', []) : [];
-      return isAdmin() || isSuperAdmin() || allowed.size() == 0 || establishment in allowed;
-    }
-
-    // Establecimiento del comprobante que se escribe.
-    function docEstablishment() {
-      return request.resource.data.get('seriesEstablishment', '');
-    }
 
     // Colecciones de la empresa que tienen su propio `match`. La regla por
     // defecto NO debe aplicarles, ni para leer ni para escribir: las reglas se
@@ -277,11 +280,11 @@ service cloud.firestore {
       match /invoices/{id} {
         allow read: if isAuthenticated() && belongsToCompany(companyId);
         allow create: if isAuthenticated() && belongsToCompany(companyId) && canWrite()
-                      && canUseEstablishment(companyId, docEstablishment());
+                      && canUseEmissionPoint(companyId);
         // Cannot edit a cancelled invoice; only admin can void.
-        // Editar exige el establecimiento del comprobante; cobrarla (solo pago)
+        // Editar exige el punto de emisión del comprobante; cobrarla (solo pago)
         // no: cobrar no es emitir, y quien cobra en caja no siempre es de ese
-        // establecimiento.
+        // punto.
         // Payment-only updates (marcar pagada / aplicar anticipo) además
         // aceptan al contador, sin darle edición general de la factura.
         allow update: if isAuthenticated() && belongsToCompany(companyId)
@@ -293,7 +296,7 @@ service cloud.firestore {
                             (isPaymentOnlyUpdate() && (canWrite() || isAccountant())
                              && isPaymentStatusChange())
                             || (!isPaymentOnlyUpdate() && canWrite()
-                                && canUseEstablishment(companyId, docEstablishment())
+                                && canUseEmissionPoint(companyId)
                                 && (request.resource.data.status != 'void' || isAdmin()))
                           );
         allow delete: if false; // NEVER delete invoices
@@ -378,7 +381,7 @@ service cloud.firestore {
         allow create: if canCreateFiscalDoc(companyId)
           && request.resource.data.status in ['draft', 'issued']
           && request.resource.data.get('companyId', companyId) == companyId
-          && canUseEstablishment(companyId, docEstablishment());
+          && canUseEmissionPoint(companyId);
 
         // UPDATE — three independent guards must ALL pass:
         //   1. Caller must have fiscal-doc access to this company.
@@ -388,7 +391,7 @@ service cloud.firestore {
         allow update: if canCreateFiscalDoc(companyId)
           && sriAuthorizedGuard()
           && statusNotRolledBack()
-          && canUseEstablishment(companyId, docEstablishment());
+          && canUseEmissionPoint(companyId);
 
         // DELETE — only borradores (draft); only admin or accountant.
         // Issued or void retentions are legal records and must not be deleted.
@@ -413,13 +416,13 @@ service cloud.firestore {
         allow create: if canCreateFiscalDoc(companyId)
           && request.resource.data.status in ['draft', 'issued']
           && request.resource.data.get('companyId', companyId) == companyId
-          && canUseEstablishment(companyId, docEstablishment());
+          && canUseEmissionPoint(companyId);
 
         // UPDATE — same three-guard pattern as retentions.
         allow update: if canCreateFiscalDoc(companyId)
           && sriAuthorizedGuard()
           && statusNotRolledBack()
-          && canUseEstablishment(companyId, docEstablishment());
+          && canUseEmissionPoint(companyId);
 
         // DELETE — only borradores; only admin or accountant.
         allow delete: if isAuthenticated()
@@ -495,7 +498,12 @@ service cloud.firestore {
         allow update: if isAuthenticated() && belongsToCompany(companyId)
                       && (isSuperAdmin() || isAdmin() || request.auth.uid == uid)
                       && !request.resource.data.diff(resource.data)
-                           .affectedKeys().hasAny(['platformRole', 'companyId']);
+                           .affectedKeys().hasAny(['platformRole', 'companyId'])
+                      // Los puntos de emisión los asigna el admin: si no, un
+                      // cajero vaciaba su lista y quedaba con todos.
+                      && (isSuperAdmin() || isAdmin()
+                          || !request.resource.data.diff(resource.data)
+                               .affectedKeys().hasAny(['emissionPoints', 'defaultEmissionPoint']));
         allow delete: if isAuthenticated() && belongsToCompany(companyId) && (isSuperAdmin() || isAdmin());
       }
 

@@ -3,9 +3,11 @@
 import * as admin from 'firebase-admin';
 import {
   buildMainEstablishment,
-  canUseEstablishment,
-  normalizeEstablishmentList,
+  canUseEmissionPoint,
+  missingEmissionPoints,
+  normalizeEmissionPointList,
   normalizeSriCode,
+  resolveDefaultEmissionPoint,
   resolveEmissionSeries,
 } from '../utils/establishments';
 
@@ -62,30 +64,60 @@ describe('buildMainEstablishment', () => {
 });
 
 
-describe('normalizeEstablishmentList', () => {
-  it('normaliza, quita repetidos y ordena', () => {
-    expect(normalizeEstablishmentList(['2', '001', '002'])).toEqual(['001', '002']);
+describe('normalizeEmissionPointList', () => {
+  it('normaliza a EEE-PPP, quita repetidos y ordena', () => {
+    expect(normalizeEmissionPointList(['2-1', '001-002', '002-001'])).toEqual(['001-002', '002-001']);
   });
   it('sin lista es vacía, que significa todos', () => {
-    expect(normalizeEstablishmentList(undefined)).toEqual([]);
-    expect(normalizeEstablishmentList([])).toEqual([]);
+    expect(normalizeEmissionPointList(undefined)).toEqual([]);
+    expect(normalizeEmissionPointList([])).toEqual([]);
   });
-  it('rechaza un código inválido y lo que no es lista', () => {
-    expect(() => normalizeEstablishmentList(['000'])).toThrow(/inválido/);
-    expect(() => normalizeEstablishmentList('001')).toThrow(/lista/);
+  it('rechaza puntos sin establecimiento, con 000 y lo que no es lista', () => {
+    expect(() => normalizeEmissionPointList(['002'])).toThrow(/inválido/);
+    expect(() => normalizeEmissionPointList(['001-000'])).toThrow(/inválido/);
+    expect(() => normalizeEmissionPointList('001-001')).toThrow(/lista/);
   });
 });
 
-describe('canUseEstablishment', () => {
-  it('sin establecimientos asignados, todos', () => {
-    expect(canUseEstablishment([], 'cashier', '002')).toBe(true);
-    expect(canUseEstablishment(undefined, 'seller', '002')).toBe(true);
+describe('resolveDefaultEmissionPoint', () => {
+  it('el pedido, si está en la lista', () => {
+    expect(resolveDefaultEmissionPoint('2-1', ['001-001', '002-001'])).toBe('002-001');
   });
-  it('con asignados, solo esos', () => {
-    expect(canUseEstablishment(['002'], 'cashier', '002')).toBe(true);
-    expect(canUseEstablishment(['002'], 'cashier', '001')).toBe(false);
+  it('si no está en la lista o no se pide, el primero', () => {
+    expect(resolveDefaultEmissionPoint('003-001', ['001-001', '002-001'])).toBe('001-001');
+    expect(resolveDefaultEmissionPoint(undefined, ['002-001'])).toBe('002-001');
+  });
+  it('con la lista vacía (todos), el pedido o ninguno', () => {
+    expect(resolveDefaultEmissionPoint('001-002', [])).toBe('001-002');
+    expect(resolveDefaultEmissionPoint(null, [])).toBeNull();
+  });
+  it('rechaza un pedido inválido', () => {
+    expect(() => resolveDefaultEmissionPoint('abc', [])).toThrow(/inválido/);
+  });
+});
+
+describe('missingEmissionPoints', () => {
+  const establishments = [
+    { code: '001', isActive: true, emissionPoints: [{ code: '001' }, { code: '002', isActive: false }] },
+    { code: '002', isActive: false, emissionPoints: [{ code: '001' }] },
+  ];
+  it('solo cuentan los puntos activos de establecimientos activos', () => {
+    expect(missingEmissionPoints(['001-001', '001-002', '002-001', '003-001'], establishments))
+      .toEqual(['001-002', '002-001', '003-001']);
+  });
+});
+
+describe('canUseEmissionPoint', () => {
+  it('sin puntos asignados, todos', () => {
+    expect(canUseEmissionPoint([], 'cashier', '002', '001')).toBe(true);
+    expect(canUseEmissionPoint(undefined, 'seller', '002', '001')).toBe(true);
+  });
+  it('con asignados, solo esos: el mismo establecimiento con otro punto no vale', () => {
+    expect(canUseEmissionPoint(['002-001'], 'cashier', '002', '001')).toBe(true);
+    expect(canUseEmissionPoint(['002-001'], 'cashier', '002', '002')).toBe(false);
+    expect(canUseEmissionPoint(['002-001'], 'cashier', '001', '001')).toBe(false);
   });
   it('el admin, siempre todos', () => {
-    expect(canUseEstablishment(['002'], 'admin', '001')).toBe(true);
+    expect(canUseEmissionPoint(['002-001'], 'admin', '001', '003')).toBe(true);
   });
 });

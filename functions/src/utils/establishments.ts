@@ -107,32 +107,101 @@ export function buildMainEstablishment(params: {
 }
 
 /**
- * Establecimientos a los que tiene acceso un usuario de empresa
- * (`company-users/{uid}.establishments`), validados y normalizados.
+ * Puntos de emisión de un usuario de empresa.
+ *
+ * Se guardan en `company-users/{uid}.emissionPoints` como `'EEE-PPP'`
+ * (establecimiento-punto: `'001-002'`), con uno por defecto en
+ * `defaultEmissionPoint`. El establecimiento sale del punto: no se asigna aparte.
  *
  * Vacío significa «todos»: decisión del 2026-09-22 para no dejar sin facturar a
- * los usuarios que ya existían antes de esta asignación. El admin tiene todos
- * siempre, con o sin lista. Lanza con el motivo si algún código no sirve.
+ * los usuarios que ya existían. El admin puede emitir desde cualquiera, con o sin
+ * lista. Reemplaza a la asignación por establecimiento del mismo día, que nunca
+ * se desplegó.
  */
-export function normalizeEstablishmentList(value: unknown): string[] {
-  if (value === null || value === undefined) return [];
-  if (!Array.isArray(value)) throw new Error('establishments debe ser una lista de códigos.');
-  const codes = new Set<string>();
-  for (const raw of value) {
-    const code = normalizeSriCode(raw);
-    if (!code) throw new Error(`Código de establecimiento inválido: "${String(raw)}".`);
-    codes.add(code);
-  }
-  return [...codes].sort();
+export function formatEmissionPoint(establishment: unknown, emissionPoint: unknown): string | null {
+  const e = normalizeSriCode(establishment);
+  const p = normalizeSriCode(emissionPoint);
+  return e && p ? `${e}-${p}` : null;
 }
 
-/** Si el usuario puede emitir desde ese establecimiento. */
-export function canUseEstablishment(
+/** `'1-2'`, `'001-002'` → `'001-002'`. Null si no sirve. */
+export function normalizeEmissionPointKey(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const parts = value.trim().split('-');
+  return parts.length === 2 ? formatEmissionPoint(parts[0], parts[1]) : null;
+}
+
+/** Lista validada, sin repetidos y ordenada. Lanza con el motivo si algo no sirve. */
+export function normalizeEmissionPointList(value: unknown): string[] {
+  if (value === null || value === undefined) return [];
+  if (!Array.isArray(value)) throw new Error('emissionPoints debe ser una lista de puntos «001-002».');
+  const keys = new Set<string>();
+  for (const raw of value) {
+    const key = normalizeEmissionPointKey(raw);
+    if (!key) throw new Error(`Punto de emisión inválido: "${String(raw)}". Formato: 001-002.`);
+    keys.add(key);
+  }
+  return [...keys].sort();
+}
+
+/**
+ * Punto por defecto: el pedido si sirve y está en la lista; si no, el primero de
+ * la lista. Con la lista vacía (todos) vale cualquiera válido, o ninguno.
+ */
+export function resolveDefaultEmissionPoint(requested: unknown, allowed: readonly string[]): string | null {
+  const key = requested === null || requested === undefined ? null : normalizeEmissionPointKey(requested);
+  if (requested !== null && requested !== undefined && !key) {
+    throw new Error(`Punto de emisión por defecto inválido: "${String(requested)}". Formato: 001-002.`);
+  }
+  if (allowed.length === 0) return key;
+  return key && allowed.includes(key) ? key : allowed[0];
+}
+
+/** Los puntos de la lista que no existen (o están inactivos) en los establecimientos. */
+export function missingEmissionPoints(
+  keys: readonly string[],
+  establishments: ReadonlyArray<{ code?: unknown; isActive?: unknown; emissionPoints?: unknown }>,
+): string[] {
+  const existing = new Set<string>();
+  for (const e of establishments) {
+    if (e.isActive === false) continue;
+    for (const p of (Array.isArray(e.emissionPoints) ? e.emissionPoints : []) as Array<Record<string, unknown>>) {
+      if (p?.['isActive'] === false) continue;
+      const key = formatEmissionPoint(e.code, p?.['code']);
+      if (key) existing.add(key);
+    }
+  }
+  return keys.filter(k => !existing.has(k));
+}
+
+/**
+ * Valida contra `companies/{companyId}/establishments` que cada punto exista y
+ * esté activo. Una empresa sin establecimientos registrados no se valida (las
+ * anteriores a este módulo): se acepta la lista tal cual.
+ */
+export async function assertEmissionPointsExist(
+  db: admin.firestore.Firestore,
+  companyId: string,
+  keys: readonly string[],
+): Promise<void> {
+  if (keys.length === 0) return;
+  const snap = await db.collection(`companies/${companyId}/establishments`).get();
+  if (snap.empty) return;
+  const missing = missingEmissionPoints(keys, snap.docs.map(d => d.data()));
+  if (missing.length) {
+    throw new Error(`Puntos de emisión que no existen o están inactivos: ${missing.join(', ')}.`);
+  }
+}
+
+/** Si el usuario puede emitir desde ese establecimiento y punto. */
+export function canUseEmissionPoint(
   allowed: readonly string[] | undefined,
   role: string | undefined,
-  establishment: string,
+  establishment: unknown,
+  emissionPoint: unknown,
 ): boolean {
   if (role === 'admin' || role === 'super_admin') return true;
   if (!allowed || allowed.length === 0) return true;
-  return allowed.includes(establishment);
+  const key = formatEmissionPoint(establishment, emissionPoint);
+  return key !== null && allowed.includes(key);
 }
