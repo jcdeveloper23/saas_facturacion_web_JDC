@@ -6,6 +6,7 @@ import { formatFechaEmisionEC, formatFechaClaveAccesoEC } from '../utils/sri-dat
 import { resolveTipoIdentificacionComprador } from '../utils/sri-buyer-id';
 import { generateAccessKey, assertValidAccessKey, calculateModulo11 } from '../utils/sri-access-key';
 import { validateTotals } from '../utils/sri-invoice-validator';
+import { resolveEmissionSeries, resolveEstablishmentAddress } from '../utils/establishments';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -188,6 +189,15 @@ export async function generateInvoiceXmlInternal(
     throw new Error(`Configuración SRI no encontrada para empresa: ${companyId}`);
   }
   const sriConfig = sriConfigSnap.data() as SriCompanyConfig;
+
+  // Establecimiento y punto de emisión DEL COMPROBANTE, los de la serie con que
+  // se numeró; no los de la empresa. Con dos establecimientos, usar los de la
+  // empresa mandaba la sucursal al SRI como si fuera la matriz, con un
+  // secuencial que la matriz ya había usado.
+  const series = resolveEmissionSeries(invoice, company.sri);
+  const dirEstablecimiento = await resolveEstablishmentAddress(
+    db, companyId, series.establishment, sriConfig.direccionEstablecimiento,
+  );
   console.log('[generate-invoice-xml] 3. sriConfig.razonSocial:', sriConfig.razonSocial);
 
   // 4. Read platform SRI config
@@ -212,7 +222,7 @@ export async function generateInvoiceXmlInternal(
   const tipoComprobante = '01'; // Factura
   const ruc = company.sri.ruc;
   const ambiente = company.sri.environment === 'production' ? '2' : '1';
-  const serie = `${company.sri.establishment}${company.sri.emissionPoint}`;
+  const serie = `${series.establishment}${series.emissionPoint}`;
   const secuencial = extractSecuencial(invoice);
   const codigoNumerico = invoice.codigoNumerico ?? generarCodigoNumerico();
   const tipoEmision = '1'; // Normal
@@ -225,8 +235,8 @@ export async function generateInvoiceXmlInternal(
     tipoComprobante,
     ruc,
     ambiente,
-    establecimiento: company.sri.establishment,
-    puntoEmision:    company.sri.emissionPoint,
+    establecimiento: series.establishment,
+    puntoEmision:    series.emissionPoint,
     secuencial,
     codigoNumerico,
     tipoEmision,
@@ -297,15 +307,15 @@ export async function generateInvoiceXmlInternal(
   infoTrib.ele('ruc').txt(ruc);
   infoTrib.ele('claveAcceso').txt(accessKey);
   infoTrib.ele('codDoc').txt('01');
-  infoTrib.ele('estab').txt(company.sri.establishment);
-  infoTrib.ele('ptoEmi').txt(company.sri.emissionPoint);
+  infoTrib.ele('estab').txt(series.establishment);
+  infoTrib.ele('ptoEmi').txt(series.emissionPoint);
   infoTrib.ele('secuencial').txt(secuencial);
   infoTrib.ele('dirMatriz').txt(sriConfig.direccionMatriz);
 
   // <infoFactura>
   const infoFactura = root.ele('infoFactura');
   infoFactura.ele('fechaEmision').txt(formatFechaEmisionEC(invoiceDate));
-  infoFactura.ele('dirEstablecimiento').txt(sriConfig.direccionEstablecimiento);
+  infoFactura.ele('dirEstablecimiento').txt(dirEstablecimiento);
 
   if (company.sri.contribuyenteEspecial) {
     infoFactura.ele('contribuyenteEspecial').txt(company.sri.contribuyenteEspecial);
@@ -445,7 +455,7 @@ export async function generateInvoiceXmlInternal(
   });
 
   console.log('[generate-invoice-xml] Factura actualizada en Firestore');
-  const fullNumber = `${company.sri.establishment}-${company.sri.emissionPoint}-${secuencial}`;
+  const fullNumber = `${series.establishment}-${series.emissionPoint}-${secuencial}`;
   return {
     invoiceId,
     accessKey,

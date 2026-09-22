@@ -4,6 +4,7 @@ import { create } from 'xmlbuilder2';
 import { getStorage } from 'firebase-admin/storage';
 import { formatFechaEmisionEC, formatFechaClaveAccesoEC } from '../utils/sri-date';
 import { assertValidAccessKey } from '../utils/sri-access-key';
+import { resolveEmissionSeries, resolveEstablishmentAddress } from '../utils/establishments';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -16,6 +17,8 @@ interface RetentionTax {
 }
 
 interface Retention {
+  seriesEstablishment?: string;
+  seriesEmissionPoint?: string;
   number?: number;
   fullNumber?: string;
   date: admin.firestore.Timestamp;
@@ -109,12 +112,21 @@ export async function generateRetentionXmlInternal(
   if (!sriConfigSnap.exists) throw new Error(`Configuración SRI no encontrada: ${companyId}`);
   const sriConfig = sriConfigSnap.data() as SriCompanyConfig;
 
+  // Establecimiento y punto de emisión DEL COMPROBANTE, los de la serie con que
+  // se numeró; no los de la empresa. Con dos establecimientos, usar los de la
+  // empresa mandaba la sucursal al SRI como si fuera la matriz, con un
+  // secuencial que la matriz ya había usado.
+  const series = resolveEmissionSeries(retention, company.sri);
+  const dirEstablecimiento = await resolveEstablishmentAddress(
+    db, companyId, series.establishment, sriConfig.direccionEstablecimiento,
+  );
+
   // Build access key (49 digits)
   const retDate    = retention.date.toDate();
   const fechaStr   = formatFechaClaveAccesoEC(retDate);
   const ruc        = company.sri.ruc;
   const ambiente   = company.sri.environment === 'production' ? '2' : '1';
-  const serie      = `${company.sri.establishment}${company.sri.emissionPoint}`;
+  const serie      = `${series.establishment}${series.emissionPoint}`;
   const secuencial = extractSecuencial(retention.fullNumber ?? '001-001-000000001');
   const codigoNumerico = retention.codigoNumerico ?? generarCodigoNumerico();
   const tipoEmision    = '1';
@@ -141,15 +153,15 @@ export async function generateRetentionXmlInternal(
   infoTrib.ele('ruc').txt(ruc);
   infoTrib.ele('claveAcceso').txt(accessKey);
   infoTrib.ele('codDoc').txt(codDoc);
-  infoTrib.ele('estab').txt(company.sri.establishment);
-  infoTrib.ele('ptoEmi').txt(company.sri.emissionPoint);
+  infoTrib.ele('estab').txt(series.establishment);
+  infoTrib.ele('ptoEmi').txt(series.emissionPoint);
   infoTrib.ele('secuencial').txt(secuencial);
   infoTrib.ele('dirMatriz').txt(sriConfig.direccionMatriz);
 
   // <infoCompRetencion>
   const infoComp = root.ele('infoCompRetencion');
   infoComp.ele('fechaEmision').txt(formatFechaEmisionEC(retDate));
-  infoComp.ele('dirEstablecimiento').txt(sriConfig.direccionEstablecimiento);
+  infoComp.ele('dirEstablecimiento').txt(dirEstablecimiento);
   if (company.sri.contribuyenteEspecial) {
     infoComp.ele('contribuyenteEspecial').txt(company.sri.contribuyenteEspecial);
   }

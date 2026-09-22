@@ -94,6 +94,12 @@ service cloud.firestore {
     // this file MUST exclude these names explicitly. Otherwise its broader
     // canWrite() (which includes seller/cashier) silently re-grants access
     // that the specific rule above just denied.
+    // Colecciones que solo escribe el admin de la empresa. Mismo motivo que la
+    // lista de abajo: la regla por defecto las re-abriría a seller y cashier.
+    function isAdminGovernedCollection(collection) {
+      return collection in ['establishments'];
+    }
+
     function isAccountingGovernedCollection(collection) {
       return collection in [
         'chart_of_accounts', 'accounting_periods', 'cost_centers',
@@ -275,6 +281,18 @@ service cloud.firestore {
       match /warehouses/{id} {
         allow read: if isAuthenticated() && belongsToCompany(companyId);
         allow write: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
+      }
+
+      // ─── Establecimientos ────────────────────────────────────────────────
+      // /companies/{companyId}/establishments/{code}  — el id ES el código SRI
+      // de 3 dígitos, así que es único por empresa. No se borran: hay
+      // comprobantes emitidos con ese código; se desactivan (isActive: false).
+      match /establishments/{code} {
+        allow read: if isAuthenticated() && belongsToCompany(companyId);
+        allow create, update: if isAuthenticated() && belongsToCompany(companyId) && isAdmin()
+                              && code.matches('^[0-9]{3}$') && code != '000'
+                              && request.resource.data.code == code;
+        allow delete: if false;
       }
 
       match /counters/{id} {
@@ -583,7 +601,8 @@ service cloud.firestore {
         allow read: if isAuthenticated() && belongsToCompany(companyId)
                     && !isAccountingGovernedCollection(collection);
         allow write: if isAuthenticated() && belongsToCompany(companyId) && canWrite()
-                    && !isAccountingGovernedCollection(collection);
+                    && !isAccountingGovernedCollection(collection)
+                    && !isAdminGovernedCollection(collection);
       }
     }
 

@@ -5,6 +5,7 @@ import { getStorage } from 'firebase-admin/storage';
 import { formatFechaEmisionEC, formatFechaClaveAccesoEC } from '../utils/sri-date';
 import { resolveTipoIdentificacionComprador } from '../utils/sri-buyer-id';
 import { assertValidAccessKey } from '../utils/sri-access-key';
+import { resolveEmissionSeries, resolveEstablishmentAddress } from '../utils/establishments';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -24,6 +25,8 @@ interface CreditNoteLine {
 }
 
 interface CreditNote {
+  seriesEstablishment?: string;
+  seriesEmissionPoint?: string;
   // Numbering
   fullNumber?: string;
   date: admin.firestore.Timestamp;
@@ -188,6 +191,15 @@ export async function generateCreditNoteXmlInternal(
   }
   const sriConfig = sriConfigSnap.data() as SriCompanyConfig;
 
+  // Establecimiento y punto de emisión DEL COMPROBANTE, los de la serie con que
+  // se numeró; no los de la empresa. Con dos establecimientos, usar los de la
+  // empresa mandaba la sucursal al SRI como si fuera la matriz, con un
+  // secuencial que la matriz ya había usado.
+  const series = resolveEmissionSeries(cn, company.sri);
+  const dirEstablecimiento = await resolveEstablishmentAddress(
+    db, companyId, series.establishment, sriConfig.direccionEstablecimiento,
+  );
+
   // 4. Read platform SRI config
   const platformConfigSnap = await db.doc('platform/defaults/sriConfig/data').get();
   const platformConfig: SriPlatformConfig = platformConfigSnap.exists
@@ -209,7 +221,7 @@ export async function generateCreditNoteXmlInternal(
   const tipoComprobante = '04'; // Nota de Crédito
   const ruc = company.sri.ruc;
   const ambiente = company.sri.environment === 'production' ? '2' : '1';
-  const serie = `${company.sri.establishment}${company.sri.emissionPoint}`;
+  const serie = `${series.establishment}${series.emissionPoint}`;
   const secuencial = extractSecuencial(cn.fullNumber ?? '001-001-000000001');
   const codigoNumerico = cn.codigoNumerico ?? generarCodigoNumerico();
   const tipoEmision = '1'; // Normal
@@ -257,15 +269,15 @@ export async function generateCreditNoteXmlInternal(
   infoTrib.ele('ruc').txt(ruc);
   infoTrib.ele('claveAcceso').txt(accessKey);
   infoTrib.ele('codDoc').txt('04');
-  infoTrib.ele('estab').txt(company.sri.establishment);
-  infoTrib.ele('ptoEmi').txt(company.sri.emissionPoint);
+  infoTrib.ele('estab').txt(series.establishment);
+  infoTrib.ele('ptoEmi').txt(series.emissionPoint);
   infoTrib.ele('secuencial').txt(secuencial);
   infoTrib.ele('dirMatriz').txt(sriConfig.direccionMatriz);
 
   // <infoNotaCredito>
   const infoNC = root.ele('infoNotaCredito');
   infoNC.ele('fechaEmision').txt(formatFechaEmisionEC(cnDate));
-  infoNC.ele('dirEstablecimiento').txt(sriConfig.direccionEstablecimiento);
+  infoNC.ele('dirEstablecimiento').txt(dirEstablecimiento);
 
   const tipoIdComprador = resolveTipoIdentificacionComprador(
     cn.customerTaxId,

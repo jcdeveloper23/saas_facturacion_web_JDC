@@ -1,6 +1,7 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import { Timestamp } from 'firebase-admin/firestore';
+import { buildMainEstablishment } from '../utils/establishments';
 import {
   assertCallerChannelActive,
   assertPlanMatchesCompany,
@@ -305,6 +306,23 @@ export const setupCompany = onCall(async (request) => {
   });
 
   // ── configuration/sri ─────────────────────────────────────────────────────
+  // ── establishments/{código} ───────────────────────────────────────────────
+  // La matriz nace con la empresa, con el establecimiento y punto de emisión de
+  // sus datos SRI. Es de donde sale <dirEstablecimiento> de cada comprobante.
+  const mainEstablishment = buildMainEstablishment({
+    establishment: data.sri?.establishment,
+    emissionPoint: data.sri?.emissionPoint,
+    address:       data.fiscalAddress,
+    city:          data.city,
+    phone:         data.phone,
+    now,
+    createdBy:     caller.uid,
+  });
+  batch.set(
+    db.doc(`companies/${companyId}/establishments/${mainEstablishment.id}`),
+    mainEstablishment.data,
+  );
+
   const sriConfigRef = db.doc(`companies/${companyId}/configuration/sri`);
   batch.set(sriConfigRef, {
     razonSocial:              data.sri?.businessName || data.name,

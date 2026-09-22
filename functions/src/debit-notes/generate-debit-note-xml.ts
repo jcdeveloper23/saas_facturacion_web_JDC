@@ -5,12 +5,15 @@ import { getStorage } from 'firebase-admin/storage';
 import { formatFechaEmisionEC, formatFechaClaveAccesoEC } from '../utils/sri-date';
 import { resolveTipoIdentificacionComprador } from '../utils/sri-buyer-id';
 import { assertValidAccessKey } from '../utils/sri-access-key';
+import { resolveEmissionSeries, resolveEstablishmentAddress } from '../utils/establishments';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface DebitNoteMotivo { razon: string; valor: number; }
 
 interface DebitNote {
+  seriesEstablishment?: string;
+  seriesEmissionPoint?: string;
   fullNumber?: string;
   date: admin.firestore.Timestamp;
   customerName: string;
@@ -106,6 +109,15 @@ export async function generateDebitNoteXmlInternal(
   if (!sriConfigSnap.exists) throw new Error(`Configuración SRI no encontrada: ${companyId}`);
   const sriConfig = sriConfigSnap.data() as SriCompanyConfig;
 
+  // Establecimiento y punto de emisión DEL COMPROBANTE, los de la serie con que
+  // se numeró; no los de la empresa. Con dos establecimientos, usar los de la
+  // empresa mandaba la sucursal al SRI como si fuera la matriz, con un
+  // secuencial que la matriz ya había usado.
+  const series = resolveEmissionSeries(dn, company.sri);
+  const dirEstablecimiento = await resolveEstablishmentAddress(
+    db, companyId, series.establishment, sriConfig.direccionEstablecimiento,
+  );
+
   const platformSnap   = await db.doc('platform/defaults/sriConfig/data').get();
   const platformConfig = platformSnap.exists ? (platformSnap.data() as SriPlatformConfig) : {};
 
@@ -113,7 +125,7 @@ export async function generateDebitNoteXmlInternal(
   const dnDate     = dn.date.toDate();
   const ruc        = company.sri.ruc;
   const ambiente   = company.sri.environment === 'production' ? '2' : '1';
-  const serie      = `${company.sri.establishment}${company.sri.emissionPoint}`;
+  const serie      = `${series.establishment}${series.emissionPoint}`;
   const secuencial = extractSecuencial(dn.fullNumber ?? '001-001-000000001');
   const codNum     = dn.codigoNumerico ?? genCodigo();
   const codDoc     = '05'; // Nota de Débito
@@ -139,15 +151,15 @@ export async function generateDebitNoteXmlInternal(
   infoTrib.ele('ruc').txt(ruc);
   infoTrib.ele('claveAcceso').txt(accessKey);
   infoTrib.ele('codDoc').txt(codDoc);
-  infoTrib.ele('estab').txt(company.sri.establishment);
-  infoTrib.ele('ptoEmi').txt(company.sri.emissionPoint);
+  infoTrib.ele('estab').txt(series.establishment);
+  infoTrib.ele('ptoEmi').txt(series.emissionPoint);
   infoTrib.ele('secuencial').txt(secuencial);
   infoTrib.ele('dirMatriz').txt(sriConfig.direccionMatriz);
 
   // <infoNotaDebito>
   const infoND = root.ele('infoNotaDebito');
   infoND.ele('fechaEmision').txt(formatFechaEmisionEC(dnDate));
-  infoND.ele('dirEstablecimiento').txt(sriConfig.direccionEstablecimiento);
+  infoND.ele('dirEstablecimiento').txt(dirEstablecimiento);
   infoND.ele('tipoIdentificacionComprador').txt(
     resolveTipoIdentificacionComprador(dn.customerTaxId, undefined, dn.customerTaxIdType)
   );
