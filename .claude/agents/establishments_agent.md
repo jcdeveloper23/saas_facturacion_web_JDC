@@ -65,7 +65,7 @@ producción: un cajero editaba facturas anuladas y las anulaba, un vendedor camb
 retenciones autorizadas por el SRI y el kardex, un cajero reescribía `configuration/sri`, un
 vendedor creaba almacenes, y el control por establecimiento no servía.
 
-Arreglo (2026-09-22, **⏳ en curso: sin commit ni deploy** al escribir esto):
+Arreglo (2026-09-22, rama `feat/establishments`, `b25e8fa` + `016f1ad`; **⏳ sin desplegar**):
 - `hasOwnRules(collection)`: lista de toda colección con `match` propio; la regla por
   defecto no les aplica **ni para leer ni para escribir**. **Toda colección nueva con
   `match` propio va en esa lista**, si no, la regla por defecto la re-abre.
