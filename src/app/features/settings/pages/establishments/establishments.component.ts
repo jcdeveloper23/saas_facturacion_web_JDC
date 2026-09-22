@@ -98,8 +98,16 @@ export class EstablishmentsComponent implements OnInit {
     this.svc.getEstablishments(this.companyId).subscribe({
       next: list => { this.establishments.set(list); this.loading.set(false); },
       error: err => {
+        // Con el código a la vista: 'permission-denied' es de reglas (o de una
+        // página abierta antes de desplegarlas: la escucha en vivo se corta al
+        // primer error y no se recupera sola; hay que recargar).
         console.error('Error al cargar establecimientos:', err);
-        this.notifications.error('Error al cargar establecimientos');
+        const code = (err as { code?: string })?.code;
+        this.notifications.error(
+          code === 'permission-denied'
+            ? 'Sin permiso para ver los establecimientos de esta empresa. Si acabas de desplegar las reglas, recarga la página.'
+            : `Error al cargar establecimientos${code ? ` (${code})` : ''}`
+        );
         this.loading.set(false);
       },
     });
