@@ -14,10 +14,17 @@
  * falta. Solo ese: seed-modules.ts reescribe todo el catálogo con merge y
  * pisaría los ajustes hechos desde la pantalla Módulos del super admin.
  *
- * EJECUCIÓN, sin claves descargadas (con tu sesión de gcloud):
+ * EJECUCIÓN, sin claves descargadas (con tu sesión de gcloud). No hay ts-node
+ * instalado en este repo, así que se compila y se corre con las dependencias de
+ * functions/ (probado el 2026-09-22):
  *   gcloud auth application-default login
- *   npx ts-node scripts/seed-establishments.ts            # en seco
- *   npx ts-node scripts/seed-establishments.ts --apply    # escribe
+ *   functions/node_modules/.bin/tsc scripts/seed-establishments.ts --outDir /tmp/seed \
+ *     --rootDir . --module commonjs --target es2020 --esModuleInterop --skipLibCheck
+ *   NODE_PATH=functions/node_modules node /tmp/seed/scripts/seed-establishments.js           # en seco
+ *   NODE_PATH=functions/node_modules node /tmp/seed/scripts/seed-establishments.js --apply   # escribe
+ *
+ * (tsc avisa que no encuentra los tipos de firebase-admin desde la raíz; el JS
+ * sale igual y corre.)
  *
  * Es idempotente.
  */
