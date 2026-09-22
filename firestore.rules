@@ -81,6 +81,14 @@ service cloud.firestore {
     // Deja pasar a un contador (isAccountant) sin darle permiso general de
     // edición sobre invoices/purchases, y permite marcar pagada una compra ya
     // 'received' (la regla general la bloquea después de recibida).
+    // Un cambio «solo de pago» puede tocar `status`, pero solo para cobrar
+    // (paid) o devolver a emitida (issued). Sin esto, poner status: 'void' a
+    // secas pasaba como pago y un cajero anulaba facturas (visto 2026-09-22).
+    function isPaymentStatusChange() {
+      return request.resource.data.get('status', '') == resource.data.get('status', '')
+          || request.resource.data.get('status', '') in ['paid', 'issued'];
+    }
+
     function isPaymentOnlyUpdate() {
       return request.resource.data.diff(resource.data).affectedKeys()
         .hasOnly(['status', 'isPaid', 'paidAt', 'paymentBankAccountId', 'paymentEntryId', 'updatedAt']);
@@ -94,10 +102,37 @@ service cloud.firestore {
     // this file MUST exclude these names explicitly. Otherwise its broader
     // canWrite() (which includes seller/cashier) silently re-grants access
     // that the specific rule above just denied.
-    // Colecciones que solo escribe el admin de la empresa. Mismo motivo que la
-    // lista de abajo: la regla por defecto las re-abriría a seller y cashier.
-    function isAdminGovernedCollection(collection) {
-      return collection in ['establishments'];
+    // Establecimientos desde los que el usuario puede emitir
+    // (company-users/{uid}.establishments). Sin lista, o vacía, son todos:
+    // decisión del 2026-09-22 para no dejar sin facturar a los usuarios que ya
+    // existían. El admin y el super admin, siempre todos.
+    function canUseEstablishment(companyId, establishment) {
+      let profile = /databases/$(database)/documents/companies/$(companyId)/company-users/$(request.auth.uid);
+      let allowed = exists(profile) ? get(profile).data.get('establishments', []) : [];
+      return isAdmin() || isSuperAdmin() || allowed.size() == 0 || establishment in allowed;
+    }
+
+    // Establecimiento del comprobante que se escribe.
+    function docEstablishment() {
+      return request.resource.data.get('seriesEstablishment', '');
+    }
+
+    // Colecciones de la empresa que tienen su propio `match`. La regla por
+    // defecto NO debe aplicarles, ni para leer ni para escribir: las reglas se
+    // suman, y esa regla —que deja escribir a admin, seller y cashier— anulaba
+    // sus restricciones. Visto el 2026-09-22 en emulador: un cajero editaba
+    // facturas anuladas y las anulaba, un vendedor cambiaba retenciones ya
+    // autorizadas por el SRI y el kardex, un cajero reescribía la configuración
+    // SRI. Toda colección que se agregue con `match` propio va en esta lista.
+    function hasOwnRules(collection) {
+      return collection in [
+        'company-users', 'configuration', 'counters', 'customers', 'debitNotes',
+        'electronic-documents', 'establishments', 'families', 'invoices',
+        'manufacturers', 'orders', 'personas', 'products', 'purchases', 'quotes',
+        'retentions', 'stock-movements', 'stock-transfers', 'suppliers',
+        'tm-members', 'tm-positions', 'tm-projects', 'tm-requests', 'tm-specialties',
+        'tm-tasks', 'tm-timesheets', 'usage', 'warehouses'
+      ];
     }
 
     function isAccountingGovernedCollection(collection) {
@@ -241,15 +276,21 @@ service cloud.firestore {
 
       match /invoices/{id} {
         allow read: if isAuthenticated() && belongsToCompany(companyId);
-        allow create: if isAuthenticated() && belongsToCompany(companyId) && canWrite();
+        allow create: if isAuthenticated() && belongsToCompany(companyId) && canWrite()
+                      && canUseEstablishment(companyId, docEstablishment());
         // Cannot edit a cancelled invoice; only admin can void.
+        // Editar exige el establecimiento del comprobante; cobrarla (solo pago)
+        // no: cobrar no es emitir, y quien cobra en caja no siempre es de ese
+        // establecimiento.
         // Payment-only updates (marcar pagada / aplicar anticipo) además
         // aceptan al contador, sin darle edición general de la factura.
         allow update: if isAuthenticated() && belongsToCompany(companyId)
                        && resource.data.status != 'cancelled'
                        && (
-                            (isPaymentOnlyUpdate() && (canWrite() || isAccountant()))
+                            (isPaymentOnlyUpdate() && (canWrite() || isAccountant())
+                             && isPaymentStatusChange())
                             || (!isPaymentOnlyUpdate() && canWrite()
+                                && canUseEstablishment(companyId, docEstablishment())
                                 && (request.resource.data.status != 'void' || isAdmin()))
                           );
         allow delete: if false; // NEVER delete invoices
@@ -332,7 +373,8 @@ service cloud.firestore {
         // to a different company.
         allow create: if canCreateFiscalDoc(companyId)
           && request.resource.data.status == 'draft'
-          && request.resource.data.companyId == companyId;
+          && request.resource.data.companyId == companyId
+          && canUseEstablishment(companyId, docEstablishment());
 
         // UPDATE — three independent guards must ALL pass:
         //   1. Caller must have fiscal-doc access to this company.
@@ -341,7 +383,8 @@ service cloud.firestore {
         //   3. status cannot be rolled back to 'draft' once past that stage.
         allow update: if canCreateFiscalDoc(companyId)
           && sriAuthorizedGuard()
-          && statusNotRolledBack();
+          && statusNotRolledBack()
+          && canUseEstablishment(companyId, docEstablishment());
 
         // DELETE — only borradores (draft); only admin or accountant.
         // Issued or void retentions are legal records and must not be deleted.
@@ -365,12 +408,14 @@ service cloud.firestore {
         // match the path.
         allow create: if canCreateFiscalDoc(companyId)
           && request.resource.data.status == 'draft'
-          && request.resource.data.companyId == companyId;
+          && request.resource.data.companyId == companyId
+          && canUseEstablishment(companyId, docEstablishment());
 
         // UPDATE — same three-guard pattern as retentions.
         allow update: if canCreateFiscalDoc(companyId)
           && sriAuthorizedGuard()
-          && statusNotRolledBack();
+          && statusNotRolledBack()
+          && canUseEstablishment(companyId, docEstablishment());
 
         // DELETE — only borradores; only admin or accountant.
         allow delete: if isAuthenticated()
@@ -608,10 +653,11 @@ service cloud.firestore {
       // canWrite() (seller/cashier included) must not re-grant that access.
       match /{collection}/{id} {
         allow read: if isAuthenticated() && belongsToCompany(companyId)
-                    && !isAccountingGovernedCollection(collection);
+                    && !isAccountingGovernedCollection(collection)
+                    && !hasOwnRules(collection);
         allow write: if isAuthenticated() && belongsToCompany(companyId) && canWrite()
                     && !isAccountingGovernedCollection(collection)
-                    && !isAdminGovernedCollection(collection);
+                    && !hasOwnRules(collection);
       }
     }
 
