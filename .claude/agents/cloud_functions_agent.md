@@ -130,11 +130,13 @@ firebase functions:log --only setupCompany
 ## Establecimientos (2026-09-22)
 
 - `functions/src/utils/establishments.ts`: `normalizeSriCode`, `resolveEmissionSeries`,
-  `resolveEstablishmentAddress`, `buildMainEstablishment`, `normalizeEstablishmentList`,
-  `canUseEstablishment`.
+  `resolveEstablishmentAddress`, `buildMainEstablishment`, y los de puntos de emisión
+  (`normalizeEmissionPointList`, `resolveDefaultEmissionPoint`, `assertEmissionPointsExist`,
+  `canUseEmissionPoint`).
 - `setupCompany` siembra la matriz; los 4 generadores de XML usan la serie del documento;
-  `createCompanyUser` / `updateCompanyUser` aceptan `establishments`.
-- ⏳ `canUseEstablishment` aún no se usa en `createAndEmitInvoice` ni en
+  `createCompanyUser` / `updateCompanyUser` aceptan `emissionPoints` y
+  `defaultEmissionPoint` (validados contra los establecimientos).
+- ⏳ `canUseEmissionPoint` aún no se usa en `createAndEmitInvoice` ni en
   `onPosSaleComplete` (el Admin SDK salta las reglas).
 - Deploy siempre con nombres: nunca `--only functions` a secas (publicaría `getAuthToken`).
 

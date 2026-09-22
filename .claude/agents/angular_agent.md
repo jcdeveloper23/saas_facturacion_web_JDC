@@ -120,9 +120,10 @@ F7: dashboard
   y `companyId` opcional.
 - El menú de la empresa sale de `/modules` en Firestore (entrada `settings_establishments`),
   no de `_nav.ts`. No re-correr `seed-modules.ts`.
-- ⏳ Falta: selector de establecimiento visible en factura, retención y nota de débito;
-  multiselect de establecimientos en el formulario de usuarios; `establishments?` en
-  `CompanyUser`.
+- Puntos de emisión por usuario (`7f41090`): tarjeta en el formulario de usuarios; en
+  factura, retención y nota de débito el punto se ve arriba y se filtra con
+  `EmissionPointAccessService`. Al editar, respetar la serie del comprobante
+  (`seriesOptions()`), aunque ya no esté entre los puntos del usuario.
 
 Detalle completo en `establishments_agent.md`.
 

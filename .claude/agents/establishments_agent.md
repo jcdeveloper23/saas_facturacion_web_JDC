@@ -1,6 +1,6 @@
 ---
 name: Establishments Agent — Establecimientos y puntos de emisión
-description: Experto en los establecimientos de la empresa ante el SRI (matriz, sucursales y puntos de emisión) en SaasFacturacion. Conoce el modelo companies/{cid}/establishments/{código}, cómo cada comprobante sale con el establecimiento de su serie, la dirección de <dirEstablecimiento>, los establecimientos asignados a cada usuario, las reglas de Firestore que los protegen (y el hueco de la regla por defecto), sus pruebas en emulador y la pantalla en Conecta. Úsalo antes de tocar series, emisión de comprobantes, usuarios de empresa o reglas de comprobantes.
+description: Experto en los establecimientos de la empresa ante el SRI (matriz, sucursales y puntos de emisión) en SaasFacturacion. Conoce el modelo companies/{cid}/establishments/{código}, cómo cada comprobante sale con el establecimiento de su serie, la dirección de <dirEstablecimiento>, los puntos de emisión asignados a cada usuario, las reglas de Firestore que los protegen (y el hueco de la regla por defecto), sus pruebas en emulador y la pantalla en Conecta. Úsalo antes de tocar series, emisión de comprobantes, usuarios de empresa o reglas de comprobantes.
 ---
 
 # Establishments Agent — Establecimientos y puntos de emisión
@@ -40,21 +40,37 @@ de 3 dígitos (001–999, nunca 000), así es único por empresa y se lee direct
     con el punto del otro.
   - `resolveEstablishmentAddress()` — `<dirEstablecimiento>` sale de
     `establishments/{code}.address`; fallback `configuration/sri.direccionEstablecimiento`.
-  - `normalizeSriCode`, `normalizeEstablishmentList`, `canUseEstablishment`.
+  - `normalizeSriCode` y los de puntos de emisión: `normalizeEmissionPointList`,
+    `resolveDefaultEmissionPoint`, `assertEmissionPointsExist`, `canUseEmissionPoint`.
 - Los 4 generadores de XML ya lo usan: factura, nota de crédito, retención, nota de débito.
 - Contador atómico por clave `{estab}_{pto}_{año}` en `counters/invoices`.
 - Pruebas: `functions/src/__tests__/establishments.test.ts` (jest, 131 en total).
 
-## Establecimientos de cada usuario
+## Puntos de emisión de cada usuario
 
-- `company-users/{uid}.establishments: string[]` — códigos desde los que puede emitir.
-- **Vacío = todos** (decisión del 2026-09-22, para no dejar sin facturar a los usuarios que
-  ya existían). **El admin, siempre todos.** La asignación es **por establecimiento**, no
-  por punto de emisión (decisión del usuario).
-- `createCompanyUser` / `updateCompanyUser` aceptan `establishments` (`971d835`).
-- Reglas: `canUseEstablishment(companyId, docEstablishment())` en create y update de
-  `invoices` (el update **solo de pago** queda exento: cobrar no es emitir), `retentions` y
-  `debitNotes`. Un usuario sin perfil `company-users` (legado) cuenta como «todos».
+- `company-users/{uid}.emissionPoints: string[]` como **`'EEE-PPP'`** (`'001-002'`) y
+  `defaultEmissionPoint`. El establecimiento **sale del punto**: no se asigna aparte.
+- **Vacío = todos**; **el admin, siempre todos**. Un usuario tiene 1+ puntos y un punto lo
+  usan varios usuarios (turnos). Decisión del usuario del 2026-09-22: **reemplaza** a la
+  asignación por establecimiento (`establishments`, `971d835`), que nunca se desplegó.
+- `createCompanyUser` / `updateCompanyUser` aceptan `emissionPoints` y
+  `defaultEmissionPoint`, y validan contra `establishments` que cada punto exista y esté
+  activo (`assertEmissionPointsExist`; una empresa sin establecimientos no se valida). El
+  de por defecto, si no está en la lista, pasa a ser el primero (`a476d19`).
+- Reglas: `canUseEmissionPoint(companyId)` compara `seriesEstablishment-seriesEmissionPoint`
+  del comprobante en create y update de `invoices` (el **solo pago** queda exento),
+  `retentions` y `debitNotes`. Un usuario sin perfil `company-users` (legado) = todos.
+- Reglas: **`emissionPoints` y `defaultEmissionPoint` solo los cambia el admin** o el super
+  admin. Cada usuario puede editar su propio `company-users`, y sin esto un cajero vaciaba
+  su lista y quedaba con todos.
+- Front (`7f41090`): tarjeta «Puntos de emisión» en el formulario de usuarios; en factura,
+  retención y nota de débito el punto se ve arriba, filtrado con
+  `EmissionPointAccessService` (`core/services/emission-point-access.service.ts`); uno
+  nuevo abre con el punto por defecto; al editar se respeta la serie del comprobante.
+- Una **caja del POS** (`PosTerminal`) tiene una serie, así que en la práctica es un punto
+  de emisión, pero el POS **no aplica** estos puntos: su factura desde el navegador toma la
+  primera serie activa (`pos-sales.service.ts`) y no la de la caja, y cualquier cajero abre
+  cualquier caja. El usuario no necesita el POS por ahora.
 
 ## ⚠️ La regla por defecto anulaba las reglas propias
 
@@ -106,7 +122,7 @@ firebase emulators:exec -c firebase.rules-test.json --only firestore --project d
 git checkout -- firebase-debug.log   # el CLI lo borra; está versionado
 ```
 
-54 casos: establecimientos, establecimiento por usuario, protecciones que la regla por
+60 casos: establecimientos, punto de emisión por usuario, protecciones que la regla por
 defecto anulaba y lecturas. Un channel admin necesita `channels/{id}.status == 'active'`
 sembrado.
 
@@ -131,12 +147,8 @@ empresa con la sesión federada de FacturaEc (mismas reglas, rol `admin`).
 
 ## Pendiente
 
-- **Front del usuario:** selector de establecimiento visible arriba en factura, retención y
-  nota de débito (hoy la serie va escondida en «Serie · Año»), que filtre las series y
-  preseleccione si el usuario tiene uno solo; multiselect de establecimientos en el
-  formulario de usuarios; `establishments?: string[]` en `CompanyUser`
-  (`core/interfaces/company-user.interface.ts`).
-- **Servidor:** `canUseEstablishment` todavía no lo usa ninguna function.
+- **Probar en pantalla** los puntos de emisión (usuarios, factura, retención, nota de débito).
+- **Servidor:** `canUseEmissionPoint` todavía no lo usa ninguna function.
   `createAndEmitInvoice` emite siempre con el establecimiento de la empresa y
   `onPosSaleComplete` no valida el establecimiento del usuario (el Admin SDK salta las
   reglas).

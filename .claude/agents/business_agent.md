@@ -115,9 +115,10 @@ Los módulos del sistema PHP en `sistemadeventascompletoOptica/` son la referenc
 
 - Una empresa tiene matriz y sucursales (`establishments/{código}`), cada una con puntos
   de emisión y numeración propia. No se borran, se desactivan; la matriz no se desactiva.
-- Cada usuario de empresa puede tener asignados establecimientos
-  (`company-users/{uid}.establishments`): **vacío = todos**, el **admin siempre todos**,
-  asignación **por establecimiento** (no por punto de emisión).
+- Cada usuario de empresa tiene asignados **puntos de emisión**
+  (`company-users/{uid}.emissionPoints`, «001-002») y uno por defecto: **vacío = todos**,
+  el **admin siempre todos**. El establecimiento sale del punto. Reemplazó a la asignación
+  por establecimiento (decisión del 2026-09-22).
 
 Detalle completo en `establishments_agent.md`.
 
