@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { Firestore, doc, setDoc, onSnapshot, updateDoc, Timestamp, collection, collectionData, runTransaction } from '@angular/fire/firestore';
+import { Firestore, doc, setDoc, onSnapshot, updateDoc, Timestamp, collection, runTransaction } from '@angular/fire/firestore';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { FirestoreService } from '../../../core/services/firestore.service';
@@ -127,9 +127,15 @@ export class SettingsService {
   // empresa; las reglas deciden si puede.
 
   getEstablishments(companyId?: string): Observable<Establishment[]> {
+    // Con onSnapshot, como FirestoreService.getCollection. collectionData
+    // (rxfire) choca con la instancia de Firestore del proyecto: «Expected type
+    // '_Query', but it was: a custom _CollectionReference object».
     const source = companyId
-      ? (collectionData(collection(this.firestore, `companies/${companyId}/establishments`),
-          { idField: 'id' }) as Observable<Establishment[]>)
+      ? new Observable<Establishment[]>(observer =>
+          onSnapshot(collection(this.firestore, `companies/${companyId}/establishments`), {
+            next: snap => observer.next(snap.docs.map(d => ({ id: d.id, ...d.data() }) as Establishment)),
+            error: err => observer.error(err),
+          }))
       : this.fs.getCollection<Establishment>('establishments');
     return source.pipe(map(list => [...list].sort((a, b) => a.code.localeCompare(b.code))));
   }
