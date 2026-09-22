@@ -65,6 +65,8 @@
 | P2 | **Tests unitarios** — 27 tests: módulo 11 (7), `calcInvoiceTotals` (10), `resolveTemplate` (10) | 🟠 Media | ✅ Completo |
 | P3 | **`downloadDocument` en UI** — botones XML/PDF en las 3 listas llaman CF para URL fresca de 1h + spinner | 🟠 Media | ✅ Completo |
 | P4 | **`supportDocCodSust`** — selector de tipo de sustento tributario SRI (13 opciones) en formulario de retenciones | 🟠 Media | ✅ Completo |
+| P5 | **Multi-establecimiento** — los 4 generadores de XML ignoraban la serie y usaban siempre `company.sri.establishment`; una sola dirección de establecimiento. Ver §12.4 (2026-09-22) | 🔴 Alta (latente: hoy todas emiten con `001-001`) | ✅ Commiteado (`ac51a1e`, `066effa`) — ⏳ **sin desplegar** |
+| P6 | ⚠️ **Un cajero puede reescribir `configuration/sri`** y un vendedor crear almacenes: `configuration` y `warehouses` dicen «solo admin», pero la regla por defecto `match /{collection}/{id}` las re-abre a `seller`/`cashier` (verificado en emulador, 2026-09-22). Arreglo: agregar `'warehouses'` y `'configuration'` a `isAdminGovernedCollection` | 🔴 Alta | ⏳ **Pendiente de decisión** — no aplicado, cambia colecciones en uso |
 
 ---
 
@@ -239,7 +241,8 @@ interface SriCompanyConfig {
   razonSocial:              string;   // Razón social exacta registrada en SRI
   nombreComercial?:         string;   // Nombre comercial (opcional en XML)
   direccionMatriz:          string;   // Dirección de la matriz (XML campo fijo)
-  direccionEstablecimiento: string;   // Dirección del establecimiento emisor
+  direccionEstablecimiento: string;   // Respaldo: desde 2026-09-22 la dirección sale de
+                                      // establishments/{código}.address (ver §12.4)
   telefono?:                string;
   correo?:                  string;
 
@@ -1063,13 +1066,41 @@ companies/{companyId}/
 | `emailReplyTo` | `string` | Email de respuesta del emisor en emails al cliente | **PENDIENTE** |
 | `emailCcAccounting` | `string` | CC al departamento contable en cada email de comprobante | Futuro |
 
-### 12.4 Secuenciales por punto de emisión
+### 12.4 Secuenciales por punto de emisión y establecimientos — ✅ commiteado (2026-09-22), ⏳ sin desplegar
 
-El counter actual usa clave `{seriesCode}_{fiscalYear}`. Para empresas con múltiples establecimientos o puntos de emisión (001-001, 001-002, 002-001), los secuenciales deben ser independientes.
+~~El counter actual usa clave `{seriesCode}_{fiscalYear}`… Cambio necesario: clave del
+counter → `{establecimiento}_{puntoEmision}_{fiscalYear}`~~ → **ya hecho**: el contador
+`companies/{cid}/counters/invoices` usa la clave `estab_pto_año` (`001_001_2025`,
+`invoices.service.ts:166-185`, verificado el 2026-09-22).
 
-**Cambio necesario:** clave del counter → `{establecimiento}_{puntoEmision}_{fiscalYear}`
+Lo que faltaba (2026-09-22): los **4 generadores de XML** (factura, NC, ND, retención)
+ignoraban la serie y usaban siempre `company.sri.establishment` / `emissionPoint`, y la
+dirección era una sola (`configuration/sri.direccionEstablecimiento`). La factura de una
+sucursal llegaba al SRI como de la matriz con un secuencial ya usado.
 
-Afecta: `setup-company.ts`, `invoices.service.ts`, `retentions.service.ts`, `debit-notes.service.ts`
+| Commit (`feat/portal-canal`) | Qué |
+|---|---|
+| `ac51a1e` | `functions/src/utils/establishments.ts`: `resolveEmissionSeries` (usa `seriesEstablishment`/`seriesEmissionPoint` del comprobante, en pareja; la empresa como respaldo), `resolveEstablishmentAddress` (`<dirEstablecimiento>` desde `establishments/{código}`, respaldo `configuration/sri`), `buildMainEstablishment`. `setupCompany` crea la matriz. Reglas (`isAdminGovernedCollection`). `scripts/seed-establishments.ts` (en seco por defecto, sin clave). 125 pruebas jest |
+| `066effa` | Configuración → Establecimientos (`/settings/establishments`); las series eligen establecimiento y punto de emisión de una lista |
+
+**Modelo:** `companies/{cid}/establishments/{código}` — el id es el código SRI (3 dígitos,
+no `000`). Campos `code, name, address, city, phone, isMain, isActive,
+emissionPoints[{code, name, isActive}]`. No se borran (hay comprobantes con ese código): se
+desactivan. Lee cualquier usuario de la empresa; escribe solo el admin.
+
+**Despliegue pendiente**, con nombres (nunca deploy general: publicaría `getAuthToken`,
+herramienta de desarrollo sin autenticación, nunca desplegada):
+
+```bash
+# desde saas_facturacion_web_JDC/, rama feat/portal-canal
+firebase deploy --only firestore:rules,functions:generateInvoiceXml,functions:generateCreditNoteXml,functions:generateDebitNoteXml,functions:generateRetentionXml,functions:onInvoiceEmit,functions:onRetentionEmit,functions:onDebitNoteEmit,functions:setupCompany
+npx ts-node scripts/seed-establishments.ts            # en seco
+npx ts-node scripts/seed-establishments.ts --apply
+```
+
+> `createAndEmitInvoice` (emisión por API) sigue usando `company.sri.establishment`:
+> coherente, pero sin sucursales. Bitácora completa:
+> `App_AdminWeb_Conectate/weworkscloud/docs/BITACORA_INTEGRACION.md` (2026-09-22).
 
 ### 12.5 Configuración email por empresa (faltantes en SriCompanyConfig)
 
