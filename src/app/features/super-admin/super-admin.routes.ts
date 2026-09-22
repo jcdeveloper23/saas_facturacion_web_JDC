@@ -38,6 +38,12 @@ export const SUPER_ADMIN_ROUTES: Routes = [
         data: { title: 'Edit Company' }
       },
       {
+        path: 'companies/:id/establishments',
+        loadComponent: () =>
+          import('../settings/pages/establishments/establishments.component').then(m => m.EstablishmentsComponent),
+        data: { title: 'Company Establishments' }
+      },
+      {
         path: 'companies/:id/plugins',
         loadComponent: () =>
           import('./pages/companies/company-plugins.component').then(m => m.CompanyPluginsComponent),

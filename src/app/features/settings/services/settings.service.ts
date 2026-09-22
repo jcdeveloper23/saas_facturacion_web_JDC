@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { Firestore, doc, setDoc, onSnapshot, updateDoc, Timestamp } from '@angular/fire/firestore';
+import { Firestore, doc, setDoc, onSnapshot, updateDoc, Timestamp, collection, collectionData, runTransaction } from '@angular/fire/firestore';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { FirestoreService } from '../../../core/services/firestore.service';
@@ -122,20 +122,37 @@ export class SettingsService {
   // ─── Establishments ───────────────────────────────────────────────────────
   // No se borran: hay comprobantes emitidos con su código. Se desactivan.
 
-  getEstablishments(): Observable<Establishment[]> {
-    return this.fs.getCollection<Establishment>('establishments').pipe(
-      map(list => [...list].sort((a, b) => a.code.localeCompare(b.code)))
-    );
+  // Sin companyId: la empresa del usuario (tenant). Con companyId: una empresa
+  // cualquiera, para el super admin o el admin del canal desde la ficha de la
+  // empresa; las reglas deciden si puede.
+
+  getEstablishments(companyId?: string): Observable<Establishment[]> {
+    const source = companyId
+      ? (collectionData(collection(this.firestore, `companies/${companyId}/establishments`),
+          { idField: 'id' }) as Observable<Establishment[]>)
+      : this.fs.getCollection<Establishment>('establishments');
+    return source.pipe(map(list => [...list].sort((a, b) => a.code.localeCompare(b.code))));
   }
 
-  async createEstablishment(data: EstablishmentFormData): Promise<void> {
-    return this.fs.createDocumentWithId<EstablishmentFormData>('establishments', data.code, data);
+  async createEstablishment(data: EstablishmentFormData, companyId?: string): Promise<void> {
+    if (!companyId) {
+      return this.fs.createDocumentWithId<EstablishmentFormData>('establishments', data.code, data);
+    }
+    const ref = doc(this.firestore, `companies/${companyId}/establishments/${data.code}`);
+    const now = Timestamp.now();
+    await runTransaction(this.firestore, async tx => {
+      const snap = await tx.get(ref);
+      if (snap.exists()) throw new Error(`Ya existe un registro con el código ${data.code}.`);
+      tx.set(ref, { ...data, createdAt: now, updatedAt: now });
+    });
   }
 
-  async updateEstablishment(code: string, data: Partial<EstablishmentFormData>): Promise<void> {
+  async updateEstablishment(code: string, data: Partial<EstablishmentFormData>, companyId?: string): Promise<void> {
     // El código es el id: no se cambia.
     const { code: _ignored, ...rest } = data;
-    return this.fs.updateDocument<Establishment>('establishments', code, rest);
+    if (!companyId) return this.fs.updateDocument<Establishment>('establishments', code, rest);
+    await updateDoc(doc(this.firestore, `companies/${companyId}/establishments/${code}`),
+      { ...rest, updatedAt: Timestamp.now() } as any);
   }
 
   // ─── Warehouses ───────────────────────────────────────────────────────────

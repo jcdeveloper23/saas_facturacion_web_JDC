@@ -288,8 +288,17 @@ service cloud.firestore {
       // de 3 dígitos, así que es único por empresa. No se borran: hay
       // comprobantes emitidos con ese código; se desactivan (isActive: false).
       match /establishments/{code} {
-        allow read: if isAuthenticated() && belongsToCompany(companyId);
-        allow create, update: if isAuthenticated() && belongsToCompany(companyId) && isAdmin()
+        // El super admin y el admin del canal de la empresa también los
+        // administran, desde la ficha de la empresa (inCallerChannel incluye al
+        // super admin).
+        function companyChannel() {
+          return get(/databases/$(database)/documents/companies/$(companyId)).data.get('channelId', '');
+        }
+        allow read: if isAuthenticated()
+                    && (belongsToCompany(companyId) || inCallerChannel(companyChannel()));
+        allow create, update: if isAuthenticated()
+                              && ((belongsToCompany(companyId) && isAdmin())
+                                  || inCallerChannel(companyChannel()))
                               && code.matches('^[0-9]{3}$') && code != '000'
                               && request.resource.data.code == code;
         allow delete: if false;

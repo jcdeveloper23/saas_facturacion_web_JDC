@@ -5,7 +5,12 @@
       {{ isEdit() ? 'Modificar datos del tenant' : 'Registrar un nuevo tenant en el sistema' }}
     </p>
   </c-col>
-  <c-col xs="auto">
+  <c-col xs="auto" class="d-flex gap-2">
+    @if (isEdit() && editId) {
+    <a [routerLink]="['/super-admin/companies', editId, 'establishments']" cButton color="outline-primary" size="sm">
+      <svg cIcon name="cilBuilding" class="me-1"></svg> Establecimientos
+    </a>
+    }
     <a routerLink="/super-admin/companies" cButton color="outline-secondary" size="sm">
       <svg cIcon name="cilArrowLeft" class="me-1"></svg> Volver
     </a>

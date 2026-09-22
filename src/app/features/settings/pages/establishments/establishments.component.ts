@@ -1,5 +1,6 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import {
   AbstractControl, FormArray, FormBuilder, FormGroup, ReactiveFormsModule,
   ValidationErrors, Validators,
@@ -43,7 +44,7 @@ function uniquePointCodes(arr: AbstractControl): ValidationErrors | null {
   templateUrl: './establishments.component.html',
   standalone: true,
   imports: [
-    CommonModule, ReactiveFormsModule,
+    CommonModule, ReactiveFormsModule, RouterLink,
     CardComponent, CardBodyComponent,
     TableDirective, BadgeComponent, ButtonDirective, SpinnerComponent,
     RowComponent, ColComponent,
@@ -59,6 +60,13 @@ export class EstablishmentsComponent implements OnInit {
   private notifications = inject(NotificationService);
   private fb = inject(FormBuilder);
   private iconSet = inject(IconSetService);
+  private route = inject(ActivatedRoute);
+
+  /**
+   * Empresa sobre la que se trabaja. Sin :id en la ruta es la del usuario; con
+   * él (/super-admin/companies/:id/establishments), una empresa cualquiera.
+   */
+  readonly companyId = this.route.snapshot.paramMap.get('id') ?? undefined;
 
   establishments = signal<Establishment[]>([]);
   loading = signal(true);
@@ -87,7 +95,7 @@ export class EstablishmentsComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.svc.getEstablishments().subscribe({
+    this.svc.getEstablishments(this.companyId).subscribe({
       next: list => { this.establishments.set(list); this.loading.set(false); },
       error: err => {
         console.error('Error al cargar establecimientos:', err);
@@ -162,10 +170,10 @@ export class EstablishmentsComponent implements OnInit {
       const data = this.form.getRawValue() as EstablishmentFormData;
       const code = this.editingCode();
       if (code) {
-        await this.svc.updateEstablishment(code, data);
+        await this.svc.updateEstablishment(code, data, this.companyId);
         this.notifications.success('Establecimiento actualizado');
       } else {
-        await this.svc.createEstablishment(data);
+        await this.svc.createEstablishment(data, this.companyId);
         this.notifications.success('Establecimiento creado');
       }
       this.showModal.set(false);
@@ -182,7 +190,7 @@ export class EstablishmentsComponent implements OnInit {
       return;
     }
     try {
-      await this.svc.updateEstablishment(e.code, { isActive: !e.isActive });
+      await this.svc.updateEstablishment(e.code, { isActive: !e.isActive }, this.companyId);
       this.notifications.success('Estado actualizado');
     } catch {
       this.notifications.error('Error al actualizar el estado');

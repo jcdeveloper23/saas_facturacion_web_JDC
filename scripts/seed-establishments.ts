@@ -10,6 +10,10 @@
  * Crea `establishments/{código}` con los datos SRI de la empresa, SOLO donde no
  * hay ninguno. Nunca toca una empresa que ya tiene establecimientos.
  *
+ * Además registra el ítem del menú (`modules/settings_establishments`) si
+ * falta. Solo ese: seed-modules.ts reescribe todo el catálogo con merge y
+ * pisaría los ajustes hechos desde la pantalla Módulos del super admin.
+ *
  * EJECUCIÓN, sin claves descargadas (con tu sesión de gcloud):
  *   gcloud auth application-default login
  *   npx ts-node scripts/seed-establishments.ts            # en seco
@@ -20,6 +24,7 @@
 
 import * as admin from 'firebase-admin';
 import { buildMainEstablishment } from '../functions/src/utils/establishments';
+import { MODULES_SEED } from '../src/app/core/seed/modules-seed';
 
 const APPLY = process.argv.includes('--apply');
 const PROJECT = process.env.GCLOUD_PROJECT || 'accounting-system-a5c9f';
@@ -31,6 +36,20 @@ const db = admin.firestore();
 
 async function main(): Promise<void> {
   console.log(APPLY ? `✍️  APLICAR sobre ${PROJECT}` : `🔍 EN SECO sobre ${PROJECT} (agrega --apply para escribir)`);
+  // Ítem del menú: el sidebar de la empresa se arma desde /modules en Firestore.
+  const mod = MODULES_SEED.find(m => m.code === 'settings_establishments');
+  if (!mod) throw new Error('settings_establishments no está en MODULES_SEED');
+  const modRef = db.collection('modules').doc(mod.code);
+  if ((await modRef.get()).exists) {
+    console.log('menú: modules/settings_establishments ya existe, no se toca');
+  } else {
+    console.log(`menú: ${APPLY ? 'se crea' : 'se crearía'} modules/settings_establishments`);
+    if (APPLY) {
+      const now = admin.firestore.Timestamp.now();
+      await modRef.set({ ...mod, createdAt: now, updatedAt: now });
+    }
+  }
+
   const companies = await db.collection('companies').get();
   let already = 0;
   const pending: { id: string; name: string; code: string }[] = [];

@@ -492,6 +492,12 @@ export const MODULES_SEED: ModuleSeed[] = [
     description: 'Datos fiscales y branding de la empresa.', dependencies: ['settings'], order: 911, state: true,
   },
   {
+    code: 'settings_establishments', name: 'Establecimientos',
+    url: '/settings/establishments', icon: '', isTitle: false, parent_id: 'settings', showInMenu: true,
+    description: 'Matriz y sucursales registradas en el RUC, con sus puntos de emisión.',
+    dependencies: ['settings'], order: 911.5, state: true,
+  },
+  {
     code: 'settings_warehouses', name: 'Almacenes',
     url: '/settings/warehouses', icon: '', isTitle: false, parent_id: 'settings', showInMenu: true,
     description: 'Gestión de bodegas y almacenes.', dependencies: ['settings'], order: 912, state: true,

@@ -9,9 +9,16 @@
       <p class="text-muted small mb-0">La matriz y las sucursales registradas en el RUC, con sus puntos de emisión</p>
     </div>
   </div>
-  <button cButton color="primary" size="sm" (click)="openNew()" class="px-3 shadow-sm">
-    <svg cIcon name="cilPlus" class="me-1"></svg> Agregar establecimiento
-  </button>
+  <div class="d-flex gap-2">
+    @if (companyId) {
+    <a [routerLink]="['/super-admin/companies', companyId, 'edit']" cButton color="outline-secondary" size="sm">
+      <svg cIcon name="cilArrowLeft" class="me-1"></svg> Volver a la empresa
+    </a>
+    }
+    <button cButton color="primary" size="sm" (click)="openNew()" class="px-3 shadow-sm">
+      <svg cIcon name="cilPlus" class="me-1"></svg> Agregar establecimiento
+    </button>
+  </div>
 </div>
 
 <!-- ── Ayuda ───────────────────────────────────────────────────── -->

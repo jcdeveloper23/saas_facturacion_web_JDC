@@ -71,6 +71,9 @@ export class CompanyFormComponent implements OnInit {
   private notifications = inject(NotificationService);
 
   isEdit = signal(false);
+
+  /** Id de la empresa en edición, para enlazar a sus establecimientos. */
+  readonly editId = this.route.snapshot.paramMap.get('id');
   companyId = signal<string | null>(null);
   loading = signal(false);
   saving = signal(false);
