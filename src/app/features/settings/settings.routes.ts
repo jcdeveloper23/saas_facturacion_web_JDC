@@ -14,6 +14,12 @@ export const SETTINGS_ROUTES: Routes = [
         data: { title: 'Company Settings' }
       },
       {
+        path: 'establishments',
+        loadComponent: () =>
+          import('./pages/establishments/establishments.component').then(m => m.EstablishmentsComponent),
+        data: { title: 'Establishments' }
+      },
+      {
         path: 'warehouses',
         loadComponent: () =>
           import('./pages/warehouses/warehouses.component').then(m => m.WarehousesComponent),

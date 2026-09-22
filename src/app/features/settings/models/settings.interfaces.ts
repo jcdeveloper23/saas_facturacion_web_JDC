@@ -47,6 +47,30 @@ export interface Warehouse extends BaseDocument {
 
 export type WarehouseFormData = Pick<Warehouse, 'code' | 'name' | 'address' | 'city' | 'isMain' | 'isActive'>;
 
+// /companies/{companyId}/establishments/{code}
+// El id del documento ES el código SRI de 3 dígitos: único por empresa. De aquí
+// sale <dirEstablecimiento> de cada comprobante emitido con ese código.
+export interface EmissionPoint {
+  code: string;                     // '001'
+  name: string;
+  isActive: boolean;
+}
+
+export interface Establishment extends BaseDocument {
+  code: string;                     // '001' matriz, '002' sucursal…
+  name: string;
+  address: string;
+  city?: string;
+  phone?: string;
+  isMain: boolean;
+  emissionPoints: EmissionPoint[];
+}
+
+export type EstablishmentFormData = Pick<
+  Establishment,
+  'code' | 'name' | 'address' | 'city' | 'phone' | 'isMain' | 'isActive' | 'emissionPoints'
+>;
+
 // /companies/{companyId}/document-series/{seriesId}
 export interface DocumentSeries extends BaseDocument {
   code: string;                     // '001', 'A', 'B'

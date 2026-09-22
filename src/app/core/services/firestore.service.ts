@@ -103,6 +103,21 @@ export class FirestoreService {
     return docRef.id;
   }
 
+  /**
+   * Crea un documento con un id elegido (por ejemplo, un código) y falla si ya
+   * existe: nunca lo pisa. En transacción, para que dos altas simultáneas del
+   * mismo código no se sobrescriban entre sí.
+   */
+  async createDocumentWithId<T extends object>(collectionName: string, id: string, data: T): Promise<void> {
+    const ref = this.docRef(collectionName, id);
+    const now = Timestamp.now();
+    await runTransaction(this.firestore, async tx => {
+      const snap = await tx.get(ref);
+      if (snap.exists()) throw new Error(`Ya existe un registro con el código ${id}.`);
+      tx.set(ref, { ...data, createdAt: now, updatedAt: now });
+    });
+  }
+
   async updateDocument<T extends object>(
     collectionName: string,
     id: string,

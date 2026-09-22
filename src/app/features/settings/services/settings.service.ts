@@ -9,6 +9,7 @@ import {
   CompanySettings,
   SriCompanyConfig,
   Warehouse, WarehouseFormData,
+  Establishment, EstablishmentFormData,
   DocumentSeries, DocumentSeriesFormData,
   PaymentTerm, PaymentTermFormData,
   TaxRate, TaxRateFormData,
@@ -116,6 +117,25 @@ export class SettingsService {
       updatedAt: Timestamp.now(),
       updatedBy: this.authService.user()?.uid ?? ''
     }, { merge: true });
+  }
+
+  // ─── Establishments ───────────────────────────────────────────────────────
+  // No se borran: hay comprobantes emitidos con su código. Se desactivan.
+
+  getEstablishments(): Observable<Establishment[]> {
+    return this.fs.getCollection<Establishment>('establishments').pipe(
+      map(list => [...list].sort((a, b) => a.code.localeCompare(b.code)))
+    );
+  }
+
+  async createEstablishment(data: EstablishmentFormData): Promise<void> {
+    return this.fs.createDocumentWithId<EstablishmentFormData>('establishments', data.code, data);
+  }
+
+  async updateEstablishment(code: string, data: Partial<EstablishmentFormData>): Promise<void> {
+    // El código es el id: no se cambia.
+    const { code: _ignored, ...rest } = data;
+    return this.fs.updateDocument<Establishment>('establishments', code, rest);
   }
 
   // ─── Warehouses ───────────────────────────────────────────────────────────

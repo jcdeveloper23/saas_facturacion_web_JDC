@@ -1,5 +1,6 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import {
   CardComponent, CardBodyComponent,
@@ -12,7 +13,7 @@ import {
 import { IconDirective, IconSetService } from '@coreui/icons-angular';
 import { iconSubset } from '../../../../icons/icon-subset';
 import { SettingsService } from '../../services/settings.service';
-import { DocumentSeries, DocumentSeriesFormData } from '../../models/settings.interfaces';
+import { DocumentSeries, DocumentSeriesFormData, EmissionPoint, Establishment } from '../../models/settings.interfaces';
 import { NotificationService } from '../../../../core/services/notification.service';
 
 @Component({
@@ -20,6 +21,7 @@ import { NotificationService } from '../../../../core/services/notification.serv
   templateUrl: './document-series.component.html',
   standalone: true,
   imports: [
+    RouterLink,
     CommonModule, ReactiveFormsModule,
     CardComponent, CardBodyComponent, TableDirective, BadgeComponent,
     ButtonDirective, SpinnerComponent, RowComponent, ColComponent,
@@ -36,6 +38,14 @@ export class DocumentSeriesComponent implements OnInit {
   private iconSet = inject(IconSetService);
 
   series = signal<DocumentSeries[]>([]);
+
+  /**
+   * Establecimientos activos de la empresa. Si hay, el establecimiento y el
+   * punto de emisión de la serie se ELIGEN de aquí: una serie con un código que
+   * no está registrado emitiría con la dirección de otro establecimiento. Si no
+   * hay ninguno (empresas anteriores al módulo), se escriben a mano como antes.
+   */
+  establishments = signal<Establishment[]>([]);
   loading = signal(true);
   showModal = signal(false);
   saving = signal(false);
@@ -69,6 +79,10 @@ export class DocumentSeriesComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    this.svc.getEstablishments().subscribe({
+      next: (list) => this.establishments.set(list.filter(e => e.isActive !== false)),
+      error: (err) => console.error('Error al cargar establecimientos:', err),
+    });
     this.svc.getDocumentSeries().subscribe({
       next: (list) => { this.series.set(list); this.loading.set(false); },
       error: (err) => {
@@ -77,6 +91,21 @@ export class DocumentSeriesComponent implements OnInit {
         this.loading.set(false);
       }
     });
+  }
+
+  /** Puntos de emisión activos del establecimiento elegido. */
+  pointsFor(code: string | null | undefined): EmissionPoint[] {
+    const est = this.establishments().find(e => e.code === code);
+    return (est?.emissionPoints ?? []).filter(p => p.isActive !== false);
+  }
+
+  /** Al cambiar de establecimiento, el punto pasa al primero de ese establecimiento. */
+  onEstablishmentChange(): void {
+    const points = this.pointsFor(this.form.get('establishment')?.value);
+    const current = this.form.get('emissionPoint')?.value;
+    if (!points.some(p => p.code === current)) {
+      this.form.patchValue({ emissionPoint: points[0]?.code ?? '' });
+    }
   }
 
   openNew(): void {

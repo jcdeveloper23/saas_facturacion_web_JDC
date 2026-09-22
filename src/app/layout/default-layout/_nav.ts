@@ -386,6 +386,7 @@ export const navItems: INavData[] = [
     attributes: { module: 'settings', permission: 'settings.view' },
     children: [
       { name: 'Mi Empresa', url: '/settings/company', icon: 'nav-icon-bullet' },
+      { name: 'Establecimientos', url: '/settings/establishments', icon: 'nav-icon-bullet' },
       { name: 'Almacenes', url: '/settings/warehouses', icon: 'nav-icon-bullet' },
       { name: 'Familias', url: '/settings/families', icon: 'nav-icon-bullet' },
       { name: 'Series de Documentos', url: '/settings/document-series', icon: 'nav-icon-bullet' },

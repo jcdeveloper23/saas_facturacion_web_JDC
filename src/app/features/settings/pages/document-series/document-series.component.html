@@ -131,14 +131,36 @@
                  [class.is-invalid]="hasError('name')">
         </c-col>
         <c-col md="6">
-          <label cLabel>Establecimiento (3 dígitos) <span class="text-danger">*</span></label>
+          <label cLabel>Establecimiento <span class="text-danger">*</span></label>
+          @if (establishments().length) {
+          <select cSelect formControlName="establishment" (change)="onEstablishmentChange()"
+                  [class.is-invalid]="hasError('establishment')" class="font-monospace">
+            @for (e of establishments(); track e.code) {
+            <option [value]="e.code">{{ e.code }} — {{ e.name }}</option>
+            }
+          </select>
+          } @else {
           <input cFormControl formControlName="establishment" maxlength="3" placeholder="001"
                  [class.is-invalid]="hasError('establishment')" class="font-monospace">
+          <div class="form-text">
+            Registra tus establecimientos en <a routerLink="/settings/establishments">Establecimientos</a>
+            para elegirlos de una lista y que cada comprobante salga con su dirección.
+          </div>
+          }
         </c-col>
         <c-col md="6">
-          <label cLabel>Pto. Emisión (3 dígitos) <span class="text-danger">*</span></label>
+          <label cLabel>Punto de emisión <span class="text-danger">*</span></label>
+          @if (establishments().length) {
+          <select cSelect formControlName="emissionPoint"
+                  [class.is-invalid]="hasError('emissionPoint')" class="font-monospace">
+            @for (p of pointsFor(form.get('establishment')?.value); track p.code) {
+            <option [value]="p.code">{{ p.code }} — {{ p.name }}</option>
+            }
+          </select>
+          } @else {
           <input cFormControl formControlName="emissionPoint" maxlength="3" placeholder="001"
                  [class.is-invalid]="hasError('emissionPoint')" class="font-monospace">
+          }
         </c-col>
         <c-col md="12">
           <label cLabel>Notas Adicionales</label>

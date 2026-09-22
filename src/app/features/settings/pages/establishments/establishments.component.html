@@ -1,0 +1,189 @@
+<!-- ── Cabecera ────────────────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-center mb-1">
+  <div class="d-flex align-items-center gap-2">
+    <div class="bg-primary bg-opacity-10 p-2 rounded">
+      <svg cIcon name="cilBuilding" size="xl" class="text-primary"></svg>
+    </div>
+    <div>
+      <h3 class="mb-0 fw-semibold">Establecimientos</h3>
+      <p class="text-muted small mb-0">La matriz y las sucursales registradas en el RUC, con sus puntos de emisión</p>
+    </div>
+  </div>
+  <button cButton color="primary" size="sm" (click)="openNew()" class="px-3 shadow-sm">
+    <svg cIcon name="cilPlus" class="me-1"></svg> Agregar establecimiento
+  </button>
+</div>
+
+<!-- ── Ayuda ───────────────────────────────────────────────────── -->
+<c-callout color="primary" class="bg-body border-start-4 shadow-sm mb-4">
+  <div class="d-flex gap-3 align-items-start">
+    <svg cIcon name="cilInfo" size="lg" class="text-primary mt-1"></svg>
+    <div>
+      <p class="mb-1 fw-bold">Cada comprobante sale con su establecimiento</p>
+      <p class="mb-0 text-muted small">
+        Registra aquí cada establecimiento tal como consta en tu RUC. Después crea en
+        <strong>Series de documentos</strong> una serie por cada establecimiento y punto de emisión:
+        la numeración es independiente en cada uno, y la dirección que va en el comprobante es la de
+        este registro. El código no se cambia después de crearlo.
+      </p>
+    </div>
+  </div>
+</c-callout>
+
+<!-- ── Listado ─────────────────────────────────────────────────── -->
+<c-card class="border-0 shadow-sm overflow-hidden">
+  <c-card-body class="p-0">
+    @if (loading()) {
+    <div class="text-center py-5"><c-spinner color="primary"></c-spinner></div>
+    } @else if (establishments().length === 0) {
+    <div class="text-center py-5 bg-body-secondary">
+      <svg cIcon name="cilBuilding" size="3xl" class="text-muted mb-3 opacity-25"></svg>
+      <p class="text-muted mb-1">Todavía no hay establecimientos registrados.</p>
+      <p class="text-muted small">Mientras tanto, los comprobantes usan la dirección de <em>Mi Empresa</em>.</p>
+    </div>
+    } @else {
+    <div class="table-responsive">
+      <table cTable hover align="middle" class="mb-0 border-0">
+        <thead class="bg-body-secondary text-uppercase small fw-bold">
+          <tr>
+            <th class="border-0 px-4 py-3">Código</th>
+            <th class="border-0 py-3">Establecimiento</th>
+            <th class="border-0 py-3">Dirección</th>
+            <th class="border-0 py-3">Puntos de emisión</th>
+            <th class="border-0 py-3 text-center">Estado</th>
+            <th class="border-0 px-4 py-3 text-end">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (e of establishments(); track trackByCode($index, e)) {
+          <tr class="align-middle border-bottom border-body-secondary">
+            <td class="px-4 py-3">
+              <span class="badge bg-body-secondary text-body px-2 py-1 font-monospace">{{ e.code }}</span>
+            </td>
+            <td>
+              <div class="fw-bold d-flex align-items-center">
+                {{ e.name }}
+                @if (e.isMain) {
+                <span class="ms-2 badge bg-primary text-white rounded-pill" style="font-size: 0.65rem">Matriz</span>
+                }
+              </div>
+            </td>
+            <td>
+              <div class="small">{{ e.address || 'Sin dirección' }}</div>
+              <div class="small text-muted">{{ e.city }}</div>
+            </td>
+            <td><span class="font-monospace small">{{ activePoints(e) }}</span></td>
+            <td class="text-center">
+              <c-badge [color]="e.isActive ? 'success' : 'secondary'" shape="rounded-pill" class="px-3">
+                {{ e.isActive ? 'Activo' : 'Inactivo' }}
+              </c-badge>
+            </td>
+            <td class="px-4 py-3 text-end">
+              <div class="d-flex gap-2 justify-content-end">
+                <button cButton color="light" size="sm" (click)="openEdit(e)" title="Editar">
+                  <svg cIcon name="cilPencil"></svg>
+                </button>
+                <button cButton [color]="e.isActive ? 'outline-danger' : 'outline-success'" size="sm"
+                  (click)="toggleActive(e)" [disabled]="e.isMain && e.isActive"
+                  [title]="e.isActive ? 'Desactivar' : 'Activar'">
+                  <svg cIcon [name]="e.isActive ? 'cilBan' : 'cilCheck'"></svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    }
+  </c-card-body>
+</c-card>
+
+<!-- ── Modal ───────────────────────────────────────────────────── -->
+<c-modal [visible]="showModal()" (visibleChange)="showModal.set($event)" alignment="center" backdrop="static" size="lg">
+  <c-modal-header class="bg-primary bg-opacity-10 border-bottom-0 pb-0">
+    <h5 cModalTitle class="fw-semibold text-primary">
+      <svg cIcon [name]="editingCode() ? 'cilPencil' : 'cilPlus'" class="me-2"></svg>
+      {{ editingCode() ? 'Establecimiento ' + editingCode() : 'Nuevo establecimiento' }}
+    </h5>
+    <button cButtonClose (click)="showModal.set(false)"></button>
+  </c-modal-header>
+  <c-modal-body class="pt-3">
+    @if (errorMessage()) { <c-alert color="danger" variant="solid" class="mb-3">{{ errorMessage() }}</c-alert> }
+
+    <form [formGroup]="form">
+      <c-row class="g-3">
+        <c-col md="3">
+          <label cLabel>Código SRI</label>
+          <input cFormControl formControlName="code" maxlength="3" placeholder="002" class="font-monospace"
+            [valid]="hasError('code') ? false : undefined" />
+          @if (hasError('code')) { <div class="text-danger small mt-1">Tres dígitos, del 001 al 999</div> }
+        </c-col>
+        <c-col md="9">
+          <label cLabel>Nombre</label>
+          <input cFormControl formControlName="name" placeholder="Sucursal Norte"
+            [valid]="hasError('name') ? false : undefined" />
+          @if (hasError('name')) { <div class="text-danger small mt-1">Requerido</div> }
+        </c-col>
+        <c-col md="12">
+          <label cLabel>Dirección del establecimiento</label>
+          <input cFormControl formControlName="address" placeholder="Como consta en el RUC"
+            [valid]="hasError('address') ? false : undefined" />
+          @if (hasError('address')) {
+          <div class="text-danger small mt-1">Requerida: sale impresa en cada comprobante</div>
+          }
+        </c-col>
+        <c-col md="6">
+          <label cLabel>Ciudad</label>
+          <input cFormControl formControlName="city" />
+        </c-col>
+        <c-col md="6">
+          <label cLabel>Teléfono</label>
+          <input cFormControl formControlName="phone" />
+        </c-col>
+      </c-row>
+
+      <!-- Puntos de emisión -->
+      <h6 class="text-uppercase text-muted fw-bold small border-bottom pb-2 mb-3 mt-4">Puntos de emisión</h6>
+      <div formArrayName="emissionPoints">
+        @for (p of points.controls; track $index; let i = $index) {
+        <c-row class="g-2 mb-2 align-items-start" [formGroupName]="i">
+          <c-col xs="3">
+            <input cFormControl formControlName="code" maxlength="3" placeholder="001" class="font-monospace"
+              [valid]="pointHasError(i, 'code') ? false : undefined" />
+          </c-col>
+          <c-col xs="6">
+            <input cFormControl formControlName="name" placeholder="Caja 1"
+              [valid]="pointHasError(i, 'name') ? false : undefined" />
+          </c-col>
+          <c-col xs="2" class="pt-2">
+            <c-form-check>
+              <input cFormCheckInput type="checkbox" formControlName="isActive" [id]="'pt-active-' + i" />
+              <label cFormCheckLabel [for]="'pt-active-' + i">Activo</label>
+            </c-form-check>
+          </c-col>
+          <c-col xs="1" class="text-end">
+            <button cButton color="light" size="sm" type="button" (click)="removePoint(i)"
+              [disabled]="points.length === 1" class="text-danger" title="Quitar">
+              <svg cIcon name="cilTrash"></svg>
+            </button>
+          </c-col>
+        </c-row>
+        }
+      </div>
+      @if (points.hasError('duplicated')) {
+      <div class="text-danger small mb-2">Dos puntos de emisión no pueden tener el mismo código.</div>
+      }
+      <button cButton color="light" size="sm" type="button" (click)="addPoint()">
+        <svg cIcon name="cilPlus" class="me-1"></svg> Agregar punto de emisión
+      </button>
+    </form>
+  </c-modal-body>
+  <c-modal-footer>
+    <button cButton color="secondary" variant="outline" (click)="showModal.set(false)">Cancelar</button>
+    <button cButton color="primary" (click)="save()" [disabled]="saving()">
+      @if (saving()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+      Guardar
+    </button>
+  </c-modal-footer>
+</c-modal>
