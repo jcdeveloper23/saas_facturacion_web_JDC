@@ -18,6 +18,8 @@ import {
 import { IconDirective, IconSetService } from '@coreui/icons-angular';
 import { iconSubset } from '../../../../icons/icon-subset';
 import { SettingsService } from '../../services/settings.service';
+import { CompanyUsersService } from '../../../../core/services/company-users.service';
+import { CompanyUser } from '../../../../core/interfaces/company-user.interface';
 import { EmissionPoint, Establishment, EstablishmentFormData } from '../../models/settings.interfaces';
 import { NotificationService } from '../../../../core/services/notification.service';
 
@@ -61,6 +63,7 @@ export class EstablishmentsComponent implements OnInit {
   private fb = inject(FormBuilder);
   private iconSet = inject(IconSetService);
   private route = inject(ActivatedRoute);
+  private companyUsersSvc = inject(CompanyUsersService);
 
   /**
    * Empresa sobre la que se trabaja. Sin :id en la ruta es la del usuario; con
@@ -74,6 +77,20 @@ export class EstablishmentsComponent implements OnInit {
   saving = signal(false);
   editingCode = signal<string | null>(null);
   errorMessage = signal('');
+
+  // ── Usuarios de cada punto de emisión ───────────────────────────────────
+  // La relación es de muchos a muchos: un punto lo usan varios cajeros y un
+  // cajero puede tener varios puntos. Se guarda del lado del usuario
+  // (company-users/{uid}.emissionPoints); aquí se edita desde el punto.
+  users          = signal<CompanyUser[]>([]);
+  showUsersModal = signal(false);
+  savingUsers    = signal(false);
+  editingPoint   = signal<{ key: string; label: string } | null>(null);
+  /** uid → asignado, mientras el modal está abierto. */
+  userSelection  = signal<Record<string, boolean>>({});
+
+  /** Solo en la propia empresa: las reglas no dejan al super admin escribir sus usuarios. */
+  readonly canAssignUsers = !this.route.snapshot.paramMap.get('id');
 
   constructor() {
     this.iconSet.icons = { ...iconSubset };
@@ -95,6 +112,12 @@ export class EstablishmentsComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    if (this.canAssignUsers) {
+      this.companyUsersSvc.getCompanyUsers().subscribe({
+        next: list => this.users.set(list),
+        error: err => console.error('Error al cargar usuarios:', err),
+      });
+    }
     this.svc.getEstablishments(this.companyId).subscribe({
       next: list => { this.establishments.set(list); this.loading.set(false); },
       error: err => {
@@ -202,6 +225,63 @@ export class EstablishmentsComponent implements OnInit {
       this.notifications.success('Estado actualizado');
     } catch {
       this.notifications.error('Error al actualizar el estado');
+    }
+  }
+
+  // ── Usuarios de un punto ─────────────────────────────────────────────────
+
+  /** A quién se le pueden asignar puntos: el admin emite desde todos. */
+  assignableUsers(): CompanyUser[] {
+    return this.users().filter(u => u.platformRole !== 'admin' && u.isActive !== false);
+  }
+
+  usersForPoint(establishmentCode: string, pointCode: string): CompanyUser[] {
+    const key = `${establishmentCode}-${pointCode}`;
+    return this.assignableUsers().filter(u => (u.emissionPoints ?? []).includes(key));
+  }
+
+  openUsers(e: Establishment, p: EmissionPoint): void {
+    const key = `${e.code}-${p.code}`;
+    this.editingPoint.set({ key, label: `${key} · ${p.name} — ${e.name}` });
+    this.userSelection.set(Object.fromEntries(
+      this.assignableUsers().map(u => [u.uid, (u.emissionPoints ?? []).includes(key)])));
+    this.showUsersModal.set(true);
+  }
+
+  isUserSelected(uid: string): boolean {
+    return !!this.userSelection()[uid];
+  }
+
+  toggleUser(uid: string): void {
+    this.userSelection.set({ ...this.userSelection(), [uid]: !this.userSelection()[uid] });
+  }
+
+  async saveUsers(): Promise<void> {
+    const point = this.editingPoint();
+    if (!point) return;
+    this.savingUsers.set(true);
+    try {
+      for (const user of this.assignableUsers()) {
+        const had = (user.emissionPoints ?? []).includes(point.key);
+        const has = this.isUserSelected(user.uid);
+        if (had === has) continue;
+        const next = has
+          ? [...(user.emissionPoints ?? []), point.key].sort()
+          : (user.emissionPoints ?? []).filter(k => k !== point.key);
+        // El punto por defecto tiene que seguir entre los asignados.
+        const current = user.defaultEmissionPoint ?? '';
+        const nextDefault = next.length === 0 ? '' : (next.includes(current) ? current : next[0]);
+        await this.companyUsersSvc.upsertCompanyUser(user.uid, {
+          emissionPoints: next,
+          defaultEmissionPoint: nextDefault,
+        });
+      }
+      this.notifications.success('Usuarios del punto de emisión actualizados');
+      this.showUsersModal.set(false);
+    } catch (err: unknown) {
+      this.notifications.error(err instanceof Error ? err.message : 'Error al guardar los usuarios');
+    } finally {
+      this.savingUsers.set(false);
     }
   }
 

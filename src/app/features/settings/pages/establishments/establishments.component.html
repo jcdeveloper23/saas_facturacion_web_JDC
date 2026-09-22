@@ -79,7 +79,25 @@
               <div class="small">{{ e.address || 'Sin dirección' }}</div>
               <div class="small text-muted">{{ e.city }}</div>
             </td>
-            <td><span class="font-monospace small">{{ activePoints(e) }}</span></td>
+            <td>
+              @if (canAssignUsers) {
+              <div class="d-flex flex-wrap gap-1">
+                @for (p of e.emissionPoints; track p.code) {
+                @if (p.isActive !== false) {
+                <button cButton color="light" size="sm" class="py-0 px-2" (click)="openUsers(e, p)"
+                  [title]="'Usuarios que emiten desde ' + e.code + '-' + p.code">
+                  <span class="font-monospace small">{{ e.code }}-{{ p.code }}</span>
+                  <span class="ms-1 badge bg-body-secondary text-body">
+                    {{ usersForPoint(e.code, p.code).length || '—' }}
+                  </span>
+                </button>
+                }
+                }
+              </div>
+              } @else {
+              <span class="font-monospace small">{{ activePoints(e) }}</span>
+              }
+            </td>
             <td class="text-center">
               <c-badge [color]="e.isActive ? 'success' : 'secondary'" shape="rounded-pill" class="px-3">
                 {{ e.isActive ? 'Activo' : 'Inactivo' }}
@@ -105,6 +123,48 @@
     }
   </c-card-body>
 </c-card>
+
+<!-- ── Modal: usuarios de un punto de emisión ──────────────────── -->
+<c-modal [visible]="showUsersModal()" (visibleChange)="showUsersModal.set($event)" alignment="center">
+  <c-modal-header class="bg-primary bg-opacity-10 border-bottom-0 pb-0">
+    <h5 cModalTitle class="fw-semibold text-primary">
+      <svg cIcon name="cilUser" class="me-2"></svg>
+      Usuarios del punto {{ editingPoint()?.label }}
+    </h5>
+    <button cButtonClose (click)="showUsersModal.set(false)"></button>
+  </c-modal-header>
+  <c-modal-body class="pt-3">
+    <p class="text-muted small">
+      Quién puede emitir desde este punto. Un punto puede tener varios usuarios y un usuario,
+      varios puntos. Un usuario sin ningún punto marcado emite desde todos; el administrador,
+      siempre desde todos.
+    </p>
+    @if (assignableUsers().length === 0) {
+    <div class="text-muted small">No hay usuarios a los que asignar puntos.</div>
+    } @else {
+    @for (u of assignableUsers(); track u.uid) {
+    <c-form-check>
+      <input cFormCheckInput type="checkbox" [id]="'pu-' + u.uid"
+        [checked]="isUserSelected(u.uid)" (change)="toggleUser(u.uid)" />
+      <label cFormCheckLabel [for]="'pu-' + u.uid">
+        {{ u.displayName }}
+        <span class="text-muted small">— {{ u.email }}</span>
+        @if ((u.emissionPoints ?? []).length === 0) {
+        <span class="ms-1 badge bg-body-secondary text-body">emite desde todos</span>
+        }
+      </label>
+    </c-form-check>
+    }
+    }
+  </c-modal-body>
+  <c-modal-footer>
+    <button cButton color="secondary" variant="outline" (click)="showUsersModal.set(false)">Cancelar</button>
+    <button cButton color="primary" (click)="saveUsers()" [disabled]="savingUsers()">
+      @if (savingUsers()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+      Guardar
+    </button>
+  </c-modal-footer>
+</c-modal>
 
 <!-- ── Modal ───────────────────────────────────────────────────── -->
 <c-modal [visible]="showModal()" (visibleChange)="showModal.set($event)" alignment="center" backdrop="static" size="lg">
