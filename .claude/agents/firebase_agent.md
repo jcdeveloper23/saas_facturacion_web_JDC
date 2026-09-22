@@ -128,6 +128,18 @@ service cloud.firestore {
 }
 ```
 
+## Establecimientos y la regla por defecto (2026-09-22)
+
+- `companies/{cid}/establishments/{código}` (id = código SRI). Escriben el admin de la
+  empresa, el super admin o el channel admin del canal de la empresa; nadie borra.
+- ⚠️ **Las reglas se suman (OR).** El `match /{collection}/{id}` genérico re-abría a
+  seller/cashier todas las colecciones con regla propia. Arreglo: `hasOwnRules()` las
+  excluye de la regla por defecto (lectura y escritura). **Toda colección nueva con
+  `match` propio va en esa lista.**
+- Pruebas en emulador: `test/rules/` + `firebase.rules-test.json` (puerto 8181, Java 21).
+
+Detalle completo en `establishments_agent.md`.
+
 ## Anti-patrones
 - `collectionData()` / `docData()` de @angular/fire (causa errores con subcollections)
 - Queries sin `try/catch`

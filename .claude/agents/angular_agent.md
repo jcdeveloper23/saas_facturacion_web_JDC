@@ -113,6 +113,19 @@ F6: quotes, orders, pos
 F7: dashboard
 ```
 
+## Establecimientos (2026-09-22)
+
+- Pantalla `features/settings/pages/establishments/` (ruta opcional `:id` para el super
+  admin, `/super-admin/companies/:id/establishments`). `SettingsService` con `onSnapshot`
+  y `companyId` opcional.
+- El menú de la empresa sale de `/modules` en Firestore (entrada `settings_establishments`),
+  no de `_nav.ts`. No re-correr `seed-modules.ts`.
+- ⏳ Falta: selector de establecimiento visible en factura, retención y nota de débito;
+  multiselect de establecimientos en el formulario de usuarios; `establishments?` en
+  `CompanyUser`.
+
+Detalle completo en `establishments_agent.md`.
+
 ## Anti-patrones
 - `collectionData()` / `docData()` de AngularFire (usar onSnapshot directo)
 - `*ngIf` / `*ngFor` en lugar de `@if` / `@for`

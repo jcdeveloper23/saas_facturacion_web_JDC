@@ -127,6 +127,19 @@ firebase deploy --only functions:setupCompany
 firebase functions:log --only setupCompany
 ```
 
+## Establecimientos (2026-09-22)
+
+- `functions/src/utils/establishments.ts`: `normalizeSriCode`, `resolveEmissionSeries`,
+  `resolveEstablishmentAddress`, `buildMainEstablishment`, `normalizeEstablishmentList`,
+  `canUseEstablishment`.
+- `setupCompany` siembra la matriz; los 4 generadores de XML usan la serie del documento;
+  `createCompanyUser` / `updateCompanyUser` aceptan `establishments`.
+- ⏳ `canUseEstablishment` aún no se usa en `createAndEmitInvoice` ni en
+  `onPosSaleComplete` (el Admin SDK salta las reglas).
+- Deploy siempre con nombres: nunca `--only functions` a secas (publicaría `getAuthToken`).
+
+Detalle completo en `establishments_agent.md`.
+
 ## Anti-patrones
 - Relanzar excepciones en triggers Firestore (causa reintentos infinitos)
 - Usar `firebase` (SDK cliente) en lugar de `firebase-admin`

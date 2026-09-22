@@ -33,7 +33,7 @@ SaasFacturacion/
 
 ---
 
-## Agentes Disponibles (13)
+## Agentes Disponibles (14)
 
 | Agente | Archivo | Especialidad |
 |--------|---------|-------------|
@@ -46,6 +46,7 @@ SaasFacturacion/
 | **Security** | `security_agent.md` | Firestore rules, auth guards, custom claims, inputs validation |
 | **Cloud Functions** | `cloud_functions_agent.md` | Node.js 20, setup-company, triggers, admin SDK |
 | **DevOps** | `devops_agent.md` | Firebase deploy, environments, build Angular, emulators |
+| **Establishments** | `establishments_agent.md` | Establecimientos y puntos de emisión, serie de cada comprobante, establecimientos por usuario, reglas y pruebas en emulador (2026-09-22) |
 | **TM Architect** | `team_management_agent.md` | Arquitecto del módulo `pkg_team_mgmt` — implementación técnica completa + roadmap |
 | **TM Product** | `tm_product_agent.md` | Diseña features del módulo: epics, subtareas, sprints, timer, bug reports |
 | **TM Workflow** | `tm_workflow_agent.md` | Define flujos de estado, automatizaciones, notificaciones y roles del módulo |

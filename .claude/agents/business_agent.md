@@ -111,6 +111,16 @@ Los módulos del sistema PHP en `sistemadeventascompletoOptica/` son la referenc
 - `ESPECIFICACIONES_MODULOS.md` — qué hace cada módulo
 - `GUIA_RAPIDA_DESARROLLO.md` — patrones de código de referencia
 
+## Establecimientos y usuarios (2026-09-22)
+
+- Una empresa tiene matriz y sucursales (`establishments/{código}`), cada una con puntos
+  de emisión y numeración propia. No se borran, se desactivan; la matriz no se desactiva.
+- Cada usuario de empresa puede tener asignados establecimientos
+  (`company-users/{uid}.establishments`): **vacío = todos**, el **admin siempre todos**,
+  asignación **por establecimiento** (no por punto de emisión).
+
+Detalle completo en `establishments_agent.md`.
+
 ## Anti-patrones
 - Calcular IVA sobre subtotal bruto (antes de descuentos)
 - Aceptar RUC/CI sin validar algoritmo SRI

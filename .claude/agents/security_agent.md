@@ -122,6 +122,17 @@ function validarRUC(ruc: string): boolean {
 }
 ```
 
+## Hallazgo del 2026-09-22: la regla por defecto anulaba las propias
+
+En emulador, contra las reglas de producción: un cajero editaba y anulaba facturas
+anuladas, un vendedor cambiaba retenciones autorizadas por el SRI y el kardex, un cajero
+reescribía `configuration/sri`, un vendedor creaba almacenes. Causa: reglas OR y un
+`match /{collection}/{id}` genérico con `canWrite()`. Arreglo: `hasOwnRules()` e
+`isPaymentStatusChange()` (un «solo pago» no puede poner `status: 'void'`). Verificar
+siempre con `test/rules/test.js`, con la operación real.
+
+Detalle completo en `establishments_agent.md`.
+
 ## Anti-patrones
 - Firestore rules con `allow read, write: if true` en cualquier colección
 - Verificar permisos solo en el frontend (cliente puede bypassear)

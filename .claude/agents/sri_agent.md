@@ -217,6 +217,19 @@ interface SriConfig {
 }
 ```
 
+## Establecimientos (2026-09-22)
+
+- Cada comprobante sale con el establecimiento y punto de emisión **de su serie**
+  (`seriesEstablishment` / `seriesEmissionPoint`), resueltos con
+  `resolveEmissionSeries()` de `functions/src/utils/establishments.ts`: los del documento
+  si están los dos, si no los de la empresa. Nunca mezclar uno con otro.
+- `<dirEstablecimiento>` sale de `companies/{cid}/establishments/{código}.address`
+  (`resolveEstablishmentAddress`), con fallback a `configuration/sri`.
+- Numeración independiente por `{estab}_{pto}_{año}`.
+- ⏳ `createAndEmitInvoice` todavía emite con el establecimiento de la empresa.
+
+Detalle completo en `establishments_agent.md`.
+
 ## Anti-patrones
 - Construir XML con concatenación de strings (usar builder o template literal controlado)
 - Hardcodear RUC del emisor (leer siempre de /companies/{id}/sriConfig)
