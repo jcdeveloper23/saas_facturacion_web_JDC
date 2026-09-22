@@ -1,5 +1,6 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
+import { normalizeEstablishmentList } from '../utils/establishments';
 import { Timestamp } from 'firebase-admin/firestore';
 
 // Roles que no pueden asignarse desde esta función.
@@ -19,6 +20,8 @@ interface UpdateCompanyUserData {
   displayName?:  string;
   platformRole?: string;
   isActive?:     boolean;
+  /** Establecimientos a los que tiene acceso. Vacío = todos. */
+  establishments?: string[];
   personaId?:    string;
 }
 
@@ -48,8 +51,17 @@ export const updateCompanyUser = onCall(async (request) => {
   }
 
   // ── Input validation ──────────────────────────────────────────────────────
-  const { uid, companyId, displayName, platformRole, isActive, personaId } =
+  const { uid, companyId, displayName, platformRole, isActive, personaId, establishments } =
     request.data as UpdateCompanyUserData;
+
+  let normalizedEstablishments: string[] | undefined;
+  if (establishments !== undefined) {
+    try {
+      normalizedEstablishments = normalizeEstablishmentList(establishments);
+    } catch (err: any) {
+      throw new HttpsError('invalid-argument', err.message);
+    }
+  }
 
   if (!uid || !companyId) {
     throw new HttpsError('invalid-argument', 'uid y companyId son requeridos.');
@@ -116,6 +128,7 @@ export const updateCompanyUser = onCall(async (request) => {
   if (platformRole !== undefined) firestoreUpdates.platformRole = platformRole;
   if (isActive     !== undefined) firestoreUpdates.isActive     = isActive;
   if (personaId    !== undefined) firestoreUpdates.personaId    = personaId;
+  if (normalizedEstablishments !== undefined) firestoreUpdates.establishments = normalizedEstablishments;
 
   await docRef.update(firestoreUpdates);
   console.log(`[updateCompanyUser] Firestore updated for ${uid}`);

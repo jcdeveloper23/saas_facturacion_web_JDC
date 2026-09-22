@@ -3,6 +3,8 @@
 import * as admin from 'firebase-admin';
 import {
   buildMainEstablishment,
+  canUseEstablishment,
+  normalizeEstablishmentList,
   normalizeSriCode,
   resolveEmissionSeries,
 } from '../utils/establishments';
@@ -56,5 +58,34 @@ describe('buildMainEstablishment', () => {
       code: '001', name: 'Matriz', address: 'Av. Solano', city: 'Cuenca', isMain: true, isActive: true,
       emissionPoints: [{ code: '002', name: 'Principal', isActive: true }],
     });
+  });
+});
+
+
+describe('normalizeEstablishmentList', () => {
+  it('normaliza, quita repetidos y ordena', () => {
+    expect(normalizeEstablishmentList(['2', '001', '002'])).toEqual(['001', '002']);
+  });
+  it('sin lista es vacía, que significa todos', () => {
+    expect(normalizeEstablishmentList(undefined)).toEqual([]);
+    expect(normalizeEstablishmentList([])).toEqual([]);
+  });
+  it('rechaza un código inválido y lo que no es lista', () => {
+    expect(() => normalizeEstablishmentList(['000'])).toThrow(/inválido/);
+    expect(() => normalizeEstablishmentList('001')).toThrow(/lista/);
+  });
+});
+
+describe('canUseEstablishment', () => {
+  it('sin establecimientos asignados, todos', () => {
+    expect(canUseEstablishment([], 'cashier', '002')).toBe(true);
+    expect(canUseEstablishment(undefined, 'seller', '002')).toBe(true);
+  });
+  it('con asignados, solo esos', () => {
+    expect(canUseEstablishment(['002'], 'cashier', '002')).toBe(true);
+    expect(canUseEstablishment(['002'], 'cashier', '001')).toBe(false);
+  });
+  it('el admin, siempre todos', () => {
+    expect(canUseEstablishment(['002'], 'admin', '001')).toBe(true);
   });
 });

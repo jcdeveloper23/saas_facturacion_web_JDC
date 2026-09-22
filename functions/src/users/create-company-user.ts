@@ -3,6 +3,7 @@ import * as admin from 'firebase-admin';
 import { Timestamp } from 'firebase-admin/firestore';
 import { CHANNEL_ADMIN_ROLE, loadCompanyForCaller, readCaller } from '../utils/channels';
 import { ALLOWED_ORIGINS } from '../auth/exchange-token';
+import { normalizeEstablishmentList } from '../utils/establishments';
 
 // Roles del sistema que no se asignan desde esta función.
 // channel_admin está acá para que un canal no pueda fabricarse otro admin de canal.
@@ -39,6 +40,8 @@ interface CreateCompanyUserData {
   companyId:         string;
   personaId?:        string;
   externalIdentity?: ExternalIdentity;
+  /** Establecimientos a los que tiene acceso. Vacío = todos. */
+  establishments?:   string[];
 }
 
 interface CreateCompanyUserResult {
@@ -98,8 +101,15 @@ export const createCompanyUser = onCall(async (request): Promise<CreateCompanyUs
   }
 
   // ── Input validation ──────────────────────────────────────────────────────
-  const { email, password, displayName, platformRole, companyId, personaId, externalIdentity } =
+  const { email, password, displayName, platformRole, companyId, personaId, externalIdentity, establishments } =
     request.data as CreateCompanyUserData;
+
+  let normalizedEstablishments: string[] = [];
+  try {
+    normalizedEstablishments = normalizeEstablishmentList(establishments);
+  } catch (err: any) {
+    throw new HttpsError('invalid-argument', err.message);
+  }
 
   // Con identidad externa no hay contraseña: esa persona entra canjeando el
   // token de su sistema, nunca con correo y clave de este proyecto.
@@ -253,6 +263,7 @@ export const createCompanyUser = onCall(async (request): Promise<CreateCompanyUs
     createdBy: request.auth.uid,
   };
   if (personaId) docData['personaId'] = personaId;
+  if (normalizedEstablishments.length) docData['establishments'] = normalizedEstablishments;
 
   const docRef = db.doc(`companies/${companyId}/company-users/${uid}`);
   // Si se reutiliza, el perfil ya existe: se completa sin pisar su historia.

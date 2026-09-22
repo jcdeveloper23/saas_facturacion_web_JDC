@@ -105,3 +105,34 @@ export function buildMainEstablishment(params: {
     },
   };
 }
+
+/**
+ * Establecimientos a los que tiene acceso un usuario de empresa
+ * (`company-users/{uid}.establishments`), validados y normalizados.
+ *
+ * Vacío significa «todos»: decisión del 2026-09-22 para no dejar sin facturar a
+ * los usuarios que ya existían antes de esta asignación. El admin tiene todos
+ * siempre, con o sin lista. Lanza con el motivo si algún código no sirve.
+ */
+export function normalizeEstablishmentList(value: unknown): string[] {
+  if (value === null || value === undefined) return [];
+  if (!Array.isArray(value)) throw new Error('establishments debe ser una lista de códigos.');
+  const codes = new Set<string>();
+  for (const raw of value) {
+    const code = normalizeSriCode(raw);
+    if (!code) throw new Error(`Código de establecimiento inválido: "${String(raw)}".`);
+    codes.add(code);
+  }
+  return [...codes].sort();
+}
+
+/** Si el usuario puede emitir desde ese establecimiento. */
+export function canUseEstablishment(
+  allowed: readonly string[] | undefined,
+  role: string | undefined,
+  establishment: string,
+): boolean {
+  if (role === 'admin' || role === 'super_admin') return true;
+  if (!allowed || allowed.length === 0) return true;
+  return allowed.includes(establishment);
+}
