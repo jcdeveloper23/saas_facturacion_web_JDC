@@ -78,6 +78,23 @@ Arreglo (2026-09-22, **⏳ en curso: sin commit ni deploy** al escribir esto):
   empareja un nivel). El kardex no rompe pantallas: todo lo que lo escribe también escribe
   `stocks`, que ya era solo del admin.
 
+Ajustes tras la auditoría del uso real en el front (2026-09-22), para no romper pantallas:
+- `retentions` / `debitNotes`: se crean en `draft` **o `issued`** («Emitir» crea emitida) y
+  `companyId` es opcional (si viene, debe ser el del path). Sin esto nadie, ni el admin,
+  podía crearlas al cerrar la regla por defecto.
+- `isPaymentOnlyUpdate` acepta `updatedBy` (el servicio siempre lo agrega): sin él, marcar
+  pagada una compra recibida fallaba.
+- `tm-projects` / `tm-members`: crean y editan admin **y seller** (rutas y `ROLE_MATRIX`).
+- Una factura `void` solo la toca el admin (la regla miraba `'cancelled'`, que la app no
+  usa: un vendedor «des-anulaba»).
+
+Decisiones abiertas de esa auditoría: borrar facturas en borrador (la regla dice nunca; la
+lista tiene botones de fila y masivo); el bar escolar descuenta stock desde el cliente del
+cajero (`stock-movements` es solo admin: mover a una Cloud Function); ocultar en el front
+lo que la regla ya niega (anular para no admin y el `.catch` silencioso de `voidSale` en el
+POS, guardar en `/settings`, familias, almacenes, aprobar partes de horas); el contador no
+está en `canWrite` (no crea compras ni usa `counters`).
+
 ## Pruebas de reglas (emulador)
 
 `test/rules/{lib.js,test.js,README.md}` + `firebase.rules-test.json` (puerto **8181**; el
@@ -89,7 +106,7 @@ firebase emulators:exec -c firebase.rules-test.json --only firestore --project d
 git checkout -- firebase-debug.log   # el CLI lo borra; está versionado
 ```
 
-43 casos: establecimientos, establecimiento por usuario, protecciones que la regla por
+54 casos: establecimientos, establecimiento por usuario, protecciones que la regla por
 defecto anulaba y lecturas. Un channel admin necesita `channels/{id}.status == 'active'`
 sembrado.
 

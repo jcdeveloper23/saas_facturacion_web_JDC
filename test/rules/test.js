@@ -138,5 +138,32 @@ const num = v => ({ doubleValue: v });
   await expectStatus('solo lectura ya NO lee retenciones',
     await req('companies/c1/retentions/autorizada', lector), S.DENIED);
 
+  // ── ajustes de la auditoría del uso real en el front (2026-09-22) ─────────
+  await seed('companies/c1/invoices', 'anulada2', { seriesEstablishment: str('001'), status: str('void'), total: num(10) });
+  await seed('companies/c1/purchases', 'p1', { status: str('received'), isPaid: bool(false), updatedBy: str('adm') });
+  const emitida = { seriesEstablishment: str('001'), status: str('issued') };
+  await expectStatus('el admin emite una retención directo, sin companyId (como el formulario)',
+    await create('companies/c1/retentions', 'r3', admin, emitida), S.OK);
+  await expectStatus('el admin crea una nota de débito en borrador sin companyId',
+    await create('companies/c1/debitNotes', 'd2', admin, { seriesEstablishment: str('001'), status: str('draft') }), S.OK);
+  await expectStatus('una retención con el companyId de otra empresa, no',
+    await create('companies/c1/retentions', 'r4', admin, { ...emitida, companyId: str('c2') }), S.DENIED);
+  await expectStatus('una retención nace en borrador o emitida, no autorizada',
+    await create('companies/c1/retentions', 'r5', admin, { seriesEstablishment: str('001'), status: str('authorized') }), S.DENIED);
+  await expectStatus('seller marca pagada una compra recibida (con updatedBy)',
+    await patch('companies/c1/purchases/p1', seller, { isPaid: bool(true), status: str('paid'), updatedBy: str('libre') }), S.OK);
+  await expectStatus('cajero de la 002 cobra una factura de la 001 con updatedBy',
+    await patch('companies/c1/invoices/a3', caja2, { isPaid: bool(true), status: str('paid'), updatedBy: str('caja2') }), S.OK);
+  await expectStatus('seller crea un proyecto',
+    await create('companies/c1/tm-projects', 'pr1', seller, { name: str('Obra'), status: str('planning') }), S.OK);
+  await expectStatus('cajero NO crea proyectos',
+    await create('companies/c1/tm-projects', 'pr2', cashier, { name: str('Obra'), status: str('planning') }), S.DENIED);
+  await expectStatus('seller crea un miembro del equipo',
+    await create('companies/c1/tm-members', 'mb1', seller, { name: str('Ana') }), S.OK);
+  await expectStatus('seller NO des-anula una factura',
+    await patch('companies/c1/invoices/anulada2', seller, { status: str('issued') }), S.DENIED);
+  await expectStatus('cajero NO cobra una factura anulada',
+    await patch('companies/c1/invoices/anulada2', cashier, { isPaid: bool(true), status: str('paid') }), S.DENIED);
+
   report();
 })();

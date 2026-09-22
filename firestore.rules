@@ -91,7 +91,7 @@ service cloud.firestore {
 
     function isPaymentOnlyUpdate() {
       return request.resource.data.diff(resource.data).affectedKeys()
-        .hasOnly(['status', 'isPaid', 'paidAt', 'paymentBankAccountId', 'paymentEntryId', 'updatedAt']);
+        .hasOnly(['status', 'isPaid', 'paidAt', 'paymentBankAccountId', 'paymentEntryId', 'updatedAt', 'updatedBy']);
     }
 
     // Collections that already have their own dedicated `match` block below
@@ -286,6 +286,9 @@ service cloud.firestore {
         // aceptan al contador, sin darle edición general de la factura.
         allow update: if isAuthenticated() && belongsToCompany(companyId)
                        && resource.data.status != 'cancelled'
+                       // La app anula con 'void'. Sin esto un vendedor o cajero
+                       // «des-anulaba» una factura pasándola a issued o paid.
+                       && (resource.data.get('status', '') != 'void' || isAdmin())
                        && (
                             (isPaymentOnlyUpdate() && (canWrite() || isAccountant())
                              && isPaymentStatusChange())
@@ -367,13 +370,14 @@ service cloud.firestore {
         // READ — any authenticated member of the company with a fiscal role.
         allow read: if canReadFiscalDoc(companyId);
 
-        // CREATE — only from 'draft' status, companyId must match the token,
-        // and the new document's companyId field must equal the path segment.
-        // This prevents a user from crafting a document that claims to belong
-        // to a different company.
+        // CREATE — en borrador o ya emitida («Emitir» del formulario crea con
+        // status 'issued'; onRetentionEmit reacciona igual). Si trae companyId,
+        // tiene que ser el del path: el formulario no lo manda, y exigirlo dejaba
+        // sin poder crear retenciones a nadie en cuanto la regla por defecto
+        // dejó de cubrirlas (auditoría del 2026-09-22).
         allow create: if canCreateFiscalDoc(companyId)
-          && request.resource.data.status == 'draft'
-          && request.resource.data.companyId == companyId
+          && request.resource.data.status in ['draft', 'issued']
+          && request.resource.data.get('companyId', companyId) == companyId
           && canUseEstablishment(companyId, docEstablishment());
 
         // UPDATE — three independent guards must ALL pass:
@@ -407,8 +411,8 @@ service cloud.firestore {
         // CREATE — only in draft status; companyId in the document body must
         // match the path.
         allow create: if canCreateFiscalDoc(companyId)
-          && request.resource.data.status == 'draft'
-          && request.resource.data.companyId == companyId
+          && request.resource.data.status in ['draft', 'issued']
+          && request.resource.data.get('companyId', companyId) == companyId
           && canUseEstablishment(companyId, docEstablishment());
 
         // UPDATE — same three-guard pattern as retentions.
@@ -444,7 +448,9 @@ service cloud.firestore {
 
       match /tm-projects/{id} {
         allow read:          if isAuthenticated() && belongsToCompany(companyId);
-        allow create, update: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
+        // El vendedor crea y edita proyectos: así lo dan las rutas y ROLE_MATRIX.
+        allow create, update: if isAuthenticated() && belongsToCompany(companyId)
+                              && request.auth.token.role in ['admin', 'seller'];
         allow delete:         if isAuthenticated() && belongsToCompany(companyId) && isAdmin()
                               && resource.data.status == 'planning';
       }
@@ -470,7 +476,8 @@ service cloud.firestore {
 
       match /tm-members/{id} {
         allow read:  if isAuthenticated() && belongsToCompany(companyId);
-        allow write: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
+        allow write: if isAuthenticated() && belongsToCompany(companyId)
+                     && request.auth.token.role in ['admin', 'seller'];
       }
 
       // ─── Company Users ────────────────────────────────────────────────────
