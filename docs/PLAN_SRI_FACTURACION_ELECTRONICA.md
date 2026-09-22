@@ -65,8 +65,8 @@
 | P2 | **Tests unitarios** — 27 tests: módulo 11 (7), `calcInvoiceTotals` (10), `resolveTemplate` (10) | 🟠 Media | ✅ Completo |
 | P3 | **`downloadDocument` en UI** — botones XML/PDF en las 3 listas llaman CF para URL fresca de 1h + spinner | 🟠 Media | ✅ Completo |
 | P4 | **`supportDocCodSust`** — selector de tipo de sustento tributario SRI (13 opciones) en formulario de retenciones | 🟠 Media | ✅ Completo |
-| P5 | **Multi-establecimiento** — los 4 generadores de XML ignoraban la serie y usaban siempre `company.sri.establishment`; una sola dirección de establecimiento. Ver §12.4 (2026-09-22) | 🔴 Alta (latente: hoy todas emiten con `001-001`) | ✅ Commiteado (`ac51a1e`, `066effa`) — ⏳ **sin desplegar** |
-| P6 | ⚠️ **Un cajero puede reescribir `configuration/sri`** y un vendedor crear almacenes: `configuration` y `warehouses` dicen «solo admin», pero la regla por defecto `match /{collection}/{id}` las re-abre a `seller`/`cashier` (verificado en emulador, 2026-09-22). Arreglo: agregar `'warehouses'` y `'configuration'` a `isAdminGovernedCollection` | 🔴 Alta | ⏳ **Pendiente de decisión** — no aplicado, cambia colecciones en uso |
+| P5 | **Multi-establecimiento** — los 4 generadores de XML ignoraban la serie y usaban siempre `company.sri.establishment`; una sola dirección de establecimiento. Ver §12.4 (2026-09-22) | 🔴 Alta (latente: hoy todas emiten con `001-001`) | ✅ Commiteado (`ac51a1e`, `066effa`, `fd52160`, `54b63ec`) — ✅ **reglas en producción y matrices sembradas** (2026-09-22) · ⏳ **functions sin desplegar** |
+| P6 | ⚠️ **Un cajero puede reescribir `configuration/sri`** y un vendedor crear almacenes: `configuration` y `warehouses` dicen «solo admin», pero la regla por defecto `match /{collection}/{id}` las re-abre a `seller`/`cashier` (verificado en emulador, 2026-09-22). Arreglo: agregar `'warehouses'` y `'configuration'` a `isAdminGovernedCollection` | 🔴 Alta | ⏳ **Pendiente de decisión** — no aplicado, cambia colecciones en uso. Las reglas del 2026-09-22 **se desplegaron sin este arreglo** |
 
 ---
 
@@ -1066,7 +1066,7 @@ companies/{companyId}/
 | `emailReplyTo` | `string` | Email de respuesta del emisor en emails al cliente | **PENDIENTE** |
 | `emailCcAccounting` | `string` | CC al departamento contable en cada email de comprobante | Futuro |
 
-### 12.4 Secuenciales por punto de emisión y establecimientos — ✅ commiteado (2026-09-22), ⏳ sin desplegar
+### 12.4 Secuenciales por punto de emisión y establecimientos — ✅ commiteado (2026-09-22), reglas y siembra en producción, ⏳ functions sin desplegar
 
 ~~El counter actual usa clave `{seriesCode}_{fiscalYear}`… Cambio necesario: clave del
 counter → `{establecimiento}_{puntoEmision}_{fiscalYear}`~~ → **ya hecho**: el contador
@@ -1082,24 +1082,49 @@ sucursal llegaba al SRI como de la matriz con un secuencial ya usado.
 |---|---|
 | `ac51a1e` | `functions/src/utils/establishments.ts`: `resolveEmissionSeries` (usa `seriesEstablishment`/`seriesEmissionPoint` del comprobante, en pareja; la empresa como respaldo), `resolveEstablishmentAddress` (`<dirEstablecimiento>` desde `establishments/{código}`, respaldo `configuration/sri`), `buildMainEstablishment`. `setupCompany` crea la matriz. Reglas (`isAdminGovernedCollection`). `scripts/seed-establishments.ts` (en seco por defecto, sin clave). 125 pruebas jest |
 | `066effa` | Configuración → Establecimientos (`/settings/establishments`); las series eligen establecimiento y punto de emisión de una lista |
+| `fd52160` | El super admin los administra desde la ficha de la empresa (`/super-admin/companies/:id/establishments`, reusa la pantalla con un `companyId` explícito). Reglas: también el super admin y el admin del canal de la empresa, con el canal activo (`inCallerChannel`); 17 casos en emulador. Ítem `settings_establishments` en `MODULES_SEED` (orden 911.5); el script crea solo ese módulo si falta (`seed-modules.ts` reescribe el catálogo con merge y pisaría los ajustes de la pantalla Módulos) |
+| `fded82a` | Cómo correr el script (sin `ts-node`, ver abajo) |
+| `8fe8f47` | El error de carga dice la causa (permiso denegado o el código) |
+| `54b63ec` | El super admin no podía listar: `collectionData` (rxfire) choca con la instancia de Firestore del proyecto («Expected type '_Query'…»). Ahora `onSnapshot`, como `FirestoreService.getCollection`. **En este proyecto no usar `collectionData`** |
 
 **Modelo:** `companies/{cid}/establishments/{código}` — el id es el código SRI (3 dígitos,
 no `000`). Campos `code, name, address, city, phone, isMain, isActive,
 emissionPoints[{code, name, isActive}]`. No se borran (hay comprobantes con ese código): se
-desactivan. Lee cualquier usuario de la empresa; escribe solo el admin.
+desactivan. Lee cualquier usuario de la empresa; escribe el admin de la empresa, el super
+admin y el admin del canal de la empresa (`fd52160`). El menú de la empresa sale de
+`/modules` en Firestore (no de `_nav.ts`), por eso hace falta `modules/settings_establishments`.
 
-**Despliegue pendiente**, con nombres (nunca deploy general: publicaría `getAuthToken`,
+**Despliegue**, con nombres (nunca deploy general: publicaría `getAuthToken`,
 herramienta de desarrollo sin autenticación, nunca desplegada):
 
+- ✅ `firestore:rules` — desplegadas por el usuario el 2026-09-22 (ruleset activo 16:05 UTC,
+  idéntico al archivo local de 794 líneas).
+- ✅ `seed-establishments --apply` — corrido el 2026-09-22: creó
+  `modules/settings_establishments` y la matriz 001 de «Empresa 001»
+  (`OXxy4Zw3bSZn4ayRxTfF`); LEANDRO LEÓN (`OG4ydEyOAhtsNmkOjc1P`) ya tenía su 001 y no se
+  tocó.
+- ⏳ Las 8 functions:
+
 ```bash
-# desde saas_facturacion_web_JDC/, rama feat/portal-canal
-firebase deploy --only firestore:rules,functions:generateInvoiceXml,functions:generateCreditNoteXml,functions:generateDebitNoteXml,functions:generateRetentionXml,functions:onInvoiceEmit,functions:onRetentionEmit,functions:onDebitNoteEmit,functions:setupCompany
-npx ts-node scripts/seed-establishments.ts            # en seco
-npx ts-node scripts/seed-establishments.ts --apply
+# desde saas_facturacion_web_JDC/, rama feat/portal-canal — PENDIENTE
+firebase deploy --only functions:generateInvoiceXml,functions:generateCreditNoteXml,functions:generateDebitNoteXml,functions:generateRetentionXml,functions:onInvoiceEmit,functions:onRetentionEmit,functions:onDebitNoteEmit,functions:setupCompany
+```
+
+El script (~~`npx ts-node`~~: no hay `ts-node` en el repo), sin claves, con la sesión de
+`gcloud`:
+
+```bash
+# desde saas_facturacion_web_JDC/
+gcloud auth application-default login
+functions/node_modules/.bin/tsc scripts/seed-establishments.ts --outDir /tmp/seed \
+  --rootDir . --module commonjs --target es2020 --esModuleInterop --skipLibCheck
+NODE_PATH=functions/node_modules node /tmp/seed/scripts/seed-establishments.js           # en seco
+NODE_PATH=functions/node_modules node /tmp/seed/scripts/seed-establishments.js --apply   # escribe
 ```
 
 > `createAndEmitInvoice` (emisión por API) sigue usando `company.sri.establishment`:
-> coherente, pero sin sucursales. Bitácora completa:
+> mismo contador y mismo formato de clave que la web —no choca—, pero siempre emite desde
+> la matriz. Bitácora completa:
 > `App_AdminWeb_Conectate/weworkscloud/docs/BITACORA_INTEGRACION.md` (2026-09-22).
 
 ### 12.5 Configuración email por empresa (faltantes en SriCompanyConfig)
