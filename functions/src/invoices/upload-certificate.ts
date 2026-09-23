@@ -1,6 +1,7 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import * as forge from 'node-forge';
+import { clearLegacyPassword, saveCertificatePassword } from '../utils/cert-password';
 
 interface UploadCertificateData {
   companyId: string;
@@ -198,16 +199,29 @@ export const uploadCertificate = onCall(async (request) => {
     throw new HttpsError('internal', 'Error al guardar el certificado en Storage.');
   }
 
+  // ── Guardar la contraseña ──────────────────────────────────────────────────
+  // Va a Secret Manager, no a Firestore: el documento de la empresa lo lee
+  // cualquiera de la empresa y ahí la contraseña quedaba a la vista.
+  try {
+    await saveCertificatePassword(data.companyId, data.password);
+    console.log('[uploadCertificate] Contraseña guardada en Secret Manager.');
+  } catch (err) {
+    console.error('[uploadCertificate] Error guardando la contraseña:', err);
+    throw new HttpsError('internal', 'Error al guardar la contraseña del certificado.');
+  }
+
   // ── Update Firestore ───────────────────────────────────────────────────────
+  // Solo metadatos: ruta, huella, titular y vencimiento.
   try {
     await db.collection('companies').doc(data.companyId).update({
       'sri.certificatePath':       filePath,
       'sri.certificateThumbprint': thumbprint,
       'sri.certificateSubject':    subject,
       'sri.certificateExpiry':     admin.firestore.Timestamp.fromDate(expiryDate),
-      'sri.certificatePassword':   data.password,
       updatedAt: admin.firestore.Timestamp.now(),
     });
+    // Si la empresa venía de antes, se borra la contraseña que quedó en claro.
+    await clearLegacyPassword(data.companyId);
     console.log('[uploadCertificate] Firestore actualizado para companyId:', data.companyId);
   } catch (err) {
     console.error('[uploadCertificate] Error actualizando Firestore:', err);

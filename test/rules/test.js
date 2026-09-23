@@ -7,7 +7,15 @@ const num = v => ({ doubleValue: v });
 
 (async () => {
   // ── datos ────────────────────────────────────────────────────────────────
-  await seed('companies', 'c1', { name: str('Empresa uno'), channelId: str('conecta-app') });
+  await seed('companies', 'c1', {
+    name: str('Empresa uno'),
+    channelId: str('conecta-app'),
+    sri: { mapValue: { fields: {
+      environment: str('testing'),
+      certificatePath: str('companies/c1/certificates/signing.p12'),
+      certificateThumbprint: str('AA:BB'),
+    } } },
+  });
   await seed('channels', 'conecta-app', { status: str('active') });
   await seed('channels', 'mi-buseta', { status: str('active') });
   await seed('companies/c1/establishments', '001', { code: str('001'), name: str('Matriz') });
@@ -178,6 +186,29 @@ const num = v => ({ doubleValue: v });
     await patch('companies/c1/company-users/caja2', caja2, { displayName: str('Caja dos') }), S.OK);
   await expectStatus('el admin asigna puntos de emisión',
     await patch('companies/c1/company-users/vende2', admin, { emissionPoints: list(['001-001', '002-001']) }), S.OK);
+
+  // ── certificado de firma ─────────────────────────────────────────────────
+  // La contraseña ya no vive en Firestore (Secret Manager, 2026-09-23) y los
+  // datos del certificado los escribe solo uploadCertificate.
+  const sriCon = extra => ({ mapValue: { fields: {
+    environment: str('testing'),
+    certificatePath: str('companies/c1/certificates/signing.p12'),
+    certificateThumbprint: str('AA:BB'),
+    ...extra,
+  } } });
+
+  await expectStatus('el admin cambia su configuración SRI',
+    await patch('companies/c1', admin, { sri: sriCon({ environment: str('production') }) }), S.OK);
+  await expectStatus('el admin NO guarda la contraseña del certificado',
+    await patch('companies/c1', admin,
+      { sri: sriCon({ certificatePassword: str('1234') }) }), S.DENIED);
+  await expectStatus('el admin NO cambia la huella del certificado',
+    await patch('companies/c1', admin,
+      { sri: sriCon({ certificateThumbprint: str('CC:DD') }) }), S.DENIED);
+  await expectStatus('el admin NO cambia la ruta del .p12',
+    await patch('companies/c1', admin, { sri: sriCon({ certificatePath: str('otra/ruta.p12') }) }), S.DENIED);
+  await expectStatus('un cajero no toca la configuración de la empresa',
+    await patch('companies/c1', cashier, { sri: sriCon({}) }), S.DENIED);
 
   report();
 })();

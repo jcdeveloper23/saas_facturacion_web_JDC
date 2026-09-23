@@ -29,6 +29,7 @@
 
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
+import { readCertificatePassword } from '../utils/cert-password';
 import { getStorage } from 'firebase-admin/storage';
 
 import { signXmlContent } from '../utils/sign-xml-helper';
@@ -77,13 +78,17 @@ export async function signXmlInternal(
     throw new Error('No se encontró el certificado de firma en Storage. Cargue el certificado .p12 primero.');
   }
 
-  // 4. Read cert password from Firestore (never from request)
+  // 4. La contraseña, de Secret Manager (nunca de la petición).
+  //
+  // El campo viejo de Firestore se pasa como puente: si esta empresa todavía no
+  // tiene secreto, se migra ahí mismo y se borra el campo.
   const companySnap = await db.doc(`companies/${companyId}`).get();
-  const password: string = (companySnap.data() as any)?.sri?.certificatePassword ?? '';
+  const legacy: string | undefined = (companySnap.data() as any)?.sri?.certificatePassword;
+  const password = await readCertificatePassword(companyId, legacy);
   if (!password) {
     throw new Error('No se encontró la contraseña del certificado. Vuelva a subir el certificado .p12 desde la configuración.');
   }
-  console.log('[sign-xml] Contraseña del certificado leída desde Firestore.');
+  console.log('[sign-xml] Contraseña del certificado obtenida.');
 
   // 5. Sign XML using unified helper (parses .p12 and applies XAdES-BES internally)
   let signedXml: string;

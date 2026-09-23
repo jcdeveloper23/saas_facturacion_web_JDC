@@ -1,5 +1,6 @@
 import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import * as admin from 'firebase-admin';
+import { readCertificatePassword } from '../utils/cert-password';
 import { getStorage } from 'firebase-admin/storage';
 import axios from 'axios';
 
@@ -46,11 +47,13 @@ async function signRetentionXml(retentionId: string, companyId: string): Promise
     throw new Error('Certificado .p12 no encontrado en Storage.');
   }
 
-  // Resolve cert password from company sri config (Secret Manager is a future task)
+  // La contraseña del certificado, de Secret Manager. El campo viejo de
+  // Firestore va como puente: si esta empresa aún no tiene secreto, se migra.
   const companySnap = await db.doc(`companies/${companyId}`).get();
-  const certPassword: string = (companySnap.data() as any)?.['sri']?.['certificatePassword'] ?? '';
+  const legacy: string | undefined = (companySnap.data() as any)?.['sri']?.['certificatePassword'];
+  const certPassword = await readCertificatePassword(companyId, legacy);
   if (!certPassword) {
-    console.warn('[on-retention-emit] certificatePassword no configurado en company.sri — se intenta con contraseña vacía.');
+    console.warn('[on-retention-emit] Sin contraseña de certificado — se intenta con vacía.');
   }
 
   // Sign using unified XAdES-BES helper

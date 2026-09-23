@@ -120,6 +120,21 @@ service cloud.firestore {
     // canWrite() (which includes seller/cashier) silently re-grants access
     // that the specific rule above just denied.
 
+    // Los datos del certificado de firma los escribe solo `uploadCertificate`,
+    // que valida el .p12 contra su contraseña y el RUC de la empresa. El admin
+    // edita su configuración SRI —RUC, ambiente, establecimiento— pero no estos
+    // campos, y `certificatePassword` ya no se guarda aquí: vive en Secret
+    // Manager desde el 2026-09-23.
+    function certificateUnchanged() {
+      let antes = resource.data.get('sri', {});
+      let despues = request.resource.data.get('sri', {});
+      return !('certificatePassword' in despues.keys())
+        && despues.get('certificatePath', '') == antes.get('certificatePath', '')
+        && despues.get('certificateThumbprint', '') == antes.get('certificateThumbprint', '')
+        && despues.get('certificateSubject', '') == antes.get('certificateSubject', '')
+        && despues.get('certificateExpiry', '') == antes.get('certificateExpiry', '');
+    }
+
     // Colecciones de la empresa que tienen su propio `match`. La regla por
     // defecto NO debe aplicarles, ni para leer ni para escribir: las reglas se
     // suman, y esa regla —que deja escribir a admin, seller y cashier— anulaba
@@ -210,6 +225,7 @@ service cloud.firestore {
       allow update: if isAuthenticated()
                     && belongsToCompany(companyId)
                     && isAdmin()
+                    && certificateUnchanged()
                     && request.resource.data.diff(resource.data).affectedKeys()
                        .hasOnly([
                          'marketplace', 'sri', 'logoUrl', 'brandColor', 'brandAccentColor',

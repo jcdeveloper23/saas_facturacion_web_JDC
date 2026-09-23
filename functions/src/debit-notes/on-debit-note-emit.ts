@@ -1,5 +1,6 @@
 import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import * as admin from 'firebase-admin';
+import { readCertificatePassword } from '../utils/cert-password';
 import { getStorage } from 'firebase-admin/storage';
 import axios from 'axios';
 
@@ -50,9 +51,13 @@ async function signDebitNoteXml(debitNoteId: string, companyId: string): Promise
 
   // Resolve cert password from company sri config (Secret Manager is a future task)
   const companySnap = await db.doc(`companies/${companyId}`).get();
-  const certPassword: string = (companySnap.data() as any)?.['sri']?.['certPassword'] ?? '';
+  // Ojo: hasta el 2026-09-23 esto leía `sri.certPassword`, un campo que no
+  // existe —el que se guardaba era `certificatePassword`—, así que firmaba
+  // siempre con contraseña vacía. Ahora sale de Secret Manager.
+  const legacy: string | undefined = (companySnap.data() as any)?.['sri']?.['certificatePassword'];
+  const certPassword = await readCertificatePassword(companyId, legacy);
   if (!certPassword) {
-    console.warn('[on-debit-note-emit] certPassword no configurado en company.sri — se intenta con contraseña vacía.');
+    console.warn('[on-debit-note-emit] Sin contraseña de certificado — se intenta con vacía.');
   }
 
   // Sign using unified XAdES-BES helper
