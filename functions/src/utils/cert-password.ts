@@ -82,8 +82,17 @@ export async function readCertificatePassword(
     const value = version.payload?.data?.toString();
     if (value) return value;
   } catch (err) {
-    // No existe todavía: se intenta migrar lo viejo, abajo.
-    console.log('[cert-password] Sin secreto para', companyId, '-', (err as Error).message);
+    const error = err as { code?: number; message?: string };
+    // 5 = NOT_FOUND: esta empresa todavía no tiene secreto, así que se intenta
+    // migrar el valor viejo. Cualquier otro motivo —permisos, API apagada— hay
+    // que decirlo: si no, acaba saliendo «no se encontró la contraseña», que
+    // manda a recargar un certificado que está perfectamente bien.
+    if (error.code !== 5) {
+      throw new Error(
+        `No se pudo leer la contraseña del certificado en Secret Manager: ${error.message}`,
+      );
+    }
+    console.log('[cert-password] Sin secreto para', companyId);
   }
 
   if (!legacyPassword) return '';
