@@ -145,22 +145,42 @@ sembrado.
 `establishments_screen.dart`, `5e55fbde`): el dueño lista y crea los establecimientos de su
 empresa con la sesión federada de FacturaEc (mismas reglas, rol `admin`).
 
+## Estado (2026-09-24)
+
+- ✅ **Probado en pantalla** y **en producción**: desde Conecta se emitió contra el
+  ambiente de pruebas del SRI y quedó **autorizada** (empresa `OG4ydEyOAhtsNmkOjc1P`,
+  facturas `001-001-000000001` y `002`), con su RIDE. Los puntos de emisión por usuario se
+  probaron asignando rol y puntos a un miembro.
+- ✅ **`createAndEmitInvoice` ya respeta el punto de emisión de quien factura** (`2f2b9d0`,
+  rama `feat/facturar-desde-conecta`): acepta `establishment` / `emissionPoint`, y resuelve
+  en orden lo pedido → el punto por defecto del usuario → el primero asignado → el de la
+  empresa, validando siempre con `canUseEmissionPoint`.
+- ✅ **Desplegadas** el 2026-09-24: `onInvoiceEmit`, `onRetentionEmit`, `onDebitNoteEmit`
+  —los generadores de XML viajan dentro de estos triggers, así que con ellas el comprobante
+  ya sale con el establecimiento de su serie—, además de `createAndEmitInvoice`, `sendToSri`,
+  `uploadCertificate`, `signXml`, `portalUpdateCompany` y **las reglas de Firestore**.
+
 ## Pendiente
 
-- **Probar en pantalla** los puntos de emisión (usuarios, factura, retención, nota de débito).
-- **Servidor:** `canUseEmissionPoint` todavía no lo usa ninguna function.
-  `createAndEmitInvoice` emite siempre con el establecimiento de la empresa y
-  `onPosSaleComplete` no valida el establecimiento del usuario (el Admin SDK salta las
-  reglas).
-- **Deploy (lo hace el usuario, siempre con nombres; nunca `--only functions` a secas —
-  publicaría `getAuthToken`):** `generateInvoiceXml, generateCreditNoteXml,
-  generateDebitNoteXml, generateRetentionXml, onInvoiceEmit, onRetentionEmit,
-  onDebitNoteEmit, setupCompany, createCompanyUser, updateCompanyUser`; las reglas nuevas;
-  y el hosting.
+- **Quedan 7 callables con el código anterior**, que no están en el camino de Conecta pero
+  sí en el de la web: `generateInvoiceXml`, `generateCreditNoteXml`, `generateDebitNoteXml`,
+  `generateRetentionXml`, `setupCompany`, `createCompanyUser`, `updateCompanyUser`.
+  Siempre con nombres; nunca `--only functions` a secas, que publicaría `getAuthToken`.
+- **El POS sigue sin validar el punto de emisión del usuario** (`onPosSaleComplete` usa el
+  Admin SDK y se salta las reglas), y arrastra dos fallos propios: la factura que crea el
+  navegador toma la primera serie activa en vez de la de la caja
+  (`pos-sales.service.ts:150`), y la function busca las series en `document-series` mientras
+  la web las guarda en `documentSeries` — esa colección no existe. POS en pausa.
+- Hosting de la web y de Conecta.
 
 ## Anti-patrones
 
-- Emitir con `company.sri.establishment` ignorando la serie del documento.
+- Emitir con `company.sri.establishment` ignorando la serie del documento o el punto de
+  emisión de quien factura.
+- Tratar «CLAVE ACCESO REGISTRADA» como rechazo al reenviar: el SRI ya tiene ese
+  comprobante y casi siempre autorizado; hay que consultar su autorización (`a7d71eb`).
+- Regenerar el código numérico al reintentar: cambiaría la clave de acceso y el SRI
+  acabaría con dos comprobantes distintos para la misma factura.
 - Mezclar establecimiento del documento con punto de emisión de la empresa.
 - Borrar un establecimiento o cambiarle el código.
 - Agregar un `match` propio sin sumarlo a `hasOwnRules`.
