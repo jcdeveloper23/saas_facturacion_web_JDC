@@ -61,6 +61,12 @@ export const onInvoiceStock = onDocumentWritten(
 
     if (!isNewIssuance && !isVoiding) return;
 
+    // Una nota de crédito vive en esta misma colección, y hasta ahora el
+    // disparador no la distinguía: al emitirla volvía a **restar** stock,
+    // cuando una devolución lo devuelve. Con esto, el signo se invierte.
+    const isCreditNote =
+      after['isCreditNote'] === true || after['documentType'] === 'creditNote';
+
     const lines = (after['lines'] ?? []) as Record<string, any>[];
 
     if (lines.length === 0) {
@@ -70,9 +76,10 @@ export const onInvoiceStock = onDocumentWritten(
 
     const db             = admin.firestore();
     const invoiceWarehouse = after['warehouseCode'] as string | undefined;
+    const docLabel       = isCreditNote ? 'NC' : 'Factura';
     const eventLabel     = isNewIssuance ? 'EMISIÓN' : 'ANULACIÓN';
 
-    logger.info(`[onInvoiceStock] Evento ${eventLabel} detectado.`, { companyId, invoiceId });
+    logger.info(`[onInvoiceStock] ${docLabel}: evento ${eventLabel} detectado.`, { companyId, invoiceId });
 
     // ── Resolve default warehouse from company config (outside transaction) ────
     let defaultWarehouseCode: string | undefined;
@@ -158,7 +165,11 @@ export const onInvoiceStock = onDocumentWritten(
           const currentAvailable = Number(stockData?.['available'] ?? 0);
           const warehouseName    = (stockData?.['warehouseName'] as string | undefined) ?? '';
 
-          const delta     = isNewIssuance ? -qty : qty;   // negative = sale, positive = return
+          // Suma cuando la mercancía vuelve: una factura anulada o una nota de
+          // crédito emitida. Resta cuando sale: una factura emitida o una nota
+          // de crédito anulada.
+          const entra     = isCreditNote ? isNewIssuance : !isNewIssuance;
+          const delta     = entra ? qty : -qty;
           const newQty    = currentQty       + delta;
           const newAvail  = currentAvailable + delta;
 
@@ -199,7 +210,7 @@ export const onInvoiceStock = onDocumentWritten(
           // ── Write StockMovement (immutable audit log) ──────────────────────
           const movRef = db.collection(`companies/${companyId}/stock-movements`).doc();
           tx.set(movRef, {
-            type:          isNewIssuance ? 'sale' : 'return_sale',
+            type:          entra ? 'return_sale' : 'sale',
             productId,
             productSku:    product['sku']  ?? '',
             productName:   product['name'] ?? '',

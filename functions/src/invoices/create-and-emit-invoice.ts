@@ -102,6 +102,44 @@ export interface CreateInvoicePayload {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /**
+ * Busca los artículos por su código y devuelve `{ CÓDIGO: idDeFirestore }`.
+ *
+ * Los códigos que no existan en el catálogo simplemente no salen en el mapa:
+ * una línea escrita a mano, sin artículo detrás, es legítima y no debe
+ * impedir que se emita la factura. Va en tandas de diez porque es el máximo
+ * que admite un `where in`.
+ */
+async function resolveProductIds(
+  db: admin.firestore.Firestore,
+  companyId: string,
+  skus: string[],
+): Promise<Record<string, string>> {
+  const buscados = Array.from(new Set(
+    skus.map(s => `${s ?? ''}`.trim().toUpperCase())
+        .filter(s => s.length > 0 && s !== 'SIN-CODIGO'),
+  ));
+  const mapa: Record<string, string> = {};
+  if (buscados.length === 0) return mapa;
+
+  const col = db.collection(`companies/${companyId}/products`);
+  for (let i = 0; i < buscados.length; i += 10) {
+    const tanda = buscados.slice(i, i + 10);
+    try {
+      const snap = await col.where('sku', 'in', tanda).get();
+      for (const doc of snap.docs) {
+        const sku = `${doc.data()['sku'] ?? ''}`.trim().toUpperCase();
+        if (sku && !mapa[sku]) mapa[sku] = doc.id;
+      }
+    } catch (err) {
+      // Que no se pueda mirar el catálogo no puede impedir facturar: se
+      // pierde el movimiento de stock, no la venta.
+      console.error('[createAndEmitInvoice] No se pudieron resolver los códigos:', err);
+    }
+  }
+  return mapa;
+}
+
+/**
  * Con qué establecimiento y punto de emisión se numera esta factura.
  *
  * Orden: lo que pida quien llama, su punto por defecto, y por último el de la
@@ -377,6 +415,13 @@ export const createAndEmitInvoice = onCall(
         }))
       : [{ code: '01', amount: total, deadline: 0, timeUnit: 'dias' }];
 
+    // ── 7 bis. Los códigos, convertidos en artículos ─────────────────────────
+    // Sin `productId` en la línea, `onInvoiceStock` la salta y la venta no
+    // mueve el inventario: quien factura desde fuera manda el código del
+    // artículo, no su identificador de Firestore, así que se resuelve aquí.
+    const productIdBySku = await resolveProductIds(
+      db, companyId, mappedLines.map(l => l.sku));
+
     // ── 8. Transacción atómica: contador + creación del documento ────────────
     const counterRef  = db.doc(`companies/${companyId}/counters/invoices`);
     const invoicesCol = db.collection(`companies/${companyId}/invoices`);
@@ -416,7 +461,7 @@ export const createAndEmitInvoice = onCall(
 
         // ── Líneas ──────────────────────────────────────────────────────────
         lines: mappedLines.map(l => ({
-          productId:   null,
+          productId:   productIdBySku[l.sku.toUpperCase()] ?? null,
           sku:         l.sku,
           productSku:  l.sku,
           description: l.description,
