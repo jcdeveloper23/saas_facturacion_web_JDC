@@ -1,12 +1,14 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import { createSmtpTransporter, getSmtpFrom } from '../utils/smtp-helper';
+import { fetchStorageAttachment, recordEmailResult } from '../utils/email-attachments';
 
 // ─── Internal send function ──────────────────────────────────────────────────
 
 export async function sendCreditNoteEmailInternal(
   creditNoteId: string,
-  companyId: string
+  companyId: string,
+  overrideTo?: string
 ): Promise<{ sent: boolean; to: string }> {
   const db = admin.firestore();
 
@@ -25,7 +27,8 @@ export async function sendCreditNoteEmailInternal(
   }
 
   // ── Resolve customer email (personas first, then invoice snapshot) ──────────
-  let customerEmail: string | undefined = invoice['customerEmail'];
+  let customerEmail: string | undefined =
+    (overrideTo ?? '').trim() || invoice['customerEmail'];
 
   const customerId: string | undefined = invoice['customerId'];
   if (customerId) {
@@ -34,7 +37,7 @@ export async function sendCreditNoteEmailInternal(
       if (personaSnap.exists) {
         const personaData = personaSnap.data() as Record<string, any>;
         const personaEmail: string | undefined = personaData['email'];
-        if (personaEmail) {
+        if (personaEmail && !(overrideTo ?? '').trim()) {
           customerEmail = personaEmail;
           console.log('[sendCreditNoteEmail] Email resuelto desde personas:', personaEmail);
         }
@@ -46,6 +49,10 @@ export async function sendCreditNoteEmailInternal(
 
   if (!customerEmail) {
     console.warn('[sendCreditNoteEmail] Nota de crédito sin email de cliente — omitiendo envío:', creditNoteId);
+    await recordEmailResult(companyId, creditNoteId, {
+      sent: false,
+      error: 'La nota de crédito no tiene correo del cliente.',
+    });
     return { sent: false, to: '' };
   }
 
@@ -130,17 +137,36 @@ export async function sendCreditNoteEmailInternal(
 </body>
 </html>`;
 
+  // ── Adjuntos: el comprobante, no solo su enlace ─────────────────────────────
+  const numeroLimpio = fullNumber.replace(/[^0-9A-Za-z-]/g, '_');
+  const adjuntos = [
+    await fetchStorageAttachment(
+      invoice['pdfUrl'], `NotaCredito_${numeroLimpio}.pdf`, 'application/pdf'),
+    await fetchStorageAttachment(
+      invoice['xmlUrl'], `NotaCredito_${numeroLimpio}.xml`, 'application/xml'),
+  ].filter((a): a is NonNullable<typeof a> => a !== null);
+
   // ── Send email ──────────────────────────────────────────────────────────────
-  const transporter = await createSmtpTransporter();
-  const from        = await getSmtpFrom();
+  try {
+    const transporter = await createSmtpTransporter();
+    const from        = await getSmtpFrom();
 
-  await transporter.sendMail({
-    from,
-    to:      customerEmail,
-    subject: `Nota de Crédito ${fullNumber} — ${companyName}`,
-    html,
-  });
+    await transporter.sendMail({
+      from,
+      to:      customerEmail,
+      subject: `Nota de Crédito ${fullNumber} — ${companyName}`,
+      html,
+      attachments: adjuntos,
+    });
+  } catch (err) {
+    const motivo = err instanceof Error ? err.message : 'Error enviando el correo';
+    await recordEmailResult(companyId, creditNoteId, {
+      sent: false, to: customerEmail, error: motivo,
+    });
+    throw err;
+  }
 
+  await recordEmailResult(companyId, creditNoteId, { sent: true, to: customerEmail });
   console.log('[sendCreditNoteEmail] Email enviado:', { creditNoteId, to: customerEmail });
   return { sent: true, to: customerEmail };
 }
@@ -179,7 +205,9 @@ export const sendCreditNoteEmail = onCall(async (request) => {
     throw new HttpsError('unauthenticated', 'Debe estar autenticado.');
   }
 
-  const { creditNoteId, companyId } = request.data as { creditNoteId: string; companyId: string };
+  const { creditNoteId, companyId, to } = request.data as {
+    creditNoteId: string; companyId: string; to?: string;
+  };
 
   if (!creditNoteId || typeof creditNoteId !== 'string') {
     throw new HttpsError('invalid-argument', 'creditNoteId es requerido.');
@@ -196,7 +224,7 @@ export const sendCreditNoteEmail = onCall(async (request) => {
   }
 
   try {
-    return await sendCreditNoteEmailInternal(creditNoteId, companyId);
+    return await sendCreditNoteEmailInternal(creditNoteId, companyId, to);
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Error enviando email de nota de crédito';
     console.error('[sendCreditNoteEmail] Error:', err);

@@ -1,12 +1,21 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import { createSmtpTransporter, getSmtpFrom } from '../utils/smtp-helper';
+import { fetchStorageAttachment, recordEmailResult } from '../utils/email-attachments';
 
 // ─── Internal send function ─────────────────────────────────────────────────
 
+/**
+ * Manda la factura autorizada al comprador.
+ *
+ * [overrideTo] permite reenviarla a otra dirección sin tocar la factura: el
+ * caso corriente es que el correo estuviera mal escrito, y el comprobante ya
+ * emitido no se edita.
+ */
 export async function sendInvoiceEmailInternal(
   invoiceId: string,
-  companyId: string
+  companyId: string,
+  overrideTo?: string
 ): Promise<{ sent: boolean; to: string }> {
   const db = admin.firestore();
 
@@ -22,9 +31,14 @@ export async function sendInvoiceEmailInternal(
     throw new Error('Solo se pueden enviar emails de facturas autorizadas por el SRI.');
   }
 
-  const customerEmail: string | undefined = invoice['customerEmail'];
+  const customerEmail: string | undefined =
+    (overrideTo ?? '').trim() || invoice['customerEmail'];
   if (!customerEmail) {
     console.warn('[sendInvoiceEmail] Factura sin email de cliente — omitiendo envío:', invoiceId);
+    await recordEmailResult(companyId, invoiceId, {
+      sent: false,
+      error: 'La factura no tiene correo del cliente.',
+    });
     return { sent: false, to: '' };
   }
 
@@ -93,16 +107,39 @@ export async function sendInvoiceEmailInternal(
 </body>
 </html>`;
 
-  // ── Send email ──────────────────────────────────────────────────────────────
-  const transporter = await createSmtpTransporter();
-  const from = await getSmtpFrom();
-  await transporter.sendMail({
-    from,
-    to:      customerEmail,
-    subject: `Factura ${fullNumber} autorizada — ${razonSocial}`,
-    html,
-  });
+  // ── Adjuntos: el comprobante de verdad, no solo su enlace ───────────────────
+  const numeroLimpio = fullNumber.replace(/[^0-9A-Za-z-]/g, '_');
+  const adjuntos = [
+    await fetchStorageAttachment(pdfUrl, `Factura_${numeroLimpio}.pdf`, 'application/pdf'),
+    await fetchStorageAttachment(xmlUrl, `Factura_${numeroLimpio}.xml`, 'application/xml'),
+  ].filter((a): a is NonNullable<typeof a> => a !== null);
 
+  if (adjuntos.length < 2) {
+    console.warn('[sendInvoiceEmail] Falta algún adjunto; se envía con los enlaces:', {
+      invoiceId, adjuntos: adjuntos.length,
+    });
+  }
+
+  // ── Send email ──────────────────────────────────────────────────────────────
+  try {
+    const transporter = await createSmtpTransporter();
+    const from = await getSmtpFrom();
+    await transporter.sendMail({
+      from,
+      to:      customerEmail,
+      subject: `Factura ${fullNumber} autorizada — ${razonSocial}`,
+      html,
+      attachments: adjuntos,
+    });
+  } catch (err) {
+    const motivo = err instanceof Error ? err.message : 'Error enviando el correo';
+    await recordEmailResult(companyId, invoiceId, {
+      sent: false, to: customerEmail, error: motivo,
+    });
+    throw err;
+  }
+
+  await recordEmailResult(companyId, invoiceId, { sent: true, to: customerEmail });
   console.log('[sendInvoiceEmail] Email enviado:', { invoiceId, to: customerEmail });
   return { sent: true, to: customerEmail };
 }
@@ -122,7 +159,9 @@ export const sendInvoiceEmail = onCall(async (request) => {
     throw new HttpsError('unauthenticated', 'Debe estar autenticado.');
   }
 
-  const { invoiceId, companyId } = request.data as { invoiceId: string; companyId: string };
+  const { invoiceId, companyId, to } = request.data as {
+    invoiceId: string; companyId: string; to?: string;
+  };
 
   if (!invoiceId || !companyId) {
     throw new HttpsError('invalid-argument', 'invoiceId y companyId son requeridos.');
@@ -136,7 +175,7 @@ export const sendInvoiceEmail = onCall(async (request) => {
   }
 
   try {
-    return await sendInvoiceEmailInternal(invoiceId, companyId);
+    return await sendInvoiceEmailInternal(invoiceId, companyId, to);
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Error enviando email';
     console.error('[sendInvoiceEmail] Error:', err);
