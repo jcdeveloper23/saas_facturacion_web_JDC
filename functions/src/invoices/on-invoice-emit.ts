@@ -39,22 +39,21 @@ export const onInvoiceEmit = onDocumentWritten(
       : null;
     const after  = event.data.after.data() as Record<string, any>;
 
-    // Trigger when status becomes 'issued' — handles both create-as-issued and draft→issued update
-    const prevStatus            = before?.['status'] ?? null;
-    const statusChangedToIssued = prevStatus !== 'issued' && after['status'] === 'issued';
-    const sriNotYetStarted      = !after['sriStatus'];
-
-    // Reintento: la factura ya estaba emitida y alguien le borró el sriStatus.
-    // Es la forma de reenviar que usan la web y Conecta, y hasta el 2026-09-24
-    // no disparaba nada —el estado seguía siendo 'issued' antes y después—, así
-    // que la factura se quedaba sin estado para siempre.
-    const sriReiniciado = !!before?.['sriStatus'] && sriNotYetStarted && after['status'] === 'issued';
-
-    if ((!statusChangedToIssued && !sriReiniciado) || !sriNotYetStarted) {
-      // Not a new issuance — nothing to do
+    // Una factura emitida y sin estado del SRI hay que procesarla, sin más.
+    //
+    // Antes se exigía que el estado *pasara* a 'issued', y eso dejaba fuera el
+    // reintento —borrar el sriStatus de una que ya estaba emitida—: no pasaba
+    // nada y la factura se quedaba sin estado para siempre. Distinguir «acaba
+    // de emitirse» de «se reintenta» resultó frágil: una que ya estaba en ese
+    // limbo tampoco se recuperaba, porque no había estado que borrar.
+    //
+    // No hay riesgo de repetición: lo primero que hace abajo es marcarla
+    // 'pending', y con eso cualquier escritura posterior ya no entra aquí.
+    if (after['status'] !== 'issued' || after['sriStatus']) {
       return;
     }
-    if (sriReiniciado) {
+    const prevStatus = before?.['status'] ?? null;
+    if (prevStatus === 'issued') {
       console.log('[onInvoiceEmit] Reintento de una factura ya emitida:', event.params);
     }
 
