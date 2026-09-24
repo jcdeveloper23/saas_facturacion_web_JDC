@@ -327,7 +327,22 @@ export async function sendToSriInternal(
   const receptionMessages = parseAllMessages(receptionResponse);
   console.log('[send-to-sri] Estado recepción:', receptionState, '|', receptionMensaje, '| Detalle:', receptionDetalle);
 
-  if (receptionState !== 'RECIBIDA') {
+  // El SRI devuelve «CLAVE ACCESO REGISTRADA» (identificador 43) cuando ya
+  // recibió ese comprobante antes. No es un rechazo: casi siempre significa que
+  // el primer envío llegó y quedó autorizado, y lo que falló fue algo posterior
+  // de nuestro lado. Si eso se tratara como rechazo, el reenvío dejaría la
+  // factura marcada como rechazada aquí y autorizada en el SRI, con números que
+  // no cuadran. Se sigue a consultar la autorización, que trae la original.
+  const claveYaRegistrada = receptionMessages.some(
+    (m) =>
+      m.identificador?.trim() === '43' ||
+      /CLAVE ACCESO REGISTRADA/i.test(`${m.mensaje ?? ''}`),
+  );
+  if (claveYaRegistrada) {
+    console.log('[send-to-sri] El SRI ya tenía esta clave. Se consulta su autorización.');
+  }
+
+  if (receptionState !== 'RECIBIDA' && !claveYaRegistrada) {
     const sriError = receptionDetalle
       ? `${receptionMensaje}: ${receptionDetalle}`
       : receptionMensaje;
