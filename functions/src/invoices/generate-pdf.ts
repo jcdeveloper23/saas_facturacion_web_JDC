@@ -399,10 +399,15 @@ async function buildPdfBuffer(opts: BuildPdfOptions): Promise<Buffer> {
     const idLabel = invoice.customerTaxIdType || 'Cédula/Ruc';
 
     function clientRow(label: string, value: string, x: number, y: number, colW: number): number {
+      // Sin valor no se dibuja la fila: con `continued: true` y un texto vacío,
+      // PDFKit no avanza `doc.y` y la fila siguiente se imprime encima
+      // (se veía «Vendedor» montado sobre «Moneda: USD»).
+      const texto = `${value ?? ''}`.trim();
+      if (!texto) return y;
       doc.font('Helvetica-Bold').fontSize(6.5).fillColor(DARK)
         .text(`${label}: `, x, y, { width: colW, continued: true });
       doc.font('Helvetica').fontSize(6.5).fillColor(DARK)
-        .text(value, { continued: false });
+        .text(texto, { continued: false });
       return doc.y + 2;
     }
 
