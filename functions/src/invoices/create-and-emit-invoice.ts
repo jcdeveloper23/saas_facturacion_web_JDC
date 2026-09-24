@@ -22,6 +22,11 @@
 
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
+import {
+  canUseEmissionPoint,
+  formatEmissionPoint,
+  normalizeEmissionPointKey,
+} from '../utils/establishments';
 
 // ─── Tipos del payload externo ────────────────────────────────────────────────
 
@@ -72,6 +77,14 @@ export interface CreateInvoicePayload {
   source?: string;
   /** Fecha de emisión en formato ISO 8601 (YYYY-MM-DD). Default: hoy. */
   date?: string;
+  /**
+   * Desde qué punto de emisión se numera, como códigos de 3 dígitos. Si no
+   * llegan, se usa el punto por defecto del usuario y, si tampoco tiene, el de
+   * la empresa. Se valida contra `company-users/{uid}.emissionPoints`: un
+   * cajero de la sucursal no puede emitir con la numeración de la matriz.
+   */
+  establishment?: string;
+  emissionPoint?: string;
   customer: ExternalCustomer;
   lines: ExternalInvoiceLine[];
   paymentMethods?: ExternalPaymentMethod[];
@@ -87,6 +100,57 @@ export interface CreateInvoicePayload {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/**
+ * Con qué establecimiento y punto de emisión se numera esta factura.
+ *
+ * Orden: lo que pida quien llama, su punto por defecto, y por último el de la
+ * empresa. Sea cual sea, tiene que estar entre los suyos: un cajero con la
+ * sucursal asignada no puede emitir con la numeración de la matriz, que es lo
+ * que ya imponen las reglas de Firestore al escribir la factura.
+ *
+ * Sin puntos asignados —o siendo admin— puede emitir desde cualquiera, que es
+ * el caso de las empresas de un solo local.
+ */
+async function resolveCallerEmissionPoint(params: {
+  db: admin.firestore.Firestore;
+  companyId: string;
+  uid: string;
+  role?: string;
+  requested: { establishment?: string; emissionPoint?: string };
+  companySri: { establishment?: unknown; emissionPoint?: unknown };
+}): Promise<{ establishment: string; emissionPoint: string }> {
+  const { db, companyId, uid, role, requested, companySri } = params;
+
+  const perfil = await db.doc(`companies/${companyId}/company-users/${uid}`).get();
+  const allowed: string[] = [
+    ...((perfil.data()?.['emissionPoints'] as string[] | undefined) ?? []),
+  ];
+  const porDefecto = `${perfil.data()?.['defaultEmissionPoint'] ?? ''}`;
+
+  const pedido = formatEmissionPoint(requested.establishment, requested.emissionPoint);
+  const elegido =
+    pedido ??
+    normalizeEmissionPointKey(porDefecto) ??
+    (allowed.length ? allowed[0] : null) ??
+    formatEmissionPoint(companySri.establishment, companySri.emissionPoint);
+
+  if (!elegido) {
+    throw new HttpsError(
+      'failed-precondition',
+      'No hay un punto de emisión con el que numerar. Revisa la configuración SRI de la empresa.',
+    );
+  }
+
+  const [establishment, emissionPoint] = elegido.split('-');
+  if (!canUseEmissionPoint(allowed, role, establishment, emissionPoint)) {
+    throw new HttpsError(
+      'permission-denied',
+      `No puedes emitir desde el punto ${elegido}. Pide que te lo asignen.`,
+    );
+  }
+  return { establishment, emissionPoint };
+}
 
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
@@ -276,8 +340,16 @@ export const createAndEmitInvoice = onCall(
       );
     }
 
-    const establishment = String(sri.establishment);
-    const emissionPoint = String(sri.emissionPoint);
+    // ── 4b. Punto de emisión: el que pidan, el suyo por defecto, o el de la
+    // empresa. Siempre validado contra los que tiene asignados.
+    const { establishment, emissionPoint } = await resolveCallerEmissionPoint({
+      db,
+      companyId,
+      uid: request.auth.uid,
+      role: callerRole,
+      requested: { establishment: data.establishment, emissionPoint: data.emissionPoint },
+      companySri: { establishment: sri.establishment, emissionPoint: sri.emissionPoint },
+    });
 
     // ── 5. Calcular totales desde las líneas ─────────────────────────────────
     const { mappedLines, netAmount, vatAmount, total } = calculateLineTotals(data.lines);
