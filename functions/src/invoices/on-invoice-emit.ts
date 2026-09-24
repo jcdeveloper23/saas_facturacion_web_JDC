@@ -44,9 +44,18 @@ export const onInvoiceEmit = onDocumentWritten(
     const statusChangedToIssued = prevStatus !== 'issued' && after['status'] === 'issued';
     const sriNotYetStarted      = !after['sriStatus'];
 
-    if (!statusChangedToIssued || !sriNotYetStarted) {
+    // Reintento: la factura ya estaba emitida y alguien le borró el sriStatus.
+    // Es la forma de reenviar que usan la web y Conecta, y hasta el 2026-09-24
+    // no disparaba nada —el estado seguía siendo 'issued' antes y después—, así
+    // que la factura se quedaba sin estado para siempre.
+    const sriReiniciado = !!before?.['sriStatus'] && sriNotYetStarted && after['status'] === 'issued';
+
+    if ((!statusChangedToIssued && !sriReiniciado) || !sriNotYetStarted) {
       // Not a new issuance — nothing to do
       return;
+    }
+    if (sriReiniciado) {
+      console.log('[onInvoiceEmit] Reintento de una factura ya emitida:', event.params);
     }
 
     const { companyId, invoiceId } = event.params;
