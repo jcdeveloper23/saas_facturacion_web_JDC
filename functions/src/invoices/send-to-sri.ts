@@ -254,8 +254,15 @@ export async function sendToSriInternal(
   // 2. Read Company to get environment
   const companySnap = await db.doc(`companies/${companyId}`).get();
   if (!companySnap.exists) throw new Error(`Empresa no encontrada: ${companyId}`);
+  // Solo 'production' manda al SRI de verdad. Todo lo demás es pruebas, y eso
+  // incluye los valores viejos: hay empresas dadas de alta con '1', el código
+  // del SRI, y con ese valor `SRI_DEFAULTS[environment]` quedaba en undefined y
+  // el envío moría con un error que no decía nada (visto el 2026-09-24).
   const environment: 'testing' | 'production' =
-    (companySnap.data() as Record<string, any>)['sri']?.['environment'] ?? 'testing';
+    `${(companySnap.data() as Record<string, any>)['sri']?.['environment'] ?? ''}` ===
+    'production'
+      ? 'production'
+      : 'testing';
 
   // 3. Read platform SRI config for endpoints
   const platformConfigSnap = await db.doc('platform/defaults/sriConfig/data').get();
