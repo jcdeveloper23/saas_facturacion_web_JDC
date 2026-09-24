@@ -139,6 +139,86 @@ export const portalSetCompanyStatus = onCall(async (request) => {
 });
 
 /**
+ * Edita los datos de una empresa del canal.
+ *
+ * Payload: `{ companyId, company: { name?, fiscalAddress?, city?, phone?, email?,
+ * sri?: { environment?, establishment?, emissionPoint?, contributorType?,
+ * accountingRequired?, regimen? } } }`
+ *
+ * Dos cosas que **no** se pueden hacer aquí, a propósito:
+ * - **Cambiar el RUC.** El certificado de firma se validó contra él y los
+ *   comprobantes emitidos lo llevan impreso; cambiarlo deja la empresa sin
+ *   poder firmar y con un historial que no cuadra.
+ * - **Pasar a producción sin certificado vigente.** Ahí las facturas salen al
+ *   SRI de verdad: sin firma válida, todas se rechazan.
+ */
+export const portalUpdateCompany = onCall(async (request) => {
+  const db = admin.firestore();
+  const caller = await requirePortalCaller(db, request);
+  const companyId = requireString(request.data?.companyId, 'companyId');
+  const cambios = (request.data?.company ?? {}) as Record<string, any>;
+
+  const actual = await loadCompanyForCaller(db, caller, companyId);
+  const sriActual = (actual['sri'] ?? {}) as Record<string, any>;
+  const sriNuevo = (cambios['sri'] ?? {}) as Record<string, any>;
+
+  if (cambios['taxId'] && `${cambios['taxId']}` !== `${actual['taxId'] ?? ''}`) {
+    throw new HttpsError(
+      'failed-precondition',
+      'El RUC no se cambia: el certificado de firma se validó contra él y los comprobantes emitidos lo llevan impreso.',
+    );
+  }
+
+  const ambiente = sriNuevo['environment'];
+  if (ambiente !== undefined && ambiente !== 'testing' && ambiente !== 'production') {
+    throw new HttpsError('invalid-argument', "environment debe ser 'testing' o 'production'.");
+  }
+  if (ambiente === 'production' && sriActual['environment'] !== 'production') {
+    const vence = sriActual['certificateExpiry'];
+    const vencimiento = vence?.toDate ? vence.toDate() : null;
+    if (!sriActual['certificateThumbprint']) {
+      throw new HttpsError(
+        'failed-precondition',
+        'Esa empresa todavía no tiene cargado su certificado de firma: en producción el SRI rechazaría todas sus facturas.',
+      );
+    }
+    if (vencimiento && vencimiento.getTime() < Date.now()) {
+      throw new HttpsError(
+        'failed-precondition',
+        'El certificado de firma de esa empresa está vencido. Pide que lo renueve antes de pasar a producción.',
+      );
+    }
+  }
+
+  // Solo estos campos; lo demás —plan, paquetes, módulos, estado— tiene su
+  // propia operación y se calcula en el servidor.
+  const permitidos = ['name', 'fiscalAddress', 'city', 'phone', 'email'];
+  const permitidosSri = [
+    'environment', 'establishment', 'emissionPoint', 'contributorType',
+    'accountingRequired', 'regimen', 'businessName', 'tradeName',
+  ];
+
+  const update: Record<string, any> = { updatedAt: Timestamp.now(), updatedBy: caller.uid };
+  for (const campo of permitidos) {
+    if (cambios[campo] !== undefined) update[campo] = cambios[campo];
+  }
+  for (const campo of permitidosSri) {
+    if (sriNuevo[campo] !== undefined) update[`sri.${campo}`] = sriNuevo[campo];
+  }
+  if (Object.keys(update).length === 2) {
+    throw new HttpsError('invalid-argument', 'No llegó ningún campo que se pueda editar.');
+  }
+
+  await db.doc(`companies/${companyId}`).update(update);
+  console.log('[portalUpdateCompany]', {
+    companyId,
+    by: caller.uid,
+    campos: Object.keys(update).filter((k) => k !== 'updatedAt' && k !== 'updatedBy'),
+  });
+  return { success: true, companyId };
+});
+
+/**
  * Activa o retira un paquete add-on (fuera del plan) en una empresa.
  *
  * Payload: { companyId, packageCode, action: 'activate' | 'deactivate', agreedPrice?, notes? }
