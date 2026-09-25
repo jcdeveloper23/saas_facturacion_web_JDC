@@ -854,9 +854,20 @@ service cloud.firestore {
       allow write: if isSuperAdmin();
     }
 
+    // ⚠️ La contraseña del correo saliente vive en smtpConfig, en claro. Con la
+    // regla general —leer todo lo de defaults con solo estar autenticado—
+    // cualquier usuario de cualquier empresa podía leerla: un cajero, o un
+    // miembro de un grupo de Conecta conectado por identidad federada. Es el
+    // mismo fallo que tenía la contraseña del certificado. Las reglas **se
+    // suman**, así que no basta con añadir una regla estricta abajo: hay que
+    // excluir smtpConfig de la general.
     match /platform/defaults/{subCollection}/{docId} {
-      allow read: if isAuthenticated();
+      allow read: if isAuthenticated() && subCollection != 'smtpConfig';
       allow write: if isSuperAdmin();
+    }
+
+    match /platform/defaults/smtpConfig/{docId} {
+      allow read, write: if isSuperAdmin();
     }
 
     // ─── Multi-empresa — empresas vinculadas a una cuenta ─────────────────────

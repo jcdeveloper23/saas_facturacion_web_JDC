@@ -210,5 +210,28 @@ const num = v => ({ doubleValue: v });
   await expectStatus('un cajero no toca la configuración de la empresa',
     await patch('companies/c1', cashier, { sri: sriCon({}) }), S.DENIED);
 
+  // ── la contraseña del correo saliente ────────────────────────────────────
+  // Vive en claro en platform/defaults/smtpConfig/data. La regla general de
+  // `defaults` dejaba leerla a cualquiera con sesión iniciada: un cajero, o un
+  // miembro de un grupo de Conecta. Las reglas se suman, así que la exclusión
+  // tiene que estar en la general, no solo en una regla estricta aparte.
+  await seed('platform/defaults/smtpConfig', 'data', {
+    host: str('smtp.gmail.com'), user: str('correo@empresa.com'), pass: str('secreto'),
+  });
+  await seed('platform/defaults/taxRates', 'iva15', { code: str('VAT15'), rate: num(15) });
+
+  await expectStatus('el super admin lee la config SMTP',
+    await req('platform/defaults/smtpConfig/data', superAdm), S.OK);
+  await expectStatus('un cajero NO lee la contraseña del correo',
+    await req('platform/defaults/smtpConfig/data', cashier), S.DENIED);
+  await expectStatus('un admin de empresa NO lee la contraseña del correo',
+    await req('platform/defaults/smtpConfig/data', admin), S.DENIED);
+  await expectStatus('el administrador del canal NO lee la contraseña del correo',
+    await req('platform/defaults/smtpConfig/data', canal), S.DENIED);
+  await expectStatus('un cajero NO la reescribe',
+    await patch('platform/defaults/smtpConfig/data', cashier, { pass: str('otro') }), S.DENIED);
+  await expectStatus('lo demás de defaults se sigue leyendo',
+    await req('platform/defaults/taxRates/iva15', cashier), S.OK);
+
   report();
 })();
