@@ -49,7 +49,7 @@ Por eso esta tarea **absorbe y reemplaza** la tarea 0.1 del plan de Conectate y 
 de Buseta, que hablaban de un rol `integration` sin canal. Va **antes** de la Fase 1.a
 (`provisionCompany`) y antes de desplegar cualquiera de los dos gateways.
 
-## Estado al 2026-09-21
+## Estado al ~~2026-09-21~~ → ~~2026-09-24~~ → **2026-09-25** (solo se pusieron al día las filas marcadas)
 
 **Ramas (sin push):** `feat/canales-multimarca` y, encima, `feat/portal-canal`
 (commits `351d03b` portal y `92ee185` `portalWhoAmI`). Panel: `feat/gateway-canal-conectate` y, encima,
@@ -66,6 +66,10 @@ Bitácora con los comandos exactos: `App_AdminWeb_Conectate/weworkscloud/docs/BI
 | `manageChannelAdmin`, `setupCompany`, `assignPlanToCompany`, `checkPlanLimit`, `createCompanyUser`, `setUserCustomClaims` | ✅ **desplegadas** |
 | Canal `conecta-app` («Conecta», `status: active`, 2 admins) y su admin | ✅ creados desde la pantalla (localhost contra producción). El id del documento es `conecta-app`; «Conecta» es el nombre |
 | Portal de canal: `portalListCompanies`, `portalGetCompany`, `portalSetCompanyStatus`, `portalSetAddon`, `portalListPlans`, `portalUpsertPlan`, `portalListPackages` (`functions/src/channel-portal/`) | ✅ **desplegadas el 2026-09-17** (rama `feat/portal-canal`, 7 creadas) |
+| **`portalUpdateCompany`** (`852aa68`, `functions/src/channel-portal/portal-callables.ts`): razón social, ciudad, teléfono, correo y el bloque SRI **incluido el ambiente**. **No** deja cambiar el RUC (el certificado se validó contra él) ni pasar a producción sin certificado vigente | ✅ **desplegada el 2026-09-24** y en la lista blanca del gateway; del lado del panel, «Editar datos y ambiente» en Contabilidad → Empresas (`e6cdeb2`, ⏳ hosting sin desplegar) |
+| **`portalGetSmtp` / `portalSaveSmtp`** (`0d7eca6`, `functions/src/channel-portal/portal-callables.ts`): el **correo saliente del canal**, en `channels/{id}.smtp`, con la contraseña en Secret Manager (`facturaec-smtp-channel-{channelId}`). Un `channel_admin` administra **su** canal; el `super_admin`, el que indique | ✅ **desplegadas el 2026-09-25** (verificado con `functions:list`) y en la lista blanca del gateway; del lado del panel, la pestaña **«Correo»** de Contabilidad (`1308fdb`, ⏳ hosting sin desplegar) |
+| **Correo saliente por niveles** (`2acd6f6` + `0d7eca6`): **empresa → canal → plataforma → variables de entorno**. Por empresa, `companies/{cid}/configuration/smtp` con `saveCompanySmtp` y secreto `facturaec-smtp-{companyId}` | ✅ **desplegado y probado de punta a punta el 2026-09-25**: la factura llegó al comprador con RIDE y XML adjuntos. El `From` lleva la **razón social de la empresa emisora** y el `Reply-To`, su correo |
+| **Reglas del SMTP** (`50d940b` + `2acd6f6`): `platform/defaults/smtpConfig/data` —usuario y contraseña **en claro**— lo leía **cualquiera con sesión iniciada**; y `companies/{cid}/configuration/smtp` se cierra a lectura del admin y escritura solo por callable | ✅ **producción (2026-09-25)** — pruebas de reglas ~~65~~ → ~~71~~ → **75**. ⏳ **Pendiente**: mover la contraseña del SMTP **de plataforma** a Secret Manager |
 | Fix de módulos en `assignPlanToCompany` y `onPlanUpdated` (leían `includedModules`) | ✅ **desplegadas el 2026-09-17** (2 actualizadas) |
 | `portalWhoAmI` (solo lectura: uid, correo, rol, canal y estado del canal del llamador, sin exigir canal activo) | ✅ **desplegada el 2026-09-17** (rama `feat/portal-canal`, commit `92ee185`, 1 creada); en la lista blanca del gateway |
 | IAM: `facturaec-gateway@work-cloud-df68a.iam.gserviceaccount.com` con «Consumidor de Service Usage» en este proyecto | ✅ otorgado el 2026-09-17, **en este proyecto** (el primer intento quedó en `work-cloud-df68a`). Va en IAM, no en la página de Cuentas de servicio, y el correo hay que pegarlo: no aparece en el autocompletado por ser de otro proyecto |
@@ -76,8 +80,8 @@ Bitácora con los comandos exactos: `App_AdminWeb_Conectate/weworkscloud/docs/BI
 | `platformRole: super_admin` en Conecta para `juandiegocontrerass@gmail.com` | ✅ asignado el 2026-09-17 |
 | Sección «Contabilidad» del panel Flutter (consume el portal por el gateway) | ⏳ código listo, hosting de Conecta sin desplegar |
 | Prueba de punta a punta Flutter → gateway → portal | ✅ **pasa el 2026-09-17**: «Contabilidad» lista el catálogo real de paquetes y cargan Empresas y Planes. Semáforo en 🟡 por un solo motivo correcto: el canal aún no tiene planes. Hasta correr `migrate:channels`, las empresas actuales no tienen canal y el portal no las muestra |
-| Planes del canal `conecta-app` | 🚧 **bloqueante (2026-09-21)** — catálogo vacío; falta crear el primero (propuesto botón «Copiar planes base»). Ya no deja solo el semáforo en 🟡: desde el 2026-09-21 el dueño de un grupo de Conecta puede pedir la activación, y **sin plan `setupCompany` no tiene qué asignar, así que cualquier activación falla** |
-| Activación desde el grupo de Conecta (`requestAccountingActivation`, `approveAccountingRequest`, `rejectAccountingRequest` en `work-cloud-df68a`) | ✅ **desplegadas el 2026-09-21**, del lado de Conecta. Entran a FacturaEc como el canal `conecta-app` y **siempre** en ambiente de pruebas del SRI (`sri.environment = '1'`). Sin probar con un grupo real: espera el primer plan del canal |
+| Planes del canal `conecta-app` | ~~🚧 **bloqueante (2026-09-21)** — catálogo vacío~~ → ✅ **resuelto el 2026-09-21**: plan `PLAN RULES` (`uxWWWDtABz0p0qwOLoJs`, $10, `pkg_base`) creado desde Contabilidad → Planes y fijado como `platform/accounting.defaultPlanId`, con la aprobación automática **apagada**. Con él se dio de alta la primera empresa (`OG4ydEyOAhtsNmkOjc1P`), que **ya facturó al SRI en pruebas** (2026-09-24) |
+| Activación desde el grupo de Conecta (`requestAccountingActivation`, `approveAccountingRequest`, `rejectAccountingRequest` en `work-cloud-df68a`) | ✅ **desplegadas el 2026-09-21**, del lado de Conecta. Entran a FacturaEc como el canal `conecta-app` y **siempre** en ambiente de pruebas del SRI. ~~Sin probar con un grupo real~~ → ✅ **probada de punta a punta el 2026-09-21** (aprobación manual; automática y rechazo siguen sin probar). ⚠️ Producción todavía manda ~~`sri.environment = '1'`~~, que FacturaEc **no reconoce**: lo correcto es `'testing'` (corregido en Conecta con `9c0a49c`, ⏳ **sin desplegar**). Desde `2555d12` (producción 2026-09-24) un ambiente desconocido se trata como **pruebas** en vez de romper el envío |
 
 > **Nada nuevo que desplegar de este lado (2026-09-21).** Lo del 2026-09-21 fue todo en
 > Conecta (`work-cloud-df68a`): tres callables y una regla de Firestore. Lo que falta aquí
@@ -106,8 +110,18 @@ Deuda detectada, fuera de este trabajo:
   contactEmail: string;
   createdAt: Timestamp;
   createdBy: string;         // uid del super admin de plataforma
+  smtp?: { … };              // 2026-09-25: correo saliente del canal.
+                             // La CONTRASEÑA no va aquí: Secret Manager,
+                             // `facturaec-smtp-channel-{channelId}`
 }
 ```
+
+> **El canal también es un remitente de correo (2026-09-25).** Si la empresa no configuró
+> el suyo (`companies/{cid}/configuration/smtp`), sus comprobantes salen por el correo del
+> canal y, si tampoco lo hay, por el de la plataforma. Se administra con
+> `portalGetSmtp` / `portalSaveSmtp` desde la pestaña «Correo» del panel de Conecta.
+> El `From` muestra la **razón social de la empresa emisora** y el `Reply-To`, su correo:
+> el comprador no debe recibir una factura de un remitente que no reconoce.
 
 **Solo el super admin de plataforma crea canales.** Son pocos, casi no cambian, y un canal
 que se pueda crear a sí mismo es una forma de escaparse de los límites. No hay sub-canales
