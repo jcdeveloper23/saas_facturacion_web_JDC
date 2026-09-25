@@ -1,6 +1,6 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
-import { createSmtpTransporter, getSmtpFrom } from '../utils/smtp-helper';
+import { createSmtpTransporter, resolveSender } from '../utils/smtp-helper';
 import { fetchStorageAttachment, recordEmailResult } from '../utils/email-attachments';
 
 // ─── Internal send function ──────────────────────────────────────────────────
@@ -149,10 +149,13 @@ export async function sendCreditNoteEmailInternal(
   // ── Send email ──────────────────────────────────────────────────────────────
   try {
     const transporter = await createSmtpTransporter(companyId);
-    const from        = await getSmtpFrom(companyId);
+    const remitente   = await resolveSender(companyId, {
+      razonSocial: companyName,
+      replyTo: company?.['email'],
+    });
 
     await transporter.sendMail({
-      from,
+      ...remitente,
       to:      customerEmail,
       subject: `Nota de Crédito ${fullNumber} — ${companyName}`,
       html,

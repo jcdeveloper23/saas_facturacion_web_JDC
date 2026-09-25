@@ -1,6 +1,6 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
-import { createSmtpTransporter, getSmtpFrom } from '../utils/smtp-helper';
+import { createSmtpTransporter, resolveSender } from '../utils/smtp-helper';
 
 // ─── Internal logic ───────────────────────────────────────────────────────────
 
@@ -139,9 +139,12 @@ export async function sendDebitNoteEmailInternal(
 
   // 5. Send
   const transporter = await createSmtpTransporter(companyId);
-  const from = await getSmtpFrom(companyId);
+  const remitente = await resolveSender(companyId, {
+    razonSocial,
+    replyTo: companyData?.['email'],
+  });
   await transporter.sendMail({
-    from,
+    ...remitente,
     to:      customerEmail,
     subject: `Nota de Débito ${fullNumber} autorizada — ${razonSocial}`,
     html,

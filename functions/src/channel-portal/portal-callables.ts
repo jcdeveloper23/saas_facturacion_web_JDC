@@ -2,6 +2,12 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import { Timestamp, type Firestore } from 'firebase-admin/firestore';
 import {
+  createChannelSmtpTransporter,
+  invalidateSmtpCache,
+  saveChannelSmtpPassword,
+  verifySmtpConfig,
+} from '../utils/smtp-helper';
+import {
   Caller,
   assertCallerChannelActive,
   assertChannelAccess,
@@ -410,3 +416,140 @@ export const portalListPackages = onCall(async (request) => {
     .sort((a, b) => Number(a['order']) - Number(b['order']));
   return { packages };
 });
+
+// ─── Correo del canal ────────────────────────────────────────────────────────
+//
+// El correo con el que salen los comprobantes de las empresas del canal que no
+// hayan puesto el suyo. Es cosa del proveedor —quien trae los clientes— y no
+// del cliente: por eso lo toca el administrador del canal, desde su panel, y
+// no se toca desde la ficha de una empresa.
+//
+// La cadena completa al enviar es: correo de la empresa → correo del canal →
+// correo de la plataforma → variables de entorno.
+//
+// La contraseña nunca vuelve al navegador ni se guarda en Firestore: vive en
+// Secret Manager, como la del certificado.
+
+/** Lo que hay configurado hoy, sin la contraseña. */
+export const portalGetSmtp = onCall(async (request) => {
+  const caller = readCaller(request);
+  const channelId = resolveChannelId(caller, request.data);
+
+  const snap = await admin.firestore().doc(`channels/${channelId}`).get();
+  const smtp = (snap.data()?.['smtp'] ?? null) as Record<string, unknown> | null;
+
+  return {
+    channelId,
+    configured: !!smtp,
+    smtp: smtp
+      ? {
+          host: smtp['host'] ?? '',
+          port: smtp['port'] ?? 587,
+          secure: smtp['secure'] ?? false,
+          user: smtp['user'] ?? '',
+          from: smtp['from'] ?? '',
+          isActive: smtp['isActive'] !== false,
+        }
+      : null,
+  };
+});
+
+/** Guarda el correo del canal y, si se pide, manda una prueba. */
+export const portalSaveSmtp = onCall(async (request) => {
+  const caller = readCaller(request);
+  const data = (request.data ?? {}) as Record<string, any>;
+  const channelId = resolveChannelId(caller, data);
+
+  const host = `${data['host'] ?? ''}`.trim();
+  const user = `${data['user'] ?? ''}`.trim();
+  const port = Number(data['port']) || 587;
+  const password = `${data['password'] ?? ''}`;
+  const from = `${data['from'] ?? ''}`.trim() || user;
+  const isActive = data['isActive'] !== false;
+  const testTo = `${data['testTo'] ?? ''}`.trim();
+
+  if (!host) throw new HttpsError('invalid-argument', 'Falta el servidor de correo.');
+  if (!user) throw new HttpsError('invalid-argument', 'Falta el usuario del correo.');
+  if (port < 1 || port > 65535) {
+    throw new HttpsError('invalid-argument', 'Ese puerto no es válido.');
+  }
+
+  // El 465 va cifrado desde el principio; el 587 empieza en claro y sube a TLS.
+  const secure = data['secure'] ?? port === 465;
+
+  const ref = admin.firestore().doc(`channels/${channelId}`);
+  const yaExiste = !!(await ref.get()).data()?.['smtp'];
+  if (!password && !yaExiste) {
+    throw new HttpsError('invalid-argument', 'Falta la contraseña del correo.');
+  }
+
+  if (password) {
+    try {
+      await verifySmtpConfig({ host, port, secure, user, pass: password, from, isActive: true });
+    } catch (err) {
+      const motivo = err instanceof Error ? err.message : `${err}`;
+      throw new HttpsError('failed-precondition',
+        `El servidor de correo rechazó los datos: ${motivo}`);
+    }
+    await saveChannelSmtpPassword(channelId, password);
+  }
+
+  await ref.set({
+    smtp: {
+      host, port, secure, user, from, isActive,
+      updatedAt: Timestamp.now(),
+      updatedBy: caller.uid,
+    },
+  }, { merge: true });
+
+  invalidateSmtpCache();
+
+  if (testTo) {
+    try {
+      const transporter = await createChannelSmtpTransporter(channelId);
+      if (!transporter) {
+        throw new Error('No se pudo abrir la conexión con el servidor de correo.');
+      }
+      await transporter.sendMail({
+        from,
+        to: testTo,
+        subject: 'Prueba de correo — facturación electrónica',
+        html: `<p>Este es un correo de prueba del canal <strong>${channelId}</strong>.</p>
+<p>Si te ha llegado, los comprobantes de las empresas que no tengan su propio
+correo van a salir desde <strong>${from}</strong>.</p>`,
+      });
+      return { saved: true, tested: true, to: testTo };
+    } catch (err) {
+      const motivo = err instanceof Error ? err.message : `${err}`;
+      throw new HttpsError('failed-precondition',
+        `Se guardó la configuración, pero el correo de prueba no salió: ${motivo}`);
+    }
+  }
+
+  return { saved: true, tested: false };
+});
+
+/**
+ * Sobre qué canal se opera.
+ *
+ * El administrador de canal solo toca el suyo, venga lo que venga en la
+ * llamada; el super admin de la plataforma puede decir cuál.
+ */
+function resolveChannelId(caller: Caller, data: unknown): string {
+  const pedido = `${(data as Record<string, unknown>)?.['channelId'] ?? ''}`.trim();
+
+  if (isChannelAdmin(caller)) {
+    if (!caller.channelId) {
+      throw new HttpsError('failed-precondition', 'Su usuario no tiene canal asignado.');
+    }
+    return caller.channelId;
+  }
+  if (isSuperAdmin(caller)) {
+    if (!pedido || !isValidChannelId(pedido)) {
+      throw new HttpsError('invalid-argument', 'Indique un canal válido.');
+    }
+    return pedido;
+  }
+  throw new HttpsError('permission-denied',
+    'Solo administradores de plataforma o de canal.');
+}
