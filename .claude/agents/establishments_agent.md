@@ -81,7 +81,7 @@ producción: un cajero editaba facturas anuladas y las anulaba, un vendedor camb
 retenciones autorizadas por el SRI y el kardex, un cajero reescribía `configuration/sri`, un
 vendedor creaba almacenes, y el control por establecimiento no servía.
 
-Arreglo (2026-09-22, rama `feat/establishments`, `b25e8fa` + `016f1ad`; **⏳ sin desplegar**):
+Arreglo (2026-09-22, rama `feat/establishments`, `b25e8fa` + `016f1ad`; ~~⏳ sin desplegar~~ → ✅ **producción desde el 2026-09-24**):
 - `hasOwnRules(collection)`: lista de toda colección con `match` propio; la regla por
   defecto no les aplica **ni para leer ni para escribir**. **Toda colección nueva con
   `match` propio va en esa lista**, si no, la regla por defecto la re-abre.
@@ -159,6 +159,16 @@ empresa con la sesión federada de FacturaEc (mismas reglas, rol `admin`).
   —los generadores de XML viajan dentro de estos triggers, así que con ellas el comprobante
   ya sale con el establecimiento de su serie—, además de `createAndEmitInvoice`, `sendToSri`,
   `uploadCertificate`, `signXml`, `portalUpdateCompany` y **las reglas de Firestore**.
+
+> ⛔ **Regla que se aprendió a la mala el 2026-09-25:** dentro de `onInvoiceEmit` no viajan
+> solo los generadores de XML — también la firma, el envío al SRI, el RIDE y **el envío del
+> correo** (`sendInvoiceEmailInternal`, `on-invoice-emit.ts:10,257`). **Al tocar cualquiera
+> de esas piezas hay que redesplegar TAMBIÉN `onInvoiceEmit`**, aunque su archivo no haya
+> cambiado: se despliega el bundle, no el archivo. Ese día el deploy de las 21:24 UTC la
+> dejó fuera y el correo automático siguió con código viejo. Se ve comparando
+> `gcloud functions describe <fn> --project accounting-system-a5c9f --region us-central1
+> --format="value(updateTime)"` entre dos functions; `functions:list` **no** dice cuándo se
+> actualizó cada una.
 
 ## Pendiente
 

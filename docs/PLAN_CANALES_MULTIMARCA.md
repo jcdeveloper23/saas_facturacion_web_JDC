@@ -122,6 +122,23 @@ Deuda detectada, fuera de este trabajo:
 > `portalGetSmtp` / `portalSaveSmtp` desde la pestaña «Correo» del panel de Conecta.
 > El `From` muestra la **razón social de la empresa emisora** y el `Reply-To`, su correo:
 > el comprador no debe recibir una factura de un remitente que no reconoce.
+>
+> ⛔ **Al desplegar esta cadena, redesplegar TAMBIÉN `onInvoiceEmit`.** No llama a la
+> callable `sendInvoiceEmail`: **importa `sendInvoiceEmailInternal`**
+> (`functions/src/invoices/on-invoice-emit.ts:10,257`) y lo compila dentro de sí misma,
+> igual que hace con el XML, la firma, el SRI y el RIDE. El **2026-09-25** el deploy de las
+> 21:24 UTC dejó fuera `onInvoiceEmit` y `saveCompanySmtp` (se quedaron en la versión de las
+> 16:09): el **correo automático** decía «SMTP no configurado» mientras el botón «Enviar por
+> correo» de la ficha **sí enviaba**. Se diagnostica comparando el despliegue de dos
+> functions —`functions:list` no lo dice—:
+>
+> ```bash
+> gcloud functions describe onInvoiceEmit --project accounting-system-a5c9f \
+>   --region us-central1 --format="value(updateTime)"
+> ```
+>
+> Arreglo: `firebase deploy --only functions:onInvoiceEmit,functions:saveCompanySmtp`
+> (⛔ siempre con nombres: un `--only functions` a secas publicaría `getAuthToken`).
 
 **Solo el super admin de plataforma crea canales.** Son pocos, casi no cambian, y un canal
 que se pueda crear a sí mismo es una forma de escaparse de los límites. No hay sub-canales
