@@ -336,9 +336,22 @@ service cloud.firestore {
         allow update, delete: if false; // Cloud Functions only
       }
 
+      // `smtp` queda fuera a propósito, y la exclusión va aquí porque las
+      // reglas se suman: una regla estricta aparte no cerraría nada.
       match /configuration/{doc} {
-        allow read: if isAuthenticated() && belongsToCompany(companyId);
-        allow write: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
+        allow read: if isAuthenticated() && belongsToCompany(companyId)
+                    && doc != 'smtp';
+        allow write: if isAuthenticated() && belongsToCompany(companyId) && isAdmin()
+                    && doc != 'smtp';
+      }
+
+      // El correo con el que salen los comprobantes de esta empresa. Lo lee
+      // solo su administrador y lo escribe **solo el servidor**
+      // (`saveCompanySmtp`): así la contraseña acaba en Secret Manager y no
+      // en la base de datos, como pasa con la del certificado.
+      match /configuration/smtp {
+        allow read: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
+        allow write: if false;
       }
 
       match /warehouses/{id} {

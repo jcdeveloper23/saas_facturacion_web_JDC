@@ -210,6 +210,21 @@ const num = v => ({ doubleValue: v });
   await expectStatus('un cajero no toca la configuración de la empresa',
     await patch('companies/c1', cashier, { sri: sriCon({}) }), S.DENIED);
 
+  // ── el correo propio de la empresa ───────────────────────────────────────
+  await seed('companies/c1/configuration', 'smtp', {
+    host: str('smtp.gmail.com'), user: str('empresa@correo.com'), isActive: bool(true),
+  });
+  await seed('companies/c1/configuration', 'sri', { razonSocial: str('ACME') });
+
+  await expectStatus('el admin ve el correo de su empresa',
+    await req('companies/c1/configuration/smtp', admin), S.OK);
+  await expectStatus('el cajero NO ve el correo de la empresa',
+    await req('companies/c1/configuration/smtp', cashier), S.DENIED);
+  await expectStatus('ni el admin lo escribe: lo hace el servidor',
+    await patch('companies/c1/configuration/smtp', admin, { host: str('otro') }), S.DENIED);
+  await expectStatus('el resto de configuration se sigue leyendo',
+    await req('companies/c1/configuration/sri', cashier), S.OK);
+
   // ── la contraseña del correo saliente ────────────────────────────────────
   // Vive en claro en platform/defaults/smtpConfig/data. La regla general de
   // `defaults` dejaba leerla a cualquiera con sesión iniciada: un cajero, o un

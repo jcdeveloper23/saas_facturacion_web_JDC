@@ -148,8 +148,8 @@ export async function sendCreditNoteEmailInternal(
 
   // ── Send email ──────────────────────────────────────────────────────────────
   try {
-    const transporter = await createSmtpTransporter();
-    const from        = await getSmtpFrom();
+    const transporter = await createSmtpTransporter(companyId);
+    const from        = await getSmtpFrom(companyId);
 
     await transporter.sendMail({
       from,

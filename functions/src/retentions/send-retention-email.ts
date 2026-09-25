@@ -113,8 +113,8 @@ export async function sendRetentionEmailInternal(
 </html>`;
 
   // 5. Send
-  const transporter = await createSmtpTransporter();
-  const from = await getSmtpFrom();
+  const transporter = await createSmtpTransporter(companyId);
+  const from = await getSmtpFrom(companyId);
   await transporter.sendMail({
     from,
     to:      supplierEmail,

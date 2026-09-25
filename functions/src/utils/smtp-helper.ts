@@ -1,5 +1,6 @@
 import * as admin from 'firebase-admin';
 import * as nodemailer from 'nodemailer';
+import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 
 /**
  * SmtpConfig loaded from Firestore or env vars.
@@ -19,6 +20,132 @@ interface SmtpConfig {
 let cachedConfig: SmtpConfig | null = null;
 let cacheExpiresAt = 0;
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+// ─── Correo propio de cada empresa ───────────────────────────────────────────
+//
+// El correo de la plataforma es uno solo para todos: las facturas de todos los
+// clientes salen del mismo buzón y el comprador ve nuestro dominio, no el de
+// quien le vendió. Por eso cada empresa puede poner **el suyo**, y el de la
+// plataforma queda como respaldo para quien no lo haya configurado.
+//
+// La contraseña no se guarda en Firestore: va a Secret Manager, como la del
+// certificado. En `companies/{id}/configuration/smtp` quedan solo el servidor,
+// el puerto y las direcciones, que no abren nada por sí solos.
+
+const secrets = new SecretManagerServiceClient();
+
+const companyCache = new Map<string, { cfg: SmtpConfig | null; expires: number }>();
+
+/** `facturaec-smtp-{companyId}` */
+export function smtpSecretIdFor(companyId: string): string {
+  return `facturaec-smtp-${companyId}`;
+}
+
+function projectIdOrThrow(): string {
+  const id =
+    process.env['GCLOUD_PROJECT'] ||
+    process.env['GOOGLE_CLOUD_PROJECT'] ||
+    process.env['FIREBASE_CONFIG_PROJECT_ID'];
+  if (!id) throw new Error('No se pudo determinar el proyecto para Secret Manager.');
+  return id;
+}
+
+function smtpSecretName(companyId: string): string {
+  return `projects/${projectIdOrThrow()}/secrets/${smtpSecretIdFor(companyId)}`;
+}
+
+/** Guarda la contraseña del correo de esa empresa como una versión nueva. */
+export async function saveCompanySmtpPassword(
+  companyId: string,
+  password: string,
+): Promise<void> {
+  const name = smtpSecretName(companyId);
+  try {
+    await secrets.getSecret({ name });
+  } catch {
+    await secrets.createSecret({
+      parent: `projects/${projectIdOrThrow()}`,
+      secretId: smtpSecretIdFor(companyId),
+      secret: { replication: { automatic: {} } },
+    });
+  }
+  await secrets.addSecretVersion({
+    parent: name,
+    payload: { data: Buffer.from(password, 'utf8') },
+  });
+  companyCache.delete(companyId);
+}
+
+/** La contraseña guardada, o cadena vacía si esa empresa no tiene ninguna. */
+async function readCompanySmtpPassword(companyId: string): Promise<string> {
+  try {
+    const [version] = await secrets.accessSecretVersion({
+      name: `${smtpSecretName(companyId)}/versions/latest`,
+    });
+    return version.payload?.data?.toString() ?? '';
+  } catch (err) {
+    const error = err as { code?: number; message?: string };
+    // 5 = NOT_FOUND: esta empresa no tiene correo propio, y eso es normal.
+    if (error.code !== 5) {
+      console.error('[smtp-helper] No se pudo leer la contraseña del correo:', error.message);
+    }
+    return '';
+  }
+}
+
+/**
+ * El correo propio de la empresa, o null si no lo tiene o está apagado.
+ */
+async function loadCompanySmtpConfig(companyId: string): Promise<SmtpConfig | null> {
+  const ahora = Date.now();
+  const enCache = companyCache.get(companyId);
+  if (enCache && ahora < enCache.expires) return enCache.cfg;
+
+  let cfg: SmtpConfig | null = null;
+  try {
+    const snap = await admin
+      .firestore()
+      .doc(`companies/${companyId}/configuration/smtp`)
+      .get();
+    const d = snap.data() as Record<string, any> | undefined;
+    if (d && d['isActive'] && d['host'] && d['user']) {
+      const pass = await readCompanySmtpPassword(companyId);
+      if (pass) {
+        cfg = {
+          host: d['host'],
+          port: d['port'] ?? 587,
+          secure: d['secure'] ?? false,
+          user: d['user'],
+          pass,
+          from: d['from'] || d['user'],
+          isActive: true,
+        };
+      } else {
+        console.warn('[smtp-helper] La empresa tiene correo configurado pero sin contraseña:', companyId);
+      }
+    }
+  } catch (err) {
+    console.warn('[smtp-helper] No se pudo leer el correo de la empresa:', companyId, err);
+  }
+
+  companyCache.set(companyId, { cfg, expires: ahora + CACHE_TTL_MS });
+  return cfg;
+}
+
+/** Crea el transporte con una configuración ya resuelta. */
+function transporterFrom(cfg: SmtpConfig): nodemailer.Transporter {
+  return nodemailer.createTransport({
+    host: cfg.host,
+    port: cfg.port,
+    secure: cfg.secure,
+    auth: { user: cfg.user, pass: cfg.pass },
+  });
+}
+
+/** Comprueba que esos datos sirven para enviar, sin guardar nada. */
+export async function verifySmtpConfig(cfg: SmtpConfig): Promise<void> {
+  await transporterFrom(cfg).verify();
+}
 
 async function loadSmtpConfig(): Promise<SmtpConfig | null> {
   const now = Date.now();
@@ -55,7 +182,17 @@ async function loadSmtpConfig(): Promise<SmtpConfig | null> {
  * Priority: Firestore smtpConfig (isActive=true) → environment variables.
  * Throws if neither source provides valid credentials.
  */
-export async function createSmtpTransporter(): Promise<nodemailer.Transporter> {
+export async function createSmtpTransporter(
+  companyId?: string,
+): Promise<nodemailer.Transporter> {
+  if (companyId) {
+    const propio = await loadCompanySmtpConfig(companyId);
+    if (propio) {
+      console.log('[smtp-helper] Usando el correo de la empresa. Host:', propio.host);
+      return transporterFrom(propio);
+    }
+  }
+
   const cfg = await loadSmtpConfig();
 
   if (cfg) {
@@ -94,14 +231,22 @@ export async function createSmtpTransporter(): Promise<nodemailer.Transporter> {
  * Returns the "from" address.
  * Priority: Firestore smtpConfig.from → SMTP_FROM env → SMTP_USER env → noreply@example.com
  */
-export async function getSmtpFrom(): Promise<string> {
+export async function getSmtpFrom(companyId?: string): Promise<string> {
+  if (companyId) {
+    const propio = await loadCompanySmtpConfig(companyId);
+    if (propio?.from) return propio.from;
+  }
   const cfg = await loadSmtpConfig();
   if (cfg?.from) return cfg.from;
   return process.env['SMTP_FROM'] ?? process.env['SMTP_USER'] ?? 'noreply@example.com';
 }
 
 /** Invalidate cache (useful after saving new config) */
-export function invalidateSmtpCache(): void {
+export function invalidateSmtpCache(companyId?: string): void {
   cachedConfig    = null;
   cacheExpiresAt  = 0;
+  if (companyId) companyCache.delete(companyId);
+  else companyCache.clear();
 }
+
+export type { SmtpConfig };
