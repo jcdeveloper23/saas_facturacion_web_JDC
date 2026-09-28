@@ -6,9 +6,12 @@ import {
   resolveDefaultEmissionPoint,
 } from '../utils/establishments';
 import { Timestamp } from 'firebase-admin/firestore';
+import { CHANNEL_ADMIN_ROLE, loadCompanyForCaller, readCaller } from '../utils/channels';
 
 // Roles que no pueden asignarse desde esta función.
-const PROTECTED_ROLES = ['super_admin'];
+// `channel_admin` está acá por lo mismo que en createCompanyUser: para que un
+// canal no pueda fabricarse otro admin de canal.
+const PROTECTED_ROLES = ['super_admin', CHANNEL_ADMIN_ROLE];
 
 /**
  * Valida que un código de rol sea sintácticamente correcto.
@@ -40,8 +43,9 @@ interface UpdateCompanyUserData {
  *  - isActive → habilita/deshabilita la cuenta en Firebase Auth
  *  - Actualiza companies/{companyId}/company-users/{uid} en Firestore
  *
- * Solo puede ser invocada por admin o super_admin.
- * Admin solo puede modificar usuarios de su propia empresa.
+ * Solo puede ser invocada por admin, super_admin o channel_admin.
+ * Admin solo puede modificar usuarios de su propia empresa; channel_admin,
+ * usuarios de las empresas de su canal.
  */
 export const updateCompanyUser = onCall(async (request) => {
   // ── Auth ──────────────────────────────────────────────────────────────────
@@ -52,8 +56,21 @@ export const updateCompanyUser = onCall(async (request) => {
   const callerRole      = request.auth.token['role'] as string | undefined;
   const callerCompanyId = request.auth.token['companyId'] as string | undefined;
 
-  if (callerRole !== 'admin' && callerRole !== 'super_admin') {
-    throw new HttpsError('permission-denied', 'Solo admin o super_admin pueden modificar usuarios.');
+  // `channel_admin` entra aquí igual que en createCompanyUser. Que no estuviera
+  // era una asimetría, no un límite: el canal podía CREAR usuarios en las
+  // empresas de su canal —con cualquier rol— pero no volver a tocarlos. Desde
+  // Conecta eso se veía como que dar acceso a un miembro nuevo funcionaba y
+  // cambiarle el rol a uno que ya lo tenía, o quitárselo, fallaba. El límite
+  // real es la empresa, y se comprueba más abajo con loadCompanyForCaller.
+  if (
+    callerRole !== 'admin' &&
+    callerRole !== 'super_admin' &&
+    callerRole !== CHANNEL_ADMIN_ROLE
+  ) {
+    throw new HttpsError(
+      'permission-denied',
+      'Solo admin, super_admin o channel_admin pueden modificar usuarios.'
+    );
   }
 
   // ── Input validation ──────────────────────────────────────────────────────
@@ -79,6 +96,12 @@ export const updateCompanyUser = onCall(async (request) => {
 
   if (callerRole === 'admin' && callerCompanyId !== companyId) {
     throw new HttpsError('permission-denied', 'Admin solo puede modificar usuarios de su propia empresa.');
+  }
+
+  // Un channel_admin solo toca usuarios de empresas de su canal.
+  // loadCompanyForCaller también verifica que el canal esté activo.
+  if (callerRole === CHANNEL_ADMIN_ROLE) {
+    await loadCompanyForCaller(admin.firestore(), readCaller(request), companyId);
   }
 
   if (platformRole !== undefined) {
