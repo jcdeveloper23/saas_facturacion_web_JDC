@@ -18,3 +18,14 @@ emulador (puerto 8080).
 excluida de la regla por defecto `match /{collection}/{id}`; si no, esa regla
 —que deja escribir a admin, seller y cashier— anula sus restricciones. Las
 pruebas de «protecciones» fijan justamente eso.
+
+## Storage
+
+`storage.rules` tiene sus propias pruebas (el logo de la empresa en
+`companies/{cid}/branding/`), con su configuración (`firebase.storage-rules-test.json`,
+puerto **9299**):
+
+```bash
+firebase emulators:exec -c firebase.storage-rules-test.json --only storage \
+  --project demo-facturaec "node test/rules/storage-test.js"
+```

@@ -18,6 +18,27 @@ service firebase.storage {
                    && request.auth.token.role in ['admin', 'super_admin'];
     }
 
+    // Logo de la empresa — companies/{companyId}/branding/logo.{ext}.
+    // Es la ruta con la que lo suben la web (company-settings) y Conecta (Datos
+    // fiscales), y de donde lo lee el RIDE con el Admin SDK. Sin esta regla
+    // —aquí no hay regla por defecto— la subida se rechazaba.
+    // Misma autorización que logos/: miembros leen, el admin escribe.
+    match /companies/{companyId}/branding/{file} {
+      allow read: if request.auth != null
+                  && (request.auth.token.companyId == companyId
+                      || request.auth.token.role == 'super_admin');
+      allow create, update: if request.auth != null
+                   && (request.auth.token.companyId == companyId
+                       || request.auth.token.role == 'super_admin')
+                   && request.auth.token.role in ['admin', 'super_admin']
+                   && request.resource.size <= 2 * 1024 * 1024
+                   && request.resource.contentType.matches('image/(png|jpeg|webp|svg[+]xml)');
+      allow delete: if request.auth != null
+                   && (request.auth.token.companyId == companyId
+                       || request.auth.token.role == 'super_admin')
+                   && request.auth.token.role in ['admin', 'super_admin'];
+    }
+
     // Product images — path: companies/{companyId}/products/{productId}/main.{ext}
     match /companies/{companyId}/products/{allPaths=**} {
       allow read: if request.auth != null
