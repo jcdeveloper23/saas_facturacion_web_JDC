@@ -3,6 +3,7 @@ import * as admin from 'firebase-admin';
 import PDFDocument from 'pdfkit';
 import QRCode from 'qrcode';
 import { getStorage } from 'firebase-admin/storage';
+import { drawLogo, loadCompanyLogo } from '../utils/company-logo';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -72,8 +73,9 @@ async function buildDebitNotePdf(opts: {
   companyRuc:  string;
   sriConfig:   SriCompanyConfig;
   qrBuffer?:   Buffer | null;
+  logoBuffer?: Buffer | null;
 }): Promise<Buffer> {
-  const { debitNote, companyRuc, sriConfig, qrBuffer } = opts;
+  const { debitNote, companyRuc, sriConfig, qrBuffer, logoBuffer } = opts;
 
   return new Promise<Buffer>((resolve, reject) => {
     const chunks: Buffer[] = [];
@@ -98,8 +100,14 @@ async function buildDebitNotePdf(opts: {
     };
 
     // ── Header ────────────────────────────────────────────────────────────────
+    // Logo — arriba y centrado, sobre la razón social. Sin logo, la cabecera
+    // empieza en y = 40 como siempre.
+    const LOGO_W = 200;
+    const logoH = drawLogo(doc, logoBuffer, LEFT + (PW - LOGO_W) / 2, 40, LOGO_W, 60, 'center');
+    const headerTop = logoH > 0 ? 40 + logoH + 6 : 40;
+
     doc.fontSize(15).fillColor(ACCENT).font('Helvetica-Bold')
-      .text(sriConfig.razonSocial.toUpperCase(), LEFT, 40, { width: PW, align: 'center' });
+      .text(sriConfig.razonSocial.toUpperCase(), LEFT, headerTop, { width: PW, align: 'center' });
 
     if (sriConfig.nombreComercial) {
       doc.moveDown(0.2).fontSize(10).fillColor(GRAY).font('Helvetica')
@@ -272,7 +280,8 @@ export async function generateDebitNotePdfInternal(
 
   const companySnap = await db.doc(`companies/${companyId}`).get();
   if (!companySnap.exists) throw new Error(`Empresa no encontrada: ${companyId}`);
-  const companyRuc: string = (companySnap.data() as Record<string, any>)['sri']?.['ruc'] ?? '';
+  const companyData = companySnap.data() as Record<string, any>;
+  const companyRuc: string = companyData['sri']?.['ruc'] ?? '';
 
   const sriCfgSnap = await db.doc(`companies/${companyId}/configuration/sri`).get();
   if (!sriCfgSnap.exists) throw new Error(`Configuración SRI no encontrada: ${companyId}`);
@@ -290,7 +299,9 @@ export async function generateDebitNotePdfInternal(
   }
 
   console.log('[generate-debit-note-pdf] Construyendo PDF...');
-  const pdfBuffer = await buildDebitNotePdf({ debitNote, companyRuc, sriConfig, qrBuffer });
+  // Logo de la empresa (Storage, Admin SDK). Sin logo, el RIDE sale igual.
+  const logoBuffer = await loadCompanyLogo(companyId, companyData, 'generate-debit-note-pdf');
+  const pdfBuffer = await buildDebitNotePdf({ debitNote, companyRuc, sriConfig, qrBuffer, logoBuffer });
   console.log('[generate-debit-note-pdf] PDF generado, bytes:', pdfBuffer.length);
 
   const pdfPath = `companies/${companyId}/pdf/dn-${debitNoteId}.pdf`;

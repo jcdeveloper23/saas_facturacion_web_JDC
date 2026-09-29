@@ -3,7 +3,7 @@ import * as admin from 'firebase-admin';
 import PDFDocument from 'pdfkit';
 import bwipjs from 'bwip-js';
 import { getStorage } from 'firebase-admin/storage';
-import axios from 'axios';
+import { drawLogo, loadCompanyLogo } from '../utils/company-logo';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -249,17 +249,10 @@ async function buildPdfBuffer(opts: BuildPdfOptions): Promise<Buffer> {
     const LEFT_X = MARGIN + HDR_PAD;
     const LEFT_TEXT_W = LEFT_W - HDR_PAD * 2;
 
-    // Logo — centrado horizontalmente en la columna izquierda
-    if (logoBuffer) {
-      try {
-        const logoMaxW = LEFT_TEXT_W;
-        const logoMaxH = 75;
-        doc.image(logoBuffer, LEFT_X, leftY, { fit: [logoMaxW, logoMaxH], align: 'center' });
-        leftY += logoMaxH + 6;
-      } catch {
-        // logo render failed, skip
-      }
-    }
+    // Logo — arriba, centrado en la columna izquierda. Se avanza con el alto
+    // que de verdad ocupó; sin logo, `leftY` no se toca y el RIDE queda igual.
+    const logoH = drawLogo(doc, logoBuffer, LEFT_X, leftY, LEFT_TEXT_W, 75, 'center');
+    if (logoH > 0) leftY += logoH + 6;
 
     doc.font('Helvetica-Bold').fontSize(8).fillColor(DARK)
       .text(sriConfig.razonSocial.toUpperCase(), LEFT_X, leftY, { width: LEFT_TEXT_W });
@@ -736,21 +729,9 @@ export async function generatePdfInternal(
   const sriEnvironment: 'testing' | 'production' =
     companyData['sri']?.['environment'] === 'production' ? 'production' : 'testing';
 
-  // Download company logo from configuration/general
-  let logoBuffer: Buffer | null = null;
-  try {
-    const generalConfigSnap = await db.doc(`companies/${companyId}/configuration/general`).get();
-    const logoUrl: string = generalConfigSnap.exists
-      ? (generalConfigSnap.data()?.['logoUrl'] ?? '')
-      : '';
-    if (logoUrl) {
-      const resp = await axios.get(logoUrl, { responseType: 'arraybuffer', timeout: 5000 });
-      logoBuffer = Buffer.from(resp.data);
-      console.log('[generate-pdf] Logo descargado, bytes:', logoBuffer.length);
-    }
-  } catch (err) {
-    console.warn('[generate-pdf] Logo no disponible:', err);
-  }
+  // Logo de la empresa, desde Storage con el Admin SDK. Nunca falla: sin logo,
+  // el RIDE sale igual que siempre.
+  const logoBuffer = await loadCompanyLogo(companyId, companyData, 'generate-pdf');
 
   // 3. Read SRI config
   const sriConfigSnap = await db.doc(`companies/${companyId}/configuration/sri`).get();
