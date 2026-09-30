@@ -313,6 +313,47 @@ const num = v => ({ doubleValue: v });
   await expectStatus('el admin anula una factura autorizada',
     await patch('companies/c1/invoices/aut', admin, { status: str('void'), isVoid: bool(true), updatedBy: str('adm') }), S.OK);
 
+  // ── una factura autorizada no se edita (1.5, 2026-09-30) ──────────────────
+  const autorizada = {
+    seriesEstablishment: str('001'), seriesEmissionPoint: str('001'), status: str('issued'),
+    isPaid: bool(false), sriStatus: str('authorized'), authorizationNumber: str('2409202601'),
+    total: num(10), customerName: str('CLIENTE'), notes: str(''),
+  };
+  for (const id of ['g1', 'g2', 'g3', 'g4', 'g5', 'g6', 'g7', 'g8']) await seed('companies/c1/invoices', id, autorizada);
+  await seed('companies/c1/invoices', 'libreEd', { ...autorizada, sriStatus: str('rejected') });
+
+  await expectStatus('seller NO cambia el total de una autorizada',
+    await patch('companies/c1/invoices/g1', seller, { total: num(1) }), S.DENIED);
+  await expectStatus('cajero NO cambia el total de una autorizada',
+    await patch('companies/c1/invoices/g1', cashier, { total: num(1) }), S.DENIED);
+  await expectStatus('admin NO cambia las líneas de una autorizada',
+    await patch('companies/c1/invoices/g1', admin, { lines: list(['x']) }), S.DENIED);
+  await expectStatus('admin NO cambia el cliente de una autorizada',
+    await patch('companies/c1/invoices/g1', admin, { customerName: str('OTRO') }), S.DENIED);
+  await expectStatus('admin NO devuelve a borrador una autorizada',
+    await patch('companies/c1/invoices/g1', admin, { status: str('draft') }), S.DENIED);
+  await expectStatus('seller edita las notas de una autorizada',
+    await patch('companies/c1/invoices/g2', seller, { notes: str('entregada'), updatedBy: str('libre') }), S.OK);
+  await expectStatus('admin guarda pdfUrl de una autorizada',
+    await patch('companies/c1/invoices/g3', admin, { pdfUrl: str('https://x/y.pdf') }), S.OK);
+  await expectStatus('contador cobra una autorizada con banco (markPaid)',
+    await patch('companies/c1/invoices/g4', conta, { status: str('paid'), isPaid: bool(true),
+      paidAt: str('2026-09-30'), paymentBankAccountId: str('b1') }), S.OK);
+  await expectStatus('admin aplica un anticipo a una autorizada',
+    await patch('companies/c1/invoices/g5', admin, { status: str('paid'), isPaid: bool(true),
+      paidAt: str('2026-09-30'), paymentEntryId: str('e1'), updatedAt: str('ahora') }), S.OK);
+  await expectStatus('admin anula una autorizada como Conectate (voidedAt, updatedBy)',
+    await patch('companies/c1/invoices/g6', admin, { status: str('void'), isVoid: bool(true),
+      voidedAt: str('ahora'), updatedBy: str('adm'), updatedAt: str('ahora') }), S.OK);
+  await expectStatus('admin devuelve a emitida una autorizada anulada (markIssued)',
+    await patch('companies/c1/invoices/g6', admin, { status: str('issued'), isVoid: bool(false), isPaid: bool(false) }), S.OK);
+  await expectStatus('seller NO anula una autorizada',
+    await patch('companies/c1/invoices/g7', seller, { status: str('void'), isVoid: bool(true) }), S.DENIED);
+  await expectStatus('cajero NO cobra y cambia el total a la vez',
+    await patch('companies/c1/invoices/g8', cashier, { status: str('paid'), isPaid: bool(true), total: num(1) }), S.DENIED);
+  await expectStatus('una rechazada (no autorizada) sí se edita',
+    await patch('companies/c1/invoices/libreEd', seller, { total: num(12) }), S.OK);
+
   await expectStatus('un cajero de la empresa lee el XML importado',
     await req('companies/c1/imported-xml/clave1', cashier), S.OK);
   await expectStatus('otra empresa NO lee el XML importado',

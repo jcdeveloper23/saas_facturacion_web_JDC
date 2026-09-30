@@ -223,6 +223,26 @@ service cloud.firestore {
             || (antes != 'authorized' && despues in [null, 'not_required']));
     }
 
+    // Una factura autorizada por el SRI no se edita desde el cliente: su
+    // contenido (cliente, líneas, totales, fechas) es el que el SRI autorizó.
+    // Hasta el 2026-09-30 un vendedor o un cajero podía cambiarle el total
+    // mientras no tocara `sriStatus` (retenciones y notas de débito ya tenían
+    // sriAuthorizedGuard). Solo pasan, y revisados uno por uno contra la web,
+    // el POS, los anticipos y Conectate:
+    //   · los campos de interfaz de onlyUiFields();
+    //   · cobrarla (markPaid, anticipos: los de isPaymentOnlyUpdate);
+    //   · anularla o devolverla a emitida (markVoid, markIssued, «Anular» de
+    //     Conectate), que las reglas de más abajo reservan al admin.
+    // El estado solo puede quedar en issued, paid o void: nunca volver a borrador.
+    function invoiceAuthorizedGuard() {
+      return resource.data.get('sriStatus', '') != 'authorized'
+        || (request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'pdfUrl', 'xmlUrl', 'sriError', 'notes', 'updatedAt', 'updatedBy',
+              'status', 'isPaid', 'paidAt', 'paymentBankAccountId', 'paymentEntryId',
+              'isVoid', 'voidedAt'])
+            && request.resource.data.get('status', '') in ['issued', 'paid', 'void']);
+    }
+
     // Once a document is 'issued' or 'void' the client cannot revert it to
     // 'draft'.  The status field must either stay the same or move forward.
     function statusNotRolledBack() {
@@ -337,6 +357,7 @@ service cloud.firestore {
         allow update: if isAuthenticated() && belongsToCompany(companyId)
                        && resource.data.status != 'cancelled'
                        && invoiceSriStatusClientUpdate()
+                       && invoiceAuthorizedGuard()
                        // La app anula con 'void'. Sin esto un vendedor o cajero
                        // «des-anulaba» una factura pasándola a issued o paid.
                        && (resource.data.get('status', '') != 'void' || isAdmin())
