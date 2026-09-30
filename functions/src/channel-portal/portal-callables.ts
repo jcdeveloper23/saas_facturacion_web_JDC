@@ -405,6 +405,37 @@ export const portalWhoAmI = onCall(async (request) => {
   };
 });
 
+/**
+ * Los usuarios de una empresa (`company-users`), sin nada sensible. Payload:
+ * { companyId }.
+ *
+ * Lo usa el servidor de Conecta (`listAccountingMembers`) para mostrar, junto
+ * a los miembros del grupo, a quienes existen en FacturaEc: los que se dieron
+ * de alta desde Conecta y los que se crearon aquí, en la web. Va por el portal
+ * porque quien reparte roles en Conecta puede no tener sesión en la empresa.
+ */
+export const portalListCompanyUsers = onCall(async (request) => {
+  const db = admin.firestore();
+  const caller = await requirePortalCaller(db, request);
+  const companyId = requireString(request.data?.companyId, 'companyId');
+  await loadCompanyForCaller(db, caller, companyId);
+
+  const snap = await db.collection(`companies/${companyId}/company-users`).limit(500).get();
+  const users = snap.docs.map((d) => {
+    const u = d.data();
+    return {
+      uid: d.id,
+      displayName: String(u['displayName'] ?? u['name'] ?? ''),
+      email: String(u['email'] ?? ''),
+      role: String(u['platformRole'] ?? u['role'] ?? ''),
+      isActive: u['isActive'] !== false,
+      emissionPoints: Array.isArray(u['emissionPoints']) ? u['emissionPoints'].map(String) : [],
+      federated: u['federated'] === true || !!u['externalIdentity'],
+    };
+  }).sort((a, b) => (a.displayName || a.email).localeCompare(b.displayName || b.email, 'es'));
+  return { users, truncated: snap.size >= 500 };
+});
+
 // ─── Catálogo ────────────────────────────────────────────────────────────────
 
 /** Catálogo de paquetes (lo comparten todos los canales; solo lectura). */
