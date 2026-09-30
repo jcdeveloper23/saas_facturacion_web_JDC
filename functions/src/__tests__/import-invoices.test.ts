@@ -13,7 +13,7 @@ import {
   accessKeyProblem, buildImportedInvoiceDoc, counterFloors, counterUpdates, fullNumber,
   parseSriXml, SriXmlError,
 } from '../utils/sri-xml-import';
-import { environmentOfAccessKey, parseSriAuthorizationResponse } from '../utils/sri-authorization';
+import { environmentOfAccessKey, isNetworkError, parseSriAuthorizationResponse } from '../utils/sri-authorization';
 
 const RUC = '0190434990001';
 
@@ -171,5 +171,16 @@ describe('contadores', () => {
   it('solo escribe lo que sube', () => {
     expect(counterUpdates({ '001_001_2026': 2000, '001_001_2025': 10 }, { '001_001_2025': 1843, '001_001_2026': 1843 }))
       .toEqual({ '001_001_2025': 1843 });
+  });
+});
+
+describe('reintentos ante el SRI', () => {
+  it('reintenta si el SRI corta la conexión o no contesta', () => {
+    expect(isNetworkError({ code: 'ECONNRESET' })).toBe(true);
+    expect(isNetworkError({ code: 'ECONNABORTED' })).toBe(true);
+  });
+  it('no reintenta si el SRI contestó, aunque sea con error', () => {
+    expect(isNetworkError({ code: 'ECONNRESET', response: { status: 500 } })).toBe(false);
+    expect(isNetworkError(new Error('otra cosa'))).toBe(false);
   });
 });

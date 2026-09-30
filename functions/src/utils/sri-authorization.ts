@@ -11,6 +11,7 @@
  */
 
 import axios from 'axios';
+import * as https from 'https';
 import { create } from 'xmlbuilder2';
 
 export const SRI_AUTHORIZATION_URLS = {
@@ -90,8 +91,39 @@ export function parseSriAuthorizationResponse(soap: string): SriAuthorizationRes
   return { found: true, estado, numeroAutorizacion: numero, fechaAutorizacion: fecha, mensaje, authorizedXml };
 }
 
-/** Pregunta al SRI por la clave. Lanza si el SRI no responde (red, caída, timeout). */
+/**
+ * Conexión nueva en cada consulta. Desde Node 20 el agente reutiliza sockets
+ * (`keepAlive`), y el SRI cierra los inactivos: reutilizar uno ya cerrado da
+ * `ECONNRESET` (visto el 2026-09-30 en la primera importación real).
+ */
+const sriAgent = new https.Agent({ keepAlive: false });
+
+/** Esperas entre intentos cuando el SRI corta la conexión o no contesta. */
+const RETRY_DELAYS_MS = [1000, 3000];
+
+/** Fallo de red (sin respuesta HTTP): vale la pena reintentar. Un 4xx/5xx del SRI, no. */
+export function isNetworkError(e: any): boolean {
+  return !e?.response && ['ECONNRESET', 'ETIMEDOUT', 'ECONNABORTED', 'ECONNREFUSED', 'EAI_AGAIN', 'ENOTFOUND', 'EPIPE', 'ERR_SOCKET_CONNECTION_TIMEOUT']
+    .includes(String(e?.code ?? ''));
+}
+
+/**
+ * Pregunta al SRI por la clave. Reintenta dos veces si el SRI corta la conexión
+ * o no contesta, como hace `sendToSri`; si aun así no responde, lanza.
+ */
 export async function querySriAuthorization(accessKey: string, wsdlUrl: string): Promise<SriAuthorizationResult> {
+  for (let intento = 0; ; intento++) {
+    try {
+      return await querySriAuthorizationOnce(accessKey, wsdlUrl);
+    } catch (e) {
+      if (intento >= RETRY_DELAYS_MS.length || !isNetworkError(e)) throw e;
+      console.warn('[sri-authorization] El SRI no respondió; reintento', { accessKey, intento: intento + 1, code: (e as any)?.code });
+      await new Promise((r) => setTimeout(r, RETRY_DELAYS_MS[intento]));
+    }
+  }
+}
+
+async function querySriAuthorizationOnce(accessKey: string, wsdlUrl: string): Promise<SriAuthorizationResult> {
   const soap = `<?xml version="1.0" encoding="UTF-8"?>
 <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
   <soap:Body>
@@ -104,6 +136,7 @@ export async function querySriAuthorization(accessKey: string, wsdlUrl: string):
     headers: { 'Content-Type': 'text/xml;charset=UTF-8', SOAPAction: '' },
     timeout: 30000,
     responseType: 'text',
+    httpsAgent: sriAgent,
   });
   return parseSriAuthorizationResponse(String(res.data));
 }

@@ -166,7 +166,9 @@ export const importInvoices = onCall(
       try {
         sri = await querySriAuthorization(subido.accessKey, urls[environmentOfAccessKey(subido.accessKey)]);
       } catch (e: any) {
-        console.warn('[importInvoices] El SRI no respondió', { companyId, accessKey: subido.accessKey, error: e?.message });
+        console.warn('[importInvoices] El SRI no respondió', {
+          companyId, accessKey: subido.accessKey, error: e?.message, code: e?.code, status: e?.response?.status,
+        });
         return { ok: false, result: { ...base, ...ids, status: 'sri_unavailable',
           reason: 'El SRI no respondió. Se puede volver a intentar más tarde.' } };
       }
