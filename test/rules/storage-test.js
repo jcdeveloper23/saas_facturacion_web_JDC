@@ -23,5 +23,11 @@ let ok=0,n=0;const ex=async(name,p,s)=>{const r=await p;n++;const g=r.status===s
  await ex('admin NO sube > 2 MB', up('companies/c1/branding/logo.png',admin,'image/png',2*1024*1024+1),403);
  await ex('cajero NO borra', del('companies/c1/branding/logo.jpg',cashier),403);
  await ex('admin borra', del('companies/c1/branding/logo.jpg',admin),204);
+ // XML de comprobantes importados: solo lo escribe importInvoices.
+ await fetch(`${H}/v0/b/${B}/o?name=${encodeURIComponent('companies/c1/imported-xml/clave1.xml')}`,{method:'POST',headers:{Authorization:'Bearer owner','Content-Type':'application/xml'},body:'<factura/>'});
+ await ex('cajero lee el XML importado', get('companies/c1/imported-xml/clave1.xml',cashier),200);
+ await ex('otra empresa NO lee el XML importado', get('companies/c1/imported-xml/clave1.xml',other),403);
+ await ex('ni el admin sube un XML importado', up('companies/c1/imported-xml/clave2.xml',admin,'application/xml'),403);
+ await ex('ni el admin borra un XML importado', del('companies/c1/imported-xml/clave1.xml',admin),403);
  console.log(`\n${ok}/${n} casos OK`); if(ok!==n) process.exitCode=1;
 })();

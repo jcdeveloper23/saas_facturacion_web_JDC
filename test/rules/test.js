@@ -248,5 +248,81 @@ const num = v => ({ doubleValue: v });
   await expectStatus('lo demás de defaults se sigue leyendo',
     await req('platform/defaults/taxRates/iva15', cashier), S.OK);
 
+  // ── estado del SRI: solo lo pone el servidor (2026-09-30) ────────────────
+  // La importación desde XML pasa a la callable importInvoices; desde el
+  // cliente ya no se crea ni se marca una factura «autorizada por el SRI».
+  await seed('companies/c1/invoices', 'pend', {
+    seriesEstablishment: str('001'), seriesEmissionPoint: str('001'),
+    status: str('issued'), sriStatus: str('rejected'), sriError: str('ERROR'), total: num(10) });
+  await seed('companies/c1/invoices', 'pend2', {
+    seriesEstablishment: str('001'), seriesEmissionPoint: str('001'),
+    status: str('issued'), sriStatus: str('pending'), total: num(10) });
+  await seed('companies/c1/invoices', 'aut', {
+    seriesEstablishment: str('001'), seriesEmissionPoint: str('001'), status: str('issued'),
+    isPaid: bool(false), sriStatus: str('authorized'), authorizationNumber: str('2409202601'), total: num(10) });
+  await seed('companies/c1/imported-xml', 'clave1', { xml: str('<factura/>') });
+  // Borra un campo: updateMask con el campo y sin valor (FieldValue.delete()).
+  const borrar = (path, auth, campos) =>
+    req(`${path}?${campos.map(k => `updateMask.fieldPaths=${k}`).join('&')}`, auth,
+      { method: 'PATCH', body: JSON.stringify({ fields: {} }) });
+  const nulo = { nullValue: null };
+
+  await expectStatus('seller crea una factura sin sriStatus',
+    await create('companies/c1/invoices', 's1', seller, { ...inv('001'), status: str('issued') }), S.OK);
+  await expectStatus('seller crea una factura con sriStatus null (cleanDoc de la web)',
+    await create('companies/c1/invoices', 's1b', seller, { ...inv('001'), sriStatus: nulo }), S.OK);
+  await expectStatus('seller crea una factura con sriStatus not_required (empresa sin SRI)',
+    await create('companies/c1/invoices', 's2', seller, { ...inv('001'), status: str('issued'), sriStatus: str('not_required') }), S.OK);
+  await expectStatus('la NC de Conecta (emitida, sin sriStatus) se sigue creando',
+    await create('companies/c1/invoices', 's2b', admin, { ...inv('001'), status: str('issued'),
+      documentType: str('creditNote'), isCreditNote: bool(true), rectifiedInvoiceAuthNumber: str('2409202601'),
+      source: str('conecta') }), S.OK);
+  await expectStatus('cajero NO crea una factura ya autorizada',
+    await create('companies/c1/invoices', 's3', cashier, { ...inv('001'), status: str('issued'), sriStatus: str('authorized') }), S.DENIED);
+  await expectStatus('admin NO crea una factura ya autorizada',
+    await create('companies/c1/invoices', 's4', admin, { ...inv('001'), status: str('issued'), sriStatus: str('authorized') }), S.DENIED);
+  await expectStatus('admin NO crea una factura con sriStatus pending',
+    await create('companies/c1/invoices', 's4b', admin, { ...inv('001'), sriStatus: str('pending') }), S.DENIED);
+  await expectStatus('admin NO crea una factura imported: true',
+    await create('companies/c1/invoices', 's5', admin, { ...inv('001'), imported: bool(true) }), S.DENIED);
+  await expectStatus('admin NO crea una factura con authorizationNumber',
+    await create('companies/c1/invoices', 's6', admin, { ...inv('001'), authorizationNumber: str('123') }), S.DENIED);
+  await expectStatus('admin NO crea una factura con importedXmlId aunque sea null',
+    await create('companies/c1/invoices', 's7', admin, { ...inv('001'), importedXmlId: nulo }), S.DENIED);
+
+  await expectStatus('seller reintenta una rechazada borrando sriStatus (Conecta)',
+    await borrar('companies/c1/invoices/pend', seller, ['sriStatus', 'sriError', 'updatedAt']), S.OK);
+  await expectStatus('seller reintenta una pending poniendo sriStatus null (web)',
+    await patch('companies/c1/invoices/pend2', seller, { sriStatus: nulo, updatedBy: str('libre') }), S.OK);
+  await expectStatus('admin NO le quita el sriStatus a una autorizada',
+    await borrar('companies/c1/invoices/aut', admin, ['sriStatus']), S.DENIED);
+  await expectStatus('admin NO pasa una autorizada a not_required',
+    await patch('companies/c1/invoices/aut', admin, { sriStatus: str('not_required') }), S.DENIED);
+  await expectStatus('admin NO marca autorizada una factura',
+    await patch('companies/c1/invoices/pend2', admin, { sriStatus: str('authorized') }), S.DENIED);
+  await expectStatus('seller NO marca autorizada una not_required',
+    await patch('companies/c1/invoices/s2', seller, { sriStatus: str('authorized') }), S.DENIED);
+  await expectStatus('admin NO cambia el authorizationNumber',
+    await patch('companies/c1/invoices/aut', admin, { authorizationNumber: str('999') }), S.DENIED);
+  await expectStatus('admin NO le pone authorizationNumber a una que no lo tenía',
+    await patch('companies/c1/invoices/s1', admin, { authorizationNumber: str('999') }), S.DENIED);
+  await expectStatus('admin NO marca imported una factura existente',
+    await patch('companies/c1/invoices/s1', admin, { imported: bool(true) }), S.DENIED);
+  await expectStatus('cajero cobra una factura autorizada (solo pago)',
+    await patch('companies/c1/invoices/aut', cashier, { isPaid: bool(true), status: str('paid'), updatedBy: str('k1') }), S.OK);
+  await expectStatus('el admin anula una factura autorizada',
+    await patch('companies/c1/invoices/aut', admin, { status: str('void'), isVoid: bool(true), updatedBy: str('adm') }), S.OK);
+
+  await expectStatus('un cajero de la empresa lee el XML importado',
+    await req('companies/c1/imported-xml/clave1', cashier), S.OK);
+  await expectStatus('otra empresa NO lee el XML importado',
+    await req('companies/c1/imported-xml/clave1', ajeno), S.DENIED);
+  await expectStatus('ni el admin crea un XML importado',
+    await create('companies/c1/imported-xml', 'clave2', admin, { xml: str('<factura/>') }), S.DENIED);
+  await expectStatus('ni el admin reescribe un XML importado',
+    await patch('companies/c1/imported-xml/clave1', admin, { xml: str('<otra/>') }), S.DENIED);
+  await expectStatus('ni el admin borra un XML importado',
+    await del('companies/c1/imported-xml/clave1', admin), S.DENIED);
+
   report();
 })();

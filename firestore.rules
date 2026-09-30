@@ -145,7 +145,7 @@ service cloud.firestore {
     function hasOwnRules(collection) {
       return collection in [
         'company-users', 'configuration', 'counters', 'customers', 'debitNotes',
-        'electronic-documents', 'establishments', 'families', 'invoices',
+        'electronic-documents', 'establishments', 'families', 'imported-xml', 'invoices',
         'manufacturers', 'orders', 'personas', 'products', 'purchases', 'quotes',
         'retentions', 'stock-movements', 'stock-transfers', 'suppliers',
         'tm-members', 'tm-positions', 'tm-projects', 'tm-requests', 'tm-specialties',
@@ -191,6 +191,36 @@ service cloud.firestore {
     // the client: only the UI-level fields above may change.
     function sriAuthorizedGuard() {
       return resource.data.get('sriStatus', '') != 'authorized' || onlyUiFields();
+    }
+
+    // ─── Lo que en una factura solo escribe el servidor ─────────────────
+    // `sriStatus: 'authorized'` y los datos de la autorización los ponen
+    // onInvoiceEmit / checkSriStatus tras hablar con el SRI, y los de
+    // importación la callable importInvoices (Admin SDK: no pasan por aquí).
+    // Hasta el 2026-09-30 cualquier rol con canWrite() podía crear —o editar
+    // para marcar— una factura «autorizada por el SRI» sin haber pasado por él.
+    function invoiceServerOnlyKeys() {
+      return ['authorizationNumber', 'authorizedAt', 'authorizationVerified',
+              'verifiedWithSri', 'imported', 'importedXmlId', 'importedXmlPath'];
+    }
+
+    // Desde el cliente una factura nace sin estado del SRI (la toma
+    // onInvoiceEmit) o con 'not_required' (empresa sin SRI). Ausente y null
+    // valen lo mismo: la web convierte undefined en null (cleanDoc).
+    function invoiceSriStatusClientCreate() {
+      return request.resource.data.get('sriStatus', null) in [null, 'not_required']
+        && !request.resource.data.keys().hasAny(invoiceServerOnlyKeys());
+    }
+
+    // Al editar: los campos del servidor no se tocan, y `sriStatus` queda igual
+    // o se borra / pasa a 'not_required' —es el «reintentar» de la web y de
+    // Conecta—, pero nunca si ya estaba autorizada.
+    function invoiceSriStatusClientUpdate() {
+      let antes = resource.data.get('sriStatus', null);
+      let despues = request.resource.data.get('sriStatus', null);
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(invoiceServerOnlyKeys())
+        && (despues == antes
+            || (antes != 'authorized' && despues in [null, 'not_required']));
     }
 
     // Once a document is 'issued' or 'void' the client cannot revert it to
@@ -296,7 +326,8 @@ service cloud.firestore {
       match /invoices/{id} {
         allow read: if isAuthenticated() && belongsToCompany(companyId);
         allow create: if isAuthenticated() && belongsToCompany(companyId) && canWrite()
-                      && canUseEmissionPoint(companyId);
+                      && canUseEmissionPoint(companyId)
+                      && invoiceSriStatusClientCreate();
         // Cannot edit a cancelled invoice; only admin can void.
         // Editar exige el punto de emisión del comprobante; cobrarla (solo pago)
         // no: cobrar no es emitir, y quien cobra en caja no siempre es de ese
@@ -305,6 +336,7 @@ service cloud.firestore {
         // aceptan al contador, sin darle edición general de la factura.
         allow update: if isAuthenticated() && belongsToCompany(companyId)
                        && resource.data.status != 'cancelled'
+                       && invoiceSriStatusClientUpdate()
                        // La app anula con 'void'. Sin esto un vendedor o cajero
                        // «des-anulaba» una factura pasándola a issued o paid.
                        && (resource.data.get('status', '') != 'void' || isAdmin())
@@ -334,6 +366,13 @@ service cloud.firestore {
         allow read: if isAuthenticated() && belongsToCompany(companyId);
         allow create: if isAuthenticated() && belongsToCompany(companyId) && canWrite();
         allow update, delete: if false; // Cloud Functions only
+      }
+
+      // XML original de los comprobantes importados (importInvoices). Lo escribe
+      // solo el servidor; lo leen los de la empresa.
+      match /imported-xml/{id} {
+        allow read: if isAuthenticated() && belongsToCompany(companyId);
+        allow write: if false; // Cloud Functions only
       }
 
       // `smtp` queda fuera a propósito, y la exclusión va aquí porque las

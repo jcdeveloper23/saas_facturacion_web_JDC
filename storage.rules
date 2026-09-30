@@ -58,6 +58,12 @@ service firebase.storage {
       allow write: if false; // Cloud Functions only
     }
 
+    // XML original de los comprobantes importados — lo escribe importInvoices
+    match /companies/{companyId}/imported-xml/{file} {
+      allow read: if request.auth != null && request.auth.token.companyId == companyId;
+      allow write: if false; // Cloud Functions only
+    }
+
     // Comprobantes de pago del marketplace — escritura y lectura públicas (sin auth).
     // El comprador sube el comprobante sin estar autenticado.
     // Restricciones: solo imágenes o PDF, máximo 5 MB.
