@@ -151,7 +151,13 @@ export const accountingSetupStatus = onCall(async (request) => {
 
   return {
     year,
-    accounts: { count: accounts.size, seedCount: ECUADOR_CHART_OF_ACCOUNTS_SEED.length },
+    accounts: {
+      count: accounts.size,
+      seedCount: ECUADOR_CHART_OF_ACCOUNTS_SEED.length,
+      // Cuántas del estándar faltan: contar cuentas no basta, porque las
+      // subcuentas propias de la empresa también suman.
+      missingSeed: ECUADOR_CHART_OF_ACCOUNTS_SEED.filter((e) => !accounts.has(e.code)).length,
+    },
     mapping: { saved: settings.exists, items: mappingItems, fixed: fixedItems },
     period: period ? {
       id: period.id,
