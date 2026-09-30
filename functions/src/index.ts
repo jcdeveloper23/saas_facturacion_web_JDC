@@ -32,6 +32,7 @@ export { sendToSri }            from './invoices/send-to-sri';
 export { checkSriStatus }       from './invoices/check-sri-status';
 export { generatePdf }              from './invoices/generate-pdf';
 export { saveCompanySmtp }          from './settings/company-smtp';
+export { getPlatformSmtp, savePlatformSmtp } from './settings/platform-smtp';
 export { portalGetSmtp, portalSaveSmtp } from './channel-portal/portal-callables';
 export { sendInvoiceEmail }         from './invoices/send-invoice-email';
 export { generateCreditNotePdf }    from './invoices/generate-credit-note-pdf';

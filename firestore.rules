@@ -936,11 +936,15 @@ service cloud.firestore {
     // excluir smtpConfig de la general.
     match /platform/defaults/{subCollection}/{docId} {
       allow read: if isAuthenticated() && subCollection != 'smtpConfig';
-      allow write: if isSuperAdmin();
+      allow write: if isSuperAdmin() && subCollection != 'smtpConfig';
     }
 
+    // Desde el 2026-09-30 la contraseña ya no está aquí (Secret Manager) y el
+    // documento lo escribe solo savePlatformSmtp: ni el super admin lo escribe
+    // desde el navegador, para que nadie vuelva a guardar la contraseña en claro.
     match /platform/defaults/smtpConfig/{docId} {
-      allow read, write: if isSuperAdmin();
+      allow read: if isSuperAdmin();
+      allow write: if false;
     }
 
     // ─── Multi-empresa — empresas vinculadas a una cuenta ─────────────────────

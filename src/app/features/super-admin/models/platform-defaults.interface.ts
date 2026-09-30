@@ -172,7 +172,7 @@ export interface SmtpPlatformConfig {
   port:       number;   // 587 (TLS) | 465 (SSL) | 25
   secure:     boolean;  // true = SSL (port 465), false = STARTTLS
   user:       string;   // SMTP username / email
-  pass:       string;   // SMTP password (stored in Firestore, solo super-admin)
+  // La contraseña ya no está aquí: vive en Secret Manager (facturaec-smtp-platform).
   from:       string;   // Display address: 'Empresa <noreply@empresa.com>'
   isActive:   boolean;  // false = usa fallback a variables de entorno
   updatedAt?: Timestamp;

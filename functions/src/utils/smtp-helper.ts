@@ -42,6 +42,24 @@ export function channelSmtpSecretIdFor(channelId: string): string {
   return `facturaec-smtp-channel-${channelId}`;
 }
 
+/**
+ * La contraseña del correo **de la plataforma** (el último escalón antes de
+ * las variables de entorno). Hasta el 2026-09-30 vivía en claro en
+ * `platform/defaults/smtpConfig/data.pass`; ahora va aquí, como las de empresa
+ * y canal, y el campo se borra la primera vez que se lee (`loadSmtpConfig`).
+ */
+export const PLATFORM_SMTP_SECRET_ID = 'facturaec-smtp-platform';
+
+/** Guarda la contraseña del correo de la plataforma. */
+export async function savePlatformSmtpPassword(password: string): Promise<void> {
+  await saveSecretValue(PLATFORM_SMTP_SECRET_ID, password);
+}
+
+/** Si la plataforma ya tiene contraseña guardada (en el secreto o, sin migrar, en Firestore). */
+export async function platformSmtpHasPassword(legacyPass: unknown): Promise<boolean> {
+  return !!(await readSecretValue(PLATFORM_SMTP_SECRET_ID)) || !!legacyPass;
+}
+
 /** `facturaec-smtp-{companyId}` */
 export function smtpSecretIdFor(companyId: string): string {
   return `facturaec-smtp-${companyId}`;
@@ -268,16 +286,33 @@ async function loadSmtpConfig(): Promise<SmtpConfig | null> {
 
   try {
     const db   = admin.firestore();
-    const snap = await db.doc('platform/defaults/smtpConfig/data').get();
+    const ref  = db.doc('platform/defaults/smtpConfig/data');
+    const snap = await ref.get();
     if (snap.exists) {
       const d = snap.data() as Record<string, any>;
-      if (d['isActive'] && d['host'] && d['user'] && d['pass']) {
+      let pass = await readSecretValue(PLATFORM_SMTP_SECRET_ID);
+      if (d['pass']) {
+        // Migración sola: la contraseña en claro pasa al secreto y se borra de
+        // Firestore. Si el secreto ya existía, manda el secreto.
+        try {
+          if (!pass) {
+            await savePlatformSmtpPassword(String(d['pass']));
+            pass = String(d['pass']);
+          }
+          await ref.update({ pass: admin.firestore.FieldValue.delete() });
+          console.log('[smtp-helper] Contraseña SMTP de plataforma movida a Secret Manager.');
+        } catch (err) {
+          console.error('[smtp-helper] No se pudo mover la contraseña SMTP de plataforma:', err);
+          pass = pass || String(d['pass']);
+        }
+      }
+      if (d['isActive'] && d['host'] && d['user'] && pass) {
         cachedConfig = {
           host:     d['host'],
           port:     d['port'] ?? 587,
           secure:   d['secure'] ?? false,
           user:     d['user'],
-          pass:     d['pass'],
+          pass,
           from:     d['from'] ?? d['user'],
           isActive: true,
         };

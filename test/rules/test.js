@@ -245,6 +245,8 @@ const num = v => ({ doubleValue: v });
     await req('platform/defaults/smtpConfig/data', canal), S.DENIED);
   await expectStatus('un cajero NO la reescribe',
     await patch('platform/defaults/smtpConfig/data', cashier, { pass: str('otro') }), S.DENIED);
+  await expectStatus('ni el super admin escribe el correo de plataforma desde el navegador (va por savePlatformSmtp)',
+    await patch('platform/defaults/smtpConfig/data', superAdm, { pass: str('en-claro') }), S.DENIED);
   await expectStatus('lo demás de defaults se sigue leyendo',
     await req('platform/defaults/taxRates/iva15', cashier), S.OK);
 

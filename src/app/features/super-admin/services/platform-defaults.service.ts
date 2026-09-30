@@ -8,7 +8,7 @@ import {
 } from '@angular/fire/firestore';
 import { Observable } from 'rxjs';
 import {
-  PlatformConfig, SriPlatformConfig, SmtpPlatformConfig,
+  PlatformConfig, SriPlatformConfig,
   DefaultTaxRate, DefaultPaymentTerm, DefaultDocumentSeries, DefaultWarehouse,
   DefaultCurrency, DefaultCountry
 } from '../models/platform-defaults.interface';
@@ -81,24 +81,8 @@ export class PlatformDefaultsService {
   }
 
   // ── SMTP Platform Config ─────────────────────────────────────────────
-
-  getSmtpConfig(): Observable<SmtpPlatformConfig | undefined> {
-    return new Observable(observer => {
-      const ref = doc(this.fs, `${DEFAULTS_DOC}/smtpConfig/data`);
-      return onSnapshot(ref, {
-        next: snap => observer.next(snap.exists() ? (snap.data() as SmtpPlatformConfig) : undefined),
-        error: err => { console.error('[PlatformDefaults] getSmtpConfig error:', err); observer.error(err); }
-      });
-    });
-  }
-
-  async saveSmtpConfig(data: Omit<SmtpPlatformConfig, 'updatedAt' | 'updatedBy'>, updatedBy: string): Promise<void> {
-    await setDoc(doc(this.fs, `${DEFAULTS_DOC}/smtpConfig/data`), {
-      ...data,
-      updatedAt: Timestamp.now(),
-      updatedBy,
-    }, { merge: true });
-  }
+  // Desde el 2026-09-30 va por las callables getPlatformSmtp / savePlatformSmtp
+  // (la contraseña vive en Secret Manager): ver platform-smtp-config.component.
 
   // ── Tax Rates ────────────────────────────────────────────────────────
 

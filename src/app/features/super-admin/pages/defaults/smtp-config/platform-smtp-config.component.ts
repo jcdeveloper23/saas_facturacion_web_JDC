@@ -2,14 +2,13 @@ import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { Functions, httpsCallable } from '@angular/fire/functions';
 import {
   CardModule, ButtonModule, SpinnerComponent,
   RowComponent, ColComponent,
   FormLabelDirective, FormControlDirective, FormCheckComponent, FormCheckInputDirective, FormCheckLabelDirective
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
-import { PlatformDefaultsService } from '../../../services/platform-defaults.service';
 import { AuthService } from '../../../../../core/services/auth.service';
 import { NotificationService } from '../../../../../core/services/notification.service';
 
@@ -40,8 +39,10 @@ import { NotificationService } from '../../../../../core/services/notification.s
 
       <p class="text-secondary mb-3" style="font-size:.85rem">
         Estas credenciales se usan para enviar emails de facturas, retenciones y notas de débito autorizadas por el SRI.
+        Es el último escalón: se usa cuando la empresa no tiene correo propio ni lo tiene su canal.
         Si <strong>isActive</strong> está desactivado, el sistema usará las variables de entorno
         <code>SMTP_HOST / SMTP_USER / SMTP_PASS</code> como respaldo.
+        La contraseña se guarda cifrada en Secret Manager y no vuelve a mostrarse.
       </p>
 
       <form [formGroup]="form" (ngSubmit)="save()">
@@ -99,10 +100,11 @@ import { NotificationService } from '../../../../../core/services/notification.s
 
           <!-- Contraseña -->
           <c-col [sm]="6">
-            <label cLabel for="smtpPass">Contraseña / App Password <span class="text-danger">*</span></label>
+            <label cLabel for="smtpPass">Contraseña / App Password
+              @if (!hasPassword()) { <span class="text-danger">*</span> }</label>
             <input cFormControl [type]="showPass() ? 'text' : 'password'" id="smtpPass"
                    formControlName="pass" autocomplete="new-password"
-                   placeholder="Dejar vacío para no cambiar">
+                   [placeholder]="hasPassword() ? 'Guardada — dejar vacío para no cambiar' : 'Contraseña del correo'">
             <div class="form-text">
               <button type="button" class="btn btn-link p-0 btn-sm" (click)="showPass.set(!showPass())">
                 {{ showPass() ? 'Ocultar' : 'Mostrar' }}
@@ -127,8 +129,8 @@ import { NotificationService } from '../../../../../core/services/notification.s
               Guardar configuración SMTP
             </button>
             <button cButton color="secondary" variant="outline" type="button" class="ms-2"
-                    [disabled]="saving()" (click)="testConnection()">
-              Enviar correo de prueba
+                    [disabled]="saving() || form.invalid" (click)="testConnection()">
+              Guardar y enviar prueba a mi correo
             </button>
           </c-col>
 
@@ -146,17 +148,22 @@ import { NotificationService } from '../../../../../core/services/notification.s
 </c-card>
   `,
 })
-export class PlatformSmtpConfigComponent implements OnInit, OnDestroy {
-  private svc           = inject(PlatformDefaultsService);
+/**
+ * El correo de la plataforma. Desde el 2026-09-30 no escribe Firestore: pasa por
+ * las callables getPlatformSmtp / savePlatformSmtp, y la contraseña vive en
+ * Secret Manager. Antes se guardaba en claro en platform/defaults/smtpConfig.
+ */
+export class PlatformSmtpConfigComponent implements OnInit {
+  private functions     = inject(Functions);
   private auth          = inject(AuthService);
   private notifications = inject(NotificationService);
   private fb            = inject(FormBuilder);
-  private subs          = new Subscription();
 
-  loading    = signal(true);
-  saving     = signal(false);
-  showPass   = signal(false);
-  testResult = signal<{ ok: boolean; message: string } | null>(null);
+  loading     = signal(true);
+  saving      = signal(false);
+  showPass    = signal(false);
+  hasPassword = signal(false);
+  testResult  = signal<{ ok: boolean; message: string } | null>(null);
 
   form = this.fb.group({
     isActive: [true],
@@ -168,61 +175,74 @@ export class PlatformSmtpConfigComponent implements OnInit, OnDestroy {
     from:     [''],
   });
 
-  ngOnInit(): void {
-    this.subs.add(this.svc.getSmtpConfig().subscribe({
-      next: cfg => {
-        if (cfg) {
-          this.form.patchValue({ ...cfg, pass: '' }); // never show stored pass
-        }
-        this.loading.set(false);
-      },
-      error: () => this.loading.set(false),
-    }));
+  async ngOnInit(): Promise<void> {
+    try {
+      const fn = httpsCallable<unknown, { hasPassword: boolean; smtp: Record<string, any> | null }>(
+        this.functions, 'getPlatformSmtp');
+      const { data } = await fn({});
+      if (data.smtp) this.form.patchValue({ ...data.smtp, pass: '' });
+      this.hasPassword.set(data.hasPassword);
+    } catch (err: any) {
+      this.notifications.error('No se pudo leer la configuración: ' + (err?.message ?? err));
+    } finally {
+      this.loading.set(false);
+    }
   }
-
-  ngOnDestroy(): void { this.subs.unsubscribe(); }
 
   hasError(f: string): boolean {
     const c = this.form.get(f);
     return !!(c?.invalid && c?.touched);
   }
 
-  async save(): Promise<void> {
+  save(): Promise<void> {
+    return this.guardar();
+  }
+
+  testConnection(): Promise<void> {
+    const to = this.auth.user()?.email ?? '';
+    if (!to) {
+      this.notifications.error('Tu usuario no tiene correo para mandarte la prueba.');
+      return Promise.resolve();
+    }
+    return this.guardar(to);
+  }
+
+  /** Guarda y, con `testTo`, manda además un correo de prueba a esa dirección. */
+  private async guardar(testTo?: string): Promise<void> {
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
+    const v = this.form.getRawValue();
+    if (!v.pass?.trim() && !this.hasPassword()) {
+      this.notifications.error('Falta la contraseña del correo.');
+      return;
+    }
     this.saving.set(true);
     this.testResult.set(null);
     try {
-      const v = this.form.getRawValue();
-      const uid = this.auth.user()?.uid ?? 'unknown';
-
-      // Only update pass if the field has a value (don't overwrite with empty string)
-      const payload: any = {
+      const fn = httpsCallable<Record<string, unknown>, { testSent?: boolean; testError?: string }>(
+        this.functions, 'savePlatformSmtp');
+      const { data } = await fn({
         isActive: v.isActive ?? true,
         host:     v.host!.trim(),
         port:     Number(v.port),
         secure:   v.secure ?? false,
         user:     v.user!.trim(),
         from:     v.from?.trim() ?? '',
-      };
-      if (v.pass?.trim()) payload.pass = v.pass.trim();
-
-      await this.svc.saveSmtpConfig(payload, uid);
-      this.notifications.success('Configuración SMTP guardada');
+        // Vacía = no se cambia la guardada.
+        password: v.pass?.trim() ?? '',
+        ...(testTo ? { testTo } : {}),
+      });
+      if (v.pass?.trim()) this.hasPassword.set(true);
       this.form.get('pass')?.setValue('');
+      this.notifications.success('Configuración SMTP guardada');
+      if (testTo) {
+        this.testResult.set(data.testSent
+          ? { ok: true, message: `Correo de prueba enviado a ${testTo}.` }
+          : { ok: false, message: `Se guardó, pero la prueba no salió: ${data.testError ?? 'error desconocido'}` });
+      }
     } catch (err: any) {
       this.notifications.error('Error al guardar: ' + (err?.message ?? err));
     } finally {
       this.saving.set(false);
     }
-  }
-
-  async testConnection(): Promise<void> {
-    this.testResult.set(null);
-    this.notifications.info('Enviando correo de prueba...');
-    // In a real implementation call a CF; for now show a message
-    this.testResult.set({
-      ok: false,
-      message: 'La función de prueba estará disponible después del deploy de la CF "testSmtpConnection".',
-    });
   }
 }
