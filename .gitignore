@@ -61,3 +61,6 @@ serviceAccount*.json
 *-firebase-adminsdk-*.json
 accounting-system-a5c9f-*.json
 work-cloud-df68a-*.json
+
+# Salida de los deploys en tandas (scripts/deploy-node22.sh)
+deploy-node22-*.log
