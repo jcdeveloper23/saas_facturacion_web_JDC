@@ -4,6 +4,7 @@ import PDFDocument from 'pdfkit';
 import QRCode from 'qrcode';
 import { getStorage } from 'firebase-admin/storage';
 import { drawLogo, loadCompanyLogo } from '../utils/company-logo';
+import { buildAdditionalInfo } from '../utils/additional-info';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -483,6 +484,15 @@ export async function generateCreditNotePdfInternal(
     throw new Error(`Configuración SRI no encontrada para empresa: ${companyId}`);
   }
   const sriConfig = sriConfigSnap.data() as SriCompanyConfig;
+  // Lo mismo que el XML: plantillas resueltas, los campos del comprobante y el
+  // correo del comprador, sin vacíos. Antes el RIDE imprimía la plantilla tal
+  // cual (`${customer.email}`) y no mostraba nada propio del comprobante.
+  sriConfig.additionalInfoFields = buildAdditionalInfo({
+    companyFields: sriConfig.additionalInfoFields,
+    docFields: (creditNote as any).additionalInfo,
+    doc: creditNote as any,
+    company: { name: companyData['name'] ?? sriConfig.razonSocial, ruc: companyRuc },
+  });
 
   console.log('[generate-credit-note-pdf] Datos leídos. Generando QR...');
 

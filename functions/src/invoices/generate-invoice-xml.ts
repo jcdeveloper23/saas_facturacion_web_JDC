@@ -1,5 +1,8 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
+import { buildAdditionalInfo } from '../utils/additional-info';
+// Se reexporta: las pruebas de sri-calculations lo importan de aquí.
+export { resolveTemplate } from '../utils/additional-info';
 import { create } from 'xmlbuilder2';
 import { getStorage } from 'firebase-admin/storage';
 import { formatFechaEmisionEC, formatFechaClaveAccesoEC } from '../utils/sri-date';
@@ -136,15 +139,6 @@ function deriveSriTaxCode(
 }
 
 /** Resolve ${invoice.field} / ${customer.field} / ${company.field} templates */
-export function resolveTemplate(
-  template: string,
-  ctx: { invoice: Record<string, any>; customer: Record<string, any>; company: Record<string, any> }
-): string {
-  return template.replace(
-    /\$\{(invoice|customer|company)\.(\w+)\}/g,
-    (_, obj, key) => String(ctx[obj as keyof typeof ctx]?.[key] ?? '')
-  );
-}
 
 // ─── Core logic (exported for internal use by orchestrator) ───────────────────
 
@@ -399,25 +393,18 @@ export async function generateInvoiceXmlInternal(
     impuesto.ele('valor').txt(lineTax.toFixed(2));
   }
 
-  // <infoAdicional>
-  const customerCtx = {
-    name: invoice.customerName,
-    taxId: invoice.customerTaxId,
-    email: invoice.customerEmail ?? '',
-    address: invoice.customerAddress ?? '',
-    reference: invoice.customerReference ?? '',
-  };
-  const companyCtx = { name: company.name, ruc };
-
-  if (sriConfig.additionalInfoFields && sriConfig.additionalInfoFields.length > 0) {
+  // <infoAdicional> — campos de la empresa, los del comprobante y el correo
+  // del comprador, sin vacíos y con el tope del SRI (utils/additional-info.ts).
+  const infoAdicionalFields = buildAdditionalInfo({
+    companyFields: sriConfig.additionalInfoFields,
+    docFields: (invoice as any).additionalInfo,
+    doc: invoice as any,
+    company: { name: company.name, ruc },
+  });
+  if (infoAdicionalFields.length > 0) {
     const infoAdicional = root.ele('infoAdicional');
-    for (const field of sriConfig.additionalInfoFields) {
-      const valorResuelto = resolveTemplate(field.valor, {
-        invoice: invoice as any,
-        customer: customerCtx,
-        company: companyCtx,
-      });
-      infoAdicional.ele('campoAdicional', { nombre: field.nombre }).txt(valorResuelto);
+    for (const field of infoAdicionalFields) {
+      infoAdicional.ele('campoAdicional', { nombre: field.nombre }).txt(field.valor);
     }
   }
 

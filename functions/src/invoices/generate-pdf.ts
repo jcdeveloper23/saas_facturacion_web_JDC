@@ -4,6 +4,7 @@ import PDFDocument from 'pdfkit';
 import bwipjs from 'bwip-js';
 import { getStorage } from 'firebase-admin/storage';
 import { drawLogo, loadCompanyLogo } from '../utils/company-logo';
+import { buildAdditionalInfo } from '../utils/additional-info';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -739,6 +740,15 @@ export async function generatePdfInternal(
     throw new Error(`Configuración SRI no encontrada para empresa: ${companyId}`);
   }
   const sriConfig = sriConfigSnap.data() as SriCompanyConfig;
+  // Lo mismo que el XML: plantillas resueltas, los campos del comprobante y el
+  // correo del comprador, sin vacíos. Antes el RIDE imprimía la plantilla tal
+  // cual (`${customer.email}`) y no mostraba nada propio del comprobante.
+  sriConfig.additionalInfoFields = buildAdditionalInfo({
+    companyFields: sriConfig.additionalInfoFields,
+    docFields: (invoice as any).additionalInfo,
+    doc: invoice as any,
+    company: { name: companyData['name'] ?? sriConfig.razonSocial, ruc: companyRuc },
+  });
 
   console.log('[generate-pdf] Datos leídos. Generando código de barras...');
 

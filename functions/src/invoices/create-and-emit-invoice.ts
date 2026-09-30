@@ -22,6 +22,7 @@
 
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
+import { AdditionalInfoField, validateAdditionalInfoInput } from '../utils/additional-info';
 import {
   canUseEmissionPoint,
   formatEmissionPoint,
@@ -89,6 +90,12 @@ export interface CreateInvoicePayload {
   lines: ExternalInvoiceLine[];
   paymentMethods?: ExternalPaymentMethod[];
   notes?: string;
+  /**
+   * Información adicional propia de esta factura (`<infoAdicional>` del XML y
+   * el recuadro del RIDE), p. ej. `[{ nombre: 'Placa', valor: 'ABC-1234' }]`.
+   * Se suma a los campos fijos de la empresa; entre todos, como mucho 15.
+   */
+  additionalInfo?: Array<{ nombre: string; valor: string }>;
   /**
    * 'async' (default): retorna { invoiceId, status: 'processing' } inmediatamente.
    * 'sync': espera hasta que el SRI responda (hasta syncTimeoutMs). Más lento pero
@@ -342,6 +349,17 @@ export const createAndEmitInvoice = onCall(
     const db  = admin.firestore();
     const now = admin.firestore.Timestamp.now();
 
+    // La información adicional se valida contra el tope del SRI contando los
+    // campos fijos de la empresa: pasarse lo rechazaría el SRI por estructura.
+    let additionalInfo: AdditionalInfoField[] = [];
+    try {
+      const sriCfg = (await db.doc(`companies/${companyId}/configuration/sri`).get()).data();
+      const fijos = Array.isArray(sriCfg?.['additionalInfoFields']) ? sriCfg!['additionalInfoFields'].length : 0;
+      additionalInfo = validateAdditionalInfoInput(data.additionalInfo, fijos);
+    } catch (e) {
+      throw new HttpsError('invalid-argument', e instanceof Error ? e.message : String(e));
+    }
+
     // ── 3. Idempotencia por externalId ───────────────────────────────────────
     if (data.externalId) {
       const existing = await db
@@ -487,6 +505,7 @@ export const createAndEmitInvoice = onCall(
 
         // ── Notas ────────────────────────────────────────────────────────────
         notes: data.notes ?? null,
+        additionalInfo,
 
         // ── Estado — 'issued' dispara onInvoiceEmit ─────────────────────────
         status:    'issued',
