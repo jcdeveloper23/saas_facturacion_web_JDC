@@ -1,4 +1,5 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
+import { requireCompanyRole } from '../utils/callable-auth';
 import * as admin from 'firebase-admin';
 
 import { isElectronicInvoicingEnabled } from '../utils/electronic-invoicing';
@@ -128,11 +129,8 @@ export const backfillNotRequiredInvoices = onCall(async (request) => {
     throw new HttpsError('invalid-argument', 'companyId es requerido.');
   }
 
-  const callerRole      = request.auth.token['role']      as string | undefined;
-  const callerCompanyId = request.auth.token['companyId'] as string | undefined;
-  if (callerRole !== 'super_admin' && callerCompanyId !== companyId) {
-    throw new HttpsError('permission-denied', 'No tiene permisos para esta empresa.');
-  }
+  // Crea asientos: administrador o contador (2026-09-30), no cualquiera de la empresa.
+  requireCompanyRole(request, companyId, ['admin', 'accountant']);
 
   try {
     return await backfillNotRequiredInvoicesInternal(companyId);

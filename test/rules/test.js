@@ -367,5 +367,29 @@ const num = v => ({ doubleValue: v });
   await expectStatus('ni el admin borra un XML importado',
     await del('companies/c1/imported-xml/clave1', admin), S.DENIED);
 
+  // ── base contable (3.1, 2026-09-30) ────────────────────────────────────
+  await expectStatus('el contador crea una cuenta del plan',
+    await create('companies/c1/chart_of_accounts', '9_9', conta, { code: str('9.9'), name: str('X') }), S.OK);
+  await expectStatus('un vendedor NO crea cuentas',
+    await create('companies/c1/chart_of_accounts', '9_8', seller, { code: str('9.8'), name: str('X') }), S.DENIED);
+  await expectStatus('el contador abre un ejercicio',
+    await create('companies/c1/accounting_periods', 'y2026', conta, { year: num(2026), status: str('open') }), S.OK);
+  await expectStatus('un cajero NO abre ejercicios',
+    await create('companies/c1/accounting_periods', 'y2027', cashier, { year: num(2027), status: str('open') }), S.DENIED);
+  await expectStatus('el contador guarda las cuentas de los asientos',
+    await create('companies/c1/settings', 'accounting', conta, { updatedBy: str('t1') }), S.OK);
+  await expectStatus('un vendedor NO reescribe las cuentas de los asientos',
+    await patch('companies/c1/settings/accounting', seller, { updatedBy: str('libre') }), S.DENIED);
+  await expectStatus('un cajero NO reescribe las cuentas de los asientos',
+    await patch('companies/c1/settings/accounting', cashier, { updatedBy: str('k1') }), S.DENIED);
+  await expectStatus('el admin guarda las cuentas de los asientos',
+    await patch('companies/c1/settings/accounting', admin, { updatedBy: str('adm') }), S.OK);
+  await expectStatus('cualquiera de la empresa lee la configuración',
+    await req('companies/c1/settings/accounting', cashier), S.OK);
+  await expectStatus('otra empresa NO la lee',
+    await req('companies/c1/settings/accounting', ajeno), S.DENIED);
+  await expectStatus('el contador NO escribe otra configuración que no sea la contable',
+    await create('companies/c1/settings', 'otra', conta, { x: str('1') }), S.DENIED);
+
   report();
 })();

@@ -19,7 +19,7 @@ export interface ResolvedAccountMapping {
 
 // ─── Ecuador standard defaults ────────────────────────────────────────────────
 
-const DEFAULT_CODES: Record<keyof ResolvedAccountMapping, string> = {
+export const DEFAULT_CODES: Record<keyof ResolvedAccountMapping, string> = {
   sales15:            '4.1.01.001',
   sales0:             '4.1.01.002',
   salesExempt:        '4.1.01.003',
@@ -29,7 +29,7 @@ const DEFAULT_CODES: Record<keyof ResolvedAccountMapping, string> = {
   cogs:               '5.1.01.001',
 };
 
-const DEFAULT_NAMES: Record<string, string> = {
+export const DEFAULT_NAMES: Record<string, string> = {
   '4.1.01.001': 'Ventas 15% IVA',
   '4.1.01.002': 'Ventas 0% IVA',
   '4.1.01.003': 'Ventas Exentas de IVA',

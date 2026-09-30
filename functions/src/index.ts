@@ -25,6 +25,10 @@ export {
 export { uploadCertificate }        from './invoices/upload-certificate';
 export { createAndEmitInvoice }     from './invoices/create-and-emit-invoice';
 export { importInvoices }           from './invoices/import-invoices';
+export {
+  accountingSetupStatus, seedChartOfAccounts, openAccountingPeriod,
+  saveOpeningBalances, regenerateJournalEntries,
+} from './accounting/accounting-setup';
 export { generateInvoiceXml }       from './invoices/generate-invoice-xml';
 export { generateCreditNoteXml } from './invoices/generate-credit-note-xml';
 export { signXml }              from './invoices/sign-xml';

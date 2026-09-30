@@ -195,7 +195,10 @@ export async function generateJournalEntryFromCreditNoteInternal(
   if (!after.isCreditNote) return { created: false, reason: 'not_credit_note' };
   if (after.accountingEntryId) return { created: false, reason: 'already_exists', entryId: after.accountingEntryId };
 
-  if (after.status !== 'issued' || !SRI_DONE(after.sriStatus)) {
+  // También las ya cobradas: `markPaid` pasa la factura a 'paid', y una cobrada
+  // antes de tener ejercicio abierto no podía recuperar nunca su asiento
+  // (regenerateJournalEntry devolvía not_ready). Hallazgo del 2026-09-30.
+  if (!['issued', 'paid'].includes(after.status) || !SRI_DONE(after.sriStatus)) {
     return { created: false, reason: 'not_ready' };
   }
 

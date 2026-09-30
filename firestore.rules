@@ -146,6 +146,7 @@ service cloud.firestore {
       return collection in [
         'company-users', 'configuration', 'counters', 'customers', 'debitNotes',
         'electronic-documents', 'establishments', 'families', 'imported-xml', 'invoices',
+        'settings',
         'manufacturers', 'orders', 'personas', 'products', 'purchases', 'quotes',
         'retentions', 'stock-movements', 'stock-transfers', 'suppliers',
         'tm-members', 'tm-positions', 'tm-projects', 'tm-requests', 'tm-specialties',
@@ -391,6 +392,16 @@ service cloud.firestore {
 
       // XML original de los comprobantes importados (importInvoices). Lo escribe
       // solo el servidor; lo leen los de la empresa.
+      // Configuración de la empresa. Hoy solo hay `settings/accounting` (qué
+      // cuenta usa cada asiento automático). Caía en la regla general: la podían
+      // reescribir un vendedor o un cajero, y el contador —que es quien la
+      // mantiene— no podía guardarla (hallazgo del 2026-09-30).
+      match /settings/{docId} {
+        allow read: if isAuthenticated() && belongsToCompany(companyId);
+        allow write: if isAuthenticated() && belongsToCompany(companyId)
+                     && (isAdmin() || (docId == 'accounting' && isAccountant()));
+      }
+
       match /imported-xml/{id} {
         allow read: if isAuthenticated() && belongsToCompany(companyId);
         allow write: if false; // Cloud Functions only
@@ -613,8 +624,10 @@ service cloud.firestore {
       match /chart_of_accounts/{accountId} {
         allow read:   if isAuthenticated() && belongsToCompany(companyId)
                       && (isAdmin() || isAccountant());
-        // Only admin can create/edit/inactivate accounts (structural catalog change).
-        allow create, update: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
+        // Admin o contador (decisión del usuario, 2026-09-30): armar y ajustar el
+        // plan de cuentas es trabajo del contador. Antes, solo el admin.
+        allow create, update: if isAuthenticated() && belongsToCompany(companyId)
+                              && (isAdmin() || isAccountant());
         // Accounts are never deleted — only inactivated via update.
         allow delete: if false;
       }
@@ -622,8 +635,9 @@ service cloud.firestore {
       match /accounting_periods/{periodId} {
         allow read:   if isAuthenticated() && belongsToCompany(companyId)
                       && (isAdmin() || isAccountant());
-        // Opening/closing/locking a period is an admin-only action.
-        allow create, update: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
+        // Abrir, cerrar o bloquear un ejercicio: admin o contador (2026-09-30).
+        allow create, update: if isAuthenticated() && belongsToCompany(companyId)
+                              && (isAdmin() || isAccountant());
         // Periods are never deleted (audit trail).
         allow delete: if false;
       }

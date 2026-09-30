@@ -1,4 +1,5 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
+import { requireCompanyRole } from '../utils/callable-auth';
 
 import { generateJournalEntryFromInvoiceInternal }    from './generate-journal-entry-from-invoice';
 import { generateJournalEntryFromCreditNoteInternal } from './generate-journal-entry-from-credit-note';
@@ -57,11 +58,10 @@ export const regenerateJournalEntry = onCall(async (request) => {
     throw new HttpsError('invalid-argument', `documentType inválido: ${docType}`);
   }
 
-  const callerRole      = request.auth.token['role']      as string | undefined;
-  const callerCompanyId = request.auth.token['companyId'] as string | undefined;
-  if (callerRole !== 'super_admin' && callerCompanyId !== companyId) {
-    throw new HttpsError('permission-denied', 'No tiene permisos para esta empresa.');
-  }
+  // Contabilizar es cosa del administrador o del contador (2026-09-30): antes
+  // bastaba ser de la empresa, un cajero incluido.
+  requireCompanyRole(request, companyId, ['admin', 'accountant']);
+
 
   const docLabel = DOC_LABEL[docType];
 
