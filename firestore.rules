@@ -305,7 +305,13 @@ service cloud.firestore {
 
       match /products/{productId} {
         allow read: if isAuthenticated() && belongsToCompany(companyId);
-        allow create, update: if isAuthenticated() && belongsToCompany(companyId) && canWrite();
+        // Crear y editar el catálogo: administrador o vendedor, como dicen sus
+        // permisos (products.create / products.edit). Antes era canWrite(), que
+        // incluye al cajero: la pantalla no le mostraba el botón, pero con el
+        // SDK podía crear y cambiar artículos (hallazgo del 2026-10-01). El POS
+        // no escribe aquí: las existencias las mueve el servidor.
+        allow create, update: if isAuthenticated() && belongsToCompany(companyId)
+                              && (isAdmin() || hasRole('seller'));
         allow delete: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
 
         // Product subcollections

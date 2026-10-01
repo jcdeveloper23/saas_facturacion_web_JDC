@@ -391,5 +391,22 @@ const num = v => ({ doubleValue: v });
   await expectStatus('el contador NO escribe otra configuración que no sea la contable',
     await create('companies/c1/settings', 'otra', conta, { x: str('1') }), S.DENIED);
 
+  // ── artículos: el cajero solo los ve (2026-10-01) ─────────────────────────
+  await seed('companies/c1/products', 'p1', { sku: str('A-1'), name: str('Gorra'), price: num(10) });
+  await expectStatus('el cajero ve los artículos',
+    await req('companies/c1/products/p1', cashier), S.OK);
+  await expectStatus('el cajero NO crea artículos',
+    await create('companies/c1/products', 'p2', cashier, { sku: str('A-2'), name: str('X') }), S.DENIED);
+  await expectStatus('el cajero NO cambia el precio de un artículo',
+    await patch('companies/c1/products/p1', cashier, { price: num(1) }), S.DENIED);
+  await expectStatus('el vendedor crea artículos',
+    await create('companies/c1/products', 'p3', seller, { sku: str('A-3'), name: str('Y') }), S.OK);
+  await expectStatus('el vendedor edita artículos',
+    await patch('companies/c1/products/p1', seller, { price: num(11) }), S.OK);
+  await expectStatus('el admin crea artículos',
+    await create('companies/c1/products', 'p4', admin, { sku: str('A-4'), name: str('Z') }), S.OK);
+  await expectStatus('el contador NO crea artículos (no tiene products.create)',
+    await create('companies/c1/products', 'p5', conta, { sku: str('A-5'), name: str('W') }), S.DENIED);
+
   report();
 })();
