@@ -181,6 +181,8 @@ const num = v => ({ doubleValue: v });
     await create('companies/c1/purchases', 'pc2', cashier, compra), S.DENIED);
   await expectStatus('solo lectura NO registra compras',
     await create('companies/c1/purchases', 'pc3', lector, compra), S.DENIED);
+  await expectStatus('la web crea la compra con stockProcessed: false',
+    await create('companies/c1/purchases', 'pcw', seller, { ...compra, stockProcessed: bool(false) }), S.OK);
   await expectStatus('una compra NO nace con el stock ya procesado',
     await create('companies/c1/purchases', 'pc4', admin, { ...compra, stockProcessed: bool(true) }), S.DENIED);
   await expectStatus('una compra NO nace con asiento',

@@ -109,8 +109,12 @@ service cloud.firestore {
               'accountingEntryId', 'accountingError', 'reversalEntryId'];
     }
 
+    // La web crea las compras con stockProcessed: false; eso se acepta. Lo que
+    // no, es nacer con el stock ya procesado o con datos del asiento.
     function purchaseCreateOk() {
-      return !request.resource.data.keys().hasAny(purchaseServerKeys())
+      return request.resource.data.get('stockProcessed', false) == false
+          && !request.resource.data.keys().hasAny(['stockProcessedAt', 'stockError',
+               'accountingEntryId', 'accountingError', 'reversalEntryId'])
           && request.resource.data.get('status', 'draft') in ['draft', 'sent', 'received'];
     }
 
