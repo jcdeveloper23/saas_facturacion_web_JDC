@@ -1,6 +1,7 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import { Timestamp, type Firestore } from 'firebase-admin/firestore';
+import { sriConfigChangesFor } from './company-sri-sync';
 import {
   createChannelSmtpTransporter,
   invalidateSmtpCache,
@@ -149,7 +150,10 @@ export const portalSetCompanyStatus = onCall(async (request) => {
  *
  * Payload: `{ companyId, company: { name?, fiscalAddress?, city?, phone?, email?,
  * sri?: { environment?, establishment?, emissionPoint?, contributorType?,
- * accountingRequired?, regimen? } } }`
+ * accountingRequired?, regimen?, businessName?, tradeName?, contribuyenteEspecial? } } }`
+ *
+ * Lo que también vive en `configuration/sri` (obligado a llevar contabilidad,
+ * razón social, dirección, teléfono, correo…) se actualiza ahí en el mismo batch.
  *
  * Dos cosas que **no** se pueden hacer aquí, a propósito:
  * - **Cambiar el RUC.** El certificado de firma se validó contra él y los
@@ -201,7 +205,7 @@ export const portalUpdateCompany = onCall(async (request) => {
   const permitidos = ['name', 'fiscalAddress', 'city', 'phone', 'email'];
   const permitidosSri = [
     'environment', 'establishment', 'emissionPoint', 'contributorType',
-    'accountingRequired', 'regimen', 'businessName', 'tradeName',
+    'accountingRequired', 'regimen', 'businessName', 'tradeName', 'contribuyenteEspecial',
   ];
 
   const update: Record<string, any> = { updatedAt: Timestamp.now(), updatedBy: caller.uid };
@@ -215,11 +219,25 @@ export const portalUpdateCompany = onCall(async (request) => {
     throw new HttpsError('invalid-argument', 'No llegó ningún campo que se pueda editar.');
   }
 
-  await db.doc(`companies/${companyId}`).update(update);
+  // Lo que también vive en configuration/sri (lo que leen el XML y el RIDE) se
+  // escribe en el mismo batch: antes solo cambiaba companies/{id} y el
+  // comprobante seguía saliendo con el dato viejo (company-sri-sync.ts).
+  const batch = db.batch();
+  batch.update(db.doc(`companies/${companyId}`), update);
+  const sriConfig = sriConfigChangesFor(cambios, sriNuevo);
+  if (Object.keys(sriConfig).length) {
+    batch.set(
+      db.doc(`companies/${companyId}/configuration/sri`),
+      { ...sriConfig, updatedAt: update.updatedAt, updatedBy: caller.uid },
+      { merge: true },
+    );
+  }
+  await batch.commit();
   console.log('[portalUpdateCompany]', {
     companyId,
     by: caller.uid,
     campos: Object.keys(update).filter((k) => k !== 'updatedAt' && k !== 'updatedBy'),
+    configuracionSri: Object.keys(sriConfig),
   });
   return { success: true, companyId };
 });
