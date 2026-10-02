@@ -5,6 +5,8 @@ import { getStorage } from 'firebase-admin/storage';
 import { formatFechaEmisionEC, formatFechaClaveAccesoEC } from '../utils/sri-date';
 import { assertValidAccessKey } from '../utils/sri-access-key';
 import { resolveEmissionSeries, resolveEstablishmentAddress } from '../utils/establishments';
+import { buildAdditionalInfo } from '../utils/additional-info';
+import { resolveSoftwareProviderRuc } from '../utils/software-provider';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -214,10 +216,17 @@ export async function generateRetentionXmlInternal(
     ret.ele('valorRetenido').txt(tax.retainedAmount.toFixed(2));
   }
 
-  // <infoAdicional>
-  if (sriConfig.additionalInfoFields?.length > 0) {
+  // <infoAdicional> — los campos de la empresa, sin vacíos, y el «RUC Proveedor»
+  // del sistema que exige el SRI desde el 2026-09-26 (utils/additional-info.ts).
+  const infoAdicionalFields = buildAdditionalInfo({
+    companyFields: sriConfig.additionalInfoFields,
+    doc: {},
+    company: { name: sriConfig.razonSocial, ruc },
+    providerRuc: await resolveSoftwareProviderRuc(company as any),
+  });
+  if (infoAdicionalFields.length > 0) {
     const infoAd = root.ele('infoAdicional');
-    for (const field of sriConfig.additionalInfoFields) {
+    for (const field of infoAdicionalFields) {
       infoAd.ele('campoAdicional', { nombre: field.nombre }).txt(field.valor);
     }
   }

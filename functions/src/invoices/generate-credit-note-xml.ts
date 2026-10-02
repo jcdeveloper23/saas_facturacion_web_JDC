@@ -1,6 +1,7 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import { buildAdditionalInfo } from '../utils/additional-info';
+import { resolveSoftwareProviderRuc } from '../utils/software-provider';
 import { create } from 'xmlbuilder2';
 import { getStorage } from 'firebase-admin/storage';
 import { formatFechaEmisionEC, formatFechaClaveAccesoEC } from '../utils/sri-date';
@@ -347,6 +348,7 @@ export async function generateCreditNoteXmlInternal(
     docFields: (cn as any).additionalInfo,
     doc: cn as any,
     company: { name: company.name, ruc },
+    providerRuc: await resolveSoftwareProviderRuc(company as any),
   });
   if (infoAdicionalFields.length > 0) {
     const infoAdicional = root.ele('infoAdicional');

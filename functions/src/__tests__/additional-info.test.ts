@@ -50,6 +50,47 @@ describe('buildAdditionalInfo', () => {
   });
 });
 
+describe('RUC Proveedor (Resolución NAC-DGERCGC26-00000027)', () => {
+  const providerRuc = '0190434990001';
+
+  it('va siempre, al final', () => {
+    const r = buildAdditionalInfo({
+      docFields: [{ nombre: 'Placa', valor: 'ABC-1234' }],
+      doc: { customerEmail: 'cli@x.com' },
+      company,
+      providerRuc,
+    });
+    expect(r).toEqual([
+      { nombre: 'Placa', valor: 'ABC-1234' },
+      { nombre: 'Email', valor: 'cli@x.com' },
+      { nombre: 'RUC Proveedor', valor: providerRuc },
+    ]);
+  });
+
+  it('va aunque el comprobante no tenga ningún otro campo', () => {
+    expect(buildAdditionalInfo({ doc: {}, company, providerRuc }))
+      .toEqual([{ nombre: 'RUC Proveedor', valor: providerRuc }]);
+  });
+
+  it('el tope de 15 nunca lo desplaza', () => {
+    const docFields = Array.from({ length: 20 }, (_, i) => ({ nombre: `C${i}`, valor: 'x' }));
+    const r = buildAdditionalInfo({ docFields, doc: {}, company, providerRuc });
+    expect(r).toHaveLength(15);
+    expect(r[14]).toEqual({ nombre: 'RUC Proveedor', valor: providerRuc });
+  });
+
+  it('reemplaza el que alguien escribió a mano, sin repetirlo', () => {
+    const r = buildAdditionalInfo({
+      companyFields: [{ nombre: 'RUC del proveedor', valor: '1790000000001' }],
+      docFields: [{ nombre: 'ruc proveedor', valor: 'otro' }],
+      doc: {},
+      company,
+      providerRuc,
+    });
+    expect(r).toEqual([{ nombre: 'RUC Proveedor', valor: providerRuc }]);
+  });
+});
+
 describe('validateAdditionalInfoInput', () => {
   it('acepta la placa y descarta filas vacías del formulario', () => {
     expect(validateAdditionalInfoInput([{ nombre: ' Placa ', valor: 'ABC-1234' }, { nombre: '', valor: '' }]))
@@ -59,10 +100,10 @@ describe('validateAdditionalInfoInput', () => {
     expect(() => validateAdditionalInfoInput([{ nombre: 'Placa', valor: ' ' }])).toThrow('falta el valor');
     expect(() => validateAdditionalInfoInput([{ nombre: '', valor: 'x' }])).toThrow('falta el nombre');
   });
-  it('cuenta los campos de la empresa en el tope de 15', () => {
+  it('cuenta los campos de la empresa y el RUC del proveedor en el tope de 15', () => {
     const f = Array.from({ length: 5 }, (_, i) => ({ nombre: `C${i}`, valor: 'x' }));
-    expect(() => validateAdditionalInfoInput(f, 11)).toThrow('ya usa 11');
-    expect(validateAdditionalInfoInput(f, 10)).toHaveLength(5);
+    expect(() => validateAdditionalInfoInput(f, 10)).toThrow('RUC del proveedor');
+    expect(validateAdditionalInfoInput(f, 9)).toHaveLength(5);
   });
   it('sin información adicional, lista vacía', () => {
     expect(validateAdditionalInfoInput(undefined)).toEqual([]);

@@ -6,6 +6,8 @@ import { formatFechaEmisionEC, formatFechaClaveAccesoEC } from '../utils/sri-dat
 import { resolveTipoIdentificacionComprador } from '../utils/sri-buyer-id';
 import { assertValidAccessKey } from '../utils/sri-access-key';
 import { resolveEmissionSeries, resolveEstablishmentAddress } from '../utils/establishments';
+import { buildAdditionalInfo } from '../utils/additional-info';
+import { resolveSoftwareProviderRuc } from '../utils/software-provider';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -201,10 +203,17 @@ export async function generateDebitNoteXmlInternal(
     motivo.ele('valor').txt(m.valor.toFixed(2));
   }
 
-  // <infoAdicional>
-  if (sriConfig.additionalInfoFields?.length > 0) {
+  // <infoAdicional> — los campos de la empresa, sin vacíos, y el «RUC Proveedor»
+  // del sistema que exige el SRI desde el 2026-09-26 (utils/additional-info.ts).
+  const infoAdicionalFields = buildAdditionalInfo({
+    companyFields: sriConfig.additionalInfoFields,
+    doc: dn as any,
+    company: { name: sriConfig.razonSocial, ruc },
+    providerRuc: await resolveSoftwareProviderRuc(company as any),
+  });
+  if (infoAdicionalFields.length > 0) {
     const infoAd = root.ele('infoAdicional');
-    for (const f of sriConfig.additionalInfoFields) {
+    for (const f of infoAdicionalFields) {
       infoAd.ele('campoAdicional', { nombre: f.nombre }).txt(f.valor);
     }
   }

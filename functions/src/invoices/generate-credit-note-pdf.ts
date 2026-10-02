@@ -5,6 +5,7 @@ import QRCode from 'qrcode';
 import { getStorage } from 'firebase-admin/storage';
 import { drawLogo, loadCompanyLogo } from '../utils/company-logo';
 import { buildAdditionalInfo } from '../utils/additional-info';
+import { resolveSoftwareProviderRuc } from '../utils/software-provider';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -492,6 +493,7 @@ export async function generateCreditNotePdfInternal(
     docFields: (creditNote as any).additionalInfo,
     doc: creditNote as any,
     company: { name: companyData['name'] ?? sriConfig.razonSocial, ruc: companyRuc },
+    providerRuc: await resolveSoftwareProviderRuc(companyData),
   });
 
   console.log('[generate-credit-note-pdf] Datos leídos. Generando QR...');

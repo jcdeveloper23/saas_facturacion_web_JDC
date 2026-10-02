@@ -5,6 +5,7 @@ import bwipjs from 'bwip-js';
 import { getStorage } from 'firebase-admin/storage';
 import { drawLogo, loadCompanyLogo } from '../utils/company-logo';
 import { buildAdditionalInfo } from '../utils/additional-info';
+import { resolveSoftwareProviderRuc } from '../utils/software-provider';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -748,6 +749,7 @@ export async function generatePdfInternal(
     docFields: (invoice as any).additionalInfo,
     doc: invoice as any,
     company: { name: companyData['name'] ?? sriConfig.razonSocial, ruc: companyRuc },
+    providerRuc: await resolveSoftwareProviderRuc(companyData),
   });
 
   console.log('[generate-pdf] Datos leídos. Generando código de barras...');

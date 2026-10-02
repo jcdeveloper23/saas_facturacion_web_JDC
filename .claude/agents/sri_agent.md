@@ -230,6 +230,32 @@ interface SriConfig {
 
 Detalle completo en `establishments_agent.md`.
 
+## Información adicional y «RUC Proveedor» (2026-10-02)
+
+- **Obligatorio desde el 2026-09-26** (Resolución **NAC-DGERCGC26-00000027**, RO del
+  2026-07-28; Ficha Técnica v2.34, anexo 26): **todo** comprobante electrónico (factura,
+  NC, ND, retención, guía de remisión, liquidación de compra) lleva en `<infoAdicional>`
+  `<campoAdicional nombre="RUC Proveedor">` con el RUC de quien comercializa el sistema.
+- FacturaEc lo comercializa **WECONNECT CORP. CIA. LTDA., RUC `0190434990001`**
+  (decisión del usuario, 2026-10-02).
+- `functions/src/utils/software-provider.ts` → `resolveSoftwareProviderRuc(company)`:
+  `channels/{channelId}.softwareProviderRuc` **>** `platform/defaults/sriConfig/data.softwareProviderRuc`
+  **>** `DEFAULT_SOFTWARE_PROVIDER_RUC`. Un valor que no sea `^\d{10}001$` se ignora.
+  Cambiarlo en Firestore no exige redesplegar (caché de 5 min por instancia).
+- `buildAdditionalInfo({ …, providerRuc })` (`utils/additional-info.ts`) lo pone **al
+  final**, con **cupo reservado** (el tope de 15 nunca lo desplaza) y **reemplaza** uno
+  escrito a mano («RUC Proveedor», «RUC del proveedor»). Lo usan los XML y RIDE de factura
+  y NC y los XML de retención y ND. `validateAdditionalInfoInput` deja **14** libres, y
+  Conecta (`additionalInfoMaxFields`) también.
+- ⛔ **Todo generador nuevo de XML** (guía de remisión, liquidación de compra…) debe pasar
+  por `buildAdditionalInfo` con `providerRuc`; sin él, el comprobante incumple la norma.
+- ⛔ Ningún `campoAdicional` vacío: el SRI devuelve el comprobante por estructura.
+- Al cambiar `additional-info.ts` o `software-provider.ts` se redespliegan **juntas**
+  (cada una lleva su copia compilada): `generateInvoiceXml`, `generateCreditNoteXml`,
+  `generatePdf`, `generateCreditNotePdf`, `generateRetentionXml`, `generateDebitNoteXml`,
+  `onInvoiceEmit`, `onRetentionEmit`, `onDebitNoteEmit`, `createAndEmitInvoice` y
+  `backfillNotRequiredInvoices`.
+
 ## Anti-patrones
 - Construir XML con concatenación de strings (usar builder o template literal controlado)
 - Hardcodear RUC del emisor (leer siempre de /companies/{id}/sriConfig)

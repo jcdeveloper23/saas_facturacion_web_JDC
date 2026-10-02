@@ -10,7 +10,11 @@
  *      plantillas como `${customer.email}` que se rellenan con el comprobante;
  *   2. los del propio comprobante (`additionalInfo`), p. ej. la placa del
  *      vehículo en una factura a un conductor (2026-09-30);
- *   3. el correo del comprador, si lo tiene y nadie lo puso ya.
+ *   3. el correo del comprador, si lo tiene y nadie lo puso ya;
+ *   4. el «RUC Proveedor» del sistema de facturación (utils/software-provider.ts),
+ *      obligatorio en todo comprobante desde el 2026-09-26. Tiene un cupo
+ *      reservado —nunca lo desplaza el tope de 15— y, si alguien lo escribió a
+ *      mano en la empresa o en el comprobante, se reemplaza por el bueno.
  *
  * Reglas del SRI: como mucho 15 `campoAdicional`, y ninguno vacío —un campo
  * vacío hace que rechace el comprobante por estructura—. Antes el XML escribía
@@ -21,6 +25,11 @@ export interface AdditionalInfoField { nombre: string; valor: string; }
 
 export const MAX_ADDITIONAL_INFO_FIELDS = 15;
 export const MAX_ADDITIONAL_INFO_LENGTH = 300;
+/** Cupos que no puede usar nadie más: el del «RUC Proveedor». */
+export const RESERVED_ADDITIONAL_INFO_FIELDS = 1;
+
+export const SOFTWARE_PROVIDER_FIELD_NAME = 'RUC Proveedor';
+const esRucProveedor = (nombre: string) => /^ruc\s*(del\s*)?proveedor$/i.test(nombre.trim());
 
 type Ctx = { invoice: Record<string, any>; customer: Record<string, any>; company: Record<string, any> };
 
@@ -41,6 +50,8 @@ export function buildAdditionalInfo(opts: {
   docFields?: AdditionalInfoField[] | null;
   doc: Record<string, any>;
   company: { name?: string; ruc?: string };
+  /** RUC del proveedor del sistema; sin él no se agrega (solo en pruebas). */
+  providerRuc?: string | null;
 }): AdditionalInfoField[] {
   const d = opts.doc;
   const ctx: Ctx = {
@@ -55,11 +66,14 @@ export function buildAdditionalInfo(opts: {
     company: { name: opts.company.name ?? '', ruc: opts.company.ruc ?? '' },
   };
 
+  const providerRuc = limpio(opts.providerRuc);
+  const tope = MAX_ADDITIONAL_INFO_FIELDS - (providerRuc ? RESERVED_ADDITIONAL_INFO_FIELDS : 0);
   const out: AdditionalInfoField[] = [];
   const add = (nombre: unknown, valor: unknown) => {
     const n = limpio(nombre);
     const v = limpio(valor);
-    if (n && v && out.length < MAX_ADDITIONAL_INFO_FIELDS) out.push({ nombre: n, valor: v });
+    if (providerRuc && esRucProveedor(n)) return; // va al final, con el valor bueno
+    if (n && v && out.length < tope) out.push({ nombre: n, valor: v });
   };
 
   for (const f of opts.companyFields ?? []) add(f?.nombre, resolveTemplate(f?.valor ?? '', ctx));
@@ -67,6 +81,7 @@ export function buildAdditionalInfo(opts: {
 
   const email = limpio(d.customerEmail);
   if (email.includes('@') && !out.some((f) => esCorreo(f.nombre))) add('Email', email);
+  if (providerRuc) out.push({ nombre: SOFTWARE_PROVIDER_FIELD_NAME, valor: providerRuc });
   return out;
 }
 
@@ -89,8 +104,10 @@ export function validateAdditionalInfoInput(raw: unknown, companyFieldCount = 0)
     }
     out.push({ nombre, valor });
   }
-  if (out.length + companyFieldCount > MAX_ADDITIONAL_INFO_FIELDS) {
-    throw new Error(`El SRI admite como mucho ${MAX_ADDITIONAL_INFO_FIELDS} campos de información adicional` +
+  const libres = MAX_ADDITIONAL_INFO_FIELDS - RESERVED_ADDITIONAL_INFO_FIELDS;
+  if (out.length + companyFieldCount > libres) {
+    throw new Error(`El SRI admite como mucho ${MAX_ADDITIONAL_INFO_FIELDS} campos de información adicional, ` +
+      `y uno es el RUC del proveedor del sistema: quedan ${libres}` +
       (companyFieldCount ? ` (la empresa ya usa ${companyFieldCount}).` : '.'));
   }
   return out;

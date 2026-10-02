@@ -1,6 +1,7 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import { buildAdditionalInfo } from '../utils/additional-info';
+import { resolveSoftwareProviderRuc } from '../utils/software-provider';
 // Se reexporta: las pruebas de sri-calculations lo importan de aquí.
 export { resolveTemplate } from '../utils/additional-info';
 import { create } from 'xmlbuilder2';
@@ -400,6 +401,7 @@ export async function generateInvoiceXmlInternal(
     docFields: (invoice as any).additionalInfo,
     doc: invoice as any,
     company: { name: company.name, ruc },
+    providerRuc: await resolveSoftwareProviderRuc(company as any),
   });
   if (infoAdicionalFields.length > 0) {
     const infoAdicional = root.ele('infoAdicional');
