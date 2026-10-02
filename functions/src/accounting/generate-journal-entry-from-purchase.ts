@@ -2,16 +2,20 @@ import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import * as admin from 'firebase-admin';
 import { logger } from 'firebase-functions/v2';
 import { getAccountMapping } from './utils/get-account-mapping';
+import {
+  ProductKind, buildPurchaseEntryLines, chosenExpenseCodes, purchaseAccountingDate,
+} from './utils/purchase-entry';
 
 // ─── Asiento automático al recibir una compra ──────────────────────────────────
 //
 // Trigger: onDocumentWritten en purchases cuando stockProcessed cambia a true
 // (disparado por onPurchaseReceive luego de actualizar el stock).
 //
-// Asiento generado:
-//   DÉBITO  1.1.03.001  Inventario de Mercaderías   = subtotal de líneas con stock
-//   DÉBITO  1.1.05.001  IVA en Compras (crédito tributario) = IVA de la compra
-//   CRÉDITO 2.1.01.001  Cuentas por Pagar Proveedores = total de la compra
+// Asiento generado (detalle y por qué en utils/purchase-entry.ts):
+//   DÉBITO  Inventario (mapeo)        = líneas de artículos con stock
+//   DÉBITO  Gasto de cada línea       = las demás (cuenta elegida o mapeo purchaseExpense)
+//   DÉBITO  1.1.05.001  IVA en Compras = totalTax
+//   CRÉDITO 2.1.01.001  CxP Proveedores = subtotal + IVA (las retenciones las asienta la retención)
 
 interface PurchaseLine {
   productId?: string;
@@ -85,95 +89,77 @@ export const generateJournalEntryFromPurchase = onDocumentWritten(
     const now = admin.firestore.Timestamp.now();
 
     try {
-      const fiscalYear = after.fiscalYear ?? new Date().getFullYear().toString();
+      // Año y fecha contables: los de la factura del proveedor (hora de Ecuador),
+      // no los de hoy. Antes tomaba el año en curso.
+      const fecha      = purchaseAccountingDate(after) ?? now.toDate();
+      const periodYear = new Date(fecha.getTime() - 5 * 3600 * 1000).getUTCFullYear();
 
-      // Resolve open accounting period
       const periodsSnap = await db
         .collection(`companies/${companyId}/accounting_periods`)
-        .where('year',   '==', parseInt(fiscalYear))
+        .where('year',   '==', periodYear)
         .where('status', '==', 'open')
         .limit(1)
         .get();
 
       if (periodsSnap.empty) {
-        logger.warn('[generateJournalEntryFromPurchase] No hay período contable abierto para el año', fiscalYear);
+        logger.warn('[generateJournalEntryFromPurchase] No hay período contable abierto para el año', periodYear);
+        await db.doc(`companies/${companyId}/purchases/${purchaseId}`).update({
+          accountingError: `No hay ejercicio ${periodYear} abierto: la compra no se contabilizó.`,
+          updatedAt: now,
+        });
         return;
       }
+      const periodId = periodsSnap.docs[0].id;
 
-      const periodDoc  = periodsSnap.docs[0];
-      const periodId   = periodDoc.id;
-      const periodYear = parseInt(fiscalYear);
+      // Qué líneas son inventario: el mismo criterio que onPurchaseReceive,
+      // leído del artículo (la línea no dice si lleva stock).
+      const lines = (after.lines ?? []) as Record<string, any>[];
+      const productIds = [...new Set(lines.map((l) => l.productId).filter(Boolean).map(String))];
+      const products = new Map<string, ProductKind>();
+      if (productIds.length) {
+        const snaps = await db.getAll(...productIds.map((id) => db.doc(`companies/${companyId}/products/${id}`)));
+        for (const p of snaps) if (p.exists) products.set(p.id, p.data() as ProductKind);
+      }
 
-      // Calculate inventory subtotal (only lines with stock tracking)
-      const lines       = after.lines ?? [];
-      const inventoryLines = lines.filter(l =>
-        l.trackStock !== false && l.type !== 'service' && (l.qty ?? 0) > 0
-      );
-
-      const inventorySubtotal = round2(
-        inventoryLines.reduce((s, l) => s + (l.subtotal ?? round2(l.qty * l.unitCost)), 0)
-      );
-
-      const ivaAmount = round2(after.vatAmount ?? 0);
-
-      if (inventorySubtotal <= 0 && ivaAmount <= 0) {
-        logger.info('[generateJournalEntryFromPurchase] Compra sin montos contabilizables — omitiendo.');
+      // Las cuentas de gasto que eligieron las líneas tienen que existir y
+      // admitir movimiento; si no, no se contabiliza (mejor un error visible
+      // que un asiento a una cuenta agrupadora o inexistente).
+      const expenseNames = new Map<string, string>();
+      const elegidas = chosenExpenseCodes(after, products);
+      for (let i = 0; i < elegidas.length; i += 30) {
+        const snap = await db.collection(`companies/${companyId}/chart_of_accounts`)
+          .where('code', 'in', elegidas.slice(i, i + 30)).get();
+        for (const d of snap.docs) {
+          const c = d.data();
+          if (c.allowsMovement === true && c.isActive !== false) expenseNames.set(String(c.code), String(c.name ?? c.code));
+        }
+      }
+      const malas = elegidas.filter((c) => !expenseNames.has(c));
+      if (malas.length) {
+        await db.doc(`companies/${companyId}/purchases/${purchaseId}`).update({
+          accountingError: `Cuenta de gasto inexistente, inactiva o agrupadora: ${malas.join(', ')}`,
+          updatedAt: now,
+        });
         return;
       }
 
       const ref      = after.fullNumber ?? purchaseId;
       const supplier = after.supplierName ?? 'Proveedor';
 
-      // inventory account comes from company settings; payable/IVA are fixed standard codes
       const companyMapping = await getAccountMapping(companyId);
-      const accounts = {
+      const built = buildPurchaseEntryLines(after, products, {
         inventory:       companyMapping.inventory,
+        purchaseExpense: companyMapping.purchaseExpense,
         ivaCredit:       PURCHASE_FIXED_ACCOUNTS.ivaCredit,
         accountsPayable: PURCHASE_FIXED_ACCOUNTS.accountsPayable,
-      };
+      }, expenseNames);
 
-      const entryLines: JournalEntryLine[] = [];
-
-      // DÉBITO: Inventario
-      if (inventorySubtotal > 0) {
-        entryLines.push({
-          id:            crypto.randomUUID(),
-          accountCode:   accounts.inventory.code,
-          accountName:   accounts.inventory.name,
-          debit:         inventorySubtotal,
-          credit:        0,
-          costCenterId:  after.costCenterId ?? null,
-          costCenterName:after.costCenterName ?? null,
-          description:   `Compra ${ref} — ${supplier}`
-        });
-      }
-
-      // DÉBITO: IVA en Compras (crédito tributario)
-      if (ivaAmount > 0) {
-        entryLines.push({
-          id:            crypto.randomUUID(),
-          accountCode:   accounts.ivaCredit.code,
-          accountName:   accounts.ivaCredit.name,
-          debit:         ivaAmount,
-          credit:        0,
-          costCenterId:  after.costCenterId ?? null,
-          costCenterName:after.costCenterName ?? null,
-          description:   `IVA compra ${ref}`
-        });
-      }
-
-      // CRÉDITO: Cuentas por Pagar Proveedores
-      const creditTotal = round2(inventorySubtotal + ivaAmount);
-      entryLines.push({
-        id:            crypto.randomUUID(),
-        accountCode:   accounts.accountsPayable.code,
-        accountName:   accounts.accountsPayable.name,
-        debit:         0,
-        credit:        creditTotal,
-        costCenterId:  after.costCenterId ?? null,
-        costCenterName:after.costCenterName ?? null,
-        description:   `CxP: ${supplier} — ${ref}`
-      });
+      const entryLines: JournalEntryLine[] = built.map((l) => ({
+        id:             crypto.randomUUID(),
+        ...l,
+        costCenterId:   after.costCenterId ?? null,
+        costCenterName: after.costCenterName ?? null,
+      }));
 
       const totalDebit  = round2(entryLines.reduce((s, l) => s + l.debit,  0));
       const totalCredit = round2(entryLines.reduce((s, l) => s + l.credit, 0));
@@ -208,7 +194,7 @@ export const generateJournalEntryFromPurchase = onDocumentWritten(
       const entryRef = db.collection(`companies/${companyId}/journal_entries`).doc();
       await entryRef.set({
         number:      entryNumber,
-        date:        after.date ?? now,
+        date:        admin.firestore.Timestamp.fromDate(fecha),
         description: `Compra ${ref} — ${supplier}`,
         periodId,
         periodYear,
@@ -228,6 +214,7 @@ export const generateJournalEntryFromPurchase = onDocumentWritten(
       // Back-reference on the purchase
       await db.doc(`companies/${companyId}/purchases/${purchaseId}`).update({
         accountingEntryId: entryRef.id,
+        accountingError:   admin.firestore.FieldValue.delete(),
         updatedAt:         now
       });
 

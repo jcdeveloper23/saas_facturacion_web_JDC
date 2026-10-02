@@ -54,6 +54,7 @@ export const MAPPING_LABELS: Record<string, string> = {
   accountsReceivable: 'Cuentas por cobrar a clientes',
   inventory: 'Inventario',
   cogs: 'Costo de ventas',
+  purchaseExpense: 'Compras que no son inventario (servicios y gastos)',
 };
 
 const r2 = (n: number) => Math.round(n * 100) / 100;

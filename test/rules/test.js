@@ -164,6 +164,49 @@ const num = v => ({ doubleValue: v });
     await create('companies/c1/retentions', 'r5', admin, { seriesEstablishment: str('001'), status: str('authorized') }), S.DENIED);
   await expectStatus('seller marca pagada una compra recibida (con updatedBy)',
     await patch('companies/c1/purchases/p1', seller, { isPaid: bool(true), status: str('paid'), updatedBy: str('libre') }), S.OK);
+  // ── compras (2026-10-02): quién las escribe y qué se puede tocar ─────────
+  await seed('companies/c1/purchases', 'pBorr', { status: str('draft'), total: num(10) });
+  await seed('companies/c1/purchases', 'pEnv', { status: str('sent'), total: num(10) });
+  await seed('companies/c1/purchases', 'pRec', { status: str('received'), isPaid: bool(false), total: num(10) });
+  await seed('companies/c1/purchases', 'pPag', { status: str('paid'), isPaid: bool(true), total: num(10) });
+  await seed('companies/c1/purchases', 'pCan', { status: str('cancelled'), total: num(10) });
+  const compra = { status: str('draft'), total: num(10) };
+  await expectStatus('el contador registra una compra',
+    await create('companies/c1/purchases', 'pc1', conta, compra), S.OK);
+  await expectStatus('el contador numera sus compras (counters/purchases)',
+    await create('companies/c1/counters', 'purchases', conta, { C_2026: num(1) }), S.OK);
+  await expectStatus('el contador NO toca el contador de facturas',
+    await create('companies/c1/counters', 'invoices', conta, { x: num(1) }), S.DENIED);
+  await expectStatus('el cajero NO registra compras',
+    await create('companies/c1/purchases', 'pc2', cashier, compra), S.DENIED);
+  await expectStatus('solo lectura NO registra compras',
+    await create('companies/c1/purchases', 'pc3', lector, compra), S.DENIED);
+  await expectStatus('una compra NO nace con el stock ya procesado',
+    await create('companies/c1/purchases', 'pc4', admin, { ...compra, stockProcessed: bool(true) }), S.DENIED);
+  await expectStatus('una compra NO nace con asiento',
+    await create('companies/c1/purchases', 'pc5', admin, { ...compra, accountingEntryId: str('x') }), S.DENIED);
+  await expectStatus('una compra NO nace pagada',
+    await create('companies/c1/purchases', 'pc6', admin, { ...compra, status: str('paid') }), S.DENIED);
+  await expectStatus('seller edita un borrador',
+    await patch('companies/c1/purchases/pBorr', seller, { total: num(12) }), S.OK);
+  await expectStatus('seller recibe una compra enviada',
+    await patch('companies/c1/purchases/pEnv', seller, { status: str('received') }), S.OK);
+  await expectStatus('nadie marca el stock como procesado desde el cliente',
+    await patch('companies/c1/purchases/pBorr', admin, { stockProcessed: bool(true) }), S.DENIED);
+  await expectStatus('NO se edita una compra recibida',
+    await patch('companies/c1/purchases/pRec', admin, { total: num(99) }), S.DENIED);
+  await expectStatus('NO se edita una compra pagada (antes sí)',
+    await patch('companies/c1/purchases/pPag', admin, { total: num(99) }), S.DENIED);
+  await expectStatus('NO se edita una compra cancelada (antes sí)',
+    await patch('companies/c1/purchases/pCan', admin, { total: num(99), status: str('draft') }), S.DENIED);
+  await expectStatus('un «pago» NO devuelve una compra pagada a recibida (dispararía el stock)',
+    await patch('companies/c1/purchases/pPag', conta, { status: str('received') }), S.DENIED);
+  await expectStatus('NO se paga una compra en borrador',
+    await patch('companies/c1/purchases/pBorr', admin, { isPaid: bool(true), status: str('paid') }), S.DENIED);
+  await expectStatus('el contador paga una compra recibida',
+    await patch('companies/c1/purchases/pRec', conta, { isPaid: bool(true), status: str('paid'), paymentBankAccountId: str('b1') }), S.OK);
+  await expectStatus('el cajero NO paga compras',
+    await patch('companies/c1/purchases/p1', cashier, { paymentBankAccountId: str('b2') }), S.DENIED);
   await expectStatus('cajero de la 002 cobra una factura de la 001 con updatedBy',
     await patch('companies/c1/invoices/a3', caja2, { isPaid: bool(true), status: str('paid'), updatedBy: str('caja2') }), S.OK);
   await expectStatus('seller crea un proyecto',

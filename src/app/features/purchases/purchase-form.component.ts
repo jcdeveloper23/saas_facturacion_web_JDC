@@ -226,8 +226,9 @@ export class PurchaseFormComponent implements OnInit, OnDestroy {
     return (this.purchase()?.status ?? 'draft') as PurchaseStatus;
   });
 
+  // Solo borrador y enviada se editan: es lo que dejan las reglas (2026-10-02).
   isReadOnly = computed(() =>
-    this.currentStatus() === 'received' || this.currentStatus() === 'cancelled'
+    !['draft', 'sent'].includes(this.currentStatus())
   );
 
   pageTitle = computed(() => {
