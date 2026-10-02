@@ -70,8 +70,11 @@ function getOriginApp(origin: string): admin.app.App {
   return app;
 }
 
+// minInstances: 1 — una instancia siempre encendida. Entrar a Contabilidad
+// desde Conecta pasa por aquí, y en frío el arranque costaba 2–4 s (medido en
+// Cloud Logging el 2026-10-02; la entrada completa rondaba los 10 s).
 export const exchangeToken = onRequest(
-  { cors: true },
+  { cors: true, minInstances: 1 },
   async (req, res) => {
     if (req.method !== 'POST') {
       res.status(405).json({ error: 'method-not-allowed', message: 'Usar POST.' });
