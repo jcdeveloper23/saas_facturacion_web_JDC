@@ -729,7 +729,11 @@ service cloud.firestore {
                       && (isAdmin() || isAccountant())
                       && resource.data.get('type', 'manual') != 'automatic'
                       && resource.data.status != 'cancelled'
-                      && request.resource.data.status != 'draft';
+                      // Un borrador se edita y sigue borrador; lo contabilizado
+                      // no vuelve a borrador. Antes exigía status != 'draft'
+                      // siempre, y un borrador no se podía editar (2026-10-05).
+                      && (resource.data.status == 'draft'
+                          || request.resource.data.status != 'draft');
 
         // DELETE — only draft manual entries; admin only.
         allow delete: if isAuthenticated() && belongsToCompany(companyId) && isAdmin()

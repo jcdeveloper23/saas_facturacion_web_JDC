@@ -494,6 +494,8 @@ const num = v => ({ doubleValue: v });
     await create('companies/c1/journal_entries', 'je1', conta, { status: str('draft'), type: str('manual') }), S.OK);
   await expectStatus('el vendedor NO crea asientos',
     await create('companies/c1/journal_entries', 'je2', seller, { status: str('draft'), type: str('manual') }), S.DENIED);
+  await expectStatus('el contador edita su borrador y sigue en borrador',
+    await patch('companies/c1/journal_entries/je1', conta, { description: str('Ajuste de caja') }), S.OK);
   await expectStatus('el contador lo contabiliza',
     await patch('companies/c1/journal_entries/je1', conta, { status: str('posted') }), S.OK);
   await expectStatus('contabilizado no vuelve a borrador',
