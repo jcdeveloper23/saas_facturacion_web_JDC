@@ -28,6 +28,12 @@ import {
 } from './utils/chart-seed';
 import { generateJournalEntryFromInvoiceInternal } from './generate-journal-entry-from-invoice';
 import { generateJournalEntryFromCreditNoteInternal } from './generate-journal-entry-from-credit-note';
+import { generateJournalEntryFromPurchaseInternal } from './generate-journal-entry-from-purchase';
+import {
+  EntryResult, ecuadorYear, ecuadorYearRange, generatePaymentEntryInternal,
+  paymentNeedsEntry, purchaseNeedsEntry,
+} from './utils/payment-entry';
+import { purchaseAccountingDate } from './utils/purchase-entry';
 
 const ROLES = ['admin', 'accountant'];
 
@@ -112,6 +118,42 @@ async function loadAccounts(db: admin.firestore.Firestore, companyId: string): P
   return m;
 }
 
+/** Lo que de un año debería tener asiento y no lo tiene, por tipo. */
+export type PendingKind = 'invoices' | 'purchases' | 'invoicePayments' | 'purchasePayments';
+
+type Docs = admin.firestore.QueryDocumentSnapshot[];
+
+/**
+ * Facturas y NC (por `fiscalYear`), compras recibidas (por el año de la factura
+ * del proveedor), cobros y pagos (por el año de `paidAt`, hora de Ecuador).
+ * Las consultas son de un solo campo, para no necesitar índices compuestos; lo
+ * demás se filtra aquí.
+ */
+async function findPending(db: admin.firestore.Firestore, companyId: string, year: number)
+    : Promise<Record<PendingKind, Docs>> {
+  const base = `companies/${companyId}`;
+  const { from, to } = ecuadorYearRange(year);
+  const paidIn = (col: string) => db.collection(`${base}/${col}`)
+    .where('paidAt', '>=', admin.firestore.Timestamp.fromDate(from))
+    .where('paidAt', '<', admin.firestore.Timestamp.fromDate(to)).get();
+  const [invoices, purchases, invoicesPaid, purchasesPaid] = await Promise.all([
+    db.collection(`${base}/invoices`).where('fiscalYear', '==', String(year)).get(),
+    db.collection(`${base}/purchases`).where('stockProcessed', '==', true).get(),
+    paidIn('invoices'),
+    paidIn('purchases'),
+  ]);
+  return {
+    invoices: invoices.docs.filter((d) => needsEntry(d.data())),
+    purchases: purchases.docs.filter((d) => {
+      const x = d.data();
+      const fecha = purchaseAccountingDate(x as any);
+      return purchaseNeedsEntry(x) && !!fecha && ecuadorYear(fecha) === year;
+    }),
+    invoicePayments: invoicesPaid.docs.filter((d) => paymentNeedsEntry(d.data())),
+    purchasePayments: purchasesPaid.docs.filter((d) => paymentNeedsEntry(d.data())),
+  };
+}
+
 async function openPeriodOf(db: admin.firestore.Firestore, companyId: string, year: number) {
   const q = await db.collection(`companies/${companyId}/accounting_periods`)
     .where('year', '==', year).where('status', '==', 'open').limit(1).get();
@@ -122,8 +164,9 @@ async function openPeriodOf(db: admin.firestore.Firestore, companyId: string, ye
 
 /**
  * En qué punto está la puesta en marcha para un año. Payload: { companyId, year }.
- * `pendingEntries` cuenta las facturas y NC de ese año que deberían tener asiento
- * y no lo tienen (se recuperan con `regenerateJournalEntries`).
+ * `pendingEntries` cuenta lo de ese año que debería tener asiento y no lo tiene
+ * —facturas y NC; desde 2026-10-05 también compras recibidas, cobros y pagos—,
+ * con el desglose en `pendingByKind` (se recuperan con `regenerateJournalEntries`).
  */
 export const accountingSetupStatus = onCall(async (request) => {
   const companyId = readCompanyId(request.data);
@@ -131,11 +174,11 @@ export const accountingSetupStatus = onCall(async (request) => {
   requireCompanyRole(request, companyId, ROLES);
   const db = admin.firestore();
 
-  const [accounts, settings, period, invoices] = await Promise.all([
+  const [accounts, settings, period, pending] = await Promise.all([
     loadAccounts(db, companyId),
     db.doc(`companies/${companyId}/settings/accounting`).get(),
     openPeriodOf(db, companyId, year),
-    db.collection(`companies/${companyId}/invoices`).where('fiscalYear', '==', String(year)).get(),
+    findPending(db, companyId, year),
   ]);
 
   const mapping = effectiveMapping(settings.data()?.accountMapping);
@@ -166,7 +209,10 @@ export const accountingSetupStatus = onCall(async (request) => {
       status: period.get('status'),
       openingEntryId: period.get('openingEntryId') ?? null,
     } : null,
-    pendingEntries: invoices.docs.filter((d) => needsEntry(d.data())).length,
+    // Desde 2026-10-05 cuenta también compras, cobros y pagos; el desglose,
+    // en pendingByKind.
+    pendingEntries: Object.values(pending).reduce((n, l) => n + l.length, 0),
+    pendingByKind: Object.fromEntries(Object.entries(pending).map(([k, l]) => [k, l.length])),
   };
 });
 
@@ -356,26 +402,52 @@ export const regenerateJournalEntries = onCall({ timeoutSeconds: 540, memory: '5
   if (!(await openPeriodOf(db, companyId, year))) {
     throw new HttpsError('failed-precondition', `Primero abre el ejercicio ${year}.`);
   }
-  const snap = await db.collection(`companies/${companyId}/invoices`).where('fiscalYear', '==', String(year)).get();
-  const pendientes = snap.docs.filter((d) => needsEntry(d.data()));
+  const pending = await findPending(db, companyId, year);
 
-  let created = 0;
-  const motivos: Record<string, number> = {};
-  const errores: string[] = [];
-  for (const d of pendientes) {
+  const tareas: Array<{ kind: PendingKind; label: string; run: () => Promise<EntryResult> }> = [];
+  for (const d of pending.invoices) {
     const x = d.data();
     const esNota = x.isCreditNote === true || x.documentType === 'creditNote';
+    tareas.push({
+      kind: 'invoices',
+      label: x.fullNumber ?? d.id,
+      run: () => esNota
+        ? generateJournalEntryFromCreditNoteInternal(companyId, d.id)
+        : generateJournalEntryFromInvoiceInternal(companyId, d.id),
+    });
+  }
+  for (const d of pending.purchases) {
+    tareas.push({ kind: 'purchases', label: d.get('fullNumber') ?? d.id,
+      run: () => generateJournalEntryFromPurchaseInternal(companyId, d.id) });
+  }
+  for (const d of pending.invoicePayments) {
+    tareas.push({ kind: 'invoicePayments', label: `cobro ${d.get('fullNumber') ?? d.id}`,
+      run: () => generatePaymentEntryInternal(companyId, 'invoice', d.id) });
+  }
+  for (const d of pending.purchasePayments) {
+    tareas.push({ kind: 'purchasePayments', label: `pago ${d.get('fullNumber') ?? d.id}`,
+      run: () => generatePaymentEntryInternal(companyId, 'purchase', d.id) });
+  }
+
+  let created = 0;
+  const byKind: Record<string, number> = {};
+  const motivos: Record<string, number> = {};
+  const errores: string[] = [];
+  // En serie: cada asiento toma su número del mismo contador.
+  for (const t of tareas) {
     try {
-      const r = esNota
-        ? await generateJournalEntryFromCreditNoteInternal(companyId, d.id)
-        : await generateJournalEntryFromInvoiceInternal(companyId, d.id);
-      if (r.created) created++;
-      else motivos[r.reason ?? 'desconocido'] = (motivos[r.reason ?? 'desconocido'] ?? 0) + 1;
+      const r = await t.run();
+      if (r.created) {
+        created++;
+        byKind[t.kind] = (byKind[t.kind] ?? 0) + 1;
+      } else {
+        motivos[r.reason ?? 'desconocido'] = (motivos[r.reason ?? 'desconocido'] ?? 0) + 1;
+      }
     } catch (e: any) {
       motivos.error = (motivos.error ?? 0) + 1;
-      if (errores.length < 5) errores.push(`${x.fullNumber ?? d.id}: ${e?.message ?? e}`);
+      if (errores.length < 5) errores.push(`${t.label}: ${e?.message ?? e}`);
     }
   }
-  console.log('[regenerateJournalEntries]', { companyId, year, pendientes: pendientes.length, created, motivos });
-  return { pending: pendientes.length, created, skipped: motivos, errors: errores };
+  console.log('[regenerateJournalEntries]', { companyId, year, pendientes: tareas.length, created, byKind, motivos });
+  return { pending: tareas.length, created, createdByKind: byKind, skipped: motivos, errors: errores };
 });

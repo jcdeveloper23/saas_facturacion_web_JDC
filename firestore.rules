@@ -513,9 +513,11 @@ service cloud.firestore {
         // Written atomically via runTransaction from Angular services
         // (invoices, retentions, purchases sequential numbering).
         allow read:  if isAuthenticated() && belongsToCompany(companyId);
-        // El contador numera sus compras (counters/purchases), nada más.
+        // El contador numera sus compras y sus asientos manuales, nada más.
+        // Sin 'journal_entries' (hasta 2026-10-05) el contador no podía crear
+        // un asiento: la numeración en transacción le daba permiso denegado.
         allow write: if isAuthenticated() && belongsToCompany(companyId)
-                     && (canWrite() || (isAccountant() && id == 'purchases'));
+                     && (canWrite() || (isAccountant() && id in ['purchases', 'journal_entries']));
       }
 
       match /stock-movements/{id} {

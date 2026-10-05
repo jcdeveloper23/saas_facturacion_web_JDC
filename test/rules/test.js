@@ -485,5 +485,19 @@ const num = v => ({ doubleValue: v });
     await patch('companies/c1/invoices/alEmitir', cashier, {
       isPaid: bool(true), paidAt: { timestampValue: new Date().toISOString() }, paymentBankAccountId: str('b1') }), S.OK);
 
+  // ── asientos manuales (3.2, 2026-10-05): el contador numera y crea ─────
+  await expectStatus('el contador numera asientos (counters/journal_entries)',
+    await patch('companies/c1/counters/journal_entries', conta, { journal_2026: num(1) }), S.OK);
+  await expectStatus('el contador NO toca la numeración de facturas',
+    await patch('companies/c1/counters/invoices', conta, { n_2026: num(9) }), S.DENIED);
+  await expectStatus('el contador crea un asiento en borrador',
+    await create('companies/c1/journal_entries', 'je1', conta, { status: str('draft'), type: str('manual') }), S.OK);
+  await expectStatus('el vendedor NO crea asientos',
+    await create('companies/c1/journal_entries', 'je2', seller, { status: str('draft'), type: str('manual') }), S.DENIED);
+  await expectStatus('el contador lo contabiliza',
+    await patch('companies/c1/journal_entries/je1', conta, { status: str('posted') }), S.OK);
+  await expectStatus('contabilizado no vuelve a borrador',
+    await patch('companies/c1/journal_entries/je1', conta, { status: str('draft') }), S.DENIED);
+
   report();
 })();
