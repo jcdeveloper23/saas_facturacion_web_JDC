@@ -188,12 +188,22 @@ service cloud.firestore {
       return collection in [
         'company-users', 'configuration', 'counters', 'customers', 'debitNotes',
         'electronic-documents', 'establishments', 'families', 'imported-xml', 'invoices',
-        'settings',
+        'paymentMethods', 'settings',
         'manufacturers', 'orders', 'personas', 'products', 'purchases', 'quotes',
         'retentions', 'stock-movements', 'stock-transfers', 'suppliers',
         'tm-members', 'tm-positions', 'tm-projects', 'tm-requests', 'tm-specialties',
         'tm-tasks', 'tm-timesheets', 'usage', 'warehouses'
       ];
+    }
+
+    // Forma de pago: el código tiene que ser de la Tabla 24 del SRI (uno
+    // inventado haría rechazar el comprobante) y el nombre, corto y no vacío.
+    function paymentMethodShapeOk() {
+      let d = request.resource.data;
+      return d.name is string && d.name.size() > 0 && d.name.size() <= 60
+          && d.sriCode in ['01', '15', '16', '17', '18', '19', '20', '21']
+          && d.get('bankAccountId', '') is string
+          && d.get('isActive', true) is bool;
     }
 
     function isAccountingGovernedCollection(collection) {
@@ -740,6 +750,20 @@ service cloud.firestore {
         allow create, update:  if isAuthenticated() && belongsToCompany(companyId)
                                && (isAdmin() || isAccountant());
         allow delete:          if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
+      }
+
+      // ─── Formas de pago de la empresa (2026-10-05) ────────────────────────
+      // Nombre propio («Transferencia Pichincha», «DeUna») + código de la
+      // Tabla 24 del SRI, que es lo que va al XML, + la cuenta (bank_accounts)
+      // donde entra o sale el dinero. Las lee todo usuario de la empresa: el
+      // cajero las elige al facturar y al cobrar sin poder leer bank_accounts.
+      // Las escriben el admin y el contador; borrar, solo el admin.
+      match /paymentMethods/{methodId} {
+        allow read:           if isAuthenticated() && belongsToCompany(companyId);
+        allow create, update: if isAuthenticated() && belongsToCompany(companyId)
+                              && (isAdmin() || isAccountant())
+                              && paymentMethodShapeOk();
+        allow delete:         if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
       }
 
       // ─── Bank Statements + Transactions (subcollection) ───────────────────

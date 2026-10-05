@@ -453,5 +453,37 @@ const num = v => ({ doubleValue: v });
   await expectStatus('el contador NO crea artículos (no tiene products.create)',
     await create('companies/c1/products', 'p5', conta, { sku: str('A-5'), name: str('W') }), S.DENIED);
 
+  // ── formas de pago de la empresa (2026-10-05) ───────────────────────────
+  const forma = (name, code, cuenta = '') => ({
+    name: str(name), sriCode: str(code), bankAccountId: str(cuenta), isActive: bool(true) });
+  await expectStatus('el admin crea una forma de pago',
+    await create('companies/c1/paymentMethods', 'fp1', admin, forma('Transferencia Pichincha', '20', 'b1')), S.OK);
+  await expectStatus('el contador crea una forma de pago',
+    await create('companies/c1/paymentMethods', 'fp2', conta, forma('Efectivo caja', '01', 'b2')), S.OK);
+  await expectStatus('el vendedor NO crea formas de pago (la regla por defecto se lo daría)',
+    await create('companies/c1/paymentMethods', 'fp3', seller, forma('Otra', '20')), S.DENIED);
+  await expectStatus('el cajero NO crea formas de pago',
+    await create('companies/c1/paymentMethods', 'fp4', cashier, forma('Otra', '20')), S.DENIED);
+  await expectStatus('un código que no es de la Tabla 24 no entra',
+    await create('companies/c1/paymentMethods', 'fp5', admin, forma('Inventada', '99')), S.DENIED);
+  await expectStatus('el nombre no puede ir vacío',
+    await create('companies/c1/paymentMethods', 'fp6', admin, forma('', '01')), S.DENIED);
+  await expectStatus('el cajero las lee (las elige al facturar)',
+    await req('companies/c1/paymentMethods/fp1', cashier), S.OK);
+  await expectStatus('otra empresa no las lee',
+    await req('companies/c1/paymentMethods/fp1', ajeno), S.DENIED);
+  await expectStatus('el contador NO borra formas de pago',
+    await del('companies/c1/paymentMethods/fp2', conta), S.DENIED);
+  await expectStatus('el admin borra una forma de pago',
+    await del('companies/c1/paymentMethods/fp2', admin), S.OK);
+
+  // Cobrar al emitir: Conecta marca isPaid SIN cambiar el estado, para que la
+  // factura siga 'issued' y el asiento de la venta salga al autorizarla.
+  await seed('companies/c1/invoices', 'alEmitir', {
+    seriesEstablishment: str('001'), status: str('issued'), isPaid: bool(false), total: num(10) });
+  await expectStatus('el cajero la cobra al emitir sin tocar el estado',
+    await patch('companies/c1/invoices/alEmitir', cashier, {
+      isPaid: bool(true), paidAt: { timestampValue: new Date().toISOString() }, paymentBankAccountId: str('b1') }), S.OK);
+
   report();
 })();
