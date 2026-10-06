@@ -6,7 +6,10 @@ set -euo pipefail
 # antes de seguir. La 4 (pipeline del SRI) al final, y después emitir una factura de
 # prueba en la empresa OG4ydEyOAhtsNmkOjc1P (ambiente de pruebas) y comprobar el correo.
 # Verificar al terminar: firebase functions:list --project accounting-system-a5c9f --json
-#   -> las 81 en nodejs22 (agrupar por "hash" dice qué salió en qué tanda).
+#   -> las 90 en nodejs22 (agrupar por "hash" dice qué salió en qué tanda).
+# Las 90 = todo lo que exporta functions/src/index.ts menos getAuthToken. Al
+# agregar una function nueva, sumarla a una tanda: la tanda 5 faltó hasta el
+# 2026-10-06 y un redeploy con este script habría dejado fuera 9 functions.
 # Ojo: cada tanda despliega el código de HEAD de esas functions, no solo el runtime.
 cd functions && npm run build && cd ..
 
@@ -21,3 +24,6 @@ firebase deploy --project accounting-system-a5c9f --only functions:portalGetComp
 
 # Tanda 4-pipeline-sri (20)
 firebase deploy --project accounting-system-a5c9f --only functions:createAndEmitInvoice,functions:onInvoiceEmit,functions:onInvoiceStock,functions:onRetentionEmit,functions:onDebitNoteEmit,functions:signXml,functions:sendToSri,functions:checkSriStatus,functions:generateInvoiceXml,functions:generateCreditNoteXml,functions:generateDebitNoteXml,functions:generateRetentionXml,functions:generatePdf,functions:generateCreditNotePdf,functions:generateDebitNotePdf,functions:generateRetentionPdf,functions:sendInvoiceEmail,functions:sendCreditNoteEmail,functions:sendDebitNoteEmail,functions:sendRetentionEmail 2>&1 | tee deploy-node22-4-pipeline-sri.log
+
+# Tanda 5-puesta-en-marcha-importacion-smtp (9) — agregada el 2026-10-06
+firebase deploy --project accounting-system-a5c9f --only functions:accountingSetupStatus,functions:seedChartOfAccounts,functions:openAccountingPeriod,functions:saveOpeningBalances,functions:regenerateJournalEntries,functions:importInvoices,functions:portalListCompanyUsers,functions:getPlatformSmtp,functions:savePlatformSmtp 2>&1 | tee deploy-node22-5-puesta-en-marcha-importacion-smtp.log

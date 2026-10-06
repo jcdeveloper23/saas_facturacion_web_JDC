@@ -1,4 +1,5 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
+import { DEFAULT_COMPANY_TAX_RATES } from '../utils/sri-vat-codes';
 import * as admin from 'firebase-admin';
 import { Timestamp } from 'firebase-admin/firestore';
 import { buildMainEstablishment } from '../utils/establishments';
@@ -205,12 +206,9 @@ export const setupCompany = onCall(async (request) => {
 
   const taxRates = !taxRatesSnap.empty
     ? (console.log('[setupCompany] taxRates: Firestore'), taxRatesSnap.docs.map(d => d.data() as Record<string, any>).filter(d => d['isActive'] !== false))
-    : (console.log('[setupCompany] taxRates: HARDCODED fallback'), [
-        { code: 'VAT15', name: 'IVA 15%',  rate: 15, sriCode: '3', isDefault: true  },
-        { code: 'VAT5',  name: 'IVA 5%',   rate: 5,  sriCode: '5', isDefault: false },
-        { code: 'VAT0',  name: 'IVA 0%',   rate: 0,  sriCode: '2', isDefault: false },
-        { code: 'EXEMPT',name: 'Exento',   rate: 0,  sriCode: '6', isDefault: false },
-      ]);
+    // Respaldo con los códigos de la tabla 17 (2026-10-06): antes 15 % → '3'
+    // (14 %), 0 % → '2' (12 %) y «Exento» con el 6, que es «no objeto».
+    : (console.log('[setupCompany] taxRates: HARDCODED fallback'), DEFAULT_COMPANY_TAX_RATES.map((t) => ({ ...t })));
 
   const paymentTerms = !paymentTermsSnap.empty
     ? (console.log('[setupCompany] paymentTerms: Firestore'), paymentTermsSnap.docs.map(d => d.data() as Record<string, any>).filter(d => d['isActive'] !== false))

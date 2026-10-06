@@ -1,4 +1,5 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
+import { sriVatCode } from '../utils/sri-vat-codes';
 import * as admin from 'firebase-admin';
 import { buildAdditionalInfo } from '../utils/additional-info';
 import { resolveSoftwareProviderRuc } from '../utils/software-provider';
@@ -126,13 +127,9 @@ function deriveSriTaxCode(
   taxRate: number,
   taxCodes: SriPlatformConfig['taxCodes']
 ): string {
-  const match = taxCodes.find(tc => tc.vatPct === taxRate);
-  if (match) return match.sriCode;
-  // Fallback map — SRI Ficha Técnica v2.32 TABLA 17
-  if (taxRate === 15) return '4'; // IVA 15% → código 4
-  if (taxRate === 5)  return '5';
-  if (taxRate === 0)  return '2';
-  return '2';
+  // La tabla 17, en un solo sitio (utils/sri-vat-codes.ts, 2026-10-06). El
+  // respaldo de aquí mandaba el 0 % como '2', que es el 12 %.
+  return sriVatCode(taxRate, taxCodes);
 }
 
 /** Resolve ${invoice.field} / ${customer.field} / ${company.field} templates */
@@ -202,7 +199,7 @@ export async function generateCreditNoteXmlInternal(
         taxCodes: [
           { vatPct: 15, sriCode: '4' }, // SRI TABLA 17 v2.32: IVA 15% → código 4
           { vatPct: 5,  sriCode: '5' },
-          { vatPct: 0,  sriCode: '2' },
+          { vatPct: 0,  sriCode: '0' }, // tabla 17: IVA 0 % → código 0 (el 2 es el 12 %)
         ],
       };
 

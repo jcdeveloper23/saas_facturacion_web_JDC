@@ -18,15 +18,10 @@
 //
 // Solo lógica pura.
 
-/** IVA: tarifa → código de porcentaje (Tabla 17 de la ficha técnica). */
-export const IVA_PERCENTAGE_CODES: Record<number, string> = {
-  0: '0',
-  5: '5',
-  12: '2',
-  13: '10',
-  14: '3',
-  15: '4',
-};
+import { SRI_VAT_CODES } from '../utils/sri-vat-codes';
+
+/** IVA: tarifa → código de porcentaje (tabla 17), la tabla común. */
+export const IVA_PERCENTAGE_CODES = SRI_VAT_CODES;
 
 export function ivaPercentageCode(rate: number): string {
   const code = IVA_PERCENTAGE_CODES[Math.round(rate * 100) / 100];

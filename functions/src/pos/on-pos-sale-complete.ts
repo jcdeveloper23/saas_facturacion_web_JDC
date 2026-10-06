@@ -1,4 +1,5 @@
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
+import { sriVatCode } from '../utils/sri-vat-codes';
 import * as admin from 'firebase-admin';
 import { logger } from 'firebase-functions/v2';
 import { FieldValue } from 'firebase-admin/firestore';
@@ -336,13 +337,9 @@ function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }
 
-/** Derivar código SRI de IVA desde el porcentaje si no viene explícito del POS */
+/** Derivar código SRI de IVA desde el porcentaje si no viene explícito del POS.
+ *  Tabla 17 en un solo sitio (2026-10-06): aquí el 15 % salía como '3' (14 %) y
+ *  el 0 % como '2' (12 %). */
 function vatPctToSriCode(vatPct: number): string {
-  switch (vatPct) {
-    case 0:  return '2';  // IVA 0%
-    case 5:  return '5';  // IVA 5%
-    case 8:  return '8';  // IVA 8%
-    case 15: return '3';  // IVA 15%
-    default: return '2';
-  }
+  return sriVatCode(vatPct);
 }

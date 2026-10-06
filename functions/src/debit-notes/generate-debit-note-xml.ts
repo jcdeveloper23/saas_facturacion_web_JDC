@@ -1,4 +1,5 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
+import { sriVatCode } from '../utils/sri-vat-codes';
 import * as admin from 'firebase-admin';
 import { create } from 'xmlbuilder2';
 import { getStorage } from 'firebase-admin/storage';
@@ -82,11 +83,9 @@ function extractSecuencial(fullNumber: string): string {
 }
 
 function sriCodeForVat(vatPct: number, taxCodes?: SriPlatformConfig['taxCodes']): string {
-  const match = taxCodes?.find(tc => tc.vatPct === vatPct);
-  if (match) return match.sriCode;
-  if (vatPct === 15) return '3';
-  if (vatPct === 5)  return '5';
-  return '2';
+  // Tabla 17 en un solo sitio (2026-10-06): el respaldo de aquí daba el 15 %
+  // como '3' (14 %) y el 0 % como '2' (12 %).
+  return sriVatCode(vatPct, taxCodes);
 }
 
 // ─── Core logic ───────────────────────────────────────────────────────────────
