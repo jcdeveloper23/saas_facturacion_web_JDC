@@ -501,5 +501,34 @@ const num = v => ({ doubleValue: v });
   await expectStatus('contabilizado no vuelve a borrador',
     await patch('companies/c1/journal_entries/je1', conta, { status: str('draft') }), S.DENIED);
 
+  // ── retenciones (2.2, 2026-10-06) ─────────────────────────────────────────
+  const ret = (extra = {}) => ({ seriesEstablishment: str('001'), seriesEmissionPoint: str('001'),
+    status: str('issued'), totalRetained: num(5), ...extra });
+  await expectStatus('el contador numera retenciones (counters/retentions)',
+    await patch('companies/c1/counters/retentions', conta, { n_001_001_2026: num(1) }), S.OK);
+  await expectStatus('el contador emite una retención',
+    await create('companies/c1/retentions', 'rc1', conta, ret()), S.OK);
+  await expectStatus('nadie crea una retención ya autorizada',
+    await create('companies/c1/retentions', 'rc2', admin, ret({ sriStatus: str('authorized') })), S.DENIED);
+  await expectStatus('ni con número de autorización',
+    await create('companies/c1/retentions', 'rc3', admin, ret({ authorizationNumber: str('123') })), S.DENIED);
+  await seed('companies/c1/retentions', 'rechazada', { ...ret(), sriStatus: str('rejected'), sriError: str('x') });
+  await expectStatus('el cliente no la marca autorizada',
+    await patch('companies/c1/retentions/rechazada', admin, { sriStatus: str('authorized') }), S.DENIED);
+  await expectStatus('reintentar: borrar sriStatus y sriError, sí',
+    await patch('companies/c1/retentions/rechazada', admin, { sriStatus: undefined, sriError: undefined }), S.OK);
+
+  // La compra recibida se liga a su retención, una vez.
+  await seed('companies/c1/purchases', 'pRec', { status: str('received'), stockProcessed: bool(true), total: num(100) });
+  await seed('companies/c1/purchases', 'pRec2', { status: str('received'), stockProcessed: bool(true), total: num(100) });
+  await expectStatus('el vendedor liga la compra recibida a su retención',
+    await patch('companies/c1/purchases/pRec', seller, { retentionId: str('rc1') }), S.OK);
+  await expectStatus('una compra ya ligada no cambia de retención',
+    await patch('companies/c1/purchases/pRec', seller, { retentionId: str('rechazada') }), S.DENIED);
+  await expectStatus('no se liga a una retención que no existe',
+    await patch('companies/c1/purchases/pRec2', seller, { retentionId: str('noExiste') }), S.DENIED);
+  await expectStatus('ligar no deja cambiar el total de paso',
+    await patch('companies/c1/purchases/pRec2', seller, { retentionId: str('rc1'), total: num(1) }), S.DENIED);
+
   report();
 })();

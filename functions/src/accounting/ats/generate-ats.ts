@@ -602,13 +602,16 @@ export const generateAts = onCall<GenerateAtsInput>(
         if (ret) {
           for (const tax of ret.taxes ?? []) {
             if (tax.taxCode !== '2') continue; // solo IVA
-            switch (tax.pctCode) {
-              case '9':  ivaRet.valRetBien10      += tax.retainedAmount; break;
-              case '10': ivaRet.valRetServ20      += tax.retainedAmount; break;
-              case '3':  ivaRet.valorRetBienes    += tax.retainedAmount; break;
-              case '4':  ivaRet.valorRetServicios += tax.retainedAmount; break;
-              case '5':
-              case '1':  ivaRet.valRetServ100     += tax.retainedAmount; break;
+            // Por la tarifa, no por el código: los códigos del catálogo no eran
+            // los del SRI hasta 2026-10-06 (3/4/5 en vez de 1/2/3) y la tarifa
+            // dice lo mismo sin depender de él.
+            switch (Math.round(Number(tax.rate ?? 0))) {
+              case 10:  ivaRet.valRetBien10      += tax.retainedAmount; break;
+              case 20:  ivaRet.valRetServ20      += tax.retainedAmount; break;
+              case 30:  ivaRet.valorRetBienes    += tax.retainedAmount; break;
+              case 50:  ivaRet.valRetServ50      += tax.retainedAmount; break;
+              case 70:  ivaRet.valorRetServicios += tax.retainedAmount; break;
+              case 100: ivaRet.valRetServ100     += tax.retainedAmount; break;
             }
           }
         } else if (p.totalVatRetention > 0) {

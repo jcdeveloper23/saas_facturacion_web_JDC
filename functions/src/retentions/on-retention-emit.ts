@@ -2,26 +2,13 @@ import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import * as admin from 'firebase-admin';
 import { readCertificatePassword } from '../utils/cert-password';
 import { getStorage } from 'firebase-admin/storage';
-import axios from 'axios';
 
 import { generateRetentionXmlInternal } from './generate-retention-xml';
 import { generateRetentionPdfInternal } from './generate-retention-pdf';
 import { sendRetentionEmailInternal }   from './send-retention-email';
 import { signXmlContent }               from '../utils/sign-xml-helper';
+import { sendToSriInternal }            from '../invoices/send-to-sri';
 import { isElectronicInvoicingEnabled, SRI_NOT_REQUIRED } from '../utils/electronic-invoicing';
-
-// ─── Shared SRI helpers (duplicated from invoices to keep modules independent) ─
-
-const SRI_DEFAULTS = {
-  testing: {
-    receptionUrl:    'https://celcer.sri.gob.ec/comprobantes-electronicos-ws/RecepcionComprobantesOffline?wsdl',
-    authorizationUrl:'https://celcer.sri.gob.ec/comprobantes-electronicos-ws/AutorizacionComprobantesOffline?wsdl',
-  },
-  production: {
-    receptionUrl:    'https://cel.sri.gob.ec/comprobantes-electronicos-ws/RecepcionComprobantesOffline?wsdl',
-    authorizationUrl:'https://cel.sri.gob.ec/comprobantes-electronicos-ws/AutorizacionComprobantesOffline?wsdl',
-  },
-};
 
 async function signRetentionXml(retentionId: string, companyId: string): Promise<void> {
   const db     = admin.firestore();
@@ -78,80 +65,6 @@ async function signRetentionXml(retentionId: string, companyId: string): Promise
   console.log('[on-retention-emit] XML firmado OK.');
 }
 
-async function sendRetentionToSri(retentionId: string, companyId: string): Promise<{ sriStatus: string }> {
-  const db     = admin.firestore();
-  const bucket = getStorage().bucket();
-  const now    = admin.firestore.Timestamp.now();
-
-  const retSnap = await db.doc(`companies/${companyId}/retentions/${retentionId}`).get();
-  if (!retSnap.exists) throw new Error(`Retención no encontrada: ${retentionId}`);
-  const accessKey: string = (retSnap.data() as any)['accessKey'];
-  if (!accessKey) throw new Error('Retención sin clave de acceso.');
-
-  const companySnap = await db.doc(`companies/${companyId}`).get();
-  const environment: 'testing' | 'production' = (companySnap.data() as any)?.['sri']?.['environment'] ?? 'testing';
-
-  const platformSnap  = await db.doc('platform/defaults/sriConfig/data').get();
-  const platformData  = platformSnap.exists ? (platformSnap.data() as any) : null;
-  const endpoints     = platformData?.endpoints?.[environment] ?? SRI_DEFAULTS[environment];
-
-  // Download signed XML
-  const signedPath = `companies/${companyId}/xml/ret-${retentionId}-signed.xml`;
-  let signedBuffer: Buffer;
-  try {
-    [signedBuffer] = await bucket.file(signedPath).download();
-  } catch {
-    throw new Error('XML firmado de retención no encontrado en Storage.');
-  }
-  const xmlBase64 = signedBuffer.toString('base64');
-
-  // SOAP reception
-  const receptionUrl = endpoints.receptionUrl.replace('?wsdl', '');
-  const receptionSoap = `<?xml version="1.0" encoding="UTF-8"?><soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body><ns2:validarComprobante xmlns:ns2="http://ec.gob.sri.ws.recepcion"><xml>${xmlBase64}</xml></ns2:validarComprobante></soap:Body></soap:Envelope>`;
-
-  const receptionRes = await axios.post(receptionUrl, receptionSoap, {
-    headers: { 'Content-Type': 'text/xml;charset=UTF-8', 'SOAPAction': '' }, timeout: 30000,
-  });
-  const receptionStr = String(receptionRes.data);
-
-  if (receptionStr.includes('DEVUELTA')) {
-    const mensajes = receptionStr.match(/<mensaje>(.*?)<\/mensaje>/g)?.map(m => m.replace(/<\/?mensaje>/g, '')).join('; ') ?? 'Comprobante devuelto por SRI';
-    await db.doc(`companies/${companyId}/retentions/${retentionId}`).update({
-      sriStatus: 'rejected', sriError: mensajes, updatedAt: now,
-    });
-    return { sriStatus: 'rejected' };
-  }
-
-  // SOAP authorization
-  const authUrl  = endpoints.authorizationUrl.replace('?wsdl', '');
-  const authSoap = `<?xml version="1.0" encoding="UTF-8"?><soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body><ns2:autorizacionComprobante xmlns:ns2="http://ec.gob.sri.ws.autorizacion"><claveAccesoComprobante>${accessKey}</claveAccesoComprobante></ns2:autorizacionComprobante></soap:Body></soap:Envelope>`;
-
-  const authRes = await axios.post(authUrl, authSoap, {
-    headers: { 'Content-Type': 'text/xml;charset=UTF-8', 'SOAPAction': '' }, timeout: 30000,
-  });
-  const authStr = String(authRes.data);
-  const authNumMatch = authStr.match(/<numeroAutorizacion>(.*?)<\/numeroAutorizacion>/);
-  const estadoMatch  = authStr.match(/<estado>(.*?)<\/estado>/);
-  const estado       = estadoMatch?.[1]?.toUpperCase() ?? '';
-
-  if (estado === 'AUTORIZADO') {
-    const authNumber = authNumMatch?.[1] ?? '';
-    const authDateMatch = authStr.match(/<fechaAutorizacion>(.*?)<\/fechaAutorizacion>/);
-    const authorizedAt  = authDateMatch?.[1] ? new Date(authDateMatch[1]) : new Date();
-    await db.doc(`companies/${companyId}/retentions/${retentionId}`).update({
-      sriStatus: 'authorized', authorizationNumber: authNumber,
-      authorizedAt: admin.firestore.Timestamp.fromDate(authorizedAt), sriError: null, updatedAt: now,
-    });
-    return { sriStatus: 'authorized' };
-  }
-
-  const sriMsg = authStr.match(/<mensaje>(.*?)<\/mensaje>/)?.[1] ?? `Estado SRI: ${estado}`;
-  await db.doc(`companies/${companyId}/retentions/${retentionId}`).update({
-    sriStatus: 'rejected', sriError: sriMsg, updatedAt: now,
-  });
-  return { sriStatus: 'rejected' };
-}
-
 // ─── Trigger ──────────────────────────────────────────────────────────────────
 
 export const onRetentionEmit = onDocumentWritten(
@@ -162,9 +75,13 @@ export const onRetentionEmit = onDocumentWritten(
     const before = event.data.before.exists ? event.data.before.data() as Record<string, any> : undefined;
     const after  = event.data.after.data() as Record<string, any>;
 
-    const statusChangedToIssued = before?.['status'] !== 'issued' && after['status'] === 'issued';
-    const sriNotYetStarted      = !after['sriStatus'];
-    if (!statusChangedToIssued || !sriNotYetStarted) return;
+    // Emitida y sin estado del SRI: se procesa. Igual que onInvoiceEmit desde
+    // 2026-09-24: así «Reenviar al SRI» (borrar sriStatus) vuelve a disparar el
+    // trámite; antes solo entraba al PASAR a 'issued' y una rechazada no se
+    // podía reintentar. Lo primero que se hace es marcarla 'pending', y con eso
+    // las escrituras siguientes ya no entran aquí.
+    if (after['status'] !== 'issued' || after['sriStatus']) return;
+    if (before?.['status'] === 'issued') console.log('[onRetentionEmit] Reintento de una retención ya emitida.');
 
     const { companyId, retentionId } = event.params;
     const db = admin.firestore();
@@ -240,16 +157,21 @@ export const onRetentionEmit = onDocumentWritten(
       await signRetentionXml(retentionId, companyId);
 
       console.log('[onRetentionEmit] Paso 3/3 — Enviando al SRI...');
-      const result = await sendRetentionToSri(retentionId, companyId);
+      // El envío común (invoices/send-to-sri.ts): ya trata el ambiente '1' como
+      // pruebas, la «CLAVE ACCESO REGISTRADA» (43) y los reintentos de red, que
+      // la copia propia de este archivo no tenía (2026-10-06).
+      const result = await sendToSriInternal(retentionId, companyId, 'retention');
       console.log('[onRetentionEmit] Pipeline completado. sriStatus:', result.sriStatus);
 
       if (result.sriStatus === 'authorized') {
-        // Generate PDF and send email in parallel (non-blocking for main pipeline)
-        Promise.all([
-          generateRetentionPdfInternal(retentionId, companyId)
-            .then(() => sendRetentionEmailInternal(retentionId, companyId))
-            .catch(err => console.warn('[onRetentionEmit] Post-auth tasks error:', err)),
-        ]);
+        // Se espera: una promesa suelta muere cuando la function termina, y el
+        // RIDE y el correo quedaban a medias.
+        try {
+          await generateRetentionPdfInternal(retentionId, companyId);
+          await sendRetentionEmailInternal(retentionId, companyId);
+        } catch (err) {
+          console.warn('[onRetentionEmit] RIDE o correo (no crítico):', err);
+        }
       }
 
     } catch (err) {

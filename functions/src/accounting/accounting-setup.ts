@@ -29,6 +29,7 @@ import {
 import { generateJournalEntryFromInvoiceInternal } from './generate-journal-entry-from-invoice';
 import { generateJournalEntryFromCreditNoteInternal } from './generate-journal-entry-from-credit-note';
 import { generateJournalEntryFromPurchaseInternal } from './generate-journal-entry-from-purchase';
+import { generateJournalEntryFromRetentionInternal } from './generate-journal-entry-from-retention';
 import {
   EntryResult, ecuadorYear, ecuadorYearRange, generatePaymentEntryInternal,
   paymentNeedsEntry, purchaseNeedsEntry,
@@ -119,7 +120,7 @@ async function loadAccounts(db: admin.firestore.Firestore, companyId: string): P
 }
 
 /** Lo que de un año debería tener asiento y no lo tiene, por tipo. */
-export type PendingKind = 'invoices' | 'purchases' | 'invoicePayments' | 'purchasePayments';
+export type PendingKind = 'invoices' | 'purchases' | 'invoicePayments' | 'purchasePayments' | 'retentions';
 
 type Docs = admin.firestore.QueryDocumentSnapshot[];
 
@@ -136,11 +137,12 @@ async function findPending(db: admin.firestore.Firestore, companyId: string, yea
   const paidIn = (col: string) => db.collection(`${base}/${col}`)
     .where('paidAt', '>=', admin.firestore.Timestamp.fromDate(from))
     .where('paidAt', '<', admin.firestore.Timestamp.fromDate(to)).get();
-  const [invoices, purchases, invoicesPaid, purchasesPaid] = await Promise.all([
+  const [invoices, purchases, invoicesPaid, purchasesPaid, retentions] = await Promise.all([
     db.collection(`${base}/invoices`).where('fiscalYear', '==', String(year)).get(),
     db.collection(`${base}/purchases`).where('stockProcessed', '==', true).get(),
     paidIn('invoices'),
     paidIn('purchases'),
+    db.collection(`${base}/retentions`).where('fiscalYear', '==', String(year)).get(),
   ]);
   return {
     invoices: invoices.docs.filter((d) => needsEntry(d.data())),
@@ -151,7 +153,13 @@ async function findPending(db: admin.firestore.Firestore, companyId: string, yea
     }),
     invoicePayments: invoicesPaid.docs.filter((d) => paymentNeedsEntry(d.data())),
     purchasePayments: purchasesPaid.docs.filter((d) => paymentNeedsEntry(d.data())),
+    retentions: retentions.docs.filter((d) => retentionNeedsEntry(d.data())),
   };
+}
+
+/** Emitida, viva y sin asiento (el asiento no espera al SRI, como el trigger). */
+export function retentionNeedsEntry(d: Record<string, any>): boolean {
+  return d.status === 'issued' && d.isVoid !== true && !d.accountingEntryId;
 }
 
 async function openPeriodOf(db: admin.firestore.Firestore, companyId: string, year: number) {
@@ -427,6 +435,11 @@ export const regenerateJournalEntries = onCall({ timeoutSeconds: 540, memory: '5
   for (const d of pending.purchasePayments) {
     tareas.push({ kind: 'purchasePayments', label: `pago ${d.get('fullNumber') ?? d.id}`,
       run: () => generatePaymentEntryInternal(companyId, 'purchase', d.id) });
+  }
+
+  for (const d of pending.retentions) {
+    tareas.push({ kind: 'retentions', label: `retención ${d.get('fullNumber') ?? d.id}`,
+      run: () => generateJournalEntryFromRetentionInternal(companyId, d.id) });
   }
 
   let created = 0;

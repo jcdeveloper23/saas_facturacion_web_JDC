@@ -75,13 +75,17 @@ export const SRI_IR_RETENTION_CODES: SriRetentionCode[] = [
   { taxCode: '1', taxCodeName: 'IR', pctCode: '3480', pctName: 'IR único — operadores de pronósticos deportivos — casillero 3480/3980', rate: 15 },
 ];
 
+// Códigos de retención de IVA de la ficha técnica (tabla «Retención de IVA»).
+// Hasta 2026-10-06 eran 3=30 %, 4=70 %, 5=100 % sector público y 1=100 % no
+// domiciliados, que no son los del SRI: 1 es el 30 %, 2 el 70 % y 3 el 100 %.
+// No había ninguna retención emitida, así que no hay datos que migrar.
 export const SRI_IVA_RETENTION_CODES: SriRetentionCode[] = [
-  { taxCode: '2', taxCodeName: 'IVA', pctCode: '3',  pctName: 'Retención IVA 30% — bienes', rate: 30 },
-  { taxCode: '2', taxCodeName: 'IVA', pctCode: '4',  pctName: 'Retención IVA 70% — servicios', rate: 70 },
-  { taxCode: '2', taxCodeName: 'IVA', pctCode: '5',  pctName: 'Retención IVA 100% — sector público', rate: 100 },
   { taxCode: '2', taxCodeName: 'IVA', pctCode: '9',  pctName: 'Retención IVA 10%', rate: 10 },
   { taxCode: '2', taxCodeName: 'IVA', pctCode: '10', pctName: 'Retención IVA 20%', rate: 20 },
-  { taxCode: '2', taxCodeName: 'IVA', pctCode: '1',  pctName: 'Retención IVA 100% — no domiciliados', rate: 100 },
+  { taxCode: '2', taxCodeName: 'IVA', pctCode: '1',  pctName: 'Retención IVA 30% — bienes', rate: 30 },
+  { taxCode: '2', taxCodeName: 'IVA', pctCode: '11', pctName: 'Retención IVA 50%', rate: 50 },
+  { taxCode: '2', taxCodeName: 'IVA', pctCode: '2',  pctName: 'Retención IVA 70% — servicios', rate: 70 },
+  { taxCode: '2', taxCodeName: 'IVA', pctCode: '3',  pctName: 'Retención IVA 100%', rate: 100 },
 ];
 
 export const SRI_ISD_RETENTION_CODES: SriRetentionCode[] = [

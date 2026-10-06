@@ -7,6 +7,7 @@ import { assertValidAccessKey } from '../utils/sri-access-key';
 import { resolveEmissionSeries, resolveEstablishmentAddress } from '../utils/establishments';
 import { buildAdditionalInfo } from '../utils/additional-info';
 import { resolveSoftwareProviderRuc } from '../utils/software-provider';
+import { buildSustento, supportDocDigits } from './retention-sustento';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -40,6 +41,7 @@ interface Retention {
   pagoLocExt?: string;
   tipoRegi?: string;
   paisEfecPago?: string;
+  parteRel?: string;
   taxes: RetentionTax[];
   totalRetained: number;
   codigoNumerico?: string;
@@ -170,6 +172,8 @@ export async function generateRetentionXmlInternal(
   const obligado = sriConfig.obligadoContabilidad ?? (company.sri.accountingRequired ? 'SI' : 'NO');
   infoComp.ele('obligadoContabilidad').txt(obligado);
   infoComp.ele('tipoIdentificacionSujetoRetenido').txt(retention.supplierTaxIdType ?? '04');
+  // parteRel (¿el proveedor es parte relacionada?) es obligatorio en la v2.0.0.
+  infoComp.ele('parteRel').txt(retention.parteRel === 'SI' ? 'SI' : 'NO');
   infoComp.ele('razonSocialSujetoRetenido').txt(retention.supplierName);
   infoComp.ele('identificacionSujetoRetenido').txt(retention.supplierTaxId);
   infoComp.ele('periodoFiscal').txt(retention.periodoFiscal);
@@ -186,7 +190,8 @@ export async function generateRetentionXmlInternal(
   // codDocSustento: tipo de comprobante (01=factura, 04=nota crédito, etc.)
   docSustento.ele('codDocSustento').txt(retention.supportDocType);
 
-  docSustento.ele('numDocSustento').txt(retention.supportDocNumber);
+  // 15 dígitos sin guiones (001-001-000000123 → 001001000000123).
+  docSustento.ele('numDocSustento').txt(supportDocDigits(retention.supportDocNumber));
   docSustento.ele('fechaEmisionDocSustento').txt(formatFechaEmisionEC(retention.supportDocDate.toDate()));
   if (retention.supportDocAuth) {
     docSustento.ele('numAutDocSustento').txt(retention.supportDocAuth);
@@ -202,8 +207,20 @@ export async function generateRetentionXmlInternal(
     docSustento.ele('paisEfecPago').txt(retention.paisEfecPago ?? '');
   }
 
-  docSustento.ele('totalSinImpuestos').txt(retention.supportDocTotal.toFixed(2));
-  docSustento.ele('importeTotal').txt(retention.supportDocTotal.toFixed(2));
+  // Total sin impuestos, importe total, impuestos de la factura y pagos: el
+  // XSD v2.0.0 exige los cuatro (retention-sustento.ts, 2026-10-06).
+  const sustento = buildSustento(retention as unknown as Record<string, any>);
+  docSustento.ele('totalSinImpuestos').txt(sustento.totalSinImpuestos.toFixed(2));
+  docSustento.ele('importeTotal').txt(sustento.importeTotal.toFixed(2));
+  const impuestosDoc = docSustento.ele('impuestosDocSustento');
+  for (const imp of sustento.impuestos) {
+    const i = impuestosDoc.ele('impuestoDocSustento');
+    i.ele('codImpuestoDocSustento').txt(imp.codImpuesto);
+    i.ele('codigoPorcentaje').txt(imp.codigoPorcentaje);
+    i.ele('baseImponible').txt(imp.baseImponible.toFixed(2));
+    i.ele('tarifa').txt(imp.tarifa.toFixed(2));
+    i.ele('valorImpuesto').txt(imp.valorImpuesto.toFixed(2));
+  }
 
   // <retenciones> — estructura correcta según Ficha Técnica v2.32
   const retenciones = docSustento.ele('retenciones');
@@ -214,6 +231,14 @@ export async function generateRetentionXmlInternal(
     ret.ele('baseImponible').txt(tax.taxableBase.toFixed(2));
     ret.ele('porcentajeRetener').txt(tax.rate.toFixed(2));       // porcentaje (no tarifa)
     ret.ele('valorRetenido').txt(tax.retainedAmount.toFixed(2));
+  }
+
+  // <pagos> va después de <retenciones> (y de <reembolsos>, que no usamos).
+  const pagos = docSustento.ele('pagos');
+  for (const p of sustento.pagos) {
+    const pago = pagos.ele('pago');
+    pago.ele('formaPago').txt(p.formaPago);
+    pago.ele('total').txt(p.total.toFixed(2));
   }
 
   // <infoAdicional> — los campos de la empresa, sin vacíos, y el «RUC Proveedor»
