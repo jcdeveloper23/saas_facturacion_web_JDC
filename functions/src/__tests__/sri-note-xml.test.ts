@@ -83,6 +83,21 @@ describe('nota de crédito', () => {
     expect(validate(creditNote(), 'NotaCredito_V1.1.0.xsd')).toBe('');
   });
 
+  (hasXmllint() ? it : it.skip)('por valor (descuento sin devolver mercadería): 1 × valor, también cumple el XSD', () => {
+    // Como la arma Conecta en el modo «Descuento o ajuste de valor»: cantidad
+    // 1, precio = la base que se acredita, sin descuento.
+    const xml = creditNote({
+      totalSinImpuestos: 5,
+      valorModificacion: 5.75,
+      taxGroups: [{ vatCode: '4', base: 5, tax: 0.75 }],
+      motivo: 'Descuento concedido',
+      lines: [{ code: 'PR001', description: 'AUDÍFONOS BT', quantity: 1, unitPrice: 5, discount: 0, lineTotal: 5, vatCode: '4', vatRate: 15, vatAmount: 0.75 }],
+    });
+    expect(validate(xml, 'NotaCredito_V1.1.0.xsd')).toBe('');
+    expect(xml).toContain('<cantidad>1.000000</cantidad>');
+    expect(xml).toContain('<precioTotalSinImpuesto>5.00</precioTotalSinImpuesto>');
+  });
+
   it('sale como versión 1.1.0 (6 decimales en cantidad y precio)', () => {
     const xml = creditNote();
     expect(xml).toContain('<notaCredito id="comprobante" version="1.1.0">');
