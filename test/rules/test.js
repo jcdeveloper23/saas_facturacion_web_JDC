@@ -518,6 +518,25 @@ const num = v => ({ doubleValue: v });
   await expectStatus('reintentar: borrar sriStatus y sriError, sí',
     await patch('companies/c1/retentions/rechazada', admin, { sriStatus: undefined, sriError: undefined }), S.OK);
 
+  // ── notas de débito (2026-10-06): mismas defensas que las retenciones ────
+  const nd = (extra = {}) => ({ seriesEstablishment: str('001'), seriesEmissionPoint: str('001'),
+    status: str('issued'), total: num(57.5), ...extra });
+  await expectStatus('el contador numera notas de débito (counters/debitNotes)',
+    await patch('companies/c1/counters/debitNotes', conta, { n_001_001_2026: num(1) }), S.OK);
+  await expectStatus('el vendedor emite una nota de débito',
+    await create('companies/c1/debitNotes', 'nd1', seller, nd()), S.OK);
+  await expectStatus('el cajero NO emite notas de débito',
+    await create('companies/c1/debitNotes', 'nd2', cashier, nd()), S.DENIED);
+  await expectStatus('nadie crea una nota de débito ya autorizada',
+    await create('companies/c1/debitNotes', 'nd3', admin, nd({ sriStatus: str('authorized') })), S.DENIED);
+  await expectStatus('ni con clave de acceso',
+    await create('companies/c1/debitNotes', 'nd4', admin, nd({ accessKey: str('123') })), S.DENIED);
+  await seed('companies/c1/debitNotes', 'ndRechazada', { ...nd(), sriStatus: str('rejected'), sriError: str('x') });
+  await expectStatus('el cliente no marca autorizada una nota de débito',
+    await patch('companies/c1/debitNotes/ndRechazada', admin, { sriStatus: str('authorized') }), S.DENIED);
+  await expectStatus('reintentar la nota de débito: borrar sriStatus y sriError',
+    await patch('companies/c1/debitNotes/ndRechazada', admin, { sriStatus: undefined, sriError: undefined }), S.OK);
+
   // La compra recibida se liga a su retención, una vez.
   await seed('companies/c1/purchases', 'pRec', { status: str('received'), stockProcessed: bool(true), total: num(100) });
   await seed('companies/c1/purchases', 'pRec2', { status: str('received'), stockProcessed: bool(true), total: num(100) });

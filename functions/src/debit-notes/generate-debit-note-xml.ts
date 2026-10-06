@@ -1,9 +1,9 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { sriVatCode } from '../utils/sri-vat-codes';
 import * as admin from 'firebase-admin';
-import { create } from 'xmlbuilder2';
+import { buildDebitNoteXml } from '../utils/sri-note-xml';
 import { getStorage } from 'firebase-admin/storage';
-import { formatFechaEmisionEC, formatFechaClaveAccesoEC } from '../utils/sri-date';
+import { formatFechaClaveAccesoEC } from '../utils/sri-date';
 import { resolveTipoIdentificacionComprador } from '../utils/sri-buyer-id';
 import { assertValidAccessKey } from '../utils/sri-access-key';
 import { resolveEmissionSeries, resolveEstablishmentAddress } from '../utils/establishments';
@@ -30,6 +30,8 @@ interface DebitNote {
   vatPct: number;
   vatAmount: number;
   total: number;
+  /** Tabla 24 del SRI; vacío = '20'. */
+  paymentMethodCode?: string;
   codigoNumerico?: string;
   accessKey?: string;
 }
@@ -137,87 +139,45 @@ export async function generateDebitNoteXmlInternal(
   assertValidAccessKey(accessKey); // nunca continuar con una clave mal construida
   console.log('[generate-debit-note-xml] Clave de acceso:', accessKey);
 
-  const version = platformConfig.notaDebitoVersion ?? '1.0.0';
   const sriCode = sriCodeForVat(dn.vatPct, platformConfig.taxCodes);
 
-  const root = create({ version: '1.0', encoding: 'UTF-8' })
-    .ele('notaDebito', { id: 'comprobante', version });
-
-  // <infoTributaria>
-  const infoTrib = root.ele('infoTributaria');
-  infoTrib.ele('ambiente').txt(ambiente);
-  infoTrib.ele('tipoEmision').txt('1');
-  infoTrib.ele('razonSocial').txt(sriConfig.razonSocial);
-  if (sriConfig.nombreComercial) infoTrib.ele('nombreComercial').txt(sriConfig.nombreComercial);
-  infoTrib.ele('ruc').txt(ruc);
-  infoTrib.ele('claveAcceso').txt(accessKey);
-  infoTrib.ele('codDoc').txt(codDoc);
-  infoTrib.ele('estab').txt(series.establishment);
-  infoTrib.ele('ptoEmi').txt(series.emissionPoint);
-  infoTrib.ele('secuencial').txt(secuencial);
-  infoTrib.ele('dirMatriz').txt(sriConfig.direccionMatriz);
-
-  // <infoNotaDebito>
-  const infoND = root.ele('infoNotaDebito');
-  infoND.ele('fechaEmision').txt(formatFechaEmisionEC(dnDate));
-  infoND.ele('dirEstablecimiento').txt(dirEstablecimiento);
-  infoND.ele('tipoIdentificacionComprador').txt(
-    resolveTipoIdentificacionComprador(dn.customerTaxId, undefined, dn.customerTaxIdType)
-  );
-  infoND.ele('razonSocialComprador').txt(dn.customerName);
-  infoND.ele('identificacionComprador').txt(dn.customerTaxId);
-  if (company.sri.contribuyenteEspecial) {
-    infoND.ele('contribuyenteEspecial').txt(company.sri.contribuyenteEspecial);
-  }
-  infoND.ele('obligadoContabilidad').txt(
-    sriConfig.obligadoContabilidad ?? (company.sri.accountingRequired ? 'SI' : 'NO')
-  );
-  infoND.ele('codDocModificado').txt('01');  // factura original
-  infoND.ele('numDocModificado').txt(dn.originalInvoiceNumber);
-  infoND.ele('fechaEmisionDocSustento').txt(formatFechaEmisionEC(dn.originalInvoiceDate.toDate()));
-  infoND.ele('totalSinImpuestos').txt(dn.totalSinImpuestos.toFixed(2));
-
-  const impuestos = infoND.ele('impuestos');
-  if (dn.vatPct > 0) {
-    const imp = impuestos.ele('impuesto');
-    imp.ele('codigo').txt('2');  // IVA
-    imp.ele('codigoPorcentaje').txt(sriCode);
-    imp.ele('tarifa').txt(dn.vatPct.toFixed(2));
-    imp.ele('baseImponible').txt(dn.totalSinImpuestos.toFixed(2));
-    imp.ele('valor').txt(dn.vatAmount.toFixed(2));
-  }
-
-  infoND.ele('importeTotal').txt(dn.total.toFixed(2));
-  infoND.ele('moneda').txt('DOLAR');
-
-  if (dn.originalInvoiceAuth) {
-    infoND.ele('numAutorizacionDocSustento').txt(dn.originalInvoiceAuth);
-  }
-
-  // <motivos>
-  const motivos = root.ele('motivos');
-  for (const m of dn.motivos) {
-    const motivo = motivos.ele('motivo');
-    motivo.ele('razon').txt(m.razon);
-    motivo.ele('valor').txt(m.valor.toFixed(2));
-  }
-
-  // <infoAdicional> — los campos de la empresa, sin vacíos, y el «RUC Proveedor»
-  // del sistema que exige el SRI desde el 2026-09-26 (utils/additional-info.ts).
+  // infoAdicional — los campos de la empresa y los de la nota, sin vacíos, y el
+  // «RUC Proveedor» del sistema que exige el SRI desde el 2026-09-26.
   const infoAdicionalFields = buildAdditionalInfo({
     companyFields: sriConfig.additionalInfoFields,
+    docFields: (dn as any).additionalInfo,
     doc: dn as any,
     company: { name: sriConfig.razonSocial, ruc },
     providerRuc: await resolveSoftwareProviderRuc(company as any),
   });
-  if (infoAdicionalFields.length > 0) {
-    const infoAd = root.ele('infoAdicional');
-    for (const f of infoAdicionalFields) {
-      infoAd.ele('campoAdicional', { nombre: f.nombre }).txt(f.valor);
-    }
-  }
 
-  const xmlString = root.end({ prettyPrint: true });
+  // Constructor puro de utils/sri-note-xml.ts: <valorTotal>, <pagos> y siempre
+  // un <impuesto> (antes salía con <importeTotal>/<moneda>, sin pagos y fuera
+  // de esquema).
+  const xmlString = buildDebitNoteXml({
+    issuer: {
+      ambiente, razonSocial: sriConfig.razonSocial, nombreComercial: sriConfig.nombreComercial,
+      ruc, accessKey, establishment: series.establishment, emissionPoint: series.emissionPoint,
+      secuencial, dirMatriz: sriConfig.direccionMatriz, dirEstablecimiento,
+      contribuyenteEspecial: company.sri.contribuyenteEspecial,
+      obligadoContabilidad: sriConfig.obligadoContabilidad ?? (company.sri.accountingRequired ? 'SI' : 'NO'),
+    },
+    buyer: {
+      tipoIdentificacion: resolveTipoIdentificacionComprador(dn.customerTaxId, undefined, dn.customerTaxIdType),
+      razonSocial: dn.customerName,
+      identificacion: dn.customerTaxId,
+    },
+    issueDate: dnDate,
+    supportDoc: { number: dn.originalInvoiceNumber, date: dn.originalInvoiceDate.toDate() },
+    totalSinImpuestos: dn.totalSinImpuestos,
+    vatCode: sriCode,
+    vatRate: dn.vatPct,
+    vatAmount: dn.vatAmount,
+    valorTotal: dn.total,
+    paymentCode: dn.paymentMethodCode,
+    motivos: dn.motivos,
+    additionalInfo: infoAdicionalFields,
+  });
   console.log('[generate-debit-note-xml] XML generado, longitud:', xmlString.length);
 
   const bucket  = getStorage().bucket();

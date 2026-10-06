@@ -547,7 +547,7 @@ service cloud.firestore {
         // Sin 'journal_entries' (hasta 2026-10-05) el contador no podía crear
         // un asiento: la numeración en transacción le daba permiso denegado.
         allow write: if isAuthenticated() && belongsToCompany(companyId)
-                     && (canWrite() || (isAccountant() && id in ['purchases', 'journal_entries', 'retentions']));
+                     && (canWrite() || (isAccountant() && id in ['purchases', 'journal_entries', 'retentions', 'debitNotes']));
       }
 
       match /stock-movements/{id} {
@@ -605,16 +605,21 @@ service cloud.firestore {
         // READ — same audience as retentions.
         allow read: if canReadFiscalDoc(companyId);
 
-        // CREATE — only in draft status; companyId in the document body must
-        // match the path.
+        // CREATE — en borrador o ya emitida; companyId, si viene, el del path.
+        // Como las retenciones (2026-10-06): el cliente no la crea con estado
+        // del SRI ni con los datos de la autorización (antes podía crearla
+        // «autorizada» sin pasar por el SRI).
         allow create: if canCreateFiscalDoc(companyId)
           && request.resource.data.status in ['draft', 'issued']
           && request.resource.data.get('companyId', companyId) == companyId
+          && retentionSriClientCreate()
           && canUseEmissionPoint(companyId);
 
-        // UPDATE — same three-guard pattern as retentions.
+        // UPDATE — same guards as retentions; sriStatus solo se puede borrar
+        // (el «Reintentar» de una nota rechazada).
         allow update: if canCreateFiscalDoc(companyId)
           && sriAuthorizedGuard()
+          && retentionSriClientUpdate()
           && statusNotRolledBack()
           && canUseEmissionPoint(companyId);
 

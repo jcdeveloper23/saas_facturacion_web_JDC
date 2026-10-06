@@ -3,9 +3,9 @@ import { sriVatCode } from '../utils/sri-vat-codes';
 import * as admin from 'firebase-admin';
 import { buildAdditionalInfo } from '../utils/additional-info';
 import { resolveSoftwareProviderRuc } from '../utils/software-provider';
-import { create } from 'xmlbuilder2';
+import { buildCreditNoteXml } from '../utils/sri-note-xml';
 import { getStorage } from 'firebase-admin/storage';
-import { formatFechaEmisionEC, formatFechaClaveAccesoEC } from '../utils/sri-date';
+import { formatFechaClaveAccesoEC } from '../utils/sri-date';
 import { resolveTipoIdentificacionComprador } from '../utils/sri-buyer-id';
 import { assertValidAccessKey } from '../utils/sri-access-key';
 import { resolveEmissionSeries, resolveEstablishmentAddress } from '../utils/establishments';
@@ -240,105 +240,17 @@ export async function generateCreditNoteXmlInternal(
     });
   }
 
-  // 7. Build XML using xmlbuilder2
-  const totalSinImpuestos = cn.subtotal - cn.discount;
-  const valorModificacion = cn.total; // importe total con IVA de la NC
-  const version = platformConfig.notaCreditoVersion ?? '1.0.0';
-
-  const root = create({ version: '1.0', encoding: 'UTF-8' })
-    .ele('notaCredito', { id: 'comprobante', version });
-
-  // <infoTributaria>
-  const infoTrib = root.ele('infoTributaria');
-  infoTrib.ele('ambiente').txt(ambiente);
-  infoTrib.ele('tipoEmision').txt(tipoEmision);
-  infoTrib.ele('razonSocial').txt(sriConfig.razonSocial);
-  if (sriConfig.nombreComercial) {
-    infoTrib.ele('nombreComercial').txt(sriConfig.nombreComercial);
-  }
-  infoTrib.ele('ruc').txt(ruc);
-  infoTrib.ele('claveAcceso').txt(accessKey);
-  infoTrib.ele('codDoc').txt('04');
-  infoTrib.ele('estab').txt(series.establishment);
-  infoTrib.ele('ptoEmi').txt(series.emissionPoint);
-  infoTrib.ele('secuencial').txt(secuencial);
-  infoTrib.ele('dirMatriz').txt(sriConfig.direccionMatriz);
-
-  // <infoNotaCredito>
-  const infoNC = root.ele('infoNotaCredito');
-  infoNC.ele('fechaEmision').txt(formatFechaEmisionEC(cnDate));
-  infoNC.ele('dirEstablecimiento').txt(dirEstablecimiento);
-
+  // 7. Build XML — constructor puro de utils/sri-note-xml.ts (versión 1.1.0,
+  // validado contra el XSD del SRI en sri-note-xml.test.ts).
   const tipoIdComprador = resolveTipoIdentificacionComprador(
     cn.customerTaxId,
     cn.customerIdentificationType,
     cn.customerTaxIdType,
   );
-  infoNC.ele('tipoIdentificacionComprador').txt(tipoIdComprador);
-  infoNC.ele('razonSocialComprador').txt(cn.customerName);
-  infoNC.ele('identificacionComprador').txt(cn.customerTaxId);
-
-  if (company.sri.contribuyenteEspecial) {
-    infoNC.ele('contribuyenteEspecial').txt(company.sri.contribuyenteEspecial);
-  }
-
   const obligadoContabilidad =
     sriConfig.obligadoContabilidad ?? (company.sri.accountingRequired ? 'SI' : 'NO');
-  infoNC.ele('obligadoContabilidad').txt(obligadoContabilidad);
 
-  // Documento sustento (factura original)
-  infoNC.ele('codDocModificado').txt('01'); // siempre factura
-  infoNC.ele('numDocModificado').txt(cn.rectifiedInvoiceNumber ?? '');
-
-  const rectifiedDate = resolveRectifiedDate(cn.rectifiedInvoiceDate);
-  infoNC.ele('fechaEmisionDocSustento').txt(formatFechaEmisionEC(rectifiedDate));
-
-  if (cn.rectifiedInvoiceAuthNumber) {
-    infoNC.ele('numAutDocSustento').txt(cn.rectifiedInvoiceAuthNumber);
-  }
-
-  infoNC.ele('totalSinImpuestos').txt(totalSinImpuestos.toFixed(2));
-  infoNC.ele('valorModificacion').txt(valorModificacion.toFixed(2));
-  infoNC.ele('moneda').txt('DOLAR');
-
-  const totalConImpuestos = infoNC.ele('totalConImpuestos');
-  for (const [sriTaxCode, { base, tax }] of taxGroups) {
-    const ti = totalConImpuestos.ele('totalImpuesto');
-    ti.ele('codigo').txt('2'); // IVA
-    ti.ele('codigoPorcentaje').txt(sriTaxCode);
-    ti.ele('baseImponible').txt(base.toFixed(2));
-    ti.ele('valor').txt(tax.toFixed(2));
-  }
-
-  infoNC.ele('motivo').txt(cn.creditNoteMotivo ?? 'Anulación de factura');
-
-  // <detalles>
-  const detalles = root.ele('detalles');
-  for (const line of cn.lines) {
-    const sriTaxCode = line.sriTaxCode ?? deriveSriTaxCode(line.taxRate, platformConfig.taxCodes);
-    const detalle = detalles.ele('detalle');
-    const codigoPrincipal = line.sku || line.productId || 'SIN-CODIGO';
-    detalle.ele('codigoPrincipal').txt(codigoPrincipal);
-    if (line.skuAlt) {
-      detalle.ele('codigoAdicional').txt(line.skuAlt);
-    }
-    detalle.ele('descripcion').txt(line.description);
-    detalle.ele('unidadMedida').txt(line.unit || 'UNIDAD');
-    detalle.ele('cantidad').txt(line.quantity.toFixed(6));
-    detalle.ele('precioUnitario').txt(line.unitPrice.toFixed(6));
-    detalle.ele('descuento').txt(line.discount.toFixed(2));
-    detalle.ele('precioTotalSinImpuesto').txt(line.lineTotal.toFixed(2));
-
-    const impuestos = detalle.ele('impuestos');
-    const impuesto = impuestos.ele('impuesto');
-    impuesto.ele('codigo').txt('2'); // IVA
-    impuesto.ele('codigoPorcentaje').txt(sriTaxCode);
-    impuesto.ele('tarifa').txt(String(line.taxRate));
-    impuesto.ele('baseImponible').txt(line.lineTotal.toFixed(2));
-    impuesto.ele('valor').txt(line.taxAmount.toFixed(2));
-  }
-
-  // <infoAdicional> — campos de la empresa, los del comprobante y el correo
+  // infoAdicional — campos de la empresa, los del comprobante y el correo
   // del comprador, sin vacíos y con el tope del SRI (utils/additional-info.ts).
   const infoAdicionalFields = buildAdditionalInfo({
     companyFields: sriConfig.additionalInfoFields,
@@ -347,15 +259,35 @@ export async function generateCreditNoteXmlInternal(
     company: { name: company.name, ruc },
     providerRuc: await resolveSoftwareProviderRuc(company as any),
   });
-  if (infoAdicionalFields.length > 0) {
-    const infoAdicional = root.ele('infoAdicional');
-    for (const field of infoAdicionalFields) {
-      infoAdicional.ele('campoAdicional', { nombre: field.nombre }).txt(field.valor);
-    }
-  }
 
-  // 8. Serialize XML
-  const xmlString = root.end({ prettyPrint: true });
+  const xmlString = buildCreditNoteXml({
+    issuer: {
+      ambiente, razonSocial: sriConfig.razonSocial, nombreComercial: sriConfig.nombreComercial,
+      ruc, accessKey, establishment: series.establishment, emissionPoint: series.emissionPoint,
+      secuencial, dirMatriz: sriConfig.direccionMatriz, dirEstablecimiento,
+      contribuyenteEspecial: company.sri.contribuyenteEspecial, obligadoContabilidad,
+    },
+    buyer: { tipoIdentificacion: tipoIdComprador, razonSocial: cn.customerName, identificacion: cn.customerTaxId },
+    issueDate: cnDate,
+    supportDoc: { number: cn.rectifiedInvoiceNumber ?? '', date: resolveRectifiedDate(cn.rectifiedInvoiceDate) },
+    totalSinImpuestos: cn.subtotal - cn.discount,
+    valorModificacion: cn.total, // importe total con IVA de la NC
+    taxGroups: [...taxGroups].map(([vatCode, g]) => ({ vatCode, base: g.base, tax: g.tax })),
+    motivo: cn.creditNoteMotivo ?? 'Anulación de factura',
+    lines: cn.lines.map((line) => ({
+      code: line.sku || line.productId || 'SIN-CODIGO',
+      extraCode: line.skuAlt,
+      description: line.description,
+      quantity: line.quantity,
+      unitPrice: line.unitPrice,
+      discount: line.discount,
+      lineTotal: line.lineTotal,
+      vatCode: line.sriTaxCode ?? deriveSriTaxCode(line.taxRate, platformConfig.taxCodes),
+      vatRate: line.taxRate,
+      vatAmount: line.taxAmount,
+    })),
+    additionalInfo: infoAdicionalFields,
+  });
   console.log('[generate-credit-note-xml] XML generado, longitud:', xmlString.length);
 
   // 9. Upload to Storage — prefix "cn-" to distinguish from plain invoices

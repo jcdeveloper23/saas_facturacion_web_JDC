@@ -2,26 +2,13 @@ import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import * as admin from 'firebase-admin';
 import { readCertificatePassword } from '../utils/cert-password';
 import { getStorage } from 'firebase-admin/storage';
-import axios from 'axios';
 
 import { generateDebitNoteXmlInternal }  from './generate-debit-note-xml';
 import { generateDebitNotePdfInternal }  from './generate-debit-note-pdf';
 import { sendDebitNoteEmailInternal }    from './send-debit-note-email';
 import { signXmlContent }                from '../utils/sign-xml-helper';
+import { sendToSriInternal }             from '../invoices/send-to-sri';
 import { isElectronicInvoicingEnabled, SRI_NOT_REQUIRED } from '../utils/electronic-invoicing';
-
-// ─── SRI defaults ─────────────────────────────────────────────────────────────
-
-const SRI_DEFAULTS = {
-  testing: {
-    receptionUrl:    'https://celcer.sri.gob.ec/comprobantes-electronicos-ws/RecepcionComprobantesOffline?wsdl',
-    authorizationUrl:'https://celcer.sri.gob.ec/comprobantes-electronicos-ws/AutorizacionComprobantesOffline?wsdl',
-  },
-  production: {
-    receptionUrl:    'https://cel.sri.gob.ec/comprobantes-electronicos-ws/RecepcionComprobantesOffline?wsdl',
-    authorizationUrl:'https://cel.sri.gob.ec/comprobantes-electronicos-ws/AutorizacionComprobantesOffline?wsdl',
-  },
-};
 
 // ─── Sign debit note XML ──────────────────────────────────────────────────────
 
@@ -77,72 +64,6 @@ async function signDebitNoteXml(debitNoteId: string, companyId: string): Promise
   });
 }
 
-// ─── Send to SRI ──────────────────────────────────────────────────────────────
-
-async function sendDebitNoteToSri(debitNoteId: string, companyId: string): Promise<{ sriStatus: string }> {
-  const db     = admin.firestore();
-  const bucket = getStorage().bucket();
-  const now    = admin.firestore.Timestamp.now();
-
-  const dnSnap = await db.doc(`companies/${companyId}/debitNotes/${debitNoteId}`).get();
-  if (!dnSnap.exists) throw new Error(`Nota de débito no encontrada: ${debitNoteId}`);
-  const accessKey: string = (dnSnap.data() as any)['accessKey'];
-  if (!accessKey) throw new Error('Nota sin clave de acceso.');
-
-  const companySnap = await db.doc(`companies/${companyId}`).get();
-  const environment: 'testing' | 'production' = (companySnap.data() as any)?.['sri']?.['environment'] ?? 'testing';
-  const platformSnap = await db.doc('platform/defaults/sriConfig/data').get();
-  const platformData = platformSnap.exists ? (platformSnap.data() as any) : null;
-  const endpoints    = platformData?.endpoints?.[environment] ?? SRI_DEFAULTS[environment];
-
-  const signedPath = `companies/${companyId}/xml/dn-${debitNoteId}-signed.xml`;
-  let buf: Buffer;
-  try { [buf] = await bucket.file(signedPath).download(); }
-  catch { throw new Error('XML firmado de nota de débito no encontrado.'); }
-  const xmlBase64 = buf.toString('base64');
-
-  // Reception
-  const recUrl  = endpoints.receptionUrl.replace('?wsdl', '');
-  const recSoap = `<?xml version="1.0" encoding="UTF-8"?><soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body><ns2:validarComprobante xmlns:ns2="http://ec.gob.sri.ws.recepcion"><xml>${xmlBase64}</xml></ns2:validarComprobante></soap:Body></soap:Envelope>`;
-  const recRes  = await axios.post(recUrl, recSoap, {
-    headers: { 'Content-Type': 'text/xml;charset=UTF-8', 'SOAPAction': '' }, timeout: 30000,
-  });
-  const recStr = String(recRes.data);
-  if (recStr.includes('DEVUELTA')) {
-    const msg = recStr.match(/<mensaje>(.*?)<\/mensaje>/g)?.map(m => m.replace(/<\/?mensaje>/g, '')).join('; ') ?? 'Devuelta por SRI';
-    await db.doc(`companies/${companyId}/debitNotes/${debitNoteId}`).update({
-      sriStatus: 'rejected', sriError: msg, updatedAt: now,
-    });
-    return { sriStatus: 'rejected' };
-  }
-
-  // Authorization
-  const authUrl  = endpoints.authorizationUrl.replace('?wsdl', '');
-  const authSoap = `<?xml version="1.0" encoding="UTF-8"?><soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body><ns2:autorizacionComprobante xmlns:ns2="http://ec.gob.sri.ws.autorizacion"><claveAccesoComprobante>${accessKey}</claveAccesoComprobante></ns2:autorizacionComprobante></soap:Body></soap:Envelope>`;
-  const authRes  = await axios.post(authUrl, authSoap, {
-    headers: { 'Content-Type': 'text/xml;charset=UTF-8', 'SOAPAction': '' }, timeout: 30000,
-  });
-  const authStr  = String(authRes.data);
-  const estado   = (authStr.match(/<estado>(.*?)<\/estado>/)?.[1] ?? '').toUpperCase();
-
-  if (estado === 'AUTORIZADO') {
-    const authNum  = authStr.match(/<numeroAutorizacion>(.*?)<\/numeroAutorizacion>/)?.[1] ?? '';
-    const authDate = authStr.match(/<fechaAutorizacion>(.*?)<\/fechaAutorizacion>/)?.[1];
-    await db.doc(`companies/${companyId}/debitNotes/${debitNoteId}`).update({
-      sriStatus: 'authorized', authorizationNumber: authNum,
-      authorizedAt: admin.firestore.Timestamp.fromDate(authDate ? new Date(authDate) : new Date()),
-      sriError: null, updatedAt: now,
-    });
-    return { sriStatus: 'authorized' };
-  }
-
-  const sriMsg = authStr.match(/<mensaje>(.*?)<\/mensaje>/)?.[1] ?? `Estado: ${estado}`;
-  await db.doc(`companies/${companyId}/debitNotes/${debitNoteId}`).update({
-    sriStatus: 'rejected', sriError: sriMsg, updatedAt: now,
-  });
-  return { sriStatus: 'rejected' };
-}
-
 // ─── Trigger ──────────────────────────────────────────────────────────────────
 
 export const onDebitNoteEmit = onDocumentWritten(
@@ -153,9 +74,10 @@ export const onDebitNoteEmit = onDocumentWritten(
     const before = event.data.before.exists ? event.data.before.data() as Record<string, any> : undefined;
     const after  = event.data.after.data() as Record<string, any>;
 
-    const statusChangedToIssued = before?.['status'] !== 'issued' && after['status'] === 'issued';
-    const sriNotYetStarted      = !after['sriStatus'];
-    if (!statusChangedToIssued || !sriNotYetStarted) return;
+    // Emitida y sin estado del SRI: la emisión nueva y también el reintento
+    // (borrar sriStatus vuelve a disparar el envío), como en las retenciones.
+    if (after['status'] !== 'issued' || after['sriStatus']) return;
+    if (before?.['status'] === 'issued') console.log('[onDebitNoteEmit] Reintento de una nota ya emitida.');
 
     const { companyId, debitNoteId } = event.params;
     const db = admin.firestore();
@@ -228,16 +150,19 @@ export const onDebitNoteEmit = onDocumentWritten(
       await signDebitNoteXml(debitNoteId, companyId);
 
       console.log('[onDebitNoteEmit] Paso 3/3 — SRI...');
-      const result = await sendDebitNoteToSri(debitNoteId, companyId);
+      // El envío común (send-to-sri.ts): reintentos, «CLAVE ACCESO REGISTRADA»
+      // y mensajes del SRI, igual que facturas, NC y retenciones.
+      const result = await sendToSriInternal(debitNoteId, companyId, 'debitNote');
       console.log('[onDebitNoteEmit] Completado. sriStatus:', result.sriStatus);
 
       if (result.sriStatus === 'authorized') {
-        // PDF + email en paralelo, no bloqueante para el trigger principal
-        Promise.all([
-          generateDebitNotePdfInternal(debitNoteId, companyId)
-            .then(() => sendDebitNoteEmailInternal(debitNoteId, companyId))
-            .catch(err => console.warn('[onDebitNoteEmit] Post-auth tasks error:', err)),
-        ]);
+        // Se espera: una promesa suelta muere cuando la function termina.
+        try {
+          await generateDebitNotePdfInternal(debitNoteId, companyId);
+          await sendDebitNoteEmailInternal(debitNoteId, companyId);
+        } catch (err) {
+          console.warn('[onDebitNoteEmit] RIDE o correo (no crítico):', err);
+        }
       }
 
     } catch (err) {
