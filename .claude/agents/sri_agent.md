@@ -256,6 +256,14 @@ Detalle completo en `establishments_agent.md`.
   `onInvoiceEmit`, `onRetentionEmit`, `onDebitNoteEmit`, `createAndEmitInvoice` y
   `backfillNotRequiredInvoices`.
 
+## Nota de crédito (04) y nota de débito (05) — 2026-10-06
+
+Hasta `c0a13fe` las dos salían **fuera de esquema** (nunca se habían emitido en producción). Constructores puros en `functions/src/utils/sri-note-xml.ts`, probados en `__tests__/sri-note-xml.test.ts` (la NC con **xmllint contra el XSD oficial** de `docs/XML y XSD Nota de Crédito/`).
+- **NC:** versión **1.1.0** (la 1.0.0 solo admite 2 decimales en cantidad/precio). **No existe `numAutDocSustento`**: se relaciona por `codDocModificado`, `numDocModificado` y `fechaEmisionDocSustento`. Detalle con `<codigoInterno>`, **sin** `<unidadMedida>` ni `<codigoPrincipal>`. NC por valor = línea 1 × valor.
+- **ND** (ficha técnica v2.34): `<valorTotal>` (no `importeTotal`), **sin** `<moneda>`, `<pagos>` obligatorio (Tabla 24; vacío → '20'), **sin** `numAutorizacionDocSustento`, y **siempre un `<impuesto>`**, también con IVA 0 %. Envío por `sendToSriInternal(…, 'debitNote')`.
+- Error del SRI «35 ARCHIVO NO CUMPLE ESTRUCTURA XML» = XML fuera de esquema: validar contra el XSD antes de buscar otra causa.
+- Tabla 17 del IVA solo en `utils/sri-vat-codes.ts` (`sriVatCode`). Cada function empaqueta su copia: tocar un generador obliga a redesplegar sus dependientes (`onInvoiceEmit`, `onDebitNoteEmit`…).
+
 ## Anti-patrones
 - Construir XML con concatenación de strings (usar builder o template literal controlado)
 - Hardcodear RUC del emisor (leer siempre de /companies/{id}/sriConfig)
