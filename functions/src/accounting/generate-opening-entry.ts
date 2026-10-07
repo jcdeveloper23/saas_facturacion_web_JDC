@@ -1,6 +1,7 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import { requireCompanyRole } from '../utils/callable-auth';
+import { BalanceEntry, sumAccountBalances } from './utils/entry-counts';
 
 // ─── Callable: generateOpeningEntry ──────────────────────────────────────────
 //
@@ -144,28 +145,19 @@ export const generateOpeningEntry = onCall<GenerateOpeningEntryInput>(async (req
   console.log('[generateOpeningEntry] Generando apertura para período:', newPeriodId,
     'basado en período anterior:', prevPeriodId);
 
-  // Aggregate all posted entries from the previous period (groups 1, 2, 3 — Balance Sheet)
+  // Saldos de Balance General (grupos 1, 2 y 3) del período anterior.
+  // Mismo criterio que el cierre (countsForBalances): cuentan los 'posted' y
+  // los 'cancelled' con reversalEntryId. Se trae todo el período con una sola
+  // igualdad (sin índice compuesto) y se filtra en memoria.
   const entriesSnap = await db
     .collection(`companies/${companyId}/journal_entries`)
     .where('periodId', '==', prevPeriodId)
-    .where('status',   '==', 'posted')
     .get();
 
-  const accountBalances = new Map<string, { code: string; name: string; debit: number; credit: number }>();
-
-  for (const entryDoc of entriesSnap.docs) {
-    const entry = entryDoc.data() as Record<string, any>;
-    for (const line of (entry['lines'] ?? [])) {
-      const code = (line['accountCode'] as string) ?? '';
-      // Only include Balance Sheet accounts (groups 1, 2, 3)
-      if (!code.startsWith('1') && !code.startsWith('2') && !code.startsWith('3')) continue;
-
-      const existing = accountBalances.get(code) ?? { code, name: line['accountName'], debit: 0, credit: 0 };
-      existing.debit  = round2(existing.debit  + (line['debit']  ?? 0));
-      existing.credit = round2(existing.credit + (line['credit'] ?? 0));
-      accountBalances.set(code, existing);
-    }
-  }
+  const accountBalances = sumAccountBalances(
+    entriesSnap.docs.map(d => d.data() as BalanceEntry),
+    code => code.startsWith('1') || code.startsWith('2') || code.startsWith('3'),
+  );
 
   // Build opening lines — invert: closing debits become opening debits, credits become credits
   // Net balances by nature:
