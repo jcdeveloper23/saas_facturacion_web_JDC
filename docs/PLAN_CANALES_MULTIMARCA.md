@@ -114,7 +114,7 @@ Deuda detectada, fuera de este trabajo:
   smtp?: { … };              // 2026-09-25: correo saliente del canal.
                              // La CONTRASEÑA no va aquí: Secret Manager,
                              // `facturaec-smtp-channel-{channelId}`
-  masterDataSync?: {         // 2026-10-07 (`655575e`, ⏳ sin desplegar):
+  masterDataSync?: {         // 2026-10-07 (`655575e`, ~~⏳ sin desplegar~~ → ✅ en producción el 2026-10-07, encendido para conecta-app):
     enabled: boolean;        // avisar al canal cuando cambia un dato fiscal
     url: string;             // de una persona o un artículo de sus empresas
   };
