@@ -418,6 +418,11 @@ service cloud.firestore {
         // no escribe aquí: las existencias las mueve el servidor.
         allow create, update: if isAuthenticated() && belongsToCompany(companyId)
                               && (isAdmin() || hasRole('seller'));
+        // El contador CREA el artículo que necesita para registrar su compra
+        // (2026-10-07), sin existencias de entrada (las suma la compra al
+        // recibirse). Editar y borrar el catálogo sigue siendo de otros.
+        allow create: if isAuthenticated() && belongsToCompany(companyId) && isAccountant()
+                      && request.resource.data.get('stockQty', 0) == 0;
         allow delete: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
 
         // Product subcollections

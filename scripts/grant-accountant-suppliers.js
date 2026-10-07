@@ -8,7 +8,10 @@
  * `accountantUpdatesSupplier`), y `setupCompany` siembra el rol con
  * `suppliers.create` y `suppliers.edit`. Las empresas que ya existen guardan su
  * copia del rol en `companies/{cid}/roles/accountant`, que manda sobre la
- * matriz de la web: este script le suma esos dos permisos. No quita nada.
+ * matriz de la web: este script le suma esos permisos. No quita nada.
+ *
+ * Mismo día: el contador también CREA el artículo de su compra (regla de
+ * `products`), así que se suma `products.create`.
  *
  * EJECUCIÓN, sin claves descargadas (con tu sesión de gcloud):
  *   gcloud auth application-default login
@@ -23,7 +26,8 @@ const admin = require('firebase-admin');
 
 const APPLY = process.argv.includes('--apply');
 const PROJECT = process.env.GCLOUD_PROJECT || 'accounting-system-a5c9f';
-const NUEVOS = ['suppliers.create', 'suppliers.edit'];
+// Proveedores y, desde la segunda pasada del mismo día, crear artículos.
+const NUEVOS = ['suppliers.create', 'suppliers.edit', 'products.create'];
 
 admin.initializeApp({ credential: admin.credential.applicationDefault(), projectId: PROJECT });
 const db = admin.firestore();

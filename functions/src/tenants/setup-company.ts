@@ -43,8 +43,9 @@ const COMPANY_DEFAULT_ROLES = [
       'retentions.view', 'retentions.create', 'retentions.edit', 'retentions.delete',
       'debit_notes.view', 'debit_notes.create', 'debit_notes.edit', 'debit_notes.delete',
       'accounting.view', 'accounting.create', 'accounting.edit',
-      'invoices.view', 'customers.view', 'products.view',
-      // Da de alta proveedores para sus compras (2026-10-07).
+      'invoices.view', 'customers.view',
+      // Da de alta proveedores y el artículo de sus compras (2026-10-07).
+      'products.view', 'products.create',
       'suppliers.view', 'suppliers.create', 'suppliers.edit',
       'sri.view', 'settings.view',
     ],

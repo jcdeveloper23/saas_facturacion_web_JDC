@@ -450,8 +450,14 @@ const num = v => ({ doubleValue: v });
     await patch('companies/c1/products/p1', seller, { price: num(11) }), S.OK);
   await expectStatus('el admin crea artículos',
     await create('companies/c1/products', 'p4', admin, { sku: str('A-4'), name: str('Z') }), S.OK);
-  await expectStatus('el contador NO crea artículos (no tiene products.create)',
-    await create('companies/c1/products', 'p5', conta, { sku: str('A-5'), name: str('W') }), S.DENIED);
+  // Desde el 2026-10-07 el contador crea el artículo de su compra, sin
+  // existencias de entrada; no edita el catálogo.
+  await expectStatus('el contador crea un artículo',
+    await create('companies/c1/products', 'p5', conta, { sku: str('A-5'), name: str('W'), stockQty: num(0) }), S.OK);
+  await expectStatus('pero no con existencias de entrada',
+    await create('companies/c1/products', 'p6', conta, { sku: str('A-6'), name: str('V'), stockQty: num(50) }), S.DENIED);
+  await expectStatus('ni edita un artículo',
+    await patch('companies/c1/products/p1', conta, { price: num(1) }), S.DENIED);
 
   // ── formas de pago de la empresa (2026-10-05) ───────────────────────────
   const forma = (name, code, cuenta = '') => ({
