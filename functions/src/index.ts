@@ -66,6 +66,9 @@ export { onPurchaseReceive } from './stock/on-purchase-receive';
 export { onMarketplaceSettingsChange } from './marketplace/on-marketplace-settings-change';
 export { onProductPublicSync }         from './marketplace/on-product-public-sync';
 
+// Sincronización de datos maestros con el canal (FacturaEc → Conecta, 2026-10-07)
+export { onPersonaWrittenNotifyChannel, onProductWrittenNotifyChannel } from './channel-sync/notify-channel';
+
 // Team Management
 export { onTimesheetCreated }          from './team-management/on-timesheet-created';
 export { onTimesheetDeleted }          from './team-management/on-timesheet-deleted';
