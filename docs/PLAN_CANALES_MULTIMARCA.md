@@ -114,8 +114,22 @@ Deuda detectada, fuera de este trabajo:
   smtp?: { … };              // 2026-09-25: correo saliente del canal.
                              // La CONTRASEÑA no va aquí: Secret Manager,
                              // `facturaec-smtp-channel-{channelId}`
+  masterDataSync?: {         // 2026-10-07 (`655575e`, ⏳ sin desplegar):
+    enabled: boolean;        // avisar al canal cuando cambia un dato fiscal
+    url: string;             // de una persona o un artículo de sus empresas
+  };
 }
 ```
+
+> **El canal recibe los cambios de clientes y artículos (2026-10-07, `655575e`, ⏳ sin
+> desplegar).** `onPersonaWrittenNotifyChannel` y `onProductWrittenNotifyChannel`
+> (`functions/src/channel-sync/`) avisan por POST, con ID token OIDC de la cuenta de ejecución
+> (sin claves), a `masterDataSync.url` cuando cambia la proyección fiscal de una persona o un
+> artículo de una empresa del canal. Contrato v1 `{version, kind, companyId, id, eventTime,
+> deleted, data}`. Solo lo escribe el super admin; apagado o sin `url`, no se avisa. Para
+> `conecta-app` el receptor es `facturaEcMasterDataSync` de `work-cloud-df68a`. Detalle y orden
+> de despliegue en `../App_AdminWeb_Conectate/weworkscloud/docs/BITACORA_INTEGRACION.md`,
+> entrada del 2026-10-07.
 
 > **El canal también es un remitente de correo (2026-09-25).** Si la empresa no configuró
 > el suyo (`companies/{cid}/configuration/smtp`), sus comprobantes salen por el correo del
