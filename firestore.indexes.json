@@ -581,6 +581,22 @@
         { "fieldPath": "channelId", "order": "ASCENDING" },
         { "fieldPath": "planName",  "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "bank_statements",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "bankAccountId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt",     "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "bank_statements",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "bankAccountId", "order": "ASCENDING" },
+        { "fieldPath": "periodTo",      "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

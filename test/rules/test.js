@@ -507,6 +507,129 @@ const num = v => ({ doubleValue: v });
   await expectStatus('contabilizado no vuelve a borrador',
     await patch('companies/c1/journal_entries/je1', conta, { status: str('draft') }), S.DENIED);
 
+  // ── asientos contabilizados y conciliación bancaria (2026-10-07) ──────────
+  const ts = () => ({ timestampValue: new Date().toISOString() });
+  const linea = monto => ({ arrayValue: { values: [{ mapValue: { fields: {
+    id: str('l1'), accountCode: str('1.1.01'), debit: num(monto), credit: num(0) } } }] } });
+  await seed('companies/c1/journal_entries', 'jeB', { status: str('draft'), type: str('manual'), lines: linea(10) });
+  await expectStatus('un borrador sigue editable (líneas)',
+    await patch('companies/c1/journal_entries/jeB', conta, { lines: linea(20) }), S.OK);
+  await expectStatus('un borrador pasa a contabilizado con sus líneas en la misma escritura (web)',
+    await patch('companies/c1/journal_entries/jeB', admin, { lines: linea(30), status: str('posted') }), S.OK);
+  await expectStatus('un asiento contabilizado NO cambia sus líneas',
+    await patch('companies/c1/journal_entries/jeB', admin, { lines: linea(99) }), S.DENIED);
+  await expectStatus('un asiento contabilizado NO cambia su fecha',
+    await patch('companies/c1/journal_entries/jeB', admin, { date: ts() }), S.DENIED);
+  await expectStatus('ni se anula cambiando además las líneas',
+    await patch('companies/c1/journal_entries/jeB', admin, { status: str('cancelled'), lines: linea(0) }), S.DENIED);
+  await expectStatus('contabilizado → anulado con los campos de anulación, sí',
+    await patch('companies/c1/journal_entries/jeB', conta, {
+      status: str('cancelled'), cancelledAt: ts(), cancelledBy: str('t1'),
+      cancelReason: str('Error de digitación'), updatedAt: ts(), updatedBy: str('t1') }), S.OK);
+
+  // extracto abierto, con un movimiento emparejado a un asiento conciliado
+  const stmt = (extra = {}) => ({ bankAccountId: str('b1'), periodKey: str('2026-09'),
+    status: str('in_progress'), ...extra });
+  await seed('companies/c1/journal_entries', 'jeC', { status: str('posted'), type: str('manual'), lines: linea(50) });
+  await expectStatus('el contador crea el extracto del mes',
+    await create('companies/c1/bank_statements', 'b1_2026-09', conta, stmt({ status: str('draft') })), S.OK);
+  await expectStatus('el vendedor NO crea extractos',
+    await create('companies/c1/bank_statements', 'b1_2026-08', seller, stmt()), S.DENIED);
+  await expectStatus('el cajero NO lee extractos',
+    await req('companies/c1/bank_statements/b1_2026-09', cashier), S.DENIED);
+  await expectStatus('extracto sin cuenta bancaria, no',
+    await create('companies/c1/bank_statements', 'x_2026-09', admin, { status: str('draft') }), S.DENIED);
+  await expectStatus('no nace conciliado',
+    await create('companies/c1/bank_statements', 'b1_2026-07', admin, stmt({ status: str('reconciled') })), S.DENIED);
+  await expectStatus('el contador agrega un movimiento',
+    await create('companies/c1/bank_statements/b1_2026-09/transactions', 'h1', conta, {
+      hash: str('h1'), amountCents: { integerValue: '5000' }, status: str('unmatched'), kind: str('normal') }), S.OK);
+  await expectStatus('el cajero NO agrega movimientos',
+    await create('companies/c1/bank_statements/b1_2026-09/transactions', 'h9', cashier, { status: str('unmatched') }), S.DENIED);
+  await expectStatus('el contador crea el emparejamiento',
+    await create('companies/c1/bank_statements/b1_2026-09/matches', 'm1', conta, {
+      txIds: list(['h1']), kind: str('manual'), createdBy: str('t1') }), S.OK);
+  await expectStatus('un emparejamiento no se edita',
+    await patch('companies/c1/bank_statements/b1_2026-09/matches/m1', admin, { kind: str('auto') }), S.DENIED);
+  await expectStatus('el vendedor NO lee emparejamientos',
+    await req('companies/c1/bank_statements/b1_2026-09/matches/m1', seller), S.DENIED);
+  await expectStatus('el contador marca el movimiento emparejado',
+    await patch('companies/c1/bank_statements/b1_2026-09/transactions/h1', conta, {
+      status: str('matched'), matchId: str('m1') }), S.OK);
+  await expectStatus('el contador marca el asiento como conciliado',
+    await create('companies/c1/bank_reconciled_entries', 'jeC', conta, {
+      lineIds: list(['l1']), statementId: str('b1_2026-09'), bankAccountId: str('b1'), matchIds: list(['m1']) }), S.OK);
+  await expectStatus('el vendedor NO marca asientos conciliados',
+    await create('companies/c1/bank_reconciled_entries', 'jeX', seller, { statementId: str('b1_2026-09') }), S.DENIED);
+  await expectStatus('marca sin extracto, no',
+    await create('companies/c1/bank_reconciled_entries', 'jeY', admin, { lineIds: list(['l1']) }), S.DENIED);
+  await expectStatus('un movimiento emparejado NO se borra',
+    await del('companies/c1/bank_statements/b1_2026-09/transactions/h1', admin), S.DENIED);
+  await expectStatus('NO se anula un asiento conciliado',
+    await patch('companies/c1/journal_entries/jeC', admin, {
+      status: str('cancelled'), cancelledAt: ts(), cancelledBy: str('adm'), cancelReason: str('x') }), S.DENIED);
+
+  // conciliar cierra el extracto
+  await expectStatus('el contador concilia el extracto',
+    await patch('companies/c1/bank_statements/b1_2026-09', conta, {
+      status: str('reconciled'), reconciledAt: ts(), reconciledBy: str('t1') }), S.OK);
+  await expectStatus('extracto conciliado: NO se edita',
+    await patch('companies/c1/bank_statements/b1_2026-09', admin, { closingBalance: num(1) }), S.DENIED);
+  await expectStatus('extracto conciliado: NO se agregan movimientos',
+    await create('companies/c1/bank_statements/b1_2026-09/transactions', 'h2', admin, { status: str('unmatched') }), S.DENIED);
+  await expectStatus('extracto conciliado: NO se desempareja un movimiento',
+    await patch('companies/c1/bank_statements/b1_2026-09/transactions/h1', admin, { status: str('unmatched') }), S.DENIED);
+  await expectStatus('extracto conciliado: NO se borra un emparejamiento',
+    await del('companies/c1/bank_statements/b1_2026-09/matches/m1', admin), S.DENIED);
+  await expectStatus('extracto conciliado: NO se quita la marca del asiento',
+    await del('companies/c1/bank_reconciled_entries/jeC', admin), S.DENIED);
+  await expectStatus('extracto conciliado: el admin NO lo borra',
+    await del('companies/c1/bank_statements/b1_2026-09', admin), S.DENIED);
+  await expectStatus('el contador NO lo reabre',
+    await patch('companies/c1/bank_statements/b1_2026-09', conta, { status: str('in_progress') }), S.DENIED);
+  await expectStatus('el admin NO lo reabre cambiando además los saldos',
+    await patch('companies/c1/bank_statements/b1_2026-09', admin, { status: str('in_progress'), closingBalance: num(1) }), S.DENIED);
+  await expectStatus('el admin lo reabre',
+    await patch('companies/c1/bank_statements/b1_2026-09', admin, {
+      status: str('in_progress'), reconciledAt: { nullValue: null }, reconciledBy: { nullValue: null } }), S.OK);
+
+  // reabierto: se deshace la conciliación y ya se puede anular el asiento
+  await expectStatus('reabierto: el contador quita la marca del asiento',
+    await del('companies/c1/bank_reconciled_entries/jeC', conta), S.OK);
+  await expectStatus('reabierto: se borra el emparejamiento',
+    await del('companies/c1/bank_statements/b1_2026-09/matches/m1', conta), S.OK);
+  await expectStatus('reabierto: se desempareja el movimiento',
+    await patch('companies/c1/bank_statements/b1_2026-09/transactions/h1', conta, { status: str('unmatched') }), S.OK);
+  await expectStatus('desemparejado: el movimiento ya se borra',
+    await del('companies/c1/bank_statements/b1_2026-09/transactions/h1', conta), S.OK);
+  await expectStatus('sin marca de conciliación, el asiento se anula',
+    await patch('companies/c1/journal_entries/jeC', admin, {
+      status: str('cancelled'), cancelledAt: ts(), cancelledBy: str('adm'), cancelReason: str('x') }), S.OK);
+  await expectStatus('el contador NO borra extractos',
+    await del('companies/c1/bank_statements/b1_2026-09', conta), S.DENIED);
+  await expectStatus('el admin borra un extracto no conciliado',
+    await del('companies/c1/bank_statements/b1_2026-09', admin), S.OK);
+
+  // La web crea el extracto y sus movimientos en un mismo writeBatch.
+  const proj = process.env.GCLOUD_PROJECT || 'demo-facturaec';
+  const docs = `projects/${proj}/databases/(default)/documents`;
+  const commit = (auth, writes) => fetch(
+    `http://${process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8181'}/v1/${docs}:commit`,
+    { method: 'POST', headers: { Authorization: `Bearer ${auth}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ writes }) });
+  const nuevo = (path, fields) => ({ update: { name: `${docs}/${path}`, fields },
+    currentDocument: { exists: false } });
+  await expectStatus('extracto + movimientos en un solo batch (web), sí',
+    await commit(conta, [
+      nuevo('companies/c1/bank_statements/web1', stmt({ status: str('draft') })),
+      nuevo('companies/c1/bank_statements/web1/transactions/t1', { status: str('unmatched'), debit: num(1) }),
+    ]), S.OK);
+  await expectStatus('pero no en un batch que lo crea conciliado',
+    await commit(conta, [
+      nuevo('companies/c1/bank_statements/web2', stmt({ status: str('reconciled') })),
+      nuevo('companies/c1/bank_statements/web2/transactions/t1', { status: str('unmatched') }),
+    ]), S.DENIED);
+
   // ── retenciones (2.2, 2026-10-06) ─────────────────────────────────────────
   const ret = (extra = {}) => ({ seriesEstablishment: str('001'), seriesEmissionPoint: str('001'),
     status: str('issued'), totalRetained: num(5), ...extra });

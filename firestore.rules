@@ -261,9 +261,67 @@ service cloud.firestore {
       return collection in [
         'chart_of_accounts', 'accounting_periods', 'cost_centers',
         'journal_entries', 'bank_accounts', 'bank_statements',
+        'bank_reconciled_entries',
         'budgets', 'fixed_assets', 'advances',
-        'petty_cash_funds', 'petty_cash_movements', 'audit_log'
+        'petty_cash_funds', 'petty_cash_movements', 'audit_log', 'matches'
       ];
+    }
+
+    // ─── Conciliación bancaria (2026-10-07) ──────────────────────────────
+    // Contrato compartido con Conecta. Un extracto conciliado
+    // (status 'reconciled') queda cerrado: ni él, ni sus movimientos, ni sus
+    // emparejamientos se tocan hasta que el admin lo reabra.
+    function bankStatementPath(companyId, statementId) {
+      return /databases/$(database)/documents/companies/$(companyId)/bank_statements/$(statementId);
+    }
+
+    // El extracto existe y no está conciliado. Si todavía no existe, vale el
+    // estado con que queda al final del batch: la web crea el extracto y sus
+    // movimientos en un mismo writeBatch, y get() ve el estado anterior.
+    function bankStatementOpen(companyId, statementId) {
+      let p = bankStatementPath(companyId, statementId);
+      return exists(p)
+        ? get(p).data.get('status', 'draft') != 'reconciled'
+        : (existsAfter(p) && getAfter(p).data.get('status', 'draft') != 'reconciled');
+    }
+
+    // Para bank_reconciled_entries: un extracto que ya no existe no bloquea
+    // (si no, una marca huérfana impediría anular el asiento para siempre).
+    function bankStatementGoneOrOpen(companyId, statementId) {
+      let p = bankStatementPath(companyId, statementId);
+      return !exists(p) || get(p).data.get('status', 'draft') != 'reconciled';
+    }
+
+    function bankStatementShapeOk() {
+      let d = request.resource.data;
+      return d.bankAccountId is string && d.bankAccountId.size() > 0
+          && d.get('status', 'draft') in ['draft', 'in_progress', 'reconciled'];
+    }
+
+    // Reabrir: conciliado → en curso, solo el admin, y sin tocar nada más que
+    // el estado y quién/cuándo concilió.
+    function bankStatementReopenOk() {
+      return isAdmin()
+          && request.resource.data.get('status', '') == 'in_progress'
+          && request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['status', 'reconciledAt', 'reconciledBy', 'updatedAt', 'updatedBy']);
+    }
+
+    // ─── Asientos contabilizados (2026-10-07) ────────────────────────────
+    // Un asiento 'posted' ya no cambia sus líneas, montos ni fecha: solo se
+    // anula, con los mismos campos que escriben la web (cancelEntry) y
+    // Conecta (journal_service.dart cancel()).
+    function postedEntryCancelOk() {
+      return request.resource.data.get('status', '') == 'cancelled'
+          && request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['status', 'cancelledAt', 'cancelledBy', 'cancelReason', 'updatedAt', 'updatedBy']);
+    }
+
+    // No se anula un asiento que tiene líneas conciliadas con el banco:
+    // primero se deshace la conciliación. existsAfter: si el mismo batch
+    // quita la marca (y eso lo permite su propia regla), sí se anula.
+    function entryNotBankReconciled(companyId, entryId) {
+      return !existsAfter(/databases/$(database)/documents/companies/$(companyId)/bank_reconciled_entries/$(entryId));
     }
 
     // Returns true if the caller belongs to the company AND has at least
@@ -800,7 +858,13 @@ service cloud.firestore {
                       // no vuelve a borrador. Antes exigía status != 'draft'
                       // siempre, y un borrador no se podía editar (2026-10-05).
                       && (resource.data.status == 'draft'
-                          || request.resource.data.status != 'draft');
+                          || request.resource.data.status != 'draft')
+                      // Contabilizado: solo se anula, sin tocar líneas,
+                      // montos ni fecha (2026-10-07). El borrador, como antes.
+                      && (resource.data.status != 'posted' || postedEntryCancelOk())
+                      // Conciliado con el banco: no se anula (2026-10-07).
+                      && (request.resource.data.get('status', '') != 'cancelled'
+                          || entryNotBankReconciled(companyId, entryId));
 
         // DELETE — only draft manual entries; admin only.
         allow delete: if isAuthenticated() && belongsToCompany(companyId) && isAdmin()
@@ -840,22 +904,70 @@ service cloud.firestore {
       }
 
       // ─── Bank Statements + Transactions (subcollection) ───────────────────
+      // Conciliación bancaria (2026-10-07, contrato con Conecta). Id del
+      // extracto: `{bankAccountId}_{AAAA-MM}`. Conciliado = cerrado.
       match /bank_statements/{statementId} {
         allow read:   if isAuthenticated() && belongsToCompany(companyId)
                       && (isAdmin() || isAccountant());
         allow create: if isAuthenticated() && belongsToCompany(companyId)
-                      && (isAdmin() || isAccountant());
+                      && (isAdmin() || isAccountant())
+                      && bankStatementShapeOk()
+                      && request.resource.data.get('status', 'draft') in ['draft', 'in_progress'];
+        // Abierto: admin o contador, sin cambiar de cuenta. Conciliado: solo
+        // reabrirlo, y solo el admin.
         allow update: if isAuthenticated() && belongsToCompany(companyId)
-                      && (isAdmin() || isAccountant());
-        allow delete: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
+                      && (isAdmin() || isAccountant())
+                      && bankStatementShapeOk()
+                      && request.resource.data.bankAccountId == resource.data.get('bankAccountId', request.resource.data.bankAccountId)
+                      && (resource.data.get('status', 'draft') != 'reconciled'
+                          || bankStatementReopenOk());
+        allow delete: if isAuthenticated() && belongsToCompany(companyId) && isAdmin()
+                      && resource.data.get('status', 'draft') != 'reconciled';
 
+        // Movimientos del extracto (id = hash del movimiento).
         match /transactions/{txId} {
           allow read:          if isAuthenticated() && belongsToCompany(companyId)
                                && (isAdmin() || isAccountant());
           allow create, update: if isAuthenticated() && belongsToCompany(companyId)
-                               && (isAdmin() || isAccountant());
-          allow delete:         if false; // immutable audit trail
+                               && (isAdmin() || isAccountant())
+                               && bankStatementOpen(companyId, statementId);
+          // Antes `if false`, y el «Eliminar extracto» de la web fallaba.
+          // Un movimiento emparejado no se borra: primero se desempareja.
+          allow delete:        if isAuthenticated() && belongsToCompany(companyId)
+                               && (isAdmin() || isAccountant())
+                               && bankStatementOpen(companyId, statementId)
+                               && resource.data.get('status', 'unmatched') != 'matched';
         }
+
+        // Emparejamientos movimiento(s) ↔ línea(s) de asiento. No se editan:
+        // se borran y se vuelven a crear.
+        match /matches/{matchId} {
+          allow read:           if isAuthenticated() && belongsToCompany(companyId)
+                                && (isAdmin() || isAccountant());
+          allow create, delete: if isAuthenticated() && belongsToCompany(companyId)
+                                && (isAdmin() || isAccountant())
+                                && bankStatementOpen(companyId, statementId);
+          allow update:         if false;
+        }
+      }
+
+      // Asientos con líneas conciliadas (id = id del asiento). Mientras exista,
+      // el asiento no se anula (ver journal_entries).
+      match /bank_reconciled_entries/{entryId} {
+        allow read:   if isAuthenticated() && belongsToCompany(companyId)
+                      && (isAdmin() || isAccountant());
+        allow create: if isAuthenticated() && belongsToCompany(companyId)
+                      && (isAdmin() || isAccountant())
+                      && request.resource.data.statementId is string
+                      && request.resource.data.statementId.size() > 0;
+        allow update: if isAuthenticated() && belongsToCompany(companyId)
+                      && (isAdmin() || isAccountant())
+                      && request.resource.data.statementId is string
+                      && request.resource.data.statementId.size() > 0
+                      && bankStatementGoneOrOpen(companyId, resource.data.get('statementId', ''));
+        allow delete: if isAuthenticated() && belongsToCompany(companyId)
+                      && (isAdmin() || isAccountant())
+                      && bankStatementGoneOrOpen(companyId, resource.data.get('statementId', ''));
       }
 
       // ─── Advances (anticipos de clientes/proveedores) ──────────────────────
