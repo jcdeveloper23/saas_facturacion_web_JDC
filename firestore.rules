@@ -76,6 +76,27 @@ service cloud.firestore {
       return hasRole('accountant');
     }
 
+    // El contador registra compras y necesita dar de alta al proveedor
+    // (2026-10-07): crea fichas que son SOLO proveedor y las mantiene. A una
+    // persona que ya es cliente solo le suma el papel de proveedor y sus datos
+    // de proveedor; los de cliente no los toca.
+    function accountantCreatesSupplier() {
+      return isAccountant() && request.resource.data.get('roles', []) == ['supplier'];
+    }
+
+    function accountantUpdatesSupplier() {
+      let antes = resource.data.get('roles', []);
+      let despues = request.resource.data.get('roles', []);
+      return isAccountant() && (
+        (antes == ['supplier'] && despues == ['supplier'])
+        || (request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['roles', 'supplierData', 'isActive', 'updatedAt', 'updatedBy'])
+            && despues.hasAll(antes)
+            && despues.hasAll(['supplier'])
+            && despues.removeAll(antes).hasOnly(['supplier']))
+      );
+    }
+
     // True si el update SOLO toca los campos de cobro/pago (marcar factura o
     // compra pagada, o aplicar un anticipo) — nunca datos de línea/montos.
     // Deja pasar a un contador (isAccountant) sin darle permiso general de
@@ -369,7 +390,10 @@ service cloud.firestore {
       // ─── All tenant sub-collections ─────────────────────────────────
       match /personas/{id} {
         allow read: if isAuthenticated() && belongsToCompany(companyId);
-        allow create, update: if isAuthenticated() && belongsToCompany(companyId) && canWrite();
+        allow create: if isAuthenticated() && belongsToCompany(companyId)
+                      && (canWrite() || accountantCreatesSupplier());
+        allow update: if isAuthenticated() && belongsToCompany(companyId)
+                      && (canWrite() || accountantUpdatesSupplier());
         allow delete: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
       }
 

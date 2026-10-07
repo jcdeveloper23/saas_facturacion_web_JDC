@@ -114,7 +114,9 @@ const ROLE_MATRIX: { [role: string]: Record<string, ModulePermissions> } = {
     accounting:      { read: true, create: true, update: true },
     invoices:        { read: true },
     customers:       { read: true },
-    suppliers:       { read: true },
+    // Da de alta y mantiene proveedores para sus compras (2026-10-07); las
+    // reglas solo le dejan fichas de proveedor, no de cliente.
+    suppliers:       { read: true, create: true, update: true },
     products:        { read: true },
     sri:             { read: true },
     settings:        { read: true },

@@ -549,5 +549,30 @@ const num = v => ({ doubleValue: v });
   await expectStatus('ligar no deja cambiar el total de paso',
     await patch('companies/c1/purchases/pRec2', seller, { retentionId: str('rc1'), total: num(1) }), S.DENIED);
 
+  // El contador da de alta proveedores (2026-10-07), no clientes.
+  const proveedor = (roles) => ({ taxId: str('1790000000001'), name: str('PROVEEDOR S.A.'), roles: list(roles) });
+  await expectStatus('el contador crea un proveedor',
+    await create('companies/c1/personas', 'prov1', conta, proveedor(['supplier'])), S.OK);
+  await expectStatus('el contador NO crea un cliente',
+    await create('companies/c1/personas', 'cli1', conta, proveedor(['customer'])), S.DENIED);
+  await expectStatus('ni un cliente-proveedor',
+    await create('companies/c1/personas', 'cli2', conta, proveedor(['customer', 'supplier'])), S.DENIED);
+  await expectStatus('el contador edita su proveedor',
+    await patch('companies/c1/personas/prov1', conta, { name: str('PROVEEDOR NUEVO S.A.') }), S.OK);
+  await expectStatus('pero no lo vuelve cliente',
+    await patch('companies/c1/personas/prov1', conta, { roles: list(['supplier', 'customer']) }), S.DENIED);
+  await seed('companies/c1/personas', 'cliX', { taxId: str('1700000000'), name: str('CLIENTE'), roles: list(['customer']) });
+  await expectStatus('a un cliente le suma el papel de proveedor y sus datos',
+    await patch('companies/c1/personas/cliX', conta, {
+      roles: list(['customer', 'supplier']),
+      supplierData: { mapValue: { fields: { code: str('PRV-0001') } } },
+    }), S.OK);
+  await expectStatus('pero no le cambia los datos de cliente',
+    await patch('companies/c1/personas/cliX', conta, { name: str('OTRO NOMBRE') }), S.DENIED);
+  await expectStatus('ni le quita el papel de cliente',
+    await patch('companies/c1/personas/cliX', conta, { roles: list(['supplier']) }), S.DENIED);
+  await expectStatus('el cajero sigue creando clientes',
+    await create('companies/c1/personas', 'cli3', cashier, proveedor(['customer'])), S.OK);
+
   report();
 })();
