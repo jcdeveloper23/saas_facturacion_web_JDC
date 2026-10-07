@@ -127,3 +127,43 @@ describe('purchaseAccountingDate', () => {
     expect(purchaseAccountingDate({})).toBeNull();
   });
 });
+
+describe('la cuenta del artículo (2026-10-07)', () => {
+  const conCuenta = new Map<string, ProductKind>([
+    ['casco', { trackStock: true, purchaseAccountCode: '1.1.03.002' }],
+    ['flete', { type: 'service', purchaseAccountCode: '5.2.01.010' }],
+    ['art', { trackStock: true }],
+  ]);
+  const nombres = new Map([['1.1.03.002', 'Inventario cascos'], ['5.2.01.010', 'Fletes'], ['5.9.9', 'Otra']]);
+
+  it('inventario va a la cuenta del artículo; sin cuenta, a la del mapeo', () => {
+    const r = buildPurchaseEntryLines({
+      fullNumber: 'C-1', lines: [
+        { productId: 'casco', qty: 2, unitCost: 10, subtotal: 20 },
+        { productId: 'art', qty: 1, unitCost: 5, subtotal: 5 },
+      ], subtotal: 25, totalTax: 0,
+    }, conCuenta, accounts, nombres);
+    expect(r.map((l) => [l.accountCode, l.accountName, l.debit])).toEqual([
+      ['1.1.03.002', 'Inventario cascos', 20],
+      ['1.1.03.001', 'Inventario de Mercaderías', 5],
+      ['2.1.01.001', 'Cuentas por Pagar Proveedores', 0],
+    ]);
+    expect(cuadra(r)).toBe(true);
+  });
+
+  it('gasto: manda la cuenta de la línea; si no eligió, la del artículo', () => {
+    const r = buildPurchaseEntryLines({
+      fullNumber: 'C-2', lines: [
+        { productId: 'flete', qty: 1, unitCost: 10, subtotal: 10 },
+        { productId: 'flete', qty: 1, unitCost: 4, subtotal: 4, expenseAccountCode: '5.9.9' },
+      ], subtotal: 14, totalTax: 0,
+    }, conCuenta, accounts, nombres);
+    expect(r.map((l) => [l.accountCode, l.debit])).toEqual([['5.2.01.010', 10], ['5.9.9', 4], ['2.1.01.001', 0]]);
+  });
+
+  it('las cuentas del artículo también se validan', () => {
+    expect(chosenExpenseCodes({ lines: [
+      { productId: 'casco', qty: 1 }, { productId: 'flete', qty: 1 }, { productId: 'art', qty: 1 },
+    ] }, conCuenta).sort()).toEqual(['1.1.03.002', '5.2.01.010']);
+  });
+});

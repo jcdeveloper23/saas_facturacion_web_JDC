@@ -4,9 +4,12 @@
  * Las líneas del asiento de una compra recibida, en una función pura para poder
  * probarla sin Firestore (2026-10-02).
  *
- *   DEBE   Inventario            las líneas de artículos con stock
+ *   DEBE   Inventario            las líneas de artículos con stock: la cuenta
+ *                                del artículo (`purchaseAccountCode`) o la del
+ *                                mapeo (inventory)
  *   DEBE   Gasto de cada línea   las demás (servicios, gastos): la cuenta que
- *                                eligió la línea o la del mapeo (purchaseExpense)
+ *                                eligió la línea, la del artículo o la del
+ *                                mapeo (purchaseExpense)
  *   DEBE   IVA en compras        el IVA de la compra (`totalTax`)
  *   HABER  CxP proveedores       subtotal + IVA (lo que se le debe, BRUTO)
  *
@@ -29,8 +32,12 @@ export interface PurchaseEntryAccounts {
   accountsPayable: AccountRef;
 }
 
-/** Lo que importa del artículo para decidir si la línea es inventario. */
-export interface ProductKind { trackStock?: boolean; type?: string; noStock?: boolean; }
+/**
+ * Lo que importa del artículo: si la línea es inventario y, desde el
+ * 2026-10-07, su cuenta contable de compras (`purchaseAccountCode`, el campo
+ * «cuenta contable compras» de la web).
+ */
+export interface ProductKind { trackStock?: boolean; type?: string; noStock?: boolean; purchaseAccountCode?: string; }
 
 export interface PurchaseEntryLine {
   accountCode: string;
@@ -46,6 +53,18 @@ const r2 = (n: number) => Math.round(n * 100) / 100;
 export function isInventoryLine(line: Record<string, any>, products: Map<string, ProductKind>): boolean {
   const p = line?.productId ? products.get(String(line.productId)) : undefined;
   return !!p && p.trackStock === true && p.type !== 'service' && p.noStock !== true && Number(line.qty ?? 0) > 0;
+}
+
+/**
+ * La cuenta propia de la línea, o '' para la del mapeo. Inventario: la del
+ * artículo. Gasto: la que eligió la línea y, si no eligió, la del artículo.
+ */
+export function lineAccountCode(line: Record<string, any>, products: Map<string, ProductKind>): string {
+  const p = line?.productId ? products.get(String(line.productId)) : undefined;
+  const delArticulo = typeof p?.purchaseAccountCode === 'string' ? p.purchaseAccountCode.trim() : '';
+  if (isInventoryLine(line, products)) return delArticulo;
+  const deLaLinea = typeof line?.expenseAccountCode === 'string' ? line.expenseAccountCode.trim() : '';
+  return deLaLinea || delArticulo;
 }
 
 function lineSubtotal(l: Record<string, any>): number {
@@ -80,12 +99,10 @@ export function buildPurchaseEntryLines(
   for (const l of lines) {
     const monto = lineSubtotal(l);
     if (!(monto > 0)) continue;
-    if (isInventoryLine(l, products)) {
-      sumar(accounts.inventory, monto);
-    } else {
-      const code = typeof l.expenseAccountCode === 'string' ? l.expenseAccountCode.trim() : '';
-      sumar(code ? { code, name: expenseNames.get(code) ?? l.expenseAccountName ?? code } : accounts.purchaseExpense, monto);
-    }
+    const code = lineAccountCode(l, products);
+    const porDefecto = isInventoryLine(l, products) ? accounts.inventory : accounts.purchaseExpense;
+    const nombre = expenseNames.get(code) ?? (code === l.expenseAccountCode ? l.expenseAccountName : undefined) ?? code;
+    sumar(code ? { code, name: nombre } : porDefecto, monto);
   }
 
   // El subtotal guardado manda: si el redondeo por línea no coincide, la
@@ -118,13 +135,13 @@ export function buildPurchaseEntryLines(
   return out;
 }
 
-/** Códigos de cuenta de gasto que eligieron las líneas que no son inventario. */
+/**
+ * Los códigos de cuenta propios de las líneas (los que eligieron y los de sus
+ * artículos), para validarlos contra el plan antes de contabilizar.
+ */
 export function chosenExpenseCodes(purchase: Record<string, any>, products: Map<string, ProductKind>): string[] {
   const lines: Record<string, any>[] = Array.isArray(purchase.lines) ? purchase.lines : [];
-  const codes = lines
-    .filter((l) => !isInventoryLine(l, products))
-    .map((l) => (typeof l.expenseAccountCode === 'string' ? l.expenseAccountCode.trim() : ''))
-    .filter(Boolean);
+  const codes = lines.map((l) => lineAccountCode(l, products)).filter(Boolean);
   return [...new Set(codes)];
 }
 

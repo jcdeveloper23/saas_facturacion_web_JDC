@@ -139,7 +139,7 @@ export async function generateJournalEntryFromPurchaseInternal(
   const malas = elegidas.filter((c) => !expenseNames.has(c));
   if (malas.length) {
     await purchaseRef.update({
-      accountingError: `Cuenta de gasto inexistente, inactiva o agrupadora: ${malas.join(', ')}`,
+      accountingError: `Cuenta de la línea o del artículo inexistente, inactiva o agrupadora: ${malas.join(', ')}`,
       updatedAt: now,
     });
     return { created: false, reason: 'bad_accounts' };
