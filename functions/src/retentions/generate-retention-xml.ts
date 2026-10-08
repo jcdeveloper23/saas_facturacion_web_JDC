@@ -8,6 +8,7 @@ import { resolveEmissionSeries, resolveEstablishmentAddress } from '../utils/est
 import { buildAdditionalInfo } from '../utils/additional-info';
 import { resolveSoftwareProviderRuc } from '../utils/software-provider';
 import { buildSustento, supportDocDigits } from './retention-sustento';
+import { retentionSustentoCode } from '../utils/sri-sustento-codes';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -29,7 +30,7 @@ interface Retention {
   supplierName: string;
   supplierTaxId: string;
   supplierTaxIdType: string;
-  // codSustento: tipo de sustento SRI (01=compras, 02=servicios, etc.)
+  // codSustento: sustento tributario, tabla 5 del ATS (01=crédito tributario IVA, 02=costo o gasto IR…)
   // codDocSustento: tipo de comprobante (01=factura, 04=nota crédito, etc.)
   supportDocType:     string;   // codDocSustento — tipo del comprobante de sustento
   supportDocCodSust?: string;   // codSustento — código de sustento tributario (ej. '01')
@@ -183,9 +184,9 @@ export async function generateRetentionXmlInternal(
   const docsSustento = root.ele('docsSustento');
   const docSustento  = docsSustento.ele('docSustento');
 
-  // codSustento: código de sustento tributario (tipo de gasto/compra).
-  // Si el dato no viene en supportDocCodSust, se usa '01' (compras) como fallback.
-  docSustento.ele('codSustento').txt(retention.supportDocCodSust ?? '01');
+  // codSustento: código de sustento tributario, tabla 5 del ATS
+  // (utils/sri-sustento-codes.ts). Vacío → '01'; uno fuera de la tabla → error.
+  docSustento.ele('codSustento').txt(retentionSustentoCode(retention.supportDocCodSust));
 
   // codDocSustento: tipo de comprobante (01=factura, 04=nota crédito, etc.)
   docSustento.ele('codDocSustento').txt(retention.supportDocType);

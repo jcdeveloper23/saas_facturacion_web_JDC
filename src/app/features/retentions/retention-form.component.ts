@@ -20,9 +20,9 @@ import {
   Retention, RetentionStatus, RetentionTax,
   RETENTION_STATUS_LABELS, RETENTION_STATUS_COLORS,
   ALL_RETENTION_CODES, SRI_ISD_RETENTION_CODES, SUPPORT_DOC_TYPES,
-  SRI_SUSTENTO_CODES,
   buildRetentionFullNumber, calcRetentionTax,
 } from './models/retention.interface';
+import { DEFAULT_SRI_SUSTENTO_CODE, SRI_SUSTENTO_CODES_VIGENTES } from '../../core/constants/sri-sustento-codes';
 import { SRI_STATUS_LABELS as SriLbls, SRI_STATUS_COLORS as SriClrs } from '../invoices/models/invoice.interface';
 import { Person } from '../personas/models/person.interface';
 import { DocumentSeries } from '../settings/models/settings.interfaces';
@@ -109,7 +109,7 @@ export class RetentionFormComponent implements OnInit, OnDestroy {
   readonly allCodes        = ALL_RETENTION_CODES;
   readonly isdCodes        = SRI_ISD_RETENTION_CODES;
   readonly supportDocTypes = SUPPORT_DOC_TYPES;
-  readonly sustentosCodes  = SRI_SUSTENTO_CODES;
+  readonly sustentosCodes  = SRI_SUSTENTO_CODES_VIGENTES; // tabla 5 del ATS
   readonly STATUS_LABELS = RETENTION_STATUS_LABELS;
   readonly STATUS_COLORS = RETENTION_STATUS_COLORS;
   readonly SRI_LABELS    = SriLbls;
@@ -186,7 +186,7 @@ export class RetentionFormComponent implements OnInit, OnDestroy {
       supportDocDate:    [today, Validators.required],
       supportDocAuth:    [''],
       supportDocTotal:   [0, [Validators.required, Validators.min(0)]],
-      supportDocCodSust: ['01', Validators.required],
+      supportDocCodSust: [DEFAULT_SRI_SUSTENTO_CODE, Validators.required],
       notes:            [''],
       taxes: this.fb.array([]),
     });
@@ -240,7 +240,7 @@ export class RetentionFormComponent implements OnInit, OnDestroy {
       supportDocDate:   this.tsToDateInput(r.supportDocDate),
       supportDocAuth:    r.supportDocAuth ?? '',
       supportDocTotal:   r.supportDocTotal,
-      supportDocCodSust: r.supportDocCodSust ?? '01',
+      supportDocCodSust: r.supportDocCodSust ?? DEFAULT_SRI_SUSTENTO_CODE,
       notes:             r.notes ?? '',
     });
 
@@ -373,7 +373,7 @@ export class RetentionFormComponent implements OnInit, OnDestroy {
         supportDocDate:      Timestamp.fromDate(new Date(fv.supportDocDate + 'T00:00:00')),
         supportDocAuth:      fv.supportDocAuth || '',
         supportDocTotal:     parseFloat(fv.supportDocTotal) || 0,
-        supportDocCodSust:   fv.supportDocCodSust ?? '01',
+        supportDocCodSust:   fv.supportDocCodSust ?? DEFAULT_SRI_SUSTENTO_CODE,
         taxes,
         totalRetained,
         status:              emitAfter ? 'issued' as RetentionStatus : 'draft' as RetentionStatus,

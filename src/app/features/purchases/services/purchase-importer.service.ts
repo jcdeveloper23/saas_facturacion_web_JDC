@@ -4,6 +4,7 @@ import {
 } from '@angular/fire/firestore';
 
 import { TenantService }    from '../../../core/services/tenant.service';
+import { DEFAULT_SRI_SUSTENTO_CODE } from '../../../core/constants/sri-sustento-codes';
 import { PersonasService }  from '../../personas/services/personas.service';
 import { ProductsService }  from '../../products/services/products.service';
 import { SettingsService }  from '../../settings/services/settings.service';
@@ -683,7 +684,7 @@ export class PurchaseImporterService {
       // Si el comprobante real es otro (liquidación de compra, etc.) debe corregirse
       // manualmente en el formulario de la compra antes de generar el ATS del mes.
       sriDocumentType:       '01',
-      sriSustentoCode:       '01',
+      sriSustentoCode:       DEFAULT_SRI_SUSTENTO_CODE, // tabla 5: crédito tributario IVA
       lines,
       status:                'draft',
       ...totals,

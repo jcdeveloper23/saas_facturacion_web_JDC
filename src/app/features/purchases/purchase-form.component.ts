@@ -24,7 +24,8 @@ import {
   PURCHASE_STATUS_LABELS, PURCHASE_STATUS_COLORS,
   buildPurchaseFullNumber, calcPurchaseLine, calcPurchaseTotals
 } from './models/purchase.interface';
-import { SUPPORT_DOC_TYPES, SRI_SUSTENTO_CODES } from '../retentions/models/retention.interface';
+import { SUPPORT_DOC_TYPES } from '../retentions/models/retention.interface';
+import { DEFAULT_SRI_SUSTENTO_CODE, SRI_SUSTENTO_CODES_VIGENTES } from '../../core/constants/sri-sustento-codes';
 import { SRI_PAYMENT_METHODS } from '../invoices/models/invoice.interface';
 import { Person } from '../personas/models/person.interface';
 import { Product } from '../products/models/product.interface';
@@ -246,7 +247,7 @@ export class PurchaseFormComponent implements OnInit, OnDestroy {
 
   // ── Catálogos SRI (para el ATS — Anexo Transaccional Simplificado) ─────────
   readonly sriDocumentTypes = SUPPORT_DOC_TYPES;
-  readonly sriSustentoCodes = SRI_SUSTENTO_CODES;
+  readonly sriSustentoCodes = SRI_SUSTENTO_CODES_VIGENTES; // tabla 5 del ATS
   readonly sriPaymentMethods = SRI_PAYMENT_METHODS;
 
   // ── Form ───────────────────────────────────────────────────────────────────
@@ -295,7 +296,7 @@ export class PurchaseFormComponent implements OnInit, OnDestroy {
       notes:                 [''],
       // Datos para el ATS — valores por defecto cubren el caso más común
       sriDocumentType:  ['01', Validators.required], // Factura de venta
-      sriSustentoCode:  ['01', Validators.required], // Compras
+      sriSustentoCode:  [DEFAULT_SRI_SUSTENTO_CODE, Validators.required], // 01 = crédito tributario IVA
       paymentMethodCode: [''],
       lines:                 this.fb.array([])
     });
@@ -362,7 +363,7 @@ export class PurchaseFormComponent implements OnInit, OnDestroy {
       expectedDate:          p.expectedDate ? this.tsToDateInput(p.expectedDate) : '',
       notes:                 p.notes ?? '',
       sriDocumentType:       p.sriDocumentType ?? '01',
-      sriSustentoCode:       p.sriSustentoCode ?? '01',
+      sriSustentoCode:       p.sriSustentoCode ?? DEFAULT_SRI_SUSTENTO_CODE,
       paymentMethodCode:     p.paymentMethodCode ?? '',
     });
     this.selectedCostCenterId.set(p.costCenterId ?? '');
@@ -590,7 +591,7 @@ export class PurchaseFormComponent implements OnInit, OnDestroy {
       expectedDate:          v.expectedDate ? this.dateToTs(v.expectedDate) : undefined,
       notes:                 v.notes || undefined,
       sriDocumentType:       v.sriDocumentType || '01',
-      sriSustentoCode:       v.sriSustentoCode || '01',
+      sriSustentoCode:       v.sriSustentoCode || DEFAULT_SRI_SUSTENTO_CODE,
       paymentMethodCode:     v.paymentMethodCode || undefined,
       lines,
       subtotal:              t.subtotal,

@@ -4,6 +4,7 @@ import { create } from 'xmlbuilder2';
 import JSZip from 'jszip';
 import { requireCompanyRole } from '../../utils/callable-auth';
 import { mapTipoIdentificacion } from '../../utils/sri-buyer-id';
+import { DEFAULT_SRI_SUSTENTO_CODE, normalizeSustentoCode } from '../../utils/sri-sustento-codes';
 
 /**
  * tpIdProv (compras) usa una tabla DISTINTA a tpIdCliente (ventas) — confirmado
@@ -562,7 +563,8 @@ export const generateAts = onCall<GenerateAtsInput>(
 
         const autorizacion = digitsOnly(p.supplierAccessKey) || digitsOnly(p.supplierInvoiceNumber) || '000';
 
-        addReq(d, 'codSustento', p.sriSustentoCode, '01');
+        // Tabla 5 del ATS (utils/sri-sustento-codes.ts); '1' → '01', vacío → '01'.
+        addReq(d, 'codSustento', normalizeSustentoCode(p.sriSustentoCode) || DEFAULT_SRI_SUSTENTO_CODE);
         addReq(d, 'tpIdProv', mapTipoIdentificacionProveedor(p.supplierTaxIdType));
         addReq(d, 'idProv', p.supplierRuc);
         addReq(d, 'tipoComprobante', p.sriDocumentType, '01');
@@ -662,7 +664,7 @@ export const generateAts = onCall<GenerateAtsInput>(
         // ─── Recopilar filas para Excel (una fila por código IR; si no hay IR, una fila vacía) ─
         const baseRowFields = {
           codigoOper:  '',
-          codSustento: p.sriSustentoCode ?? '01',
+          codSustento: normalizeSustentoCode(p.sriSustentoCode) || DEFAULT_SRI_SUSTENTO_CODE,
           tpIdProv:    mapTipoIdentificacionProveedor(p.supplierTaxIdType),
           idProv:      p.supplierRuc,
           parteRel:    'NO',

@@ -5,6 +5,7 @@ import {
 } from '@angular/fire/firestore';
 
 import { TenantService } from '../../../core/services/tenant.service';
+import { DEFAULT_SRI_SUSTENTO_CODE } from '../../../core/constants/sri-sustento-codes';
 import { AuthService }   from '../../../core/services/auth.service';
 
 import { PersonasService }  from '../../personas/services/personas.service';
@@ -615,7 +616,7 @@ export class TestDataService {
           supplierRuc:           supplier.taxId,
           supplierTaxIdType:     supplier.taxIdType.toLowerCase(),
           sriDocumentType:       '01',
-          sriSustentoCode:       '01',
+          sriSustentoCode:       DEFAULT_SRI_SUSTENTO_CODE,
           paymentMethodCode:     '01',
           irRetentionPct:        ir,
           vatRetentionPct:       vat,

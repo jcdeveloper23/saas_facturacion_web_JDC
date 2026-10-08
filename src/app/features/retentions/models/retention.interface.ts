@@ -98,23 +98,7 @@ export const ALL_RETENTION_CODES: SriRetentionCode[] = [
   ...SRI_ISD_RETENTION_CODES,
 ];
 
-// ─── Sustento tributario SRI ──────────────────────────────────────────────────
-
-export const SRI_SUSTENTO_CODES = [
-  { code: '01', name: 'Compras' },
-  { code: '02', name: 'Servicios' },
-  { code: '03', name: 'Honorarios Profesionales' },
-  { code: '04', name: 'Liquidación de Compras' },
-  { code: '05', name: 'Rendimientos Financieros' },
-  { code: '06', name: 'Dividendos' },
-  { code: '07', name: 'Arriendo de bienes inmuebles' },
-  { code: '08', name: 'Comisiones' },
-  { code: '09', name: 'Loterías, rifas y similares' },
-  { code: '10', name: 'Regalías' },
-  { code: '11', name: 'Seguros' },
-  { code: '12', name: 'Fletes Internacionales' },
-  { code: '20', name: 'Anticipo de dividendos' },
-] as const;
+// Sustento tributario (tabla 5 del ATS): core/constants/sri-sustento-codes.ts.
 
 // ─── Support document types ────────────────────────────────────────────────────
 
@@ -173,7 +157,7 @@ export interface Retention {
   supportDocDate:    Timestamp;
   supportDocAuth?:   string;      // authorization number of support doc
   supportDocTotal:   number;      // importeTotal del doc sustento
-  supportDocCodSust: string;      // código de sustento tributario SRI (ej: '01'=Compras)
+  supportDocCodSust: string;      // código de sustento tributario, tabla 5 del ATS (ej: '01' = crédito tributario IVA)
 
   // ── Retention taxes ─────────────────────────────────────────────────────────
   taxes:         RetentionTax[];

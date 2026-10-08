@@ -60,7 +60,7 @@ export interface Purchase {
   // Compras registradas antes de este campo no lo tendrán — el generador del
   // ATS debe tolerar que falte (ver Norma en accounting/services/ats.service).
   sriDocumentType:   string;   // código de SUPPORT_DOC_TYPES (retention.interface.ts) → tipoComprobante
-  sriSustentoCode:   string;   // código de SRI_SUSTENTO_CODES (retention.interface.ts) → codSustento
+  sriSustentoCode:   string;   // código de SRI_SUSTENTO_CODES (core/constants/sri-sustento-codes.ts, tabla 5 del ATS) → codSustento
   paymentMethodCode?: string;  // código de SRI_PAYMENT_METHODS (invoice.interface.ts) → formaPago
   // Retenciones precargadas del proveedor
   irRetentionPct: number;
