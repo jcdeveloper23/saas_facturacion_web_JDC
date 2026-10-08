@@ -1,5 +1,6 @@
 import { onDocumentUpdated } from 'firebase-functions/v2/firestore';
 import * as admin from 'firebase-admin';
+import { closedPeriodReversalError } from './utils/closed-period';
 
 // ─── Reversa automática de asientos contables al anular documentos ────────────
 //
@@ -10,6 +11,12 @@ import * as admin from 'firebase-admin';
 //   2. Crea un asiento espejo con débitos/créditos invertidos
 //   3. Marca el asiento original como 'cancelled' con referencia al asiento de reversa
 //   4. Escribe reversalEntryId en el documento anulado
+//
+// Ejercicio cerrado (2026-10-08): si el ejercicio del asiento original está
+// cerrado, NO se crea la reversa (la reversa hereda el periodId del original y
+// caería en un ejercicio cerrado). Se deja `reversalError` en el documento y un
+// log de error. Las reglas ya impiden anular desde el cliente en ese caso; esto
+// cubre las anulaciones que lleguen por otra vía.
 
 // ─── Shared types ─────────────────────────────────────────────────────────────
 
@@ -84,6 +91,20 @@ async function processReversal(
   if (original.status === 'cancelled') {
     console.log(`[generateReversalEntry] Asiento ${after.accountingEntryId} ya está cancelado — omitiendo.`);
     return;
+  }
+
+  // Ejercicio cerrado: no se toca (decisión del 2026-10-08).
+  if (original.periodId) {
+    const periodSnap = await db.doc(`companies/${companyId}/accounting_periods/${original.periodId}`).get();
+    const blocked = closedPeriodReversalError(
+      periodSnap.exists ? periodSnap.data() as { status?: string; year?: number } : null,
+      original.periodYear,
+    );
+    if (blocked) {
+      console.error(`[generateReversalEntry] ${docLabel} ${documentId} anulada en un ejercicio cerrado (${original.periodId}): no se crea la reversa de ${after.accountingEntryId}.`);
+      await db.doc(docPath).update({ reversalError: blocked, updatedAt: now });
+      return;
+    }
   }
 
   // Invert all lines
