@@ -49,3 +49,24 @@ export const DEFAULT_COMPANY_TAX_RATES = [
   { code: 'NOOBJ', name: 'No objeto de IVA', rate: 0, sriCode: '6', isDefault: false },
   { code: 'EXEMPT', name: 'Exento de IVA', rate: 0, sriCode: '7', isDefault: false },
 ];
+
+// ─── 0 %, no objeto y exento (2026-10-08, para el ATS) ────────────────────────
+//
+// Las tres tienen tarifa 0, pero el SRI las separa: en la tabla 17 el '0' es
+// «0 %», el '6' «No objeto de impuesto» y el '7' «Exento de IVA». El ATS las
+// pide en campos distintos (en compras: baseImponible, baseNoGraIva y
+// baseImpExe). Antes el comentario de las líneas de factura decía «'6' =
+// Exento»: es al revés, el 6 es no objeto.
+
+export const SRI_VAT_CODE_NO_OBJETO = '6';
+export const SRI_VAT_CODE_EXENTO = '7';
+
+export type ZeroRateKind = 'zero' | 'noObjeto' | 'exento';
+
+/** Qué clase de 0 % es un código de la tabla 17 (vacío o desconocido → 0 %). */
+export function zeroRateKind(code: unknown): ZeroRateKind {
+  const c = `${code ?? ''}`.trim();
+  if (c === SRI_VAT_CODE_NO_OBJETO) return 'noObjeto';
+  if (c === SRI_VAT_CODE_EXENTO) return 'exento';
+  return 'zero';
+}
