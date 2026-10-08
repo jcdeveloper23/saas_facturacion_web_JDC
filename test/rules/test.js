@@ -1,6 +1,6 @@
 // Pruebas de firestore.rules de FacturaEc contra el emulador.
 // Ver test/rules/README.md para correrlas.
-const { req, token, str, list, seed, create, patch, del, expectStatus, report, S } = require('./lib');
+const { req, token, str, list, seed, create, patch, del, commitDocs, expectStatus, report, S } = require('./lib');
 
 const bool = v => ({ booleanValue: v });
 const num = v => ({ doubleValue: v });
@@ -801,6 +801,109 @@ const num = v => ({ doubleValue: v });
     await patch('companies/c1/journal_entries/jeCer', conta, anularAsiento()), S.DENIED);
   await expectStatus('asiento del ejercicio abierto: sí se anula',
     await patch('companies/c1/journal_entries/jeAbi', conta, anularAsiento()), S.OK);
+
+  // ── Retenciones recibidas de clientes (2026-10-08) ───────────────────────
+  {
+    const int = v => ({ integerValue: String(v) });
+    const acc = (iva, renta, base, count, lastId) => ({ mapValue: { fields: {
+      ivaCents: int(iva), rentaCents: int(renta), rentaBaseCents: int(base), count: int(count), lastId: str(lastId) } } });
+    const facturaRR = (extra = {}) => ({ status: str('issued'), sriStatus: str('authorized'), isPaid: bool(false),
+      isVoid: bool(false), fiscalYear: str('2026'), total: num(115), netAmount: num(100), vatAmount: num(15),
+      seriesEstablishment: str('001'), seriesEmissionPoint: str('001'), ...extra });
+    await seed('companies/c1/invoices', 'fRR', facturaRR());
+    await seed('companies/c1/invoices', 'fRRpag', facturaRR({ isPaid: bool(true), status: str('paid') }));
+    await seed('companies/c1/invoices', 'fRRnc', facturaRR({ isCreditNote: bool(true), documentType: str('creditNote') }));
+    await seed('companies/c1/invoices', 'fRRpend', facturaRR({ sriStatus: str('pending') }));
+    await seed('companies/c1/invoices', 'fRR25', facturaRR({ fiscalYear: str('2025') }));
+
+    const rr = (invoiceId, iva, renta, base, extra = {}) => ({
+      invoiceId: str(invoiceId), invoiceNumber: str('001-001-000000010'), number: str('001-001-000000123'),
+      customerTaxId: str('1790011111001'), status: str('registered'), isVoid: bool(false),
+      date: { timestampValue: '2026-10-08T17:00:00Z' }, fiscalYear: str('2026'),
+      ivaCents: int(iva), rentaCents: int(renta), rentaBaseCents: int(base),
+      lines: { arrayValue: { values: [] } }, ...extra });
+    const alta = (auth, rid, invoiceId, ret, accumulated) => commitDocs(auth, [
+      { path: `companies/c1/receivedRetentions/${rid}`, fields: ret, create: true },
+      { path: `companies/c1/invoices/${invoiceId}`, fields: { receivedRetentions: accumulated }, mask: true },
+    ]);
+
+    await expectStatus('retención recibida: el vendedor la registra con el acumulado de la factura',
+      await alta(seller, 'rr1', 'fRR', rr('fRR', 1050, 0, 0), acc(1050, 0, 0, 1, 'rr1')), S.OK);
+    await expectStatus('el contador registra otra a la misma factura (se suma)',
+      await alta(conta, 'rr2', 'fRR', rr('fRR', 0, 175, 10000), acc(1050, 175, 10000, 2, 'rr2')), S.OK);
+    await expectStatus('la suma de IVA retenido no pasa del IVA de la factura (15,00)',
+      await alta(admin, 'rr3', 'fRR', rr('fRR', 451, 0, 0), acc(1501, 175, 10000, 3, 'rr3')), S.DENIED);
+    await expectStatus('ni la base de renta de la base de la factura (100,00)',
+      await alta(admin, 'rr3', 'fRR', rr('fRR', 0, 1, 1), acc(1050, 176, 10001, 3, 'rr3')), S.DENIED);
+    await expectStatus('el acumulado tiene que subir exactamente lo de la retención',
+      await alta(admin, 'rr3', 'fRR', rr('fRR', 100, 0, 0), acc(1050, 175, 10000, 3, 'rr3')), S.DENIED);
+    await expectStatus('ni con otro lastId',
+      await alta(admin, 'rr3', 'fRR', rr('fRR', 100, 0, 0), acc(1150, 175, 10000, 3, 'otra')), S.DENIED);
+    await expectStatus('la retención sola, sin el acumulado de la factura, no',
+      await create('companies/c1/receivedRetentions', 'rr3', admin, rr('fRR', 100, 0, 0)), S.DENIED);
+    await expectStatus('el acumulado solo, sin retención, no',
+      await patch('companies/c1/invoices/fRR', admin, { receivedRetentions: acc(1150, 175, 10000, 3, 'rr9') }), S.DENIED);
+    await expectStatus('el cajero no registra retenciones recibidas',
+      await alta(cashier, 'rr3', 'fRR', rr('fRR', 100, 0, 0), acc(1150, 175, 10000, 3, 'rr3')), S.DENIED);
+    await expectStatus('ni a una factura cobrada (la retención va antes del cobro)',
+      await alta(admin, 'rr4', 'fRRpag', rr('fRRpag', 100, 0, 0), acc(100, 0, 0, 1, 'rr4')), S.DENIED);
+    await expectStatus('ni a una nota de crédito',
+      await alta(admin, 'rr4', 'fRRnc', rr('fRRnc', 100, 0, 0), acc(100, 0, 0, 1, 'rr4')), S.DENIED);
+    await expectStatus('ni a una factura que el SRI no ha autorizado',
+      await alta(admin, 'rr4', 'fRRpend', rr('fRRpend', 100, 0, 0), acc(100, 0, 0, 1, 'rr4')), S.DENIED);
+    await expectStatus('ni con el asiento puesto desde el cliente',
+      await alta(admin, 'rr4', 'fRR', rr('fRR', 100, 0, 0, { accountingEntryId: str('x') }), acc(1150, 175, 10000, 3, 'rr4')), S.DENIED);
+    await expectStatus('ni con un año que no es el de su fecha',
+      await alta(admin, 'rr4', 'fRR', rr('fRR', 100, 0, 0, { fiscalYear: str('2027') }), acc(1150, 175, 10000, 3, 'rr4')), S.DENIED);
+    await expectStatus('ni renta retenida mayor que su base',
+      await alta(admin, 'rr4', 'fRR', rr('fRR', 0, 50, 10), acc(1050, 225, 10010, 3, 'rr4')), S.DENIED);
+    await expectStatus('ni con un número que no es 001-001-000000001',
+      await alta(admin, 'rr4', 'fRR', rr('fRR', 100, 0, 0, { number: str('123') }), acc(1150, 175, 10000, 3, 'rr4')), S.DENIED);
+    await expectStatus('ni en un ejercicio cerrado (2025)',
+      await alta(admin, 'rr4', 'fRR25', rr('fRR25', 100, 0, 0, { date: { timestampValue: '2025-06-10T17:00:00Z' }, fiscalYear: str('2025') }),
+        acc(100, 0, 0, 1, 'rr4')), S.DENIED);
+    await expectStatus('el vendedor las lee', await req('companies/c1/receivedRetentions/rr1', seller), S.OK);
+    await expectStatus('el cajero no', await req('companies/c1/receivedRetentions/rr1', cashier), S.DENIED);
+
+    await expectStatus('una factura con retenciones recibidas vivas no se anula',
+      await patch('companies/c1/invoices/fRR', admin, { status: str('void'), isVoid: bool(true), voidedAt: ts() }), S.DENIED);
+
+    const anularRR = () => ({ status: str('void'), isVoid: bool(true), voidedAt: ts(), voidedBy: str('t1'),
+      voidReason: str('Error'), updatedAt: ts(), updatedBy: str('t1') });
+    const baja = (auth, rid, accumulated) => commitDocs(auth, [
+      { path: `companies/c1/receivedRetentions/${rid}`, fields: anularRR(), mask: true },
+      { path: 'companies/c1/invoices/fRR', fields: { receivedRetentions: accumulated }, mask: true },
+    ]);
+    await expectStatus('anular sin bajar el acumulado, no',
+      await patch('companies/c1/receivedRetentions/rr2', conta, anularRR()), S.DENIED);
+    await expectStatus('el vendedor no anula',
+      await baja(seller, 'rr2', acc(1050, 0, 0, 1, 'rr2')), S.DENIED);
+    await expectStatus('bajando otra cifra, no',
+      await baja(conta, 'rr2', acc(1050, 100, 0, 1, 'rr2')), S.DENIED);
+    await expectStatus('el contador anula y el acumulado baja lo suyo',
+      await baja(conta, 'rr2', acc(1050, 0, 0, 1, 'rr2')), S.OK);
+    await expectStatus('una anulada no se vuelve a anular (ni se baja dos veces)',
+      await baja(admin, 'rr2', acc(1050, -175, -10000, 0, 'rr2')), S.DENIED);
+    await expectStatus('el contador anota una observación',
+      await patch('companies/c1/receivedRetentions/rr1', conta, { notes: str('Entregada en caja') }), S.OK);
+    await expectStatus('el vendedor no',
+      await patch('companies/c1/receivedRetentions/rr1', seller, { notes: str('x') }), S.DENIED);
+    await expectStatus('ni se cambia el valor de una registrada',
+      await patch('companies/c1/receivedRetentions/rr1', admin, { ivaCents: int(1) }), S.DENIED);
+    await expectStatus('nadie la borra', await del('companies/c1/receivedRetentions/rr1', admin), S.DENIED);
+    await expectStatus('con retenciones registradas, la factura se cobra igual',
+      await patch('companies/c1/invoices/fRR', seller, { isPaid: bool(true), status: str('paid'), paidAt: ts() }), S.OK);
+
+    // Ejercicio cerrado: una retención de 2025 registrada no se anula.
+    await seed('companies/c1/invoices', 'fRRcer', facturaRR({ fiscalYear: str('2025'), receivedRetentions: acc(100, 0, 0, 1, 'rrCer') }));
+    await seed('companies/c1/receivedRetentions', 'rrCer', rr('fRRcer', 100, 0, 0,
+      { date: { timestampValue: '2025-06-10T17:00:00Z' }, fiscalYear: str('2025') }));
+    await expectStatus('retención recibida de un ejercicio cerrado: NO se anula',
+      await commitDocs(admin, [
+        { path: 'companies/c1/receivedRetentions/rrCer', fields: anularRR(), mask: true },
+        { path: 'companies/c1/invoices/fRRcer', fields: { receivedRetentions: acc(0, 0, 0, 0, 'rrCer') }, mask: true },
+      ]), S.DENIED);
+  }
 
   report();
 })();

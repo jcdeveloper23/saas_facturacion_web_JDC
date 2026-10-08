@@ -262,3 +262,29 @@ export const generateReversalFromPurchase = onDocumentUpdated(
     );
   }
 );
+
+/**
+ * Retenciones recibidas de clientes (2026-10-08). Anular una retención que el
+ * cliente le hizo a la empresa revierte su asiento (Debe retenciones / Haber
+ * CxC); el acumulado de la factura lo baja el propio cliente en la misma
+ * transacción (las reglas lo exigen).
+ */
+export const generateReversalFromReceivedRetention = onDocumentUpdated(
+  'companies/{companyId}/receivedRetentions/{retentionId}',
+  async (event) => {
+    const before = event.data?.before.data() as (VoidableDoc & { number?: string }) | undefined;
+    const after  = event.data?.after.data()  as (VoidableDoc & { number?: string }) | undefined;
+    if (!before || !after) return;
+
+    const { companyId, retentionId } = event.params;
+
+    await processReversal(
+      companyId,
+      retentionId,
+      `companies/${companyId}/receivedRetentions/${retentionId}`,
+      { ...before, isVoid: before.isVoid === true },
+      { ...after, isVoid: after.isVoid === true, fullNumber: after.fullNumber ?? after.number },
+      'Retención recibida'
+    );
+  }
+);

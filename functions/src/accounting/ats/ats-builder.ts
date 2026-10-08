@@ -84,6 +84,8 @@ export interface AtsSummary {
     montoIva: number;
   };
   retenciones: { documentos: number; iva: number; renta: number };
+  /** Retenciones que los clientes le hicieron a la empresa, por su fecha (2026-10-08). */
+  retencionesRecibidas: { documentos: number; iva: number; renta: number };
   anulados: { documentos: number; rangos: number };
   /** Ventas que no entraron: en camino al SRI o rechazadas. */
   excluidas: { enProceso: number; rechazadas: number };
@@ -111,6 +113,12 @@ export interface AtsBuildInput {
   voidedInvoices: RawDoc[];
   voidedDebitNotes: RawDoc[];
   voidedRetentions: RawDoc[];
+  /**
+   * Retenciones que los clientes le hicieron a la empresa
+   * (`receivedRetentions`), por `date`; pueden venir de más. Alimentan
+   * valorRetIva y valorRetRenta del detalle de ventas (ficha p. 37).
+   */
+  receivedRetentions?: RawDoc[];
   /** Sin la línea informativa 332 en las compras sin retención de renta. */
   excluirInformativa332?: boolean;
 }
@@ -425,6 +433,8 @@ export function buildAts(input: AtsBuildInput): AtsBuildResult {
   interface VentaAgg {
     tpIdCliente: string; idCliente: string; tipoComprobante: string; tipoEmision: string;
     noObj: number; zero: number; grav: number; iva: number; n: number; formasPago: Set<string>;
+    /** Retenido por el cliente en el periodo (centavos). */
+    retIva: number; retRenta: number;
   }
   const ventas = new Map<string, VentaAgg>();
   const porEstab = new Map<string, number>();
@@ -441,7 +451,7 @@ export function buildAts(input: AtsBuildInput): AtsBuildResult {
     const key = `${tpId}|${idCliente}|${tipoComp}|${emision}`;
     const cur = ventas.get(key) ?? {
       tpIdCliente: tpId, idCliente, tipoComprobante: tipoComp, tipoEmision: emision,
-      noObj: 0, zero: 0, grav: 0, iva: 0, n: 0, formasPago: new Set<string>(),
+      noObj: 0, zero: 0, grav: 0, iva: 0, n: 0, formasPago: new Set<string>(), retIva: 0, retRenta: 0,
     };
     // En el detalle los valores van siempre positivos (ficha p. 4); la NC resta en los totales.
     // TODO(ATS): las ventas exentas (código 7) no tienen campo propio en el
@@ -507,6 +517,44 @@ export function buildAts(input: AtsBuildInput): AtsBuildResult {
   if (sum.enProceso) warnings.push(`${sum.enProceso} comprobante(s) de venta todavía en camino al SRI: no entran en el ATS.`);
   if (sum.rechazadas) warnings.push(`${sum.rechazadas} comprobante(s) de venta rechazados por el SRI: no entran en el ATS.`);
   if (sum.deLineas) warnings.push(`${sum.deLineas} factura(s) o NC sin resumen de IVA: la base salió de las líneas (sin descuento global).`);
+
+  // ── Retenciones RECIBIDAS de clientes (ficha p. 37: «el monto que el cliente
+  // retuvo por IVA en el período que se informa») ──
+  // Van por la fecha de la retención, no por la de la factura: una factura de
+  // septiembre retenida en octubre se informa en octubre. Se suman al detalle
+  // del mismo cliente, tipo 18 (factura) y tipo de emisión de la factura; si
+  // ese cliente no tiene ventas en el periodo, sale un detalle con 0
+  // comprobantes y bases en 0 (el XSD acepta numeroComprobantes = 0) y se avisa.
+  const sumRR = { docs: 0, iva: 0, renta: 0, sinVentas: 0 };
+  for (const r of input.receivedRetentions ?? []) {
+    if (r['status'] !== 'registered' || r['isVoid'] === true) continue;
+    if (!inPeriod(r['date'], period)) continue;
+    const iva = Number.isInteger(r['ivaCents']) ? Number(r['ivaCents']) : cents(r['ivaRetained']);
+    const renta = Number.isInteger(r['rentaCents']) ? Number(r['rentaCents']) : cents(r['rentaRetained']);
+    if (iva + renta <= 0) continue;
+    const idCliente = String(r['customerTaxId'] ?? '').trim().slice(0, 13);
+    const tpId = tpIdCliente(idCliente, r['customerTaxIdType'], r['customerTaxIdCode']);
+    const tipoComp = TIPO_COMPROBANTE.ventaFactura;
+    const emision = tipoEmision(r['invoiceSriStatus'] ?? 'authorized');
+    const key = `${tpId}|${idCliente}|${tipoComp}|${emision}`;
+    let cur = ventas.get(key);
+    if (!cur) {
+      cur = {
+        tpIdCliente: tpId, idCliente, tipoComprobante: tipoComp, tipoEmision: emision,
+        noObj: 0, zero: 0, grav: 0, iva: 0, n: 0, formasPago: new Set<string>(), retIva: 0, retRenta: 0,
+      };
+      ventas.set(key, cur);
+      sumRR.sinVentas++;
+    }
+    cur.retIva += iva;
+    cur.retRenta += renta;
+    sumRR.docs++;
+    sumRR.iva += iva;
+    sumRR.renta += renta;
+  }
+  if (sumRR.sinVentas) {
+    warnings.push(`${sumRR.sinVentas} cliente(s) con retenciones recibidas en el periodo y sin ventas en él: se informan con 0 comprobantes.`);
+  }
 
   // ── Establecimientos: todos los activos del RUC, con su total aunque sea 0 (ficha p. 37) ──
   const estabCodes = new Set<string>();
@@ -738,10 +786,9 @@ export function buildAts(input: AtsBuildInput): AtsBuildResult {
       addEl(d, 'baseImpGrav', money(v.grav));
       addEl(d, 'montoIva', money(v.iva));
       addEl(d, 'montoIce', money(0));
-      // TODO(ATS): retenciones RECIBIDAS de clientes (ficha p. 37): el sistema no
-      // las registra; van en 0.
-      addEl(d, 'valorRetIva', money(0));
-      addEl(d, 'valorRetRenta', money(0));
+      // Retenciones que le hizo este cliente en el periodo (ficha p. 37).
+      addEl(d, 'valorRetIva', money(v.retIva));
+      addEl(d, 'valorRetRenta', money(v.retRenta));
       if (v.formasPago.size) {
         const fp = d.ele('formasDePago');
         for (const c of [...v.formasPago].sort()) addEl(fp, 'formaPago', c);
@@ -750,7 +797,7 @@ export function buildAts(input: AtsBuildInput): AtsBuildResult {
         tpIdCliente: v.tpIdCliente, idCliente: v.idCliente, parteRel: v.tpIdCliente !== '07' ? 'NO' : '',
         tipoComprobante: v.tipoComprobante, tipoEmision: v.tipoEmision, numeroComprobantes: v.n,
         baseNoGraIva: toUsd(v.noObj), baseImponible: toUsd(v.zero), baseImpGrav: toUsd(v.grav),
-        montoIva: toUsd(v.iva), montoIce: 0, valorRetIva: 0, valorRetRenta: 0,
+        montoIva: toUsd(v.iva), montoIce: 0, valorRetIva: toUsd(v.retIva), valorRetRenta: toUsd(v.retRenta),
       });
     }
   }
@@ -859,6 +906,7 @@ export function buildAts(input: AtsBuildInput): AtsBuildResult {
       baseImpGrav: toUsd(sumC.grav), baseImpExe: toUsd(sumC.exe), montoIva: toUsd(sumC.iva),
     },
     retenciones: { documentos: sumR.docs.size, iva: toUsd(sumR.iva), renta: toUsd(sumR.renta) },
+    retencionesRecibidas: { documentos: sumRR.docs, iva: toUsd(sumRR.iva), renta: toUsd(sumRR.renta) },
     anulados: { documentos: voided.length, rangos: anuladosRows.length },
     excluidas: { enProceso: sum.enProceso, rechazadas: sum.rechazadas },
   };

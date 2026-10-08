@@ -81,9 +81,11 @@ export { runMonthlyDepreciation }               from './accounting/run-monthly-d
 export { runDepreciationForMonth }              from './accounting/run-depreciation-for-month';
 export { generateJournalEntryFromInvoice }      from './accounting/generate-journal-entry-from-invoice';
 export { generateJournalEntryFromRetention }    from './accounting/generate-journal-entry-from-retention';
+// Retenciones que los clientes le hacen a la empresa (2026-10-08)
+export { generateJournalEntryFromReceivedRetention } from './accounting/generate-journal-entry-from-received-retention';
 export { generateJournalEntryFromCreditNote }   from './accounting/generate-journal-entry-from-credit-note';
 export { generateJournalEntryFromDebitNote }    from './accounting/generate-journal-entry-from-debit-note';
-export { generateReversalFromInvoice, generateReversalFromDebitNote, generateReversalFromRetention, generateReversalFromPurchase } from './accounting/generate-reversal-entry';
+export { generateReversalFromInvoice, generateReversalFromDebitNote, generateReversalFromRetention, generateReversalFromPurchase, generateReversalFromReceivedRetention } from './accounting/generate-reversal-entry';
 export { generateJournalEntryFromPurchase }     from './accounting/generate-journal-entry-from-purchase';
 export { generateJournalEntryFromInvoicePayment }  from './accounting/generate-journal-entry-from-invoice-payment';
 export { generateJournalEntryFromPurchasePayment } from './accounting/generate-journal-entry-from-purchase-payment';

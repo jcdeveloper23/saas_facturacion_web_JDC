@@ -258,7 +258,7 @@ service cloud.firestore {
       return collection in [
         'company-users', 'configuration', 'counters', 'customers', 'debitNotes',
         'electronic-documents', 'establishments', 'families', 'imported-xml', 'invoices',
-        'paymentMethods', 'settings',
+        'paymentMethods', 'receivedRetentions', 'settings',
         'manufacturers', 'orders', 'personas', 'products', 'purchases', 'quotes',
         'retentions', 'stock-movements', 'stock-transfers', 'suppliers',
         'tm-members', 'tm-positions', 'tm-projects', 'tm-requests', 'tm-specialties',
@@ -460,7 +460,11 @@ service cloud.firestore {
     function invoiceServerOnlyKeys() {
       return ['authorizationNumber', 'authorizedAt', 'authorizationVerified',
               'verifiedWithSri', 'imported', 'importedXmlId', 'importedXmlPath',
-              'reversalError'];
+              'reversalError',
+              // Acumulado de retenciones recibidas (2026-10-08): solo cambia
+              // con su propia regla (invoiceReceivedRetentionUpdateOk), en la
+              // misma transacción que la retención.
+              'receivedRetentions'];
     }
 
     // Desde el cliente una factura nace sin estado del SRI (la toma
@@ -511,6 +515,135 @@ service cloud.firestore {
       // issued → void         : ok (annulment)
       // anything → draft      : NOT ok
       return newStatus != 'draft' || oldStatus == 'draft';
+    }
+
+    // ─── Retenciones recibidas de clientes (2026-10-08) ─────────────────
+    // companies/{cid}/receivedRetentions/{id}: el comprobante de retención
+    // que un cliente (agente de retención) le entrega a la empresa al pagarle
+    // una factura. No lo emite la empresa ni va al SRI: se registra. Su asiento
+    // (Debe 1.1.05.006 / 1.1.05.005, Haber CxC) lo hace el servidor.
+    //
+    // La factura lleva el acumulado en `receivedRetentions`
+    // ({ivaCents, rentaCents, rentaBaseCents, count, lastId}, enteros en
+    // centavos para que la suma sea exacta). Alta y anulación van en UNA
+    // transacción que escribe la retención y el acumulado; cada lado comprueba
+    // al otro con get/getAfter, así que:
+    //   · la suma de lo retenido no pasa del IVA de la factura, ni la base de
+    //     renta de su base imponible (con lo ya registrado);
+    //   · el acumulado no se toca sin una retención que lo respalde.
+    //
+    // Registran admin, contador y vendedor (los que leen documentos fiscales,
+    // canReadFiscalDoc): el comprobante lo recibe quien gestiona el cobro, que
+    // muchas veces es el vendedor. El cajero no: no lee retenciones. Anulan y
+    // editan las notas solo admin y contador, y no en un ejercicio cerrado.
+    // Solo a una factura autorizada, viva y SIN COBRAR: el cobro entra al banco
+    // por el total menos lo retenido (payment-entry.ts), así que la retención va
+    // antes que el cobro.
+    function canRegisterReceivedRetention(companyId) {
+      return isAuthenticated() && belongsToCompany(companyId)
+        && request.auth.token.role in ['admin', 'accountant', 'seller'];
+    }
+
+    function receivedRetentionServerKeys() {
+      return ['accountingEntryId', 'accountingError', 'reversalEntryId', 'reversalError'];
+    }
+
+    function invoiceDocPath(companyId, invoiceId) {
+      return /databases/$(database)/documents/companies/$(companyId)/invoices/$(invoiceId);
+    }
+
+    // Un campo del acumulado de una factura (0 si no tiene).
+    function rrAcc(invoiceData, k) {
+      return invoiceData.get('receivedRetentions', {}).get(k, 0);
+    }
+
+    function receivedRetentionShapeOk() {
+      let d = request.resource.data;
+      return d.invoiceId is string && d.invoiceId.size() > 0
+        && d.status == 'registered' && d.get('isVoid', false) == false
+        && d.ivaCents is int && d.rentaCents is int && d.rentaBaseCents is int
+        && d.ivaCents >= 0 && d.rentaCents >= 0 && d.rentaBaseCents >= 0
+        && d.ivaCents + d.rentaCents > 0
+        && d.rentaCents <= d.rentaBaseCents
+        && d.number is string && d.number.matches('^[0-9]{3}-[0-9]{3}-[0-9]{9}$')
+        && d.fiscalYear is string && d.fiscalYear.matches('^[0-9]{4}$')
+        && d.date is timestamp && string(ecuadorYear(d.date)) == d.fiscalYear
+        && d.get('lines', []) is list
+        && !d.keys().hasAny(receivedRetentionServerKeys());
+    }
+
+    // La factura: autorizada, emitida, sin cobrar, viva y no es NC; y el
+    // acumulado sube exactamente lo de esta retención, sin pasarse.
+    function receivedRetentionInvoiceCreateOk(companyId, rid, invoiceId) {
+      let p = invoiceDocPath(companyId, invoiceId);
+      let antes = get(p).data;
+      let despues = getAfter(p).data;
+      let d = request.resource.data;
+      return antes.get('isCreditNote', false) != true
+        && antes.get('documentType', '') != 'creditNote'
+        && antes.get('status', '') == 'issued'
+        && antes.get('isPaid', false) != true
+        && antes.get('isVoid', false) != true
+        && antes.get('sriStatus', '') == 'authorized'
+        && despues.get('receivedRetentions', {}).get('lastId', '') == rid
+        && rrAcc(despues, 'ivaCents') == rrAcc(antes, 'ivaCents') + d.ivaCents
+        && rrAcc(despues, 'rentaCents') == rrAcc(antes, 'rentaCents') + d.rentaCents
+        && rrAcc(despues, 'rentaBaseCents') == rrAcc(antes, 'rentaBaseCents') + d.rentaBaseCents
+        && rrAcc(despues, 'ivaCents') <= antes.get('vatAmount', 0) * 100 + 0.5
+        && rrAcc(despues, 'rentaBaseCents') <= antes.get('netAmount', 0) * 100 + 0.5;
+    }
+
+    // Anular: solo admin y contador, solo esos campos, y el acumulado de la
+    // factura baja exactamente lo de esta retención.
+    function receivedRetentionVoidOk(companyId, rid) {
+      let d = request.resource.data;
+      let p = invoiceDocPath(companyId, resource.data.invoiceId);
+      let antes = get(p).data;
+      let despues = getAfter(p).data;
+      return (isAdmin() || isAccountant())
+        && resource.data.status == 'registered'
+        && d.status == 'void' && d.isVoid == true
+        && d.diff(resource.data).affectedKeys()
+             .hasOnly(['status', 'isVoid', 'voidedAt', 'voidedBy', 'voidReason', 'updatedAt', 'updatedBy'])
+        && despues.get('receivedRetentions', {}).get('lastId', '') == rid
+        && rrAcc(despues, 'ivaCents') == rrAcc(antes, 'ivaCents') - resource.data.ivaCents
+        && rrAcc(despues, 'rentaCents') == rrAcc(antes, 'rentaCents') - resource.data.rentaCents
+        && rrAcc(despues, 'rentaBaseCents') == rrAcc(antes, 'rentaBaseCents') - resource.data.rentaBaseCents;
+    }
+
+    // Del lado de la factura: solo el acumulado (y quién/cuándo), y respaldado
+    // por la retención `lastId` que se crea o se anula en la misma escritura.
+    function invoiceReceivedRetentionUpdateOk(companyId, invoiceId) {
+      let despues = request.resource.data.get('receivedRetentions', {});
+      return isAuthenticated() && belongsToCompany(companyId)
+        && request.auth.token.role in ['admin', 'accountant', 'seller']
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['receivedRetentions', 'updatedAt', 'updatedBy'])
+        && despues.get('lastId', '') is string && despues.get('lastId', '') != ''
+        && invoiceReceivedRetentionDeltaOk(companyId, invoiceId, despues.get('lastId', ''),
+             resource.data.get('receivedRetentions', {}), despues);
+    }
+
+    function invoiceReceivedRetentionDeltaOk(companyId, invoiceId, rid, antes, despues) {
+      let rp = /databases/$(database)/documents/companies/$(companyId)/receivedRetentions/$(rid);
+      let r = getAfter(rp).data;
+      return r.invoiceId == invoiceId
+        && ((!exists(rp) && r.status == 'registered'
+             && despues.get('ivaCents', 0) == antes.get('ivaCents', 0) + r.ivaCents
+             && despues.get('rentaCents', 0) == antes.get('rentaCents', 0) + r.rentaCents
+             && despues.get('rentaBaseCents', 0) == antes.get('rentaBaseCents', 0) + r.rentaBaseCents
+             && despues.get('count', 0) == antes.get('count', 0) + 1)
+            || (exists(rp) && get(rp).data.status == 'registered' && r.status == 'void'
+             && despues.get('ivaCents', 0) == antes.get('ivaCents', 0) - r.ivaCents
+             && despues.get('rentaCents', 0) == antes.get('rentaCents', 0) - r.rentaCents
+             && despues.get('rentaBaseCents', 0) == antes.get('rentaBaseCents', 0) - r.rentaBaseCents
+             && despues.get('count', 0) == antes.get('count', 0) - 1));
+    }
+
+    // Una factura con retenciones recibidas vivas no se anula: primero se
+    // anulan las retenciones (si no, la CxC quedaría en negativo).
+    function invoiceWithoutReceivedRetentions() {
+      return rrAcc(resource.data, 'ivaCents') + rrAcc(resource.data, 'rentaCents') == 0;
     }
 
     // ─── Companies (tenants) ──────────────────────────────────────────────
@@ -633,6 +766,8 @@ service cloud.firestore {
                        && invoiceAuthorizedGuard()
                        // Ejercicio cerrado: no se anula (2026-10-08).
                        && notVoidingInClosedPeriod(companyId)
+                       // Con retenciones recibidas vivas, no se anula (2026-10-08).
+                       && (!isVoidingWrite() || invoiceWithoutReceivedRetentions())
                        // La app anula con 'void'. Sin esto un vendedor o cajero
                        // «des-anulaba» una factura pasándola a issued o paid.
                        && (resource.data.get('status', '') != 'void' || isAdmin())
@@ -643,6 +778,9 @@ service cloud.firestore {
                                 && canUseEmissionPoint(companyId)
                                 && (request.resource.data.status != 'void' || isAdmin()))
                           );
+        // El acumulado de retenciones recibidas (2026-10-08): su propia regla.
+        allow update: if resource.data.status != 'cancelled'
+                       && invoiceReceivedRetentionUpdateOk(companyId, id);
         allow delete: if false; // NEVER delete invoices
       }
 
@@ -818,6 +956,30 @@ service cloud.firestore {
           && belongsToCompany(companyId)
           && (isAdmin() || isAccountant())
           && resource.data.status == 'draft';
+      }
+
+      // ─── Retenciones recibidas de clientes (2026-10-08) ─────────────────────
+      // Ver receivedRetentionShapeOk y compañía, arriba.
+      match /receivedRetentions/{rid} {
+        allow read: if canReadFiscalDoc(companyId);
+
+        allow create: if canRegisterReceivedRetention(companyId)
+          && receivedRetentionShapeOk()
+          // Su ejercicio no puede estar cerrado: el asiento no se haría nunca.
+          && !periodClosed(companyId, 'y' + request.resource.data.fiscalYear)
+          && receivedRetentionInvoiceCreateOk(companyId, rid, request.resource.data.invoiceId);
+
+        allow update: if isAuthenticated() && belongsToCompany(companyId)
+          && (isAdmin() || isAccountant())
+          // Ejercicio cerrado: no se anula (como el resto de documentos).
+          && notVoidingInClosedPeriod(companyId)
+          && (receivedRetentionVoidOk(companyId, rid)
+              || (resource.data.status == 'registered'
+                  && request.resource.data.diff(resource.data).affectedKeys()
+                       .hasOnly(['notes', 'updatedAt', 'updatedBy'])));
+
+        // Un registro contable no se borra: se anula.
+        allow delete: if false;
       }
 
       // ─── Purchases ────────────────────────────────────────────────────────────

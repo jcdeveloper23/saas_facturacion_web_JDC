@@ -29,6 +29,22 @@ const patch = (path, auth, fields) =>
     { method: 'PATCH', body: body(fields) });
 const del = (path, auth) => req(path, auth, { method: 'DELETE' });
 
+/**
+ * Varias escrituras en un solo commit (como una transacción o un batch del
+ * cliente): las reglas ven con getAfter() el estado final de todas.
+ * Cada escritura: { path, fields, create?: true (exige que no exista),
+ * mask?: true (solo esos campos, como un update) }.
+ */
+const commitDocs = (auth, writes) => fetch(`http://${HOST}/v1/${P}:commit`, {
+  method: 'POST',
+  headers: { Authorization: `Bearer ${auth}`, 'Content-Type': 'application/json' },
+  body: JSON.stringify({ writes: writes.map(w => ({
+    update: { name: `${P}/${w.path}`, fields: w.fields },
+    ...(w.mask ? { updateMask: { fieldPaths: Object.keys(w.fields) } } : {}),
+    ...(w.create ? { currentDocument: { exists: false } } : {}),
+  })) }),
+});
+
 const results = [];
 async function expectStatus(name, res, status) {
   const ok = res.status === status;
@@ -42,4 +58,4 @@ function report() {
   if (ok !== results.length) process.exitCode = 1;
 }
 
-module.exports = { req, token, str, list, seed, create, patch, del, expectStatus, report, S: { OK: 200, DENIED: 403 } };
+module.exports = { req, token, str, list, seed, create, patch, del, commitDocs, expectStatus, report, S: { OK: 200, DENIED: 403 } };

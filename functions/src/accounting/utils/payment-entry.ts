@@ -1,5 +1,6 @@
 import * as admin from 'firebase-admin';
 import { getAccountMapping } from './get-account-mapping';
+import { retainedOnInvoice } from './received-retention';
 
 // ─── Asientos de cobro y de pago (2026-10-05) ─────────────────────────────────
 //
@@ -49,6 +50,17 @@ export function paymentNeedsEntry(d: Record<string, any>): boolean {
     && round2(Number(d.total ?? 0)) > 0;
 }
 
+/**
+ * Lo que entra al banco con el cobro o sale con el pago. En una factura, el
+ * total menos lo que el cliente le retuvo (retenciones recibidas, 2026-10-08):
+ * esa parte ya saldó la cuenta por cobrar con el asiento de la retención, y
+ * cobrar el total la dejaría en negativo.
+ */
+export function paymentAmount(kind: PaymentKind, d: Record<string, any>): number {
+  const total = round2(Number(d.total ?? 0));
+  return kind === 'invoice' ? round2(total - retainedOnInvoice(d)) : total;
+}
+
 /** Recibida (subió el stock), viva y sin su asiento. */
 export function purchaseNeedsEntry(d: Record<string, any>): boolean {
   return d.stockProcessed === true
@@ -82,7 +94,7 @@ export async function generatePaymentEntryInternal(
 
   if (d.paymentEntryId) return { created: false, reason: 'already_exists', entryId: d.paymentEntryId };
   if (d.isPaid !== true) return { created: false, reason: 'not_ready' };
-  const total = round2(Number(d.total ?? 0));
+  const total = paymentAmount(kind, d);
   if (total <= 0) return { created: false, reason: 'zero_total' };
   const bankId = typeof d.paymentBankAccountId === 'string' ? d.paymentBankAccountId.trim() : '';
   if (!bankId) return { created: false, reason: 'no_bank_account' };

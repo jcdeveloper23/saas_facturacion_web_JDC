@@ -76,11 +76,13 @@ export const generateAts = onCall<GenerateAtsInput>(
     const [
       invoicesSnap, debitNotesSnap, purchasesSnap,
       voidedInvoicesSnap, voidedDebitNotesSnap, voidedRetentionsSnap,
-      establishmentsSnap,
+      establishmentsSnap, receivedRetentionsSnap,
     ] = await Promise.all([
       byDate('invoices'), byDate('debitNotes'), byDate('purchases'),
       byVoid('invoices'), byVoid('debitNotes'), byVoid('retentions'),
       col('establishments').get(),
+      // Retenciones que los clientes le hicieron a la empresa, por su fecha (2026-10-08).
+      byDate('receivedRetentions'),
     ]);
 
     const data = (s: admin.firestore.QuerySnapshot) => s.docs.map((d) => d.data() as RawDoc);
@@ -112,6 +114,7 @@ export const generateAts = onCall<GenerateAtsInput>(
       voidedInvoices: data(voidedInvoicesSnap),
       voidedDebitNotes: data(voidedDebitNotesSnap),
       voidedRetentions: data(voidedRetentionsSnap),
+      receivedRetentions: data(receivedRetentionsSnap),
       excluirInformativa332,
     });
 

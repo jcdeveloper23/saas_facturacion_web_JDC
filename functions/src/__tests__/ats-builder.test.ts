@@ -280,6 +280,37 @@ describe('buildAts', () => {
     expect(r.excelData.compras[0]).toMatchObject({ baseImponible: 50, baseImpGrav: 200, codRetAir: '332' });
     expect(r.excelData.ventas[0]).toMatchObject({ tipoComprobante: '18', tipoEmision: 'E', baseImpGrav: 100 });
   });
+
+  it('retenciones recibidas: valorRetIva y valorRetRenta por cliente, por la fecha de la retención (ficha p. 37)', () => {
+    const rr = (over: Record<string, any> = {}) => ({
+      status: 'registered', isVoid: false, date: ec(2026, 9, 14), invoiceSriStatus: 'authorized',
+      customerTaxId: '1790011111001', customerTaxIdType: 'RUC', ivaCents: 1050, rentaCents: 175, ...over,
+    });
+    const r = buildAts(base({
+      invoices: [factura()],
+      receivedRetentions: [
+        rr(),
+        rr({ ivaCents: 450, rentaCents: 0 }),
+        rr({ date: ec(2026, 8, 30) }),                       // de agosto: no entra
+        rr({ status: 'void', isVoid: true }),                // anulada: no entra
+        rr({ customerTaxId: '0990000000001', ivaCents: 0, rentaCents: 100 }), // sin ventas en el mes
+      ],
+    }));
+    expect(tag(r.xml, 'valorRetIva')).toEqual(['15.00', '0.00']);
+    expect(tag(r.xml, 'valorRetRenta')).toEqual(['1.75', '1.00']);
+    expect(tag(r.xml, 'numeroComprobantes')).toEqual(['1', '0']);
+    expect(r.summary.retencionesRecibidas).toEqual({ documentos: 3, iva: 15, renta: 2.75 });
+    expect(r.excelData.ventas[0]).toMatchObject({ valorRetIva: 15, valorRetRenta: 1.75 });
+    expect(r.warnings.some((w) => w.includes('sin ventas en él'))).toBe(true);
+    // totalVentas no cambia: solo cuentan las bases.
+    expect(tag(r.xml, 'totalVentas')).toEqual(['100.00']);
+  });
+
+  it('sin retenciones recibidas, valorRetIva y valorRetRenta en 0', () => {
+    const r = buildAts(base({ invoices: [factura()] }));
+    expect(tag(r.xml, 'valorRetIva')).toEqual(['0.00']);
+    expect(r.summary.retencionesRecibidas).toEqual({ documentos: 0, iva: 0, renta: 0 });
+  });
 });
 
 describe('XSD oficial del SRI (xmllint)', () => {
@@ -329,6 +360,20 @@ describe('XSD oficial del SRI (xmllint)', () => {
     expect(validate(ok.replace(/parteRelVtas/g, 'parteRel'))).not.toBe('');
     expect(validate(ok.replace(/<pagoExterior>[\s\S]*?<\/pagoExterior>/, '<pagoLocExt>01</pagoLocExt>'))).not.toBe('');
     expect(validate(ok.replace(/<valorRetBienes>[^<]*<\/valorRetBienes>/, ''))).not.toBe('');
+  });
+
+  itXsd('con retenciones recibidas (y un cliente sin ventas en el mes) cumple el esquema', () => {
+    const r = buildAts(base({
+      invoices: [factura({ paymentMethods: [{ code: '20' }] })],
+      receivedRetentions: [
+        { status: 'registered', date: ec(2026, 9, 14), customerTaxId: '1790011111001', customerTaxIdType: 'RUC',
+          invoiceSriStatus: 'authorized', ivaCents: 1050, rentaCents: 175 },
+        { status: 'registered', date: ec(2026, 9, 20), customerTaxId: '0102030405', customerTaxIdType: 'CEDULA',
+          invoiceSriStatus: 'authorized', ivaCents: 0, rentaCents: 100 },
+      ],
+    }));
+    expect(tag(r.xml, 'valorRetIva')).toEqual(['10.50', '0.00']);
+    expect(validate(r.xml)).toBe('');
   });
 
   itXsd('semestral cumple el esquema', () => {

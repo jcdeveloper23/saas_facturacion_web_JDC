@@ -28,6 +28,8 @@ import {
 } from './utils/chart-seed';
 import { generateJournalEntryFromInvoiceInternal } from './generate-journal-entry-from-invoice';
 import { generateJournalEntryFromCreditNoteInternal } from './generate-journal-entry-from-credit-note';
+import { generateJournalEntryFromReceivedRetentionInternal } from './generate-journal-entry-from-received-retention';
+import { receivedRetentionNeedsEntry } from './utils/received-retention';
 import { generateJournalEntryFromPurchaseInternal } from './generate-journal-entry-from-purchase';
 import { generateJournalEntryFromRetentionInternal } from './generate-journal-entry-from-retention';
 import { generateJournalEntryFromDebitNoteInternal } from './generate-journal-entry-from-debit-note';
@@ -46,6 +48,9 @@ const ROLES = ['admin', 'accountant'];
  */
 export const FIXED_CODES: Record<string, string> = {
   '1.1.05.001': 'IVA en compras',
+  // Retenciones que los clientes le hacen a la empresa (2026-10-08).
+  '1.1.05.005': 'Retenciones de renta que le hicieron los clientes',
+  '1.1.05.006': 'Retenciones de IVA que le hicieron los clientes',
   '2.1.01.001': 'Cuentas por pagar a proveedores',
   '2.1.04.002': 'Retención de IVA por pagar',
   '2.1.04.003': 'Retención en la fuente por pagar',
@@ -121,7 +126,8 @@ async function loadAccounts(db: admin.firestore.Firestore, companyId: string): P
 }
 
 /** Lo que de un año debería tener asiento y no lo tiene, por tipo. */
-export type PendingKind = 'invoices' | 'purchases' | 'invoicePayments' | 'purchasePayments' | 'retentions' | 'debitNotes';
+export type PendingKind = 'invoices' | 'purchases' | 'invoicePayments' | 'purchasePayments' | 'retentions' | 'debitNotes'
+  | 'receivedRetentions';
 
 type Docs = admin.firestore.QueryDocumentSnapshot[];
 
@@ -138,13 +144,14 @@ async function findPending(db: admin.firestore.Firestore, companyId: string, yea
   const paidIn = (col: string) => db.collection(`${base}/${col}`)
     .where('paidAt', '>=', admin.firestore.Timestamp.fromDate(from))
     .where('paidAt', '<', admin.firestore.Timestamp.fromDate(to)).get();
-  const [invoices, purchases, invoicesPaid, purchasesPaid, retentions, debitNotes] = await Promise.all([
+  const [invoices, purchases, invoicesPaid, purchasesPaid, retentions, debitNotes, received] = await Promise.all([
     db.collection(`${base}/invoices`).where('fiscalYear', '==', String(year)).get(),
     db.collection(`${base}/purchases`).where('stockProcessed', '==', true).get(),
     paidIn('invoices'),
     paidIn('purchases'),
     db.collection(`${base}/retentions`).where('fiscalYear', '==', String(year)).get(),
     db.collection(`${base}/debitNotes`).where('fiscalYear', '==', String(year)).get(),
+    db.collection(`${base}/receivedRetentions`).where('fiscalYear', '==', String(year)).get(),
   ]);
   return {
     invoices: invoices.docs.filter((d) => needsEntry(d.data())),
@@ -157,6 +164,7 @@ async function findPending(db: admin.firestore.Firestore, companyId: string, yea
     purchasePayments: purchasesPaid.docs.filter((d) => paymentNeedsEntry(d.data())),
     retentions: retentions.docs.filter((d) => retentionNeedsEntry(d.data())),
     debitNotes: debitNotes.docs.filter((d) => debitNoteNeedsEntry(d.data())),
+    receivedRetentions: received.docs.filter((d) => receivedRetentionNeedsEntry(d.data())),
   };
 }
 
@@ -457,6 +465,11 @@ export const regenerateJournalEntries = onCall({ timeoutSeconds: 540, memory: '5
   for (const d of pending.debitNotes) {
     tareas.push({ kind: 'debitNotes', label: `nota de débito ${d.get('fullNumber') ?? d.id}`,
       run: () => generateJournalEntryFromDebitNoteInternal(companyId, d.id) });
+  }
+
+  for (const d of pending.receivedRetentions) {
+    tareas.push({ kind: 'receivedRetentions', label: `retención recibida ${d.get('number') ?? d.id}`,
+      run: () => generateJournalEntryFromReceivedRetentionInternal(companyId, d.id) });
   }
 
   let created = 0;
