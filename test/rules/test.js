@@ -703,5 +703,33 @@ const num = v => ({ doubleValue: v });
   await expectStatus('el cajero sigue creando clientes',
     await create('companies/c1/personas', 'cli3', cashier, proveedor(['customer'])), S.OK);
 
+  // Corregir el sustento tributario de una compra recibida o pagada (2026-10-08).
+  await seed('companies/c1/purchases', 'pSusRec', { status: str('received'), stockProcessed: bool(true), sriSustentoCode: str('01'), total: num(100) });
+  await seed('companies/c1/purchases', 'pSusPag', { status: str('paid'), isPaid: bool(true), sriSustentoCode: str('01'), total: num(100) });
+  await seed('companies/c1/purchases', 'pSusRet', { status: str('received'), sriSustentoCode: str('01'), retentionId: str('rc1'), total: num(100) });
+  await seed('companies/c1/purchases', 'pSusCan', { status: str('cancelled'), sriSustentoCode: str('01'), total: num(100) });
+  await expectStatus('el contador corrige el sustento de una compra recibida',
+    await patch('companies/c1/purchases/pSusRec', conta, { sriSustentoCode: str('02'), updatedBy: str('conta') }), S.OK);
+  await expectStatus('el admin corrige el sustento de una compra pagada',
+    await patch('companies/c1/purchases/pSusPag', admin, { sriSustentoCode: str('07') }), S.OK);
+  await expectStatus('el vendedor NO corrige el sustento de una compra recibida',
+    await patch('companies/c1/purchases/pSusRec', seller, { sriSustentoCode: str('06') }), S.DENIED);
+  await expectStatus('el cajero tampoco',
+    await patch('companies/c1/purchases/pSusRec', cashier, { sriSustentoCode: str('06') }), S.DENIED);
+  await expectStatus('con retención ya ligada, el sustento no se cambia',
+    await patch('companies/c1/purchases/pSusRet', admin, { sriSustentoCode: str('02') }), S.DENIED);
+  await expectStatus('una compra cancelada no se corrige',
+    await patch('companies/c1/purchases/pSusCan', admin, { sriSustentoCode: str('02') }), S.DENIED);
+  await expectStatus('un código fuera de la tabla 5 vigente (00), no',
+    await patch('companies/c1/purchases/pSusRec', conta, { sriSustentoCode: str('00') }), S.DENIED);
+  await expectStatus('ni uno sin ceros (1)',
+    await patch('companies/c1/purchases/pSusRec', conta, { sriSustentoCode: str('1') }), S.DENIED);
+  await expectStatus('ni borrarlo',
+    await patch('companies/c1/purchases/pSusRec', conta, { sriSustentoCode: undefined }), S.DENIED);
+  await expectStatus('corregir el sustento no deja cambiar el total de paso',
+    await patch('companies/c1/purchases/pSusRec', conta, { sriSustentoCode: str('03'), total: num(1) }), S.DENIED);
+  await expectStatus('ni tocar el asiento',
+    await patch('companies/c1/purchases/pSusRec', admin, { sriSustentoCode: str('03'), accountingEntryId: str('x') }), S.DENIED);
+
   report();
 })();

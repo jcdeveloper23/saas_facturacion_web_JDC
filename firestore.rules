@@ -169,6 +169,25 @@ service cloud.firestore {
           && exists(/databases/$(database)/documents/companies/$(companyId)/retentions/$(request.resource.data.retentionId));
     }
 
+    // Corregir el sustento tributario (tabla 5 del ATS) de una compra ya
+    // recibida o pagada (2026-10-08): solo el admin y el contador, solo
+    // `sriSustentoCode` (más updatedAt/updatedBy), con un código de la tabla 5
+    // vigente, y solo si la compra aún no tiene retención: la retención lleva
+    // ese código en su XML (<codSustento>) y ya no se puede cambiar.
+    // Ojo: el asiento de la compra NO se rehace (ver docs); si el código pasa
+    // de con crédito (01, 03, 06) a sin crédito o al revés, el IVA del asiento
+    // queda en la cuenta vieja y se ajusta con un asiento manual.
+    function purchaseSustentoFixOk() {
+      return (isAdmin() || isAccountant())
+          && resource.data.get('status', '') in ['received', 'paid']
+          && resource.data.get('retentionId', null) in [null, '']
+          && request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['sriSustentoCode', 'updatedAt', 'updatedBy'])
+          && request.resource.data.get('sriSustentoCode', '') in
+               ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10',
+                '11', '12', '13', '14', '15'];
+    }
+
     // Retenciones: lo que solo escribe el servidor (2026-10-06). Igual que con
     // las facturas: nadie las crea ni las marca autorizadas desde el cliente.
     // Reintentar (borrar sriStatus/sriError) sí se puede.
@@ -724,10 +743,12 @@ service cloud.firestore {
                       && canWritePurchases() && purchaseCreateOk();
         // Contenido: solo en borrador o enviada (purchaseContentUpdateOk).
         // Pago o anticipo: solo recibida, y el estado solo a 'paid'.
+        // Sustento: admin o contador, recibida o pagada y sin retención.
         allow update: if isAuthenticated() && belongsToCompany(companyId)
                       && canWritePurchases()
                       && (purchasePaymentUpdateOk() || purchaseContentUpdateOk()
-                          || purchaseRetentionLinkOk(companyId));
+                          || purchaseRetentionLinkOk(companyId)
+                          || purchaseSustentoFixOk());
         allow delete: if isAuthenticated() && belongsToCompany(companyId) && isAdmin()
                       && resource.data.status == 'draft';
       }
