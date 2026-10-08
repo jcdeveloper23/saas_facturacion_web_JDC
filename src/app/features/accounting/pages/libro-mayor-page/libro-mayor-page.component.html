@@ -168,15 +168,13 @@
             </tr>
           </thead>
           <tbody>
-            <!-- Opening balance row if there are entries -->
-            @if (filteredLines().length > 0) {
-              <tr class="bg-tertiary">
-                <td colspan="7" class="text-end text-xs-muted">
-                  Saldo Inicial
-                </td>
-                <td class="bal text-end">0.00</td>
-              </tr>
-            }
+            <!-- Saldo inicial: apertura + movimientos del ejercicio antes de «Desde» -->
+            <tr class="bg-tertiary">
+              <td colspan="7" class="text-end text-xs-muted">
+                Saldo Inicial
+              </td>
+              <td class="bal text-end" [class]="balanceClass(openingBalance())">{{ formatBal(openingBalance()) }}</td>
+            </tr>
             @for (line of filteredLines(); track $index) {
               <tr>
                 <td class="je-num">{{ line.entryNumber }}</td>
@@ -184,6 +182,10 @@
                 <td>{{ line.description }}</td>
                 <td>
                   <span [class]="badgeClasses(TYPE_COLORS[line.type])">{{ TYPE_LABELS[line.type] }}</span>
+                  @if (line.status === 'cancelled') {
+                    <span [class]="badgeClasses('danger') + ' ms-1'"
+                          title="Anulado con reversa: se compensa con su asiento de reversa">Anulado</span>
+                  }
                 </td>
                 <td class="text-xs-muted">{{ line.reference || '' }}</td>
                 <td class="amt">{{ formatAmt(line.debit) }}</td>
@@ -201,7 +203,7 @@
               </tr>
             }
           </tbody>
-          @if (filteredLines().length > 0) {
+          @if (filteredLines().length > 0 || openingBalance() !== 0) {
             <tfoot>
               <tr>
                 <td colspan="5" class="text-end">TOTALES</td>
@@ -213,7 +215,16 @@
           }
         </table>
       </div>
+      @if (truncated()) {
+        <div class="px-3 py-2 text-warning small">
+          INCOMPLETO · el ejercicio tiene más de 5.000 asientos: faltan los más antiguos.
+        </div>
+      }
       <div class="saldo-info">
+        <div>
+          <div class="lbl">Saldo Inicial</div>
+          <div class="val" [class]="balanceClass(openingBalance())">{{ openingBalance() | number:'1.2-2' }} USD</div>
+        </div>
         <div>
           <div class="lbl">Total Débitos</div>
           <div class="val">{{ totalDebit() | number:'1.2-2' }} USD</div>

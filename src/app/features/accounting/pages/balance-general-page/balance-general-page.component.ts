@@ -3,7 +3,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject, take } from 'rxjs';
+import { Subject, take, firstValueFrom } from 'rxjs';
 import {
   CardModule, ButtonModule, GridModule, BadgeModule,
   SpinnerModule, TableModule, FormModule
@@ -17,9 +17,12 @@ import { AccountingPdfService }     from '../../services/accounting-pdf.service'
 import { ExcelExportService }       from '../../services/excel-export.service';
 import { TenantService }            from '../../../../core/services/tenant.service';
 import { NotificationService }      from '../../../../core/services/notification.service';
-import { JournalEntry }             from '../../models/journal-entry.interface';
+import { ChartOfAccountsService }   from '../../services/chart-of-accounts.service';
 import { AccountingPeriod }         from '../../models/accounting-period.interface';
 import { CostCenter }               from '../../models/cost-center.interface';
+import {
+  AccountIndex, balanceSheet, centsToAmount, StatementSection
+} from '../../utils/ledger-reports';
 
 export interface BalanceGeneralLine {
   accountCode: string;
@@ -47,6 +50,7 @@ export interface BalanceGeneralSection {
 })
 export class BalanceGeneralPageComponent implements OnInit, OnDestroy {
   private svc            = inject(JournalEntriesService);
+  private accountsSvc    = inject(ChartOfAccountsService);
   private periodsSvc     = inject(AccountingPeriodsService);
   private costCentersSvc = inject(CostCentersService);
   private pdfSvc         = inject(AccountingPdfService);
@@ -69,20 +73,34 @@ export class BalanceGeneralPageComponent implements OnInit, OnDestroy {
   pasivoCorriente    = signal<BalanceGeneralLine[]>([]);
   pasivoNoCorriente  = signal<BalanceGeneralLine[]>([]);
   patrimonio         = signal<BalanceGeneralLine[]>([]);
+  /**
+   * Resultado del ejercicio: ingresos − costos − gastos a la fecha de corte,
+   * cierre incluido (con el año ya cerrado da 0: el resultado está en el patrimonio).
+   */
+  resultadoEjercicio = signal(0);
+  truncated          = signal(false);
+  reportYear         = signal(new Date().getFullYear());
+  cutoff             = signal('');
 
   // ── Computed ──────────────────────────────────────────────────────────────
   totalActivoCorriente   = computed(() => this.activoCorriente().reduce((s, l) => s + l.netBalance, 0));
   totalActivoNoCorriente = computed(() => this.activoNoCorriente().reduce((s, l) => s + l.netBalance, 0));
   totalPasivoCorriente   = computed(() => this.pasivoCorriente().reduce((s, l) => s + l.netBalance, 0));
   totalPasivoNoCorriente = computed(() => this.pasivoNoCorriente().reduce((s, l) => s + l.netBalance, 0));
-  totalPatrimonio        = computed(() => this.patrimonio().reduce((s, l) => s + l.netBalance, 0));
+  /** Cuentas de patrimonio, sin el resultado del ejercicio. */
+  totalCuentasPatrimonio = computed(() => this.patrimonio().reduce((s, l) => s + l.netBalance, 0));
+  /** Patrimonio + resultado del ejercicio. */
+  totalPatrimonio        = computed(() => this.round2(this.totalCuentasPatrimonio() + this.resultadoEjercicio()));
 
-  totalActivos   = computed(() => this.totalActivoCorriente() + this.totalActivoNoCorriente());
-  totalPasivos   = computed(() => this.totalPasivoCorriente() + this.totalPasivoNoCorriente());
-  totalPasivoPatrimonio = computed(() => this.totalPasivos() + this.totalPatrimonio());
+  totalActivos   = computed(() => this.round2(this.totalActivoCorriente() + this.totalActivoNoCorriente()));
+  totalPasivos   = computed(() => this.round2(this.totalPasivoCorriente() + this.totalPasivoNoCorriente()));
+  /** Pasivo + patrimonio + resultado del ejercicio. */
+  totalPasivoPatrimonio = computed(() => this.round2(this.totalPasivos() + this.totalPatrimonio()));
 
-  diferencia  = computed(() => Math.abs(this.totalActivos() - this.totalPasivoPatrimonio()));
-  isCuadrado  = computed(() => this.diferencia() < 0.01);
+  /** Activo − (pasivo + patrimonio + resultado), calculado en centavos. */
+  diferenciaCents = signal(0);
+  diferencia  = computed(() => Math.abs(centsToAmount(this.diferenciaCents())));
+  isCuadrado  = computed(() => this.diferenciaCents() === 0);
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────
   ngOnInit(): void {
@@ -106,97 +124,54 @@ export class BalanceGeneralPageComponent implements OnInit, OnDestroy {
     this.pasivoCorriente.set([]);
     this.pasivoNoCorriente.set([]);
     this.patrimonio.set([]);
+    this.resultadoEjercicio.set(0);
+    this.diferenciaCents.set(0);
+    this.truncated.set(false);
 
     try {
+      // Saldos al cierre del ejercicio del período elegido (o del año en curso),
+      // con todo lo que cuenta: apertura, movimientos, anulaciones con su reversa
+      // y el cierre. Signo por GRUPO (las contra-cuentas restan), corriente =
+      // bajo 1.1 / 2.1, y «Resultado del ejercicio» para que cuadre
+      // activo = pasivo + patrimonio + resultado. Misma lógica que Conecta.
       const year = this.selectedPeriod()
         ? this.periods().find(p => p.id === this.selectedPeriod())?.year ?? new Date().getFullYear()
         : new Date().getFullYear();
+      this.reportYear.set(year);
+      this.cutoff.set(`${year}-12-31`);
 
-      const entriesObs = this.svc.getEntries({
-        year,
-        status:   'posted',
-        periodId: this.selectedPeriod() || undefined
-      });
+      const [{ items, truncated }, accounts] = await Promise.all([
+        this.svc.getLedgerEntries(year, year),
+        firstValueFrom(this.accountsSvc.getAccounts().pipe(take(1))),
+      ]);
+      const entries = this.selectedPeriod() ? items.filter(e => e.periodId === this.selectedPeriod()) : items;
+      const bs = balanceSheet(entries, new AccountIndex(accounts), this.cutoff(),
+        { costCenterId: this.selectedCostCenter() || null });
 
-      await new Promise<void>((resolve, reject) => {
-        const sub = entriesObs.subscribe({
-          next: (entries: JournalEntry[]) => {
-            const maps: Record<string, Map<string, BalanceGeneralLine>> = {
-              activoCorriente:   new Map(),
-              activoNoCorriente: new Map(),
-              pasivoCorriente:   new Map(),
-              pasivoNoCorriente: new Map(),
-              patrimonio:        new Map()
-            };
-
-            const costCenterFilter = this.selectedCostCenter();
-            for (const entry of entries) {
-              for (const line of entry.lines) {
-                if (costCenterFilter && line.costCenterId !== costCenterFilter) continue;
-                const code = line.accountCode ?? '';
-                // Activos (grupo 1): naturaleza deudora → saldo = débito - crédito
-                // Pasivos (grupo 2) y Patrimonio (grupo 3): naturaleza acreedora → saldo = crédito - débito
-                let mapKey: string | null = null;
-                let netDelta = 0;
-
-                if (code.startsWith('1.1')) {
-                  mapKey   = 'activoCorriente';
-                  netDelta = (line.debit ?? 0) - (line.credit ?? 0);
-                } else if (code.startsWith('1.2')) {
-                  mapKey   = 'activoNoCorriente';
-                  netDelta = (line.debit ?? 0) - (line.credit ?? 0);
-                } else if (code.startsWith('1')) {
-                  // otros activos → corriente por defecto
-                  mapKey   = 'activoCorriente';
-                  netDelta = (line.debit ?? 0) - (line.credit ?? 0);
-                } else if (code.startsWith('2.1')) {
-                  mapKey   = 'pasivoCorriente';
-                  netDelta = (line.credit ?? 0) - (line.debit ?? 0);
-                } else if (code.startsWith('2.2') || code.startsWith('2.3')) {
-                  mapKey   = 'pasivoNoCorriente';
-                  netDelta = (line.credit ?? 0) - (line.debit ?? 0);
-                } else if (code.startsWith('2')) {
-                  mapKey   = 'pasivoCorriente';
-                  netDelta = (line.credit ?? 0) - (line.debit ?? 0);
-                } else if (code.startsWith('3')) {
-                  mapKey   = 'patrimonio';
-                  netDelta = (line.credit ?? 0) - (line.debit ?? 0);
-                }
-
-                if (!mapKey) continue;
-
-                const map      = maps[mapKey];
-                const existing = map.get(code);
-                if (!existing) {
-                  map.set(code, { accountCode: code, accountName: line.accountName, netBalance: netDelta });
-                } else {
-                  existing.netBalance += netDelta;
-                }
-              }
-            }
-
-            const sortFn = (a: BalanceGeneralLine, b: BalanceGeneralLine) =>
-              a.accountCode.localeCompare(b.accountCode);
-            const nonZero = (l: BalanceGeneralLine) => Math.abs(l.netBalance) >= 0.01;
-
-            this.activoCorriente.set([...maps['activoCorriente'].values()].filter(nonZero).sort(sortFn));
-            this.activoNoCorriente.set([...maps['activoNoCorriente'].values()].filter(nonZero).sort(sortFn));
-            this.pasivoCorriente.set([...maps['pasivoCorriente'].values()].filter(nonZero).sort(sortFn));
-            this.pasivoNoCorriente.set([...maps['pasivoNoCorriente'].values()].filter(nonZero).sort(sortFn));
-            this.patrimonio.set([...maps['patrimonio'].values()].filter(nonZero).sort(sortFn));
-
-            this.searched.set(true);
-            sub.unsubscribe();
-            resolve();
-          },
-          error: reject
-        });
-      });
+      const toLines = (sec: StatementSection): BalanceGeneralLine[] =>
+        sec.rows.map(r => ({ accountCode: r.code, accountName: r.name, netBalance: centsToAmount(r.amount) }));
+      this.activoCorriente.set(toLines(bs.currentAssets));
+      this.activoNoCorriente.set(toLines(bs.nonCurrentAssets));
+      this.pasivoCorriente.set(toLines(bs.currentLiabilities));
+      this.pasivoNoCorriente.set(toLines(bs.nonCurrentLiabilities));
+      this.patrimonio.set(toLines(bs.equity));
+      this.resultadoEjercicio.set(centsToAmount(bs.periodResult));
+      this.diferenciaCents.set(bs.difference);
+      this.truncated.set(truncated);
+      this.searched.set(true);
     } catch (err: any) {
       this.notifications.error('Error generando balance general: ' + (err?.message ?? err));
     } finally {
       this.searching.set(false);
     }
+  }
+
+  /** Patrimonio con la fila «Resultado del ejercicio» (para PDF y Excel). */
+  private patrimonioConResultado(): BalanceGeneralLine[] {
+    return [
+      ...this.patrimonio(),
+      { accountCode: '', accountName: 'Resultado del ejercicio', netBalance: this.resultadoEjercicio() },
+    ];
   }
 
   printReport(): void { window.print(); }
@@ -215,7 +190,7 @@ export class BalanceGeneralPageComponent implements OnInit, OnDestroy {
           activoNoCorriente:     this.activoNoCorriente(),
           pasivoCorriente:       this.pasivoCorriente(),
           pasivoNoCorriente:     this.pasivoNoCorriente(),
-          patrimonio:            this.patrimonio(),
+          patrimonio:            this.patrimonioConResultado(),
           totalActivoCorriente:  this.totalActivoCorriente(),
           totalActivoNoCorriente:this.totalActivoNoCorriente(),
           totalPasivoCorriente:  this.totalPasivoCorriente(),
@@ -244,15 +219,17 @@ export class BalanceGeneralPageComponent implements OnInit, OnDestroy {
       { Sección: '', Código: '', Cuenta: 'TOTAL ACTIVOS', Monto: this.round2(this.totalActivos()) },
       ...section('Pasivo Corriente',    this.pasivoCorriente(),   this.totalPasivoCorriente()),
       ...section('Pasivo No Corriente', this.pasivoNoCorriente(), this.totalPasivoNoCorriente()),
-      ...section('Patrimonio',          this.patrimonio(),        this.totalPatrimonio()),
+      ...section('Patrimonio',          this.patrimonioConResultado(), this.totalPatrimonio()),
       { Sección: '', Código: '', Cuenta: 'TOTAL PASIVOS + PATRIMONIO', Monto: this.round2(this.totalPasivoPatrimonio()) }
     ];
     this.excelSvc.export(`balance-general-${this.getPeriodName().replace(/\s+/g, '_')}`, [{ name: 'Balance General', rows }]);
   }
 
   getPeriodName(): string {
-    if (!this.selectedPeriod()) return 'Todos los períodos';
-    return this.periods().find(p => p.id === this.selectedPeriod())?.name ?? '';
+    const base = this.selectedPeriod()
+      ? this.periods().find(p => p.id === this.selectedPeriod())?.name ?? ''
+      : `Ejercicio ${this.reportYear()}`;
+    return this.cutoff() ? `${base} — al ${this.cutoff()}` : base;
   }
 
   round2(n: number): number { return Math.round(n * 100) / 100; }

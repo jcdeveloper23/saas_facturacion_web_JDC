@@ -35,7 +35,7 @@
         <label cLabel>Período Contable</label>
         <select cSelect class="select-period"
                 [ngModel]="selectedPeriod()" (ngModelChange)="selectedPeriod.set($event)">
-          <option value="">Todos los períodos</option>
+          <option value="">Ejercicio en curso</option>
           @for (p of periods(); track p.id) {
             <option [value]="p.id">{{ p.name }}</option>
           }
@@ -72,6 +72,12 @@
     <div class="report-title">BALANCE GENERAL</div>
     <div class="report-period">{{ getPeriodName() }}</div>
   </div>
+
+  @if (truncated()) {
+    <div class="alert alert-warning py-2 small no-print">
+      INCOMPLETO · el ejercicio tiene más de 5.000 asientos: faltan los más antiguos.
+    </div>
+  }
 
   <c-row>
     <!-- ── ACTIVOS ── -->
@@ -213,9 +219,10 @@
                   <td class="amt-cell">{{ round2(line.netBalance) | number:'1.2-2' }}</td>
                 </tr>
               }
-              @if (patrimonio().length === 0) {
-                <tr><td colspan="2" class="empty-row">Sin movimientos</td></tr>
-              }
+              <tr>
+                <td class="acc-cell">Resultado del ejercicio</td>
+                <td class="amt-cell">{{ round2(resultadoEjercicio()) | number:'1.2-2' }}</td>
+              </tr>
               <tr class="subtotal-row">
                 <td>Subtotal Patrimonio</td>
                 <td class="amt-cell">{{ round2(totalPatrimonio()) | number:'1.2-2' }}</td>
@@ -228,7 +235,7 @@
                 <td class="amt-cell">{{ round2(totalPasivoPatrimonio()) | number:'1.2-2' }}</td>
               </tr>
               <tr class="cuadre-row" [class.ok]="isCuadrado()" [class.fail]="!isCuadrado()">
-                <td>Diferencia (Activos − Pasivos+Patrimonio)</td>
+                <td>Diferencia (Activos − Pasivos − Patrimonio − Resultado)</td>
                 <td class="amt-cell">{{ round2(totalActivos() - totalPasivoPatrimonio()) | number:'1.2-2' }}</td>
               </tr>
             </tfoot>

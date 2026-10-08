@@ -29,6 +29,8 @@ import { CostCenter }  from '../../models/cost-center.interface';
 import { AccountingPeriod } from '../../models/accounting-period.interface';
 import { AccountSelectComponent } from '../../components/account-select/account-select.component';
 
+import { countsForReports, toCents, centsToAmount } from '../../utils/ledger-reports';
+
 @Component({
   selector: 'app-journal-entries-page',
   standalone: true,
@@ -104,9 +106,13 @@ export class JournalEntriesPageComponent implements OnInit, OnDestroy {
     );
   });
 
-  totalPostedDebit = computed(() =>
-    this.filtered().filter(e => e.status === 'posted').reduce((s, e) => s + e.totalDebit, 0)
-  );
+  /**
+   * Total que entra en los libros (misma regla que los reportes): contabilizados
+   * y anulados con reversa (el original y su reversa se compensan). En centavos.
+   */
+  totalPostedDebit = computed(() => centsToAmount(
+    this.filtered().filter(countsForReports).reduce((s, e) => s + toCents(e.totalDebit), 0)
+  ));
 
   /** Validation: dateFrom <= dateTo */
   get dateRangeValid(): boolean {

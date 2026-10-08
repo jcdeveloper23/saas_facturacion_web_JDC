@@ -30,7 +30,7 @@
         <label cLabel>Período Contable</label>
         <select cSelect class="select-period"
                 [ngModel]="selectedPeriod()" (ngModelChange)="selectedPeriod.set($event)">
-          <option value="">Todos los períodos</option>
+          <option value="">Ejercicio en curso</option>
           @for (p of periods(); track p.id) {
             <option [value]="p.id">{{ p.name }}</option>
           }
@@ -77,7 +77,7 @@
     </div>
     <div class="er-kpi-sep"></div>
     <div class="er-kpi">
-      <div class="er-kpi-value">{{ round2(totalCostos()) | number:'1.2-2' }}</div>
+      <div class="er-kpi-value">{{ round2(totalCostosGastos()) | number:'1.2-2' }}</div>
       <div class="er-kpi-label">Costos y Gastos</div>
     </div>
     <div class="er-kpi-sep"></div>
@@ -94,6 +94,15 @@
       </div>
       <div class="er-kpi-label">Margen Neto</div>
     </div>
+  </div>
+
+  @if (truncated()) {
+    <div class="alert alert-warning py-2 small no-print">
+      INCOMPLETO · el ejercicio tiene más de 5.000 asientos: faltan los más antiguos.
+    </div>
+  }
+  <div class="text-secondary small mb-2 no-print">
+    Sin el asiento de cierre del ejercicio. Incluye las anulaciones con su reversa (se compensan).
   </div>
 
   <!-- Main table -->
@@ -145,10 +154,10 @@
             <tr class="section-spacer"><td colspan="3"></td></tr>
           </tbody>
 
-          <!-- ── COSTOS Y GASTOS ──────────────────────────────────────────── -->
+          <!-- ── COSTOS ─────────────────────────────────────────────────────── -->
           <thead>
             <tr class="section-header">
-              <th>Costos y Gastos</th>
+              <th>Costos</th>
               <th></th>
               <th></th>
             </tr>
@@ -166,15 +175,60 @@
             }
             @if (costos().length === 0) {
               <tr>
-                <td colspan="3" class="text-center text-secondary py-3">Sin movimientos de costos/gastos</td>
+                <td colspan="3" class="text-center text-secondary py-3">Sin movimientos de costos</td>
               </tr>
             }
           </tbody>
           <tfoot>
             <tr class="subtotal-row">
-              <td>Total Costos y Gastos</td>
+              <td>Total Costos</td>
               <td class="amt-cell">{{ round2(totalCostos()) | number:'1.2-2' }}</td>
               <td class="pct-cell pct-highlight">{{ pctOfIngresos(totalCostos()) | number:'1.1-1' }}%</td>
+            </tr>
+          </tfoot>
+
+          <tfoot>
+            <tr class="subtotal-row">
+              <td>Utilidad Bruta</td>
+              <td class="amt-cell">{{ round2(utilidadBruta()) | number:'1.2-2' }}</td>
+              <td class="pct-cell pct-highlight">{{ pctOfIngresos(utilidadBruta()) | number:'1.1-1' }}%</td>
+            </tr>
+          </tfoot>
+
+          <tbody>
+            <tr class="section-spacer"><td colspan="3"></td></tr>
+          </tbody>
+
+          <!-- ── GASTOS ─────────────────────────────────────────────────────── -->
+          <thead>
+            <tr class="section-header">
+              <th>Gastos</th>
+              <th></th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (line of gastos(); track line.accountCode) {
+              <tr>
+                <td class="acc-cell">
+                  <span class="acc-code">{{ line.accountCode }}</span>
+                  {{ line.accountName }}
+                </td>
+                <td class="amt-cell">{{ round2(line.netBalance) | number:'1.2-2' }}</td>
+                <td class="pct-cell">{{ pctOfIngresos(line.netBalance) | number:'1.1-1' }}%</td>
+              </tr>
+            }
+            @if (gastos().length === 0) {
+              <tr>
+                <td colspan="3" class="text-center text-secondary py-3">Sin movimientos de gastos</td>
+              </tr>
+            }
+          </tbody>
+          <tfoot>
+            <tr class="subtotal-row">
+              <td>Total Gastos</td>
+              <td class="amt-cell">{{ round2(totalGastos()) | number:'1.2-2' }}</td>
+              <td class="pct-cell pct-highlight">{{ pctOfIngresos(totalGastos()) | number:'1.1-1' }}%</td>
             </tr>
           </tfoot>
 

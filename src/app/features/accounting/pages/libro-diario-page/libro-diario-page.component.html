@@ -176,6 +176,12 @@
                   {{ TYPE_LABELS[entry.type] }}
                 </span>
                 <span class="print-only-inline">{{ TYPE_LABELS[entry.type] }}</span>
+                @if (entry.status === 'cancelled') {
+                  <span [class]="badgeClasses(STATUS_COLORS[entry.status]) + ' ms-1'"
+                        title="Anulado con reversa: se compensa con su asiento de reversa">
+                    {{ STATUS_LABELS[entry.status] }}
+                  </span>
+                }
               </td>
               <td class="text-xs">{{ entry.reference || '' }}</td>
               <td class="text-end cell-mono">{{ entry.totalDebit | number:'1.2-2' }}</td>
@@ -238,10 +244,10 @@
       </table>
     </div>
     <div class="table-footer no-print d-flex justify-content-between align-items-center">
-      <span>{{ filtered().length }} asientos contabilizados</span>
+      <span>{{ filtered().length }} asientos contabilizados (incluye anulaciones con su reversa)</span>
       @if (truncated()) {
         <span class="badge bg-warning-subtle text-warning border border-warning-subtle">
-          Mostrando primeros 500 · filtra por período para ver todos
+          INCOMPLETO · más de 5.000 asientos en un ejercicio: faltan los más antiguos
         </span>
       }
     </div>

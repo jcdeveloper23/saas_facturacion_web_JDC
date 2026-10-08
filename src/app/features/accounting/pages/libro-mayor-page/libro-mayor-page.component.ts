@@ -56,6 +56,9 @@ export class LibroMayorPageComponent implements OnInit, OnDestroy {
   periods             = signal<AccountingPeriod[]>([]);
   costCenters         = signal<CostCenter[]>([]);
   lines               = signal<LibroMayorLine[]>([]);
+  /** Saldo inicial: apertura + lo movido en el ejercicio antes de «Desde». */
+  openingBalance      = signal(0);
+  truncated           = signal(false);
   selectedAccount     = signal<Account | null>(null);
   selectedPeriod      = signal('');
   selectedCode        = signal('');
@@ -85,11 +88,12 @@ export class LibroMayorPageComponent implements OnInit, OnDestroy {
     );
   });
 
-  totalDebit  = computed(() => this.filteredLines().reduce((s, l) => s + l.debit,  0));
-  totalCredit = computed(() => this.filteredLines().reduce((s, l) => s + l.credit, 0));
+  // Sumas en centavos para no arrastrar errores de coma flotante.
+  totalDebit  = computed(() => Math.round(this.filteredLines().reduce((s, l) => s + Math.round(l.debit  * 100), 0)) / 100);
+  totalCredit = computed(() => Math.round(this.filteredLines().reduce((s, l) => s + Math.round(l.credit * 100), 0)) / 100);
   finalBalance = computed(() => {
     const last = this.filteredLines();
-    return last.length ? last[last.length - 1].balance : 0;
+    return last.length ? last[last.length - 1].balance : this.openingBalance();
   });
 
   /** Validation: dateFrom <= dateTo */
@@ -152,22 +156,36 @@ export class LibroMayorPageComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // El mayor se lleva dentro de un ejercicio: el saldo inicial sale de su
+    // asiento de apertura más lo movido antes de «Desde».
+    if (this.dateFrom().slice(0, 4) !== this.dateTo().slice(0, 4)) {
+      this.notifications.warning('Desde y Hasta deben ser del mismo ejercicio (año)');
+      return;
+    }
+    const periodYear = this.periods().find(p => p.id === this.selectedPeriod())?.year;
+    if (periodYear && String(periodYear) !== this.dateFrom().slice(0, 4)) {
+      this.notifications.warning(`Las fechas deben estar dentro del período seleccionado (${periodYear})`);
+      return;
+    }
+
     const acc = this.accounts().find(a => a.code === code);
     this.selectedAccount.set(acc ?? null);
     this.searching.set(true);
     this.lines.set([]);
+    this.openingBalance.set(0);
+    this.truncated.set(false);
 
     try {
-      const periodId     = this.selectedPeriod()     || undefined;
-      const costCenterId = this.selectedCostCenter() || undefined;
-      const result       = await this.svc.getLibroMayor(
-        code,
-        periodId,
-        costCenterId,
-        this.dateFrom(),
-        this.dateTo()
-      );
-      this.lines.set(result);
+      const result = await this.svc.getLibroMayorReport(code, {
+        periodId:     this.selectedPeriod()     || undefined,
+        costCenterId: this.selectedCostCenter() || undefined,
+        dateFrom:     this.dateFrom(),
+        dateTo:       this.dateTo(),
+        accounts:     this.accounts(),
+      });
+      this.lines.set(result.lines);
+      this.openingBalance.set(result.openingBalance);
+      this.truncated.set(result.truncated);
       this.hasQueried.set(true);
     } catch (err: any) {
       this.notifications.error('Error cargando libro mayor: ' + (err?.message ?? err));
@@ -187,6 +205,8 @@ export class LibroMayorPageComponent implements OnInit, OnDestroy {
     this.searchTerm.set('');
     this.selectedPeriod.set('');
     this.lines.set([]);
+    this.openingBalance.set(0);
+    this.truncated.set(false);
     this.selectedAccount.set(null);
     this.hasQueried.set(false);
   }
@@ -194,7 +214,7 @@ export class LibroMayorPageComponent implements OnInit, OnDestroy {
   printReport(): void { window.print(); }
 
   async downloadPdf(): Promise<void> {
-    if (!this.filteredLines().length) return;
+    if (!this.filteredLines().length && !this.openingBalance()) return;
     this.downloadingPdf.set(true);
     try {
       const acc        = this.selectedAccount();
@@ -205,7 +225,10 @@ export class LibroMayorPageComponent implements OnInit, OnDestroy {
         reportType: 'libro-mayor',
         companyId:  this.tenantSvc.companyId,
         periodName,
-        data: this.filteredLines().map(l => ({
+        data: [{
+          entryNumber: '', date: '', description: 'Saldo inicial', type: '',
+          debit: 0, credit: 0, balance: this.openingBalance()
+        }, ...this.filteredLines().map(l => ({
           entryNumber: l.entryNumber,
           date:        this.formatDate(l.date),
           description: l.description,
@@ -213,7 +236,7 @@ export class LibroMayorPageComponent implements OnInit, OnDestroy {
           debit:       l.debit,
           credit:      l.credit,
           balance:     l.balance
-        })),
+        }))],
         extraData: {
           accountCode:  acc?.code ?? '',
           accountName:  acc?.name ?? '',
@@ -230,9 +253,13 @@ export class LibroMayorPageComponent implements OnInit, OnDestroy {
   }
 
   downloadExcel(): void {
-    if (!this.filteredLines().length) return;
+    if (!this.filteredLines().length && !this.openingBalance()) return;
     const acc = this.selectedAccount();
-    const rows: Record<string, string | number>[] = this.filteredLines().map(l => ({
+    const rows: Record<string, string | number>[] = [{
+      'N° Asiento': '', Fecha: '', Descripción: 'SALDO INICIAL', Referencia: '', Tipo: '',
+      Debe: 0, Haber: 0, Saldo: this.round2Amt(this.openingBalance())
+    }];
+    rows.push(...this.filteredLines().map(l => ({
       'N° Asiento': l.entryNumber,
       Fecha:        this.formatDate(l.date),
       Descripción:  l.description,
@@ -241,7 +268,7 @@ export class LibroMayorPageComponent implements OnInit, OnDestroy {
       Debe:         this.round2Amt(l.debit),
       Haber:        this.round2Amt(l.credit),
       Saldo:        this.round2Amt(l.balance)
-    }));
+    })));
     rows.push({
       'N° Asiento': '', Fecha: '', Descripción: 'TOTALES', Referencia: '', Tipo: '',
       Debe: this.round2Amt(this.totalDebit()), Haber: this.round2Amt(this.totalCredit()), Saldo: this.round2Amt(this.finalBalance())

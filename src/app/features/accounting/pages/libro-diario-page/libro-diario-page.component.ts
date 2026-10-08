@@ -29,6 +29,7 @@ import { Account }     from '../../models/account.interface';
 import { CostCenter }  from '../../models/cost-center.interface';
 import { AccountingPeriod } from '../../models/accounting-period.interface';
 import { AccountSelectComponent } from '../../components/account-select/account-select.component';
+import { LedgerEntry, libroDiario, toCents, centsToAmount } from '../../utils/ledger-reports';
 
 @Component({
   selector: 'app-libro-diario-page',
@@ -55,8 +56,9 @@ export class LibroDiarioPageComponent implements OnInit, OnDestroy {
   private destroy$       = new Subject<void>();
 
   // ── State ─────────────────────────────────────────────────────────────────
-  entries        = signal<JournalEntry[]>([]);
-  truncated      = signal(false);   // true si el servidor devolvió limit(500) y había más
+  /** Asientos leídos de los ejercicios del rango (todos los estados). */
+  entries        = signal<LedgerEntry[]>([]);
+  truncated      = signal(false);   // true si se llegó al tope de lectura (5.000 por ejercicio)
   downloadingPdf = signal(false);
   periods        = signal<AccountingPeriod[]>([]);
   accounts       = signal<Account[]>([]);
@@ -89,12 +91,13 @@ export class LibroDiarioPageComponent implements OnInit, OnDestroy {
     const account    = this.accountCode();
     const costCenter = this.costCenterId();
 
-    let list = this.entries().filter(e => e.status === 'posted');
+    // Cuentan los contabilizados y los anulados con reversa (anulación
+    // automática: original + reversa se compensan). Ver ledger-reports.ts.
+    let list: JournalEntry[] = libroDiario(this.entries(), from || '0000-01-01', to || '9999-12-31')
+      .entries.map(e => e.source!);
 
     if (period)     list = list.filter(e => e.periodId === period);
     if (type)       list = list.filter(e => e.type === type);
-    if (from)       list = list.filter(e => this.tsToStr(e.date) >= from);
-    if (to)         list = list.filter(e => this.tsToStr(e.date) <= to);
     if (account)    list = list.filter(e => e.lines.some(l => l.accountCode === account));
     if (costCenter) list = list.filter(e => e.lines.some(l => l.costCenterId === costCenter));
     if (term)       list = list.filter(e =>
@@ -103,15 +106,12 @@ export class LibroDiarioPageComponent implements OnInit, OnDestroy {
       (e.reference ?? '').toLowerCase().includes(term)
     );
 
-    return list.sort((a, b) => {
-      const da = this.tsToStr(a.date);
-      const db = this.tsToStr(b.date);
-      return da < db ? -1 : da > db ? 1 : a.number - b.number;
-    });
+    return list;  // ya en orden de diario (fecha, apertura primero, cierre al final, número)
   });
 
-  grandTotalDebit  = computed(() => this.filtered().reduce((s, e) => s + e.totalDebit,  0));
-  grandTotalCredit = computed(() => this.filtered().reduce((s, e) => s + e.totalCredit, 0));
+  // Sumas en centavos: con dobles, un diario que cuadra se vería descuadrado.
+  grandTotalDebit  = computed(() => centsToAmount(this.filtered().reduce((s, e) => s + toCents(e.totalDebit),  0)));
+  grandTotalCredit = computed(() => centsToAmount(this.filtered().reduce((s, e) => s + toCents(e.totalCredit), 0)));
 
   /** Validation: dateFrom <= dateTo */
   get dateRangeValid(): boolean {
@@ -170,14 +170,13 @@ export class LibroDiarioPageComponent implements OnInit, OnDestroy {
     this.loading.set(true);
     this.truncated.set(false);
     try {
-      const result = await this.svc.getEntriesByRange({
-        dateFrom: this.dateFrom() || undefined,
-        dateTo:   this.dateTo()   || undefined,
-        status:   'posted',
-        type:     this.typeFilter() || undefined
-      });
-      this.entries.set(result);
-      this.truncated.set(result.length >= 500);
+      // Se lee por ejercicio (periodYear), igual que Conecta, y se filtra en
+      // memoria: así entran los anulados con reversa y no hay tope de 500.
+      const fromYear = Number(this.dateFrom().slice(0, 4));
+      const toYear   = Number(this.dateTo().slice(0, 4));
+      const result   = await this.svc.getLedgerEntries(fromYear, toYear);
+      this.entries.set(result.items);
+      this.truncated.set(result.truncated);
       this.hasQueried.set(true);
     } catch (err: any) {
       this.notifications.error('Error cargando libro diario: ' + (err?.message ?? err));
@@ -188,12 +187,10 @@ export class LibroDiarioPageComponent implements OnInit, OnDestroy {
 
   setTypeFilter(type: JournalEntryType | null): void {
     this.typeFilter.set(type);
-    if (this.hasQueried()) this.loadEntries();
   }
 
   setPeriodFilter(periodId: string): void {
     this.periodFilter.set(periodId);
-    if (this.hasQueried()) this.loadEntries();
   }
 
   clearFilters(): void {

@@ -30,7 +30,7 @@
         <label cLabel>Período Contable</label>
         <select cSelect class="select-period"
                 [ngModel]="selectedPeriod()" (ngModelChange)="selectedPeriod.set($event)">
-          <option value="">Todos los períodos</option>
+          <option value="">Ejercicio en curso</option>
           @for (p of periods(); track p.id) {
             <option [value]="p.id">{{ p.name }}</option>
           }
@@ -66,7 +66,7 @@
   <div class="d-flex justify-content-between align-items-center mb-2 px-1">
     <span class="text-secondary period-info">
       Período: <strong>{{ getPeriodName() }}</strong> —
-      {{ lines().length }} cuentas con movimiento
+      {{ lines().length }} cuentas con saldo o movimiento
     </span>
     @if (isBalanced()) {
       <span class="ok">
@@ -79,6 +79,11 @@
         Descuadrado — diferencia: {{ (totalDebit() - totalCredit()) | number:'1.2-2' }}
       </span>
     }
+  </div>
+}
+@if (searched() && truncated()) {
+  <div class="alert alert-warning py-2 small">
+    INCOMPLETO · el ejercicio tiene más de 5.000 asientos: faltan los más antiguos.
   </div>
 }
 
@@ -94,13 +99,20 @@
         <table class="bc-table">
           <thead>
             <tr>
-              <th>Código</th>
-              <th>Cuenta Contable</th>
-              <th>Tipo</th>
-              <th class="text-end">Total Débitos</th>
-              <th class="text-end">Total Créditos</th>
-              <th class="text-end">Saldo Deudor</th>
-              <th class="text-end">Saldo Acreedor</th>
+              <th rowspan="2">Código</th>
+              <th rowspan="2">Cuenta Contable</th>
+              <th rowspan="2">Tipo</th>
+              <th colspan="2" class="text-center">Saldo Inicial</th>
+              <th colspan="2" class="text-center">Movimientos</th>
+              <th colspan="2" class="text-center">Saldo Final</th>
+            </tr>
+            <tr>
+              <th class="text-end">Deudor</th>
+              <th class="text-end">Acreedor</th>
+              <th class="text-end">Débitos</th>
+              <th class="text-end">Créditos</th>
+              <th class="text-end">Deudor</th>
+              <th class="text-end">Acreedor</th>
             </tr>
           </thead>
           <tbody>
@@ -109,34 +121,33 @@
                 <td class="acc-code">{{ line.accountCode }}</td>
                 <td>{{ line.accountName }}</td>
                 <td>
-                  <small class="text-secondary">{{ ACC_TYPES[line.accountType] }}</small>
+                  <small class="text-secondary">{{ typeLabel(line.accountType) }}</small>
                 </td>
+                <td class="amt">{{ line.initialDebit  ? (line.initialDebit  | number:'1.2-2') : '' }}</td>
+                <td class="amt">{{ line.initialCredit ? (line.initialCredit | number:'1.2-2') : '' }}</td>
                 <td class="amt">{{ line.sumDebit  | number:'1.2-2' }}</td>
                 <td class="amt">{{ line.sumCredit | number:'1.2-2' }}</td>
-                <td class="amt-debit">
-                  {{ line.sumDebit > line.sumCredit ? (line.sumDebit - line.sumCredit | number:'1.2-2') : '' }}
-                </td>
-                <td class="amt-credit">
-                  {{ line.sumCredit > line.sumDebit ? (line.sumCredit - line.sumDebit | number:'1.2-2') : '' }}
-                </td>
+                <td class="amt-debit">{{ line.finalDebit  ? (line.finalDebit  | number:'1.2-2') : '' }}</td>
+                <td class="amt-credit">{{ line.finalCredit ? (line.finalCredit | number:'1.2-2') : '' }}</td>
               </tr>
             }
           </tbody>
           <tfoot>
             <tr>
               <td colspan="3" class="text-end">TOTALES</td>
+              <td class="text-end">{{ totalInitialDebit()  | number:'1.2-2' }}</td>
+              <td class="text-end">{{ totalInitialCredit() | number:'1.2-2' }}</td>
               <td class="text-end">{{ totalDebit()  | number:'1.2-2' }}</td>
               <td class="text-end">{{ totalCredit() | number:'1.2-2' }}</td>
-              <td class="text-end">
-                {{ totalDebit() > totalCredit() ? ((totalDebit() - totalCredit()) | number:'1.2-2') : '' }}
-              </td>
-              <td class="text-end">
-                {{ totalCredit() > totalDebit() ? ((totalCredit() - totalDebit()) | number:'1.2-2') : '' }}
-              </td>
+              <td class="text-end">{{ totalFinalDebit()  | number:'1.2-2' }}</td>
+              <td class="text-end">{{ totalFinalCredit() | number:'1.2-2' }}</td>
             </tr>
             <tr>
               <td colspan="3" class="text-end text-xs-muted">
                 Verificación cuadre
+              </td>
+              <td colspan="2" class="text-end text-secondary text-xs-muted">
+                Dif: {{ (totalInitialDebit() - totalInitialCredit()) | number:'1.2-2' }}
               </td>
               <td colspan="2" class="text-end text-secondary text-xs-muted">
                 Dif: {{ (totalDebit() - totalCredit()) | number:'1.2-2' }}
@@ -149,7 +160,7 @@
         </table>
       </div>
       <div class="table-footer">
-        {{ lines().length }} cuentas con movimiento en el período
+        {{ lines().length }} cuentas con saldo o movimiento en el ejercicio
       </div>
     }
   </c-card>

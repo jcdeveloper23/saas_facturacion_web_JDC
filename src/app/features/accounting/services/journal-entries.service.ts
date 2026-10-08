@@ -5,7 +5,7 @@ import {
   query, where, orderBy, limit, startAfter,
   Timestamp, runTransaction, QueryDocumentSnapshot, QueryConstraint
 } from '@angular/fire/firestore';
-import { Observable } from 'rxjs';
+import { Observable, firstValueFrom, take } from 'rxjs';
 import { PageResult } from '../../../core/types/pagination.types';
 
 import { TenantService } from '../../../core/services/tenant.service';
@@ -15,6 +15,26 @@ import {
   JournalEntry, JournalEntryLine, JournalEntryType, JournalEntryStatus,
   calcEntryTotals, LibroMayorLine
 } from '../models/journal-entry.interface';
+import {
+  LedgerEntry, LedgerAccount, AccountIndex, PagedResult,
+  collectPages, libroMayor, toLedgerEntry, centsToAmount
+} from '../utils/ledger-reports';
+
+/** Tamaño de página y tope de lectura de los reportes (igual que Conecta). */
+export const REPORT_PAGE_SIZE = 500;
+export const REPORT_CAP       = 5000;
+
+export interface LibroMayorReport {
+  year:           number;
+  debitNature:    boolean;
+  openingBalance: number;
+  closingBalance: number;
+  totalDebit:     number;
+  totalCredit:    number;
+  lines:          LibroMayorLine[];
+  /** Se llegó al tope de lectura: el mayor puede estar incompleto. */
+  truncated:      boolean;
+}
 
 export type JournalEntryCreateInput = Omit<JournalEntry,
   'id' | 'number' | 'createdAt' | 'updatedAt' | 'createdBy'
@@ -128,11 +148,17 @@ export class JournalEntriesService {
   }
 
   /**
-   * Obtiene todos los asientos que coinciden con los filtros, sin paginación.
-   * Usar exclusivamente para exportación (Excel / PDF).
-   * Límite de 500 docs — suficiente para cualquier rango razonable en una PyME.
+   * Obtiene todos los asientos que coinciden con los filtros, por páginas de 500
+   * y con tope de 5.000 (REPORT_CAP). Usar para exportación (Excel / PDF).
+   * Si llega al tope, avisa en consola; para saberlo, usar getEntriesByRangePaged().
    */
   async getEntriesByRange(filters: JournalEntryFilters): Promise<JournalEntry[]> {
+    const r = await this.getEntriesByRangePaged(filters);
+    if (r.truncated) console.warn(`[JournalEntriesService] getEntriesByRange: tope de ${REPORT_CAP} asientos alcanzado`);
+    return r.items;
+  }
+
+  async getEntriesByRangePaged(filters: JournalEntryFilters): Promise<PagedResult<JournalEntry>> {
     const ref = collection(this.firestore, this.colPath);
     const constraints: QueryConstraint[] = [];
 
@@ -153,10 +179,14 @@ export class JournalEntriesService {
       constraints.push(where('periodYear', '==', filters.year));
     }
 
-    constraints.push(orderBy('date', 'asc'), orderBy('number', 'asc'), limit(500));
+    constraints.push(orderBy('date', 'asc'), orderBy('number', 'asc'));
 
-    const snap = await getDocs(query(ref, ...constraints));
-    let items  = snap.docs.map(d => ({ id: d.id, ...d.data() } as JournalEntry));
+    const paged = await collectPages<QueryDocumentSnapshot>(async (last, n) => {
+      const c = [...constraints, limit(n)];
+      if (last) c.push(startAfter(last));
+      return (await getDocs(query(ref, ...c))).docs;
+    }, REPORT_PAGE_SIZE, REPORT_CAP);
+    let items = paged.items.map(d => ({ id: d.id, ...d.data() } as JournalEntry));
 
     // Client-side filters
     if (filters.accountCode) {
@@ -170,7 +200,42 @@ export class JournalEntriesService {
       );
     }
 
-    return items;
+    return { items, truncated: paged.truncated };
+  }
+
+  /**
+   * Todos los asientos de un ejercicio (periodYear), de cualquier estado: los
+   * reportes deciden qué cuenta con countsForReports(). Misma consulta e índice
+   * que Conecta (periodYear, date desc, number desc), por páginas de 500 y con
+   * tope de 5.000: si se llega al tope, `truncated` y la página avisa.
+   */
+  async getYearEntries(year: number): Promise<PagedResult<JournalEntry>> {
+    const ref  = collection(this.firestore, this.colPath);
+    const base: QueryConstraint[] = [
+      where('periodYear', '==', year),
+      orderBy('date', 'desc'),
+      orderBy('number', 'desc'),
+    ];
+    const paged = await collectPages<QueryDocumentSnapshot>(async (last, n) => {
+      const c = [...base, limit(n)];
+      if (last) c.push(startAfter(last));
+      return (await getDocs(query(ref, ...c))).docs;
+    }, REPORT_PAGE_SIZE, REPORT_CAP);
+    return {
+      items: paged.items.map(d => ({ id: d.id, ...d.data() } as JournalEntry)),
+      truncated: paged.truncated,
+    };
+  }
+
+  /** Los asientos de los ejercicios [fromYear]..[toYear], convertidos para los reportes. */
+  async getLedgerEntries(fromYear: number, toYear: number): Promise<PagedResult<LedgerEntry>> {
+    const years: number[] = [];
+    for (let y = fromYear; y <= toYear; y++) years.push(y);
+    const results = await Promise.all(years.map(y => this.getYearEntries(y)));
+    return {
+      items: results.flatMap(r => r.items.map(toLedgerEntry)),
+      truncated: results.some(r => r.truncated),
+    };
   }
 
   getEntry(id: string): Observable<JournalEntry | null> {
@@ -183,14 +248,65 @@ export class JournalEntriesService {
     });
   }
 
-  // ─── Libro Mayor: all entries for a given account code ───────────────────
+  // ─── Libro Mayor ──────────────────────────────────────────────────────────
 
   /**
-   * `periodId` es obligatorio cuando se conoce (libro-mayor-page, conciliación).
-   * Sin periodId la query escanea todos los asientos posted — evitar cuando sea posible.
-   * La búsqueda por accountCode se aplica en memoria sobre el resultado ya acotado por período.
-   * Límite de 500 docs: ningún período debería superarlo en una PyME.
+   * Libro mayor de una cuenta dentro de UN ejercicio, con saldo inicial
+   * (apertura + lo movido antes de «desde») y el saldo según la naturaleza de
+   * la cuenta. Lee el ejercicio completo (getYearEntries) y aplica
+   * countsForReports: cuentan los contabilizados y los anulados con reversa.
+   *
+   * El ejercicio sale del año de `dateFrom`; sin fechas, del período
+   * (`periodId`) o del año en curso, y el rango es el año completo.
+   * `accounts` da la naturaleza de la cuenta; sin él, la del primer dígito.
    */
+  async getLibroMayorReport(
+    accountCode: string,
+    opts: {
+      periodId?: string; costCenterId?: string;
+      dateFrom?: string; dateTo?: string;
+      accounts?: LedgerAccount[];
+    } = {},
+  ): Promise<LibroMayorReport> {
+    let year = opts.dateFrom ? Number(opts.dateFrom.slice(0, 4)) : NaN;
+    if (isNaN(year) && opts.periodId) {
+      const p = await firstValueFrom(this.periodsSvc.getPeriod(opts.periodId).pipe(take(1)));
+      year = p?.year ?? NaN;
+    }
+    if (isNaN(year)) year = new Date().getFullYear();
+    const from = opts.dateFrom || `${year}-01-01`;
+    const to   = opts.dateTo   || `${year}-12-31`;
+
+    const { items, truncated } = await this.getLedgerEntries(year, year);
+    const entries = opts.periodId ? items.filter(e => e.periodId === opts.periodId) : items;
+    const ledger  = libroMayor(entries, new AccountIndex(opts.accounts ?? []), accountCode, from, to,
+      { costCenterId: opts.costCenterId });
+
+    const lines: LibroMayorLine[] = ledger.movements.map(m => ({
+      entryId:     m.entry.id,
+      entryNumber: m.entry.number,
+      date:        m.entry.source?.date as Timestamp,
+      description: m.line.description || m.entry.description,
+      reference:   m.entry.reference,
+      debit:       centsToAmount(m.line.debit),
+      credit:      centsToAmount(m.line.credit),
+      balance:     centsToAmount(m.balance),
+      type:        m.entry.type as JournalEntryType,
+      status:      m.entry.status as JournalEntryStatus,
+    }));
+    return {
+      year,
+      debitNature:    ledger.debitNature,
+      openingBalance: centsToAmount(ledger.openingBalance),
+      closingBalance: centsToAmount(ledger.closingBalance),
+      totalDebit:     centsToAmount(ledger.totalDebit),
+      totalCredit:    centsToAmount(ledger.totalCredit),
+      lines,
+      truncated,
+    };
+  }
+
+  /** Compatibilidad (conciliación bancaria): solo las líneas del mayor. */
   async getLibroMayor(
     accountCode: string,
     periodId?: string,
@@ -198,50 +314,8 @@ export class JournalEntriesService {
     dateFrom?: string,
     dateTo?: string
   ): Promise<LibroMayorLine[]> {
-    const ref = collection(this.firestore, this.colPath);
-    const constraints: QueryConstraint[] = [
-      where('status', '==', 'posted'),
-      orderBy('date', 'asc'),
-      orderBy('number', 'asc'),
-      limit(500)
-    ];
-    if (periodId) constraints.unshift(where('periodId', '==', periodId));
-
-    if (dateFrom) {
-      const tsFrom = Timestamp.fromDate(new Date(`${dateFrom}T00:00:00`));
-      constraints.push(where('date', '>=', tsFrom));
-    }
-    if (dateTo) {
-      const tsTo = Timestamp.fromDate(new Date(`${dateTo}T23:59:59`));
-      constraints.push(where('date', '<=', tsTo));
-    }
-
-    const snap   = await getDocs(query(ref, ...constraints));
-    const result: LibroMayorLine[] = [];
-    let   balance = 0;
-
-    for (const d of snap.docs) {
-      const entry = { id: d.id, ...d.data() } as JournalEntry;
-      for (const line of entry.lines) {
-        if (line.accountCode !== accountCode) continue;
-        if (costCenterId && line.costCenterId !== costCenterId) continue;
-
-        balance += (line.debit ?? 0) - (line.credit ?? 0);
-        result.push({
-          entryId:     entry.id,
-          entryNumber: entry.number,
-          date:        entry.date,
-          description: entry.description,
-          reference:   entry.reference ?? '',
-          debit:       line.debit,
-          credit:      line.credit,
-          balance:     Math.round(balance * 100) / 100,
-          type:        entry.type
-        });
-      }
-    }
-
-    return result;
+    const r = await this.getLibroMayorReport(accountCode, { periodId, costCenterId, dateFrom, dateTo });
+    return r.lines;
   }
 
   // ─── Integrity check: ¿alguna línea usa esta cuenta? ──────────────────────

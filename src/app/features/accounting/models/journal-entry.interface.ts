@@ -87,6 +87,10 @@ export interface JournalEntry {
   cancelledAt?: Timestamp;
   cancelledBy?: string;
   cancelReason?: string;
+  /** En un asiento anulado por anulación del documento: id de su reversa. */
+  reversalEntryId?: string | null;
+  /** En una reversa: id del asiento original que neutraliza. */
+  reversalOf?: string | null;
 }
 
 // ─── Libro Mayor line (UI computed) ──────────────────────────────────────────
@@ -101,6 +105,7 @@ export interface LibroMayorLine {
   credit: number;
   balance: number;       // running balance
   type: JournalEntryType;
+  status?: JournalEntryStatus;
 }
 
 // ─── Balance de Comprobacion ──────────────────────────────────────────────────
