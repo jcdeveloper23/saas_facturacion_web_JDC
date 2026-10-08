@@ -127,7 +127,7 @@ service cloud.firestore {
     // o el asiento.
     function purchaseServerKeys() {
       return ['stockProcessed', 'stockProcessedAt', 'stockError',
-              'accountingEntryId', 'accountingError', 'reversalEntryId'];
+              'accountingEntryId', 'accountingError', 'reversalEntryId', 'reversalError'];
     }
 
     // La web crea las compras con stockProcessed: false; eso se acepta. Lo que
@@ -193,7 +193,7 @@ service cloud.firestore {
     // Reintentar (borrar sriStatus/sriError) sí se puede.
     function retentionServerKeys() {
       return ['authorizationNumber', 'authorizedAt', 'accessKey', 'codigoNumerico',
-              'accountingEntryId', 'reversalEntryId'];
+              'accountingEntryId', 'reversalEntryId', 'reversalError'];
     }
 
     function retentionSriClientCreate() {
@@ -343,6 +343,83 @@ service cloud.firestore {
       return !existsAfter(/databases/$(database)/documents/companies/$(companyId)/bank_reconciled_entries/$(entryId));
     }
 
+    // ─── Ejercicio cerrado: no se anula (2026-10-08) ────────────────────
+    // Decisión del usuario: un documento cuyo ejercicio contable ya está
+    // cerrado (accounting_periods/{id}.status == 'closed') no se anula; se
+    // corrige con una nota de crédito o un asiento en el ejercicio abierto.
+    // Anularlo crearía una reversa (generate-reversal-entry.ts) dentro de un
+    // ejercicio cerrado, y el cierre y la apertura del año siguiente ya no
+    // cuadrarían. El servidor también lo frena (por si llega por otra vía).
+    //
+    // Cómo se sabe el ejercicio del documento, en este orden (basta uno):
+    //   1. Su asiento (accountingEntryId → journal_entries.periodId): es el
+    //      mismo ejercicio que usaría la reversa. Exacto.
+    //   2. Su año → accounting_periods/y{AAAA}, el id que pone
+    //      openAccountingPeriod. El año sale de `fiscalYear` (facturas, NC,
+    //      ND, retenciones) o, en compras, de supplierInvoiceDate / date en
+    //      hora de Ecuador (UTC-5, sin horario de verano), igual que
+    //      ecuadorYear() del servidor.
+    // Si no existe ese ejercicio (o fue creado por la web con otro id y el
+    // documento no tiene asiento), no se bloquea: sin ejercicio no hay nada
+    // cerrado que proteger, y bloquear por ausencia dejaría sin anular a las
+    // empresas que no llevan contabilidad.
+    function periodClosed(companyId, periodId) {
+      return periodId is string && periodId != ''
+        && periodStatusClosed(companyId, periodId);
+    }
+
+    function periodStatusClosed(companyId, periodId) {
+      let p = /databases/$(database)/documents/companies/$(companyId)/accounting_periods/$(periodId);
+      return exists(p) && get(p).data.get('status', '') == 'closed';
+    }
+
+    function entryPeriodClosed(companyId, entryId) {
+      return entryId is string && entryId != ''
+        && entryPeriodStatusClosed(companyId, entryId);
+    }
+
+    function entryPeriodStatusClosed(companyId, entryId) {
+      let e = /databases/$(database)/documents/companies/$(companyId)/journal_entries/$(entryId);
+      return exists(e) && periodClosed(companyId, get(e).data.get('periodId', ''));
+    }
+
+    // Año en hora de Ecuador de un Timestamp.
+    function ecuadorYear(t) {
+      return (t - duration.value(5, 'h')).year();
+    }
+
+    // Id del ejercicio por el año del documento ('y2026'), o '' si no se sabe.
+    function docPeriodIdByYear(d) {
+      return d.get('fiscalYear', null) is string && d.get('fiscalYear', '').matches('^[0-9]{4}$')
+          ? 'y' + d.get('fiscalYear', '')
+        : d.get('fiscalYear', null) is int
+          ? 'y' + string(d.get('fiscalYear', 0))
+        : d.get('supplierInvoiceDate', null) is timestamp
+          ? 'y' + string(ecuadorYear(d.get('supplierInvoiceDate', null)))
+        : d.get('date', null) is timestamp
+          ? 'y' + string(ecuadorYear(d.get('date', null)))
+        : '';
+    }
+
+    function docPeriodClosed(companyId) {
+      return entryPeriodClosed(companyId, resource.data.get('accountingEntryId', ''))
+          || periodClosed(companyId, docPeriodIdByYear(resource.data));
+    }
+
+    // ¿Esta escritura anula el documento? isVoid pasa a true, o el estado
+    // pasa a void / cancelled (facturas y NC: 'void'; compras: 'cancelled').
+    function isVoidingWrite() {
+      return (request.resource.data.get('isVoid', false) == true
+              && resource.data.get('isVoid', false) != true)
+          || (request.resource.data.get('status', '') in ['void', 'cancelled']
+              && !(resource.data.get('status', '') in ['void', 'cancelled']));
+    }
+
+    // Se evalúa solo si la escritura anula: cobrar o editar no paga lecturas.
+    function notVoidingInClosedPeriod(companyId) {
+      return !isVoidingWrite() || !docPeriodClosed(companyId);
+    }
+
     // Returns true if the caller belongs to the company AND has at least
     // one of the roles allowed to read fiscal documents (retentions, debitNotes).
     function canReadFiscalDoc(companyId) {
@@ -382,7 +459,8 @@ service cloud.firestore {
     // para marcar— una factura «autorizada por el SRI» sin haber pasado por él.
     function invoiceServerOnlyKeys() {
       return ['authorizationNumber', 'authorizedAt', 'authorizationVerified',
-              'verifiedWithSri', 'imported', 'importedXmlId', 'importedXmlPath'];
+              'verifiedWithSri', 'imported', 'importedXmlId', 'importedXmlPath',
+              'reversalError'];
     }
 
     // Desde el cliente una factura nace sin estado del SRI (la toma
@@ -553,6 +631,8 @@ service cloud.firestore {
                        && resource.data.status != 'cancelled'
                        && invoiceSriStatusClientUpdate()
                        && invoiceAuthorizedGuard()
+                       // Ejercicio cerrado: no se anula (2026-10-08).
+                       && notVoidingInClosedPeriod(companyId)
                        // La app anula con 'void'. Sin esto un vendedor o cajero
                        // «des-anulaba» una factura pasándola a issued o paid.
                        && (resource.data.get('status', '') != 'void' || isAdmin())
@@ -691,7 +771,9 @@ service cloud.firestore {
           && sriAuthorizedGuard()
           && retentionSriClientUpdate()
           && statusNotRolledBack()
-          && canUseEmissionPoint(companyId);
+          && canUseEmissionPoint(companyId)
+          // Ejercicio cerrado: no se anula (2026-10-08).
+          && notVoidingInClosedPeriod(companyId);
 
         // DELETE — only borradores (draft); only admin or accountant.
         // Issued or void retentions are legal records and must not be deleted.
@@ -727,7 +809,9 @@ service cloud.firestore {
           && sriAuthorizedGuard()
           && retentionSriClientUpdate()
           && statusNotRolledBack()
-          && canUseEmissionPoint(companyId);
+          && canUseEmissionPoint(companyId)
+          // Ejercicio cerrado: no se anula (2026-10-08).
+          && notVoidingInClosedPeriod(companyId);
 
         // DELETE — only borradores; only admin or accountant.
         allow delete: if isAuthenticated()
@@ -746,6 +830,8 @@ service cloud.firestore {
         // Sustento: admin o contador, recibida o pagada y sin retención.
         allow update: if isAuthenticated() && belongsToCompany(companyId)
                       && canWritePurchases()
+                      // Ejercicio cerrado: no se cancela (2026-10-08).
+                      && notVoidingInClosedPeriod(companyId)
                       && (purchasePaymentUpdateOk() || purchaseContentUpdateOk()
                           || purchaseRetentionLinkOk(companyId)
                           || purchaseSustentoFixOk());
@@ -885,7 +971,12 @@ service cloud.firestore {
                       && (resource.data.status != 'posted' || postedEntryCancelOk())
                       // Conciliado con el banco: no se anula (2026-10-07).
                       && (request.resource.data.get('status', '') != 'cancelled'
-                          || entryNotBankReconciled(companyId, entryId));
+                          || entryNotBankReconciled(companyId, entryId))
+                      // Contabilizado en un ejercicio cerrado: no se anula
+                      // (2026-10-08). Se corrige con un asiento en el abierto.
+                      && (resource.data.status != 'posted'
+                          || request.resource.data.get('status', '') != 'cancelled'
+                          || !periodClosed(companyId, resource.data.get('periodId', '')));
 
         // DELETE — only draft manual entries; admin only.
         allow delete: if isAuthenticated() && belongsToCompany(companyId) && isAdmin()

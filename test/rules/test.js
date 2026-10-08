@@ -731,5 +731,76 @@ const num = v => ({ doubleValue: v });
   await expectStatus('ni tocar el asiento',
     await patch('companies/c1/purchases/pSusRec', admin, { sriSustentoCode: str('03'), accountingEntryId: str('x') }), S.DENIED);
 
+  // ── Ejercicio cerrado: no se anula (2026-10-08) ──────────────────────────
+  const at = iso => ({ timestampValue: iso });
+  await seed('companies/c1/accounting_periods', 'y2025', { year: num(2025), status: str('closed') });
+  await seed('companies/c1/accounting_periods', 'y2026', { year: num(2026), status: str('open') });
+  await seed('companies/c1/accounting_periods', 'pWeb', { year: num(2024), status: str('closed') });
+  await seed('companies/c1/journal_entries', 'jeCer', { status: str('posted'), type: str('manual'), periodId: str('y2025'), lines: linea(5) });
+  await seed('companies/c1/journal_entries', 'jeAbi', { status: str('posted'), type: str('manual'), periodId: str('y2026'), lines: linea(5) });
+  await seed('companies/c1/journal_entries', 'jeWeb', { status: str('posted'), type: str('automatic'), periodId: str('pWeb'), lines: linea(5) });
+  const docEmitido = (extra = {}) => ({ seriesEstablishment: str('001'), seriesEmissionPoint: str('001'),
+    status: str('issued'), isVoid: bool(false), total: num(10), ...extra });
+  const anular = () => ({ status: str('void'), isVoid: bool(true), voidedAt: ts(), updatedAt: ts(), updatedBy: str('adm') });
+  await seed('companies/c1/invoices', 'fCer', docEmitido({ fiscalYear: str('2025') }));
+  await seed('companies/c1/invoices', 'fAbi', docEmitido({ fiscalYear: str('2026') }));
+  await seed('companies/c1/invoices', 'fSinEj', docEmitido({ fiscalYear: str('2023') }));
+  await seed('companies/c1/invoices', 'fAsiento', docEmitido({ accountingEntryId: str('jeWeb') }));
+  await seed('companies/c1/invoices', 'ncCer', docEmitido({ fiscalYear: str('2025'), isCreditNote: bool(true), documentType: str('creditNote') }));
+  await seed('companies/c1/invoices', 'fCerAut', docEmitido({ fiscalYear: str('2025'), sriStatus: str('authorized') }));
+  await expectStatus('ejercicio 2025 cerrado: el admin NO anula la factura',
+    await patch('companies/c1/invoices/fCer', admin, anular()), S.DENIED);
+  await expectStatus('ni con solo isVoid',
+    await patch('companies/c1/invoices/fCer', admin, { isVoid: bool(true) }), S.DENIED);
+  await expectStatus('ni con solo status void',
+    await patch('companies/c1/invoices/fCer', admin, { status: str('void') }), S.DENIED);
+  await expectStatus('ni una autorizada por el SRI',
+    await patch('companies/c1/invoices/fCerAut', admin, anular()), S.DENIED);
+  await expectStatus('ni una nota de crédito del ejercicio cerrado',
+    await patch('companies/c1/invoices/ncCer', admin, anular()), S.DENIED);
+  await expectStatus('por su asiento: ejercicio de la web (id propio) cerrado, no se anula',
+    await patch('companies/c1/invoices/fAsiento', admin, anular()), S.DENIED);
+  await expectStatus('cobrar una factura del ejercicio cerrado sí se puede (no es anular)',
+    await patch('companies/c1/invoices/fCer', admin, { isPaid: bool(true), status: str('paid') }), S.OK);
+  await expectStatus('ejercicio 2026 abierto: el admin anula',
+    await patch('companies/c1/invoices/fAbi', admin, anular()), S.OK);
+  await expectStatus('sin ejercicio para su año: no se bloquea',
+    await patch('companies/c1/invoices/fSinEj', admin, anular()), S.OK);
+
+  await seed('companies/c1/retentions', 'rCer', docEmitido({ fiscalYear: str('2025') }));
+  await seed('companies/c1/retentions', 'rAbi', docEmitido({ fiscalYear: str('2026') }));
+  await expectStatus('retención de un ejercicio cerrado: NO se anula',
+    await patch('companies/c1/retentions/rCer', conta, anular()), S.DENIED);
+  await expectStatus('retención del ejercicio abierto: sí',
+    await patch('companies/c1/retentions/rAbi', conta, anular()), S.OK);
+  await seed('companies/c1/debitNotes', 'dCer', docEmitido({ fiscalYear: str('2025') }));
+  await seed('companies/c1/debitNotes', 'dAbi', docEmitido({ fiscalYear: str('2026') }));
+  await expectStatus('nota de débito de un ejercicio cerrado: NO se anula',
+    await patch('companies/c1/debitNotes/dCer', admin, anular()), S.DENIED);
+  await expectStatus('nota de débito del ejercicio abierto: sí',
+    await patch('companies/c1/debitNotes/dAbi', admin, anular()), S.OK);
+
+  const cancelar = () => ({ status: str('cancelled'), isVoid: bool(true), voidedAt: ts(), updatedAt: ts(), updatedBy: str('adm') });
+  await seed('companies/c1/purchases', 'pCer', { status: str('sent'), date: at('2025-06-01T17:00:00Z'), total: num(10) });
+  // 2026-01-01 03:00 UTC es todavía 31/12/2025 en Ecuador: cuenta en 2025.
+  await seed('companies/c1/purchases', 'pCerTz', { status: str('draft'),
+    supplierInvoiceDate: at('2026-01-01T03:00:00Z'), date: at('2026-01-02T17:00:00Z'), total: num(10) });
+  await seed('companies/c1/purchases', 'pAbi', { status: str('draft'), date: at('2026-03-01T17:00:00Z'), total: num(10) });
+  await expectStatus('compra de un ejercicio cerrado: NO se cancela',
+    await patch('companies/c1/purchases/pCer', admin, cancelar()), S.DENIED);
+  await expectStatus('el año de la compra va en hora de Ecuador (31/12/2025 local)',
+    await patch('companies/c1/purchases/pCerTz', conta, cancelar()), S.DENIED);
+  await expectStatus('compra del ejercicio abierto: sí se cancela',
+    await patch('companies/c1/purchases/pAbi', admin, cancelar()), S.OK);
+  await expectStatus('editar una compra del ejercicio cerrado sin cancelarla, sí',
+    await patch('companies/c1/purchases/pCer', admin, { notes: str('ok') }), S.OK);
+
+  const anularAsiento = () => ({ status: str('cancelled'), cancelledAt: ts(), cancelledBy: str('t1'),
+    cancelReason: str('Error'), updatedAt: ts(), updatedBy: str('t1') });
+  await expectStatus('asiento contabilizado de un ejercicio cerrado: NO se anula',
+    await patch('companies/c1/journal_entries/jeCer', conta, anularAsiento()), S.DENIED);
+  await expectStatus('asiento del ejercicio abierto: sí se anula',
+    await patch('companies/c1/journal_entries/jeAbi', conta, anularAsiento()), S.OK);
+
   report();
 })();
