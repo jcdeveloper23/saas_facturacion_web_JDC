@@ -7,7 +7,7 @@
  */
 
 import {
-  buildPurchaseEntryLines, chosenExpenseCodes, isInventoryLine, purchaseAccountingDate, ProductKind,
+  buildPurchaseEntryLines, chosenExpenseCodes, isInventoryLine, purchaseAccountingDate, purchaseVatTreatment, ProductKind,
 } from '../accounting/utils/purchase-entry';
 
 const accounts = {
@@ -165,5 +165,109 @@ describe('la cuenta del artículo (2026-10-07)', () => {
     expect(chosenExpenseCodes({ lines: [
       { productId: 'casco', qty: 1 }, { productId: 'flete', qty: 1 }, { productId: 'art', qty: 1 },
     ] }, conCuenta).sort()).toEqual(['1.1.03.002', '5.2.01.010']);
+  });
+});
+
+// ─── IVA según el sustento tributario (tabla 5 del ATS, 2026-10-08) ───────────
+describe('buildPurchaseEntryLines — IVA según el sustento', () => {
+  const productos = new Map<string, ProductKind>([
+    ['art', { trackStock: true }],
+    ['artPropio', { trackStock: true, purchaseAccountCode: '1.1.03.009' }],
+    ['activo', { trackStock: false, type: 'service', purchaseAccountCode: '1.2.01.005' }],
+  ]);
+  const nombres = new Map([
+    ['1.1.03.009', 'Inventario de repuestos'], ['1.2.01.005', 'Equipo de computación'],
+    ['5.2.01.014', 'Honorarios Profesionales'],
+  ]);
+  const compra = (sriSustentoCode: string | undefined, extra: Record<string, any> = {}) => ({
+    fullNumber: 'C-1', supplierName: 'PROV', sriSustentoCode,
+    lines: [
+      { description: 'Abogado', qty: 1, unitCost: 100, subtotal: 100, taxRate: 15, taxAmount: 15, expenseAccountCode: '5.2.01.014' },
+      { productId: 'art', qty: 2, unitCost: 25, subtotal: 50, taxRate: 15, taxAmount: 7.5 },
+    ],
+    subtotal: 150, totalTax: 22.5, ...extra,
+  });
+  const filas = (r: { accountCode: string; debit: number; credit: number }[]) => r.map((l) => [l.accountCode, l.debit, l.credit]);
+
+  it('01 (con crédito): el IVA va a IVA en compras', () => {
+    const r = buildPurchaseEntryLines(compra('01'), productos, accounts, nombres);
+    expect(filas(r)).toEqual([
+      ['5.2.01.014', 100, 0], ['1.1.03.001', 50, 0], ['1.1.05.001', 22.5, 0], ['2.1.01.001', 0, 172.5],
+    ]);
+    expect(cuadra(r)).toBe(true);
+  });
+
+  it('06 (inventario con crédito): igual que 01', () => {
+    const r = buildPurchaseEntryLines(compra('6'), productos, accounts, nombres);
+    expect(r.find((l) => l.accountCode === '1.1.05.001')?.debit).toBe(22.5);
+    expect(cuadra(r)).toBe(true);
+  });
+
+  it('02 (sin crédito): el IVA de cada línea va a la cuenta de su base, nada a 1.1.05.001', () => {
+    const r = buildPurchaseEntryLines(compra('02'), productos, accounts, nombres);
+    expect(filas(r)).toEqual([
+      ['5.2.01.014', 100, 0], ['1.1.03.001', 50, 0],
+      ['5.2.01.014', 15, 0], ['1.1.03.001', 7.5, 0],
+      ['2.1.01.001', 0, 172.5],
+    ]);
+    expect(r.some((l) => l.accountCode === '1.1.05.001')).toBe(false);
+    expect(r[2].description).toContain('sustento 02');
+    expect(cuadra(r)).toBe(true);
+  });
+
+  it('07 (inventario sin crédito): el IVA va a la cuenta de inventario del artículo', () => {
+    const r = buildPurchaseEntryLines({
+      sriSustentoCode: '07', lines: [{ productId: 'artPropio', qty: 3, unitCost: 10, subtotal: 30, taxAmount: 4.5 }],
+      subtotal: 30, totalTax: 4.5,
+    }, productos, accounts, nombres);
+    expect(filas(r)).toEqual([['1.1.03.009', 30, 0], ['1.1.03.009', 4.5, 0], ['2.1.01.001', 0, 34.5]]);
+    expect(cuadra(r)).toBe(true);
+  });
+
+  it('04 (activo fijo sin crédito): el IVA va a la cuenta de activo del artículo', () => {
+    const r = buildPurchaseEntryLines({
+      sriSustentoCode: '04', lines: [{ productId: 'activo', qty: 1, unitCost: 800, subtotal: 800, taxAmount: 120 }],
+      subtotal: 800, totalTax: 120,
+    }, productos, accounts, nombres);
+    expect(filas(r)).toEqual([['1.2.01.005', 800, 0], ['1.2.01.005', 120, 0], ['2.1.01.001', 0, 920]]);
+  });
+
+  it('sin crédito con líneas 0 % y redondeo: reparte al centavo y cuadra con totalTax', () => {
+    const r = buildPurchaseEntryLines({
+      sriSustentoCode: '02',
+      lines: [
+        { description: 'A', qty: 1, unitCost: 10, subtotal: 10, taxAmount: 1.0005, expenseAccountCode: '5.2.01.014' },
+        { description: 'B', qty: 1, unitCost: 20, subtotal: 20, taxAmount: 0 },
+        { productId: 'art', qty: 1, unitCost: 3.33, subtotal: 3.33, taxAmount: 0.4995 },
+      ],
+      subtotal: 33.33, totalTax: 1.5,
+    }, productos, accounts, nombres);
+    const ivaLineas = r.filter((l) => l.description.startsWith('IVA'));
+    expect(ivaLineas.reduce((s, l) => s + l.debit, 0)).toBeCloseTo(1.5, 10);
+    expect(ivaLineas.map((l) => l.accountCode)).toEqual(['5.2.01.014', '1.1.03.001']); // la de 0 % no recibe IVA
+    expect(cuadra(r)).toBe(true);
+  });
+
+  it('sin crédito y líneas sin IVA guardado: reparte por la base', () => {
+    const r = buildPurchaseEntryLines({
+      sriSustentoCode: '02',
+      lines: [{ description: 'A', qty: 1, unitCost: 30, subtotal: 30 }, { productId: 'art', qty: 1, unitCost: 10, subtotal: 10 }],
+      subtotal: 40, totalTax: 6,
+    }, productos, accounts, nombres);
+    expect(r.filter((l) => l.description.startsWith('IVA')).map((l) => [l.accountCode, l.debit]))
+      .toEqual([['5.1.02.001', 4.5], ['1.1.03.001', 1.5]]);
+    expect(cuadra(r)).toBe(true);
+  });
+
+  it.each([[undefined], [''], ['99'], ['00']])('sustento %p (vacío o fuera de la tabla vigente): como antes, a crédito', (code) => {
+    const r = buildPurchaseEntryLines(compra(code as any), productos, accounts, nombres);
+    expect(r.find((l) => l.accountCode === '1.1.05.001')?.debit).toBe(22.5);
+    expect(purchaseVatTreatment(code)).toMatchObject({ mode: 'credit', known: false });
+    expect(cuadra(r)).toBe(true);
+  });
+
+  it('purchaseVatTreatment: 01/03/06 crédito; 02/04/05/07 costo', () => {
+    expect(['01', '03', '06'].map((c) => purchaseVatTreatment(c).mode)).toEqual(['credit', 'credit', 'credit']);
+    expect(['02', '04', '05', '07', '15'].map((c) => purchaseVatTreatment(c).mode)).toEqual(['cost', 'cost', 'cost', 'cost', 'cost']);
   });
 });

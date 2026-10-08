@@ -10,7 +10,11 @@
  *   DEBE   Gasto de cada línea   las demás (servicios, gastos): la cuenta que
  *                                eligió la línea, la del artículo o la del
  *                                mapeo (purchaseExpense)
- *   DEBE   IVA en compras        el IVA de la compra (`totalTax`)
+ *   DEBE   IVA en compras        el IVA de la compra (`totalTax`), si el
+ *                                sustento da crédito tributario (01, 03, 06)
+ *   DEBE   (la cuenta de la base) el IVA, si el sustento NO da crédito
+ *                                (02, 04, 05, 07…): es mayor costo o gasto
+ *                                (2026-10-08, ver `purchaseVatTreatment`)
  *   HABER  CxP proveedores       subtotal + IVA (lo que se le debe, BRUTO)
  *
  * Las retenciones NO van aquí: las asienta la retención cuando se emite
@@ -22,6 +26,8 @@
  * y filtraba por `trackStock`/`type` en la línea, campos que la línea no tiene,
  * con lo que los servicios iban a inventario.
  */
+
+import { givesVatCredit, isSriSustentoCode, normalizeSustentoCode } from '../../utils/sri-sustento-codes';
 
 export interface AccountRef { code: string; name: string; }
 
@@ -48,6 +54,46 @@ export interface PurchaseEntryLine {
 }
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
+
+/**
+ * Qué se hace con el IVA de la compra según su sustento tributario (tabla 5
+ * del ATS, 2026-10-08):
+ *  - `credit`: va a «IVA en compras» (crédito tributario). Sustentos 01, 03, 06.
+ *  - `cost`: no es recuperable, así que es más costo de lo comprado y va a la
+ *    misma cuenta que la base de cada línea (gasto, activo fijo o inventario:
+ *    la de la línea → la del artículo → la del mapeo). 02, 04, 05, 07…
+ *  - Sustento vacío o fuera de la tabla 5 vigente: `credit`, como hasta hoy,
+ *    con `known: false` para que el llamador lo deje en el log.
+ */
+export function purchaseVatTreatment(code: unknown): { mode: 'credit' | 'cost'; code: string; known: boolean } {
+  const c = normalizeSustentoCode(code);
+  if (!c || !isSriSustentoCode(c)) return { mode: 'credit', code: c, known: false };
+  return { mode: givesVatCredit(c) ? 'credit' : 'cost', code: c, known: true };
+}
+
+/** El IVA de la línea: el guardado, o subtotal × tarifa. */
+function lineTax(l: Record<string, any>, base: number): number {
+  if (typeof l.taxAmount === 'number') return l.taxAmount;
+  if (typeof l.vatAmount === 'number') return l.vatAmount;
+  const rate = Number(l.taxRate ?? l.vatPct ?? 0);
+  return rate > 0 ? base * rate / 100 : 0;
+}
+
+/**
+ * Reparte `total` (en dólares) entre los pesos, al centavo y sin perder ni
+ * sumar un centavo (resto mayor). Si todos los pesos son cero, no reparte.
+ */
+function prorate(total: number, weights: number[]): number[] {
+  const sum = weights.reduce((s, w) => s + w, 0);
+  if (!(sum > 0)) return weights.map(() => 0);
+  const cents = Math.round(total * 100);
+  const raw = weights.map((w) => (cents * w) / sum);
+  const out = raw.map(Math.floor);
+  let resto = cents - out.reduce((s, n) => s + n, 0);
+  const orden = raw.map((v, i) => [v - Math.floor(v), i] as const).sort((a, b) => b[0] - a[0]);
+  for (let k = 0; resto > 0 && k < orden.length; k++, resto--) out[orden[k][1]] += 1;
+  return out.map((n) => n / 100);
+}
 
 /** El mismo criterio que onPurchaseReceive: solo esas líneas suman stock. */
 export function isInventoryLine(line: Record<string, any>, products: Map<string, ProductKind>): boolean {
@@ -89,11 +135,13 @@ export function buildPurchaseEntryLines(
   const lines: Record<string, any>[] = Array.isArray(purchase.lines) ? purchase.lines : [];
 
   // Debe por cuenta, en el orden en que aparecen.
-  const buckets = new Map<string, { account: AccountRef; amount: number }>();
-  const sumar = (account: AccountRef, amount: number) => {
+  // `tax` es el IVA de las líneas de esa cuenta: solo pesa para repartir el
+  // IVA no recuperable (sustento sin crédito).
+  const buckets = new Map<string, { account: AccountRef; amount: number; tax: number }>();
+  const sumar = (account: AccountRef, amount: number, tax: number) => {
     const b = buckets.get(account.code);
-    if (b) b.amount += amount;
-    else buckets.set(account.code, { account, amount });
+    if (b) { b.amount += amount; b.tax += tax; }
+    else buckets.set(account.code, { account, amount, tax });
   };
 
   for (const l of lines) {
@@ -102,7 +150,7 @@ export function buildPurchaseEntryLines(
     const code = lineAccountCode(l, products);
     const porDefecto = isInventoryLine(l, products) ? accounts.inventory : accounts.purchaseExpense;
     const nombre = expenseNames.get(code) ?? (code === l.expenseAccountCode ? l.expenseAccountName : undefined) ?? code;
-    sumar(code ? { code, name: nombre } : porDefecto, monto);
+    sumar(code ? { code, name: nombre } : porDefecto, monto, Math.max(0, lineTax(l, monto)));
   }
 
   // El subtotal guardado manda: si el redondeo por línea no coincide, la
@@ -127,8 +175,25 @@ export function buildPurchaseEntryLines(
     }
   }
   if (iva > 0) {
-    out.push({ accountCode: accounts.ivaCredit.code, accountName: accounts.ivaCredit.name, debit: iva, credit: 0,
-      description: `IVA compra ${ref}` });
+    const trato = purchaseVatTreatment(purchase.sriSustentoCode);
+    const destinos = [...buckets.values()].filter((b) => b.amount > 0);
+    if (trato.mode === 'cost' && destinos.length > 0) {
+      // Sin crédito tributario: el IVA es más costo de lo comprado. Se reparte
+      // entre las cuentas de la base según el IVA de sus líneas (o, si las
+      // líneas no lo traen, según la base), al centavo y sumando `totalTax`.
+      const pesoIva = destinos.map((b) => b.tax);
+      const pesos = pesoIva.some((w) => w > 0) ? pesoIva : destinos.map((b) => b.amount);
+      const partes = prorate(iva, pesos);
+      destinos.forEach((b, i) => {
+        if (partes[i] > 0) {
+          out.push({ accountCode: b.account.code, accountName: b.account.name, debit: partes[i], credit: 0,
+            description: `IVA sin crédito tributario (sustento ${trato.code}) compra ${ref}` });
+        }
+      });
+    } else {
+      out.push({ accountCode: accounts.ivaCredit.code, accountName: accounts.ivaCredit.name, debit: iva, credit: 0,
+        description: `IVA compra ${ref}` });
+    }
   }
   out.push({ accountCode: accounts.accountsPayable.code, accountName: accounts.accountsPayable.name,
     debit: 0, credit: r2(subtotal + iva), description: `CxP: ${supplier} — ${ref}` });

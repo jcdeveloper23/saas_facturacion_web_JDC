@@ -4,7 +4,7 @@ import { logger } from 'firebase-functions/v2';
 import { getAccountMapping } from './utils/get-account-mapping';
 import { EntryResult, ecuadorYear, purchaseNeedsEntry } from './utils/payment-entry';
 import {
-  ProductKind, buildPurchaseEntryLines, chosenExpenseCodes, purchaseAccountingDate,
+  ProductKind, buildPurchaseEntryLines, chosenExpenseCodes, purchaseAccountingDate, purchaseVatTreatment,
 } from './utils/purchase-entry';
 
 // ─── Asiento automático al recibir una compra ──────────────────────────────────
@@ -15,7 +15,8 @@ import {
 // Asiento generado (detalle y por qué en utils/purchase-entry.ts):
 //   DÉBITO  Inventario (mapeo)        = líneas de artículos con stock
 //   DÉBITO  Gasto de cada línea       = las demás (cuenta elegida o mapeo purchaseExpense)
-//   DÉBITO  1.1.05.001  IVA en Compras = totalTax
+//   DÉBITO  1.1.05.001  IVA en Compras = totalTax (sustento con crédito: 01, 03, 06)
+//   DÉBITO  la cuenta de la base       = totalTax (sustento sin crédito: 02, 04, 05, 07…)
 //   CRÉDITO 2.1.01.001  CxP Proveedores = subtotal + IVA (las retenciones las asienta la retención)
 
 interface PurchaseLine {
@@ -147,6 +148,12 @@ export async function generateJournalEntryFromPurchaseInternal(
 
   const ref      = after.fullNumber ?? purchaseId;
   const supplier = after.supplierName ?? 'Proveedor';
+
+  const trato = purchaseVatTreatment((after as Record<string, any>).sriSustentoCode);
+  if (!trato.known && Number((after as Record<string, any>).totalTax ?? 0) > 0) {
+    logger.warn('[generateJournalEntryFromPurchase] Sustento vacío o fuera de la tabla 5: el IVA va a crédito tributario',
+      { companyId, purchaseId, sriSustentoCode: (after as Record<string, any>).sriSustentoCode ?? null });
+  }
 
   const companyMapping = await getAccountMapping(companyId);
   const built = buildPurchaseEntryLines(after, products, {
