@@ -76,6 +76,13 @@ service cloud.firestore {
       return hasRole('accountant');
     }
 
+    // Editar fichas y catálogo que ya existen: administrador o vendedor. El
+    // cajero CREA clientes, proveedores y artículos (2026-10-08) pero no
+    // cambia los que ya están: canWrite() lo incluye y por eso no sirve aquí.
+    function canEditMasterData() {
+      return request.auth.token.role in ['admin', 'seller'];
+    }
+
     // El contador registra compras y necesita dar de alta al proveedor
     // (2026-10-07): crea fichas que son SOLO proveedor y las mantiene. A una
     // persona que ya es cliente solo le suma el papel de proveedor y sus datos
@@ -678,22 +685,34 @@ service cloud.firestore {
       // ─── All tenant sub-collections ─────────────────────────────────
       match /personas/{id} {
         allow read: if isAuthenticated() && belongsToCompany(companyId);
+        // Crear: admin, vendedor y cajero (clientes y proveedores; el cajero
+        // da de alta al cliente al cobrar y al proveedor desde «Clientes y
+        // proveedores», 2026-10-08) y el contador (solo proveedores).
         allow create: if isAuthenticated() && belongsToCompany(companyId)
                       && (canWrite() || accountantCreatesSupplier());
+        // Editar: admin y vendedor, y el contador sus proveedores. El cajero
+        // no edita fichas que ya existen (2026-10-08): ninguna pantalla suya
+        // las actualiza; antes canWrite() se lo dejaba con el SDK.
         allow update: if isAuthenticated() && belongsToCompany(companyId)
-                      && (canWrite() || accountantUpdatesSupplier());
+                      && (canEditMasterData() || accountantUpdatesSupplier());
         allow delete: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
       }
 
       match /customers/{id} {
         allow read: if isAuthenticated() && belongsToCompany(companyId);
-        allow create, update: if isAuthenticated() && belongsToCompany(companyId) && canWrite();
+        // Colección legada (la sucede personas): mismas reglas, el cajero
+        // crea pero no edita (2026-10-08).
+        allow create: if isAuthenticated() && belongsToCompany(companyId) && canWrite();
+        allow update: if isAuthenticated() && belongsToCompany(companyId) && canEditMasterData();
         allow delete: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
       }
 
       match /suppliers/{id} {
         allow read: if isAuthenticated() && belongsToCompany(companyId);
-        allow create, update: if isAuthenticated() && belongsToCompany(companyId) && canWrite();
+        // Colección legada (la sucede personas): mismas reglas, el cajero
+        // crea pero no edita (2026-10-08).
+        allow create: if isAuthenticated() && belongsToCompany(companyId) && canWrite();
+        allow update: if isAuthenticated() && belongsToCompany(companyId) && canEditMasterData();
         allow delete: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
       }
 
@@ -707,9 +726,11 @@ service cloud.firestore {
         allow create, update: if isAuthenticated() && belongsToCompany(companyId)
                               && (isAdmin() || hasRole('seller'));
         // El contador CREA el artículo que necesita para registrar su compra
-        // (2026-10-07), sin existencias de entrada (las suma la compra al
-        // recibirse). Editar y borrar el catálogo sigue siendo de otros.
-        allow create: if isAuthenticated() && belongsToCompany(companyId) && isAccountant()
+        // (2026-10-07) y el cajero el que necesita para cobrar o facturar
+        // (2026-10-08), los dos sin existencias de entrada (las suma una
+        // compra o un ajuste). Editar y borrar el catálogo sigue siendo de otros.
+        allow create: if isAuthenticated() && belongsToCompany(companyId)
+                      && (isAccountant() || hasRole('cashier'))
                       && request.resource.data.get('stockQty', 0) == 0;
         allow delete: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
 
@@ -721,12 +742,16 @@ service cloud.firestore {
         }
         match /suppliers/{supplierId} {
           allow read: if isAuthenticated() && belongsToCompany(companyId);
-          allow create, update: if isAuthenticated() && belongsToCompany(companyId) && canWrite();
+          // El cajero puede crearlo con su artículo, no cambiarlo (2026-10-08).
+          allow create: if isAuthenticated() && belongsToCompany(companyId) && canWrite();
+          allow update: if isAuthenticated() && belongsToCompany(companyId) && canEditMasterData();
           allow delete: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
         }
         match /variants/{variantId} {
           allow read: if isAuthenticated() && belongsToCompany(companyId);
-          allow create, update: if isAuthenticated() && belongsToCompany(companyId) && canWrite();
+          // El cajero puede crearlo con su artículo, no cambiarlo (2026-10-08).
+          allow create: if isAuthenticated() && belongsToCompany(companyId) && canWrite();
+          allow update: if isAuthenticated() && belongsToCompany(companyId) && canEditMasterData();
           allow delete: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
         }
       }

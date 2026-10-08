@@ -214,8 +214,11 @@ export const COMPANY_DEFAULT_ROLES: Omit<Role, 'id' | 'createdAt' | 'updatedAt'>
     isDefault: true,
     state: true,
     permissions: [
-      'customers.view',
-      'products.view',
+      // Crea clientes, proveedores y artículos (2026-10-08); no los edita.
+      'customers.view', 'customers.create',
+      'suppliers.view', 'suppliers.create',
+      'personas.view', 'personas.create',
+      'products.view', 'products.create',
       'invoices.view', 'invoices.create',
       'pos.view', 'pos.create',
       'stock.view',

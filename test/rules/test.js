@@ -436,14 +436,28 @@ const num = v => ({ doubleValue: v });
   await expectStatus('el contador NO escribe otra configuración que no sea la contable',
     await create('companies/c1/settings', 'otra', conta, { x: str('1') }), S.DENIED);
 
-  // ── artículos: el cajero solo los ve (2026-10-01) ─────────────────────────
+  // ── artículos: el cajero los ve y, desde el 2026-10-08, los crea sin
+  // existencias; no edita ni borra los que ya están ───────────────────────
   await seed('companies/c1/products', 'p1', { sku: str('A-1'), name: str('Gorra'), price: num(10) });
   await expectStatus('el cajero ve los artículos',
     await req('companies/c1/products/p1', cashier), S.OK);
-  await expectStatus('el cajero NO crea artículos',
-    await create('companies/c1/products', 'p2', cashier, { sku: str('A-2'), name: str('X') }), S.DENIED);
+  await expectStatus('el cajero crea un artículo sin existencias',
+    await create('companies/c1/products', 'p2', cashier, { sku: str('A-2'), name: str('X') }), S.OK);
+  await expectStatus('el cajero crea un artículo con stockQty 0',
+    await create('companies/c1/products', 'p2b', cashier, { sku: str('A-2B'), name: str('X'), stockQty: num(0) }), S.OK);
+  await expectStatus('el cajero NO crea un artículo con existencias de entrada',
+    await create('companies/c1/products', 'p2c', cashier, { sku: str('A-2C'), name: str('X'), stockQty: num(5) }), S.DENIED);
   await expectStatus('el cajero NO cambia el precio de un artículo',
     await patch('companies/c1/products/p1', cashier, { price: num(1) }), S.DENIED);
+  await expectStatus('ni el del artículo que él mismo creó',
+    await patch('companies/c1/products/p2', cashier, { price: num(1) }), S.DENIED);
+  await expectStatus('el cajero NO borra un artículo',
+    await del('companies/c1/products/p1', cashier), S.DENIED);
+  await seed('companies/c1/products/p1/variants', 'v1', { name: str('Talla M'), price: num(10) });
+  await expectStatus('el cajero NO cambia una variante',
+    await patch('companies/c1/products/p1/variants/v1', cashier, { price: num(1) }), S.DENIED);
+  await expectStatus('el vendedor sí cambia una variante',
+    await patch('companies/c1/products/p1/variants/v1', seller, { price: num(9) }), S.OK);
   await expectStatus('el vendedor crea artículos',
     await create('companies/c1/products', 'p3', seller, { sku: str('A-3'), name: str('Y') }), S.OK);
   await expectStatus('el vendedor edita artículos',
@@ -702,6 +716,34 @@ const num = v => ({ doubleValue: v });
     await patch('companies/c1/personas/cliX', conta, { roles: list(['supplier']) }), S.DENIED);
   await expectStatus('el cajero sigue creando clientes',
     await create('companies/c1/personas', 'cli3', cashier, proveedor(['customer'])), S.OK);
+  // El cajero crea proveedores y clientes-proveedores (2026-10-08), pero no
+  // edita ni borra fichas que ya existen.
+  await expectStatus('el cajero crea un proveedor',
+    await create('companies/c1/personas', 'prov2', cashier, proveedor(['supplier'])), S.OK);
+  await expectStatus('el cajero crea un cliente-proveedor',
+    await create('companies/c1/personas', 'cli4', cashier, proveedor(['customer', 'supplier'])), S.OK);
+  await expectStatus('el cajero NO edita un cliente',
+    await patch('companies/c1/personas/cliX', cashier, { email: str('otro@x.com') }), S.DENIED);
+  await expectStatus('ni el que él mismo creó',
+    await patch('companies/c1/personas/cli3', cashier, { name: str('OTRO') }), S.DENIED);
+  await expectStatus('ni le suma el papel de proveedor a un cliente',
+    await patch('companies/c1/personas/cli3', cashier, { roles: list(['customer', 'supplier']) }), S.DENIED);
+  await expectStatus('el cajero NO borra personas',
+    await del('companies/c1/personas/cli3', cashier), S.DENIED);
+  await expectStatus('el vendedor edita un cliente',
+    await patch('companies/c1/personas/cli3', seller, { name: str('CLIENTE TRES') }), S.OK);
+  // Colecciones legadas: igual.
+  await seed('companies/c1/customers', 'lc1', { name: str('LEGADO') });
+  await expectStatus('legado: el cajero crea un cliente',
+    await create('companies/c1/customers', 'lc2', cashier, { name: str('NUEVO') }), S.OK);
+  await expectStatus('legado: el cajero NO lo edita',
+    await patch('companies/c1/customers/lc1', cashier, { name: str('X') }), S.DENIED);
+  await expectStatus('legado: el cajero crea un proveedor',
+    await create('companies/c1/suppliers', 'ls1', cashier, { name: str('PROV') }), S.OK);
+  await expectStatus('legado: el cajero NO edita un proveedor',
+    await patch('companies/c1/suppliers/ls1', cashier, { name: str('X') }), S.DENIED);
+  await expectStatus('legado: el vendedor edita un proveedor',
+    await patch('companies/c1/suppliers/ls1', seller, { name: str('Y') }), S.OK);
 
   // Corregir el sustento tributario de una compra recibida o pagada (2026-10-08).
   await seed('companies/c1/purchases', 'pSusRec', { status: str('received'), stockProcessed: bool(true), sriSustentoCode: str('01'), total: num(100) });

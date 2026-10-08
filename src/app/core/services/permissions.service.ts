@@ -81,9 +81,14 @@ const ROLE_MATRIX: { [role: string]: Record<string, ModulePermissions> } = {
     sri:             { read: true },
     team_management: { read: true, create: true, update: true },
   },
+  // Desde el 2026-10-08 el cajero CREA clientes, proveedores y artículos
+  // (los artículos sin existencias de entrada); no edita ni borra los que ya
+  // están: las reglas solo le dejan crear.
   cashier: {
-    customers:       { read: true },
-    products:        { read: true },
+    customers:       { read: true, create: true },
+    suppliers:       { read: true, create: true },
+    personas:        { read: true, create: true },
+    products:        { read: true, create: true },
     invoices:        { read: true, create: true },
     pos:             { read: true, create: true },
     stock:           { read: true },

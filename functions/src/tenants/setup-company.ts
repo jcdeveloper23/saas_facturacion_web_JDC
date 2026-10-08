@@ -55,7 +55,11 @@ const COMPANY_DEFAULT_ROLES = [
     description: 'Opera el punto de venta, emite facturas y consulta inventario.',
     color: '#198754', icon: 'cilCash', isDefault: true, state: true,
     permissions: [
-      'customers.view', 'products.view',
+      // Crea clientes, proveedores y artículos (2026-10-08); no los edita.
+      'customers.view', 'customers.create',
+      'suppliers.view', 'suppliers.create',
+      'personas.view', 'personas.create',
+      'products.view', 'products.create',
       'invoices.view', 'invoices.create',
       'pos.view', 'pos.create',
       'stock.view', 'settings.view', 'team_management.view',
