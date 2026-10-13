@@ -10,6 +10,7 @@ import { generateCreditNotePdfInternal } from './generate-credit-note-pdf';
 import { sendInvoiceEmailInternal }      from './send-invoice-email';
 import { sendCreditNoteEmailInternal }   from './send-credit-note-email';
 import { isElectronicInvoicingEnabled, SRI_NOT_REQUIRED } from '../utils/electronic-invoicing';
+import { shouldProcessInvoice, invoiceBuyerProblem, SRI_INVALID_DATA } from './invoice-buyer-check';
 
 /**
  * onInvoiceEmit
@@ -49,7 +50,10 @@ export const onInvoiceEmit = onDocumentWritten(
     //
     // No hay riesgo de repetición: lo primero que hace abajo es marcarla
     // 'pending', y con eso cualquier escritura posterior ya no entra aquí.
-    if (after['status'] !== 'issued' || after['sriStatus']) {
+    //
+    // Las importadas y las ya autorizadas llegan con sriStatus y se saltan
+    // (shouldProcessInvoice, misma condición de siempre más `imported`).
+    if (!shouldProcessInvoice(after)) {
       return;
     }
     const prevStatus = before?.['status'] ?? null;
@@ -76,6 +80,37 @@ export const onInvoiceEmit = onDocumentWritten(
 
     const isCreditNote = (after['isCreditNote'] === true) || (after['documentType'] === 'creditNote');
     const docLabel     = isCreditNote ? 'Nota de Crédito' : 'Factura';
+
+    // ── Identificación del comprador (2026-10-13) ───────────────────────────
+    // La web de FacturaEc y el POS del navegador crean facturas que llegan
+    // aquí sin validar en el servidor (createAndEmitInvoice sí valida). Una
+    // clave que el SRI deja NO AUTORIZADA no se reenvía (factura 1860, RUC de
+    // 14 dígitos, identificador 69). Si la identificación está mal: no se
+    // genera XML, no se firma, no se envía y no se cuenta en el uso del mes;
+    // queda 'invalid_data' con el motivo en sriError. `status` y el número no
+    // se tocan: el asiento solo sale con authorized/not_required y el stock ya
+    // se movió al emitir (la factura sigue viva y se va a reenviar).
+    // «Corregir cliente y reenviar» cambia el comprador y BORRA sriStatus y
+    // sriError: con status 'issued' y sin sriStatus el trigger vuelve a entrar
+    // (shouldProcessInvoice). La escritura de 'invalid_data' no hace bucle: con
+    // sriStatus puesto el trigger sale en la primera línea.
+    // Solo importa si el documento va al SRI; sin facturación electrónica
+    // sigue el camino 'not_required' de abajo, como siempre.
+    const buyerProblem = invoiceBuyerProblem(after);
+    if (buyerProblem) {
+      const coSnap = await db.doc(`companies/${companyId}`).get();
+      if (isElectronicInvoicingEnabled(coSnap.data())) {
+        console.warn(`[onInvoiceEmit] ${docLabel}: identificación del comprador inválida — no se envía al SRI:`, {
+          companyId, invoiceId, problem: buyerProblem,
+        });
+        await db.doc(`companies/${companyId}/invoices/${invoiceId}`).update({
+          sriStatus: SRI_INVALID_DATA,
+          sriError:  buyerProblem,
+          updatedAt: admin.firestore.Timestamp.now(),
+        });
+        return;
+      }
+    }
 
     // ── Contador de uso (no bloqueante) ─────────────────────────────────────
     const usageNow    = new Date();
