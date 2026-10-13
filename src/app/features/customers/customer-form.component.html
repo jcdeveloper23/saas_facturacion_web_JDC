@@ -87,11 +87,10 @@
                 <label cLabel>{{ fieldLabel('taxId') }} <span class="text-danger">*</span></label>
                 <input cFormControl formControlName="taxId" class="font-monospace"
                        placeholder="{{ form.get('taxIdType')?.value === 'CI' ? '0123456789' : '0101010100001' }}"
+                       [attr.maxlength]="taxIdMaxLength(form.get('taxIdType')?.value)"
                        [class.is-invalid]="hasError(form, 'taxId')">
-                @if (form.get('taxId')?.errors?.['invalidCedula']) {
-                  <div class="invalid-feedback">Cédula inválida</div>
-                } @else if (form.get('taxId')?.errors?.['invalidRuc']) {
-                  <div class="invalid-feedback">RUC inválido</div>
+                @if (form.get('taxId')?.errors?.['taxId']; as msg) {
+                  <div class="invalid-feedback">{{ msg }}</div>
                 } @else if (hasError(form, 'taxId')) {
                   <div class="invalid-feedback">Requerido</div>
                 }

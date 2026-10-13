@@ -25,6 +25,7 @@ import { InvoicesService } from '../../invoices/services/invoices.service';
 import { SettingsService } from '../../settings/services/settings.service';
 import { InvoiceLine, SriDocumentStatus } from '../../invoices/models/invoice.interface';
 import { PosSale, PosPayment, PosCartState } from '../models/pos.interface';
+import { buyerTaxIdProblem, inferBuyerTaxIdType } from '../../../core/validators/ecuador.validators';
 
 export interface CompleteSaleInput {
   cartState:     PosCartState;
@@ -150,6 +151,15 @@ export class PosSalesService {
       const series          = seriesList.find(s => s.documentType === 'invoice' && s.isActive);
       const paymentTermCode = paymentTerms.find(t => t.isActive)?.code ?? '';
 
+      // Comprador inválido con SRI: no se crea la factura (el servidor,
+      // onPosSaleComplete, hace lo mismo). La venta queda con invoiceError.
+      const buyerProblem = this.tenantService.isSriEnabled()
+        ? buyerTaxIdProblem(cartState.customerTaxId, cartState.customerTaxIdType)
+        : null;
+      if (buyerProblem) {
+        throw new Error(`Factura no emitida: identificación del comprador ${cartState.customerTaxId || '(vacía)'} — ${buyerProblem} Corrija el cliente y emita la factura desde Facturas.`);
+      }
+
       if (series) {
         // ── Reclamo transaccional ──────────────────────────────────────────
         // La Cloud Function onPosSaleComplete también puede crear esta misma
@@ -200,7 +210,9 @@ export class PosSalesService {
           customerCode:        '',
           customerName:        cartState.customerName,
           customerTaxId:       cartState.customerTaxId,
-          customerTaxIdType:   cartState.customerTaxIdType,
+          // Vacío (cliente por defecto del terminal): se deduce, para que no
+          // viaje como RUC (igual que onPosSaleComplete).
+          customerTaxIdType:   cartState.customerTaxIdType || inferBuyerTaxIdType(cartState.customerTaxId),
           warehouseCode:       input.warehouseCode,
           paymentTermCode,
           currency:            'USD',

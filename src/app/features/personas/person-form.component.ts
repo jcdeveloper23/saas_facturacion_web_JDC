@@ -28,7 +28,7 @@ import {
 } from './models/person.interface';
 import { PaymentTerm, Currency, DocumentSeries } from '../settings/models/settings.interfaces';
 import { EntityFormConfig } from '../../core/interfaces/form-config.interface';
-import { ecuadorTaxIdValidator } from '../../core/validators/ecuador.validators';
+import { ecuadorTaxIdValidator, taxIdMaxLength } from '../../core/validators/ecuador.validators';
 import { SupplierPurchasesTabComponent } from './supplier-purchases-tab.component';
 import { CostCentersService } from '../accounting/services/cost-centers.service';
 import { CostCenter } from '../accounting/models/cost-center.interface';
@@ -176,6 +176,8 @@ export class PersonFormComponent implements OnInit {
   readonly ROLE_COLORS   = ROLE_COLORS;
   readonly CONTRACT_TYPES = CONTRACT_TYPES;
 
+  /** maxlength de la identificación según el tipo (validador único). */
+  readonly taxIdMaxLength = taxIdMaxLength;
   readonly taxIdTypes: { value: TaxIdType; label: string }[] = [
     { value: 'RUC',       label: 'RUC' },
     { value: 'CI',        label: 'Cédula' },

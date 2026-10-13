@@ -19,7 +19,7 @@ import { IconModule } from '@coreui/icons-angular';
 import { InvoicesService }  from './services/invoices.service';
 import { PersonasService }  from '../personas/services/personas.service';
 import type { PersonCreateInput } from '../personas/services/personas.service';
-import { ecuadorTaxIdValidator } from '../../core/validators/ecuador.validators';
+import { ecuadorTaxIdValidator, taxIdMaxLength, buyerTaxIdProblem } from '../../core/validators/ecuador.validators';
 import { ProductsService }  from '../products/services/products.service';
 import { SettingsService }  from '../settings/services/settings.service';
 import { NotificationService } from '../../core/services/notification.service';
@@ -294,6 +294,19 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
   customerSearch       = signal('');
   showCustomerDrop     = signal(false);
   selectedCustomer     = signal<Person | null>(null);
+
+  /**
+   * Qué le pasa a la identificación del comprador, o null (2026-10-13). Con un
+   * «RUC» de 14 dígitos el SRI deja la factura NO AUTORIZADA y el número se
+   * pierde (factura 1860 de Weconnect Corp.). En una factura ya creada manda
+   * lo guardado en ella, que es lo que se envía.
+   */
+  readonly customerIdProblem = computed(() => {
+    const inv = this.invoice();
+    if (!this.isNew() && inv) return buyerTaxIdProblem(inv.customerTaxId, inv.customerTaxIdType ?? '');
+    const c = this.selectedCustomer();
+    return c ? buyerTaxIdProblem(c.taxId, c.taxIdType) : null;
+  });
   isConsumidorFinal    = computed(() => this.selectedCustomer()?.taxId === '9999999999999');
   customerHighlightIdx = signal(0);
 
@@ -400,6 +413,8 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
   readonly vatOptions = [0, 5, 8, 15];
 
   // ── Form ──────────────────────────────────────────────────────────────────
+  /** maxlength de la identificación según el tipo (validador único). */
+  readonly taxIdMaxLength = taxIdMaxLength;
   form!: FormGroup;
 
   get linesArray(): FormArray         { return this.form.get('lines')          as FormArray; }
@@ -1028,6 +1043,12 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
     if (!this.selectedCustomer()) {
       this.notifications.error('Seleccione un cliente'); return;
+    }
+    // Sin emitir con una identificación que el SRI rechazaría (mismo criterio
+    // que createAndEmitInvoice). El borrador sí se guarda.
+    if (emitAfter && this.isSriEnabled() && this.customerIdProblem()) {
+      this.notifications.error(`No se puede emitir: ${this.customerIdProblem()} Corrija la ficha del cliente.`);
+      return;
     }
     if (emitAfter && !this.paymentBalanced()) {
       const diff = (this.paymentTotal() - this.totals().total).toFixed(2);

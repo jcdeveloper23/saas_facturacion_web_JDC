@@ -24,7 +24,7 @@ import {
 import { PaymentTerm } from '../settings/models/settings.interfaces';
 import { EntityFormConfig } from '../../core/interfaces/form-config.interface';
 import { FieldSection } from './models/customer-field-catalog';
-import { ecuadorTaxIdValidator } from '../../core/validators/ecuador.validators';
+import { ecuadorTaxIdValidator, taxIdMaxLength } from '../../core/validators/ecuador.validators';
 
 const SECTION_LABELS: Record<FieldSection, string> = {
   fiscal:     'Identificación Fiscal',
@@ -80,6 +80,8 @@ export class CustomerFormComponent implements OnInit {
   bankForm!: FormGroup;
 
   // ─── Main form ───────────────────────────────────────────────────────────
+  /** maxlength de la identificación según el tipo (validador único). */
+  readonly taxIdMaxLength = taxIdMaxLength;
   form!: FormGroup;
 
   readonly taxIdTypes: { value: TaxIdType; label: string }[] = [

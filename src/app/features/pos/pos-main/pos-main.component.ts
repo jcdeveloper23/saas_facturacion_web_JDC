@@ -21,6 +21,7 @@ import { SettingsService } from '../../settings/services/settings.service';
 import { TenantService }   from '../../../core/services/tenant.service';
 import { AuthService }     from '../../../core/services/auth.service';
 import { PlanLimitsService } from '../../../core/services/plan-limits.service';
+import { buyerTaxIdProblem } from '../../../core/validators/ecuador.validators';
 import {
   PosPayment, PosCartItem, PosSale
 } from '../models/pos.interface';
@@ -253,6 +254,16 @@ export class PosMainComponent implements OnInit, OnDestroy {
       this.notify.warning('Carrito vacío', 'Agrega productos antes de cobrar');
       return;
     }
+    // Antes de cobrar: con facturación electrónica, la factura de la venta va
+    // al SRI con este comprador; con la identificación mal la dejaría NO
+    // AUTORIZADA (2026-10-13). No se cambia a consumidor final sin preguntar.
+    if (this.planLimits.isFeatureEnabled('electronicInvoicing')) {
+      const problem = buyerTaxIdProblem(this.posSession.customerTaxId(), this.posSession.customerTaxIdType());
+      if (problem) {
+        this.notify.warning('Revisa el cliente', `${problem} Elige otro cliente o Consumidor final.`);
+        return;
+      }
+    }
     this.showPaymentModal.set(true);
   }
 
@@ -294,6 +305,7 @@ export class PosMainComponent implements OnInit, OnDestroy {
 
       this.posSession.clearCart();
       this.notify.success('Venta completada', `Ticket #${sale.ticketNumber} · $${sale.total.toFixed(2)}`);
+      if (sale.invoiceError) this.notify.warning('Venta sin factura', sale.invoiceError);
       this.showTicketPreview.set(true);
 
     } catch (err: any) {

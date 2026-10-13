@@ -25,6 +25,7 @@ import {
 import { DEFAULT_SRI_SUSTENTO_CODE, SRI_SUSTENTO_CODES_VIGENTES } from '../../core/constants/sri-sustento-codes';
 import { SRI_STATUS_LABELS as SriLbls, SRI_STATUS_COLORS as SriClrs } from '../invoices/models/invoice.interface';
 import { Person } from '../personas/models/person.interface';
+import { normalizeTaxIdType, retainedSubjectProblem } from '../../core/validators/ecuador.validators';
 import { DocumentSeries } from '../settings/models/settings.interfaces';
 import {
   EmissionPointAccess, EmissionPointAccessService,
@@ -275,8 +276,20 @@ export class RetentionFormComponent implements OnInit, OnDestroy {
     this.selectedSupplier.set(s);
     this.supplierSearch.set(s.name);
     this.showSupplierDrop.set(false);
-    // Default taxIdType based on supplier
-    this.form.patchValue({ supplierTaxIdType: s.taxIdType === 'RUC' ? '04' : '05' });
+    // Tipo del SRI a partir del de la ficha. Antes todo lo que no era 'RUC'
+    // salía '05' (cédula), también un pasaporte (2026-10-13).
+    const code = normalizeTaxIdType(s.taxIdType, s.taxId);
+    this.form.patchValue({ supplierTaxIdType: code && code !== '07' ? code : '04' });
+  }
+
+  /**
+   * Qué le pasa a la identificación del proveedor, o null. El mismo criterio
+   * que onRetentionEmit en el servidor, que con esto mal no la envía al SRI.
+   */
+  supplierIdProblem(): string | null {
+    const s = this.selectedSupplier();
+    if (!s) return null;
+    return retainedSubjectProblem(s.taxId, this.form?.get('supplierTaxIdType')?.value);
   }
 
   blurSupplier(): void {
@@ -332,6 +345,10 @@ export class RetentionFormComponent implements OnInit, OnDestroy {
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
     if (!this.selectedSupplier()) {
       this.notifications.error('Seleccione un proveedor'); return;
+    }
+    if (emitAfter && this.supplierIdProblem()) {
+      this.notifications.error(`No se puede emitir: ${this.supplierIdProblem()} Corrija la ficha del proveedor o el tipo de identificación.`);
+      return;
     }
     // En uno nuevo solo valen las series del usuario (seriesList, no seriesOptions).
     const seriesProblem = seriesGuardMessage(

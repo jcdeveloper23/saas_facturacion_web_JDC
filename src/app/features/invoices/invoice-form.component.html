@@ -108,6 +108,11 @@
               </button>
               }
             </div>
+            @if (isEditable() && isSriEnabled() && customerIdProblem(); as idMsg) {
+            <div class="text-danger mt-1" style="font-size:.75rem">
+              {{ idMsg }} No se podrá emitir hasta corregir la ficha del cliente.
+            </div>
+            }
             } @else {
             @if (showNoCustomersAlert()) {
             <div style="background:var(--cui-warning-bg-subtle); border:1px solid var(--cui-warning-border-subtle);
@@ -970,14 +975,13 @@
       </div>
       <div class="col-7">
         <label class="form-label">RUC / Cédula <span class="text-danger">*</span></label>
-        <input cFormControl formControlName="taxId" placeholder="1791234567001">
+        <input cFormControl formControlName="taxId" placeholder="1791234567001"
+               [attr.maxlength]="taxIdMaxLength(newCustomerForm.get('taxIdType')?.value)">
         @if (newCustomerForm.get('taxId')?.invalid && newCustomerForm.get('taxId')?.touched) {
         @if (newCustomerForm.get('taxId')?.hasError('required')) {
         <div class="text-danger" style="font-size:.75rem">El número de identificación es requerido.</div>
-        } @else if (newCustomerForm.get('taxId')?.hasError('invalidCedula')) {
-        <div class="text-danger" style="font-size:.75rem">Cédula inválida (10 dígitos, módulo 10).</div>
-        } @else if (newCustomerForm.get('taxId')?.hasError('invalidRuc')) {
-        <div class="text-danger" style="font-size:.75rem">RUC inválido (13 dígitos, algoritmo SRI).</div>
+        } @else if (newCustomerForm.get('taxId')?.errors?.['taxId']; as msg) {
+        <div class="text-danger" style="font-size:.75rem">{{ msg }}</div>
         }
         }
       </div>

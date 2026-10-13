@@ -115,11 +115,15 @@
               <option value="04">04 — RUC</option>
               <option value="05">05 — Cédula</option>
               <option value="06">06 — Pasaporte</option>
-              <option value="07">07 — Cons. Final</option>
               <option value="08">08 — ID Exterior</option>
             </select>
           </div>
         </div>
+        @if (isEditable() && supplierIdProblem(); as idMsg) {
+          <div class="text-danger mt-1" style="font-size:.75rem">
+            {{ idMsg }} No se podrá emitir hasta corregirlo.
+          </div>
+        }
       }
     </c-card-body>
   </c-card>

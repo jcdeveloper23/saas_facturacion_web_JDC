@@ -9,6 +9,7 @@ export type SriDocumentStatus =
   | 'xml_generated'          // XML generado, pendiente de firma
   | 'signed'                 // XML firmado, pendiente de envío a SRI
   | 'plan_limit_reached'     // límite mensual de documentos SRI del plan alcanzado — bloqueado, no se generó XML
+  | 'invalid_data'           // datos inválidos (p. ej. identificación del proveedor de una retención): NO se envió al SRI, ver sriError (2026-10-13)
   | 'plan_feature_disabled'; // @deprecated legado: pre-fix del plan sin electronicInvoicing.
                               // El pipeline ya no escribe este valor (usa 'not_required'); se
                               // conserva en el tipo solo para que documentos antiguos aún sin
@@ -42,6 +43,7 @@ export const SRI_STATUS_LABELS: Record<SriDocumentStatus, string> = {
   xml_generated:         'XML generado',
   signed:                'Firmado',
   plan_limit_reached:    'Límite del plan alcanzado',
+  invalid_data:          'No enviada (datos)',
   plan_feature_disabled: 'Sin SRI (plan)', // legado — ver backfillNotRequiredInvoices
 };
 
@@ -53,6 +55,7 @@ export const SRI_STATUS_COLORS: Record<SriDocumentStatus, string> = {
   xml_generated:         'secondary',
   signed:                'secondary',
   plan_limit_reached:    'warning',
+  invalid_data:          'danger',
   plan_feature_disabled: 'secondary',
 };
 
