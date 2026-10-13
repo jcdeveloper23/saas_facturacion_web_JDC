@@ -9,6 +9,7 @@ import { buildAdditionalInfo } from '../utils/additional-info';
 import { resolveSoftwareProviderRuc } from '../utils/software-provider';
 import { buildSustento, supportDocDigits } from './retention-sustento';
 import { retentionSustentoCode } from '../utils/sri-sustento-codes';
+import { retainedSubjectIdCheck } from '../utils/sri-id-type';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -109,6 +110,16 @@ export async function generateRetentionXmlInternal(
   if (!retSnap.exists) throw new Error(`Retención no encontrada: ${retentionId}`);
   const retention = retSnap.data() as Retention;
 
+  // Antes de construir la clave: con la identificación del proveedor mal, el
+  // SRI la deja NO AUTORIZADA y la clave se pierde (2026-10-13). El tipo va al
+  // XML como código del SRI aunque el documento diga 'RUC' o 'passport'.
+  const idCheck = retainedSubjectIdCheck(retention.supplierTaxId, retention.supplierTaxIdType);
+  if (idCheck.problem || !idCheck.code) {
+    throw new Error(idCheck.problem ?? 'Tipo de identificación del proveedor no reconocido.');
+  }
+  const tipoIdSujeto = idCheck.code;
+  const idSujeto     = retention.supplierTaxId.trim();
+
   const companySnap = await db.doc(`companies/${companyId}`).get();
   if (!companySnap.exists) throw new Error(`Empresa no encontrada: ${companyId}`);
   const company = companySnap.data() as Company;
@@ -172,11 +183,11 @@ export async function generateRetentionXmlInternal(
   }
   const obligado = sriConfig.obligadoContabilidad ?? (company.sri.accountingRequired ? 'SI' : 'NO');
   infoComp.ele('obligadoContabilidad').txt(obligado);
-  infoComp.ele('tipoIdentificacionSujetoRetenido').txt(retention.supplierTaxIdType ?? '04');
+  infoComp.ele('tipoIdentificacionSujetoRetenido').txt(tipoIdSujeto);
   // parteRel (¿el proveedor es parte relacionada?) es obligatorio en la v2.0.0.
   infoComp.ele('parteRel').txt(retention.parteRel === 'SI' ? 'SI' : 'NO');
   infoComp.ele('razonSocialSujetoRetenido').txt(retention.supplierName);
-  infoComp.ele('identificacionSujetoRetenido').txt(retention.supplierTaxId);
+  infoComp.ele('identificacionSujetoRetenido').txt(idSujeto);
   infoComp.ele('periodoFiscal').txt(retention.periodoFiscal);
 
   // <docsSustento> — Ficha Técnica v2.32: impuestos van DENTRO de <docSustento><retenciones>

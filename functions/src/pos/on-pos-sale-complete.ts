@@ -4,6 +4,7 @@ import * as admin from 'firebase-admin';
 import { logger } from 'firebase-functions/v2';
 import { FieldValue } from 'firebase-admin/firestore';
 import { isElectronicInvoicingEnabled } from '../utils/electronic-invoicing';
+import { posBuyerCheck } from './pos-buyer-check';
 
 /**
  * onPosSaleComplete
@@ -84,6 +85,28 @@ export const onPosSaleComplete = onDocumentCreated(
       // Antes esta función retornaba aquí y la venta POS se quedaba sin
       // factura en absoluto para empresas sin electronicInvoicing.
       const sriEnabled = isElectronicInvoicingEnabled(company);
+
+      // ── Identificación del comprador (2026-10-13) ───────────────────────────
+      // El comprador del POS lo pone la caja. Con una identificación mal, el SRI
+      // deja la factura NO AUTORIZADA y el número se pierde (factura 1860,
+      // identificador 69). Lo menos intrusivo: NO se numera ni se crea la
+      // factura; la venta (ya cobrada) queda con invoiceError, igual que con el
+      // límite del plan, y el claim se libera para facturarla después con el
+      // cliente corregido. No se cambia a consumidor final a escondidas.
+      // Solo cuando la factura iría al SRI: sin facturación electrónica el
+      // comprobante es físico y se deja como estaba.
+      const buyer = posBuyerCheck(sale['customerTaxId'], sale['customerTaxIdType']);
+      if (sriEnabled && buyer.problem) {
+        logger.warn('[onPosSaleComplete] Identificación del comprador inválida — no se crea la factura.', {
+          companyId, saleId, problem: buyer.problem,
+        });
+        await saleRef.update({
+          invoiceError: buyer.problem,
+          invoiceClaim: FieldValue.delete(),
+          updatedAt:    FieldValue.serverTimestamp(),
+        });
+        return;
+      }
 
       // Límite mensual de facturas SRI — solo aplica si el documento
       // realmente se va a enviar al SRI; una empresa en modo "sin SRI" no
@@ -261,7 +284,9 @@ export const onPosSaleComplete = onDocumentCreated(
           customerCode,
           customerName:       sale['customerName']    ?? '',
           customerTaxId:      sale['customerTaxId']   ?? '',
-          customerTaxIdType:  sale['customerTaxIdType'] ?? 'CI',
+          // El tipo con que se validó: vacío (cliente por defecto del terminal)
+          // se deduce de la identificación en vez de viajar como RUC.
+          customerTaxIdType:  buyer.taxIdType,
           ...(customerEmail   ? { customerEmail }   : {}),
           ...(customerAddress ? { customerAddress } : {}),
           // Comercial
