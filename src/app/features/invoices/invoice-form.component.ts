@@ -274,6 +274,27 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
   // ── SRI actions ───────────────────────────────────────────────────────────
   checkingSri  = signal(false);
   resendingSri = signal(false);
+
+  // ── «Corregir cliente y reenviar» (sriStatus 'invalid_data', 2026-10-13) ──
+  // onInvoiceEmit no la mandó al SRI (identificación del comprador mal): se
+  // corrige el comprador y se reenvía con el MISMO número.
+  readonly buyerFixTypes: { value: string; label: string }[] = [
+    { value: 'RUC',              label: 'RUC' },
+    { value: 'CI',               label: 'Cédula' },
+    { value: 'PASAPORTE',        label: 'Pasaporte' },
+    { value: 'EXTERIOR',         label: 'Identificación del exterior' },
+    { value: 'CONSUMIDOR_FINAL', label: 'Consumidor final' },
+  ];
+  buyerFixOpen    = signal(false);
+  buyerFixSaving  = signal(false);
+  buyerFixName    = signal('');
+  buyerFixType    = signal('RUC');
+  buyerFixTaxId   = signal('');
+  buyerFixEmail   = signal('');
+  buyerFixAddress = signal('');
+  readonly buyerFixProblem = computed(() =>
+    buyerTaxIdProblem(this.buyerFixTaxId(), this.buyerFixType()));
+  readonly buyerFixMaxLength = computed(() => taxIdMaxLength(this.buyerFixType()));
   readonly openUrl = (url: string) => window.open(url, '_blank');
   readonly copyToClipboard = (text: string) => navigator.clipboard?.writeText(text);
 
@@ -1726,6 +1747,50 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
       this.notifications.error('Error consultando SRI: ' + (err?.message ?? err));
     } finally {
       this.checkingSri.set(false);
+    }
+  }
+
+  // ── SRI: Corregir cliente y reenviar (invalid_data) ────────────────────────
+  openBuyerFix(): void {
+    const inv = this.invoice();
+    if (!inv) return;
+    const type = (inv.customerTaxIdType ?? '').toUpperCase();
+    this.buyerFixName.set(inv.customerName ?? '');
+    this.buyerFixType.set(this.buyerFixTypes.some(t => t.value === type) ? type
+      : type === 'CEDULA' ? 'CI' : 'RUC');
+    this.buyerFixTaxId.set(inv.customerTaxId ?? '');
+    this.buyerFixEmail.set(inv.customerEmail ?? '');
+    this.buyerFixAddress.set(inv.customerAddress ?? '');
+    this.buyerFixOpen.set(true);
+  }
+
+  async saveBuyerFix(): Promise<void> {
+    const id = this.invoiceId();
+    if (!id || this.buyerFixSaving()) return;
+    if (!this.buyerFixName().trim()) {
+      this.notifications.error('Escriba la razón social o el nombre del comprador.');
+      return;
+    }
+    const problem = this.buyerFixProblem();
+    if (problem) {
+      this.notifications.error(problem);
+      return;
+    }
+    this.buyerFixSaving.set(true);
+    try {
+      await this.svc.fixBuyerAndResend(id, {
+        customerName:      this.buyerFixName(),
+        customerTaxId:     this.buyerFixTaxId(),
+        customerTaxIdType: this.buyerFixType(),
+        customerEmail:     this.buyerFixEmail(),
+        customerAddress:   this.buyerFixAddress(),
+      });
+      this.buyerFixOpen.set(false);
+      this.notifications.info('Comprador corregido. Se reenvía al SRI con el mismo número; puede tardar unos segundos.');
+    } catch (err: any) {
+      this.notifications.error('No se pudo corregir el comprador: ' + (err?.message ?? err));
+    } finally {
+      this.buyerFixSaving.set(false);
     }
   }
 

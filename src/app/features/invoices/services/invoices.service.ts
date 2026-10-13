@@ -3,7 +3,7 @@ import {
   Firestore, collection, doc, onSnapshot,
   addDoc, updateDoc, deleteDoc,
   query, where, orderBy, limit, Timestamp, writeBatch,
-  runTransaction
+  runTransaction, deleteField
 } from '@angular/fire/firestore';
 import { Observable } from 'rxjs';
 
@@ -155,6 +155,39 @@ export class InvoicesService {
 
   async markVoid(id: string): Promise<void> {
     await this.updateInvoice(id, { status: 'void', isVoid: true, voidedAt: Timestamp.now() });
+  }
+
+  // ─── «Corregir cliente y reenviar» (2026-10-13) ──────────────────────────
+  //
+  // onInvoiceEmit deja 'invalid_data' a una factura o NC con la identificación
+  // del comprador mal: no generó XML ni la mandó al SRI, así que se reenvía con
+  // el MISMO número. Se corrige el comprador y se BORRAN sriStatus y sriError
+  // (y customerIdentificationType, que en el XML manda sobre el tipo): con
+  // status 'issued' y sin sriStatus, onInvoiceEmit la vuelve a procesar.
+  // Las reglas (invalidDataBuyerFix) solo dejan pasar estos campos.
+  // No pasa por updateInvoice: cleanDoc no toca los deleteField(), pero aquí
+  // no hace falta recalcular nada.
+  async fixBuyerAndResend(id: string, buyer: {
+    customerName: string;
+    customerTaxId: string;
+    customerTaxIdType: string;
+    customerEmail?: string;
+    customerAddress?: string;
+  }): Promise<void> {
+    const userId = this.authService.user()?.uid ?? 'unknown';
+    const ref = doc(this.firestore, `${this.colPath}/${id}`);
+    await updateDoc(ref, {
+      customerName:      buyer.customerName.trim(),
+      customerTaxId:     buyer.customerTaxId.trim(),
+      customerTaxIdType: buyer.customerTaxIdType,
+      customerEmail:     (buyer.customerEmail ?? '').trim(),
+      customerAddress:   (buyer.customerAddress ?? '').trim(),
+      customerIdentificationType: deleteField(),
+      sriStatus: deleteField(),
+      sriError:  deleteField(),
+      updatedAt: Timestamp.now(),
+      updatedBy: userId,
+    });
   }
 
   // ─── Delete (draft only) ─────────────────────────────────────────────────

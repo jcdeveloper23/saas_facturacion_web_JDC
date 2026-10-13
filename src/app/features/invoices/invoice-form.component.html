@@ -700,6 +700,10 @@
                   <svg cIcon name="cilClock" size="sm" class="text-warning flex-shrink-0"></svg>
                   <c-badge color="warning">Pendiente SRI</c-badge>
                 }
+                @case ('invalid_data') {
+                  <svg cIcon name="cilXCircle" size="sm" class="text-danger flex-shrink-0"></svg>
+                  <c-badge color="danger">No se envió al SRI</c-badge>
+                }
                 @case ('not_required') {
                   <c-badge color="light">No aplica SRI</c-badge>
                 }
@@ -785,13 +789,69 @@
             </div>
             }
 
-            <!-- 5. Botones de acción (rejected / pending / sin sriStatus, y no es void ni not_required; requiere SRI activo) -->
+            <!-- 4b. No se envió al SRI (invalid_data, 2026-10-13): corregir el comprador y reenviar con el mismo número -->
+            @if (invoice()!.sriStatus === 'invalid_data') {
+            <div class="mt-2 p-1 rounded"
+              style="background:var(--cui-danger-bg-subtle); color:var(--cui-danger-emphasis)">
+              <strong>No se envió al SRI:</strong> {{ invoice()!.sriError || 'datos inválidos' }}
+              <div class="mt-1" style="opacity:.85">El SRI nunca recibió este comprobante: se corrige y se reenvía con el mismo número.</div>
+            </div>
+            @if (invoice()!.status === 'issued' && !invoice()!.isVoid) {
+              @if (!buyerFixOpen()) {
+              <button type="button" cButton color="danger" variant="outline" size="sm"
+                class="w-100 mt-2" (click)="openBuyerFix()">
+                Corregir cliente y reenviar
+              </button>
+              } @else {
+              <div class="mt-2 p-2 rounded border" style="background:var(--cui-body-bg)">
+                <label class="form-label mb-0" style="font-size:.7rem">Razón social / nombre</label>
+                <input cFormControl sizing="sm" class="mb-1" [value]="buyerFixName()"
+                  (input)="buyerFixName.set($any($event.target).value)" />
+                <label class="form-label mb-0" style="font-size:.7rem">Tipo de identificación</label>
+                <select cSelect sizing="sm" class="mb-1" [value]="buyerFixType()"
+                  (change)="buyerFixType.set($any($event.target).value)">
+                  @for (t of buyerFixTypes; track t.value) {
+                    <option [value]="t.value" [selected]="t.value === buyerFixType()">{{ t.label }}</option>
+                  }
+                </select>
+                <label class="form-label mb-0" style="font-size:.7rem">Identificación</label>
+                <input cFormControl sizing="sm" [value]="buyerFixTaxId()"
+                  [attr.maxlength]="buyerFixMaxLength()"
+                  [class.is-invalid]="!!buyerFixProblem()"
+                  (input)="buyerFixTaxId.set($any($event.target).value)" />
+                @if (buyerFixProblem()) {
+                  <div class="text-danger" style="font-size:.7rem">{{ buyerFixProblem() }}</div>
+                }
+                <label class="form-label mb-0 mt-1" style="font-size:.7rem">Correo</label>
+                <input cFormControl sizing="sm" type="email" class="mb-1" [value]="buyerFixEmail()"
+                  (input)="buyerFixEmail.set($any($event.target).value)" />
+                <label class="form-label mb-0" style="font-size:.7rem">Dirección</label>
+                <input cFormControl sizing="sm" [value]="buyerFixAddress()"
+                  (input)="buyerFixAddress.set($any($event.target).value)" />
+                <div class="d-flex gap-1 mt-2">
+                  <button type="button" cButton color="secondary" variant="outline" size="sm" class="flex-fill"
+                    [disabled]="buyerFixSaving()" (click)="buyerFixOpen.set(false)">Cancelar</button>
+                  <button type="button" cButton color="primary" size="sm" class="flex-fill"
+                    [disabled]="buyerFixSaving() || !!buyerFixProblem() || !buyerFixName().trim()"
+                    (click)="saveBuyerFix()">
+                    @if (buyerFixSaving()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+                    Guardar y reenviar
+                  </button>
+                </div>
+              </div>
+              }
+            }
+            }
+
+            <!-- 5. Botones de acción (rejected / pending / sin sriStatus, y no es void ni not_required; requiere SRI activo).
+                 En invalid_data no: el reenvío va por «Corregir cliente y reenviar». -->
             @if (
               isSriEnabled() &&
               !isNew() &&
               invoice()!.status !== 'void' &&
               invoice()!.sriStatus !== 'not_required' &&
-              invoice()!.sriStatus !== 'authorized'
+              invoice()!.sriStatus !== 'authorized' &&
+              invoice()!.sriStatus !== 'invalid_data'
             ) {
             <div class="d-flex gap-1 mt-2">
               <button type="button" cButton color="secondary" variant="outline" size="sm"

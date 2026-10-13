@@ -433,7 +433,19 @@
                 <!-- Estado SRI (solo si módulo SRI activo) -->
                 @if (isSriEnabled()) {
                 <td (click)="$event.stopPropagation()">
-                  @if (inv.sriStatus && inv.sriStatus !== 'not_required') {
+                  @if (inv.sriStatus === 'invalid_data') {
+                    <!-- 2026-10-13: onInvoiceEmit no la mandó (comprador mal); se corrige en la ficha -->
+                    <c-badge color="danger" shape="rounded-pill" style="font-size:.68rem"
+                             [cTooltip]="'No se envió al SRI: ' + (inv.sriError || 'datos inválidos')">
+                      {{ SRI_STATUS_LABELS[inv.sriStatus] }}
+                    </c-badge>
+                    @if (inv.sriError) {
+                      <div class="text-danger text-truncate" style="font-size:.66rem; max-width:220px"
+                           [title]="'No se envió al SRI: ' + inv.sriError">
+                        No se envió al SRI: {{ inv.sriError }}
+                      </div>
+                    }
+                  } @else if (inv.sriStatus && inv.sriStatus !== 'not_required') {
                     <c-badge [color]="SRI_STATUS_COLORS[inv.sriStatus]" shape="rounded-pill" style="font-size:.68rem">
                       {{ SRI_STATUS_LABELS[inv.sriStatus] }}
                     </c-badge>
@@ -446,7 +458,16 @@
                 <!-- Acciones rápidas -->
                 <td>
                   <div class="d-flex gap-1" (click)="$event.stopPropagation()">
-                    @if (inv.status === 'issued') {
+                    <!-- No se envió al SRI (invalid_data): corregir el comprador en la ficha y reenviar con el mismo número -->
+                    @if (inv.sriStatus === 'invalid_data' && inv.status === 'issued' && !inv.isVoid) {
+                      <button *hasPermission="'invoices.edit'" cButton color="danger" variant="ghost" size="sm"
+                              cTooltip="Corregir cliente y reenviar"
+                              (click)="openEdit(inv); $event.stopPropagation()">
+                        <svg cIcon name="cilPencil" size="sm"></svg>
+                      </button>
+                    }
+                    <!-- En invalid_data no se marca pagada: pasaría a 'paid' y ya no se reenviaría -->
+                    @if (inv.status === 'issued' && inv.sriStatus !== 'invalid_data') {
                       <button cButton color="success" variant="ghost" size="sm"
                               cTooltip="Marcar pagada"
                               (click)="markPaid(inv, $event)">
