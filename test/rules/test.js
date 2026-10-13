@@ -947,5 +947,66 @@ const num = v => ({ doubleValue: v });
       ]), S.DENIED);
   }
 
+  // ── Corregir y volver a emitir: anular una RECHAZADA por el SRI (2026-10-13) ──
+  {
+    const rech = (extra = {}) => ({ seriesEstablishment: str('001'), seriesEmissionPoint: str('001'),
+      status: str('issued'), isVoid: bool(false), sriStatus: str('rejected'), fiscalYear: str('2026'),
+      stockProcessed: bool(true), total: num(10), ...extra });
+    const reemplazo = (uid, repl = 'nueva1', extra = {}) => ({ isVoid: bool(true), status: str('void'),
+      voidedAt: ts(), voidedBy: str(uid), voidReason: str('Rechazada por el SRI: identificación del comprador'),
+      replacedByInvoiceId: str(repl), replacedByNumber: str('001-001-000001861'),
+      updatedAt: ts(), updatedBy: str(uid), ...extra });
+    await seed('companies/c1/invoices', 'nueva1', { seriesEstablishment: str('001'), seriesEmissionPoint: str('001'),
+      status: str('issued'), sriStatus: str('authorized'), total: num(10) });
+    for (const id of ['rjV', 'rjK', 'rjK2', 'rjA', 'rjX1', 'rjX2', 'rjX3', 'rjX4', 'rjX5', 'rjX6', 'rjX7', 'rjX8', 'rjC'])
+      await seed('companies/c1/invoices', id, rech());
+    await seed('companies/c1/invoices', 'rjCer', rech({ fiscalYear: str('2025') }));
+    await seed('companies/c1/invoices', 'rjYa', rech({ status: str('void'), isVoid: bool(true) }));
+    await seed('companies/c1/invoices', 'autR', rech({ sriStatus: str('authorized') }));
+    await seed('companies/c1/invoices', 'pendR', rech({ sriStatus: str('pending') }));
+
+    await expectStatus('rechazada: el vendedor la anula al reemplazarla',
+      await patch('companies/c1/invoices/rjV', seller, reemplazo('libre')), S.OK);
+    await expectStatus('rechazada: el cajero la anula al reemplazarla',
+      await patch('companies/c1/invoices/rjK', cashier, reemplazo('k1')), S.OK);
+    await expectStatus('rechazada: el cajero de otro punto también (anular no es emitir)',
+      await patch('companies/c1/invoices/rjK2', caja2, reemplazo('caja2')), S.OK);
+    await expectStatus('rechazada: el admin también',
+      await patch('companies/c1/invoices/rjA', admin, reemplazo('adm')), S.OK);
+    await expectStatus('rechazada sin factura de reemplazo: NO',
+      await patch('companies/c1/invoices/rjX1', seller, { isVoid: bool(true), status: str('void'), voidedAt: ts() }), S.DENIED);
+    await expectStatus('rechazada con un reemplazo que no existe: NO',
+      await patch('companies/c1/invoices/rjX2', seller, reemplazo('libre', 'noExiste')), S.DENIED);
+    await expectStatus('rechazada reemplazada por sí misma: NO',
+      await patch('companies/c1/invoices/rjX3', seller, reemplazo('libre', 'rjX3')), S.DENIED);
+    await expectStatus('rechazada: tocar otro campo (total) NO',
+      await patch('companies/c1/invoices/rjX4', seller, reemplazo('libre', 'nueva1', { total: num(1) })), S.DENIED);
+    await expectStatus('rechazada: tocar sriStatus NO',
+      await patch('companies/c1/invoices/rjX5', seller, reemplazo('libre', 'nueva1', { sriStatus: str('authorized') })), S.DENIED);
+    await expectStatus('rechazada: firmar la anulación con otro usuario NO',
+      await patch('companies/c1/invoices/rjX6', seller, reemplazo('otro')), S.DENIED);
+    await expectStatus('rechazada: status void sin isVoid NO',
+      await patch('companies/c1/invoices/rjX7', seller, reemplazo('libre', 'nueva1', { isVoid: bool(false) })), S.DENIED);
+    await expectStatus('rechazada: isVoid sin status void NO',
+      await patch('companies/c1/invoices/rjX8', seller, reemplazo('libre', 'nueva1', { status: str('issued') })), S.DENIED);
+    await expectStatus('rechazada: el contador NO la anula',
+      await patch('companies/c1/invoices/rjC', conta, reemplazo('t1')), S.DENIED);
+    await expectStatus('rechazada de un ejercicio cerrado: NO',
+      await patch('companies/c1/invoices/rjCer', seller, reemplazo('libre')), S.DENIED);
+    await expectStatus('rechazada ya anulada: el vendedor no la reescribe',
+      await patch('companies/c1/invoices/rjYa', seller, reemplazo('libre')), S.DENIED);
+    await seed('companies/c1/invoices', 'vivaIsVoid', rech({ sriStatus: str('pending') }));
+    await expectStatus('el vendedor NO anula con solo isVoid: true (antes pasaba)',
+      await patch('companies/c1/invoices/vivaIsVoid', seller, { isVoid: bool(true) }), S.DENIED);
+    await expectStatus('pendiente en el SRI: el vendedor NO la anula aunque haya reemplazo',
+      await patch('companies/c1/invoices/pendR', seller, reemplazo('libre')), S.DENIED);
+    await expectStatus('autorizada: el vendedor NO la anula aunque haya reemplazo',
+      await patch('companies/c1/invoices/autR', seller, reemplazo('libre')), S.DENIED);
+    await expectStatus('autorizada: el cajero tampoco',
+      await patch('companies/c1/invoices/autR', cashier, reemplazo('k1')), S.DENIED);
+    await expectStatus('autorizada: el admin sí la anula (como antes)',
+      await patch('companies/c1/invoices/autR', admin, { status: str('void'), isVoid: bool(true), voidedAt: ts(), updatedBy: str('adm') }), S.OK);
+  }
+
   report();
 })();

@@ -513,6 +513,36 @@ service cloud.firestore {
             && request.resource.data.get('status', '') in ['issued', 'paid', 'void']);
     }
 
+    // «Corregir y volver a emitir» (2026-10-13). Una factura que el SRI dejó
+    // NO AUTORIZADA (p. ej. identificador 69, RUC de 14 dígitos) no se reenvía:
+    // su clave queda registrada. Se emite otra (siguiente número, clave nueva)
+    // y esta se anula AQUÍ, no en el SRI. Lo hace quien emite (canWrite: admin,
+    // vendedor, cajero), no solo el admin, porque es parte de emitir.
+    // Solo pasa si:
+    //   · la factura está 'rejected' y aún viva (no void / cancelled);
+    //   · se tocan solo los campos de la anulación y del reemplazo;
+    //   · queda isVoid == true y status == 'void';
+    //   · replacedByInvoiceId apunta a OTRA factura que ya existe en la empresa;
+    //   · voidedBy, si viene, es quien escribe;
+    //   · no es de un ejercicio cerrado.
+    function rejectedInvoiceReplacementVoid(companyId, invoiceId) {
+      let d = request.resource.data;
+      return resource.data.get('sriStatus', '') == 'rejected'
+        && !(resource.data.get('status', '') in ['void', 'cancelled'])
+        && resource.data.get('isVoid', false) != true
+        && d.diff(resource.data).affectedKeys().hasOnly([
+              'isVoid', 'status', 'voidedAt', 'voidedBy', 'voidReason',
+              'replacedByInvoiceId', 'replacedByNumber', 'updatedAt', 'updatedBy'])
+        && d.get('isVoid', false) == true
+        && d.get('status', '') == 'void'
+        && d.get('voidedBy', request.auth.uid) == request.auth.uid
+        && d.get('replacedByInvoiceId', '') is string
+        && d.get('replacedByInvoiceId', '') != ''
+        && d.get('replacedByInvoiceId', '') != invoiceId
+        && exists(/databases/$(database)/documents/companies/$(companyId)/invoices/$(d.get('replacedByInvoiceId', '')))
+        && notVoidingInClosedPeriod(companyId);
+    }
+
     // Once a document is 'issued' or 'void' the client cannot revert it to
     // 'draft'.  The status field must either stay the same or move forward.
     function statusNotRolledBack() {
@@ -801,8 +831,17 @@ service cloud.firestore {
                              && isPaymentStatusChange())
                             || (!isPaymentOnlyUpdate() && canWrite()
                                 && canUseEmissionPoint(companyId)
-                                && (request.resource.data.status != 'void' || isAdmin()))
+                                // Anular (status void o isVoid true) es del admin. Antes
+                                // solo se miraba status: un vendedor ponía isVoid: true
+                                // y disparaba la reversa del asiento sin devolver el
+                                // stock (hallado el 2026-10-13).
+                                && (!isVoidingWrite() || isAdmin()))
                           );
+        // Anular una factura RECHAZADA por el SRI al reemplazarla por otra
+        // («Corregir y volver a emitir», 2026-10-13): también vendedor y cajero.
+        allow update: if isAuthenticated() && belongsToCompany(companyId)
+                       && canWrite()
+                       && rejectedInvoiceReplacementVoid(companyId, id);
         // El acumulado de retenciones recibidas (2026-10-08): su propia regla.
         allow update: if resource.data.status != 'cancelled'
                        && invoiceReceivedRetentionUpdateOk(companyId, id);
