@@ -53,6 +53,12 @@ export interface ExternalCustomer {
   name: string;
   email?: string;
   address?: string;
+  /**
+   * Id de la ficha en `companies/{cid}/personas`, si el cliente ya existe allí
+   * (Conecta la crea antes de emitir con «Guardar en Clientes»). Se guarda en
+   * `customerId` solo si la ficha existe en la misma empresa.
+   */
+  id?: string;
 }
 
 export interface ExternalPaymentMethod {
@@ -88,6 +94,14 @@ export interface CreateInvoicePayload {
   establishment?: string;
   emissionPoint?: string;
   customer: ExternalCustomer;
+  /** Igual que `customer.id`, por compatibilidad. */
+  customerId?: string;
+  /**
+   * La factura rechazada por el SRI a la que esta reemplaza («Corregir y volver
+   * a emitir» de Conecta). Se guarda solo si existe en la misma empresa.
+   */
+  replacesInvoiceId?: string;
+  replacesInvoiceNumber?: string;
   lines: ExternalInvoiceLine[];
   paymentMethods?: ExternalPaymentMethod[];
   notes?: string;
@@ -396,6 +410,23 @@ export const createAndEmitInvoice = onCall(
     const company = companySnap.data()!;
     const sri = company['sri'] as Record<string, any> | undefined;
 
+    // Enlaces opcionales: la ficha del cliente y la factura rechazada que esta
+    // reemplaza. Solo se guardan si existen en la misma empresa; si no, la
+    // factura se emite igual, sin el enlace.
+    const pedidoCliente = `${data.customer?.id ?? data.customerId ?? ''}`.trim();
+    let customerId: string | null = null;
+    if (pedidoCliente && !pedidoCliente.includes('/')) {
+      const persona = await db.doc(`companies/${companyId}/personas/${pedidoCliente}`).get();
+      if (persona.exists) customerId = pedidoCliente;
+      else console.warn('[createAndEmitInvoice] customerId sin ficha en personas, se ignora');
+    }
+    const pedidoReemplazo = `${data.replacesInvoiceId ?? ''}`.trim();
+    let replacesInvoiceId: string | null = null;
+    if (pedidoReemplazo && !pedidoReemplazo.includes('/')) {
+      const anterior = await db.doc(`companies/${companyId}/invoices/${pedidoReemplazo}`).get();
+      if (anterior.exists) replacesInvoiceId = pedidoReemplazo;
+    }
+
     if (!sri?.establishment || !sri?.emissionPoint) {
       throw new HttpsError(
         'failed-precondition',
@@ -477,7 +508,11 @@ export const createAndEmitInvoice = onCall(
         dueDate: invoiceTs,
 
         // ── Cliente ─────────────────────────────────────────────────────────
-        customerId:          null, // no hay registro en la colección customers
+        customerId,          // ficha de personas, si existe en la empresa
+        ...(replacesInvoiceId ? {
+          replacesInvoiceId,
+          replacesInvoiceNumber: `${data.replacesInvoiceNumber ?? ''}`.trim() || null,
+        } : {}),
         customerName:        data.customer.name,
         customerTaxId:       data.customer.taxId,
         customerTaxIdType:   data.customer.taxIdType,
