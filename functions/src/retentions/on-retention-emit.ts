@@ -11,8 +11,13 @@ import { sendToSriInternal }            from '../invoices/send-to-sri';
 import { isElectronicInvoicingEnabled, SRI_NOT_REQUIRED } from '../utils/electronic-invoicing';
 import { retainedSubjectIdCheck } from '../utils/sri-id-type';
 
-/** Prefijo de los errores que frenan la retención ANTES de mandarla al SRI. */
-export const NOT_SENT_PREFIX = 'No se envió al SRI: ';
+/**
+ * Estado de una retención que NO se mandó al SRI porque sus datos están mal
+ * (2026-10-13). No es 'rejected': el SRI nunca la vio y la clave no se gastó.
+ * Conecta (a45723e7) lo trata como «error antes del envío»: muestra
+ * «No se envió al SRI: <sriError>» y «Corregir y reenviar».
+ */
+const SRI_INVALID_DATA = 'invalid_data';
 
 async function signRetentionXml(retentionId: string, companyId: string): Promise<void> {
   const db     = admin.firestore();
@@ -156,17 +161,20 @@ export const onRetentionEmit = onDocumentWritten(
     // ── Identificación del sujeto retenido (2026-10-13) ─────────────────────
     // Una clave de acceso que el SRI deja NO AUTORIZADA no se reenvía (factura
     // 1860, identificador 69). Si la identificación del proveedor está mal, no
-    // se genera XML ni se firma: queda 'rejected' con el motivo en sriError,
-    // como cualquier otro error previo al envío, y «Reenviar al SRI» (borrar
-    // sriStatus) la retoma después de corregir supplierTaxId / supplierTaxIdType.
+    // se genera XML ni se firma: queda 'invalid_data' con el motivo en
+    // sriError (sin prefijo; Conecta antepone «No se envió al SRI:»), y
+    // «Corregir y reenviar» (borrar
+    // sriStatus) la retoma después de corregir supplierTaxId / supplierTaxIdType:
+    // el trigger vuelve a entrar porque status sigue 'issued' y sriStatus queda
+    // vacío (la condición de arriba).
     const idCheck = retainedSubjectIdCheck(after['supplierTaxId'], after['supplierTaxIdType']);
     if (idCheck.problem) {
       console.warn('[onRetentionEmit] Identificación del sujeto retenido inválida — no se envía:', {
         companyId, retentionId, problem: idCheck.problem,
       });
       await db.doc(`companies/${companyId}/retentions/${retentionId}`).update({
-        sriStatus: 'rejected',
-        sriError:  NOT_SENT_PREFIX + idCheck.problem,
+        sriStatus: SRI_INVALID_DATA,
+        sriError:  idCheck.problem,
         updatedAt: admin.firestore.Timestamp.now(),
       });
       return;
