@@ -23,6 +23,7 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import { AdditionalInfoField, validateAdditionalInfoInput } from '../utils/additional-info';
+import { buyerTaxIdProblem } from '../utils/ecuador-tax-id';
 import {
   canUseEmissionPoint,
   formatEmissionPoint,
@@ -266,6 +267,12 @@ function validatePayload(data: CreateInvoicePayload): void {
   if (!data.customer?.taxId)  throw new HttpsError('invalid-argument', 'customer.taxId es requerido.');
   if (!data.customer?.name)   throw new HttpsError('invalid-argument', 'customer.name es requerido.');
   if (!data.customer?.taxIdType) throw new HttpsError('invalid-argument', 'customer.taxIdType es requerido (RUC, CI, PASAPORTE, CONSUMIDOR_FINAL, EXTERIOR).');
+
+  // Una identificación mal formada la rechaza el SRI (identificador 69) y la
+  // clave queda quemada: hay que frenarla antes de numerar (2026-10-13).
+  data.customer.taxId = String(data.customer.taxId).trim();
+  const idProblem = buyerTaxIdProblem(data.customer.taxId, data.customer.taxIdType);
+  if (idProblem) throw new HttpsError('invalid-argument', idProblem);
 
   if (!Array.isArray(data.lines) || data.lines.length === 0) {
     throw new HttpsError('invalid-argument', 'lines debe ser un arreglo con al menos un elemento.');
