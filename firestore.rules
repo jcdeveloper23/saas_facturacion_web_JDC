@@ -543,6 +543,75 @@ service cloud.firestore {
         && notVoidingInClosedPeriod(companyId);
     }
 
+    // ─── «Corregir cliente y reenviar» (2026-10-13) ─────────────────────
+    // onInvoiceEmit deja 'invalid_data' (con el motivo en sriError) a una
+    // factura o NC cuyo comprador tiene la identificación mal: NO generó XML
+    // ni la mandó al SRI, así que su clave no está registrada y se reenvía con
+    // el MISMO número. Se corrige el comprador y se borran sriStatus y
+    // sriError; con status 'issued' y sin sriStatus, onInvoiceEmit la vuelve a
+    // tomar y valida de nuevo, ahora completo (dígito verificador, provincia).
+    //
+    // Mientras está en 'invalid_data' no se edita nada más (líneas, totales,
+    // fechas): el stock ya se movió al emitir y el número ya se gastó. Solo
+    // pasan: la corrección del comprador, cobrarla y que el admin la anule.
+    function invoiceInvalidDataGuard() {
+      return resource.data.get('sriStatus', '') != 'invalid_data'
+        || isPaymentOnlyUpdate()
+        || (isVoidingWrite()
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                 'isVoid', 'status', 'voidedAt', 'voidedBy', 'voidReason', 'updatedAt', 'updatedBy']));
+    }
+
+    function invoiceBuyerFixKeys() {
+      return ['customerName', 'customerTaxId', 'customerTaxIdType', 'customerIdentificationType',
+              'customerEmail', 'customerAddress', 'customerId',
+              'sriStatus', 'sriError', 'updatedAt', 'updatedBy'];
+    }
+
+    // El tipo que irá en el XML: lo mismo que resolveTipoIdentificacionComprador
+    // + mapTipoIdentificacion (functions/src/utils/sri-buyer-id.ts). El
+    // 9999999999999 es consumidor final con cualquier tipo; el código explícito
+    // manda; un texto que no se reconoce viaja como RUC.
+    function buyerIdCode(d) {
+      let ex = d.get('customerIdentificationType', '');
+      let raw = d.get('customerTaxIdType', '');
+      let t = raw is string ? raw.upper() : '';
+      return d.get('customerTaxId', '') == '9999999999999' ? '07'
+        : (ex is string && ex != '') ? ex
+        : t in ['CI', 'CEDULA', '05'] ? '05'
+        : t in ['PASAPORTE', '06'] ? '06'
+        : t in ['CONSUMIDOR_FINAL', 'CONSUMIDOR FINAL', '07'] ? '07'
+        : t in ['EXTERIOR', '08'] ? '08'
+        : '04';
+    }
+
+    // Solo la FORMA (largo y dígitos por tipo); el dígito verificador y la
+    // provincia los revisa onInvoiceEmit al reintentar (ecuador-tax-id.ts).
+    function buyerIdShapeOk(d) {
+      let id = d.get('customerTaxId', '');
+      let c = buyerIdCode(d);
+      return id is string
+        && (id == '9999999999999'
+            || (c == '04' && id.matches('^[0-9]{13}$'))
+            || (c == '05' && id.matches('^[0-9]{10}$'))
+            || (c in ['06', '08'] && id.matches('^[^ ]{1,20}$')));
+    }
+
+    function invalidDataBuyerFix(companyId) {
+      let d = request.resource.data;
+      return resource.data.get('sriStatus', '') == 'invalid_data'
+        && resource.data.get('status', '') == 'issued'
+        && resource.data.get('isVoid', false) != true
+        && d.diff(resource.data).affectedKeys().hasOnly(invoiceBuyerFixKeys())
+        // Se reenvía: los dos se borran (o quedan en null; onInvoiceEmit mira
+        // si sriStatus tiene valor, y null y ausente valen lo mismo).
+        && d.get('sriStatus', null) == null
+        && d.get('sriError', null) == null
+        && d.get('customerName', '') is string && d.get('customerName', '') != ''
+        && buyerIdShapeOk(d)
+        && !docPeriodClosed(companyId);
+    }
+
     // Once a document is 'issued' or 'void' the client cannot revert it to
     // 'draft'.  The status field must either stay the same or move forward.
     function statusNotRolledBack() {
@@ -819,6 +888,9 @@ service cloud.firestore {
                        && resource.data.status != 'cancelled'
                        && invoiceSriStatusClientUpdate()
                        && invoiceAuthorizedGuard()
+                       // 'invalid_data': solo cobrar o que el admin la anule;
+                       // corregir el comprador va por su regla, abajo.
+                       && invoiceInvalidDataGuard()
                        // Ejercicio cerrado: no se anula (2026-10-08).
                        && notVoidingInClosedPeriod(companyId)
                        // Con retenciones recibidas vivas, no se anula (2026-10-08).
@@ -842,6 +914,12 @@ service cloud.firestore {
         allow update: if isAuthenticated() && belongsToCompany(companyId)
                        && canWrite()
                        && rejectedInvoiceReplacementVoid(companyId, id);
+        // «Corregir cliente y reenviar» una factura o NC en 'invalid_data'
+        // (2026-10-13): quien emite desde ese punto, mismo número.
+        allow update: if isAuthenticated() && belongsToCompany(companyId)
+                       && canWrite()
+                       && canUseEmissionPoint(companyId)
+                       && invalidDataBuyerFix(companyId);
         // El acumulado de retenciones recibidas (2026-10-08): su propia regla.
         allow update: if resource.data.status != 'cancelled'
                        && invoiceReceivedRetentionUpdateOk(companyId, id);

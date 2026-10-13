@@ -1008,5 +1008,88 @@ const num = v => ({ doubleValue: v });
       await patch('companies/c1/invoices/autR', admin, { status: str('void'), isVoid: bool(true), voidedAt: ts(), updatedBy: str('adm') }), S.OK);
   }
 
+  // ── «Corregir cliente y reenviar» una factura en 'invalid_data' (2026-10-13) ──
+  {
+    const lectorIv = token({ uid: 'ro', role: 'read_only', companyId: 'c1' });
+    const inval = (extra = {}) => ({ seriesEstablishment: str('001'), seriesEmissionPoint: str('001'),
+      status: str('issued'), isVoid: bool(false), sriStatus: str('invalid_data'), fiscalYear: str('2026'),
+      sriError: str('Identificación del comprador 01904349900011: El RUC debe tener 13 dígitos y terminar en 001 (tiene 14).'),
+      customerName: str('WECONNECT CLIENTE'), customerTaxId: str('01904349900011'), customerTaxIdType: str('RUC'),
+      number: num(1860), stockProcessed: bool(true), total: num(10), ...extra });
+    // PATCH con máscara: los campos de `dels` van en la máscara y no en el
+    // cuerpo, así que se BORRAN (como FieldValue.delete()).
+    const fix = (path, auth, fields, dels = ['sriStatus', 'sriError']) =>
+      req(`${path}?${[...Object.keys(fields), ...dels].map(k => `updateMask.fieldPaths=${k}`).join('&')}`, auth,
+        { method: 'PATCH', body: JSON.stringify({ fields }) });
+    const nuevo = (uid, extra = {}) => ({ customerTaxId: str('0190434990001'), customerName: str('WECONNECT CLIENTE S.A.'),
+      customerEmail: str('pagos@cliente.ec'), customerId: str('p1'), updatedAt: ts(), updatedBy: str(uid), ...extra });
+    for (const id of ['iv1', 'iv2', 'iv3', 'iv4', 'iv5', 'iv6', 'iv8', 'iv9', 'iv10', 'iv11', 'iv12', 'iv13', 'iv14', 'iv15', 'iv16', 'iv17'])
+      await seed('companies/c1/invoices', id, inval());
+    // Forma de RUC bien y dígito verificador mal: lo frena el servidor, no la regla.
+    await seed('companies/c1/invoices', 'iv7', inval({ customerTaxId: str('1710034066001') }));
+    await seed('companies/c1/invoices', 'ivCer', inval({ fiscalYear: str('2025') }));
+    await seed('companies/c1/invoices', 'ivRej', inval({ sriStatus: str('rejected') }));
+    await seed('companies/c1/invoices', 'ivVoid', inval({ status: str('void'), isVoid: bool(true) }));
+
+    await expectStatus('invalid_data: el vendedor corrige el comprador y borra sriStatus/sriError',
+      await fix('companies/c1/invoices/iv1', seller, nuevo('libre')), S.OK);
+    await expectStatus('invalid_data: el cajero también',
+      await fix('companies/c1/invoices/iv2', cashier, nuevo('k1')), S.OK);
+    await expectStatus('invalid_data: el admin también, dejando sriStatus/sriError en null',
+      await fix('companies/c1/invoices/iv3', admin, nuevo('adm', { sriStatus: { nullValue: null }, sriError: { nullValue: null } }), []), S.OK);
+    await expectStatus('invalid_data: cédula con tipo CI',
+      await fix('companies/c1/invoices/iv4', seller, nuevo('libre', { customerTaxId: str('1710034065'), customerTaxIdType: str('CI') })), S.OK);
+    await expectStatus('invalid_data: pasaporte',
+      await fix('companies/c1/invoices/iv5', seller, nuevo('libre', { customerTaxId: str('AB1234567'), customerTaxIdType: str('PASAPORTE') })), S.OK);
+    await expectStatus('invalid_data: consumidor final',
+      await fix('companies/c1/invoices/iv6', seller, nuevo('libre', { customerTaxId: str('9999999999999'), customerTaxIdType: str('CONSUMIDOR_FINAL') })), S.OK);
+    await expectStatus('invalid_data: reintentar sin cambiar el comprador, con la forma bien (el servidor vuelve a validar)',
+      await fix('companies/c1/invoices/iv7', seller, { updatedAt: ts(), updatedBy: str('libre') }), S.OK);
+    await expectStatus('invalid_data: reintentar con el RUC de 14 dígitos sin corregirlo NO',
+      await fix('companies/c1/invoices/iv8', seller, { updatedAt: ts(), updatedBy: str('libre') }), S.DENIED);
+    await expectStatus('invalid_data: RUC de 14 dígitos otra vez NO',
+      await fix('companies/c1/invoices/iv8', seller, nuevo('libre', { customerTaxId: str('01904349900011') })), S.DENIED);
+    await expectStatus('invalid_data: cédula de 10 con tipo RUC NO',
+      await fix('companies/c1/invoices/iv8', seller, nuevo('libre', { customerTaxId: str('1710034065') })), S.DENIED);
+    await expectStatus('invalid_data: pasaporte de 21 caracteres NO',
+      await fix('companies/c1/invoices/iv8', seller, nuevo('libre', { customerTaxId: str('A'.repeat(21)), customerTaxIdType: str('PASAPORTE') })), S.DENIED);
+    await expectStatus('invalid_data: corregir sin borrar sriStatus NO',
+      await fix('companies/c1/invoices/iv9', seller, nuevo('libre'), ['sriError']), S.DENIED);
+    await expectStatus('invalid_data: marcarla autorizada NO',
+      await fix('companies/c1/invoices/iv9', seller, nuevo('libre', { sriStatus: str('authorized') }), ['sriError']), S.DENIED);
+    await expectStatus('invalid_data: tocar el total NO',
+      await fix('companies/c1/invoices/iv10', seller, nuevo('libre', { total: num(1) })), S.DENIED);
+    await expectStatus('invalid_data: tocar el número NO',
+      await fix('companies/c1/invoices/iv10', seller, nuevo('libre', { number: num(1861) })), S.DENIED);
+    await expectStatus('invalid_data: editar el total sin tocar sriStatus (regla general) NO',
+      await patch('companies/c1/invoices/iv11', seller, { total: num(1), updatedAt: ts() }), S.DENIED);
+    await expectStatus('invalid_data: el admin tampoco edita líneas/total',
+      await patch('companies/c1/invoices/iv11', admin, { total: num(1), updatedAt: ts() }), S.DENIED);
+    await expectStatus('invalid_data: cobrarla sí',
+      await patch('companies/c1/invoices/iv12', seller, { isPaid: bool(true), paidAt: ts(), updatedAt: ts() }), S.OK);
+    await expectStatus('invalid_data: el admin la anula',
+      await patch('companies/c1/invoices/iv13', admin, { status: str('void'), isVoid: bool(true), voidedAt: ts(), updatedAt: ts() }), S.OK);
+    await expectStatus('invalid_data: el vendedor NO la anula',
+      await patch('companies/c1/invoices/iv14', seller, { status: str('void'), isVoid: bool(true), voidedAt: ts() }), S.DENIED);
+    await expectStatus('invalid_data: el contador NO corrige',
+      await fix('companies/c1/invoices/iv15', conta, nuevo('t1')), S.DENIED);
+    await expectStatus('invalid_data: el cajero de otro punto NO corrige',
+      await fix('companies/c1/invoices/iv15', caja2, nuevo('caja2')), S.DENIED);
+    await expectStatus('invalid_data: el lector NO corrige',
+      await fix('companies/c1/invoices/iv15', lectorIv, nuevo('ro')), S.DENIED);
+    await expectStatus('invalid_data de un ejercicio cerrado: NO',
+      await fix('companies/c1/invoices/ivCer', seller, nuevo('libre')), S.DENIED);
+    await expectStatus('invalid_data ya anulada: NO se reenvía',
+      await fix('companies/c1/invoices/ivVoid', admin, nuevo('adm')), S.DENIED);
+    // 'rejected' no cambia: su «reintentar» sigue por la regla general, como antes.
+    await expectStatus('rechazada (rejected): la guarda de invalid_data no la toca (como antes)',
+      await fix('companies/c1/invoices/ivRej', seller, nuevo('libre')), S.OK);
+    await expectStatus('invalid_data: código explícito 04 con una cédula NO',
+      await fix('companies/c1/invoices/iv16', seller, nuevo('libre', { customerTaxId: str('1710034065'),
+        customerTaxIdType: str('CI'), customerIdentificationType: str('04') })), S.DENIED);
+    await expectStatus('invalid_data: nombre vacío NO',
+      await fix('companies/c1/invoices/iv17', seller, nuevo('libre', { customerName: str('') })), S.DENIED);
+  }
+
   report();
 })();
