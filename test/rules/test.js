@@ -1067,6 +1067,8 @@ const num = v => ({ doubleValue: v });
       await patch('companies/c1/invoices/iv11', admin, { total: num(1), updatedAt: ts() }), S.DENIED);
     await expectStatus('invalid_data: cobrarla sí',
       await patch('companies/c1/invoices/iv12', seller, { isPaid: bool(true), paidAt: ts(), updatedAt: ts() }), S.OK);
+    await expectStatus('invalid_data: pasarla a paid NO (onInvoiceEmit ya no la tomaría)',
+      await patch('companies/c1/invoices/iv14', seller, { status: str('paid'), isPaid: bool(true), paidAt: ts() }), S.DENIED);
     await expectStatus('invalid_data: el admin la anula',
       await patch('companies/c1/invoices/iv13', admin, { status: str('void'), isVoid: bool(true), voidedAt: ts(), updatedAt: ts() }), S.OK);
     await expectStatus('invalid_data: el vendedor NO la anula',

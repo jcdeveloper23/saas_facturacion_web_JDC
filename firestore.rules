@@ -553,10 +553,12 @@ service cloud.firestore {
     //
     // Mientras está en 'invalid_data' no se edita nada más (líneas, totales,
     // fechas): el stock ya se movió al emitir y el número ya se gastó. Solo
-    // pasan: la corrección del comprador, cobrarla y que el admin la anule.
+    // pasan: la corrección del comprador, cobrarla SIN sacarla de 'issued'
+    // (onInvoiceEmit solo reprocesa las 'issued'; así cobra Conecta al
+    // emitir) y que el admin la anule.
     function invoiceInvalidDataGuard() {
       return resource.data.get('sriStatus', '') != 'invalid_data'
-        || isPaymentOnlyUpdate()
+        || (isPaymentOnlyUpdate() && request.resource.data.get('status', '') == 'issued')
         || (isVoidingWrite()
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
                  'isVoid', 'status', 'voidedAt', 'voidedBy', 'voidReason', 'updatedAt', 'updatedBy']));
