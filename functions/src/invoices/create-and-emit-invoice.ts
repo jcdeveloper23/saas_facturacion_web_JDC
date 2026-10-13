@@ -29,6 +29,7 @@ import {
   formatEmissionPoint,
   normalizeEmissionPointKey,
 } from '../utils/establishments';
+import { priceInvoiceLines, normalizeDiscountPct } from '../utils/invoice-discount';
 
 // ─── Tipos del payload externo ────────────────────────────────────────────────
 
@@ -223,54 +224,31 @@ function buildFullNumber(estab: string, pto: string, num: number): string {
 /**
  * Calcula los totales de las líneas normalizando al modelo interno de FacturaEc.
  * El sistema externo puede omitir los totales — esta función los deriva
- * de quantity, unitPrice, discountPct y vatPct.
+ * de quantity, unitPrice, discountPct y vatPct (utils/invoice-discount.ts).
  */
-function calculateLineTotals(lines: ExternalInvoiceLine[]): {
-  mappedLines: Array<{
-    sku: string;
-    description: string;
-    quantity: number;
-    unitPrice: number;
-    discount: number;
-    discountPct: number;
-    subtotal: number;
-    vatPct: number;
-    vatAmount: number;
-    unit: string;
-  }>;
-  netAmount: number;
-  vatAmount: number;
-  total: number;
-} {
-  const mappedLines = lines.map(line => {
-    const qty        = Number(line.quantity)  || 0;
-    const price      = Number(line.unitPrice) || 0;
-    const discPct    = Number(line.discountPct ?? 0);
-    const vatPct     = Number(line.vatPct ?? 0);
-    const grossLine  = round2(qty * price);
-    const discount   = round2(grossLine * discPct / 100);
-    const subtotal   = round2(grossLine - discount);
-    const vatAmount  = round2(subtotal * vatPct / 100);
-
-    return {
-      sku:         line.sku ?? 'SIN-CODIGO',
-      description: line.description,
-      quantity:    qty,
-      unitPrice:   price,
-      discount,
-      discountPct: discPct,
-      subtotal,
-      vatPct,
-      vatAmount,
-      unit: line.unit ?? 'UNIDAD',
-    };
-  });
-
-  const netAmount = round2(mappedLines.reduce((s, l) => s + l.subtotal, 0));
-  const vatAmount = round2(mappedLines.reduce((s, l) => s + l.vatAmount, 0));
-  const total     = round2(netAmount + vatAmount);
-
-  return { mappedLines, netAmount, vatAmount, total };
+export function calculateLineTotals(lines: ExternalInvoiceLine[]) {
+  const priced = priceInvoiceLines(lines);
+  const mappedLines = priced.lines.map((p, i) => ({
+    sku:         lines[i].sku ?? 'SIN-CODIGO',
+    description: lines[i].description,
+    quantity:    p.quantity,
+    unitPrice:   p.unitPrice,
+    discount:    p.discount,
+    discountPct: p.discountPct,
+    subtotal:    p.subtotal,
+    vatPct:      p.vatPct,
+    vatAmount:   p.vatAmount,
+    unit:        lines[i].unit ?? 'UNIDAD',
+  }));
+  return {
+    mappedLines,
+    grossAmount:    priced.grossAmount,
+    discountAmount: priced.discountAmount,
+    netAmount:      priced.netAmount,
+    vatAmount:      priced.vatAmount,
+    total:          priced.total,
+    vatSummary:     priced.vatSummary,
+  };
 }
 
 /**
@@ -296,6 +274,9 @@ function validatePayload(data: CreateInvoicePayload): void {
     if (!line.description) throw new HttpsError('invalid-argument', `lines[${i}].description es requerido.`);
     if (!(Number(line.quantity) > 0))   throw new HttpsError('invalid-argument', `lines[${i}].quantity debe ser mayor a 0.`);
     if (!(Number(line.unitPrice) >= 0)) throw new HttpsError('invalid-argument', `lines[${i}].unitPrice debe ser >= 0.`);
+    if (normalizeDiscountPct(line.discountPct) === null) {
+      throw new HttpsError('invalid-argument', `lines[${i}].discountPct debe estar entre 0 y 100. Recibido: ${line.discountPct}`);
+    }
     if (![0, 5, 15].includes(Number(line.vatPct))) {
       throw new HttpsError('invalid-argument', `lines[${i}].vatPct debe ser 0, 5 o 15. Recibido: ${line.vatPct}`);
     }
@@ -446,7 +427,8 @@ export const createAndEmitInvoice = onCall(
     });
 
     // ── 5. Calcular totales desde las líneas ─────────────────────────────────
-    const { mappedLines, netAmount, vatAmount, total } = calculateLineTotals(data.lines);
+    const { mappedLines, grossAmount, discountAmount, netAmount, vatAmount, total, vatSummary } =
+      calculateLineTotals(data.lines);
 
     // ── 6. Resolver fecha de emisión ─────────────────────────────────────────
     let invoiceDate: Date;
@@ -536,9 +518,13 @@ export const createAndEmitInvoice = onCall(
         })),
 
         // ── Totales ─────────────────────────────────────────────────────────
-        grossAmount:    netAmount, // sin descuento global (el descuento va por línea)
-        discountAmount: 0,
+        // Descuento por línea (2026-10-13): grossAmount = Σ brutos,
+        // discountAmount = Σ descuentos de línea, netAmount = gross − descuento;
+        // vatSummary por tarifa sobre el neto (asiento, ATS y RIDE lo leen).
+        grossAmount,
+        discountAmount,
         netAmount,
+        vatSummary,
         vatAmount,
         total,
 

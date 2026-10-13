@@ -1,16 +1,14 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
-import { sriVatCode } from '../utils/sri-vat-codes';
 import * as admin from 'firebase-admin';
 import { buildAdditionalInfo } from '../utils/additional-info';
 import { resolveSoftwareProviderRuc } from '../utils/software-provider';
 // Se reexporta: las pruebas de sri-calculations lo importan de aquí.
 export { resolveTemplate } from '../utils/additional-info';
-import { create } from 'xmlbuilder2';
+import { buildInvoiceXml } from '../utils/sri-invoice-xml';
 import { getStorage } from 'firebase-admin/storage';
 import { formatFechaEmisionEC, formatFechaClaveAccesoEC } from '../utils/sri-date';
 import { resolveTipoIdentificacionComprador } from '../utils/sri-buyer-id';
 import { generateAccessKey, assertValidAccessKey, calculateModulo11 } from '../utils/sri-access-key';
-import { validateTotals } from '../utils/sri-invoice-validator';
 import { resolveEmissionSeries, resolveEstablishmentAddress } from '../utils/establishments';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -126,16 +124,6 @@ function extractSecuencial(invoice: { fullNumber?: string; number?: number | str
   return raw.replace(/\D/g, '').padStart(9, '0');
 }
 
-/** Derive SRI tax code from taxRate percentage using platform config */
-function deriveSriTaxCode(
-  taxRate: number,
-  taxCodes: SriPlatformConfig['taxCodes']
-): string {
-  // La tabla 17, en un solo sitio (utils/sri-vat-codes.ts, 2026-10-06). El
-  // respaldo de aquí mandaba el 0 % como '2', que es el 12 %.
-  return sriVatCode(taxRate, taxCodes);
-}
-
 /** Resolve ${invoice.field} / ${customer.field} / ${company.field} templates */
 
 // ─── Core logic (exported for internal use by orchestrator) ───────────────────
@@ -237,160 +225,15 @@ export async function generateInvoiceXmlInternal(
   assertValidAccessKey(accessKey);
   console.log('[generate-invoice-xml] 5. accessKey (49 dígitos, validada):', accessKey);
 
-  // 6. Normalizar totales (soporta campos del frontend y campos legacy)
-  // invoice.netAmount YA viene neto del descuento global (netAmount = grossAmount -
-  // discountAmount, ver calcInvoiceTotals en invoice.interface.ts); subtotal/grossAmount
-  // NO. Restar discountAmt otra vez cuando netAmount existe aplicaba el descuento dos
-  // veces — bug latente nunca disparado porque ningún caso probado usaba descuento
-  // global > 0. Fijado junto con el validador de totales, que lo habría detectado.
-  const discountAmt   = invoice.discountAmount ?? invoice.discount ?? 0;
-  const totalSinImp   = invoice.netAmount !== undefined
-    ? invoice.netAmount
-    : (invoice.subtotal ?? invoice.grossAmount ?? 0) - discountAmt;
-
-  // 6b. Group lines by SRI tax code for totalConImpuestos
-  const taxGroups: Map<string, { base: number; tax: number }> = new Map();
-  for (const line of invoice.lines) {
-    const taxRate    = line.vatPct ?? line.taxRate ?? 0;
-    const lineTotal  = line.subtotal ?? line.lineTotal ?? 0;
-    const lineTax    = line.vatAmount ?? line.taxAmount ?? 0;
-    const sriTaxCode = line.sriTaxCode ?? deriveSriTaxCode(taxRate, platformConfig.taxCodes);
-    const existing   = taxGroups.get(sriTaxCode) ?? { base: 0, tax: 0 };
-    taxGroups.set(sriTaxCode, {
-      base: existing.base + lineTotal,
-      tax:  existing.tax  + lineTax,
-    });
-  }
-
-  // 6c. Validar consistencia aritmética de totales ANTES de construir el XML.
-  // Nunca generar/firmar un comprobante con totales que no cuadren.
-  const totalImpuestoValor = [...taxGroups.values()].reduce((s, g) => s + g.tax, 0);
-  const totalsCheck = validateTotals({
-    lines: invoice.lines.map(line => ({
-      baseImponible:           line.subtotal ?? line.lineTotal ?? 0,
-      valorImpuesto:           line.vatAmount ?? line.taxAmount ?? 0,
-      precioTotalSinImpuesto:  line.subtotal ?? line.lineTotal ?? 0,
-    })),
-    totalSinImpuestos: totalSinImp,
-    totalImpuestoValor,
-    totalDescuento:    discountAmt,
-    importeTotal:      invoice.total ?? 0,
-  });
-  if (totalsCheck.length > 0) {
-    const detail = totalsCheck.map(e => `[${e.code}] ${e.message}`).join('; ');
-    throw new Error(`Totales de la factura inconsistentes, no se generará el XML: ${detail}`);
-  }
-
-  // 7. Build XML using xmlbuilder2
-  const totalSinImpuestos = totalSinImp;
-  const version = platformConfig.facturaVersion ?? '1.0.0';
-
-  const root = create({ version: '1.0', encoding: 'UTF-8' })
-    .ele('factura', { id: 'comprobante', version });
-
-  // <infoTributaria>
-  const infoTrib = root.ele('infoTributaria');
-  infoTrib.ele('ambiente').txt(ambiente);
-  infoTrib.ele('tipoEmision').txt(tipoEmision);
-  infoTrib.ele('razonSocial').txt(sriConfig.razonSocial);
-  if (sriConfig.nombreComercial) {
-    infoTrib.ele('nombreComercial').txt(sriConfig.nombreComercial);
-  }
-  infoTrib.ele('ruc').txt(ruc);
-  infoTrib.ele('claveAcceso').txt(accessKey);
-  infoTrib.ele('codDoc').txt('01');
-  infoTrib.ele('estab').txt(series.establishment);
-  infoTrib.ele('ptoEmi').txt(series.emissionPoint);
-  infoTrib.ele('secuencial').txt(secuencial);
-  infoTrib.ele('dirMatriz').txt(sriConfig.direccionMatriz);
-
-  // <infoFactura>
-  const infoFactura = root.ele('infoFactura');
-  infoFactura.ele('fechaEmision').txt(formatFechaEmisionEC(invoiceDate));
-  infoFactura.ele('dirEstablecimiento').txt(dirEstablecimiento);
-
-  if (company.sri.contribuyenteEspecial) {
-    infoFactura.ele('contribuyenteEspecial').txt(company.sri.contribuyenteEspecial);
-  }
+  // 6-7. Totales (con descuento por línea) y XML: utils/sri-invoice-xml.ts,
+  // sin Firestore, probado contra el XSD del SRI (2026-10-13).
   const obligadoContabilidad =
     sriConfig.obligadoContabilidad ?? (company.sri.accountingRequired ? 'SI' : 'NO');
-  infoFactura.ele('obligadoContabilidad').txt(obligadoContabilidad);
-
-  // Solo si la empresa es microempresa (campo agregado en Sprint 3)
-  if (sriConfig.regimenMicroempresa === true) {
-    infoFactura.ele('regimenMicroempresa').txt('CONTRIBUYENTE');
-  }
-
   const tipoIdComprador = resolveTipoIdentificacionComprador(
     invoice.customerTaxId,
     invoice.customerIdentificationType,
     invoice.customerTaxIdType,
   );
-  infoFactura.ele('tipoIdentificacionComprador').txt(tipoIdComprador);
-  infoFactura.ele('razonSocialComprador').txt(invoice.customerName);
-  infoFactura.ele('identificacionComprador').txt(invoice.customerTaxId);
-  infoFactura.ele('totalSinImpuestos').txt(totalSinImpuestos.toFixed(2));
-  infoFactura.ele('totalDescuento').txt(discountAmt.toFixed(2));
-
-  const totalConImpuestos = infoFactura.ele('totalConImpuestos');
-  for (const [sriTaxCode, { base, tax }] of taxGroups) {
-    const ti = totalConImpuestos.ele('totalImpuesto');
-    ti.ele('codigo').txt('2'); // IVA
-    ti.ele('codigoPorcentaje').txt(sriTaxCode);
-    ti.ele('baseImponible').txt(base.toFixed(2));
-    ti.ele('valor').txt(tax.toFixed(2));
-  }
-
-  const importeTotal = invoice.total ?? 0;
-  infoFactura.ele('propina').txt('0.00');
-  infoFactura.ele('importeTotal').txt(importeTotal.toFixed(2));
-  infoFactura.ele('moneda').txt('DOLAR');
-
-  // Pagos: soporta paymentMethods[] (frontend) y paymentMethod (legacy)
-  const pagos = infoFactura.ele('pagos');
-  const paymentList = invoice.paymentMethods?.length
-    ? invoice.paymentMethods
-    : [{ code: invoice.paymentMethod ?? '01', amount: importeTotal, deadline: invoice.paymentDays ?? 0, timeUnit: 'dias' }];
-
-  for (const pm of paymentList) {
-    const pago = pagos.ele('pago');
-    pago.ele('formaPago').txt(pm.code ?? '01');
-    pago.ele('total').txt((pm.amount || importeTotal).toFixed(2));
-    pago.ele('plazo').txt(String(pm.deadline ?? 0));
-    pago.ele('unidadTiempo').txt(pm.timeUnit ?? 'dias');
-  }
-
-  // <detalles>
-  const detalles = root.ele('detalles');
-  for (const line of invoice.lines) {
-    const taxRate    = line.vatPct ?? line.taxRate ?? 0;
-    const lineTotal  = line.subtotal ?? line.lineTotal ?? 0;
-    const lineTax    = line.vatAmount ?? line.taxAmount ?? 0;
-    const lineDisc   = line.discount ?? 0;
-    const sriTaxCode = line.sriTaxCode ?? deriveSriTaxCode(taxRate, platformConfig.taxCodes);
-    const detalle    = detalles.ele('detalle');
-    const codigoPrincipal = line.productSku || line.sku || line.productId || 'SIN-CODIGO';
-
-    detalle.ele('codigoPrincipal').txt(codigoPrincipal);
-    if (line.skuAlt) {
-      detalle.ele('codigoAdicional').txt(line.skuAlt);
-    }
-    detalle.ele('descripcion').txt(line.description);
-    detalle.ele('unidadMedida').txt(line.unit || 'UNIDAD');
-    detalle.ele('cantidad').txt(Number(line.quantity).toFixed(6));      // SRI XSD: fractionDigits=6
-    detalle.ele('precioUnitario').txt(Number(line.unitPrice).toFixed(2)); // SRI XSD: fractionDigits=2 (Xerces normaliza y rechaza >2 dígitos significativos)
-    detalle.ele('descuento').txt(lineDisc.toFixed(2));
-    detalle.ele('precioTotalSinImpuesto').txt(lineTotal.toFixed(2));
-
-    const impuestos = detalle.ele('impuestos');
-    const impuesto  = impuestos.ele('impuesto');
-    impuesto.ele('codigo').txt('2'); // IVA
-    impuesto.ele('codigoPorcentaje').txt(sriTaxCode);
-    impuesto.ele('tarifa').txt(String(taxRate));
-    impuesto.ele('baseImponible').txt(lineTotal.toFixed(2));
-    impuesto.ele('valor').txt(lineTax.toFixed(2));
-  }
-
   // <infoAdicional> — campos de la empresa, los del comprobante y el correo
   // del comprador, sin vacíos y con el tope del SRI (utils/additional-info.ts).
   const infoAdicionalFields = buildAdditionalInfo({
@@ -400,15 +243,33 @@ export async function generateInvoiceXmlInternal(
     company: { name: company.name, ruc },
     providerRuc: await resolveSoftwareProviderRuc(company as any),
   });
-  if (infoAdicionalFields.length > 0) {
-    const infoAdicional = root.ele('infoAdicional');
-    for (const field of infoAdicionalFields) {
-      infoAdicional.ele('campoAdicional', { nombre: field.nombre }).txt(field.valor);
-    }
-  }
 
-  // 8. Serialize XML
-  const xmlString = root.end({ prettyPrint: true });
+  const xmlString = buildInvoiceXml({
+    header: {
+      version:              platformConfig.facturaVersion ?? '1.0.0',
+      ambiente,
+      tipoEmision,
+      razonSocial:          sriConfig.razonSocial,
+      nombreComercial:      sriConfig.nombreComercial,
+      ruc,
+      accessKey,
+      establishment:        series.establishment,
+      emissionPoint:        series.emissionPoint,
+      secuencial,
+      dirMatriz:            sriConfig.direccionMatriz,
+      fechaEmision:         formatFechaEmisionEC(invoiceDate),
+      dirEstablecimiento,
+      contribuyenteEspecial: company.sri.contribuyenteEspecial,
+      obligadoContabilidad,
+      regimenMicroempresa:  sriConfig.regimenMicroempresa === true,
+      tipoIdentificacionComprador: tipoIdComprador,
+    },
+    invoice,
+    taxCodes: platformConfig.taxCodes,
+    infoAdicional: infoAdicionalFields,
+  });
+
+  // 8. XML ya serializado
   console.log('[generate-invoice-xml] XML generado, longitud:', xmlString.length);
 
   // 9. Upload to Storage

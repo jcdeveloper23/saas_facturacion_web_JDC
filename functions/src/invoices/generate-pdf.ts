@@ -6,6 +6,7 @@ import { getStorage } from 'firebase-admin/storage';
 import { drawLogo, loadCompanyLogo } from '../utils/company-logo';
 import { buildAdditionalInfo } from '../utils/additional-info';
 import { resolveSoftwareProviderRuc } from '../utils/software-provider';
+import { invoiceTotalDiscount, lineDiscountAmount } from '../utils/invoice-discount';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -493,8 +494,9 @@ async function buildPdfBuffer(opts: BuildPdfOptions): Promise<Buffer> {
         doc.rect(MARGIN, tableY, PAGE_W, rowH).fill('#F7F7F7');
       }
 
-      const discountPct = line.discountPct ?? line.discount ?? 0;
-      const discountAmt = line.unitPrice * line.quantity * (discountPct / 100);
+      // En dólares: `discount` si lo trae, si no lo que va del bruto al neto
+      // (antes tomaba `discount` como porcentaje). utils/invoice-discount.ts.
+      const discountAmt = lineDiscountAmount(line);
       const lineSubtotal = line.subtotal ?? line.lineTotal ?? 0;
 
       const rowTextY = tableY + TABLE_PAD;
@@ -633,7 +635,9 @@ async function buildPdfBuffer(opts: BuildPdfOptions): Promise<Buffer> {
 
     // ── RIGHT: Totales ────────────────────────────────────────────────────────
     const netAmount     = invoice.netAmount     ?? invoice.subtotal ?? 0;
-    const discountAmt   = invoice.discountAmount ?? invoice.discount ?? 0;
+    // Σ descuentos de línea + adicional, el mismo totalDescuento del XML
+    // (discountAmount significa cosas distintas según quién creó la factura).
+    const discountAmt   = invoiceTotalDiscount(invoice.lines ?? [], netAmount);
     const total         = invoice.total;
 
     // Build vatSummary from vatSummary field or derive from lines
