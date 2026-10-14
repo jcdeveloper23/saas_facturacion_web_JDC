@@ -10,7 +10,7 @@
 import { create } from 'xmlbuilder2';
 import { sriVatCode } from './sri-vat-codes';
 import { validateTotals } from './sri-invoice-validator';
-import { invoiceTotalDiscount, lineDiscountAmount, round2 } from './invoice-discount';
+import { invoiceTotalDiscount, lineDiscountAmount, prorateAdditionalDiscount, round2 } from './invoice-discount';
 
 export interface InvoiceXmlLine {
   productId?: string;
@@ -92,7 +92,9 @@ export function invoiceXmlAmounts(invoice: InvoiceXmlDoc, taxCodes?: InvoiceXmlI
     ? invoice.netAmount
     : (invoice.subtotal ?? invoice.grossAmount ?? 0) - legacyDiscount;
 
-  const detalles = invoice.lines.map(line => {
+  // El descuento global (web de FacturaEc, POS) se reparte en las líneas:
+  // ver prorateAdditionalDiscount.
+  const detalles = prorateAdditionalDiscount(invoice.lines.map(line => {
     const taxRate = line.vatPct ?? line.taxRate ?? 0;
     return {
       line,
@@ -102,7 +104,7 @@ export function invoiceXmlAmounts(invoice: InvoiceXmlDoc, taxCodes?: InvoiceXmlI
       lineDisc:  lineDiscountAmount(line),
       sriTaxCode: line.sriTaxCode ?? sriVatCode(taxRate, taxCodes),
     };
-  });
+  }), totalSinImpuestos);
 
   const taxGroups = new Map<string, { base: number; tax: number }>();
   for (const d of detalles) {

@@ -155,3 +155,46 @@ export function invoiceTotalDiscount(lines: StoredLine[], totalSinImpuestos: num
   const additional    = round2(lineNets - totalSinImpuestos);
   return round2(lineDiscounts + (additional > 0 ? additional : 0));
 }
+
+/** Una línea del XML: neto (base), IVA y descuento en dólares. */
+export interface XmlLineAmounts {
+  lineTotal: number;
+  lineTax: number;
+  lineDisc: number;
+}
+
+/**
+ * Descuento GLOBAL (adicional) repartido en las líneas (2026-10-14).
+ *
+ * La web de FacturaEc y el POS guardan el descuento global aparte
+ * (`globalDiscountPct`): las líneas quedan con su neto ANTES del global y la
+ * factura con `netAmount` ya descontado. El XML no tiene dónde poner un
+ * descuento de cabecera: Σ precioTotalSinImpuesto y Σ baseImponible tienen que
+ * dar totalSinImpuestos, así que `validateTotals` frenaba esas facturas.
+ *
+ * Se reparte con el mismo factor que usó `calcInvoiceTotals` al guardar
+ * (neto / Σ netos de línea), línea por línea al centavo:
+ *   base' = round2(base × factor)       IVA' = round2(IVA × factor)
+ *   descuento' = descuento + (base − base')
+ * así Σ IVA' es exactamente el IVA guardado y el total no cambia. Lo que falte
+ * o sobre en la base por el redondeo (±1 centavo) va a la línea más grande.
+ * Si Σ netos de línea ya es totalSinImpuestos (Conecta, importadas), no toca
+ * nada.
+ */
+export function prorateAdditionalDiscount<T extends XmlLineAmounts>(lines: T[], totalSinImpuestos: number): T[] {
+  const nets = round2(lines.reduce((s, l) => s + l.lineTotal, 0));
+  const extra = round2(nets - totalSinImpuestos);
+  if (!(extra > 0) || !(nets > 0)) return lines;
+  const factor = totalSinImpuestos / nets;
+  const out = lines.map((l) => {
+    const base = round2(l.lineTotal * factor);
+    return { ...l, lineTotal: base, lineTax: round2(l.lineTax * factor), lineDisc: round2(l.lineDisc + (l.lineTotal - base)) };
+  });
+  const residue = round2(totalSinImpuestos - out.reduce((s, l) => s + l.lineTotal, 0));
+  if (residue !== 0 && out.length > 0) {
+    let i = 0;
+    for (let k = 1; k < out.length; k++) if (out[k].lineTotal > out[i].lineTotal) i = k;
+    out[i] = { ...out[i], lineTotal: round2(out[i].lineTotal + residue), lineDisc: round2(out[i].lineDisc - residue) };
+  }
+  return out;
+}

@@ -6,7 +6,7 @@ import { getStorage } from 'firebase-admin/storage';
 import { drawLogo, loadCompanyLogo } from '../utils/company-logo';
 import { buildAdditionalInfo } from '../utils/additional-info';
 import { resolveSoftwareProviderRuc } from '../utils/software-provider';
-import { invoiceTotalDiscount, lineDiscountAmount } from '../utils/invoice-discount';
+import { invoiceTotalDiscount, lineDiscountAmount, prorateAdditionalDiscount } from '../utils/invoice-discount';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -479,7 +479,20 @@ async function buildPdfBuffer(opts: BuildPdfOptions): Promise<Buffer> {
     let tableY = TABLE_TOP + TABLE_HDR_H;
     let rowIndex = 0;
 
+    // Con descuento global (web de FacturaEc, POS), cada fila va con su parte
+    // repartida, igual que el XML (prorateAdditionalDiscount, 2026-10-14).
+    const rideBase = (invoice.lines ?? []).map((l) => ({
+      lineTotal: l.subtotal ?? l.lineTotal ?? 0,
+      lineTax: 0,
+      lineDisc: lineDiscountAmount(l),
+    }));
+    // Sin netAmount (facturas viejas) no se sabe el neto: filas como están.
+    const rideRows = invoice.netAmount !== undefined && invoice.netAmount !== null
+      ? prorateAdditionalDiscount(rideBase, invoice.netAmount)
+      : rideBase;
+
     for (const line of invoice.lines) {
+      const row = rideRows[rowIndex];
       rowIndex++;
       const descText = line.description ?? '';
       const skuText  = line.productSku ?? line.sku ?? '';
@@ -496,8 +509,8 @@ async function buildPdfBuffer(opts: BuildPdfOptions): Promise<Buffer> {
 
       // En dólares: `discount` si lo trae, si no lo que va del bruto al neto
       // (antes tomaba `discount` como porcentaje). utils/invoice-discount.ts.
-      const discountAmt = lineDiscountAmount(line);
-      const lineSubtotal = line.subtotal ?? line.lineTotal ?? 0;
+      const discountAmt = row?.lineDisc ?? lineDiscountAmount(line);
+      const lineSubtotal = row?.lineTotal ?? line.subtotal ?? line.lineTotal ?? 0;
 
       const rowTextY = tableY + TABLE_PAD;
 

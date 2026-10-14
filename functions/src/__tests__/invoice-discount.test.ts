@@ -14,6 +14,7 @@ import {
   invoiceTotalDiscount, lineDiscountAmount, normalizeDiscountPct, priceInvoiceLines, round2,
 } from '../utils/invoice-discount';
 import { buildInvoiceXml, InvoiceXmlDoc, InvoiceXmlHeader, invoiceXmlAmounts } from '../utils/sri-invoice-xml';
+import { prorateAdditionalDiscount } from '../utils/invoice-discount';
 
 // Cálculo de createAndEmitInvoice antes del 2026-10-13, copiado tal cual.
 function oldCalc(lines: Array<{ quantity: number; unitPrice: number; discountPct?: number; vatPct: number }>) {
@@ -184,6 +185,49 @@ describe('XML de la factura con descuento por línea', () => {
     });
     expect(a.detalles[0].lineDisc).toBe(10);
     expect(a.totalDescuento).toBe(10);
+  });
+
+  it('descuento GLOBAL de la web (2026-10-14): se reparte en las líneas y el XML cuadra', () => {
+    // Lo que guarda la web: líneas con su neto ANTES del global y la factura
+    // con calcInvoiceTotals (invoice.interface.ts), global 7 %.
+    const r2 = (n: number) => Math.round(n * 100) / 100;
+    const lines = [
+      { description: 'A', quantity: 3, unitPrice: 33.33, discountPct: 0, subtotal: 99.99, vatPct: 15, vatAmount: r2(99.99 * 0.15) },
+      { description: 'B', quantity: 1, unitPrice: 10, discountPct: 0, subtotal: 10, vatPct: 0, vatAmount: 0 },
+      { description: 'C', quantity: 7, unitPrice: 1.13, discountPct: 5, subtotal: r2(7 * 1.13 * 0.95), vatPct: 15, vatAmount: r2(7 * 1.13 * 0.95 * 0.15) },
+    ];
+    const gross = r2(lines.reduce((s, l) => s + l.subtotal, 0));
+    const disc = r2(gross * 7 / 100);
+    const net = r2(gross - disc);
+    const factor = net / gross;
+    const vat = r2(lines.reduce((s, l) => s + r2(l.vatAmount * factor), 0));
+    const invoice: InvoiceXmlDoc = {
+      customerName: 'X', customerTaxId: '1710034065', grossAmount: gross, discountAmount: disc,
+      netAmount: net, total: r2(net + vat), lines,
+    };
+    const a = invoiceXmlAmounts(invoice);
+    const sumBase = r2(a.detalles.reduce((s, d) => s + d.lineTotal, 0));
+    const sumTax = r2(a.detalles.reduce((s, d) => s + d.lineTax, 0));
+    expect(sumBase).toBe(net);
+    expect(sumTax).toBe(vat);
+    for (const d of a.detalles) {
+      // cantidad × precio − descuento = precioTotalSinImpuesto, al centavo
+      expect(r2(r2(d.line.quantity * d.line.unitPrice) - d.lineDisc)).toBe(d.lineTotal);
+    }
+    expect(a.totalDescuento).toBe(r2(a.detalles.reduce((s, d) => s + d.lineDisc, 0)));
+    expect(() => buildInvoiceXml({ header, invoice })).not.toThrow();
+    if (hasXmllint()) {
+      expect(validate(buildInvoiceXml({ header: { ...header, version: '1.1.0' }, invoice }), 'factura_V1.1.0.xsd')).toBe('');
+    }
+  });
+
+  it('prorateAdditionalDiscount: sin descuento global no toca nada; el centavo que falta va a la línea mayor', () => {
+    const l = [{ lineTotal: 10, lineTax: 1.5, lineDisc: 0 }, { lineTotal: 20, lineTax: 0, lineDisc: 0 }];
+    expect(prorateAdditionalDiscount(l, 30)).toBe(l);
+    const p = prorateAdditionalDiscount([{ lineTotal: 0.01, lineTax: 0, lineDisc: 0 }, { lineTotal: 0.01, lineTax: 0, lineDisc: 0 },
+      { lineTotal: 0.01, lineTax: 0, lineDisc: 0 }], 0.02);
+    expect(p.reduce((s, x) => s + x.lineTotal, 0)).toBeCloseTo(0.02, 10);
+    expect(p.reduce((s, x) => s + x.lineDisc, 0)).toBeCloseTo(0.01, 10);
   });
 
   it('totales que no cuadran: no se genera', () => {
