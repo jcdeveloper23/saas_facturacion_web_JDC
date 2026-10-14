@@ -68,6 +68,7 @@ export const MAPPING_LABELS: Record<string, string> = {
   inventory: 'Inventario',
   cogs: 'Costo de ventas',
   purchaseExpense: 'Compras que no son inventario (servicios y gastos)',
+  advancesFromCustomers: 'Anticipos de clientes',
 };
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
