@@ -105,7 +105,11 @@ service cloud.firestore {
     }
 
     // True si el update SOLO toca los campos de cobro/pago (marcar factura o
-    // compra pagada, o aplicar un anticipo) — nunca datos de línea/montos.
+    // compra pagada) — nunca datos de línea/montos. Desde el 2026-10-14 sin
+    // `paymentEntryId`: el id del asiento de cobro lo escribe solo el servidor
+    // (payment-entry.ts). Lo escribía solo el prototipo de anticipos de la web
+    // (advances.service.ts, retirado), y con él cualquier rol que cobra podía
+    // poner un id cualquiera y suprimir el asiento del cobro.
     // Deja pasar a un contador (isAccountant) sin darle permiso general de
     // edición sobre invoices/purchases, y permite marcar pagada una compra ya
     // 'received' (la regla general la bloquea después de recibida).
@@ -119,7 +123,7 @@ service cloud.firestore {
 
     function isPaymentOnlyUpdate() {
       return request.resource.data.diff(resource.data).affectedKeys()
-        .hasOnly(['status', 'isPaid', 'paidAt', 'paymentBankAccountId', 'paymentEntryId', 'updatedAt', 'updatedBy']);
+        .hasOnly(['status', 'isPaid', 'paidAt', 'paymentBankAccountId', 'updatedAt', 'updatedBy']);
     }
 
     // ─── Compras (2026-10-02) ─────────────────────────────────────────────────
@@ -134,7 +138,8 @@ service cloud.firestore {
     // o el asiento.
     function purchaseServerKeys() {
       return ['stockProcessed', 'stockProcessedAt', 'stockError',
-              'accountingEntryId', 'accountingError', 'reversalEntryId', 'reversalError'];
+              'accountingEntryId', 'accountingError', 'reversalEntryId', 'reversalError',
+              'paymentEntryId'];
     }
 
     // La web crea las compras con stockProcessed: false; eso se acepta. Lo que
@@ -142,7 +147,7 @@ service cloud.firestore {
     function purchaseCreateOk() {
       return request.resource.data.get('stockProcessed', false) == false
           && !request.resource.data.keys().hasAny(['stockProcessedAt', 'stockError',
-               'accountingEntryId', 'accountingError', 'reversalEntryId'])
+               'accountingEntryId', 'accountingError', 'reversalEntryId', 'paymentEntryId'])
           && request.resource.data.get('status', 'draft') in ['draft', 'sent', 'received'];
     }
 
@@ -288,7 +293,7 @@ service cloud.firestore {
         'chart_of_accounts', 'accounting_periods', 'cost_centers',
         'journal_entries', 'bank_accounts', 'bank_statements',
         'bank_reconciled_entries',
-        'budgets', 'fixed_assets', 'advances',
+        'budgets', 'fixed_assets', 'advances', 'advanceApplications',
         'petty_cash_funds', 'petty_cash_movements', 'audit_log', 'matches'
       ];
     }
@@ -471,7 +476,11 @@ service cloud.firestore {
               // Acumulado de retenciones recibidas (2026-10-08): solo cambia
               // con su propia regla (invoiceReceivedRetentionUpdateOk), en la
               // misma transacción que la retención.
-              'receivedRetentions'];
+              'receivedRetentions',
+              // Anticipos de clientes (2026-10-14): el acumulado y el cobro
+              // por anticipos los escriben solo las callables (applyAdvance,
+              // unapplyAdvance); el id del asiento de cobro, payment-entry.ts.
+              'advancesApplied', 'paidBy', 'paymentEntryId'];
     }
 
     // Desde el cliente una factura nace sin estado del SRI (la toma
@@ -500,7 +509,8 @@ service cloud.firestore {
     // sriAuthorizedGuard). Solo pasan, y revisados uno por uno contra la web,
     // el POS, los anticipos y Conectate:
     //   · los campos de interfaz de onlyUiFields();
-    //   · cobrarla (markPaid, anticipos: los de isPaymentOnlyUpdate);
+    //   · cobrarla (markPaid: los de isPaymentOnlyUpdate; los anticipos van
+    //     por callable desde el 2026-10-14);
     //   · anularla o devolverla a emitida (markVoid, markIssued, «Anular» de
     //     Conectate), que las reglas de más abajo reservan al admin.
     // El estado solo puede quedar en issued, paid o void: nunca volver a borrador.
@@ -508,7 +518,7 @@ service cloud.firestore {
       return resource.data.get('sriStatus', '') != 'authorized'
         || (request.resource.data.diff(resource.data).affectedKeys().hasOnly([
               'pdfUrl', 'xmlUrl', 'sriError', 'notes', 'updatedAt', 'updatedBy',
-              'status', 'isPaid', 'paidAt', 'paymentBankAccountId', 'paymentEntryId',
+              'status', 'isPaid', 'paidAt', 'paymentBankAccountId',
               'isVoid', 'voidedAt'])
             && request.resource.data.get('status', '') in ['issued', 'paid', 'void']);
     }
@@ -698,7 +708,10 @@ service cloud.firestore {
         && rrAcc(despues, 'rentaCents') == rrAcc(antes, 'rentaCents') + d.rentaCents
         && rrAcc(despues, 'rentaBaseCents') == rrAcc(antes, 'rentaBaseCents') + d.rentaBaseCents
         && rrAcc(despues, 'ivaCents') <= antes.get('vatAmount', 0) * 100 + 0.5
-        && rrAcc(despues, 'rentaBaseCents') <= antes.get('netAmount', 0) * 100 + 0.5;
+        && rrAcc(despues, 'rentaBaseCents') <= antes.get('netAmount', 0) * 100 + 0.5
+        // Con anticipos aplicados (2026-10-14): retenido + anticipos ≤ total.
+        && rrAcc(despues, 'ivaCents') + rrAcc(despues, 'rentaCents') + advAcc(antes)
+             <= antes.get('total', 0) * 100 + 0.5;
     }
 
     // Anular: solo admin y contador, solo esos campos, y el acumulado de la
@@ -752,6 +765,26 @@ service cloud.firestore {
     // anulan las retenciones (si no, la CxC quedaría en negativo).
     function invoiceWithoutReceivedRetentions() {
       return rrAcc(resource.data, 'ivaCents') + rrAcc(resource.data, 'rentaCents') == 0;
+    }
+
+    // ─── Anticipos de clientes (2026-10-14) ─────────────────────────────
+    // companies/{cid}/advances y advanceApplications los escriben solo las
+    // callables (registerAdvance, applyAdvance, unapplyAdvance, voidAdvance),
+    // con el documento, los acumulados y el asiento en una transacción. En la
+    // factura queda el acumulado `advancesApplied` ({cents, count, lastId}) y,
+    // si quedó saldada solo con anticipos, `paidBy: 'advances'`.
+    function advAcc(invoiceData) {
+      return invoiceData.get('advancesApplied', {}).get('cents', 0);
+    }
+
+    // En la factura: con anticipos aplicados no se anula (primero se
+    // desaplican), y una cobrada por anticipos no se «des-cobra» ni se cobra
+    // otra vez por banco desde el cliente (se desaplica con unapplyAdvance).
+    function invoiceAdvancesGuard() {
+      return (!isVoidingWrite() || advAcc(resource.data) == 0)
+        && (resource.data.get('paidBy', '') != 'advances'
+            || !request.resource.data.diff(resource.data).affectedKeys()
+                  .hasAny(['status', 'isPaid', 'paidAt', 'paymentBankAccountId']));
     }
 
     // ─── Companies (tenants) ──────────────────────────────────────────────
@@ -897,6 +930,8 @@ service cloud.firestore {
                        && notVoidingInClosedPeriod(companyId)
                        // Con retenciones recibidas vivas, no se anula (2026-10-08).
                        && (!isVoidingWrite() || invoiceWithoutReceivedRetentions())
+                       // Anticipos aplicados (2026-10-14).
+                       && invoiceAdvancesGuard()
                        // La app anula con 'void'. Sin esto un vendedor o cajero
                        // «des-anulaba» una factura pasándola a issued o paid.
                        && (resource.data.get('status', '') != 'void' || isAdmin())
@@ -1388,13 +1423,20 @@ service cloud.firestore {
                       && bankStatementGoneOrOpen(companyId, resource.data.get('statementId', ''));
       }
 
-      // ─── Advances (anticipos de clientes/proveedores) ──────────────────────
+      // ─── Anticipos (2026-10-14) ────────────────────────────────────────────
+      // Los leen admin y contador; los escriben solo las callables (Admin
+      // SDK). Antes los escribía el prototipo de la web desde el navegador, sin
+      // transacción y con asientos manuales que se podían anular sueltos.
       match /advances/{advanceId} {
-        allow read:            if isAuthenticated() && belongsToCompany(companyId)
-                               && (isAdmin() || isAccountant());
-        allow create, update:  if isAuthenticated() && belongsToCompany(companyId)
-                               && (isAdmin() || isAccountant());
-        allow delete:          if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
+        allow read:  if isAuthenticated() && belongsToCompany(companyId)
+                     && (isAdmin() || isAccountant());
+        allow write: if false;
+      }
+
+      match /advanceApplications/{applicationId} {
+        allow read:  if isAuthenticated() && belongsToCompany(companyId)
+                     && (isAdmin() || isAccountant());
+        allow write: if false;
       }
 
       // ─── Petty Cash (caja chica) ────────────────────────────────────────────

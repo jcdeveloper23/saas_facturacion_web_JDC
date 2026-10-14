@@ -386,9 +386,13 @@ const num = v => ({ doubleValue: v });
   await expectStatus('contador cobra una autorizada con banco (markPaid)',
     await patch('companies/c1/invoices/g4', conta, { status: str('paid'), isPaid: bool(true),
       paidAt: str('2026-09-30'), paymentBankAccountId: str('b1') }), S.OK);
-  await expectStatus('admin aplica un anticipo a una autorizada',
+  // Desde el 2026-10-14 el id del asiento de cobro es del servidor: el
+  // prototipo de anticipos de la web lo escribía desde el navegador.
+  await expectStatus('admin NO pone paymentEntryId al cobrar (asiento del servidor)',
     await patch('companies/c1/invoices/g5', admin, { status: str('paid'), isPaid: bool(true),
-      paidAt: str('2026-09-30'), paymentEntryId: str('e1'), updatedAt: str('ahora') }), S.OK);
+      paidAt: str('2026-09-30'), paymentEntryId: str('e1'), updatedAt: str('ahora') }), S.DENIED);
+  await expectStatus('cajero NO pone paymentEntryId en una factura sin autorizar',
+    await patch('companies/c1/invoices/f001', cashier, { paymentEntryId: str('e1') }), S.DENIED);
   await expectStatus('admin anula una autorizada como Conectate (voidedAt, updatedBy)',
     await patch('companies/c1/invoices/g6', admin, { status: str('void'), isVoid: bool(true),
       voidedAt: str('ahora'), updatedBy: str('adm'), updatedAt: str('ahora') }), S.OK);
@@ -1091,6 +1095,72 @@ const num = v => ({ doubleValue: v });
         customerTaxIdType: str('CI'), customerIdentificationType: str('04') })), S.DENIED);
     await expectStatus('invalid_data: nombre vacío NO',
       await fix('companies/c1/invoices/iv17', seller, nuevo('libre', { customerName: str('') })), S.DENIED);
+  }
+
+  // ── Anticipos de clientes (2026-10-14) ───────────────────────────────────
+  {
+    const int = v => ({ integerValue: String(v) });
+    const advAcc = (cents, count, lastId) => ({ mapValue: { fields: {
+      cents: int(cents), count: int(count), lastId: str(lastId) } } });
+    const facturaA = (extra = {}) => ({ status: str('issued'), sriStatus: str('authorized'), isPaid: bool(false),
+      isVoid: bool(false), fiscalYear: str('2026'), total: num(115), netAmount: num(100), vatAmount: num(15),
+      seriesEstablishment: str('001'), seriesEmissionPoint: str('001'), ...extra });
+    await seed('companies/c1/advances', 'ant1', { number: str('ANT-2026-000001'), partyType: str('customer'),
+      amountCents: int(10000), appliedCents: int(0), availableCents: int(10000), status: str('open') });
+    await seed('companies/c1/advanceApplications', 'ap1', { advanceId: str('ant1'), targetId: str('fA1'),
+      amountCents: int(5000), status: str('applied') });
+    await seed('companies/c1/invoices', 'fA1', facturaA({ advancesApplied: advAcc(5000, 1, 'ap1') }));
+    await seed('companies/c1/invoices', 'fA2', facturaA({ status: str('paid'), isPaid: bool(true),
+      paidBy: str('advances'), advancesApplied: advAcc(11500, 1, 'ap2') }));
+    await seed('companies/c1/invoices', 'fA3', facturaA());
+
+    await expectStatus('anticipos: el contador los lee', await req('companies/c1/advances/ant1', conta), S.OK);
+    await expectStatus('anticipos: el admin lee las aplicaciones', await req('companies/c1/advanceApplications/ap1', admin), S.OK);
+    await expectStatus('anticipos: el vendedor NO los lee', await req('companies/c1/advances/ant1', seller), S.DENIED);
+    await expectStatus('anticipos: el cajero NO lee las aplicaciones', await req('companies/c1/advanceApplications/ap1', cashier), S.DENIED);
+    await expectStatus('anticipos: ni el admin los crea desde el cliente (solo callables)',
+      await create('companies/c1/advances', 'ant2', admin, { partyType: str('customer'), amountCents: int(100) }), S.DENIED);
+    await expectStatus('anticipos: ni el contador los edita',
+      await patch('companies/c1/advances/ant1', conta, { appliedCents: int(0), availableCents: int(99999) }), S.DENIED);
+    await expectStatus('anticipos: ni el admin los borra', await del('companies/c1/advances/ant1', admin), S.DENIED);
+    await expectStatus('anticipos: ni se crean aplicaciones desde el cliente',
+      await create('companies/c1/advanceApplications', 'ap9', admin, { advanceId: str('ant1'), amountCents: int(1) }), S.DENIED);
+    await expectStatus('anticipos: ni la regla por defecto deja escribir (vendedor)',
+      await create('companies/c1/advanceApplications', 'ap8', seller, { advanceId: str('ant1') }), S.DENIED);
+    await expectStatus('anticipos: el acumulado de la factura no se toca desde el cliente',
+      await patch('companies/c1/invoices/fA3', admin, { advancesApplied: advAcc(11500, 1, 'x') }), S.DENIED);
+    await expectStatus('anticipos: ni paidBy',
+      await patch('companies/c1/invoices/fA3', admin, { status: str('paid'), isPaid: bool(true), paidBy: str('advances') }), S.DENIED);
+    await expectStatus('anticipos: una factura con anticipos aplicados NO se anula',
+      await patch('companies/c1/invoices/fA1', admin, { status: str('void'), isVoid: bool(true), voidedAt: ts() }), S.DENIED);
+    await expectStatus('anticipos: con anticipo parcial, el resto se cobra por banco',
+      await patch('companies/c1/invoices/fA1', conta, { status: str('paid'), isPaid: bool(true),
+        paidAt: ts(), paymentBankAccountId: str('b1') }), S.OK);
+    await expectStatus('anticipos: una cobrada por anticipos NO se des-cobra desde el cliente',
+      await patch('companies/c1/invoices/fA2', admin, { status: str('issued'), isPaid: bool(false) }), S.DENIED);
+    await expectStatus('anticipos: ni se le pone un banco',
+      await patch('companies/c1/invoices/fA2', admin, { paymentBankAccountId: str('b1') }), S.DENIED);
+    await expectStatus('anticipos: sus notas sí',
+      await patch('companies/c1/invoices/fA2', admin, { notes: str('ok') }), S.OK);
+
+    // Retención recibida con anticipos: retenido + anticipos ≤ total (115,00).
+    const rrA = (invoiceId, iva, renta, base) => ({
+      invoiceId: str(invoiceId), invoiceNumber: str('001-001-000000011'), number: str('001-001-000000124'),
+      customerTaxId: str('1790011111001'), status: str('registered'), isVoid: bool(false),
+      date: { timestampValue: '2026-10-08T17:00:00Z' }, fiscalYear: str('2026'),
+      ivaCents: int(iva), rentaCents: int(renta), rentaBaseCents: int(base),
+      lines: { arrayValue: { values: [] } } });
+    const rrAcc = (iva, renta, base, count, lastId) => ({ mapValue: { fields: {
+      ivaCents: int(iva), rentaCents: int(renta), rentaBaseCents: int(base), count: int(count), lastId: str(lastId) } } });
+    await seed('companies/c1/invoices', 'fA4', facturaA({ advancesApplied: advAcc(10500, 1, 'ap4') }));
+    const altaA = (rid, ret, acc) => commitDocs(admin, [
+      { path: `companies/c1/receivedRetentions/${rid}`, fields: ret, create: true },
+      { path: 'companies/c1/invoices/fA4', fields: { receivedRetentions: acc }, mask: true },
+    ]);
+    await expectStatus('anticipos: la retención recibida no pasa de total − anticipos',
+      await altaA('rrA1', rrA('fA4', 1050, 0, 0), rrAcc(1050, 0, 0, 1, 'rrA1')), S.DENIED);
+    await expectStatus('anticipos: dentro de lo que falta, sí',
+      await altaA('rrA2', rrA('fA4', 1000, 0, 0), rrAcc(1000, 0, 0, 1, 'rrA2')), S.OK);
   }
 
   report();
