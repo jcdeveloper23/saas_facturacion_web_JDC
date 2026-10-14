@@ -17,6 +17,8 @@ export interface ResolvedAccountMapping {
   cogs:               AccountEntry;
   /** Compras que no son inventario (servicios, gastos) cuando la línea no elige cuenta. */
   purchaseExpense:    AccountEntry;
+  /** Anticipos que pagan los clientes antes de la factura (2026-10-14, pasivo). */
+  advancesFromCustomers: AccountEntry;
 }
 
 // ─── Ecuador standard defaults ────────────────────────────────────────────────
@@ -30,6 +32,7 @@ export const DEFAULT_CODES: Record<keyof ResolvedAccountMapping, string> = {
   inventory:          '1.1.03.001',
   cogs:               '5.1.01.001',
   purchaseExpense:    '5.1.02.001',
+  advancesFromCustomers: '2.1.04.008',
 };
 
 export const DEFAULT_NAMES: Record<string, string> = {
@@ -41,6 +44,7 @@ export const DEFAULT_NAMES: Record<string, string> = {
   '1.1.03.001': 'Inventario de Mercaderías',
   '5.1.01.001': 'Costo de Ventas',
   '5.1.02.001': 'Compras 15% IVA',
+  '2.1.04.008': 'Anticipo Clientes',
 };
 
 // ─── Resolver ─────────────────────────────────────────────────────────────────
@@ -75,7 +79,7 @@ export async function getAccountMapping(companyId: string): Promise<ResolvedAcco
   const customCodes = [...new Set(Object.values(codes))].filter(c => !DEFAULT_NAMES[c]);
 
   if (customCodes.length > 0) {
-    // Firestore 'in' supports up to 30 values — safe here (max 8 unique codes)
+    // Firestore 'in' supports up to 30 values — safe here (max 9 unique codes)
     const accountsSnap = await db
       .collection(`companies/${companyId}/chart_of_accounts`)
       .where('code', 'in', customCodes)
@@ -104,5 +108,6 @@ export async function getAccountMapping(companyId: string): Promise<ResolvedAcco
     inventory:          resolve('inventory'),
     cogs:               resolve('cogs'),
     purchaseExpense:    resolve('purchaseExpense'),
+    advancesFromCustomers: resolve('advancesFromCustomers'),
   };
 }

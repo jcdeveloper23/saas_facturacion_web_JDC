@@ -291,7 +291,7 @@ export const MODULES_SEED: ModuleSeed[] = [
   {
     code: 'accounting_advances', name: 'Anticipos',
     url: '/accounting/advances', icon: '', isTitle: false, parent_id: 'accounting_banking', showInMenu: true,
-    description: 'Gestión de anticipos de clientes y proveedores.', dependencies: ['accounting_banking'], order: 453, state: true,
+    description: 'Anticipos de clientes (solo consulta: se gestionan desde Conecta).', dependencies: ['accounting_banking'], order: 453, state: true,
   },
   {
     code: 'accounting_petty_cash', name: 'Caja Chica',

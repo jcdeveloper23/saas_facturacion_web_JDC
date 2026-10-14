@@ -1,6 +1,7 @@
 import * as admin from 'firebase-admin';
 import { getAccountMapping } from './get-account-mapping';
 import { retainedOnInvoice } from './received-retention';
+import { advancesAppliedCents } from '../advances/advance-logic';
 
 // ─── Asientos de cobro y de pago (2026-10-05) ─────────────────────────────────
 //
@@ -52,13 +53,16 @@ export function paymentNeedsEntry(d: Record<string, any>): boolean {
 
 /**
  * Lo que entra al banco con el cobro o sale con el pago. En una factura, el
- * total menos lo que el cliente le retuvo (retenciones recibidas, 2026-10-08):
- * esa parte ya saldó la cuenta por cobrar con el asiento de la retención, y
- * cobrar el total la dejaría en negativo.
+ * total menos lo que el cliente le retuvo (retenciones recibidas, 2026-10-08)
+ * y menos los anticipos aplicados (2026-10-14): esas partes ya saldaron la
+ * cuenta por cobrar con su propio asiento, y cobrar el total la dejaría en
+ * negativo.
  */
 export function paymentAmount(kind: PaymentKind, d: Record<string, any>): number {
   const total = round2(Number(d.total ?? 0));
-  return kind === 'invoice' ? round2(total - retainedOnInvoice(d)) : total;
+  return kind === 'invoice'
+    ? round2(total - retainedOnInvoice(d) - advancesAppliedCents(d) / 100)
+    : total;
 }
 
 /** Recibida (subió el stock), viva y sin su asiento. */
