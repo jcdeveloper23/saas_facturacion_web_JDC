@@ -32,7 +32,7 @@ interface PurchaseLine {
   type?: string;
 }
 
-interface PurchaseDoc {
+export interface PurchaseDoc {
   status: string;
   isVoid?: boolean;
   stockProcessed?: boolean;
@@ -93,6 +93,88 @@ export async function generateJournalEntryFromPurchaseInternal(
   if (after.accountingEntryId) return { created: false, reason: 'already_exists', entryId: after.accountingEntryId };
   if (!purchaseNeedsEntry(after as Record<string, any>)) return { created: false, reason: 'not_ready' };
 
+  const prep = await preparePurchaseEntry(companyId, purchaseId, after);
+  if (!prep.ok) return { created: false, reason: prep.reason };
+
+  const key        = `journal_${prep.periodYear}`;
+  const counterRef = db.doc(`companies/${companyId}/counters/journal_entries`);
+  const entryRef   = db.collection(`companies/${companyId}/journal_entries`).doc();
+
+  const created = await db.runTransaction(async (tx) => {
+    const [fresh, counter] = await Promise.all([tx.get(purchaseRef), tx.get(counterRef)]);
+    if (fresh.get('accountingEntryId')) return false;
+    const number = ((counter.data()?.[key] as number) ?? 0) + 1;
+    tx.set(counterRef, { [key]: number }, { merge: true });
+    tx.set(entryRef, purchaseEntryDoc(prep, purchaseId, number, now));
+    tx.update(purchaseRef, {
+      accountingEntryId: entryRef.id,
+      accountingError:   admin.firestore.FieldValue.delete(),
+      updatedAt:         now,
+    });
+    return true;
+  });
+
+  return created ? { created: true, entryId: entryRef.id } : { created: false, reason: 'already_exists' };
+}
+
+export type PreparedPurchaseEntry =
+  | {
+      ok: true;
+      fecha: Date;
+      periodYear: number;
+      periodId: string;
+      entryLines: JournalEntryLine[];
+      totalDebit: number;
+      totalCredit: number;
+      isBalanced: true;
+      ref: string;
+      supplier: string;
+    }
+  | { ok: false; reason: string };
+
+/** El documento del asiento de compra, listo para `tx.set`. */
+export function purchaseEntryDoc(
+  p: Extract<PreparedPurchaseEntry, { ok: true }>,
+  purchaseId: string,
+  number: number,
+  now: admin.firestore.Timestamp,
+): Record<string, unknown> {
+  return {
+    number,
+    date:        admin.firestore.Timestamp.fromDate(p.fecha),
+    description: `Compra ${p.ref} — ${p.supplier}`,
+    periodId:    p.periodId,
+    periodYear:  p.periodYear,
+    type:        'automatic',
+    status:      'posted',
+    reference:   p.ref,
+    referenceId: purchaseId,
+    lines:       p.entryLines,
+    accountCodes: [...new Set(p.entryLines.map((l) => l.accountCode))],
+    totalDebit:  p.totalDebit,
+    totalCredit: p.totalCredit,
+    isBalanced:  true,
+    createdBy:   'system',
+    createdAt:   now,
+    updatedAt:   now,
+  };
+}
+
+/**
+ * Arma las líneas del asiento de la compra con la lógica de hoy (sustento,
+ * cuentas de las líneas y del artículo, mapeo). No mira si la compra ya tiene
+ * asiento: lo usan el trigger y «Rehacer asiento» (redo-purchase-entry.ts).
+ * Si no se puede, deja `accountingError` en la compra y devuelve el motivo.
+ */
+export async function preparePurchaseEntry(
+  companyId: string,
+  purchaseId: string,
+  after: PurchaseDoc,
+): Promise<PreparedPurchaseEntry> {
+  const db  = admin.firestore();
+  const now = admin.firestore.Timestamp.now();
+  const purchaseRef = db.doc(`companies/${companyId}/purchases/${purchaseId}`);
+
   // Año y fecha contables: los de la factura del proveedor (hora de Ecuador),
   // no los de hoy. Antes tomaba el año en curso.
   const fecha      = purchaseAccountingDate(after) ?? now.toDate();
@@ -110,7 +192,7 @@ export async function generateJournalEntryFromPurchaseInternal(
       accountingError: `No hay ejercicio ${periodYear} abierto: la compra no se contabilizó.`,
       updatedAt: now,
     });
-    return { created: false, reason: 'no_open_period' };
+    return { ok: false, reason: 'no_open_period' };
   }
   const periodId = periodsSnap.docs[0].id;
 
@@ -143,7 +225,7 @@ export async function generateJournalEntryFromPurchaseInternal(
       accountingError: `Cuenta de la línea o del artículo inexistente, inactiva o agrupadora: ${malas.join(', ')}`,
       updatedAt: now,
     });
-    return { created: false, reason: 'bad_accounts' };
+    return { ok: false, reason: 'bad_accounts' };
   }
 
   const ref      = after.fullNumber ?? purchaseId;
@@ -182,46 +264,10 @@ export async function generateJournalEntryFromPurchaseInternal(
       accountingError: `Asiento descuadrado: débito ${totalDebit} vs crédito ${totalCredit}`,
       updatedAt: now,
     });
-    return { created: false, reason: 'unbalanced' };
+    return { ok: false, reason: 'unbalanced' };
   }
 
-  const key        = `journal_${periodYear}`;
-  const counterRef = db.doc(`companies/${companyId}/counters/journal_entries`);
-  const entryRef   = db.collection(`companies/${companyId}/journal_entries`).doc();
-
-  const created = await db.runTransaction(async (tx) => {
-    const [fresh, counter] = await Promise.all([tx.get(purchaseRef), tx.get(counterRef)]);
-    if (fresh.get('accountingEntryId')) return false;
-    const number = ((counter.data()?.[key] as number) ?? 0) + 1;
-    tx.set(counterRef, { [key]: number }, { merge: true });
-    tx.set(entryRef, {
-      number,
-      date:        admin.firestore.Timestamp.fromDate(fecha),
-      description: `Compra ${ref} — ${supplier}`,
-      periodId,
-      periodYear,
-      type:        'automatic',
-      status:      'posted',
-      reference:   ref,
-      referenceId: purchaseId,
-      lines:       entryLines,
-      accountCodes: [...new Set(entryLines.map((l) => l.accountCode))],
-      totalDebit,
-      totalCredit,
-      isBalanced,
-      createdBy:   'system',
-      createdAt:   now,
-      updatedAt:   now,
-    });
-    tx.update(purchaseRef, {
-      accountingEntryId: entryRef.id,
-      accountingError:   admin.firestore.FieldValue.delete(),
-      updatedAt:         now,
-    });
-    return true;
-  });
-
-  return created ? { created: true, entryId: entryRef.id } : { created: false, reason: 'already_exists' };
+  return { ok: true, fecha, periodYear, periodId, entryLines, totalDebit, totalCredit, isBalanced: true, ref, supplier };
 }
 
 export const generateJournalEntryFromPurchase = onDocumentWritten(

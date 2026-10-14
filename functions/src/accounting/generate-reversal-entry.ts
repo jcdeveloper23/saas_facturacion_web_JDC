@@ -27,7 +27,7 @@ interface VoidableDoc {
   fiscalYear?:        string;
 }
 
-interface JournalEntryLineRaw {
+export interface JournalEntryLineRaw {
   id:             string;
   accountCode:    string;
   accountName:    string;
@@ -54,6 +54,20 @@ interface JournalEntryRaw {
 }
 
 function round2(n: number): number { return Math.round(n * 100) / 100; }
+
+/** Las líneas de un asiento con débito y crédito cambiados (la reversa). */
+export function invertEntryLines(lines: JournalEntryLineRaw[]): JournalEntryLineRaw[] {
+  return lines.map(line => ({
+    id:             crypto.randomUUID(),
+    accountCode:    line.accountCode,
+    accountName:    line.accountName,
+    debit:          line.credit,    // swap
+    credit:         line.debit,     // swap
+    costCenterId:   line.costCenterId ?? null,
+    costCenterName: line.costCenterName ?? null,
+    description:    `[REVERSA] ${line.description ?? ''}`
+  }));
+}
 
 // ─── Core reversal logic ──────────────────────────────────────────────────────
 
@@ -108,16 +122,7 @@ async function processReversal(
   }
 
   // Invert all lines
-  const reversalLines: JournalEntryLineRaw[] = original.lines.map(line => ({
-    id:             crypto.randomUUID(),
-    accountCode:    line.accountCode,
-    accountName:    line.accountName,
-    debit:          line.credit,    // swap
-    credit:         line.debit,     // swap
-    costCenterId:   line.costCenterId,
-    costCenterName: line.costCenterName,
-    description:    `[REVERSA] ${line.description ?? ''}`
-  }));
+  const reversalLines = invertEntryLines(original.lines);
 
   const totalDebit  = round2(reversalLines.reduce((s, l) => s + l.debit,  0));
   const totalCredit = round2(reversalLines.reduce((s, l) => s + l.credit, 0));

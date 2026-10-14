@@ -6,8 +6,8 @@ set -euo pipefail
 # antes de seguir. La 4 (pipeline del SRI) al final, y después emitir una factura de
 # prueba en la empresa OG4ydEyOAhtsNmkOjc1P (ambiente de pruebas) y comprobar el correo.
 # Verificar al terminar: firebase functions:list --project accounting-system-a5c9f --json
-#   -> las 94 en nodejs22 (agrupar por "hash" dice qué salió en qué tanda).
-# Las 94 = todo lo que exporta functions/src/index.ts menos getAuthToken. Al
+#   -> las 95 en nodejs22 (agrupar por "hash" dice qué salió en qué tanda).
+# Las 95 = todo lo que exporta functions/src/index.ts menos getAuthToken. Al
 # agregar una function nueva, sumarla a una tanda: la tanda 5 faltó hasta el
 # 2026-10-06 y un redeploy con este script habría dejado fuera 9 functions.
 # Ojo: cada tanda despliega el código de HEAD de esas functions, no solo el runtime.
@@ -37,3 +37,7 @@ firebase deploy --project accounting-system-a5c9f --only functions:onPersonaWrit
 # Tanda 7-retenciones-recibidas (2) — agregada el 2026-10-08: asiento y reversa de
 # las retenciones que los clientes le hacen a la empresa (companies/{cid}/receivedRetentions).
 firebase deploy --project accounting-system-a5c9f --only functions:generateJournalEntryFromReceivedRetention,functions:generateReversalFromReceivedRetention 2>&1 | tee deploy-node22-7-retenciones-recibidas.log
+
+# Tanda 8-rehacer-asiento (1) — agregada el 2026-10-14: «Rehacer asiento» de una
+# compra (callable, admin y contador).
+firebase deploy --project accounting-system-a5c9f --only functions:redoPurchaseEntry 2>&1 | tee deploy-node22-8-rehacer-asiento.log
