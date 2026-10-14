@@ -968,6 +968,33 @@ const num = v => ({ doubleValue: v });
       ]), S.DENIED);
   }
 
+  // ── Ajustes de borradores de declaraciones (2026-10-14) ──────────────────
+  {
+    const int = v => ({ integerValue: String(v) });
+    const decl = (form, year, extra = {}) => ({ form: str(form), year: int(year),
+      settings: { mapValue: { fields: { hasWorkers: { booleanValue: true }, rateBp: int(2500) } } },
+      updatedBy: str('t1'), ...extra });
+    await expectStatus('el contador guarda los ajustes del 101 de 2026',
+      await create('companies/c1/tax_declarations', '101_2026', conta, decl('101', 2026)), S.OK);
+    await expectStatus('y los vuelve a guardar',
+      await patch('companies/c1/tax_declarations/101_2026', conta, decl('101', 2026)), S.OK);
+    await expectStatus('el admin los lee', await req('companies/c1/tax_declarations/101_2026', admin), S.OK);
+    await expectStatus('el vendedor no los lee', await req('companies/c1/tax_declarations/101_2026', seller), S.DENIED);
+    await expectStatus('ni el cajero los escribe',
+      await create('companies/c1/tax_declarations', '101_2027', cashier, decl('101', 2027, { updatedBy: str('caja') })), S.DENIED);
+    await expectStatus('el id tiene que ser {form}_{año}',
+      await create('companies/c1/tax_declarations', '101_2024', conta, decl('101', 2026)), S.DENIED);
+    await expectStatus('ni un formulario que no existe',
+      await create('companies/c1/tax_declarations', '999_2026', conta, decl('999', 2026)), S.DENIED);
+    await expectStatus('ni con campos de más',
+      await create('companies/c1/tax_declarations', '104_2026', conta, decl('104', 2026, { total: int(1) })), S.DENIED);
+    await expectStatus('ni firmado por otro',
+      await create('companies/c1/tax_declarations', '104_2026', conta, decl('104', 2026, { updatedBy: str('otro') })), S.DENIED);
+    await expectStatus('ni en un ejercicio cerrado (2025)',
+      await create('companies/c1/tax_declarations', '101_2025', admin, decl('101', 2025, { updatedBy: str('adm') })), S.DENIED);
+    await expectStatus('nadie los borra', await del('companies/c1/tax_declarations/101_2026', admin), S.DENIED);
+  }
+
   // ── Corregir y volver a emitir: anular una RECHAZADA por el SRI (2026-10-13) ──
   {
     const rech = (extra = {}) => ({ seriesEstablishment: str('001'), seriesEmissionPoint: str('001'),

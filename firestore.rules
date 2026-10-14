@@ -267,7 +267,7 @@ service cloud.firestore {
         'electronic-documents', 'establishments', 'families', 'imported-xml', 'invoices',
         'paymentMethods', 'receivedRetentions', 'settings',
         'manufacturers', 'orders', 'personas', 'products', 'purchases', 'quotes',
-        'retentions', 'stock-movements', 'stock-transfers', 'suppliers',
+        'retentions', 'stock-movements', 'stock-transfers', 'suppliers', 'tax_declarations',
         'tm-members', 'tm-positions', 'tm-projects', 'tm-requests', 'tm-specialties',
         'tm-tasks', 'tm-timesheets', 'usage', 'warehouses'
       ];
@@ -770,6 +770,17 @@ service cloud.firestore {
       return rrAcc(resource.data, 'ivaCents') + rrAcc(resource.data, 'rentaCents') == 0;
     }
 
+    // Ajustes de un borrador de declaración: el id es {form}_{año}.
+    function taxDeclarationShapeOk(declId) {
+      let d = request.resource.data;
+      return d.form in ['101', '103', '104', 'ats']
+        && d.year is int && d.year >= 2000 && d.year <= 2100
+        && declId == d.form + '_' + string(d.year)
+        && d.settings is map
+        && d.keys().hasOnly(['form', 'year', 'settings', 'createdAt', 'createdBy', 'updatedAt', 'updatedBy'])
+        && d.get('updatedBy', request.auth.uid) == request.auth.uid;
+    }
+
     // ─── Companies (tenants) ──────────────────────────────────────────────
     match /companies/{companyId} {
       allow read: if isAuthenticated()
@@ -1139,6 +1150,21 @@ service cloud.firestore {
                        .hasOnly(['notes', 'updatedAt', 'updatedBy'])));
 
         // Un registro contable no se borra: se anula.
+        allow delete: if false;
+      }
+
+      // ─── Borradores de declaraciones: ajustes del contador (2026-10-14) ──────
+      // companies/{cid}/tax_declarations/{form}_{AAAA} (p. ej. 101_2026): lo que
+      // el contador decide para el borrador de ese año (en el 101: trabajadores,
+      // tarifa, ajustes de la conciliación tributaria). Antes vivía solo en el
+      // navegador. Leen y escriben admin y contador; no en un ejercicio cerrado.
+      match /tax_declarations/{declId} {
+        allow read: if isAuthenticated() && belongsToCompany(companyId)
+          && (isAdmin() || isAccountant());
+        allow create, update: if isAuthenticated() && belongsToCompany(companyId)
+          && (isAdmin() || isAccountant())
+          && taxDeclarationShapeOk(declId)
+          && !periodClosed(companyId, 'y' + string(request.resource.data.year));
         allow delete: if false;
       }
 
