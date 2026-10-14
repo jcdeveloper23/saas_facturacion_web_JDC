@@ -644,9 +644,12 @@ service cloud.firestore {
     // canReadFiscalDoc): el comprobante lo recibe quien gestiona el cobro, que
     // muchas veces es el vendedor. El cajero no: no lee retenciones. Anulan y
     // editan las notas solo admin y contador, y no en un ejercicio cerrado.
-    // Solo a una factura autorizada, viva y SIN COBRAR: el cobro entra al banco
-    // por el total menos lo retenido (payment-entry.ts), así que la retención va
-    // antes que el cobro.
+    // Solo a una factura autorizada y viva. Si está SIN COBRAR, el cobro entra
+    // al banco por el total menos lo retenido (payment-entry.ts). Si ya está
+    // COBRADA (2026-10-14), la retención lleva `afterPayment: true` y su importe
+    // se suma también a `postPaymentCents` del acumulado: el cobro ya entró
+    // completo, así que su asiento va contra 2.1.04.008 Anticipo Clientes (saldo
+    // a favor del cliente) y no contra la CxC, y payment-entry no la resta.
     function canRegisterReceivedRetention(companyId) {
       return isAuthenticated() && belongsToCompany(companyId)
         && request.auth.token.role in ['admin', 'accountant', 'seller'];
@@ -677,26 +680,36 @@ service cloud.firestore {
         && d.fiscalYear is string && d.fiscalYear.matches('^[0-9]{4}$')
         && d.date is timestamp && string(ecuadorYear(d.date)) == d.fiscalYear
         && d.get('lines', []) is list
+        && d.get('afterPayment', false) is bool
         && !d.keys().hasAny(receivedRetentionServerKeys());
     }
 
-    // La factura: autorizada, emitida, sin cobrar, viva y no es NC; y el
-    // acumulado sube exactamente lo de esta retención, sin pasarse.
+    // Lo que una retención suma a `postPaymentCents` (0 si fue antes del cobro).
+    function rrPostPayment(r) {
+      return r.get('afterPayment', false) == true ? r.ivaCents + r.rentaCents : 0;
+    }
+
+    // La factura: autorizada, viva y no es NC; sin cobrar (`issued`) o, con
+    // `afterPayment`, ya cobrada (`isPaid`, `issued` o `paid`); y el acumulado
+    // sube exactamente lo de esta retención, sin pasarse.
     function receivedRetentionInvoiceCreateOk(companyId, rid, invoiceId) {
       let p = invoiceDocPath(companyId, invoiceId);
       let antes = get(p).data;
       let despues = getAfter(p).data;
       let d = request.resource.data;
+      let cobrada = antes.get('isPaid', false) == true;
       return antes.get('isCreditNote', false) != true
         && antes.get('documentType', '') != 'creditNote'
-        && antes.get('status', '') == 'issued'
-        && antes.get('isPaid', false) != true
+        && d.get('afterPayment', false) == cobrada
+        && (antes.get('status', '') == 'issued'
+            || (cobrada && antes.get('status', '') == 'paid'))
         && antes.get('isVoid', false) != true
         && antes.get('sriStatus', '') == 'authorized'
         && despues.get('receivedRetentions', {}).get('lastId', '') == rid
         && rrAcc(despues, 'ivaCents') == rrAcc(antes, 'ivaCents') + d.ivaCents
         && rrAcc(despues, 'rentaCents') == rrAcc(antes, 'rentaCents') + d.rentaCents
         && rrAcc(despues, 'rentaBaseCents') == rrAcc(antes, 'rentaBaseCents') + d.rentaBaseCents
+        && rrAcc(despues, 'postPaymentCents') == rrAcc(antes, 'postPaymentCents') + rrPostPayment(d)
         && rrAcc(despues, 'ivaCents') <= antes.get('vatAmount', 0) * 100 + 0.5
         && rrAcc(despues, 'rentaBaseCents') <= antes.get('netAmount', 0) * 100 + 0.5;
     }
@@ -716,7 +729,8 @@ service cloud.firestore {
         && despues.get('receivedRetentions', {}).get('lastId', '') == rid
         && rrAcc(despues, 'ivaCents') == rrAcc(antes, 'ivaCents') - resource.data.ivaCents
         && rrAcc(despues, 'rentaCents') == rrAcc(antes, 'rentaCents') - resource.data.rentaCents
-        && rrAcc(despues, 'rentaBaseCents') == rrAcc(antes, 'rentaBaseCents') - resource.data.rentaBaseCents;
+        && rrAcc(despues, 'rentaBaseCents') == rrAcc(antes, 'rentaBaseCents') - resource.data.rentaBaseCents
+        && rrAcc(despues, 'postPaymentCents') == rrAcc(antes, 'postPaymentCents') - rrPostPayment(resource.data);
     }
 
     // Del lado de la factura: solo el acumulado (y quién/cuándo), y respaldado
@@ -740,11 +754,13 @@ service cloud.firestore {
              && despues.get('ivaCents', 0) == antes.get('ivaCents', 0) + r.ivaCents
              && despues.get('rentaCents', 0) == antes.get('rentaCents', 0) + r.rentaCents
              && despues.get('rentaBaseCents', 0) == antes.get('rentaBaseCents', 0) + r.rentaBaseCents
+             && despues.get('postPaymentCents', 0) == antes.get('postPaymentCents', 0) + rrPostPayment(r)
              && despues.get('count', 0) == antes.get('count', 0) + 1)
             || (exists(rp) && get(rp).data.status == 'registered' && r.status == 'void'
              && despues.get('ivaCents', 0) == antes.get('ivaCents', 0) - r.ivaCents
              && despues.get('rentaCents', 0) == antes.get('rentaCents', 0) - r.rentaCents
              && despues.get('rentaBaseCents', 0) == antes.get('rentaBaseCents', 0) - r.rentaBaseCents
+             && despues.get('postPaymentCents', 0) == antes.get('postPaymentCents', 0) - rrPostPayment(r)
              && despues.get('count', 0) == antes.get('count', 0) - 1));
     }
 

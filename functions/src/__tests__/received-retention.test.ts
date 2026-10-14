@@ -92,3 +92,22 @@ describe('cobro de una factura con retenciones', () => {
     expect(paymentAmount('purchase', { total: 115, receivedRetentions: { ivaCents: 1000 } })).toBe(115);
   });
 });
+
+describe('retención recibida después del cobro (2026-10-14)', () => {
+  it('el Haber va a la cuenta que se le pase (Anticipo Clientes) con su glosa', () => {
+    const lines = buildReceivedRetentionLines(
+      { afterPayment: true, ivaCents: 1050, rentaCents: 200, number: '001-001-000000123' },
+      { ...accounts, receivable: { code: '2.1.04.008', name: 'Anticipo Clientes' } },
+    );
+    const haber = lines.find((l) => l.credit > 0)!;
+    expect(haber.accountCode).toBe('2.1.04.008');
+    expect(haber.credit).toBe(12.5);
+    expect(haber.description).toMatch(/Saldo a favor del cliente/);
+  });
+
+  it('el cobro no resta lo registrado después del cobro', () => {
+    const f = { total: 115, receivedRetentions: { ivaCents: 1050, rentaCents: 200, postPaymentCents: 1050 } };
+    expect(retainedOnInvoice(f)).toBe(2);
+    expect(paymentAmount('invoice', f)).toBe(113);
+  });
+});

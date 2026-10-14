@@ -11,6 +11,16 @@
 //   Debe  1.1.05.005 Retenciones en la Fuente IR    (lo que le retuvieron de renta)
 //   Haber Cuentas por cobrar del cliente            (la misma cuenta de la venta)
 //
+// Si la retención llega DESPUÉS del cobro (`afterPayment`, 2026-10-14), el
+// cliente ya pagó el total y la CxC está en cero: acreditarla dejaría la cuenta
+// por cobrar con saldo acreedor. Lo retenido es entonces un SALDO A FAVOR DEL
+// CLIENTE (la empresa le debe esa plata o se la descuenta de la próxima venta),
+// un pasivo, y va a 2.1.04.008 Anticipo Clientes, que es también la cuenta que
+// usarán los anticipos (plan 3.3) para aplicarlo o devolverlo:
+//
+//   Debe  1.1.05.006 / 1.1.05.005
+//   Haber 2.1.04.008 Anticipo Clientes
+//
 // Viven en companies/{cid}/receivedRetentions/{id}, una por comprobante de
 // retención del cliente, ligadas a su factura (`invoiceId`). La factura lleva
 // el acumulado en `receivedRetentions` ({ivaCents, rentaCents, rentaBaseCents,
@@ -41,6 +51,8 @@ export interface ReceivedRetentionDoc {
   ivaCents?: number;
   rentaCents?: number;
   accountingEntryId?: string;
+  /** Registrada sobre una factura ya cobrada (2026-10-14). */
+  afterPayment?: boolean;
 }
 
 export interface AccountRef { code: string; name: string }
@@ -50,6 +62,9 @@ export const RECEIVED_RETENTION_ACCOUNTS = {
   iva:   { code: '1.1.05.006', name: 'Retenciones IVA' },
   renta: { code: '1.1.05.005', name: 'Retenciones en la Fuente IR' },
 } as const;
+
+/** El Haber de una retención recibida después del cobro: saldo a favor del cliente. */
+export const CUSTOMER_CREDIT_ACCOUNT = { code: '2.1.04.008', name: 'Anticipo Clientes' } as const;
 
 export const RECEIVED_RETENTION_FALLBACKS = {
   iva:   { code: '1.1.05.002', name: 'Crédito Tributario IVA' },
@@ -125,7 +140,10 @@ export function buildReceivedRetentionLines(
   }
   if (iva + renta > 0) {
     lines.push({ accountCode: accounts.receivable.code, accountName: accounts.receivable.name,
-      debit: 0, credit: (iva + renta) / 100, description: `${ret}${fac}${quien}` });
+      debit: 0, credit: (iva + renta) / 100,
+      description: d.afterPayment === true
+        ? `Saldo a favor del cliente (retención después del cobro) — ${ret}${fac}${quien}`
+        : `${ret}${fac}${quien}` });
   }
   return lines;
 }
@@ -145,10 +163,14 @@ export function receivableFromSaleEntry(lines: Array<Record<string, any>> | unde
   return null;
 }
 
-/** Lo retenido a una factura según su acumulado, en dólares (0 si no tiene). */
+/**
+ * Lo retenido ANTES del cobro según el acumulado, en dólares (0 si no tiene).
+ * Lo registrado después del cobro (`postPaymentCents`) no resta: ese cobro ya
+ * entró completo.
+ */
 export function retainedOnInvoice(inv: Record<string, any>): number {
   const r = inv?.receivedRetentions;
   if (!r || typeof r !== 'object') return 0;
-  const c = Number(r.ivaCents ?? 0) + Number(r.rentaCents ?? 0);
+  const c = Number(r.ivaCents ?? 0) + Number(r.rentaCents ?? 0) - Number(r.postPaymentCents ?? 0);
   return Number.isFinite(c) && c > 0 ? c / 100 : 0;
 }

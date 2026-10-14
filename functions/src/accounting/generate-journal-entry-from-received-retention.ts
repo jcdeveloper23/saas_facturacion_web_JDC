@@ -2,7 +2,7 @@ import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import * as admin from 'firebase-admin';
 import { getAccountMapping } from './utils/get-account-mapping';
 import {
-  ReceivedRetentionDoc, buildReceivedRetentionLines, receivableFromSaleEntry,
+  CUSTOMER_CREDIT_ACCOUNT, ReceivedRetentionDoc, buildReceivedRetentionLines, receivableFromSaleEntry,
   receivedRetentionCents, resolveReceivedRetentionAccount,
 } from './utils/received-retention';
 
@@ -10,7 +10,8 @@ import {
 //
 //   Debe  1.1.05.006 Retenciones IVA                 = IVA retenido
 //   Debe  1.1.05.005 Retenciones en la Fuente IR     = renta retenida
-//   Haber Cuentas por cobrar (la del asiento de la venta)
+//   Haber Cuentas por cobrar (la del asiento de la venta), o 2.1.04.008
+//         Anticipo Clientes si se registró después del cobro (`afterPayment`)
 //
 // Exige un ejercicio abierto para el año de la retención (`fiscalYear`), como
 // los demás. Asiento, contador y back-reference (`accountingEntryId`) van en
@@ -48,7 +49,7 @@ export async function generateJournalEntryFromReceivedRetentionInternal(
   // Cuentas: las del plan de la empresa (1.1.05.006 / 1.1.05.005, o su
   // respaldo) y la CxC del asiento de la venta.
   const codes = [
-    '1.1.05.006', '1.1.05.005', '1.1.05.002', '1.1.05.003',
+    '1.1.05.006', '1.1.05.005', '1.1.05.002', '1.1.05.003', CUSTOMER_CREDIT_ACCOUNT.code,
   ];
   const [accountsSnap, mapping] = await Promise.all([
     db.collection(`companies/${companyId}/chart_of_accounts`).where('code', 'in', codes).get(),
@@ -76,7 +77,14 @@ export async function generateJournalEntryFromReceivedRetentionInternal(
   }
 
   let receivable = mapping.accountsReceivable;
-  if (r.invoiceId) {
+  if (r.afterPayment === true) {
+    // Cobrada ya: el Haber es el saldo a favor del cliente (ver received-retention.ts).
+    receivable = { code: CUSTOMER_CREDIT_ACCOUNT.code,
+      name: existing.get(CUSTOMER_CREDIT_ACCOUNT.code) || CUSTOMER_CREDIT_ACCOUNT.name };
+    if (existing.size > 0 && !existing.has(CUSTOMER_CREDIT_ACCOUNT.code)) {
+      console.warn(`[generateJournalEntryFromReceivedRetention] La empresa ${companyId} no tiene ${CUSTOMER_CREDIT_ACCOUNT.code} en su plan: el asiento la usa igual.`);
+    }
+  } else if (r.invoiceId) {
     const inv = await db.doc(`companies/${companyId}/invoices/${r.invoiceId}`).get();
     const saleEntryId = inv.get('accountingEntryId');
     if (typeof saleEntryId === 'string' && saleEntryId) {

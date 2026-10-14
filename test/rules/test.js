@@ -887,8 +887,29 @@ const num = v => ({ doubleValue: v });
       await patch('companies/c1/invoices/fRR', admin, { receivedRetentions: acc(1150, 175, 10000, 3, 'rr9') }), S.DENIED);
     await expectStatus('el cajero no registra retenciones recibidas',
       await alta(cashier, 'rr3', 'fRR', rr('fRR', 100, 0, 0), acc(1150, 175, 10000, 3, 'rr3')), S.DENIED);
-    await expectStatus('ni a una factura cobrada (la retención va antes del cobro)',
+    await expectStatus('a una factura cobrada, sin afterPayment, no',
       await alta(admin, 'rr4', 'fRRpag', rr('fRRpag', 100, 0, 0), acc(100, 0, 0, 1, 'rr4')), S.DENIED);
+    // Después del cobro (2026-10-14): afterPayment y postPaymentCents.
+    const accPP = (iva, renta, base, count, lastId, pp) => ({ mapValue: { fields: {
+      ivaCents: int(iva), rentaCents: int(renta), rentaBaseCents: int(base), count: int(count),
+      lastId: str(lastId), postPaymentCents: int(pp) } } });
+    const altaPag = (auth, rid, ret, accumulated) => commitDocs(auth, [
+      { path: `companies/c1/receivedRetentions/${rid}`, fields: ret, create: true },
+      { path: 'companies/c1/invoices/fRRpag', fields: { receivedRetentions: accumulated }, mask: true },
+    ]);
+    await expectStatus('a una factura cobrada con afterPayment, sin sumar postPaymentCents, no',
+      await altaPag(admin, 'rrP1', rr('fRRpag', 100, 0, 0, { afterPayment: bool(true) }), accPP(100, 0, 0, 1, 'rrP1', 0)), S.DENIED);
+    await expectStatus('afterPayment en una factura SIN cobrar, no',
+      await alta(admin, 'rr4', 'fRR', rr('fRR', 1, 0, 0, { afterPayment: bool(true) }),
+        accPP(1051, 175, 10000, 3, 'rr4', 1)), S.DENIED);
+    await expectStatus('el vendedor registra una retención después del cobro (afterPayment + postPaymentCents)',
+      await altaPag(seller, 'rrP1', rr('fRRpag', 100, 50, 1000, { afterPayment: bool(true) }), accPP(100, 50, 1000, 1, 'rrP1', 150)), S.OK);
+    await expectStatus('y el contador la anula bajando también postPaymentCents',
+      await commitDocs(conta, [
+        { path: 'companies/c1/receivedRetentions/rrP1', fields: { status: str('void'), isVoid: bool(true), voidedAt: ts(),
+          voidedBy: str('t1'), voidReason: str('Error'), updatedAt: ts(), updatedBy: str('t1') }, mask: true },
+        { path: 'companies/c1/invoices/fRRpag', fields: { receivedRetentions: accPP(0, 0, 0, 0, 'rrP1', 0) }, mask: true },
+      ]), S.OK);
     await expectStatus('ni a una nota de crédito',
       await alta(admin, 'rr4', 'fRRnc', rr('fRRnc', 100, 0, 0), acc(100, 0, 0, 1, 'rr4')), S.DENIED);
     await expectStatus('ni a una factura que el SRI no ha autorizado',
