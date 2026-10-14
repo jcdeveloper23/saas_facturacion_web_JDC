@@ -697,7 +697,7 @@ service cloud.firestore {
       let antes = get(p).data;
       let despues = getAfter(p).data;
       let d = request.resource.data;
-      let cobrada = antes.get('isPaid', false) == true;
+      let cobrada = antes.get('isPaid', false) == true || antes.get('status', '') == 'paid';
       return antes.get('isCreditNote', false) != true
         && antes.get('documentType', '') != 'creditNote'
         && d.get('afterPayment', false) == cobrada
