@@ -110,7 +110,9 @@ function seed() {
     { accountCode: '1.1.05.001', debit: 15, credit: 0 },
     { accountCode: '2.1.01.001', accountName: 'Cuentas por Pagar Proveedores', debit: 0, credit: 115 },
   ] });
-  store.set(`${C}/purchases/p1`, { fullNumber: 'C-2026-000001', status: 'received', isPaid: false, total: 115,
+  store.set(`${C}/purchases/p1`, { fullNumber: 'C-2026-000001', status: 'received', isPaid: false,
+    // total NETO de la retención estimada (1 % renta + 30 % IVA = 5,50); la emitida, 2,30.
+    subtotal: 100, totalTax: 15, totalIrRetention: 1, totalVatRetention: 4.5, total: 109.5,
     supplierName: 'Proveedor S.A.', supplierRuc: '1790012345001', supplierInvoiceDate: ts('2026-10-01T17:00:00Z'),
     accountingEntryId: 'jeP', retentionId: 'r1' });
   store.set(`${C}/retentions/r1`, { status: 'issued', totalRetained: 2.3 });
@@ -143,6 +145,7 @@ describe('registerCashVoucher', () => {
       partyName: 'Proveedor S.A.', partyTaxId: '1790012345001', partyId: null,
       bankAccountId: 'b1', bankAccountName: 'Pichincha ****3456', glCode: '1.1.01.003',
       paymentMethodCode: '20', chequeNumber: '000123', reference: null, notes: null,
+      targetIds: ['p1'],
       applications: [{ targetType: 'purchase', targetId: 'p1', targetNumber: 'C-2026-000001', amountCents: 11270 }],
       accountLines: [{ accountCode: '5.2.02.001', accountName: 'Útiles de oficina', amountCents: 500, description: 'Útiles' }],
       totalCents: 11770, status: 'posted', isVoid: false, accountingEntryId: r.accountingEntryId, reversalEntryId: null,
@@ -178,6 +181,15 @@ describe('registerCashVoucher', () => {
     expect(r2.number).toBe('CE-2026-000002');
     expect(store.get(`${C}/purchases/p1`)).toMatchObject({ isPaid: true, paidBy: 'cashVoucher', paymentEntryId: r2.accountingEntryId,
       cashVouchersApplied: { cents: 11270, count: 2, lastId: r2.voucherId } });
+  });
+
+  it('con la retención emitida anulada, el pendiente vuelve a bruto − estimada (= total)', async () => {
+    store.set(`${C}/retentions/r1`, { status: 'void', totalRetained: 2.3 });
+    await expect(call(registerCashVoucher, egreso({ applications: [{ targetType: 'purchase', targetId: 'p1', amountCents: 10951 }], accountLines: [] })))
+      .rejects.toThrow('solo le faltan $109.50');
+    const r = await call(registerCashVoucher, egreso({ applications: [{ targetType: 'purchase', targetId: 'p1', amountCents: 10950 }], accountLines: [] }));
+    expect(store.get(`${C}/purchases/p1`)).toMatchObject({ isPaid: true, paidBy: 'cashVoucher' });
+    expect(store.get(`${C}/cashVouchers/${r.voucherId}`)!.targetIds).toEqual(['p1']);
   });
 
   it('recibo de caja: Haber la CxC del asiento de la venta; numeración propia', async () => {

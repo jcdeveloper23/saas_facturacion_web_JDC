@@ -5,12 +5,12 @@
  */
 import {
   ACCOUNTS_PAYABLE, buildVoucherEntryLines, docParty, invoiceVoucherPendingCents, payableFromPurchaseEntry,
-  purchasePendingCents, resolveAccountLines, resolveParty, retentionHeldCents, targetTypeFor,
+  purchaseGrossCents, purchasePendingCents, purchaseRetainedCents, resolveAccountLines, resolveParty, targetTypeFor,
   validateVoucherInput, voidTargetProblem, voidVoucherProblem, voucherCounterKey, voucherNumber,
   voucherTargetPatch, voucherTargetProblem,
 } from '../accounting/cash-vouchers/cash-voucher-logic';
 import {
-  applicationProblem, invoicePatchFor, invoicePendingCents, parseEcuadorDate, sumSide, unapplyProblem,
+  applicationProblem, cents, invoicePatchFor, invoicePendingCents, parseEcuadorDate, sumSide, unapplyProblem,
 } from '../accounting/advances/advance-logic';
 import { paymentAmount, paymentNeedsEntry } from '../accounting/utils/payment-entry';
 import { cashVouchersAppliedCents, readAppliedAcc } from '../accounting/utils/applied-acc';
@@ -113,17 +113,35 @@ describe('resolveParty', () => {
 });
 
 describe('saldos', () => {
-  it('compra: total − retención − anticipos − comprobantes', () => {
-    expect(purchasePendingCents(purchase(), 0)).toBe(11500);
-    expect(purchasePendingCents(purchase({ cashVouchersApplied: { cents: 5000, count: 1, lastId: 'v1' } }), 230)).toBe(6270);
-    expect(purchasePendingCents(purchase({ advancesApplied: { cents: 1000, count: 1, lastId: 'a' } }), 0)).toBe(10500);
+  // Compra de 100 + IVA 15 = 115 bruto (lo que acredita la CxP). Proveedor con
+  // 1 % de renta y 30 % de IVA: estimada 1,00 + 4,50; total NETO 109,50.
+  const conRet = (over: Record<string, any> = {}) => purchase({ subtotal: 100, totalTax: 15,
+    totalIrRetention: 1, totalVatRetention: 4.5, total: 109.5, ...over });
+  it('sin retención estimada: el total (que es el bruto)', () => {
+    const p = purchase({ subtotal: 100, totalTax: 15, totalIrRetention: 0, totalVatRetention: 0, total: 115 });
+    expect(purchaseGrossCents(p)).toBe(11500);
+    expect(purchasePendingCents(p, null)).toBe(11500);
   });
-  it('la retención anulada no cuenta; el borrador sí', () => {
-    expect(retentionHeldCents({ status: 'issued', totalRetained: 2.3 })).toBe(230);
-    expect(retentionHeldCents({ status: 'draft', totalRetained: 2.3 })).toBe(230);
-    expect(retentionHeldCents({ status: 'void', totalRetained: 2.3 })).toBe(0);
-    expect(retentionHeldCents({ status: 'issued', isVoid: true, totalRetained: 2.3 })).toBe(0);
-    expect(retentionHeldCents(null)).toBe(0);
+  it('con estimada y sin retención emitida: bruto − estimada = total, sin descontarla dos veces', () => {
+    expect(purchaseRetainedCents(conRet(), null)).toBe(550);
+    expect(purchasePendingCents(conRet(), null)).toBe(10950);
+    expect(purchasePendingCents(conRet(), undefined)).toBe(cents(109.5));
+  });
+  it('con retención emitida distinta de la estimada: manda la emitida', () => {
+    expect(purchasePendingCents(conRet(), { status: 'issued', totalRetained: 3.15 })).toBe(11500 - 315);
+    expect(purchasePendingCents(conRet(), { status: 'draft', totalRetained: 3.15 })).toBe(11500 - 315);
+  });
+  it('con la emitida anulada: vuelve a la estimada', () => {
+    expect(purchasePendingCents(conRet(), { status: 'void', totalRetained: 3.15 })).toBe(10950);
+    expect(purchasePendingCents(conRet(), { status: 'issued', isVoid: true, totalRetained: 3.15 })).toBe(10950);
+  });
+  it('resta anticipos y comprobantes', () => {
+    expect(purchasePendingCents(conRet({ cashVouchersApplied: { cents: 5000, count: 1, lastId: 'v1' },
+      advancesApplied: { cents: 1000, count: 1, lastId: 'a' } }), null)).toBe(10950 - 6000);
+  });
+  it('sin subtotal: reconstruye el bruto desde total + estimada', () => {
+    expect(purchaseGrossCents({ total: 109.5, totalIrRetention: 1, totalVatRetention: 4.5 })).toBe(11500);
+    expect(purchasePendingCents(purchase(), null)).toBe(11500);
   });
   it('factura: el mismo cálculo que los anticipos, menos los recibos de caja', () => {
     const f = invoice({ receivedRetentions: { ivaCents: 300, rentaCents: 200 },

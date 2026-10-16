@@ -8,7 +8,7 @@ import { AccountRef, EntryLineDraft, ecuadorYearOf, invertLines, sumSide } from 
 import {
   ACCOUNTS_PAYABLE, ChartAccount, VoucherLinePlan, VoucherTargetType, buildVoucherEntryLines, docParty,
   invoiceVoucherPendingCents, payableFromPurchaseEntry, purchasePendingCents, resolveAccountLines,
-  resolveParty, retentionHeldCents, validateVoucherInput, voidTargetProblem, voidVoucherProblem,
+  resolveParty, validateVoucherInput, voidTargetProblem, voidVoucherProblem,
   voucherCounterKey, voucherNumber, voucherTargetPatch, voucherTargetProblem,
 } from './cash-voucher-logic';
 
@@ -191,7 +191,7 @@ export const registerCashVoucher = onCall(async (request) => {
     const plans = input.applications.map((a, k) => {
       const doc = docs[k];
       const pending = !doc ? 0 : targetType === 'purchase'
-        ? purchasePendingCents(doc, retentionHeldCents(retentionSnaps[k]?.exists ? retentionSnaps[k]!.data() : null))
+        ? purchasePendingCents(doc, retentionSnaps[k]?.exists ? retentionSnaps[k]!.data() : null)
         : invoiceVoucherPendingCents(doc);
       const problem = voucherTargetProblem(targetType, doc, a.amountCents, input.date, pending);
       if (problem) fail(problem);
@@ -246,6 +246,8 @@ export const registerCashVoucher = onCall(async (request) => {
       reference: input.reference,
       concept: input.concept,
       notes: input.notes,
+      // Para que Conecta busque los comprobantes de un documento con arrayContains.
+      targetIds: plans.map((p) => p.targetId),
       applications: plans.map((p) => ({
         targetType, targetId: p.targetId, targetNumber: String(p.doc.fullNumber ?? ''), amountCents: p.amountCents,
       })),
@@ -375,7 +377,7 @@ export const voidCashVoucher = onCall(async (request) => {
       const a = apps[k];
       const retention = retentionSnaps[k]?.exists ? retentionSnaps[k]!.data() : null;
       const pendingNow = a.targetType === 'purchase'
-        ? purchasePendingCents(doc, retentionHeldCents(retention)) : invoiceVoucherPendingCents(doc);
+        ? purchasePendingCents(doc, retention) : invoiceVoucherPendingCents(doc);
       const patch = voucherTargetPatch(a.targetType, doc, voucherId, -Number(a.amountCents),
         pendingNow + Number(a.amountCents), null);
       tx.update(targetRefs[k], { ...toFirestore(patch), updatedAt: now, updatedBy: uid });

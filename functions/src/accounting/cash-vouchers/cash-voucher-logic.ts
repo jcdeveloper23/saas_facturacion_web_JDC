@@ -233,20 +233,47 @@ export function resolveParty(
 // ─── Saldos ───────────────────────────────────────────────────────────────────
 
 /**
- * Lo retenido al proveedor por la retención ligada a la compra (`retentionId`),
- * en centavos: 0 si no hay o si está anulada. Un borrador también cuenta: lo
- * retenido no se le paga al proveedor.
+ * Si la retención ligada a la compra (`retentionId`) sigue viva: existe y no
+ * está anulada. Un borrador cuenta: lo retenido no se le paga al proveedor.
  */
-export function retentionHeldCents(ret: Record<string, any> | undefined | null): number {
-  if (!ret) return 0;
-  if (ret.isVoid === true || ret.status === 'void' || ret.status === 'cancelled') return 0;
-  const c = cents(ret.totalRetained);
+export function isLiveRetention(ret: Record<string, any> | undefined | null): boolean {
+  return !!ret && ret.isVoid !== true && ret.status !== 'void' && ret.status !== 'cancelled';
+}
+
+/**
+ * La CxP BRUTA de la compra, en centavos: subtotal + IVA, lo mismo que
+ * acredita su asiento (purchase-entry.ts). `total` NO sirve: en la web y en
+ * Conecta va NETO de la retención estimada con los % del proveedor
+ * (calcPurchaseTotals). Si faltan subtotal e IVA, se reconstruye desde total.
+ */
+export function purchaseGrossCents(p: Record<string, any>): number {
+  const tax = p.totalTax ?? p.vatAmount;
+  if (typeof p.subtotal === 'number' && Number.isFinite(p.subtotal)) {
+    return cents(p.subtotal) + cents(tax ?? 0);
+  }
+  return cents(p.total) + cents(p.totalIrRetention ?? 0) + cents(p.totalVatRetention ?? 0);
+}
+
+/**
+ * Lo retenido al proveedor, en centavos: el `totalRetained` de la retención
+ * ligada si está viva; si no hay (o se anuló), la estimada de la compra
+ * (totalIrRetention + totalVatRetention).
+ */
+export function purchaseRetainedCents(p: Record<string, any>, ret: Record<string, any> | undefined | null): number {
+  const c = isLiveRetention(ret)
+    ? cents(ret!.totalRetained)
+    : cents(p.totalIrRetention ?? 0) + cents(p.totalVatRetention ?? 0);
   return c > 0 ? c : 0;
 }
 
-/** Lo que falta pagar de una compra: total − retención − anticipos − comprobantes. */
-export function purchasePendingCents(p: Record<string, any>, retentionCents: number): number {
-  return cents(p.total) - retentionCents - appliedAccCents(p, 'advancesApplied') - cashVouchersAppliedCents(p);
+/**
+ * Lo que falta pagar de una compra, coherente con su CxP: bruto − retenido −
+ * anticipos − comprobantes. Sin retención ligada, y con la estimada, da
+ * `total` − anticipos − comprobantes.
+ */
+export function purchasePendingCents(p: Record<string, any>, ret: Record<string, any> | undefined | null): number {
+  return purchaseGrossCents(p) - purchaseRetainedCents(p, ret)
+    - appliedAccCents(p, 'advancesApplied') - cashVouchersAppliedCents(p);
 }
 
 /** Lo que falta cobrar de una factura (el mismo cálculo que los anticipos). */
