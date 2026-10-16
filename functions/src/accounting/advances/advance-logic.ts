@@ -19,6 +19,8 @@
 // Lo de este archivo es puro (sin Firestore), para probarlo con Jest. Las
 // callables (advance-callables.ts) leen y escriben todo en una transacción.
 
+import { cashVouchersAppliedCents } from '../utils/applied-acc';
+
 export const ADVANCES_FROM_CUSTOMERS = { code: '2.1.04.008', name: 'Anticipo Clientes' } as const;
 
 export interface AccountRef { code: string; name: string }
@@ -93,11 +95,12 @@ export function retainedCents(inv: Record<string, any> | undefined): number {
 
 /**
  * Lo que falta cobrar de una factura, en centavos: total − retenido −
- * anticipos aplicados. Las NC no se restan (igual que el cobro,
- * payment-entry.ts): una factura con NC se corrige anulando o con la NC.
+ * anticipos aplicados − recibos de caja (2026-10-16). Las NC no se restan
+ * (igual que el cobro, payment-entry.ts): una factura con NC se corrige
+ * anulando o con la NC.
  */
 export function invoicePendingCents(inv: Record<string, any>): number {
-  return cents(inv.total) - retainedCents(inv) - advancesAppliedCents(inv);
+  return cents(inv.total) - retainedCents(inv) - advancesAppliedCents(inv) - cashVouchersAppliedCents(inv);
 }
 
 export interface AdvanceLike {
@@ -194,7 +197,9 @@ export function unapplyProblem(app: Record<string, any>, inv: Record<string, any
   if (app.isVoid === true || app.status === 'void') return 'Esa aplicación ya se deshizo.';
   if (!inv) return 'La factura ya no existe.';
   // Cobrada por banco (con su asiento de cobro): primero se deshace el cobro.
-  if (inv.isPaid === true && inv.paidBy !== 'advances') {
+  // Saldada con un recibo de caja (2026-10-16) sí se puede: vuelve a emitida
+  // y el recibo queda como cobro parcial.
+  if (inv.isPaid === true && inv.paidBy !== 'advances' && inv.paidBy !== 'cashVoucher') {
     return 'La factura ya se cobró por banco: no se puede quitar el anticipo.';
   }
   return null;
@@ -240,17 +245,24 @@ export function invoicePatchFor(
     lastId: appId,
   };
   const patch: Record<string, unknown> = { advancesApplied: next };
-  const pendingAfter = cents(inv.total) - retainedCents(inv) - next.cents;
+  const pendingAfter = cents(inv.total) - retainedCents(inv) - next.cents - cashVouchersAppliedCents(inv);
   if (deltaCents > 0 && pendingAfter <= 0) {
     patch.isPaid = true;
     patch.status = 'paid';
     patch.paidBy = 'advances';
     patch.paidAt = date;
-  } else if (deltaCents < 0 && inv.paidBy === 'advances') {
+  } else if (deltaCents < 0 && (inv.paidBy === 'advances' || inv.paidBy === 'cashVoucher')) {
     patch.isPaid = false;
     patch.status = 'issued';
     patch.paidBy = null;
     patch.paidAt = null;
+    if (inv.paidBy === 'cashVoucher') {
+      // La saldó un recibo de caja (2026-10-16): su asiento sigue vivo como
+      // cobro parcial; la factura deja de apuntarlo como «el» cobro.
+      patch.paymentVoucherId = null;
+      patch.paymentBankAccountId = null;
+      patch.paymentEntryId = null;
+    }
   }
   return patch;
 }

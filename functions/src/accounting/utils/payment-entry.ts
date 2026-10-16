@@ -2,6 +2,7 @@ import * as admin from 'firebase-admin';
 import { getAccountMapping } from './get-account-mapping';
 import { retainedOnInvoice } from './received-retention';
 import { advancesAppliedCents } from '../advances/advance-logic';
+import { cashVouchersAppliedCents } from './applied-acc';
 
 // ─── Asientos de cobro y de pago (2026-10-05) ─────────────────────────────────
 //
@@ -56,13 +57,17 @@ export function paymentNeedsEntry(d: Record<string, any>): boolean {
  * total menos lo que el cliente le retuvo (retenciones recibidas, 2026-10-08)
  * y menos los anticipos aplicados (2026-10-14): esas partes ya saldaron la
  * cuenta por cobrar con su propio asiento, y cobrar el total la dejaría en
- * negativo.
+ * negativo. En los dos, menos lo ya pagado o cobrado con comprobantes de
+ * egreso o recibos de caja (2026-10-16), que tienen su propio asiento. (Las
+ * reglas no dejan marcar pagado a mano un documento con comprobantes; esto es
+ * la segunda barrera.)
  */
 export function paymentAmount(kind: PaymentKind, d: Record<string, any>): number {
   const total = round2(Number(d.total ?? 0));
+  const vouchers = cashVouchersAppliedCents(d) / 100;
   return kind === 'invoice'
-    ? round2(total - retainedOnInvoice(d) - advancesAppliedCents(d) / 100)
-    : total;
+    ? round2(total - retainedOnInvoice(d) - advancesAppliedCents(d) / 100 - vouchers)
+    : round2(total - vouchers);
 }
 
 /** Recibida (subió el stock), viva y sin su asiento. */
