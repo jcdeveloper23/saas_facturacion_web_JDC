@@ -87,6 +87,9 @@ interface SriCompanyConfig {
   additionalInfoFields?: Array<{ nombre: string; valor: string }>;
 }
 
+/** Tope de las observaciones en el RIDE, para que no desborden la página. */
+const MAX_RIDE_NOTES_LENGTH = 1500;
+
 // ─── Formatting helpers ───────────────────────────────────────────────────────
 
 function fmt2(n: number): string {
@@ -192,7 +195,7 @@ interface BuildPdfOptions {
   logoBuffer: Buffer | null;
 }
 
-async function buildPdfBuffer(opts: BuildPdfOptions): Promise<Buffer> {
+export async function buildPdfBuffer(opts: BuildPdfOptions): Promise<Buffer> {
   const { invoice, companyRuc, sriEnvironment, sriConfig, barcodeBuffer, logoBuffer } = opts;
 
   return new Promise<Buffer>((resolve, reject) => {
@@ -645,6 +648,21 @@ async function buildPdfBuffer(opts: BuildPdfOptions): Promise<Buffer> {
     doc.font('Helvetica').fontSize(6).fillColor(DARK)
       .text(`SON: ${totalLetras} DÓLARES AMERICANOS`, BL_X, blY, { width: BL_W });
     blY = doc.y + 4;
+
+    // ── LEFT: Observaciones ───────────────────────────────────────────────────
+    // `notes` de la factura (Conecta y la web las guardan). Antes el RIDE no las
+    // dibujaba aunque la ficha sí las mostraba; la NC ya las imprimía. No van al
+    // XML: son del RIDE, como en generate-credit-note-pdf.ts.
+    const notes = String(invoice.notes ?? '').trim().slice(0, MAX_RIDE_NOTES_LENGTH);
+    if (notes) {
+      doc.rect(MARGIN, blY - 2, LEFT_BOTTOM_W, 12).fill(HDR_FILL);
+      doc.font('Helvetica-Bold').fontSize(6.5).fillColor(DARK)
+        .text('Observaciones', BL_X, blY, { width: BL_W });
+      blY = doc.y + 3;
+      doc.font('Helvetica').fontSize(6).fillColor(DARK)
+        .text(notes, BL_X, blY, { width: BL_W, lineBreak: true });
+      blY = doc.y + 4;
+    }
 
     // ── RIGHT: Totales ────────────────────────────────────────────────────────
     const netAmount     = invoice.netAmount     ?? invoice.subtotal ?? 0;
