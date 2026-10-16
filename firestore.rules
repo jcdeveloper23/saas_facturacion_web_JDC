@@ -735,7 +735,15 @@ service cloud.firestore {
         && rrAcc(despues, 'rentaBaseCents') <= antes.get('netAmount', 0) * 100 + 0.5
         // Con anticipos aplicados (2026-10-14): retenido + anticipos ≤ total.
         && rrAcc(despues, 'ivaCents') + rrAcc(despues, 'rentaCents') + advAcc(antes)
-             <= antes.get('total', 0) * 100 + 0.5;
+             <= antes.get('total', 0) * 100 + 0.5
+        // Con recibos de caja parciales (2026-10-16), sobre una factura sin
+        // cobrar: retenido antes del cobro + anticipos + recibos ≤ total; si
+        // no, la CxC quedaría con saldo acreedor. (Después del cobro lo
+        // retenido va a saldo a favor del cliente, no a la CxC.)
+        && (cobrada
+            || rrAcc(despues, 'ivaCents') + rrAcc(despues, 'rentaCents')
+                 - rrAcc(despues, 'postPaymentCents') + advAcc(antes) + cvAcc(antes)
+               <= antes.get('total', 0) * 100 + 0.5);
     }
 
     // Anular: solo admin y contador, solo esos campos, y el acumulado de la

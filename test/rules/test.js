@@ -1296,6 +1296,27 @@ const num = v => ({ doubleValue: v });
     await expectStatus('egresos: ni nace con paidBy',
       await create('companies/c1/purchases', 'pCV8', admin, { status: str('draft'), total: num(10),
         paidBy: str('cashVoucher') }), S.DENIED);
+
+    // Retención recibida sobre una factura sin cobrar con un recibo parcial:
+    // retenido + recibos ≤ total (115,00).
+    const rrCV = (invoiceId, iva) => ({
+      invoiceId: str(invoiceId), invoiceNumber: str('001-001-000000031'), number: str('001-001-000000222'),
+      customerTaxId: str('1790011111001'), status: str('registered'), isVoid: bool(false),
+      date: { timestampValue: '2026-10-16T17:00:00Z' }, fiscalYear: str('2026'),
+      ivaCents: int(0), rentaCents: int(iva), rentaBaseCents: int(10000),
+      lines: { arrayValue: { values: [] } } });
+    // En renta (base 100,00), para que no la frene el tope del IVA (15,00).
+    const rrAccCV = (iva, lastId) => ({ mapValue: { fields: {
+      ivaCents: int(0), rentaCents: int(iva), rentaBaseCents: int(10000), count: int(1), lastId: str(lastId) } } });
+    await seed('companies/c1/invoices', 'fCV4', facturaCV({ netAmount: num(100), vatAmount: num(15),
+      cashVouchersApplied: cvAcc(10000, 1, 'rc4') }));
+    const altaCV = rid => commitDocs(admin, [
+      { path: `companies/c1/receivedRetentions/${rid}`, fields: rrCV('fCV4', rid === 'rrCV1' ? 1501 : 1500), create: true },
+      { path: 'companies/c1/invoices/fCV4', fields: { receivedRetentions: rrAccCV(rid === 'rrCV1' ? 1501 : 1500, rid) }, mask: true },
+    ]);
+    await expectStatus('recibos: la retención recibida no pasa de total − recibos de caja',
+      await altaCV('rrCV1'), S.DENIED);
+    await expectStatus('recibos: dentro de lo que falta, sí', await altaCV('rrCV2'), S.OK);
   }
 
   report();
