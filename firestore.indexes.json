@@ -597,6 +597,14 @@
         { "fieldPath": "bankAccountId", "order": "ASCENDING" },
         { "fieldPath": "periodTo",      "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "cashVouchers",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "kind", "order": "ASCENDING" },
+        { "fieldPath": "date", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []
