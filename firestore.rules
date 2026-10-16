@@ -136,10 +136,13 @@ service cloud.firestore {
     // Lo que escriben solo las functions (stock y asientos). Si el cliente
     // pudiera poner stockProcessed o accountingEntryId, se saltaría el kardex
     // o el asiento.
+    // Desde el 2026-10-16 también lo de los comprobantes de egreso
+    // (registerCashVoucher / voidCashVoucher): el acumulado, quién la pagó y
+    // con qué comprobante.
     function purchaseServerKeys() {
       return ['stockProcessed', 'stockProcessedAt', 'stockError',
               'accountingEntryId', 'accountingError', 'reversalEntryId', 'reversalError',
-              'paymentEntryId'];
+              'paymentEntryId', 'cashVouchersApplied', 'paidBy', 'paymentVoucherId'];
     }
 
     // La web crea las compras con stockProcessed: false; eso se acepta. Lo que
@@ -147,7 +150,8 @@ service cloud.firestore {
     function purchaseCreateOk() {
       return request.resource.data.get('stockProcessed', false) == false
           && !request.resource.data.keys().hasAny(['stockProcessedAt', 'stockError',
-               'accountingEntryId', 'accountingError', 'reversalEntryId', 'paymentEntryId'])
+               'accountingEntryId', 'accountingError', 'reversalEntryId', 'paymentEntryId',
+               'cashVouchersApplied', 'paidBy', 'paymentVoucherId'])
           && request.resource.data.get('status', 'draft') in ['draft', 'sent', 'received'];
     }
 
@@ -166,7 +170,10 @@ service cloud.firestore {
     function purchasePaymentUpdateOk() {
       return isPaymentOnlyUpdate()
           && resource.data.get('status', '') in ['received', 'paid']
-          && request.resource.data.get('status', '') in [resource.data.get('status', ''), 'paid'];
+          && request.resource.data.get('status', '') in [resource.data.get('status', ''), 'paid']
+          // Con comprobantes de egreso (2026-10-16): ni se paga a mano el
+          // resto ni se des-paga; se registra otro comprobante o se anula.
+          && cashVouchersPaymentGuard();
     }
 
     // La compra recibida queda ligada a su retención (2026-10-06): solo
@@ -294,6 +301,7 @@ service cloud.firestore {
         'journal_entries', 'bank_accounts', 'bank_statements',
         'bank_reconciled_entries',
         'budgets', 'fixed_assets', 'advances', 'advanceApplications',
+        'cashVouchers',
         'petty_cash_funds', 'petty_cash_movements', 'audit_log', 'matches'
       ];
     }
@@ -480,7 +488,10 @@ service cloud.firestore {
               // Anticipos de clientes (2026-10-14): el acumulado y el cobro
               // por anticipos los escriben solo las callables (applyAdvance,
               // unapplyAdvance); el id del asiento de cobro, payment-entry.ts.
-              'advancesApplied', 'paidBy', 'paymentEntryId'];
+              'advancesApplied', 'paidBy', 'paymentEntryId',
+              // Recibos de caja (2026-10-16): el acumulado y el recibo que la
+              // saldó los escriben solo registerCashVoucher / voidCashVoucher.
+              'cashVouchersApplied', 'paymentVoucherId'];
     }
 
     // Desde el cliente una factura nace sin estado del SRI (la toma
@@ -814,6 +825,32 @@ service cloud.firestore {
                   .hasAny(['status', 'isPaid', 'paidAt', 'paymentBankAccountId']));
     }
 
+    // ─── Comprobantes de egreso y recibos de caja (2026-10-16) ─────────────
+    // companies/{cid}/cashVouchers los escriben solo las callables
+    // (registerCashVoucher, voidCashVoucher), con el comprobante, los
+    // acumulados y el asiento en una transacción. En la compra o factura queda
+    // `cashVouchersApplied` ({cents, count, lastId}) y, si quedó saldada,
+    // `paidBy: 'cashVoucher'`, `paymentVoucherId` y `paymentEntryId` (el
+    // asiento del comprobante).
+    function cvAcc(docData) {
+      return docData.get('cashVouchersApplied', {}).get('cents', 0);
+    }
+
+    // Un documento con comprobantes (parciales o que lo saldaron) no se paga
+    // ni se des-paga a mano: el pago a mano crearía un segundo asiento por el
+    // total, y des-pagarlo dejaría el comprobante vivo sin documento pagado.
+    function cashVouchersPaymentGuard() {
+      return (cvAcc(resource.data) == 0 && resource.data.get('paidBy', '') != 'cashVoucher')
+        || !request.resource.data.diff(resource.data).affectedKeys()
+              .hasAny(['status', 'isPaid', 'paidAt', 'paymentBankAccountId']);
+    }
+
+    // Y una factura con recibos de caja no se anula: primero se anulan ellos.
+    function invoiceCashVouchersGuard() {
+      return (!isVoidingWrite() || cvAcc(resource.data) == 0)
+        && cashVouchersPaymentGuard();
+    }
+
     // ─── Companies (tenants) ──────────────────────────────────────────────
     match /companies/{companyId} {
       allow read: if isAuthenticated()
@@ -959,6 +996,8 @@ service cloud.firestore {
                        && (!isVoidingWrite() || invoiceWithoutReceivedRetentions())
                        // Anticipos aplicados (2026-10-14).
                        && invoiceAdvancesGuard()
+                       // Recibos de caja (2026-10-16).
+                       && invoiceCashVouchersGuard()
                        // La app anula con 'void'. Sin esto un vendedor o cajero
                        // «des-anulaba» una factura pasándola a issued o paid.
                        && (resource.data.get('status', '') != 'void' || isAdmin())
@@ -1076,7 +1115,10 @@ service cloud.firestore {
         // El contador numera sus compras y sus asientos manuales, nada más.
         // Sin 'journal_entries' (hasta 2026-10-05) el contador no podía crear
         // un asiento: la numeración en transacción le daba permiso denegado.
+        // El de los comprobantes de tesorería lo numera solo el servidor
+        // (2026-10-16).
         allow write: if isAuthenticated() && belongsToCompany(companyId)
+                     && id != 'cashVouchers'
                      && (canWrite() || (isAccountant() && id in ['purchases', 'journal_entries', 'retentions', 'debitNotes']));
       }
 
@@ -1343,6 +1385,10 @@ service cloud.firestore {
         allow update: if isAuthenticated() && belongsToCompany(companyId)
                       && (isAdmin() || isAccountant())
                       && resource.data.get('type', 'manual') != 'automatic'
+                      // El asiento de un comprobante de egreso o recibo de
+                      // caja (2026-10-16) se anula anulando el comprobante
+                      // (voidCashVoucher), no suelto.
+                      && resource.data.get('type', 'manual') != 'cash_voucher'
                       && resource.data.status != 'cancelled'
                       // Un borrador se edita y sigue borrador; lo contabilizado
                       // no vuelve a borrador. Antes exigía status != 'draft'
@@ -1476,6 +1522,14 @@ service cloud.firestore {
       }
 
       match /advanceApplications/{applicationId} {
+        allow read:  if isAuthenticated() && belongsToCompany(companyId)
+                     && (isAdmin() || isAccountant());
+        allow write: if false;
+      }
+
+      // ─── Comprobantes de egreso y recibos de caja (2026-10-16) ─────────────
+      // Los leen admin y contador; los escriben solo las callables (Admin SDK).
+      match /cashVouchers/{voucherId} {
         allow read:  if isAuthenticated() && belongsToCompany(companyId)
                      && (isAdmin() || isAccountant());
         allow write: if false;

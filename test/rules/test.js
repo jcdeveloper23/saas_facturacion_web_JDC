@@ -1211,5 +1211,92 @@ const num = v => ({ doubleValue: v });
       await altaA('rrA2', rrA('fA4', 1000, 0, 0), rrAcc(1000, 0, 0, 1, 'rrA2')), S.OK);
   }
 
+  // ── Comprobantes de egreso y recibos de caja (2026-10-16) ────────────────
+  {
+    const int = v => ({ integerValue: String(v) });
+    const cvAcc = (cents, count, lastId) => ({ mapValue: { fields: {
+      cents: int(cents), count: int(count), lastId: str(lastId) } } });
+    const facturaCV = (extra = {}) => ({ status: str('issued'), sriStatus: str('authorized'), isPaid: bool(false),
+      isVoid: bool(false), fiscalYear: str('2026'), total: num(115),
+      seriesEstablishment: str('001'), seriesEmissionPoint: str('001'), ...extra });
+    await seed('companies/c1/cashVouchers', 'cv1', { number: str('CE-2026-000001'), kind: str('egreso'),
+      totalCents: int(11500), status: str('posted'), isVoid: bool(false) });
+    await seed('companies/c1/invoices', 'fCV1', facturaCV({ cashVouchersApplied: cvAcc(5000, 1, 'rc1') }));
+    await seed('companies/c1/invoices', 'fCV2', facturaCV({ status: str('paid'), isPaid: bool(true), paidBy: str('cashVoucher'),
+      paymentVoucherId: str('rc2'), paymentEntryId: str('je9'), paymentBankAccountId: str('b1'),
+      cashVouchersApplied: cvAcc(11500, 1, 'rc2') }));
+    await seed('companies/c1/invoices', 'fCV3', facturaCV());
+    await seed('companies/c1/purchases', 'pCV1', { status: str('received'), isPaid: bool(false), total: num(115),
+      cashVouchersApplied: cvAcc(5000, 1, 'cv1') });
+    await seed('companies/c1/purchases', 'pCV2', { status: str('paid'), isPaid: bool(true), total: num(115),
+      paidBy: str('cashVoucher'), paymentVoucherId: str('cv1'), paymentEntryId: str('je8'),
+      paymentBankAccountId: str('b1'), cashVouchersApplied: cvAcc(11500, 1, 'cv1') });
+    await seed('companies/c1/purchases', 'pCV3', { status: str('received'), isPaid: bool(false), total: num(115) });
+    await seed('companies/c1/journal_entries', 'jeCV', { status: str('posted'), type: str('cash_voucher'), lines: linea(115) });
+
+    await expectStatus('comprobantes: el contador los lee', await req('companies/c1/cashVouchers/cv1', conta), S.OK);
+    await expectStatus('comprobantes: el admin los lee', await req('companies/c1/cashVouchers/cv1', admin), S.OK);
+    await expectStatus('comprobantes: el vendedor NO los lee', await req('companies/c1/cashVouchers/cv1', seller), S.DENIED);
+    await expectStatus('comprobantes: el cajero NO los lee', await req('companies/c1/cashVouchers/cv1', cashier), S.DENIED);
+    await expectStatus('comprobantes: ni el admin los crea desde el cliente (solo callables)',
+      await create('companies/c1/cashVouchers', 'cv2', admin, { kind: str('egreso'), totalCents: int(100) }), S.DENIED);
+    await expectStatus('comprobantes: ni la regla por defecto deja escribir (vendedor)',
+      await create('companies/c1/cashVouchers', 'cv3', seller, { kind: str('ingreso') }), S.DENIED);
+    await expectStatus('comprobantes: ni el contador los anula a mano',
+      await patch('companies/c1/cashVouchers/cv1', conta, { status: str('void'), isVoid: bool(true) }), S.DENIED);
+    await expectStatus('comprobantes: ni el admin los borra', await del('companies/c1/cashVouchers/cv1', admin), S.DENIED);
+    await expectStatus('comprobantes: su contador lo numera solo el servidor',
+      await create('companies/c1/counters', 'cashVouchers', admin, { CE_2026: num(99) }), S.DENIED);
+    await expectStatus('comprobantes: su asiento NO se anula suelto',
+      await patch('companies/c1/journal_entries/jeCV', admin, {
+        status: str('cancelled'), cancelledAt: ts(), cancelledBy: str('adm'),
+        cancelReason: str('x'), updatedAt: ts(), updatedBy: str('adm') }), S.DENIED);
+
+    // Facturas
+    await expectStatus('recibos: el acumulado de la factura no se toca desde el cliente',
+      await patch('companies/c1/invoices/fCV3', admin, { cashVouchersApplied: cvAcc(11500, 1, 'x') }), S.DENIED);
+    await expectStatus('recibos: ni paymentVoucherId',
+      await patch('companies/c1/invoices/fCV3', admin, { paymentVoucherId: str('x') }), S.DENIED);
+    await expectStatus('recibos: ni paidBy cashVoucher',
+      await patch('companies/c1/invoices/fCV3', admin, { status: str('paid'), isPaid: bool(true), paidBy: str('cashVoucher') }), S.DENIED);
+    await expectStatus('recibos: sin recibos, se sigue cobrando a mano',
+      await patch('companies/c1/invoices/fCV3', conta, { status: str('paid'), isPaid: bool(true),
+        paidAt: ts(), paymentBankAccountId: str('b1') }), S.OK);
+    await expectStatus('recibos: con un recibo parcial NO se cobra a mano el resto',
+      await patch('companies/c1/invoices/fCV1', conta, { status: str('paid'), isPaid: bool(true),
+        paidAt: ts(), paymentBankAccountId: str('b1') }), S.DENIED);
+    await expectStatus('recibos: con recibos NO se anula',
+      await patch('companies/c1/invoices/fCV1', admin, { status: str('void'), isVoid: bool(true), voidedAt: ts() }), S.DENIED);
+    await expectStatus('recibos: una cobrada por recibo NO se des-cobra desde el cliente',
+      await patch('companies/c1/invoices/fCV2', admin, { status: str('issued'), isPaid: bool(false) }), S.DENIED);
+    await expectStatus('recibos: ni se le cambia el banco',
+      await patch('companies/c1/invoices/fCV2', admin, { paymentBankAccountId: str('b2') }), S.DENIED);
+    await expectStatus('recibos: ni se le borra el asiento del cobro',
+      await patch('companies/c1/invoices/fCV2', admin, { paymentEntryId: str('') }), S.DENIED);
+    await expectStatus('recibos: sus notas sí',
+      await patch('companies/c1/invoices/fCV2', admin, { notes: str('ok') }), S.OK);
+
+    // Compras
+    await expectStatus('egresos: el acumulado de la compra no se toca desde el cliente',
+      await patch('companies/c1/purchases/pCV3', admin, { cashVouchersApplied: cvAcc(11500, 1, 'x') }), S.DENIED);
+    await expectStatus('egresos: ni paidBy / paymentVoucherId',
+      await patch('companies/c1/purchases/pCV3', admin, { status: str('paid'), isPaid: bool(true),
+        paidBy: str('cashVoucher'), paymentVoucherId: str('x') }), S.DENIED);
+    await expectStatus('egresos: sin comprobantes, se sigue pagando a mano',
+      await patch('companies/c1/purchases/pCV3', conta, { status: str('paid'), isPaid: bool(true),
+        paidAt: ts(), paymentBankAccountId: str('b1') }), S.OK);
+    await expectStatus('egresos: con un comprobante parcial NO se paga a mano el resto',
+      await patch('companies/c1/purchases/pCV1', conta, { status: str('paid'), isPaid: bool(true),
+        paidAt: ts(), paymentBankAccountId: str('b1') }), S.DENIED);
+    await expectStatus('egresos: una pagada por comprobante NO se des-paga',
+      await patch('companies/c1/purchases/pCV2', admin, { isPaid: bool(false) }), S.DENIED);
+    await expectStatus('egresos: una compra NO nace con comprobantes',
+      await create('companies/c1/purchases', 'pCV9', admin, { status: str('draft'), total: num(10),
+        cashVouchersApplied: cvAcc(1, 1, 'x') }), S.DENIED);
+    await expectStatus('egresos: ni nace con paidBy',
+      await create('companies/c1/purchases', 'pCV8', admin, { status: str('draft'), total: num(10),
+        paidBy: str('cashVoucher') }), S.DENIED);
+  }
+
   report();
 })();
