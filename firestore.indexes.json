@@ -605,6 +605,15 @@
         { "fieldPath": "kind", "order": "ASCENDING" },
         { "fieldPath": "date", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "cashVouchers",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "targetIds", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "kind", "order": "ASCENDING" },
+        { "fieldPath": "date", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []
