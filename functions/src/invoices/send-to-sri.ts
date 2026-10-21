@@ -98,17 +98,22 @@ interface SriMessage {
  * mensajes a la vez (ej. múltiples errores de validación); los parsers anteriores solo
  * tomaban el primero, perdiendo detalle útil para diagnóstico (identificador, informacionAdicional).
  */
-function parseAllMessages(soapResponse: string): SriMessage[] {
+export function parseAllMessages(soapResponse: string): SriMessage[] {
   const messages: SriMessage[] = [];
   const blockRe = /<mensaje>\s*(?:<identificador>([^<]*)<\/identificador>\s*)?<mensaje>([^<]*)<\/mensaje>\s*(?:<informacionAdicional>([^<]*)<\/informacionAdicional>\s*)?(?:<tipo>([^<]*)<\/tipo>\s*)?<\/mensaje>/gi;
   let m: RegExpExecArray | null;
   while ((m = blockRe.exec(soapResponse)) !== null) {
-    messages.push({
-      identificador: m[1]?.trim() || undefined,
-      mensaje: m[2]?.trim() ?? '',
-      informacionAdicional: m[3]?.trim() || undefined,
-      tipo: m[4]?.trim() || undefined,
-    });
+    // Los campos que el SRI no manda se omiten, no se ponen en `undefined`:
+    // Firestore rechaza `undefined` y la escritura entera fallaba (un mensaje
+    // sin <informacionAdicional> dejaba la factura sin su estado del SRI).
+    const message: SriMessage = { mensaje: m[2]?.trim() ?? '' };
+    const identificador = m[1]?.trim();
+    const informacionAdicional = m[3]?.trim();
+    const tipo = m[4]?.trim();
+    if (identificador) message.identificador = identificador;
+    if (informacionAdicional) message.informacionAdicional = informacionAdicional;
+    if (tipo) message.tipo = tipo;
+    messages.push(message);
   }
   return messages;
 }
