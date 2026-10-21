@@ -11,6 +11,7 @@ import { sendInvoiceEmailInternal }      from './send-invoice-email';
 import { sendCreditNoteEmailInternal }   from './send-credit-note-email';
 import { isElectronicInvoicingEnabled, SRI_NOT_REQUIRED } from '../utils/electronic-invoicing';
 import { shouldProcessInvoice, invoiceBuyerProblem, SRI_INVALID_DATA } from './invoice-buyer-check';
+import { claimSriProcessing } from '../utils/sri-claim';
 
 /**
  * onInvoiceEmit
@@ -48,8 +49,9 @@ export const onInvoiceEmit = onDocumentWritten(
     // de emitirse» de «se reintenta» resultó frágil: una que ya estaba en ese
     // limbo tampoco se recuperaba, porque no había estado que borrar.
     //
-    // No hay riesgo de repetición: lo primero que hace abajo es marcarla
-    // 'pending', y con eso cualquier escritura posterior ya no entra aquí.
+    // No hay riesgo de repetición: lo primero que hace abajo es reclamarla
+    // 'pending' en una transacción (claimSriProcessing), y con eso cualquier
+    // otra ejecución ya no entra.
     //
     // Las importadas y las ya autorizadas llegan con sriStatus y se saltan
     // (shouldProcessInvoice, misma condición de siempre más `imported`).
@@ -66,14 +68,14 @@ export const onInvoiceEmit = onDocumentWritten(
 
     console.log('[onInvoiceEmit] Nueva emisión detectada:', { companyId, invoiceId });
 
-    // Mark as pending immediately so concurrent triggers don't re-process
+    // Se reclama en una transacción: si otra ejecución ya la marcó, esta sale.
     try {
-      await db.doc(`companies/${companyId}/invoices/${invoiceId}`).update({
-        sriStatus: 'pending',
-        updatedAt: admin.firestore.Timestamp.now(),
-      });
+      const claimed = await claimSriProcessing(db, `companies/${companyId}/invoices/${invoiceId}`, shouldProcessInvoice);
+      if (!claimed) {
+        console.log('[onInvoiceEmit] Ya la procesa otra ejecución — se omite:', { companyId, invoiceId });
+        return;
+      }
     } catch (err) {
-      // If we can't even set pending, bail out — Firestore will retry the trigger
       console.error('[onInvoiceEmit] No se pudo marcar como pending:', err);
       return;
     }

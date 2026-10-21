@@ -1,5 +1,6 @@
 import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import * as admin from 'firebase-admin';
+import { claimSriProcessing, isIssuedWithoutSriStatus } from '../utils/sri-claim';
 import { readCertificatePassword } from '../utils/cert-password';
 import { getStorage } from 'firebase-admin/storage';
 
@@ -96,10 +97,13 @@ export const onRetentionEmit = onDocumentWritten(
     const db = admin.firestore();
     console.log('[onRetentionEmit] Nueva emisión:', { companyId, retentionId });
 
+    // Se reclama en una transacción: si otra ejecución ya la marcó, esta sale.
     try {
-      await db.doc(`companies/${companyId}/retentions/${retentionId}`).update({
-        sriStatus: 'pending', updatedAt: admin.firestore.Timestamp.now(),
-      });
+      const claimed = await claimSriProcessing(db, `companies/${companyId}/retentions/${retentionId}`, isIssuedWithoutSriStatus);
+      if (!claimed) {
+        console.log('[onRetentionEmit] Ya la procesa otra ejecución — se omite:', { companyId, retentionId });
+        return;
+      }
     } catch (err) {
       console.error('[onRetentionEmit] Error marcando pending:', err);
       return;

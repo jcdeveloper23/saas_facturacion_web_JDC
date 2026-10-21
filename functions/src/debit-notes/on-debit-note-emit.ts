@@ -1,5 +1,6 @@
 import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import * as admin from 'firebase-admin';
+import { claimSriProcessing, isIssuedWithoutSriStatus } from '../utils/sri-claim';
 import { readCertificatePassword } from '../utils/cert-password';
 import { getStorage } from 'firebase-admin/storage';
 
@@ -83,12 +84,16 @@ export const onDebitNoteEmit = onDocumentWritten(
     const db = admin.firestore();
     console.log('[onDebitNoteEmit] Nueva emisión:', { companyId, debitNoteId });
 
+    // Se reclama en una transacción: si otra ejecución ya la marcó, esta sale.
     try {
-      await db.doc(`companies/${companyId}/debitNotes/${debitNoteId}`).update({
-        sriStatus: 'pending', updatedAt: admin.firestore.Timestamp.now(),
-      });
+      const claimed = await claimSriProcessing(db, `companies/${companyId}/debitNotes/${debitNoteId}`, isIssuedWithoutSriStatus);
+      if (!claimed) {
+        console.log('[onDebitNoteEmit] Ya la procesa otra ejecución — se omite:', { companyId, debitNoteId });
+        return;
+      }
     } catch (err) {
-      console.error('[onDebitNoteEmit] Error marcando pending:', err); return;
+      console.error('[onDebitNoteEmit] Error marcando pending:', err);
+      return;
     }
 
     // ── Contador de uso (no bloqueante) ──────────────────────────────────────
