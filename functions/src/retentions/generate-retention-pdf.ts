@@ -4,6 +4,7 @@ import PDFDocument from 'pdfkit';
 import QRCode from 'qrcode';
 import { getStorage } from 'firebase-admin/storage';
 import { drawLogo, loadCompanyLogo } from '../utils/company-logo';
+import { contributorTypeLabel } from '../utils/contributor-type';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -46,6 +47,8 @@ interface SriCompanyConfig {
   telefono?:                string;
   correo?:                  string;
   obligadoContabilidad:     string;
+  /** «Sociedad» / «Persona natural», de `companies/{cid}.sri.contributorType`. */
+  tipoContribuyente?: string;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -194,6 +197,10 @@ async function buildRetentionPdf(opts: {
     doc.text(`Razón Social: ${sriConfig.razonSocial}`, LEFT, doc.y, { width: PW }); doc.moveDown(0.2);
     doc.text(`Dirección: ${sriConfig.direccionEstablecimiento}`, LEFT, doc.y, { width: PW }); doc.moveDown(0.2);
     doc.text(`Obligado a llevar Contabilidad: ${sriConfig.obligadoContabilidad}`, LEFT, doc.y, { width: PW });
+    if (sriConfig.tipoContribuyente) {
+      doc.moveDown(0.2);
+      doc.text(`Tipo de contribuyente: ${sriConfig.tipoContribuyente}`, LEFT, doc.y, { width: PW });
+    }
     doc.moveDown(0.5);
 
     hr(doc.y, 0.5); doc.y = doc.y + 8;
@@ -332,6 +339,7 @@ export async function generateRetentionPdfInternal(
   const sriCfgSnap = await db.doc(`companies/${companyId}/configuration/sri`).get();
   if (!sriCfgSnap.exists) throw new Error(`Configuración SRI no encontrada: ${companyId}`);
   const sriConfig = sriCfgSnap.data() as SriCompanyConfig;
+  sriConfig.tipoContribuyente = contributorTypeLabel(companyData['sri']?.['contributorType']);
 
   // QR code
   let qrBuffer: Buffer | null = null;

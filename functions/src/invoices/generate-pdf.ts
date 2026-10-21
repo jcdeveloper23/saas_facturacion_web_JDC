@@ -7,6 +7,7 @@ import { drawLogo, loadCompanyLogo } from '../utils/company-logo';
 import { buildAdditionalInfo } from '../utils/additional-info';
 import { resolveSoftwareProviderRuc } from '../utils/software-provider';
 import { invoiceTotalDiscount, lineDiscountAmount, prorateAdditionalDiscount } from '../utils/invoice-discount';
+import { contributorTypeLabel } from '../utils/contributor-type';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -84,6 +85,8 @@ interface SriCompanyConfig {
   correo?: string;
   obligadoContabilidad: 'SI' | 'NO';
   agenteRetencionResolucion?: string;
+  /** «Sociedad» / «Persona natural», de `companies/{cid}.sri.contributorType`. */
+  tipoContribuyente?: string;
   additionalInfoFields?: Array<{ nombre: string; valor: string }>;
 }
 
@@ -295,6 +298,12 @@ export async function buildPdfBuffer(opts: BuildPdfOptions): Promise<Buffer> {
     doc.font('Helvetica').fontSize(6.5).fillColor(DARK)
       .text(`Obligado Contabilidad: ${sriConfig.obligadoContabilidad}`, LEFT_X, leftY, { width: LEFT_TEXT_W });
     leftY = doc.y + 1;
+
+    if (sriConfig.tipoContribuyente) {
+      doc.font('Helvetica').fontSize(6.5).fillColor(DARK)
+        .text(`Tipo de contribuyente: ${sriConfig.tipoContribuyente}`, LEFT_X, leftY, { width: LEFT_TEXT_W });
+      leftY = doc.y + 1;
+    }
 
     if (sriConfig.agenteRetencionResolucion) {
       doc.font('Helvetica').fontSize(6.5).fillColor(DARK)
@@ -776,6 +785,7 @@ export async function generatePdfInternal(
     throw new Error(`Configuración SRI no encontrada para empresa: ${companyId}`);
   }
   const sriConfig = sriConfigSnap.data() as SriCompanyConfig;
+  sriConfig.tipoContribuyente = contributorTypeLabel(companyData['sri']?.['contributorType']);
   // Lo mismo que el XML: plantillas resueltas, los campos del comprobante y el
   // correo del comprador, sin vacíos. Antes el RIDE imprimía la plantilla tal
   // cual (`${customer.email}`) y no mostraba nada propio del comprobante.

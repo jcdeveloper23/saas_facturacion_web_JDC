@@ -6,6 +6,7 @@ import { getStorage } from 'firebase-admin/storage';
 import { drawLogo, loadCompanyLogo } from '../utils/company-logo';
 import { buildAdditionalInfo } from '../utils/additional-info';
 import { resolveSoftwareProviderRuc } from '../utils/software-provider';
+import { contributorTypeLabel } from '../utils/contributor-type';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -64,6 +65,8 @@ interface SriCompanyConfig {
   telefono?: string;
   correo?: string;
   obligadoContabilidad: 'SI' | 'NO';
+  /** «Sociedad» / «Persona natural», de `companies/{cid}.sri.contributorType`. */
+  tipoContribuyente?: string;
   additionalInfoFields?: Array<{ nombre: string; valor: string }>;
 }
 
@@ -156,6 +159,11 @@ async function buildCreditNotePdfBuffer(opts: BuildCreditNotePdfOptions): Promis
     if (sriConfig.telefono) {
       doc.moveDown(0.2)
         .text(`Tel: ${sriConfig.telefono}`, LEFT, doc.y, { width: PAGE_W, align: 'center' });
+    }
+
+    if (sriConfig.tipoContribuyente) {
+      doc.moveDown(0.2)
+        .text(`Tipo de contribuyente: ${sriConfig.tipoContribuyente}`, LEFT, doc.y, { width: PAGE_W, align: 'center' });
     }
 
     // Document title — "NOTA DE CRÉDITO" in dark blue
@@ -485,6 +493,7 @@ export async function generateCreditNotePdfInternal(
     throw new Error(`Configuración SRI no encontrada para empresa: ${companyId}`);
   }
   const sriConfig = sriConfigSnap.data() as SriCompanyConfig;
+  sriConfig.tipoContribuyente = contributorTypeLabel(companyData['sri']?.['contributorType']);
   // Lo mismo que el XML: plantillas resueltas, los campos del comprobante y el
   // correo del comprador, sin vacíos. Antes el RIDE imprimía la plantilla tal
   // cual (`${customer.email}`) y no mostraba nada propio del comprobante.

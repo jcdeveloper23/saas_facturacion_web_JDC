@@ -4,6 +4,7 @@ import PDFDocument from 'pdfkit';
 import QRCode from 'qrcode';
 import { getStorage } from 'firebase-admin/storage';
 import { drawLogo, loadCompanyLogo } from '../utils/company-logo';
+import { contributorTypeLabel } from '../utils/contributor-type';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -41,6 +42,8 @@ interface SriCompanyConfig {
   direccionEstablecimiento: string;
   telefono?:                string;
   correo?:                  string;
+  /** «Sociedad» / «Persona natural», de `companies/{cid}.sri.contributorType`. */
+  tipoContribuyente?: string;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -121,6 +124,10 @@ async function buildDebitNotePdf(opts: {
     if (sriConfig.telefono) {
       doc.moveDown(0.2)
         .text(`Tel: ${sriConfig.telefono}`, LEFT, doc.y, { width: PW, align: 'center' });
+    }
+    if (sriConfig.tipoContribuyente) {
+      doc.moveDown(0.2)
+        .text(`Tipo de contribuyente: ${sriConfig.tipoContribuyente}`, LEFT, doc.y, { width: PW, align: 'center' });
     }
 
     doc.moveDown(0.8).fontSize(13).fillColor(DARK).font('Helvetica-Bold')
@@ -286,6 +293,7 @@ export async function generateDebitNotePdfInternal(
   const sriCfgSnap = await db.doc(`companies/${companyId}/configuration/sri`).get();
   if (!sriCfgSnap.exists) throw new Error(`Configuración SRI no encontrada: ${companyId}`);
   const sriConfig = sriCfgSnap.data() as SriCompanyConfig;
+  sriConfig.tipoContribuyente = contributorTypeLabel(companyData['sri']?.['contributorType']);
 
   let qrBuffer: Buffer | null = null;
   if (debitNote.accessKey) {
