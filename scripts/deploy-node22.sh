@@ -6,8 +6,8 @@ set -euo pipefail
 # antes de seguir. La 4 (pipeline del SRI) al final, y después emitir una factura de
 # prueba en la empresa OG4ydEyOAhtsNmkOjc1P (ambiente de pruebas) y comprobar el correo.
 # Verificar al terminar: firebase functions:list --project accounting-system-a5c9f --json
-#   -> las 101 en nodejs22 (agrupar por "hash" dice qué salió en qué tanda).
-# Las 101 = todo lo que exporta functions/src/index.ts menos getAuthToken. Al
+#   -> las 102 en nodejs22 (agrupar por "hash" dice qué salió en qué tanda).
+# Las 102 = todo lo que exporta functions/src/index.ts menos getAuthToken. Al
 # agregar una function nueva, sumarla a una tanda: la tanda 5 faltó hasta el
 # 2026-10-06 y un redeploy con este script habría dejado fuera 9 functions.
 # Ojo: cada tanda despliega el código de HEAD de esas functions, no solo el runtime.
@@ -49,3 +49,7 @@ firebase deploy --project accounting-system-a5c9f --only functions:registerAdvan
 # Tanda 10-comprobantes (2) — agregada el 2026-10-16: comprobantes de egreso y
 # recibos de caja (companies/{cid}/cashVouchers). Callables con transacción.
 firebase deploy --project accounting-system-a5c9f --only functions:registerCashVoucher,functions:voidCashVoucher 2>&1 | tee deploy-node22-10-comprobantes.log
+
+# Tanda 11-compras-desde-sri (1) — agregada el 2026-10-22: baja del SRI los XML
+# autorizados de las facturas recibidas (claves del TXT de «Comprobantes recibidos»).
+firebase deploy --project accounting-system-a5c9f --only functions:fetchReceivedDocuments 2>&1 | tee deploy-node22-11-compras-desde-sri.log

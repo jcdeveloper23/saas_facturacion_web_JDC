@@ -25,6 +25,7 @@ export {
 export { uploadCertificate }        from './invoices/upload-certificate';
 export { createAndEmitInvoice }     from './invoices/create-and-emit-invoice';
 export { importInvoices }           from './invoices/import-invoices';
+export { fetchReceivedDocuments }   from './purchases/fetch-received-documents';
 export {
   accountingSetupStatus, seedChartOfAccounts, openAccountingPeriod,
   saveOpeningBalances, regenerateJournalEntries,

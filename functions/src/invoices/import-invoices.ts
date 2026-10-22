@@ -107,7 +107,7 @@ async function mapLimit<T, R>(items: T[], n: number, fn: (t: T) => Promise<R>): 
   return out;
 }
 
-async function authorizationUrls(db: admin.firestore.Firestore): Promise<Record<SriEnvironment, string>> {
+export async function authorizationUrls(db: admin.firestore.Firestore): Promise<Record<SriEnvironment, string>> {
   const urls: Record<SriEnvironment, string> = { ...SRI_AUTHORIZATION_URLS };
   try {
     const cfg = (await db.doc('platform/defaults/sriConfig/data').get()).data() as any;
