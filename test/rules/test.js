@@ -1319,5 +1319,37 @@ const num = v => ({ doubleValue: v });
     await expectStatus('recibos: dentro de lo que falta, sí', await altaCV('rrCV2'), S.OK);
   }
 
+
+  // ── el cajero anula facturas si su empresa lo permite (2026-10-28) ─────────
+  {
+    const aut = {
+      seriesEstablishment: str('001'), seriesEmissionPoint: str('001'), status: str('issued'),
+      isPaid: bool(false), sriStatus: str('authorized'), authorizationNumber: str('2810202601'),
+      total: num(10), customerName: str('CLIENTE'),
+    };
+    for (const id of ['cv1', 'cv2', 'cv3', 'cv4']) await seed('companies/c1/invoices', id, aut);
+    const anula = () => ({ status: str('void'), isVoid: bool(true), voidedAt: str('ahora'),
+      updatedBy: str('k1'), updatedAt: str('ahora') });
+
+    await expectStatus('cajero NO anula sin el permiso de la empresa',
+      await patch('companies/c1/invoices/cv1', cashier, anula()), S.DENIED);
+    await seed('companies/c1/settings', 'permissions', { cashierCanVoidInvoices: bool(false) });
+    await expectStatus('cajero NO anula con el permiso apagado',
+      await patch('companies/c1/invoices/cv1', cashier, anula()), S.DENIED);
+    await expectStatus('el cajero NO enciende el permiso',
+      await patch('companies/c1/settings/permissions', cashier, { cashierCanVoidInvoices: bool(true) }), S.DENIED);
+    await expectStatus('el admin enciende el permiso',
+      await patch('companies/c1/settings/permissions', admin, { cashierCanVoidInvoices: bool(true) }), S.OK);
+    await expectStatus('con el permiso, el cajero anula una autorizada',
+      await patch('companies/c1/invoices/cv1', cashier, anula()), S.OK);
+    await expectStatus('con el permiso, el cajero NO la des-anula',
+      await patch('companies/c1/invoices/cv1', cashier, { status: str('issued'), isVoid: bool(false) }), S.DENIED);
+    await expectStatus('con el permiso, el cajero NO cambia el total al anular',
+      await patch('companies/c1/invoices/cv2', cashier, { ...anula(), total: num(1) }), S.DENIED);
+    await expectStatus('el permiso es del cajero: el vendedor sigue sin anular',
+      await patch('companies/c1/invoices/cv3', seller, anula()), S.DENIED);
+    await expectStatus('el cajero de otro punto NO anula (caja2 es del 002-001)',
+      await patch('companies/c1/invoices/cv4', token({ uid: 'caja2', role: 'cashier', companyId: 'c1' }), anula()), S.DENIED);
+  }
   report();
 })();

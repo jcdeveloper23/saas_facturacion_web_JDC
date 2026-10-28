@@ -435,6 +435,19 @@ service cloud.firestore {
               && !(resource.data.get('status', '') in ['void', 'cancelled']));
     }
 
+    // El cajero anula facturas y NC solo si su empresa lo permite (2026-10-28,
+    // pedido de Weconnect Corp.). Interruptor por empresa, apagado por defecto:
+    // companies/{cid}/settings/permissions.cashierCanVoidInvoices, que escribe
+    // el admin (match /settings). Se suma a las demás condiciones de anular
+    // (su punto de emisión, ejercicio abierto, sin retenciones, anticipos ni
+    // recibos). Anular aquí NO anula en el SRI.
+    function cashierMayVoidInvoices(companyId) {
+      let ajustes = /databases/$(database)/documents/companies/$(companyId)/settings/permissions;
+      return request.auth.token.role == 'cashier'
+          && exists(ajustes)
+          && get(ajustes).data.get('cashierCanVoidInvoices', false) == true;
+    }
+
     // Se evalúa solo si la escritura anula: cobrar o editar no paga lecturas.
     function notVoidingInClosedPeriod(companyId) {
       return !isVoidingWrite() || !docPeriodClosed(companyId);
@@ -1017,8 +1030,10 @@ service cloud.firestore {
                                 // Anular (status void o isVoid true) es del admin. Antes
                                 // solo se miraba status: un vendedor ponía isVoid: true
                                 // y disparaba la reversa del asiento sin devolver el
-                                // stock (hallado el 2026-10-13).
-                                && (!isVoidingWrite() || isAdmin()))
+                                // stock (hallado el 2026-10-13). Desde el 2026-10-28,
+                                // también el cajero si su empresa lo permite
+                                // (settings/permissions.cashierCanVoidInvoices).
+                                && (!isVoidingWrite() || isAdmin() || cashierMayVoidInvoices(companyId)))
                           );
         // Anular una factura RECHAZADA por el SRI al reemplazarla por otra
         // («Corregir y volver a emitir», 2026-10-13): también vendedor y cajero.
