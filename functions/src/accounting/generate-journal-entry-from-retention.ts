@@ -1,9 +1,10 @@
 import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import * as admin from 'firebase-admin';
+import { getAccountMapping, AccountEntry } from './utils/get-account-mapping';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface RetentionTax {
+export interface RetentionTax {
   id: string;
   taxCode: string;        // '1'=IR, '2'=IVA
   taxCodeName: string;
@@ -14,7 +15,7 @@ interface RetentionTax {
   retainedAmount: number;
 }
 
-interface RetentionDoc {
+export interface RetentionDoc {
   status: string;
   sriStatus?: string;
   fullNumber: string;
@@ -40,19 +41,22 @@ interface JournalEntryLine {
   description: string;
 }
 
-// ─── Default account mapping for retention journal entries ────────────────────
+// ─── Accounts for retention journal entries ───────────────────────────────────
+// Las retenciones por pagar salen del mapeo de la empresa (retIrPayable,
+// retIvaPayable; 2026-10-28). Cuentas por pagar sigue fija: es la misma que
+// acredita el asiento de la compra (generate-journal-entry-from-purchase.ts).
 
-const DEFAULT_ACCOUNTS = {
-  accountsPayable:  { code: '2.1.01.001', name: 'Cuentas por Pagar Proveedores' },
-  retIrPayable:     { code: '2.1.04.003', name: 'Retenciones IR por Pagar' },
-  retIvaPayable:    { code: '2.1.04.002', name: 'Retenciones IVA por Pagar' },
-  ivaDebit:         { code: '1.1.05.001', name: 'IVA en Compras' },
-  expenses:         { code: '5.2.01.014', name: 'Honorarios Profesionales' },
-};
+export interface RetentionAccounts {
+  accountsPayable: AccountEntry;
+  retIrPayable:    AccountEntry;
+  retIvaPayable:   AccountEntry;
+}
+
+const ACCOUNTS_PAYABLE: AccountEntry = { code: '2.1.01.001', name: 'Cuentas por Pagar Proveedores' };
 
 function round2(n: number): number { return Math.round(n * 100) / 100; }
 
-function buildRetentionLines(retention: RetentionDoc, accounts: typeof DEFAULT_ACCOUNTS): JournalEntryLine[] {
+export function buildRetentionLines(retention: RetentionDoc, accounts: RetentionAccounts): JournalEntryLine[] {
   const lines: JournalEntryLine[] = [];
 
   for (const tax of (retention.taxes ?? [])) {
@@ -135,7 +139,12 @@ export async function generateJournalEntryFromRetentionInternal(
     tx.set(counterRef, { [key]: entryNumber }, { merge: true });
   });
 
-  const accounts = DEFAULT_ACCOUNTS;
+  const mapping  = await getAccountMapping(companyId);
+  const accounts: RetentionAccounts = {
+    accountsPayable: ACCOUNTS_PAYABLE,
+    retIrPayable:    mapping.retIrPayable,
+    retIvaPayable:   mapping.retIvaPayable,
+  };
   const lines    = buildRetentionLines(after, accounts);
 
   if (lines.length === 0) {

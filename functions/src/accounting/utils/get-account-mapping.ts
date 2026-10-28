@@ -19,6 +19,10 @@ export interface ResolvedAccountMapping {
   purchaseExpense:    AccountEntry;
   /** Anticipos que pagan los clientes antes de la factura (2026-10-14, pasivo). */
   advancesFromCustomers: AccountEntry;
+  /** Retenciones de renta que la empresa hace a sus proveedores (2026-10-28, pasivo). */
+  retIrPayable:       AccountEntry;
+  /** Retenciones de IVA que la empresa hace a sus proveedores (2026-10-28, pasivo). */
+  retIvaPayable:      AccountEntry;
 }
 
 // ─── Ecuador standard defaults ────────────────────────────────────────────────
@@ -33,6 +37,8 @@ export const DEFAULT_CODES: Record<keyof ResolvedAccountMapping, string> = {
   cogs:               '5.1.01.001',
   purchaseExpense:    '5.1.02.001',
   advancesFromCustomers: '2.1.04.008',
+  retIrPayable:       '2.1.04.003',
+  retIvaPayable:      '2.1.04.002',
 };
 
 export const DEFAULT_NAMES: Record<string, string> = {
@@ -45,6 +51,8 @@ export const DEFAULT_NAMES: Record<string, string> = {
   '5.1.01.001': 'Costo de Ventas',
   '5.1.02.001': 'Compras 15% IVA',
   '2.1.04.008': 'Anticipo Clientes',
+  '2.1.04.003': 'Retenciones IR por Pagar',
+  '2.1.04.002': 'Retenciones IVA por Pagar',
 };
 
 // ─── Resolver ─────────────────────────────────────────────────────────────────
@@ -79,7 +87,7 @@ export async function getAccountMapping(companyId: string): Promise<ResolvedAcco
   const customCodes = [...new Set(Object.values(codes))].filter(c => !DEFAULT_NAMES[c]);
 
   if (customCodes.length > 0) {
-    // Firestore 'in' supports up to 30 values — safe here (max 9 unique codes)
+    // Firestore 'in' supports up to 30 values — safe here (max 11 unique codes)
     const accountsSnap = await db
       .collection(`companies/${companyId}/chart_of_accounts`)
       .where('code', 'in', customCodes)
@@ -109,5 +117,7 @@ export async function getAccountMapping(companyId: string): Promise<ResolvedAcco
     cogs:               resolve('cogs'),
     purchaseExpense:    resolve('purchaseExpense'),
     advancesFromCustomers: resolve('advancesFromCustomers'),
+    retIrPayable:       resolve('retIrPayable'),
+    retIvaPayable:      resolve('retIvaPayable'),
   };
 }

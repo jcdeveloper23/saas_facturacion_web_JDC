@@ -43,7 +43,8 @@ const ROLES = ['admin', 'accountant'];
 
 /**
  * Cuentas que los generadores usan fijas en el código (no se configuran):
- * compras, retenciones, cuentas por pagar y el cierre del ejercicio. Si faltan
+ * compras, cuentas por pagar y el cierre del ejercicio (las retenciones por
+ * pagar salen del mapeo desde el 2026-10-28). Si faltan
  * en el plan, esos asientos saldrían con una cuenta inexistente.
  */
 export const FIXED_CODES: Record<string, string> = {
@@ -52,8 +53,6 @@ export const FIXED_CODES: Record<string, string> = {
   '1.1.05.005': 'Retenciones de renta que le hicieron los clientes',
   '1.1.05.006': 'Retenciones de IVA que le hicieron los clientes',
   '2.1.01.001': 'Cuentas por pagar a proveedores',
-  '2.1.04.002': 'Retención de IVA por pagar',
-  '2.1.04.003': 'Retención en la fuente por pagar',
   '3.3.02.001': 'Utilidad del ejercicio',
   '3.3.02.002': 'Pérdida del ejercicio',
 };
@@ -69,6 +68,8 @@ export const MAPPING_LABELS: Record<string, string> = {
   cogs: 'Costo de ventas',
   purchaseExpense: 'Compras que no son inventario (servicios y gastos)',
   advancesFromCustomers: 'Anticipos de clientes',
+  retIrPayable: 'Retenciones de renta por pagar (a proveedores)',
+  retIvaPayable: 'Retenciones de IVA por pagar (a proveedores)',
 };
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
