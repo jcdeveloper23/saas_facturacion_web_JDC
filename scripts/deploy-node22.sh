@@ -6,8 +6,8 @@ set -euo pipefail
 # antes de seguir. La 4 (pipeline del SRI) al final, y después emitir una factura de
 # prueba en la empresa OG4ydEyOAhtsNmkOjc1P (ambiente de pruebas) y comprobar el correo.
 # Verificar al terminar: firebase functions:list --project accounting-system-a5c9f --json
-#   -> las 102 en nodejs22 (agrupar por "hash" dice qué salió en qué tanda).
-# Las 102 = todo lo que exporta functions/src/index.ts menos getAuthToken. Al
+#   -> las 103 en nodejs22 (agrupar por "hash" dice qué salió en qué tanda).
+# Las 103 = todo lo que exporta functions/src/index.ts menos getAuthToken. Al
 # agregar una function nueva, sumarla a una tanda: la tanda 5 faltó hasta el
 # 2026-10-06 y un redeploy con este script habría dejado fuera 9 functions.
 # Ojo: cada tanda despliega el código de HEAD de esas functions, no solo el runtime.
@@ -53,3 +53,7 @@ firebase deploy --project accounting-system-a5c9f --only functions:registerCashV
 # Tanda 11-compras-desde-sri (1) — agregada el 2026-10-22: baja del SRI los XML
 # autorizados de las facturas recibidas (claves del TXT de «Comprobantes recibidos»).
 firebase deploy --project accounting-system-a5c9f --only functions:fetchReceivedDocuments 2>&1 | tee deploy-node22-11-compras-desde-sri.log
+
+# Tanda 12-anular-compra (1) — agregada el 2026-10-28: anula una compra recibida
+# (reversa del asiento en una transacción). Callable, admin y contador.
+firebase deploy --project accounting-system-a5c9f --only functions:voidReceivedPurchase 2>&1 | tee deploy-node22-12-anular-compra.log

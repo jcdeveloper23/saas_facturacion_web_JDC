@@ -95,6 +95,7 @@ export { generateJournalEntryFromInvoicePayment }  from './accounting/generate-j
 export { generateJournalEntryFromPurchasePayment } from './accounting/generate-journal-entry-from-purchase-payment';
 export { regenerateJournalEntry }               from './accounting/regenerate-journal-entry';
 export { redoPurchaseEntry }                    from './accounting/redo-purchase-entry';
+export { voidReceivedPurchase }                 from './accounting/void-received-purchase';
 export { backfillNotRequiredInvoices }          from './accounting/backfill-not-required-invoices';
 export { closeAccountingPeriod }                from './accounting/close-accounting-period';
 export { generateOpeningEntry }                 from './accounting/generate-opening-entry';
