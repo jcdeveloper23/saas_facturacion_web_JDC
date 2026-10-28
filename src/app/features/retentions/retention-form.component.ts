@@ -1,7 +1,7 @@
 import {
   Component, OnInit, OnDestroy, inject, signal, computed
 } from '@angular/core';
-import { CommonModule, SlicePipe } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormGroup, FormArray, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Subject, takeUntil, take, firstValueFrom } from 'rxjs';
@@ -19,7 +19,7 @@ import { NotificationService } from '../../core/services/notification.service';
 import {
   Retention, RetentionStatus, RetentionTax,
   RETENTION_STATUS_LABELS, RETENTION_STATUS_COLORS,
-  ALL_RETENTION_CODES, SRI_ISD_RETENTION_CODES, SUPPORT_DOC_TYPES,
+  ALL_RETENTION_CODES, SRI_ISD_RETENTION_CODES, SRI_IR_RETENTION_CODES, SRI_IVA_RETENTION_CODES, DEFAULT_IR_RETENTION_CODE, SUPPORT_DOC_TYPES,
   buildRetentionFullNumber, calcRetentionTax,
 } from './models/retention.interface';
 import { DEFAULT_SRI_SUSTENTO_CODE, SRI_SUSTENTO_CODES_VIGENTES } from '../../core/constants/sri-sustento-codes';
@@ -39,7 +39,7 @@ import {
     CommonModule, ReactiveFormsModule,
     CardModule, ButtonModule, GridModule, BadgeModule,
     SpinnerModule, FormModule,
-    IconModule, SlicePipe,
+    IconModule,
   ],
   styles: [`
     .inv-label { font-size:.72rem; font-weight:500; color:var(--cui-secondary-color); }
@@ -109,6 +109,8 @@ export class RetentionFormComponent implements OnInit, OnDestroy {
   // ── Lookup tables ────────────────────────────────────────────────────────────
   readonly allCodes        = ALL_RETENTION_CODES;
   readonly isdCodes        = SRI_ISD_RETENTION_CODES;
+  readonly irCodes         = SRI_IR_RETENTION_CODES;
+  readonly ivaCodes        = SRI_IVA_RETENTION_CODES;
   readonly supportDocTypes = SUPPORT_DOC_TYPES;
   readonly sustentosCodes  = SRI_SUSTENTO_CODES_VIGENTES; // tabla 5 del ATS
   readonly STATUS_LABELS = RETENTION_STATUS_LABELS;
@@ -161,9 +163,9 @@ export class RetentionFormComponent implements OnInit, OnDestroy {
       id:             [tax?.id ?? crypto.randomUUID()],
       taxCode:        [tax?.taxCode ?? '1',   Validators.required],
       taxCodeName:    [tax?.taxCodeName ?? 'IR'],
-      pctCode:        [tax?.pctCode ?? '303', Validators.required],
+      pctCode:        [tax?.pctCode ?? DEFAULT_IR_RETENTION_CODE, Validators.required],
       pctName:        [tax?.pctName ?? ''],
-      rate:           [tax?.rate ?? 10,       Validators.required],
+      rate:           [tax?.rate ?? 2,        Validators.required],
       taxableBase:    [tax?.taxableBase ?? 0,  [Validators.required, Validators.min(0)]],
       retainedAmount: [{ value: tax?.retainedAmount ?? 0, disabled: true }],
     });
@@ -365,7 +367,7 @@ export class RetentionFormComponent implements OnInit, OnDestroy {
         id:             c.get('id')?.value            ?? crypto.randomUUID(),
         taxCode:        c.get('taxCode')?.value        ?? '1',
         taxCodeName:    c.get('taxCodeName')?.value    ?? 'IR',
-        pctCode:        c.get('pctCode')?.value        ?? '303',
+        pctCode:        c.get('pctCode')?.value        ?? DEFAULT_IR_RETENTION_CODE,
         pctName:        c.get('pctName')?.value        ?? '',
         rate:           parseFloat(c.get('rate')?.value) || 0,
         taxableBase:    parseFloat(c.get('taxableBase')?.value) || 0,

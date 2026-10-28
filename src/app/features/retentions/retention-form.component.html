@@ -213,12 +213,12 @@
                           (change)="onPctCodeChange(i)"
                           [attr.disabled]="isEditable() ? null : true">
                     <optgroup label="Impuesto a la Renta (IR)">
-                      @for (c of allCodes | slice:0:12; track c.pctCode) {
+                      @for (c of irCodes; track c.pctCode) {
                         <option [value]="c.pctCode">{{ c.pctCode }} — {{ c.pctName }}</option>
                       }
                     </optgroup>
                     <optgroup label="IVA">
-                      @for (c of allCodes | slice:12:18; track c.pctCode) {
+                      @for (c of ivaCodes; track c.pctCode) {
                         <option [value]="c.pctCode">{{ c.pctCode }} — {{ c.pctName }}</option>
                       }
                     </optgroup>
