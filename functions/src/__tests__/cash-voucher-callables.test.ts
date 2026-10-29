@@ -344,3 +344,35 @@ describe('collectInvoicePayment (2026-10-29)', () => {
   });
 });
 
+describe('recibo de caja con excedente (2026-10-29)', () => {
+  const recibo = (over: Record<string, any> = {}) => ({
+    companyId: 'c1', kind: 'ingreso', date: '2026-10-29', partyName: '', bankAccountId: 'b1',
+    paymentMethodCode: '20', reference: 'TRX-889911', concept: 'Cobro',
+    applications: [{ targetType: 'invoice', targetId: 'f1', amountCents: 23000 }], accountLines: [], ...over,
+  });
+
+  it('salda la factura y deja el excedente como anticipo con la referencia', async () => {
+    const r = await call(registerCashVoucher, recibo({ excessToAdvanceCents: 1500 }));
+    expect(r).toMatchObject({ number: 'RC-2026-000001', excessCents: 1500, advanceNumber: 'ANT-2026-000001' });
+    const adv = store.get(`${C}/advances/${r.advanceId}`)!;
+    expect(adv).toMatchObject({ amountCents: 1500, reference: 'TRX-889911', partyTaxId: '0912345678', sourceVoucherId: r.voucherId });
+    expect(store.get(`${C}/cashVouchers/${r.voucherId}`)).toMatchObject({ totalCents: 23000, receivedCents: 24500, excessAdvanceId: r.advanceId });
+    expect(store.get(`${C}/counters/journal_entries`)).toMatchObject({ journal_2026: 2 });
+    expect(store.get(`${C}/invoices/f1`)).toMatchObject({ isPaid: true, paidBy: 'cashVoucher' });
+  });
+
+  it('abono con el mismo recibo: sin excedente, la factura sigue por cobrar', async () => {
+    const r = await call(registerCashVoucher, recibo({ applications: [{ targetType: 'invoice', targetId: 'f1', amountCents: 5000 }] }));
+    expect(r.advanceId).toBeUndefined();
+    expect(store.get(`${C}/invoices/f1`)).toMatchObject({ isPaid: false, status: 'issued' });
+  });
+
+  it('rechaza excedente en egresos, a consumidor final y con valor inválido', async () => {
+    await expect(call(registerCashVoucher, egreso({ excessToAdvanceCents: 100 }))).rejects.toThrow('Solo un recibo de caja');
+    await expect(call(registerCashVoucher, recibo({ excessToAdvanceCents: -5 }))).rejects.toThrow('excedente');
+    store.set(`${C}/invoices/f1`, { ...store.get(`${C}/invoices/f1`)!, customerTaxId: '9999999999999' });
+    await expect(call(registerCashVoucher, recibo({ excessToAdvanceCents: 100 }))).rejects.toThrow('consumidor final');
+    expect([...store.keys()].some((k) => k.includes('/advances/') || k.includes('/cashVouchers/'))).toBe(false);
+  });
+});
+
