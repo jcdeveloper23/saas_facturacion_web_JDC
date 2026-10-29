@@ -1351,5 +1351,35 @@ const num = v => ({ doubleValue: v });
     await expectStatus('el cajero de otro punto NO anula (caja2 es del 002-001)',
       await patch('companies/c1/invoices/cv4', token({ uid: 'caja2', role: 'cashier', companyId: 'c1' }), anula()), S.DENIED);
   }
+
+  // ── el contador anula facturas si su empresa lo permite (2026-10-29) ───────
+  {
+    const aut = {
+      seriesEstablishment: str('001'), seriesEmissionPoint: str('002'), status: str('issued'),
+      isPaid: bool(false), sriStatus: str('authorized'), authorizationNumber: str('2910202601'),
+      total: num(10), customerName: str('CLIENTE'),
+    };
+    for (const id of ['ca1', 'ca2', 'ca3']) await seed('companies/c1/invoices', id, aut);
+    const anula = () => ({ status: str('void'), isVoid: bool(true), voidedAt: str('ahora'),
+      updatedBy: str('t1'), updatedAt: str('ahora') });
+
+    await seed('companies/c1/settings', 'permissions', { cashierCanVoidInvoices: bool(true) });
+    await expectStatus('contador NO anula sin su permiso (el del cajero no le vale)',
+      await patch('companies/c1/invoices/ca1', conta, anula()), S.DENIED);
+    await expectStatus('el contador NO enciende su permiso',
+      await patch('companies/c1/settings/permissions', conta, { accountantCanVoidInvoices: bool(true) }), S.DENIED);
+    await expectStatus('el admin enciende el permiso del contador',
+      await patch('companies/c1/settings/permissions', admin, { accountantCanVoidInvoices: bool(true) }), S.OK);
+    await expectStatus('con el permiso, el contador anula una autorizada de otro punto',
+      await patch('companies/c1/invoices/ca1', conta, anula()), S.OK);
+    await expectStatus('con el permiso, el contador NO la des-anula',
+      await patch('companies/c1/invoices/ca1', conta, { status: str('issued'), isVoid: bool(false) }), S.DENIED);
+    await expectStatus('con el permiso, el contador NO cambia el total al anular',
+      await patch('companies/c1/invoices/ca2', conta, { ...anula(), total: num(1) }), S.DENIED);
+    await expectStatus('con el permiso, el contador sigue sin editar la factura',
+      await patch('companies/c1/invoices/ca3', conta, { customerName: str('OTRO') }), S.DENIED);
+    await expectStatus('el permiso es del contador: el vendedor sigue sin anular',
+      await patch('companies/c1/invoices/ca3', seller, anula()), S.DENIED);
+  }
   report();
 })();

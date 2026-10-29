@@ -448,6 +448,27 @@ service cloud.firestore {
           && get(ajustes).data.get('cashierCanVoidInvoices', false) == true;
     }
 
+    // Lo mismo para el contador (2026-10-29, Jessica Zari en Weconnect Corp.):
+    // settings/permissions.accountantCanVoidInvoices, apagado por defecto. El
+    // contador no edita facturas (canWrite() no lo incluye), así que solo puede
+    // escribir los campos de la anulación (isVoidOnlyUpdate). No se le limita
+    // por punto de emisión: no emite, y revisa las de todos los puntos.
+    function accountantMayVoidInvoices(companyId) {
+      let ajustes = /databases/$(database)/documents/companies/$(companyId)/settings/permissions;
+      return isAccountant()
+          && exists(ajustes)
+          && get(ajustes).data.get('accountantCanVoidInvoices', false) == true;
+    }
+
+    // Solo anula: los campos que escribe «Anular» de Conecta, y nada más.
+    function isVoidOnlyUpdate() {
+      return isVoidingWrite()
+          && request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['status', 'isVoid', 'voidedAt', 'updatedAt', 'updatedBy'])
+          && request.resource.data.get('status', '') == 'void'
+          && request.resource.data.get('isVoid', false) == true;
+    }
+
     // Se evalúa solo si la escritura anula: cobrar o editar no paga lecturas.
     function notVoidingInClosedPeriod(companyId) {
       return !isVoidingWrite() || !docPeriodClosed(companyId);
@@ -1034,6 +1055,8 @@ service cloud.firestore {
                                 // también el cajero si su empresa lo permite
                                 // (settings/permissions.cashierCanVoidInvoices).
                                 && (!isVoidingWrite() || isAdmin() || cashierMayVoidInvoices(companyId)))
+                            // El contador, solo anular y solo si su empresa lo permite (2026-10-29).
+                            || (isVoidOnlyUpdate() && accountantMayVoidInvoices(companyId))
                           );
         // Anular una factura RECHAZADA por el SRI al reemplazarla por otra
         // («Corregir y volver a emitir», 2026-10-13): también vendedor y cajero.
