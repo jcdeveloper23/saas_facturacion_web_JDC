@@ -90,7 +90,7 @@ jest.mock('firebase-admin', () => ({
   }),
 }));
 
-import { registerCashVoucher, voidCashVoucher } from '../accounting/cash-vouchers/cash-voucher-callables';
+import { registerCashVoucher, voidCashVoucher, collectInvoicePayment } from '../accounting/cash-vouchers/cash-voucher-callables';
 import { paymentNeedsEntry, generatePaymentEntryInternal } from '../accounting/utils/payment-entry';
 
 const C = 'companies/c1';
@@ -265,3 +265,82 @@ describe('voidCashVoucher', () => {
     expect(store.get(`${C}/journal_entries/${b.accountingEntryId}`)!.status).toBe('posted');
   });
 });
+
+describe('collectInvoicePayment (2026-10-29)', () => {
+  const asCashier = { auth: { uid: 'k1', token: { role: 'cashier', companyId: 'c1' } } };
+  const cobro = (amountCents: number, over: Record<string, any> = {}) => ({
+    companyId: 'c1', invoiceId: 'f1', amountCents, date: '2026-10-29', bankAccountId: 'b1',
+    paymentMethodCode: '01', ...over,
+  });
+  const entries = () => [...store.entries()].filter(([k]) => k.includes('/journal_entries/') && !['jeP', 'jeV'].some((x) => k.endsWith(x)));
+
+  it('abono: recibo parcial, la factura sigue por cobrar con el resto', async () => {
+    const r = await call(collectInvoicePayment, cobro(10000), asCashier);
+    expect(r).toMatchObject({ number: 'RC-2026-000001', appliedCents: 10000, excessCents: 0, pendingAfterCents: 13000 });
+    expect(r.advanceId).toBeUndefined();
+    const f = store.get(`${C}/invoices/f1`)!;
+    expect(f.isPaid).toBe(false);
+    expect(f.status).toBe('issued');
+    expect(f.cashVouchersApplied).toMatchObject({ cents: 10000, count: 1 });
+    const je = store.get(`${C}/journal_entries/${r.accountingEntryId}`)!;
+    expect(je.lines.map((l: any) => [l.accountCode, l.debit, l.credit])).toEqual([['1.1.01.003', 100, 0], ['1.1.02.005', 0, 100]]);
+    expect(store.get(`${C}/cashVouchers/${r.voucherId}`)).toMatchObject({ concept: 'Abono a la factura 001-001-000000020', receivedCents: 10000 });
+    // El segundo abono no puede pasar del saldo sin ir a anticipos: lo que sobra va allá.
+    const r2 = await call(collectInvoicePayment, cobro(13000), asCashier);
+    expect(r2).toMatchObject({ appliedCents: 13000, excessCents: 0, pendingAfterCents: 0 });
+    expect(store.get(`${C}/invoices/f1`)).toMatchObject({ isPaid: true, status: 'paid', paidBy: 'cashVoucher' });
+  });
+
+  it('exacto: lo salda sin anticipo ni segundo asiento de cobro', async () => {
+    const r = await call(collectInvoicePayment, cobro(23000));
+    expect(r).toMatchObject({ appliedCents: 23000, excessCents: 0, pendingAfterCents: 0 });
+    expect(entries()).toHaveLength(1);
+    expect(await generatePaymentEntryInternal('c1', 'invoice', 'f1')).toMatchObject({ created: false, reason: 'already_exists' });
+  });
+
+  it('de más: salda la factura y el excedente queda como anticipo del cliente', async () => {
+    const r = await call(collectInvoicePayment, cobro(25000), asCashier);
+    expect(r).toMatchObject({ appliedCents: 23000, excessCents: 2000, pendingAfterCents: 0, advanceNumber: 'ANT-2026-000001' });
+    const adv = store.get(`${C}/advances/${r.advanceId}`)!;
+    expect(adv).toMatchObject({ version: 2, amountCents: 2000, availableCents: 2000, status: 'open', partyTaxId: '0912345678',
+      sourceInvoiceId: 'f1', sourceVoucherId: r.voucherId });
+    const advJe = store.get(`${C}/journal_entries/${adv.accountingEntryId}`)!;
+    expect(advJe.lines.map((l: any) => [l.accountCode, l.debit, l.credit])).toEqual([['1.1.01.003', 20, 0], ['2.1.04.008', 0, 20]]);
+    expect(advJe.type).toBe('automatic');
+    const vJe = store.get(`${C}/journal_entries/${r.accountingEntryId}`)!;
+    expect([vJe.number, advJe.number]).toEqual([1, 2]);
+    expect(store.get(`${C}/counters/journal_entries`)).toMatchObject({ journal_2026: 2 });
+    for (const [, e] of entries()) expect(e.isBalanced).toBe(true);
+    expect(store.get(`${C}/cashVouchers/${r.voucherId}`)).toMatchObject({ totalCents: 23000, receivedCents: 25000, excessCents: 2000 });
+  });
+
+  it('consumidor final con excedente, factura cobrada, rol y monto: rechaza sin escribir', async () => {
+    store.set(`${C}/invoices/f1`, { ...store.get(`${C}/invoices/f1`)!, customerTaxId: '9999999999999' });
+    await expect(call(collectInvoicePayment, cobro(25000))).rejects.toThrow('consumidor final');
+    seed();
+    await expect(call(collectInvoicePayment, cobro(100), { auth: { uid: 'r1', token: { role: 'read_only', companyId: 'c1' } } }))
+      .rejects.toThrow('Su rol no tiene permiso');
+    await expect(call(collectInvoicePayment, cobro(0))).rejects.toThrow('mayor que cero');
+    await expect(call(collectInvoicePayment, cobro(100, { paymentMethodCode: '99' }))).rejects.toThrow('Tabla 24');
+    await expect(call(collectInvoicePayment, cobro(100, { date: '2026-10-01' }))).rejects.toThrow('anterior a la factura');
+    expect([...store.keys()].some((k) => k.includes('/cashVouchers/') || k.includes('/advances/'))).toBe(false);
+    store.set(`${C}/invoices/f1`, { ...store.get(`${C}/invoices/f1`)!, isPaid: true, status: 'paid' });
+    await expect(call(collectInvoicePayment, cobro(100))).rejects.toThrow('ya está cobrada');
+  });
+
+  it('con excedente, el recibo no se anula mientras su anticipo siga vivo', async () => {
+    const r = await call(collectInvoicePayment, cobro(25000));
+    await expect(call(voidCashVoucher, { companyId: 'c1', voucherId: r.voucherId, reason: 'Error' }))
+      .rejects.toThrow('anúlalo primero en Anticipos');
+    store.set(`${C}/advances/${r.advanceId}`, { ...store.get(`${C}/advances/${r.advanceId}`)!, isVoid: true, status: 'void' });
+    await call(voidCashVoucher, { companyId: 'c1', voucherId: r.voucherId, reason: 'Error' });
+    expect(store.get(`${C}/invoices/f1`)).toMatchObject({ isPaid: false, status: 'issued' });
+  });
+
+  it('anular el abono devuelve el saldo a la factura', async () => {
+    const r = await call(collectInvoicePayment, cobro(10000));
+    await call(voidCashVoucher, { companyId: 'c1', voucherId: r.voucherId, reason: 'Error' });
+    expect(store.get(`${C}/invoices/f1`)!.cashVouchersApplied).toMatchObject({ cents: 0 });
+  });
+});
+

@@ -153,6 +153,49 @@ function writeReversal(
   return ref.id;
 }
 
+/**
+ * El documento de un anticipo recién registrado (versión 2). Lo usan
+ * registerAdvance y el cobro con excedente de collectInvoicePayment
+ * (2026-10-29), para que los dos queden iguales.
+ */
+export function advanceRecord(p: {
+  number: string; partyId: string | null; partyName: string; partyTaxId: string;
+  date: Date; year: number; bankAccountId: string; bankAccountName: string;
+  paymentMethodCode: string | null; reference: string; notes: string;
+  amountCents: number; advancesAccount: AccountRef; entryId: string; uid: string;
+  now: admin.firestore.Timestamp; extra?: Record<string, unknown>;
+}): Record<string, unknown> {
+  return {
+    version: 2,
+    number: p.number,
+    partyType: 'customer',
+    partyId: p.partyId,
+    partyName: p.partyName,
+    partyTaxId: p.partyTaxId,
+    date: admin.firestore.Timestamp.fromDate(p.date),
+    fiscalYear: String(p.year),
+    bankAccountId: p.bankAccountId,
+    bankAccountName: p.bankAccountName,
+    paymentMethodCode: p.paymentMethodCode,
+    reference: p.reference,
+    notes: p.notes,
+    amountCents: p.amountCents,
+    appliedCents: 0,
+    refundedCents: 0,
+    availableCents: p.amountCents,
+    applicationsCount: 0,
+    status: 'open',
+    isVoid: false,
+    advancesAccount: p.advancesAccount,
+    accountingEntryId: p.entryId,
+    ...(p.extra ?? {}),
+    createdBy: p.uid,
+    createdAt: p.now,
+    updatedAt: p.now,
+    updatedBy: p.uid,
+  };
+}
+
 // ─── registerAdvance ──────────────────────────────────────────────────────────
 
 /**
@@ -219,34 +262,13 @@ export const registerAdvance = onCall(async (request) => {
       reference: number, referenceId: advanceRef.id,
       lines: buildRegisterLines(amountCents, bank, advancesAcc, label),
     }));
-    tx.set(advanceRef, {
-      version: 2,
-      number,
-      partyType: 'customer',
-      partyId: partyId || null,
-      partyName: v.value.partyName,
-      partyTaxId: v.value.partyTaxId,
-      date: admin.firestore.Timestamp.fromDate(date),
-      fiscalYear: String(year),
-      bankAccountId,
-      bankAccountName: bankName,
+    tx.set(advanceRef, advanceRecord({
+      number, partyId: partyId || null, partyName: v.value.partyName, partyTaxId: v.value.partyTaxId,
+      date, year, bankAccountId, bankAccountName: bankName,
       paymentMethodCode: text(data.paymentMethodCode, 2) || null,
-      reference: text(data.reference, 120),
-      notes: text(data.notes, 500),
-      amountCents,
-      appliedCents: 0,
-      refundedCents: 0,
-      availableCents: amountCents,
-      applicationsCount: 0,
-      status: 'open',
-      isVoid: false,
-      advancesAccount: advancesAcc,
-      accountingEntryId: entryRef.id,
-      createdBy: uid,
-      createdAt: now,
-      updatedAt: now,
-      updatedBy: uid,
-    });
+      reference: text(data.reference, 120), notes: text(data.notes, 500),
+      amountCents, advancesAccount: advancesAcc, entryId: entryRef.id, uid, now,
+    }));
     return { advanceId: advanceRef.id, number, entryId: entryRef.id };
   });
   return result;

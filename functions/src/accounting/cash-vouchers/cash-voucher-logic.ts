@@ -469,3 +469,23 @@ export function buildVoucherEntryLines(
   const others = [...docLines, ...accountLines].map(side);
   return kind === 'egreso' ? [...others, bankLine] : [bankLine, ...others];
 }
+
+// ─── Cobro con abono o excedente (2026-10-29) ─────────────────────────────────
+
+/**
+ * Cómo se reparte lo que entregó el cliente: lo que cabe en el saldo de la
+ * factura (abono, o el cobro completo) y lo que sobra (va a anticipos).
+ */
+export function splitCollection(receivedCents: number, pendingCents: number):
+  { appliedCents: number; excessCents: number } {
+  const pending = Math.max(0, Math.round(pendingCents));
+  const applied = Math.min(Math.round(receivedCents), pending);
+  return { appliedCents: Math.max(0, applied), excessCents: Math.max(0, Math.round(receivedCents) - Math.max(0, applied)) };
+}
+
+/** El consumidor final no puede quedar con saldo a favor: no hay a quién devolvérselo. */
+export function canHoldCustomerCredit(taxId: string): boolean {
+  const t = normalizeTaxId(taxId);
+  return t !== '' && t !== '9999999999999';
+}
+

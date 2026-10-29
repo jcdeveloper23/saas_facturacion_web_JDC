@@ -86,7 +86,7 @@ export { generateJournalEntryFromRetention }    from './accounting/generate-jour
 export { generateJournalEntryFromReceivedRetention } from './accounting/generate-journal-entry-from-received-retention';
 // Anticipos de clientes (E1, 2026-10-14): todo en callables con transacción.
 export { registerAdvance, applyAdvance, unapplyAdvance, voidAdvance } from './accounting/advances/advance-callables';
-export { registerCashVoucher, voidCashVoucher } from './accounting/cash-vouchers/cash-voucher-callables';
+export { registerCashVoucher, voidCashVoucher, collectInvoicePayment } from './accounting/cash-vouchers/cash-voucher-callables';
 export { generateJournalEntryFromCreditNote }   from './accounting/generate-journal-entry-from-credit-note';
 export { generateJournalEntryFromDebitNote }    from './accounting/generate-journal-entry-from-debit-note';
 export { generateReversalFromInvoice, generateReversalFromDebitNote, generateReversalFromRetention, generateReversalFromPurchase, generateReversalFromReceivedRetention } from './accounting/generate-reversal-entry';

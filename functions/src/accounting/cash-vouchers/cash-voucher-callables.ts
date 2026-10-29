@@ -5,8 +5,10 @@ import { getAccountMapping } from '../utils/get-account-mapping';
 import { receivableFromSaleEntry } from '../utils/received-retention';
 import { closedPeriodReversalError } from '../utils/closed-period';
 import { AccountRef, EntryLineDraft, ecuadorYearOf, invertLines, sumSide } from '../advances/advance-logic';
+import { advanceRecord } from '../advances/advance-callables';
+import { ADVANCES_FROM_CUSTOMERS, advanceNumber, buildRegisterLines } from '../advances/advance-logic';
 import {
-  ACCOUNTS_PAYABLE, ChartAccount, VoucherLinePlan, VoucherTargetType, buildVoucherEntryLines, docParty,
+  ACCOUNTS_PAYABLE, ChartAccount, VoucherInput, VoucherLinePlan, VoucherTargetType, splitCollection, canHoldCustomerCredit, buildVoucherEntryLines, docParty,
   invoiceVoucherPendingCents, payableFromPurchaseEntry, purchasePendingCents, resolveAccountLines,
   resolveParty, validateVoucherInput, voidTargetProblem, voidVoucherProblem,
   voucherCounterKey, voucherNumber, voucherTargetPatch, voucherTargetProblem,
@@ -229,51 +231,228 @@ export const registerCashVoucher = onCall(async (request) => {
       number: entryNumber, date: input.date, description: `${label}: ${input.concept}`.slice(0, 500),
       periodId, periodYear: year, reference: number, referenceId: voucherRef.id, lines,
     }));
-    tx.set(voucherRef, {
-      version: 1,
-      kind: input.kind,
-      number,
-      date: admin.firestore.Timestamp.fromDate(input.date),
-      fiscalYear: String(year),
-      partyId: input.partyId,
-      partyName: party.partyName,
-      partyTaxId: party.partyTaxId,
-      bankAccountId: input.bankAccountId,
-      bankAccountName,
-      glCode: bankGl,
-      paymentMethodCode: input.paymentMethodCode,
-      chequeNumber: input.chequeNumber,
-      reference: input.reference,
-      concept: input.concept,
-      notes: input.notes,
-      // Para que Conecta busque los comprobantes de un documento con arrayContains.
-      targetIds: plans.map((p) => p.targetId),
-      applications: plans.map((p) => ({
-        targetType, targetId: p.targetId, targetNumber: String(p.doc.fullNumber ?? ''), amountCents: p.amountCents,
-      })),
-      accountLines: input.accountLines.map((l) => ({
-        accountCode: l.accountCode, accountName: acc.names.get(l.accountCode) ?? l.accountCode,
-        amountCents: l.amountCents, description: l.description,
-      })),
-      totalCents: input.totalCents,
-      status: 'posted',
-      isVoid: false,
-      voidReason: null,
-      voidedAt: null,
-      voidedBy: null,
-      accountingEntryId: entryRef.id,
-      reversalEntryId: null,
-      createdBy: uid,
-      createdAt: now,
-      updatedAt: now,
-      updatedBy: uid,
-    });
+    tx.set(voucherRef, voucherRecord({ input, number, year, party, bankAccountName, bankGl, targetType,
+      plans, accountNames: acc.names, entryId: entryRef.id, uid, now }));
     for (const p of plans) {
       const patch = voucherTargetPatch(targetType, p.doc, voucherRef.id, p.amountCents, p.pending - p.amountCents,
         { date: input.date, bankAccountId: input.bankAccountId, entryId: entryRef.id });
       tx.update(p.ref, { ...toFirestore(patch), updatedAt: now, updatedBy: uid });
     }
     return { voucherId: voucherRef.id, number, accountingEntryId: entryRef.id };
+  });
+});
+
+/** El documento del comprobante, igual en registerCashVoucher y collectInvoicePayment. */
+function voucherRecord(p: {
+  input: VoucherInput; number: string; year: number;
+  party: { partyName: string; partyTaxId: string | null };
+  bankAccountName: string; bankGl: string; targetType: VoucherTargetType;
+  plans: Array<{ targetId: string; amountCents: number; doc: Record<string, any> }>;
+  accountNames: Map<string, string>; entryId: string; uid: string;
+  now: admin.firestore.Timestamp; extra?: Record<string, unknown>;
+}): Record<string, unknown> {
+  const { input, number, year, party, bankAccountName, bankGl, targetType, plans, uid, now } = p;
+  const acc = { names: p.accountNames };
+  const entryRef = { id: p.entryId };
+  return {
+    version: 1,
+    kind: input.kind,
+    number,
+    date: admin.firestore.Timestamp.fromDate(input.date),
+    fiscalYear: String(year),
+    partyId: input.partyId,
+    partyName: party.partyName,
+    partyTaxId: party.partyTaxId,
+    bankAccountId: input.bankAccountId,
+    bankAccountName,
+    glCode: bankGl,
+    paymentMethodCode: input.paymentMethodCode,
+    chequeNumber: input.chequeNumber,
+    reference: input.reference,
+    concept: input.concept,
+    notes: input.notes,
+    // Para que Conecta busque los comprobantes de un documento con arrayContains.
+    targetIds: plans.map((p) => p.targetId),
+    applications: plans.map((p) => ({
+      targetType, targetId: p.targetId, targetNumber: String(p.doc.fullNumber ?? ''), amountCents: p.amountCents,
+    })),
+    accountLines: input.accountLines.map((l) => ({
+      accountCode: l.accountCode, accountName: acc.names.get(l.accountCode) ?? l.accountCode,
+      amountCents: l.amountCents, description: l.description,
+    })),
+    totalCents: input.totalCents,
+    status: 'posted',
+    isVoid: false,
+    voidReason: null,
+    voidedAt: null,
+    voidedBy: null,
+    accountingEntryId: entryRef.id,
+    reversalEntryId: null,
+    ...(p.extra ?? {}),
+    createdBy: uid,
+    createdAt: now,
+    updatedAt: now,
+    updatedBy: uid,
+  };
+}
+
+// ─── collectInvoicePayment ────────────────────────────────────────────────────
+
+/**
+ * Cobro de una factura desde Cuentas por cobrar, por lo que el cliente
+ * entregó (2026-10-29, pedido de Weconnect Corp.):
+ *  · menos que el saldo → abono: un recibo de caja parcial; la factura sigue
+ *    por cobrar con lo que falta;
+ *  · igual → recibo de caja que la salda;
+ *  · más → recibo que la salda + un anticipo del cliente por lo que sobra
+ *    (Debe banco / Haber 2.1.04.008), que se aplica después a otra factura.
+ * Todo en UNA transacción. Lo hacen quienes cobran: admin, contador, vendedor
+ * y cajero. Entrada: {companyId, invoiceId, amountCents, date: 'AAAA-MM-DD',
+ * bankAccountId, paymentMethodCode, reference?, notes?}. Devuelve {voucherId,
+ * number, accountingEntryId, appliedCents, excessCents, pendingAfterCents,
+ * advanceId?, advanceNumber?}.
+ */
+const COLLECT_ROLES = ['admin', 'accountant', 'seller', 'cashier'];
+
+export const collectInvoicePayment = onCall(async (request) => {
+  const data = request.data ?? {};
+  const companyId = readCompanyId(data);
+  requireCompanyRole(request, companyId, COLLECT_ROLES);
+  const db = admin.firestore();
+  const uid = request.auth?.uid ?? 'system';
+  const invoiceId = readId(data, 'invoiceId', 'la factura');
+
+  // Formato de lo que llega, con el mismo validador del recibo de caja.
+  const v = validateVoucherInput({
+    kind: 'ingreso', date: data.date, partyName: '', bankAccountId: data.bankAccountId,
+    paymentMethodCode: data.paymentMethodCode, reference: data.reference, notes: data.notes,
+    concept: 'Cobro de factura',
+    applications: [{ targetType: 'invoice', targetId: invoiceId, amountCents: data.amountCents }],
+  });
+  if (!v.ok) throw new HttpsError('invalid-argument', v.error);
+  const received = v.value.applications[0].amountCents;
+  const year = ecuadorYearOf(v.value.date);
+
+  const bankSnap = await db.doc(`companies/${companyId}/bank_accounts/${v.value.bankAccountId}`).get();
+  if (!bankSnap.exists) throw new HttpsError('invalid-argument', 'La cuenta de banco o caja no existe.');
+  if (bankSnap.get('isActive') === false) fail('La cuenta de banco o caja está inactiva.');
+  const bankGl = String(bankSnap.get('linkedGlCode') ?? '');
+  if (!bankGl) fail('La cuenta de banco o caja no tiene cuenta contable: configúrala en Cuentas bancarias.');
+  const bank: AccountRef = { code: bankGl, name: String(bankSnap.get('linkedGlName') ?? bankGl) };
+  const acct = String(bankSnap.get('accountNumber') ?? '');
+  const bankAccountName = `${bankSnap.get('bankName') ?? bankSnap.get('name') ?? ''}${acct ? ` ****${acct.slice(-4)}` : ''}`
+    .trim().slice(0, 120) || bank.name;
+
+  const mapping = await getAccountMapping(companyId);
+  const advancesAcc: AccountRef = mapping.advancesFromCustomers ?? ADVANCES_FROM_CUSTOMERS;
+  const invoiceRef = db.doc(`companies/${companyId}/invoices/${invoiceId}`);
+  const voucherRef = db.collection(`companies/${companyId}/cashVouchers`).doc();
+  const entryRef = db.collection(`companies/${companyId}/journal_entries`).doc();
+  const advanceRef = db.collection(`companies/${companyId}/advances`).doc();
+  const advanceEntryRef = db.collection(`companies/${companyId}/journal_entries`).doc();
+  const journalCounter = db.doc(`companies/${companyId}/counters/journal_entries`);
+  const voucherCounter = db.doc(`companies/${companyId}/counters/cashVouchers`);
+  const advanceCounter = db.doc(`companies/${companyId}/counters/advances`);
+
+  return db.runTransaction(async (tx) => {
+    // Lecturas (todas antes de escribir).
+    const invSnap = await tx.get(invoiceRef);
+    const inv = invSnap.exists ? invSnap.data() as Record<string, any> : undefined;
+    const saleId = inv?.accountingEntryId;
+    const saleSnap = typeof saleId === 'string' && saleId && !saleId.includes('/')
+      ? await tx.get(db.doc(`companies/${companyId}/journal_entries/${saleId}`)) : null;
+    const periodId = await openPeriodId(tx, db, companyId, year);
+    const [jc, vc, ac] = await Promise.all([tx.get(journalCounter), tx.get(voucherCounter), tx.get(advanceCounter)]);
+
+    // Cuánto va a la factura y cuánto sobra.
+    const pending = inv ? invoiceVoucherPendingCents(inv) : 0;
+    const { appliedCents, excessCents } = splitCollection(received, pending);
+    const problem = voucherTargetProblem('invoice', inv, appliedCents, v.value.date, pending);
+    if (problem) fail(problem);
+    const party = resolveParty('ingreso', { partyName: '', partyTaxId: null }, null, [docParty('invoice', inv!)]);
+    if (!party.ok) fail(party.error);
+    if (excessCents > 0 && !canHoldCustomerCredit(party.partyTaxId ?? '')) {
+      fail(`A la factura ${inv!.fullNumber ?? ''} le faltan $${(pending / 100).toFixed(2)}: el consumidor final `
+        + 'no puede quedar con saldo a favor. Cobra ese valor, o factúrale con su cédula o RUC.');
+    }
+    const receivable = receivableFromSaleEntry(saleSnap?.exists ? saleSnap.get('lines') : undefined)
+      ?? mapping.accountsReceivable;
+
+    // Recibo de caja por lo aplicado.
+    const jKey = `journal_${year}`;
+    const vKey = voucherCounterKey('ingreso', year);
+    const entryNumber = ((jc.data()?.[jKey] as number) ?? 0) + 1;
+    const seq = ((vc.data()?.[vKey] as number) ?? 0) + 1;
+    const number = voucherNumber('ingreso', year, seq);
+    const invNumber = String(inv!.fullNumber ?? invoiceId);
+    const pendingAfter = pending - appliedCents;
+    const concept = appliedCents < pending
+      ? `Abono a la factura ${invNumber}` : `Cobro de la factura ${invNumber}`;
+    const input: VoucherInput = {
+      ...v.value, partyName: party.partyName, partyTaxId: party.partyTaxId, concept,
+      applications: [{ targetType: 'invoice', targetId: invoiceId, amountCents: appliedCents }],
+      accountLines: [], totalCents: appliedCents,
+    };
+    const label = `Recibo de caja ${number} — ${party.partyName}`;
+    const lines = buildVoucherEntryLines('ingreso', bank,
+      [{ account: receivable, amountCents: appliedCents, description: `Cobro factura ${invNumber} — ${number}` }], [], label);
+    const now = admin.firestore.Timestamp.now();
+
+    // Anticipo por el excedente.
+    let advance: { id: string; number: string } | null = null;
+    let lastEntry = entryNumber;
+    if (excessCents > 0) {
+      const aKey = `ANT_${year}`;
+      const aSeq = ((ac.data()?.[aKey] as number) ?? 0) + 1;
+      const aNumber = advanceNumber(year, aSeq);
+      lastEntry = entryNumber + 1;
+      const aLabel = `Anticipo ${aNumber} — ${party.partyName} (excedente del cobro de ${invNumber})`;
+      tx.set(advanceCounter, { [aKey]: aSeq }, { merge: true });
+      tx.set(advanceEntryRef, {
+        ...entryDoc({
+          number: lastEntry, date: v.value.date, description: aLabel.slice(0, 500), periodId, periodYear: year,
+          reference: aNumber, referenceId: advanceRef.id,
+          lines: buildRegisterLines(excessCents, bank, advancesAcc, aLabel),
+        }),
+        // Lo anula voidAdvance, como el de cualquier anticipo.
+        type: 'automatic',
+      });
+      tx.set(advanceRef, advanceRecord({
+        number: aNumber, partyId: typeof inv!.customerId === 'string' && inv!.customerId ? inv!.customerId : null,
+        partyName: party.partyName, partyTaxId: party.partyTaxId ?? '',
+        date: v.value.date, year, bankAccountId: v.value.bankAccountId, bankAccountName,
+        paymentMethodCode: v.value.paymentMethodCode, reference: v.value.reference ?? '',
+        notes: `Excedente del cobro de la factura ${invNumber} (${number}).`,
+        amountCents: excessCents, advancesAccount: advancesAcc, entryId: advanceEntryRef.id, uid, now,
+        extra: { sourceInvoiceId: invoiceId, sourceVoucherId: voucherRef.id },
+      }));
+      advance = { id: advanceRef.id, number: aNumber };
+    }
+
+    tx.set(journalCounter, { [jKey]: lastEntry }, { merge: true });
+    tx.set(voucherCounter, { [vKey]: seq }, { merge: true });
+    tx.set(entryRef, entryDoc({
+      number: entryNumber, date: v.value.date, description: `${label}: ${concept}`.slice(0, 500),
+      periodId, periodYear: year, reference: number, referenceId: voucherRef.id, lines,
+    }));
+    tx.set(voucherRef, voucherRecord({
+      input, number, year, party, bankAccountName, bankGl, targetType: 'invoice',
+      plans: [{ targetId: invoiceId, amountCents: appliedCents, doc: inv! }],
+      accountNames: new Map(), entryId: entryRef.id, uid, now,
+      extra: {
+        source: 'collectInvoicePayment', receivedCents: received,
+        ...(advance ? { excessCents, excessAdvanceId: advance.id, excessAdvanceNumber: advance.number } : {}),
+      },
+    }));
+    const patch = voucherTargetPatch('invoice', inv!, voucherRef.id, appliedCents, pendingAfter,
+      { date: v.value.date, bankAccountId: v.value.bankAccountId, entryId: entryRef.id });
+    tx.update(invoiceRef, { ...toFirestore(patch), updatedAt: now, updatedBy: uid });
+
+    return {
+      voucherId: voucherRef.id, number, accountingEntryId: entryRef.id,
+      appliedCents, excessCents, pendingAfterCents: pendingAfter,
+      ...(advance ? { advanceId: advance.id, advanceNumber: advance.number } : {}),
+    };
   });
 });
 
@@ -311,6 +490,17 @@ export const voidCashVoucher = onCall(async (request) => {
     const voucher = vSnap.data() as Record<string, any>;
     const problem = voidVoucherProblem(voucher);
     if (problem) fail(problem);
+    // Un cobro con excedente dejó un anticipo (collectInvoicePayment): ese
+    // anticipo se anula primero, para no dejar saldo a favor de un cobro que
+    // ya no existe.
+    const excessId = typeof voucher.excessAdvanceId === 'string' && !voucher.excessAdvanceId.includes('/')
+      ? voucher.excessAdvanceId : '';
+    if (excessId) {
+      const adv = await tx.get(db.doc(`companies/${companyId}/advances/${excessId}`));
+      if (adv.exists && adv.get('isVoid') !== true && adv.get('status') !== 'void') {
+        fail(`Este cobro dejó el anticipo ${adv.get('number') ?? ''} por el excedente: anúlalo primero en Anticipos.`);
+      }
+    }
 
     const apps: Array<{ targetType: VoucherTargetType; targetId: string; amountCents: number }> =
       Array.isArray(voucher.applications) ? voucher.applications : [];
