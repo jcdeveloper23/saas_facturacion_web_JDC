@@ -30,6 +30,7 @@ import {
   normalizeEmissionPointKey,
 } from '../utils/establishments';
 import { priceInvoiceLines, normalizeDiscountPct } from '../utils/invoice-discount';
+import { invoiceDueDate, normalizeTimeUnit, paymentDeadlineProblem } from '../utils/invoice-due-date';
 
 // ─── Tipos del payload externo ────────────────────────────────────────────────
 
@@ -285,6 +286,8 @@ function validatePayload(data: CreateInvoicePayload): void {
   if (data.paymentMethods && data.paymentMethods.length > 0) {
     for (const [i, pm] of data.paymentMethods.entries()) {
       if (!pm.code) throw new HttpsError('invalid-argument', `paymentMethods[${i}].code es requerido.`);
+      const plazo = paymentDeadlineProblem(pm.deadline, pm.timeUnit);
+      if (plazo) throw new HttpsError('invalid-argument', `paymentMethods[${i}]: ${plazo}`);
     }
   }
 }
@@ -448,8 +451,8 @@ export const createAndEmitInvoice = onCall(
       ? data.paymentMethods.map(pm => ({
           code:     pm.code,
           amount:   round2(pm.amount ?? total),
-          deadline: pm.deadline ?? 0,
-          timeUnit: pm.timeUnit ?? 'dias',
+          deadline: Number(pm.deadline ?? 0),
+          timeUnit: normalizeTimeUnit(pm.timeUnit),
         }))
       : [{ code: '01', amount: total, deadline: 0, timeUnit: 'dias' }];
 
@@ -487,7 +490,8 @@ export const createAndEmitInvoice = onCall(
 
         // ── Fechas ──────────────────────────────────────────────────────────
         date:    invoiceTs,
-        dueDate: invoiceTs,
+        // El plazo más largo de las formas de pago (2026-10-29); sin plazo, de contado.
+        dueDate: admin.firestore.Timestamp.fromDate(invoiceDueDate(invoiceDate, paymentMethods)),
 
         // ── Cliente ─────────────────────────────────────────────────────────
         customerId,          // ficha de personas, si existe en la empresa
