@@ -1381,5 +1381,35 @@ const num = v => ({ doubleValue: v });
     await expectStatus('el permiso es del contador: el vendedor sigue sin anular',
       await patch('companies/c1/invoices/ca3', seller, anula()), S.DENIED);
   }
+
+  // ── el contador emite notas de crédito si su empresa lo permite (2026-11-04) ─
+  {
+    const nc = () => ({ seriesEstablishment: str('001'), seriesEmissionPoint: str('001'), status: str('issued'),
+      documentType: str('creditNote'), isCreditNote: bool(true), rectifiedInvoiceAuthNumber: str('0411202601'),
+      total: num(10), customerName: str('CLIENTE'), source: str('conecta') });
+    await seed('companies/c1/settings', 'permissions', { accountantCanVoidInvoices: bool(true) });
+    await expectStatus('contador NO crea una NC sin su permiso (el de anular no le vale)',
+      await create('companies/c1/invoices', 'cn1', conta, nc()), S.DENIED);
+    await expectStatus('contador NO numera NC sin su permiso',
+      await patch('companies/c1/counters/invoices', conta, { NC_001_001_2026: num(1) }), S.DENIED);
+    await expectStatus('el contador NO enciende su permiso de NC',
+      await patch('companies/c1/settings/permissions', conta, { accountantCanIssueCreditNotes: bool(true) }), S.DENIED);
+    await expectStatus('el admin enciende el permiso de NC del contador',
+      await patch('companies/c1/settings/permissions', admin, { accountantCanIssueCreditNotes: bool(true) }), S.OK);
+    await expectStatus('con el permiso, el contador crea una NC',
+      await create('companies/c1/invoices', 'cn2', conta, nc()), S.OK);
+    await expectStatus('con el permiso, el contador numera su NC (una clave)',
+      await patch('companies/c1/counters/invoices', conta, { NC_001_001_2026: num(2) }), S.OK);
+    await expectStatus('con el permiso, el contador NO toca dos claves del contador',
+      await patch('companies/c1/counters/invoices', conta, { NC_001_001_2026: num(3), FAC_001_001_2026: num(9) }), S.DENIED);
+    await expectStatus('con el permiso, el contador NO crea una factura',
+      await create('companies/c1/invoices', 'cn3', conta, { ...nc(), isCreditNote: bool(false), documentType: str('invoice') }), S.DENIED);
+    await expectStatus('con el permiso, el contador NO crea una NC ya autorizada',
+      await create('companies/c1/invoices', 'cn4', conta, { ...nc(), sriStatus: str('authorized') }), S.DENIED);
+    await expectStatus('con el permiso, el contador NO crea una NC en borrador',
+      await create('companies/c1/invoices', 'cn5', conta, { ...nc(), status: str('draft') }), S.DENIED);
+    await expectStatus('el permiso es del contador: solo lectura sigue sin crear NC',
+      await create('companies/c1/invoices', 'cn6', token({ uid: 'ro1', role: 'read_only', companyId: 'c1' }), nc()), S.DENIED);
+  }
   report();
 })();

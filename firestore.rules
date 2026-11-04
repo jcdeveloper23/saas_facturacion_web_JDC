@@ -460,6 +460,31 @@ service cloud.firestore {
           && get(ajustes).data.get('accountantCanVoidInvoices', false) == true;
     }
 
+    // El contador emite notas de crédito si su empresa lo permite (2026-11-04,
+    // Jessica Zari en Weconnect Corp.): settings/permissions.accountantCanIssueCreditNotes,
+    // apagado por defecto, lo escribe el admin. Solo NC (isCreditNote +
+    // documentType 'creditNote' + status 'issued', como las crea Conecta), nunca
+    // facturas: canWrite() sigue sin incluirlo.
+    function accountantMayIssueCreditNotes(companyId) {
+      let ajustes = /databases/$(database)/documents/companies/$(companyId)/settings/permissions;
+      return isAccountant()
+          && exists(ajustes)
+          && get(ajustes).data.get('accountantCanIssueCreditNotes', false) == true;
+    }
+
+    function isNewCreditNote() {
+      return request.resource.data.get('isCreditNote', false) == true
+          && request.resource.data.get('documentType', '') == 'creditNote'
+          && request.resource.data.get('status', '') == 'issued';
+    }
+
+    // Una sola clave del contador por escritura (la NC numera NC_{estab}_{pto}_{año}).
+    function counterSingleKeyWrite() {
+      return resource == null
+          ? request.resource.data.keys().size() == 1
+          : request.resource.data.diff(resource.data).affectedKeys().size() == 1;
+    }
+
     // Solo anula: los campos que escribe «Anular» de Conecta, y nada más.
     function isVoidOnlyUpdate() {
       return isVoidingWrite()
@@ -1016,7 +1041,10 @@ service cloud.firestore {
 
       match /invoices/{id} {
         allow read: if isAuthenticated() && belongsToCompany(companyId);
-        allow create: if isAuthenticated() && belongsToCompany(companyId) && canWrite()
+        allow create: if isAuthenticated() && belongsToCompany(companyId)
+                      && (canWrite()
+                          // El contador, solo notas de crédito y si su empresa lo permite (2026-11-04).
+                          || (isNewCreditNote() && accountantMayIssueCreditNotes(companyId)))
                       && canUseEmissionPoint(companyId)
                       && invoiceSriStatusClientCreate();
         // Cannot edit a cancelled invoice; only admin can void.
@@ -1165,7 +1193,9 @@ service cloud.firestore {
         // (2026-10-16).
         allow write: if isAuthenticated() && belongsToCompany(companyId)
                      && id != 'cashVouchers'
-                     && (canWrite() || (isAccountant() && id in ['purchases', 'journal_entries', 'retentions', 'debitNotes']));
+                     && (canWrite() || (isAccountant() && id in ['purchases', 'journal_entries', 'retentions', 'debitNotes'])
+                         // El contador numera sus NC si su empresa lo permite (2026-11-04).
+                         || (id == 'invoices' && accountantMayIssueCreditNotes(companyId) && counterSingleKeyWrite()));
       }
 
       match /stock-movements/{id} {
