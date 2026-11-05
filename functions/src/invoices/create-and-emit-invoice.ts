@@ -174,7 +174,7 @@ async function resolveProductIds(
  * Sin puntos asignados —o siendo admin— puede emitir desde cualquiera, que es
  * el caso de las empresas de un solo local.
  */
-async function resolveCallerEmissionPoint(params: {
+export async function resolveCallerEmissionPoint(params: {
   db: admin.firestore.Firestore;
   companyId: string;
   uid: string;

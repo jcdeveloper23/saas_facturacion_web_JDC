@@ -142,7 +142,16 @@ service cloud.firestore {
     function purchaseServerKeys() {
       return ['stockProcessed', 'stockProcessedAt', 'stockError',
               'accountingEntryId', 'accountingError', 'reversalEntryId', 'reversalError',
-              'paymentEntryId', 'cashVouchersApplied', 'paidBy', 'paymentVoucherId'];
+              'paymentEntryId', 'cashVouchersApplied', 'paidBy', 'paymentVoucherId',
+              // Liquidación de compra (codDoc 03, 2026-11-05): la marca, su
+              // número y lo del SRI los escribe solo el servidor.
+              'issuedByCompany', 'settlement', 'accessKey', 'codigoNumerico',
+              'sriStatus', 'sriError', 'authorizationNumber', 'authorizedAt', 'xmlUrl', 'pdfUrl'];
+    }
+
+    // Una liquidación de compra que emitimos nosotros (issuePurchaseSettlement).
+    function isIssuedSettlement() {
+      return resource.data.get('issuedByCompany', false) == true;
     }
 
     // La web crea las compras con stockProcessed: false; eso se acepta. Lo que
@@ -151,7 +160,9 @@ service cloud.firestore {
       return request.resource.data.get('stockProcessed', false) == false
           && !request.resource.data.keys().hasAny(['stockProcessedAt', 'stockError',
                'accountingEntryId', 'accountingError', 'reversalEntryId', 'paymentEntryId',
-               'cashVouchersApplied', 'paidBy', 'paymentVoucherId'])
+               'cashVouchersApplied', 'paidBy', 'paymentVoucherId',
+               // La liquidación de compra la crea solo issuePurchaseSettlement (2026-11-05).
+               'issuedByCompany', 'settlement'])
           && request.resource.data.get('status', 'draft') in ['draft', 'sent', 'received'];
     }
 
@@ -159,7 +170,10 @@ service cloud.firestore {
     // pagada o cancelada ya no (las líneas ya movieron stock y asiento, o la
     // compra se cerró). Antes la regla solo protegía 'received'.
     function purchaseContentUpdateOk() {
-      return resource.data.get('status', 'draft') in ['draft', 'sent']
+      // Una liquidación nuestra en 'sent' está en manos del SRI: ni se edita ni
+      // se pasa a 'received' desde el cliente (lo hace el trigger al autorizarse).
+      return !isIssuedSettlement()
+          && resource.data.get('status', 'draft') in ['draft', 'sent']
           && request.resource.data.get('status', 'draft') in ['draft', 'sent', 'received', 'cancelled']
           && !request.resource.data.diff(resource.data).affectedKeys().hasAny(purchaseServerKeys());
     }
@@ -1193,6 +1207,8 @@ service cloud.firestore {
         // (2026-10-16).
         allow write: if isAuthenticated() && belongsToCompany(companyId)
                      && id != 'cashVouchers'
+                     // El de las liquidaciones de compra, también solo el servidor (2026-11-05).
+                     && id != 'purchaseSettlements'
                      && (canWrite() || (isAccountant() && id in ['purchases', 'journal_entries', 'retentions', 'debitNotes'])
                          // El contador numera sus NC si su empresa lo permite (2026-11-04).
                          || (id == 'invoices' && accountantMayIssueCreditNotes(companyId) && counterSingleKeyWrite()));

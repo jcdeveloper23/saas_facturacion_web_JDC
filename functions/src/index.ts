@@ -55,6 +55,9 @@ export { generateDebitNoteXml }  from './debit-notes/generate-debit-note-xml';
 export { generateDebitNotePdf }  from './debit-notes/generate-debit-note-pdf';
 export { sendDebitNoteEmail }    from './debit-notes/send-debit-note-email';
 export { onDebitNoteEmit }       from './debit-notes/on-debit-note-emit';
+// Liquidación de compra (codDoc 03, 2026-11-05): vive en purchases.
+export { issuePurchaseSettlement }  from './purchases/settlement/issue-purchase-settlement';
+export { onPurchaseSettlementEmit } from './purchases/settlement/on-purchase-settlement-emit';
 
 // POS
 export { onPosSaleComplete } from './pos/on-pos-sale-complete';

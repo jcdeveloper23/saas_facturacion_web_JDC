@@ -196,7 +196,7 @@ async function withRetry<T>(
 
 // ─── Document-type config ─────────────────────────────────────────────────────
 
-type SriDocType = 'invoice' | 'retention' | 'debitNote' | 'creditNote';
+type SriDocType = 'invoice' | 'retention' | 'debitNote' | 'creditNote' | 'purchaseSettlement';
 
 interface DocTypeConfig {
   collection: string;
@@ -219,6 +219,12 @@ const DOC_TYPE_CONFIGS: Record<SriDocType, DocTypeConfig> = {
     collection: 'debitNotes',
     signedXmlPath: (id, cid) => `companies/${cid}/xml/dn-${id}-signed.xml`,
     docLabel: 'Nota de Débito',
+  },
+  // Liquidación de compra (codDoc 03, 2026-11-05): vive en purchases.
+  purchaseSettlement: {
+    collection: 'purchases',
+    signedXmlPath: (id, cid) => `companies/${cid}/xml/lc-${id}-signed.xml`,
+    docLabel: 'Liquidación de compra',
   },
   creditNote: {
     collection: 'invoices',                                              // NC viven en la misma colección que facturas

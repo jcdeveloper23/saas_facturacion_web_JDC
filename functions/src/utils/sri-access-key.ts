@@ -11,7 +11,7 @@
 
 export interface AccessKeyParts {
   fechaEmision:    string; // ddmmyyyy (8)
-  tipoComprobante: string; // 2 — '01' factura, '04' nota crédito, '05' nota débito, '07' retención
+  tipoComprobante: string; // 2 — '01' factura, '03' liquidación de compra, '04' nota crédito, '05' nota débito, '07' retención
   ruc:             string; // 13
   ambiente:        string; // 1 — '1' pruebas, '2' producción
   establecimiento: string; // 3
@@ -32,7 +32,7 @@ export interface AccessKeyValidationResult {
   errors: AccessKeyValidationError[];
 }
 
-const VALID_DOC_TYPES = ['01', '04', '05', '06', '07']; // factura, NC, ND, guía remisión, retención
+const VALID_DOC_TYPES = ['01', '03', '04', '05', '06', '07']; // factura, liquidación de compra, NC, ND, guía remisión, retención
 
 /** Algoritmo módulo 11 SRI: pesos [2,3,4,5,6,7] cíclicos de derecha a izquierda. */
 export function calculateModulo11(clave: string): number {

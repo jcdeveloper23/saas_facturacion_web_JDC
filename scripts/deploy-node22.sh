@@ -57,3 +57,7 @@ firebase deploy --project accounting-system-a5c9f --only functions:fetchReceived
 # Tanda 12-anular-compra (1) — agregada el 2026-10-28: anula una compra recibida
 # (reversa del asiento en una transacción). Callable, admin y contador.
 firebase deploy --project accounting-system-a5c9f --only functions:voidReceivedPurchase 2>&1 | tee deploy-node22-12-anular-compra.log
+
+# Tanda 13-liquidacion-compra (2) — agregada el 2026-11-05: liquidación de compra
+# (codDoc 03). La callable numera y crea la compra; el trigger hace XML, firma y SRI.
+firebase deploy --project accounting-system-a5c9f --only functions:issuePurchaseSettlement,functions:onPurchaseSettlementEmit 2>&1 | tee deploy-node22-13-liquidacion-compra.log

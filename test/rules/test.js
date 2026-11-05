@@ -209,6 +209,27 @@ const num = v => ({ doubleValue: v });
     await patch('companies/c1/purchases/pRec', conta, { isPaid: bool(true), status: str('paid'), paymentBankAccountId: str('b1') }), S.OK);
   await expectStatus('el cajero NO paga compras',
     await patch('companies/c1/purchases/p1', cashier, { paymentBankAccountId: str('b2') }), S.DENIED);
+  // ── liquidación de compra (codDoc 03, 2026-11-05): solo la crea el servidor ──
+  await seed('companies/c1/purchases', 'lcEnv', { status: str('sent'), issuedByCompany: bool(true), sriDocumentType: str('03'), total: num(10) });
+  await seed('companies/c1/purchases', 'lcRec', { status: str('received'), issuedByCompany: bool(true), sriDocumentType: str('03'), isPaid: bool(false), total: num(10) });
+  await expectStatus('nadie crea una liquidación desde el cliente (issuedByCompany)',
+    await create('companies/c1/purchases', 'lc1', admin, { ...compra, status: str('sent'), issuedByCompany: bool(true), sriDocumentType: str('03') }), S.DENIED);
+  await expectStatus('ni con el bloque settlement',
+    await create('companies/c1/purchases', 'lc2', admin, { ...compra, settlement: str('x') }), S.DENIED);
+  await expectStatus('una compra 03 REGISTRADA de un proveedor sigue como antes',
+    await create('companies/c1/purchases', 'lc3', conta, { ...compra, sriDocumentType: str('03') }), S.OK);
+  await expectStatus('NO se edita una liquidación enviada al SRI',
+    await patch('companies/c1/purchases/lcEnv', admin, { total: num(99) }), S.DENIED);
+  await expectStatus('NO se recibe a mano una liquidación (lo hace el trigger al autorizarse)',
+    await patch('companies/c1/purchases/lcEnv', admin, { status: str('received') }), S.DENIED);
+  await expectStatus('NO se convierte una compra enviada en liquidación',
+    await patch('companies/c1/purchases/pEnv', admin, { issuedByCompany: bool(true) }), S.DENIED);
+  await expectStatus('NO se marca autorizada una compra desde el cliente',
+    await patch('companies/c1/purchases/pBorr', admin, { sriStatus: str('authorized') }), S.DENIED);
+  await expectStatus('el contador paga una liquidación autorizada (recibida)',
+    await patch('companies/c1/purchases/lcRec', conta, { isPaid: bool(true), status: str('paid'), paymentBankAccountId: str('b1') }), S.OK);
+  await expectStatus('nadie toca el contador de liquidaciones (solo servidor)',
+    await create('companies/c1/counters', 'purchaseSettlements', admin, { LC_001_001_2026: num(1) }), S.DENIED);
   await expectStatus('cajero de la 002 cobra una factura de la 001 con updatedBy',
     await patch('companies/c1/invoices/a3', caja2, { isPaid: bool(true), status: str('paid'), updatedBy: str('caja2') }), S.OK);
   await expectStatus('seller crea un proyecto',
