@@ -8,18 +8,22 @@ const SRI_AUTH_DEFAULTS = {
   production: 'https://cel.sri.gob.ec/comprobantes-electronicos-ws/AutorizacionComprobantesOffline?wsdl',
 };
 
-type SriDocType = 'invoice' | 'retention' | 'debitNote';
+type SriDocType = 'invoice' | 'retention' | 'debitNote' | 'purchaseSettlement';
 
 const COLLECTION_MAP: Record<SriDocType, string> = {
   invoice:   'invoices',
   retention: 'retentions',
   debitNote: 'debitNotes',
+  // Liquidación de compra (2026-11-05): autorizada aquí, onPurchaseSettlementEmit
+  // la pasa a recibida y hace el RIDE y el correo.
+  purchaseSettlement: 'purchases',
 };
 
 const DOC_LABEL: Record<SriDocType, string> = {
   invoice:   'Factura',
   retention: 'Retención',
   debitNote: 'Nota de Débito',
+  purchaseSettlement: 'Liquidación de compra',
 };
 
 async function callSriAuthorization(wsdlUrl: string, accessKey: string): Promise<string> {

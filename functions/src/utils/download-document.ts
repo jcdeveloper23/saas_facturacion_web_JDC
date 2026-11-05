@@ -3,7 +3,7 @@ import { getStorage } from 'firebase-admin/storage';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type DocumentType = 'invoice' | 'creditNote' | 'retention' | 'debitNote';
+type DocumentType = 'invoice' | 'creditNote' | 'retention' | 'debitNote' | 'purchaseSettlement';
 type FileType = 'xml' | 'pdf';
 
 interface DownloadDocumentRequest {
@@ -29,6 +29,7 @@ function resolveStoragePath(
     creditNote: { xml: `companies/${cid}/xml/${id}-signed.xml`,        pdf: `companies/${cid}/pdf/cn-${id}.pdf` },
     retention:  { xml: `companies/${cid}/xml/ret-${id}-signed.xml`,    pdf: `companies/${cid}/pdf/ret-${id}.pdf` },
     debitNote:  { xml: `companies/${cid}/xml/dn-${id}-signed.xml`,     pdf: `companies/${cid}/pdf/dn-${id}.pdf` },
+    purchaseSettlement: { xml: `companies/${cid}/xml/lc-${id}-signed.xml`, pdf: `companies/${cid}/pdf/lc-${id}.pdf` },
   };
 
   return paths[documentType][fileType];
@@ -46,8 +47,8 @@ export const downloadDocument = onCall(async (request) => {
     request.data as DownloadDocumentRequest;
 
   // 2. Input validation
-  if (!documentType || !['invoice', 'creditNote', 'retention', 'debitNote'].includes(documentType)) {
-    throw new HttpsError('invalid-argument', 'documentType inválido. Debe ser: invoice | creditNote | retention | debitNote.');
+  if (!documentType || !['invoice', 'creditNote', 'retention', 'debitNote', 'purchaseSettlement'].includes(documentType)) {
+    throw new HttpsError('invalid-argument', 'documentType inválido. Debe ser: invoice | creditNote | retention | debitNote | purchaseSettlement.');
   }
   if (!documentId || typeof documentId !== 'string') {
     throw new HttpsError('invalid-argument', 'documentId es requerido.');

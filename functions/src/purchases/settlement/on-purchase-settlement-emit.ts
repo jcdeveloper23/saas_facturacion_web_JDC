@@ -10,7 +10,7 @@
 // líneas no traen productId: no mueve stock, D-LC5) y el asiento de la compra.
 // Rechazada → queda en `sent` con `sriStatus: 'rejected'` y no genera asiento.
 //
-// Pendiente (E1, siguiente paso): RIDE y correo al proveedor.
+// Autorizada: también el RIDE y el correo al proveedor (no críticos).
 
 import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import * as admin from 'firebase-admin';
@@ -21,7 +21,9 @@ import { signXmlContent } from '../../utils/sign-xml-helper';
 import { sendToSriInternal } from '../../invoices/send-to-sri';
 import { isElectronicInvoicingEnabled, SRI_NOT_REQUIRED } from '../../utils/electronic-invoicing';
 import { generateSettlementXmlInternal } from './generate-settlement-xml';
-import { isSettlementReadyToEmit } from './settlement-logic';
+import { isSettlementAuthorizedPending, isSettlementReadyToEmit } from './settlement-logic';
+import { generateSettlementPdfInternal } from './generate-settlement-pdf';
+import { sendSettlementEmailInternal } from './send-settlement-email';
 
 async function signSettlementXml(purchaseId: string, companyId: string): Promise<void> {
   const db = admin.firestore();
@@ -75,16 +77,47 @@ async function countUsage(db: admin.firestore.Firestore, companyId: string): Pro
   });
 }
 
+/**
+ * Pasa la liquidación autorizada a 'received' en una transacción (solo una
+ * ejecución gana: no hay correo doble) y luego hace el RIDE y el correo.
+ * 'received' dispara onPurchaseReceive y, tras él, el asiento de la compra.
+ */
+async function afterAuthorization(
+  db: admin.firestore.Firestore, path: string, purchaseId: string, companyId: string,
+): Promise<void> {
+  const ref = db.doc(path);
+  const won = await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists || !isSettlementAuthorizedPending(snap.data() as Record<string, any>)) return false;
+    tx.update(ref, { status: 'received', updatedAt: admin.firestore.Timestamp.now() });
+    return true;
+  });
+  if (!won) return;
+  console.log('[onPurchaseSettlementEmit] Autorizada → recibida:', { companyId, purchaseId });
+  // Se espera: una promesa suelta muere cuando la function termina.
+  try {
+    await generateSettlementPdfInternal(purchaseId, companyId);
+    await sendSettlementEmailInternal(purchaseId, companyId);
+  } catch (err) {
+    console.warn('[onPurchaseSettlementEmit] RIDE o correo (no crítico):', err);
+  }
+}
+
 export const onPurchaseSettlementEmit = onDocumentWritten(
   'companies/{companyId}/purchases/{purchaseId}',
   async (event) => {
     if (!event.data?.after.exists) return;
     const after = event.data.after.data() as Record<string, any>;
-    if (!isSettlementReadyToEmit(after)) return;
-
     const { companyId, purchaseId } = event.params;
     const db = admin.firestore();
     const path = `companies/${companyId}/purchases/${purchaseId}`;
+
+    // ── Autorizada (tras el envío o por checkSriStatus) → recibida, RIDE, correo ─
+    if (isSettlementAuthorizedPending(after)) {
+      await afterAuthorization(db, path, purchaseId, companyId);
+      return;
+    }
+    if (!isSettlementReadyToEmit(after)) return;
     console.log('[onPurchaseSettlementEmit] Emisión:', { companyId, purchaseId });
 
     try {
@@ -109,6 +142,11 @@ export const onPurchaseSettlementEmit = onDocumentWritten(
       await db.doc(path).update({
         sriStatus: SRI_NOT_REQUIRED, status: 'received', updatedAt: admin.firestore.Timestamp.now(),
       });
+      try {
+        await generateSettlementPdfInternal(purchaseId, companyId);
+      } catch (err) {
+        console.warn('[onPurchaseSettlementEmit] RIDE sin SRI (no crítico):', err);
+      }
       return;
     }
 
@@ -117,10 +155,8 @@ export const onPurchaseSettlementEmit = onDocumentWritten(
       await signSettlementXml(purchaseId, companyId);
       const result = await sendToSriInternal(purchaseId, companyId, 'purchaseSettlement');
       console.log('[onPurchaseSettlementEmit] sriStatus:', result.sriStatus);
-      if (result.sriStatus === 'authorized') {
-        // Recibida: dispara onPurchaseReceive y, tras él, el asiento.
-        await db.doc(path).update({ status: 'received', updatedAt: admin.firestore.Timestamp.now() });
-      }
+      // Autorizada: lo sigue la rama de arriba (isSettlementAuthorizedPending),
+      // que dispara esta misma escritura del SRI.
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Error inesperado';
       console.error('[onPurchaseSettlementEmit] Error en el pipeline:', err);

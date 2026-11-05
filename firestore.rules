@@ -154,6 +154,26 @@ service cloud.firestore {
       return resource.data.get('issuedByCompany', false) == true;
     }
 
+    // Liquidación rechazada (o que falló antes de llegar al SRI), aún en 'sent':
+    //  · reintentar: quitar sriStatus y sriError vuelve a disparar el envío;
+    //  · cancelar: pasa a 'cancelled' sin tocar nada más (nunca fue recibida, no
+    //    tiene asiento). Lo autorizado no se toca por aquí.
+    function purchaseSettlementFixOk() {
+      return isIssuedSettlement()
+          && resource.data.get('status', '') == 'sent'
+          && resource.data.get('sriStatus', '') == 'rejected'
+          && (
+            (request.resource.data.diff(resource.data).affectedKeys()
+                 .hasOnly(['sriStatus', 'sriError', 'updatedAt', 'updatedBy'])
+             && !('sriStatus' in request.resource.data)
+             && request.resource.data.status == 'sent')
+            ||
+            (request.resource.data.diff(resource.data).affectedKeys()
+                 .hasOnly(['status', 'updatedAt', 'updatedBy'])
+             && request.resource.data.status == 'cancelled')
+          );
+    }
+
     // La web crea las compras con stockProcessed: false; eso se acepta. Lo que
     // no, es nacer con el stock ya procesado o con datos del asiento.
     function purchaseCreateOk() {
@@ -1350,6 +1370,7 @@ service cloud.firestore {
                       // Ejercicio cerrado: no se cancela (2026-10-08).
                       && notVoidingInClosedPeriod(companyId)
                       && (purchasePaymentUpdateOk() || purchaseContentUpdateOk()
+                          || purchaseSettlementFixOk()
                           || purchaseRetentionLinkOk(companyId)
                           || purchaseSustentoFixOk());
         allow delete: if isAuthenticated() && belongsToCompany(companyId) && isAdmin()

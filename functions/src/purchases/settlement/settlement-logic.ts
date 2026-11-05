@@ -230,3 +230,16 @@ export function isSettlementReadyToEmit(data: Record<string, any>): boolean {
     && !data['isVoid']
     && !data['sriStatus'];
 }
+
+/**
+ * Autorizada por el SRI pero todavía en 'sent': falta pasarla a 'received', el
+ * RIDE y el correo. Pasa tras el envío y también si la autorización llega
+ * después (checkSriStatus).
+ */
+export function isSettlementAuthorizedPending(data: Record<string, any>): boolean {
+  return data['issuedByCompany'] === true
+    && data['sriDocumentType'] === '03'
+    && data['status'] === 'sent'
+    && !data['isVoid']
+    && data['sriStatus'] === 'authorized';
+}

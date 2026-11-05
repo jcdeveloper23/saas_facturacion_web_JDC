@@ -7,6 +7,7 @@ import {
   SettlementPayload,
   canIssueSettlement,
   computeSettlement,
+  isSettlementAuthorizedPending,
   isSettlementReadyToEmit,
   settlementCounterKey,
   settlementFullNumber,
@@ -139,5 +140,13 @@ describe('numeración y disparo', () => {
     expect(isSettlementReadyToEmit({ ...ok, sriDocumentType: '01' })).toBe(false);
     expect(isSettlementReadyToEmit({ ...ok, status: 'received' })).toBe(false);
     expect(isSettlementReadyToEmit({ ...ok, isVoid: true })).toBe(false);
+  });
+  it('autorizada pero aún enviada → falta recibirla (también si llega por checkSriStatus)', () => {
+    const ok = { issuedByCompany: true, sriDocumentType: '03', status: 'sent', sriStatus: 'authorized' };
+    expect(isSettlementAuthorizedPending(ok)).toBe(true);
+    expect(isSettlementAuthorizedPending({ ...ok, status: 'received' })).toBe(false);
+    expect(isSettlementAuthorizedPending({ ...ok, sriStatus: 'rejected' })).toBe(false);
+    expect(isSettlementAuthorizedPending({ ...ok, issuedByCompany: false })).toBe(false);
+    expect(isSettlementReadyToEmit(ok)).toBe(false);
   });
 });

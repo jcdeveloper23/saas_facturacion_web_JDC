@@ -228,6 +228,22 @@ const num = v => ({ doubleValue: v });
     await patch('companies/c1/purchases/pBorr', admin, { sriStatus: str('authorized') }), S.DENIED);
   await expectStatus('el contador paga una liquidación autorizada (recibida)',
     await patch('companies/c1/purchases/lcRec', conta, { isPaid: bool(true), status: str('paid'), paymentBankAccountId: str('b1') }), S.OK);
+  await seed('companies/c1/purchases', 'lcRej', { status: str('sent'), issuedByCompany: bool(true), sriDocumentType: str('03'), sriStatus: str('rejected'), sriError: str('x'), total: num(10) });
+  await expectStatus('una liquidación rechazada se reintenta (quitar sriStatus y sriError)',
+    await req('companies/c1/purchases/lcRej?updateMask.fieldPaths=sriStatus&updateMask.fieldPaths=sriError', conta,
+      { method: 'PATCH', body: JSON.stringify({ fields: {} }) }), S.OK);
+  await seed('companies/c1/purchases', 'lcRej2', { status: str('sent'), issuedByCompany: bool(true), sriDocumentType: str('03'), sriStatus: str('rejected'), total: num(10) });
+  await expectStatus('una liquidación rechazada se cancela',
+    await patch('companies/c1/purchases/lcRej2', seller, { status: str('cancelled') }), S.OK);
+  await expectStatus('NO se cancela una liquidación pendiente en el SRI',
+    await patch('companies/c1/purchases/lcEnv', admin, { status: str('cancelled') }), S.DENIED);
+  await seed('companies/c1/purchases', 'lcRej3', { status: str('sent'), issuedByCompany: bool(true), sriDocumentType: str('03'), sriStatus: str('rejected'), total: num(10) });
+  await expectStatus('al cancelar una rechazada NO se cambia el total',
+    await patch('companies/c1/purchases/lcRej3', admin, { status: str('cancelled'), total: num(1) }), S.DENIED);
+  await expectStatus('una rechazada NO se marca autorizada desde el cliente',
+    await patch('companies/c1/purchases/lcRej3', admin, { sriStatus: str('authorized') }), S.DENIED);
+  await expectStatus('el cajero NO toca una liquidación rechazada',
+    await patch('companies/c1/purchases/lcRej3', cashier, { status: str('cancelled') }), S.DENIED);
   await expectStatus('nadie toca el contador de liquidaciones (solo servidor)',
     await create('companies/c1/counters', 'purchaseSettlements', admin, { LC_001_001_2026: num(1) }), S.DENIED);
   await expectStatus('cajero de la 002 cobra una factura de la 001 con updatedBy',
