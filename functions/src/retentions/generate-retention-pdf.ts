@@ -72,6 +72,7 @@ function fmtDatetime(ts: admin.firestore.Timestamp): string {
 const SUPPORT_DOC_LABELS: Record<string, string> = {
   '01': 'Factura',
   '02': 'Nota o Boleta de Venta',
+  '03': 'Liquidación de Compra de Bienes y Prestación de Servicios',
   '04': 'Nota de Crédito',
   '05': 'Nota de Débito',
   '09': 'Tiquete',
@@ -79,7 +80,7 @@ const SUPPORT_DOC_LABELS: Record<string, string> = {
   '12': 'Inst. Cambio',
   '15': 'Comprobante de Venta emitido en el exterior',
   '16': 'RISE',
-  '18': 'Liquidación de Compras de Bienes',
+  '18': 'Documentos autorizados utilizados en ventas excepto N/C N/D',
   '20': 'Liquidación por Reclasificación de Bienes',
   '21': 'Liquidación por Diferencias en Mermas',
 };
