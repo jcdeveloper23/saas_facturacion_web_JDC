@@ -139,6 +139,25 @@ export const setupCompany = onCall(async (request) => {
   const now = Timestamp.now();
   await assertCallerChannelActive(db, caller);
 
+  // ── Un RUC = una empresa en toda la plataforma ────────────────────────────
+  // Sin esto, cada canal ve solo sus empresas y puede crear el mismo RUC otra vez
+  // (pasó el 2026-11-06: 0190434990001 quedó en conecta-app y en mi-buseta).
+  // A otro canal no se le dice el id ni el canal de la empresa existente.
+  const taxId = String(data.taxId).trim();
+  const sameTaxId = await db.collection('companies').where('taxId', '==', taxId).limit(1).get();
+  if (!sameTaxId.empty) {
+    const existing = sameTaxId.docs[0];
+    const sameChannel = existing.get('channelId') === channelId;
+    console.warn('[setupCompany] RUC ya registrado:', taxId, '| empresa:', existing.id, '| canal:', existing.get('channelId'));
+    throw new HttpsError(
+      'already-exists',
+      sameChannel
+        ? `Ya existe una empresa con el RUC ${taxId} (${existing.id}).`
+        : `El RUC ${taxId} ya tiene una empresa en la plataforma. Comuníquese con soporte.`,
+      sameChannel ? { companyId: existing.id, sameChannel: true } : { sameChannel: false }
+    );
+  }
+
   // ── Load plan data (if planId provided) ────────────────────────────────────
   let planLimits: Record<string, any> | null = null;
   let planFeatures: Record<string, any> | null = null;
