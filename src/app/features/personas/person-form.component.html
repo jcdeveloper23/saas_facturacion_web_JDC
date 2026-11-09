@@ -539,12 +539,6 @@
             Datos de Empleado
           </p>
           <c-row class="g-3">
-            @if (isVisible('employee.iessNumber')) {
-            <c-col md="4">
-              <label cLabel>{{ fieldLabel('employee.iessNumber') }}</label>
-              <input cFormControl formControlName="iessNumber" placeholder="Número IESS" class="font-monospace">
-            </c-col>
-            }
             @if (isVisible('employee.position')) {
             <c-col md="4">
               <label cLabel>{{ fieldLabel('employee.position') }}</label>
@@ -555,39 +549,6 @@
             <c-col md="4">
               <label cLabel>{{ fieldLabel('employee.department') }}</label>
               <input cFormControl formControlName="department" placeholder="Ej: Ventas, RRHH">
-            </c-col>
-            }
-            @if (isVisible('employee.contractType')) {
-            <c-col md="4">
-              <label cLabel>{{ fieldLabel('employee.contractType') }}</label>
-              <select cSelect formControlName="contractType">
-                @for (ct of CONTRACT_TYPES; track ct.value) {
-                <option [value]="ct.value">{{ ct.label }}</option>
-                }
-              </select>
-            </c-col>
-            }
-            @if (isVisible('employee.hireDate')) {
-            <c-col md="4">
-              <label cLabel>{{ fieldLabel('employee.hireDate') }}</label>
-              <input cFormControl type="date" formControlName="hireDate">
-            </c-col>
-            }
-            @if (isVisible('employee.endDate')) {
-            <c-col md="4">
-              <label cLabel>{{ fieldLabel('employee.endDate') }}</label>
-              <input cFormControl type="date" formControlName="endDate">
-              <div class="form-text text-muted small">Dejar vacío si sigue activo.</div>
-            </c-col>
-            }
-            @if (isVisible('employee.salary')) {
-            <c-col md="4">
-              <label cLabel>{{ fieldLabel('employee.salary') }}</label>
-              <c-input-group>
-                <span cInputGroupText>$</span>
-                <input cFormControl type="number" min="0" step="0.01" formControlName="salary"
-                  placeholder="Salario mensual">
-              </c-input-group>
             </c-col>
             }
           </c-row>

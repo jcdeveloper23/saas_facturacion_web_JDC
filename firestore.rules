@@ -983,16 +983,25 @@ service cloud.firestore {
 
       // ─── All tenant sub-collections ─────────────────────────────────
       match /personas/{id} {
+        // Todo rol de la empresa lee las personas y las reglas no filtran campos:
+        // sueldo, IESS, fechas y contrato no pueden entrar aquí (nómina, D-N3 y D-N8).
+        function hasNoPayrollData() {
+          return !request.resource.data.get('employeeData', {}).keys()
+            .hasAny(['salary', 'iessNumber', 'hireDate', 'endDate', 'contractType']);
+        }
+
         allow read: if isAuthenticated() && belongsToCompany(companyId);
         // Crear: admin, vendedor y cajero (clientes y proveedores; el cajero
         // da de alta al cliente al cobrar y al proveedor desde «Clientes y
         // proveedores», 2026-10-08) y el contador (solo proveedores).
         allow create: if isAuthenticated() && belongsToCompany(companyId)
+                      && hasNoPayrollData()
                       && (canWrite() || accountantCreatesSupplier());
         // Editar: admin y vendedor, y el contador sus proveedores. El cajero
         // no edita fichas que ya existen (2026-10-08): ninguna pantalla suya
         // las actualiza; antes canWrite() se lo dejaba con el SDK.
         allow update: if isAuthenticated() && belongsToCompany(companyId)
+                      && hasNoPayrollData()
                       && (canEditMasterData() || accountantUpdatesSupplier());
         allow delete: if isAuthenticated() && belongsToCompany(companyId) && isAdmin();
       }

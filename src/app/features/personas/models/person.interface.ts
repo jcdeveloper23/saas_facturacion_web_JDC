@@ -5,7 +5,6 @@ import { Timestamp } from '@angular/fire/firestore';
 export type TaxIdType    = 'RUC' | 'CI' | 'PASAPORTE' | 'EXTERIOR';
 export type VatRegime    = 'General' | 'Especial' | 'Exportador' | 'No sujeto';
 export type PersonRole   = 'customer' | 'supplier' | 'employee' | 'contact' | 'other' | 'student' | 'teacher';
-export type ContractType = 'indefinido' | 'plazo_fijo' | 'honorarios' | 'obra_cierta';
 
 export const ROLE_LABELS: Record<PersonRole, string> = {
   customer: 'Cliente',
@@ -109,13 +108,10 @@ export interface SupplierData {
 
 export interface EmployeeData {
   code: string;             // codemp: independent sequence
-  iessNumber?: string;
   position?: string;
   department?: string;
-  salary?: number;
-  hireDate?: string;        // ISO date string
-  endDate?: string;
-  contractType?: ContractType;
+  // Sueldo, IESS, fechas y contrato no van aquí (D-N3, D-N8): todo rol de la empresa
+  // lee las personas. Viven en la colección protegida de nómina.
 }
 
 // ── Extension role data (pkg_school_bar) ─────────────────────────────────────

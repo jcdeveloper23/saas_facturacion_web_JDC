@@ -69,13 +69,8 @@ export const PERSON_FIELD_CATALOG: FieldDefinition[] = [
   { key: 'supplier.defaultCostCenterId', defaultLabel: 'Centro de Costo por Defecto', section: 'supplier_commercial', requiresRole: 'supplier', alwaysVisible: false, alwaysRequired: false, defaultVisible: false, defaultRequired: false },
 
   // ── Employee HR (configurable) ────────────────────────────────────────────
-  { key: 'employee.iessNumber',   defaultLabel: 'N° Afiliación IESS',  section: 'employee_hr', requiresRole: 'employee', alwaysVisible: false, alwaysRequired: false, defaultVisible: true,  defaultRequired: false },
   { key: 'employee.position',     defaultLabel: 'Cargo',               section: 'employee_hr', requiresRole: 'employee', alwaysVisible: false, alwaysRequired: false, defaultVisible: true,  defaultRequired: false },
   { key: 'employee.department',   defaultLabel: 'Departamento',        section: 'employee_hr', requiresRole: 'employee', alwaysVisible: false, alwaysRequired: false, defaultVisible: true,  defaultRequired: false },
-  { key: 'employee.salary',       defaultLabel: 'Salario Base (USD)',  section: 'employee_hr', requiresRole: 'employee', alwaysVisible: false, alwaysRequired: false, defaultVisible: false, defaultRequired: false },
-  { key: 'employee.hireDate',     defaultLabel: 'Fecha de Ingreso',    section: 'employee_hr', requiresRole: 'employee', alwaysVisible: false, alwaysRequired: false, defaultVisible: true,  defaultRequired: false },
-  { key: 'employee.endDate',      defaultLabel: 'Fecha de Salida',     section: 'employee_hr', requiresRole: 'employee', alwaysVisible: false, alwaysRequired: false, defaultVisible: false, defaultRequired: false },
-  { key: 'employee.contractType', defaultLabel: 'Tipo de Contrato',    section: 'employee_hr', requiresRole: 'employee', alwaysVisible: false, alwaysRequired: false, defaultVisible: true,  defaultRequired: false },
 
   // ── Notes (common, configurable) ──────────────────────────────────────────
   { key: 'notes', defaultLabel: 'Notas', section: 'fiscal', alwaysVisible: false, alwaysRequired: false, defaultVisible: true, defaultRequired: false },

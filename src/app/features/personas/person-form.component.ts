@@ -23,7 +23,7 @@ import { SchoolAllergenService }    from '../school-bar/services/school-allergen
 import { SchoolGrade, SchoolAllergen } from '../school-bar/models';
 import {
   Person, PersonAddress, PersonBankAccount,
-  PersonRole, TaxIdType, VatRegime, ContractType,
+  PersonRole, TaxIdType, VatRegime,
   ROLE_LABELS, ROLE_COLORS, ALL_ROLES
 } from './models/person.interface';
 import { PaymentTerm, Currency, DocumentSeries } from '../settings/models/settings.interfaces';
@@ -34,13 +34,6 @@ import { CostCentersService } from '../accounting/services/cost-centers.service'
 import { CostCenter } from '../accounting/models/cost-center.interface';
 
 type FormTab = 'general' | 'addresses' | 'banks' | 'purchases';
-
-const CONTRACT_TYPES: { value: ContractType; label: string }[] = [
-  { value: 'indefinido',  label: 'Indefinido' },
-  { value: 'plazo_fijo',  label: 'Plazo Fijo' },
-  { value: 'honorarios',  label: 'Honorarios Profesionales' },
-  { value: 'obra_cierta', label: 'Obra Cierta' }
-];
 
 @Component({
   selector: 'app-person-form',
@@ -174,7 +167,6 @@ export class PersonFormComponent implements OnInit {
   readonly ALL_ROLES     = ALL_ROLES;
   readonly ROLE_LABELS   = ROLE_LABELS;
   readonly ROLE_COLORS   = ROLE_COLORS;
-  readonly CONTRACT_TYPES = CONTRACT_TYPES;
 
   /** maxlength de la identificación según el tipo (validador único). */
   readonly taxIdMaxLength = taxIdMaxLength;
@@ -364,13 +356,8 @@ export class PersonFormComponent implements OnInit {
       }),
       // ── Employee role data ───────────────────────────────────────────────
       employeeData: this.fb.group({
-        iessNumber:   [''],
         position:     [''],
-        department:   [''],
-        salary:       [null],
-        hireDate:     [''],
-        endDate:      [''],
-        contractType: ['indefinido']
+        department:   ['']
       }),
       // ── Extension: Estudiante (pkg_school_bar) ───────────────────────────
       studentData: this.fb.group({

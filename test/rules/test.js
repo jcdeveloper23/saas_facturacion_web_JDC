@@ -773,6 +773,25 @@ const num = v => ({ doubleValue: v });
     await del('companies/c1/personas/cli3', cashier), S.DENIED);
   await expectStatus('el vendedor edita un cliente',
     await patch('companies/c1/personas/cli3', seller, { name: str('CLIENTE TRES') }), S.OK);
+  // Nómina (D-N3, D-N8): la ficha pública no guarda sueldo, IESS, fechas ni contrato.
+  const empleado = (employeeData) => ({
+    taxId: str('1700000001'), name: str('EMPLEADO'), roles: list(['employee']),
+    employeeData: { mapValue: { fields: employeeData } },
+  });
+  await expectStatus('la ficha de empleado con cargo y departamento se crea',
+    await create('companies/c1/personas', 'emp1', seller,
+      empleado({ code: str('E1'), position: str('Vendedor'), department: str('Ventas') })), S.OK);
+  for (const [campo, valor] of [
+    ['salary', { doubleValue: 1000 }], ['iessNumber', str('123')], ['hireDate', str('2026-01-01')],
+    ['endDate', str('2026-12-31')], ['contractType', str('indefinido')],
+  ]) {
+    await expectStatus(`NO se crea una ficha con ${campo}`,
+      await create('companies/c1/personas', `emp-${campo}`, seller, empleado({ [campo]: valor })), S.DENIED);
+    await expectStatus(`NO se agrega ${campo} a una ficha`,
+      await patch('companies/c1/personas/emp1', seller, { employeeData: { mapValue: { fields: { [campo]: valor } } } }), S.DENIED);
+  }
+  await expectStatus('ni el admin escribe el sueldo en la ficha',
+    await patch('companies/c1/personas/emp1', admin, { employeeData: { mapValue: { fields: { salary: { doubleValue: 1000 } } } } }), S.DENIED);
   // Colecciones legadas: igual.
   await seed('companies/c1/customers', 'lc1', { name: str('LEGADO') });
   await expectStatus('legado: el cajero crea un cliente',

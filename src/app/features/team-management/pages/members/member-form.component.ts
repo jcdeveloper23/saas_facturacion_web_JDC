@@ -224,7 +224,6 @@ export class MemberFormComponent implements OnInit, OnDestroy {
       displayName: p.name,
       email:       p.email ?? '',
       phone:       p.phone1 ?? '',
-      hireDate:    p.employeeData?.hireDate ?? '',
       position:    p.employeeData?.position ?? '',
     });
     this.step.set('form');
