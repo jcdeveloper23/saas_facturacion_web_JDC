@@ -146,6 +146,7 @@
               <th>Fact. Proveedor</th>
               <th>Proveedor</th>
               <th>Almacén</th>
+              <th class="text-center">F. Emisión</th>
               <th class="text-center">Fecha</th>
               <th class="text-center">Líneas</th>
               <th class="text-end">Total</th>
@@ -165,6 +166,7 @@
                   <div style="font-size:.71rem; color:var(--cui-secondary-color)">{{ p.supplierRuc }}</div>
                 </td>
                 <td class="text-nowrap" style="font-size:.78rem">{{ p.warehouseName }}</td>
+                <td class="text-center text-nowrap">{{ p.supplierInvoiceDate?.toDate() | date:'dd/MM/yyyy' }}</td>
                 <td class="text-center text-nowrap">{{ p.date.toDate() | date:'dd/MM/yyyy' }}</td>
                 <td class="text-center">{{ p.lines.length }}</td>
                 <td class="text-end font-monospace">$ {{ p.total | number:'1.2-2' }}</td>
