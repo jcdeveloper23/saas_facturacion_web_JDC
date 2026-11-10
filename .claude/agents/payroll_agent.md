@@ -18,9 +18,21 @@ Copia corta. **La versión principal y el plan viven en el panel:**
 
 - E1 en producción: `personas` ya no guarda sueldo, IESS, fechas ni contrato
   (`hasNoPayrollData()` en `firestore.rules`, commit `3a02814`).
-- **Siguiente: E2** (colecciones, reglas y pruebas, módulo `payroll` y `pkg_hr`,
-  `employeesTotal`, `functions/src/payroll/payroll-calc.ts` con su spec). Orden y detalle en
-  el agente principal.
+- **E2 hecha en código, SIN commit y SIN desplegar** (rama `feat/nomina_conectate`): 8 colecciones
+  con regla (solo lectura de `admin` y `accountant`, sin escritura del cliente) y su regla de
+  Storage; pruebas de reglas; módulo `payroll` y paquete `pkg_hr`; permisos y scripts
+  `seed-payroll-module.ts` y `grant-payroll-permissions.js`; `employees` en `checkPlanLimit`;
+  cálculo puro, asiento, décimos y préstamos en `functions/src/payroll/` con 41 pruebas Jest
+  (en verde en una copia aparte; incluye correcciones de la revisión independiente, `NOMINA_E2.md` §10). **Detalle, orden de despliegue y supuestos a confirmar:
+  `docs/NOMINA_E2.md`.**
+- **Reglas probadas (2026-11-10):** Firestore 740/740 y Storage 24/24. Comando en
+  `docs/NOMINA_E2.md` §4 (con el aviso para quien tenga Java menor que 21).
+- **Pendiente de E2:** correr Jest dentro de `functions/` (`npm install` primero); publicar el documento
+  `payrollParameters` 2026 (sin script todavía, y con IECE, SECAP y divisor pendientes de Jessica Zari);
+  commit por archivo; desplegar solo con orden del usuario (reglas → scripts → functions).
+- **Siguiente: E3**, las 8 callables de `functions/src/payroll/` con `requirePayrollRole`
+  (`upsertPayrollEmployee` usa `employeeLimitDecision` y mantiene `totalPayrollEmployeesActive`),
+  exportadas en `index.ts` y sumadas a `scripts/deploy-node22.sh`.
 
 ## Lo que más importa en este repo
 
