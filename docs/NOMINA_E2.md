@@ -256,7 +256,8 @@ Comando en §4.
 
 ## 7. Discrepancias entre el código y el plan (encontradas al verificar)
 
-1. **Parámetros no publicados / sin script.** El plan §8 (E2) incluye «documento de parámetros» y §10.2
+1. **Parámetros no publicados / sin script.** → **Script hecho en E3** (`scripts/seed-payroll-parameters.ts`,
+   ver `NOMINA_E3.md` §9); falta correrlo en producción. El plan §8 (E2) incluye «documento de parámetros» y §10.2
    menciona `seed-payroll-parameters.ts`. **No existe** ni el script ni ningún documento
    `payrollParameters`. Sin una versión `published`, `pickParameters` devuelve `null` y la nómina no
    puede calcularse. Además `iecePct`, `secapPct` y `hoursDivisor` deben quedar en `null` en el

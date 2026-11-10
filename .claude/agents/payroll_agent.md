@@ -30,9 +30,16 @@ Copia corta. **La versión principal y el plan viven en el panel:**
 - **Pendiente de E2:** correr Jest dentro de `functions/` (`npm install` primero); publicar el documento
   `payrollParameters` 2026 (sin script todavía, y con IECE, SECAP y divisor pendientes de Jessica Zari);
   commit por archivo; desplegar solo con orden del usuario (reglas → scripts → functions).
-- **Siguiente: E3**, las 8 callables de `functions/src/payroll/` con `requirePayrollRole`
-  (`upsertPayrollEmployee` usa `employeeLimitDecision` y mantiene `totalPayrollEmployeesActive`),
-  exportadas en `index.ts` y sumadas a `scripts/deploy-node22.sh`.
+- **E3 hecha en código, SIN commit y SIN desplegar** (2026-11-10): las 8 callables, el PDF y el correo en
+  `functions/src/payroll/`, exportadas en `index.ts` y con la tanda `14-nomina` en `scripts/deploy-node22.sh`.
+  Jest 57/57 (43 de cálculo + 14 de E3); integración contra el emulador de Firestore 4/4 (`test/payroll/`).
+  **`sendPayslipEmails` NO se probó** (SMTP real y `@google-cloud/secret-manager`); nada probado en pantalla.
+  **Detalle, contrato con Conecta, orden de despliegue y discrepancias: `docs/NOMINA_E3.md`.**
+- **Pendiente de E3:** correr `scripts/seed-payroll-parameters.ts` (hecho y probado en emulador; publicar exige
+  `--with-criteria` hasta que Jessica confirme IECE, SECAP y divisor); sin callables de alta
+  de `payrollGroups` y `payrollLoans` (D-N10, D-N12) ni de `payrollBonusRuns` (D-N11).
+- **Siguiente:** desplegar cuando lo ordene el usuario (reglas → scripts → tanda 14-nomina; encender `pkg_hr` en
+  LEANDRO LEÓN y subir `employeesTotal`) y probar en pantalla con Conecta; o completar préstamos, grupos y décimos.
 
 ## Lo que más importa en este repo
 
