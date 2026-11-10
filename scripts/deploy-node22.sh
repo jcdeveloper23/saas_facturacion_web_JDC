@@ -61,3 +61,8 @@ firebase deploy --project accounting-system-a5c9f --only functions:voidReceivedP
 # Tanda 13-liquidacion-compra (2) — agregada el 2026-11-05: liquidación de compra
 # (codDoc 03). La callable numera y crea la compra; el trigger hace XML, firma y SRI.
 firebase deploy --project accounting-system-a5c9f --only functions:issuePurchaseSettlement,functions:onPurchaseSettlementEmit 2>&1 | tee deploy-node22-13-liquidacion-compra.log
+
+# Tanda 14-nomina (8) — agregada el 2026-11-10: nómina y roles de pago (PLAN_NOMINA.md E3).
+# Callables con transacción; solo admin y contador (requirePayrollRole). Van DESPUÉS de las
+# reglas de nómina y de seed-payroll-module / grant-payroll-permissions.
+firebase deploy --project accounting-system-a5c9f --only functions:upsertPayrollEmployee,functions:savePayrollNovelties,functions:createPayrollRun,functions:recalculatePayrollRun,functions:approvePayrollRun,functions:reversePayrollRun,functions:getPayslipPdf,functions:sendPayslipEmails 2>&1 | tee deploy-node22-14-nomina.log

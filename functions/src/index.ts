@@ -106,6 +106,12 @@ export { generateAccountingPdf }                from './accounting/generate-acco
 export { generateAts }                          from './accounting/ats/generate-ats';
 export { auditLogJournalEntries, auditLogChartOfAccounts, auditLogAccountingPeriods } from './accounting/audit-log-trigger';
 
+// Nómina y roles de pago (PLAN_NOMINA.md E3). Solo admin y contador (requirePayrollRole).
+export { upsertPayrollEmployee, savePayrollNovelties } from './payroll/payroll-employee-callables';
+export { createPayrollRun, recalculatePayrollRun, approvePayrollRun, reversePayrollRun } from './payroll/payroll-run-callables';
+export { getPayslipPdf } from './payroll/payroll-pdf';
+export { sendPayslipEmails } from './payroll/payroll-email';
+
 // Users
 export { createCompanyUser } from './users/create-company-user';
 export { updateCompanyUser } from './users/update-company-user';
