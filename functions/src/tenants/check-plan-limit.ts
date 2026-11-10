@@ -68,6 +68,10 @@ export const checkPlanLimit = onCall(async (request) => {
     customers:      { source: 'company', companyField: 'totalCustomersActive', limitPath: ['masterData', 'customersTotal']        },
     products:       { source: 'company', companyField: 'totalProductsActive',  limitPath: ['masterData', 'productsTotal']         },
     warehouses:     { source: 'company', companyField: 'totalWarehousesActive',limitPath: ['masterData', 'warehousesTotal']       },
+    // Nómina (PLAN_NOMINA.md D-N9): empleados activos en payrollEmployees. El
+    // contador lo lleva upsertPayrollEmployee. Ojo: upsertPayrollEmployee NO usa
+    // el camino «legacy → permitido» de abajo (payroll/payroll-limits.ts).
+    employees:      { source: 'company', companyField: 'totalPayrollEmployeesActive', limitPath: ['masterData', 'employeesTotal'] },
     users:          { source: 'company', companyField: 'totalUsersActive',     limitPath: ['users', 'activeUsersPerCompany']      },
     customRoles:    { source: 'company', companyField: 'totalCustomRoles',     limitPath: ['users', 'customRolesPerCompany']      },
     activeProjects: { source: 'company', companyField: 'totalActiveProjects',  limitPath: ['operations', 'activeProjectsTotal']   },
