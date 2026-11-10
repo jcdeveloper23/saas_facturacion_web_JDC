@@ -377,6 +377,25 @@ describe('revisión independiente: bordes', () => {
       nonTaxableIncome: '5.2.01.009' }));
     expect(separado.find(l => l.accountCode === '5.2.01.009')!.debitCents).toBe(2000);
   });
+  it('(k) aniversario y permiso sin sueldo en el mismo mes: aviso, el monto no cambia', () => {
+    const r = calc(emp({ hireDate: '2025-11-16' }), [{ employeeId: 'e1', type: 'unpaidLeave', qty: 10 }]);
+    expect(r.warnings.join(' ')).toMatch(/primer año este mes/);
+    expect(amount(r, 'reserveFundMonthly')).toBe(roundCents(66667 * 0.0833 * 15 / 20));   // 41,65
+    expect(r.errors).toEqual([]);
+    // Sin permiso, o con el derecho ya cumplido, no hay aviso.
+    expect(calc(emp({ hireDate: '2025-11-16' })).warnings).toEqual([]);
+    expect(calc(emp(), [{ employeeId: 'e1', type: 'unpaidLeave', qty: 10 }]).warnings).toEqual([]);
+  });
+  it('(l) préstamos sobre el 10 %: aviso, no rechazo', () => {
+    const r = calc(emp(), [{ employeeId: 'e1', type: 'advance', amountCents: 5000 }], 11, { loans: [
+      { id: 'L1', employeeId: 'e1', type: 'companyLoan', installmentCents: 8000, balanceCents: 80000 },
+      { id: 'L2', employeeId: 'e1', type: 'iessQuirografario', installmentCents: 6000, balanceCents: 60000 },
+    ] });
+    expect(r.errors).toEqual([]);
+    expect(r.warnings.join(' ')).toMatch(/suman el 19 %/);
+    // Bajo el 10 % no avisa.
+    expect(calc(emp(), [{ employeeId: 'e1', type: 'advance', amountCents: 5000 }]).warnings).toEqual([]);
+  });
   it('missingParameters exige también maxPerDay y vacation.baseDays', () => {
     const p = { ...P2026, overtime: { ...P2026.overtime, maxPerDay: null }, vacation: { ...P2026.vacation, baseDays: null } };
     expect(missingParameters(p)).toEqual(['overtime.maxPerDay', 'vacation.baseDays']);

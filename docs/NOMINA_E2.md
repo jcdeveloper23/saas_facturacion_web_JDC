@@ -314,3 +314,21 @@ cálculo del décimo desde lo percibido y el SBU al pagar (`payroll-bonus.ts`). 
   `fundDays = min(workedDays, días con derecho)`. Abierto.
 - (l) **Tope del art. 90 para los demás préstamos** (empresa, IESS): hoy solo anticipos y
   `longTermAdvance` (§9 del plan). Y `maxPerDay` no se valida por día (novedades mensuales).
+
+## 11. Decisiones provisionales hasta que responda Jessica Zari (2026-11-10)
+
+Mientras no llegan las respuestas, se sigue con estos criterios. Regla usada: **en la duda, no
+pagarle de menos al trabajador** (pagar de menos expone a reclamos; unos centavos de más son solo
+costo). **Ninguna es definitiva:** si Jessica responde otra cosa, se cambia en el lugar indicado y se
+rehace su prueba. Los puntos (i) a (l) están en el §10; las 19 preguntas generales, en el §9 del plan.
+
+| Punto | Decisión provisional | Si Jessica dice otra cosa, se cambia en |
+|---|---|---|
+| (i) Ingreso el último día de un mes corto | Cuenta **1 día** (30/360), igual que la salida ese día cuenta el mes entero | `payroll-dates.ts`, `dayOnScale30` (para 3 días: `Math.min(30, p.d)`) y su prueba «ingresar el último día de un mes corto» |
+| (j) Pago del décimo acumulado | 13.º = lo percibido en los meses acumulados / 12; 14.º = **SBU vigente al pagar** × días / 360. La diferencia con lo provisionado va al gasto | `payroll-bonus.ts`, `bonusLine` (para pagar lo provisionado: `amount = provisioned`) y las pruebas de décimos |
+| (k) Fondos con permiso sin sueldo | Se mantiene `fundDays = min(días trabajados, días con derecho)`: puede pagar de más, nunca de menos. **Aviso** en la nómina cuando coinciden el aniversario y un permiso | `payroll-calc.ts` (bloque «Provisional … punto k»). Si se necesitan las fechas del permiso, agregar `from`/`to` a la novedad `unpaidLeave` |
+| (l) Tope del 10 % (art. 90) | **Rechaza** solo anticipos del mes + cuotas de anticipo a largo plazo. Con las cuotas de préstamos de empresa e IESS **avisa**, no rechaza (los del IESS los ordena el IESS) | `payroll-calc.ts` (bloque «Provisional … punto l»): para rechazar, pasar el aviso a `errors` |
+| (l) Tope diario de horas extra | No se valida por día: las novedades son el total del mes; aviso con el tope semanal aproximado | Requeriría registrar horas por día (otro módulo: asistencia) |
+
+Los avisos no cambian ningún monto: aparecen en `warnings` del rol y la pantalla de la nómina los
+muestra antes de aprobar. Pruebas: 43/43 en verde (las dos nuevas: «(k)» y «(l)»).

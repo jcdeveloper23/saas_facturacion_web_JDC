@@ -133,7 +133,15 @@ export function calculatePayslip(input: {
   ].filter(l => l.amountCents > 0);
   const thirteenth = roundCents(taxable / p.thirteenth.divisor!);
   const fourteenth = roundCents(sbuCents / p.fourteenth.divisor! * workedDays / 30);
-  const fundDays = Math.min(workedDays, reserveFundDays(year, month, span, e.hireDate, e.priorServiceDays));
+  const fundDaysInSpan = reserveFundDays(year, month, span, e.hireDate, e.priorServiceDays);
+  const fundDays = Math.min(workedDays, fundDaysInSpan);
+  // Provisional (NOMINA_E2.md §11, punto k): los permisos no traen fechas, así
+  // que el mes en que nace el derecho con permiso sin sueldo puede pagar fondos
+  // de más (nunca de menos). Se avisa para que el contador lo revise.
+  if (unpaid > 0 && fundDaysInSpan > 0 && fundDaysInSpan < spanDays) {
+    warnings.push(`${e.name}: cumple su primer año este mes y tiene días de permiso sin sueldo; ` +
+      'revisa los fondos de reserva según las fechas del permiso.');
+  }
   const reserveFund = workedDays > 0 ? roundCents(taxable * p.reserveFund.pct! / 100 * fundDays / workedDays) : 0;
   const vacation = roundCents(taxable / p.vacation.divisor!);
 
@@ -176,6 +184,16 @@ export function calculatePayslip(input: {
   }
 
   const netCents = sum(earnings) - sum(deductions);
+  // Provisional (NOMINA_E2.md §11, punto l): el tope del art. 90 rechaza solo
+  // anticipos; con las cuotas de los demás préstamos se avisa, no se rechaza
+  // (los del IESS los ordena el IESS).
+  const allInstallments = loans.reduce((s, l) => s + Math.min(l.installmentCents, l.balanceCents), 0);
+  if (advances + longTermInstallments <= advanceCap && advances + allInstallments > advanceCap && taxable > 0) {
+    const pctUsed = Math.round((advances + allInstallments) * 100 / taxable);
+    warnings.push(`${e.name}: anticipos y cuotas de préstamos suman el ${pctUsed} % de la remuneración ` +
+      `(el tope del art. 90 es ${p.advanceCapPct} % para anticipos).`);
+  }
+
   if (netCents < 0) errors.push(`${e.name}: los descuentos superan los ingresos del mes.`);
 
   return {
