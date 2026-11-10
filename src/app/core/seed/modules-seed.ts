@@ -346,6 +346,18 @@ export const MODULES_SEED: ModuleSeed[] = [
   },
 
   // ═══════════════════════════════════════════════════════
+  //  NÓMINA (PLAN_NOMINA.md §6.4, paquete pkg_hr)
+  // ═══════════════════════════════════════════════════════
+  // showInMenu: false hasta E5: la web todavía no tiene features/payroll y el
+  // ítem llevaría a una ruta que no existe. Conecta arma su propio menú.
+  {
+    code: 'payroll', name: 'Nómina',
+    description: 'Empleados, nóminas del mes, roles de pago y parámetros legales. Solo administrador y contador.',
+    url: '/payroll/runs', icon: 'cil-people', isTitle: false, parent_id: null, showInMenu: false,
+    dependencies: ['accounting'], order: 55, state: true,
+  },
+
+  // ═══════════════════════════════════════════════════════
   //  INFORMES
   // ═══════════════════════════════════════════════════════
   {

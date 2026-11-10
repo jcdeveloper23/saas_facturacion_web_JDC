@@ -48,6 +48,8 @@ const COMPANY_DEFAULT_ROLES = [
       'products.view', 'products.create',
       'suppliers.view', 'suppliers.create', 'suppliers.edit',
       'sri.view', 'settings.view',
+      // Nómina (PLAN_NOMINA.md D-N2, §6.4): ve, abre, recalcula y aprueba.
+      'payroll.view', 'payroll.create', 'payroll.edit',
     ],
   },
   {

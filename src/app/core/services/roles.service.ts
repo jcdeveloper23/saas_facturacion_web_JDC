@@ -109,6 +109,8 @@ export const DEFAULT_SYSTEM_ROLES: Omit<Role, 'id' | 'createdAt' | 'updatedAt'>[
       'settings.view', 'settings.create', 'settings.edit', 'settings.delete',
       'users.view', 'users.create', 'users.edit', 'users.delete',
       'team_management.view', 'team_management.create', 'team_management.edit', 'team_management.delete',
+      // Nómina (PLAN_NOMINA.md D-N2). En la base actual va por grant-payroll-permissions.js.
+      'payroll.view', 'payroll.create', 'payroll.edit', 'payroll.delete',
     ] as PermissionString[]
   },
 ];
@@ -153,6 +155,8 @@ export const COMPANY_DEFAULT_ROLES: Omit<Role, 'id' | 'createdAt' | 'updatedAt'>
       'marketplace.view', 'marketplace.create', 'marketplace.edit', 'marketplace.delete',
       'report_invoices.view', 'report_purchases.view', 'report_products.view',
       'benefits.view',
+      // Nómina (PLAN_NOMINA.md D-N2).
+      'payroll.view', 'payroll.create', 'payroll.edit', 'payroll.delete',
     ] as PermissionString[]
   },
   {
@@ -201,6 +205,8 @@ export const COMPANY_DEFAULT_ROLES: Omit<Role, 'id' | 'createdAt' | 'updatedAt'>
       'products.view',
       'sri.view',
       'settings.view',
+      // Nómina (PLAN_NOMINA.md D-N2, §6.4). Espejo de setup-company.ts.
+      'payroll.view', 'payroll.create', 'payroll.edit',
     ] as PermissionString[]
   },
   {

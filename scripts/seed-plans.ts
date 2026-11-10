@@ -685,6 +685,23 @@ const packages: SeedPackage[] = [
     isSystem: false,
     order: 11,
     state: true
+  },
+  // Nómina (PLAN_NOMINA.md D-N9): add-on aparte, ningún plan lo incluye de
+  // oficio. Espejo de plugin-packages-seed.ts. Precio: decisión comercial pendiente.
+  {
+    code: 'pkg_hr',
+    name: 'Nómina y Roles de Pago',
+    description: 'Empleados, novedades del mes, cálculo de la nómina (IESS, décimos, fondos de reserva, vacaciones), rol de pago en PDF y asiento contable.',
+    modules: ['payroll'],
+    dependencies: ['pkg_accounting'],
+    price: 0,
+    currency: 'USD',
+    billingPeriod: 'monthly',
+    icon: 'cil-people',
+    color: 'success',
+    isSystem: false,
+    order: 12,
+    state: true
   }
 ];
 

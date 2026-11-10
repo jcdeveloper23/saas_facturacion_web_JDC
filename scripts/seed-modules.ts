@@ -382,6 +382,18 @@ const modules: SeedModule[] = [
   },
 
   // ═══════════════════════════════════════════════════════
+  //  NÓMINA (PLAN_NOMINA.md §6.4) — espejo de modules-seed.ts, para
+  //  instalaciones nuevas. En la base actual va por seed-payroll-module.ts:
+  //  este script pisa los ajustes del super admin.
+  // ═══════════════════════════════════════════════════════
+  {
+    code: 'payroll', name: 'Nómina',
+    description: 'Empleados, nóminas del mes, roles de pago y parámetros legales. Solo administrador y contador.',
+    url: '/payroll/runs', icon: 'cil-people', isTitle: false, parent_id: null, showInMenu: false,
+    dependencies: ['accounting'], order: 55, state: true,
+  },
+
+  // ═══════════════════════════════════════════════════════
   //  INFORMES
   // ═══════════════════════════════════════════════════════
   {

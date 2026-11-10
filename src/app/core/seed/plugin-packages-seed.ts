@@ -289,6 +289,26 @@ export const PLUGIN_PACKAGES_SEED: PackageSeed[] = [
     isSystem:      false,
     order:         10,
     state:         true
+  },
+
+  // ─── NÓMINA (PLAN_NOMINA.md D-N9, E2) ─────────────────────────────────────
+  // Paquete aparte, encendido por empresa con portalSetAddon. Depende de
+  // Contabilidad: aprobar la nómina crea su asiento en el ejercicio abierto.
+  // ⚠️ El precio es decisión comercial pendiente: 0 hasta que se fije.
+  {
+    code:          'pkg_hr',
+    name:          'Nómina y Roles de Pago',
+    description:   'Empleados, novedades del mes, cálculo de la nómina (IESS, décimos, fondos de reserva, vacaciones), rol de pago en PDF y asiento contable.',
+    modules:       ['payroll'],
+    dependencies:  ['pkg_accounting'],
+    price:         0,
+    currency:      'USD',
+    billingPeriod: 'monthly',
+    icon:          'cil-people',
+    color:         'success',
+    isSystem:      false,
+    order:         11,
+    state:         true
   }
 
 ];

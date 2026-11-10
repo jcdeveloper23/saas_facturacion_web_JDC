@@ -23,6 +23,7 @@ type ModulePermissions = Partial<Record<CrudAction, boolean>>;
 
 const ROLE_MATRIX: { [role: string]: Record<string, ModulePermissions> } = {
   // super_admin: acceso total — nunca debe tener menos permisos que admin.
+  // Única excepción: `payroll` (nómina, PLAN_NOMINA.md D-N2), que no ve.
   // Incluye todos los módulos de plataforma + todos los de empresa.
   // can() saltea la verificación de tenant para este rol.
   super_admin: {
@@ -66,6 +67,9 @@ const ROLE_MATRIX: { [role: string]: Record<string, ModulePermissions> } = {
     settings:        { read: true, create: true, update: true, delete: true },
     users:           { read: true, create: true, update: true, delete: true },
     team_management: { read: true, create: true, update: true, delete: true },
+    // Nómina (PLAN_NOMINA.md D-N2): solo admin y contador. A propósito NO está
+    // en super_admin: soporte no ve sueldos (consecuencia aceptada, §12).
+    payroll:         { read: true, create: true, update: true, delete: true },
   },
   seller: {
     customers:       { read: true, create: true, update: true },
@@ -126,6 +130,8 @@ const ROLE_MATRIX: { [role: string]: Record<string, ModulePermissions> } = {
     products:        { read: true, create: true },
     sri:             { read: true },
     settings:        { read: true },
+    // Nómina (D-N2): ve, abre, recalcula y aprueba; no borra.
+    payroll:         { read: true, create: true, update: true },
   },
   // padre_familia: acceso exclusivo al bar escolar desde la app de representantes.
   // No tiene acceso a ningún módulo de la plataforma principal.
