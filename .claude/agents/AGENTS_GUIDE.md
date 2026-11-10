@@ -33,7 +33,7 @@ SaasFacturacion/
 
 ---
 
-## Agentes Disponibles (14)
+## Agentes Disponibles (15)
 
 | Agente | Archivo | Especialidad |
 |--------|---------|-------------|
@@ -42,6 +42,7 @@ SaasFacturacion/
 | **Firebase** | `firebase_agent.md` | Firestore multi-tenant, Auth, onSnapshot, Cloud Functions SDK |
 | **Business** | `business_agent.md` | Reglas ERP Ecuador: IVA, SRI, series, multi-empresa |
 | **SRI** | `sri_agent.md` | Facturación electrónica SRI Ecuador — clave de acceso, XML, firma |
+| **Nómina** | `payroll_agent.md` | Nómina y roles de pago — colecciones, reglas, cálculo, PDF y asiento. Plan en el panel (`docs/PLAN_NOMINA.md`) |
 | **Architecture** | `architecture_agent.md` | Estructura modular, lazy-loading, servicios, interfaces |
 | **Security** | `security_agent.md` | Firestore rules, auth guards, custom claims, inputs validation |
 | **Cloud Functions** | `cloud_functions_agent.md` | Node.js 20, setup-company, triggers, admin SDK |
