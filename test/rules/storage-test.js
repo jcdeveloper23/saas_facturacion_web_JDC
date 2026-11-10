@@ -29,5 +29,12 @@ let ok=0,n=0;const ex=async(name,p,s)=>{const r=await p;n++;const g=r.status===s
  await ex('otra empresa NO lee el XML importado', get('companies/c1/imported-xml/clave1.xml',other),403);
  await ex('ni el admin sube un XML importado', up('companies/c1/imported-xml/clave2.xml',admin,'application/xml'),403);
  await ex('ni el admin borra un XML importado', del('companies/c1/imported-xml/clave1.xml',admin),403);
+ // Roles de pago (nómina, PLAN_NOMINA.md §5.5): nadie desde el navegador; el PDF sale en base64 de getPayslipPdf.
+ const conta=tok({uid:'t',companyId:'c1',role:'accountant'}), sa=tok({uid:'s',role:'super_admin'});
+ await fetch(`${H}/v0/b/${B}/o?name=${encodeURIComponent('companies/c1/payroll/2026-11/rol1.pdf')}`,{method:'POST',headers:{Authorization:'Bearer owner','Content-Type':'application/pdf'},body:'%PDF'});
+ for (const [q,t] of [['admin',admin],['contador',conta],['cajero',cashier],['super admin',sa],['otra empresa',other]]) {
+  await ex(`${q} NO lee un rol de pago`, get('companies/c1/payroll/2026-11/rol1.pdf',t),403);
+  await ex(`${q} NO sube un rol de pago`, up('companies/c1/payroll/2026-11/rol2.pdf',t,'application/pdf'),403);
+ }
  console.log(`\n${ok}/${n} casos OK`); if(ok!==n) process.exitCode=1;
 })();

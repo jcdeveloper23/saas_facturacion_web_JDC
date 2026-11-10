@@ -315,8 +315,18 @@ service cloud.firestore {
         'manufacturers', 'orders', 'personas', 'products', 'purchases', 'quotes',
         'retentions', 'stock-movements', 'stock-transfers', 'suppliers', 'tax_declarations',
         'tm-members', 'tm-positions', 'tm-projects', 'tm-requests', 'tm-specialties',
-        'tm-tasks', 'tm-timesheets', 'usage', 'warehouses'
+        'tm-tasks', 'tm-timesheets', 'usage', 'warehouses',
+        // Nómina (PLAN_NOMINA.md §6.2, E2): solo la escribe el servidor.
+        'payrollEmployees', 'payrollGroups', 'payrollNovelties', 'payrollPeriods',
+        'payrollRuns', 'payslips', 'payrollBonusRuns', 'payrollLoans'
       ];
+    }
+
+    // Nómina (D-N2): la leen solo el administrador y el contador de la empresa.
+    // Ni el super admin ni el admin del canal: sus tokens no llevan companyId,
+    // así que belongsToCompany() ya los deja fuera, y aquí tampoco entran.
+    function canReadPayroll() {
+      return hasRole('admin') || isAccountant();
     }
 
     // Forma de pago: el código tiene que ser de la Tabla 24 del SRI (uno
@@ -1692,6 +1702,44 @@ service cloud.firestore {
         allow delete:         if false;
       }
 
+      // ─── Nómina (PLAN_NOMINA.md §5.1 y §6.2, E2) ──────────────────────────
+      // Sueldos y roles de pago: los leen el admin y el contador; nadie los
+      // escribe desde el cliente. Todo pasa por las callables de
+      // functions/src/payroll/ (requirePayrollRole), que calculan, congelan y
+      // contabilizan en una transacción. Colecciones planas, en hasOwnRules().
+      match /payrollEmployees/{id} {
+        allow read: if isAuthenticated() && belongsToCompany(companyId) && canReadPayroll();
+        allow write: if false;
+      }
+      match /payrollGroups/{id} {
+        allow read: if isAuthenticated() && belongsToCompany(companyId) && canReadPayroll();
+        allow write: if false;
+      }
+      match /payrollNovelties/{id} {
+        allow read: if isAuthenticated() && belongsToCompany(companyId) && canReadPayroll();
+        allow write: if false;
+      }
+      match /payrollPeriods/{id} {
+        allow read: if isAuthenticated() && belongsToCompany(companyId) && canReadPayroll();
+        allow write: if false;
+      }
+      match /payrollRuns/{id} {
+        allow read: if isAuthenticated() && belongsToCompany(companyId) && canReadPayroll();
+        allow write: if false;
+      }
+      match /payslips/{id} {
+        allow read: if isAuthenticated() && belongsToCompany(companyId) && canReadPayroll();
+        allow write: if false;
+      }
+      match /payrollBonusRuns/{id} {
+        allow read: if isAuthenticated() && belongsToCompany(companyId) && canReadPayroll();
+        allow write: if false;
+      }
+      match /payrollLoans/{id} {
+        allow read: if isAuthenticated() && belongsToCompany(companyId) && canReadPayroll();
+        allow write: if false;
+      }
+
       // ─── Monthly usage counters ───────────────────────────────────────────
       // Written exclusively by Cloud Functions via Admin SDK.
       // Company admin and users can read their own usage for the dashboard/subscription page.
@@ -1805,6 +1853,15 @@ service cloud.firestore {
       allow read: if isAuthenticated()
                   && (isSuperAdmin() || (isChannelAdmin() && channelId == callerChannel()));
       allow write: if isSuperAdmin();
+    }
+
+    // ─── Parámetros legales de nómina (PLAN_NOMINA.md §4.3) ─────────────────
+    // Nacionales y versionados por año ({año}_v{n}): SBU, IESS, fondos,
+    // décimos, recargos. Los lee cualquier usuario con sesión (no son datos de
+    // nadie); los publica un script de plataforma, nunca el navegador.
+    match /payrollParameters/{paramsId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
     }
 
     // ─── Platform modules catalog ─────────────────────────────────────────

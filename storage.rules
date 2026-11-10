@@ -7,6 +7,13 @@ service firebase.storage {
       allow read, write: if false;
     }
 
+    // Roles de pago en PDF (PLAN_NOMINA.md §5.5): solo el servidor. Sin esta
+    // regla ya estaría negado (aquí no hay regla por defecto); se escribe para
+    // que quede explícito. El PDF sale en base64 desde getPayslipPdf.
+    match /companies/{companyId}/payroll/{allPaths=**} {
+      allow read, write: if false;
+    }
+
     // Company logos — readable by company members, writable by admin or super_admin
     match /companies/{companyId}/logos/{file} {
       allow read: if request.auth != null

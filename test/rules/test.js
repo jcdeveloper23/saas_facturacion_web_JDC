@@ -1467,5 +1467,59 @@ const num = v => ({ doubleValue: v });
     await expectStatus('el permiso es del contador: solo lectura sigue sin crear NC',
       await create('companies/c1/invoices', 'cn6', token({ uid: 'ro1', role: 'read_only', companyId: 'c1' }), nc()), S.DENIED);
   }
+
+  // ── nómina: la leen admin y contador, nadie la escribe (PLAN_NOMINA.md §6.3, E2) ─
+  // Sueldos y roles: el vendedor, el cajero y solo lectura no los ven (D-N2), y
+  // tampoco el super admin ni el admin del canal (sus tokens no llevan
+  // companyId). Escribir es solo del servidor, ni el admin. Se prueba `get` y
+  // `list` por separado en cada colección, y también que la regla por defecto
+  // (la que deja escribir a admin, seller y cashier) no les aplique.
+  {
+    const lectura = token({ uid: 'ro2', role: 'read_only', companyId: 'c1' });
+    const colecciones = ['payrollEmployees', 'payrollGroups', 'payrollNovelties', 'payrollPeriods',
+      'payrollRuns', 'payslips', 'payrollBonusRuns', 'payrollLoans'];
+    for (const c of colecciones) await seed(`companies/c1/${c}`, 'n1', { status: str('draft'), salaryCents: num(100000) });
+
+    const leen = [['admin', admin], ['contador', conta]];
+    const noLeen = [['vendedor', seller], ['cajero', cashier], ['solo lectura', lectura], ['super admin', superAdm],
+      ['admin del canal', canal], ['admin de otra empresa', ajeno]];
+    for (const c of colecciones) {
+      for (const [quien, t] of leen) {
+        await expectStatus(`${quien} lee ${c} (get)`, await req(`companies/c1/${c}/n1`, t), S.OK);
+        await expectStatus(`${quien} lista ${c}`, await req(`companies/c1/${c}`, t), S.OK);
+      }
+      for (const [quien, t] of noLeen) {
+        await expectStatus(`${quien} NO lee ${c} (get)`, await req(`companies/c1/${c}/n1`, t), S.DENIED);
+        await expectStatus(`${quien} NO lista ${c}`, await req(`companies/c1/${c}`, t), S.DENIED);
+      }
+      for (const [quien, t] of [...leen, ['vendedor', seller], ['cajero', cashier], ['super admin', superAdm]]) {
+        await expectStatus(`${quien} NO crea en ${c}`,
+          await create(`companies/c1/${c}`, `x-${quien.replace(/\s/g, '')}`, t, { salaryCents: num(1) }), S.DENIED);
+        await expectStatus(`${quien} NO edita ${c}`,
+          await patch(`companies/c1/${c}/n1`, t, { salaryCents: num(1) }), S.DENIED);
+        await expectStatus(`${quien} NO borra en ${c}`, await del(`companies/c1/${c}/n1`, t), S.DENIED);
+      }
+    }
+
+    // Parámetros legales: de la plataforma, se leen con sesión y no se escriben.
+    await seed('payrollParameters', '2026_v1', { year: num(2026), version: num(1), status: str('draft'), sbu: num(482) });
+    await expectStatus('el contador lee los parámetros de nómina',
+      await req('payrollParameters/2026_v1', conta), S.OK);
+    await expectStatus('el vendedor también (no son datos de nadie)',
+      await req('payrollParameters/2026_v1', seller), S.OK);
+    await expectStatus('sin sesión NO se leen los parámetros',
+      await fetch(`http://${process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8181'}/v1/projects/${
+        process.env.GCLOUD_PROJECT || 'demo-facturaec'}/databases/(default)/documents/payrollParameters/2026_v1`),
+      S.DENIED);
+    for (const [quien, t] of [['admin', admin], ['super admin', superAdm]]) {
+      await expectStatus(`${quien} NO publica parámetros desde el navegador`,
+        await patch('payrollParameters/2026_v1', t, { status: str('published') }), S.DENIED);
+    }
+
+    // «Clientes y proveedores» sigue funcionando: el vendedor edita una persona sin datos de nómina.
+    await seed('companies/c1/personas', 'empN', { name: str('EMPLEADO'), roles: list(['employee']) });
+    await expectStatus('el vendedor edita una persona empleada sin sueldo (E1 no rompe la ficha)',
+      await patch('companies/c1/personas/empN', seller, { name: str('EMPLEADO DOS') }), S.OK);
+  }
   report();
 })();

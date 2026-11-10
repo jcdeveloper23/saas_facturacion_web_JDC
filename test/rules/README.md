@@ -6,6 +6,9 @@ super_admin).
 
 ```bash
 # Requiere Java 21 o superior (lo exige el emulador de firebase-tools).
+# Aviso, solo si tu Java por defecto es menor que 21: instala `brew install openjdk@21`
+# (no cambia el de la máquina) y antepón al comando:
+#   JAVA_HOME=/opt/homebrew/opt/openjdk@21 PATH=/opt/homebrew/opt/openjdk@21/bin:$PATH
 firebase emulators:exec -c firebase.rules-test.json --only firestore \
   --project demo-facturaec "node test/rules/test.js"
 ```
