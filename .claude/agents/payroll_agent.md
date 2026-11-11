@@ -38,6 +38,9 @@ Copia corta. **La versión principal y el plan viven en el panel:**
 - **Pendiente de E3:** correr `scripts/seed-payroll-parameters.ts` (hecho y probado en emulador; publicar exige
   `--with-criteria` hasta que Jessica confirme IECE, SECAP y divisor); sin callables de alta
   de `payrollGroups` y `payrollLoans` (D-N10, D-N12) ni de `payrollBonusRuns` (D-N11).
+- **E5 (pantallas en la web) hecha en código, sin desplegar** (2026-11-11): `src/app/features/payroll/` (Nóminas,
+  ficha de la nómina, rol, Empleados, Parámetros), ruta `/payroll`, menú con `showInMenu: true` y `payroll` en
+  `PERM_MODULES`. `ng build` en verde; **no probada en pantalla** (la web no usa emulador). Detalle: `docs/NOMINA_E5.md`.
 - **Siguiente:** desplegar cuando lo ordene el usuario (reglas → scripts → tanda 14-nomina; encender `pkg_hr` en
   LEANDRO LEÓN y subir `employeesTotal`) y probar en pantalla con Conecta; o completar préstamos, grupos y décimos.
 
