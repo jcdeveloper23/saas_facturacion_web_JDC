@@ -1,0 +1,71 @@
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h4 class="mb-0">Nóminas</h4>
+    <small class="text-secondary">El rol de pagos de cada mes</small>
+  </div>
+  <button cButton color="primary" size="sm" (click)="showNew.set(true)">+ Nueva nómina</button>
+</div>
+
+<app-payroll-tabs [showTaxNotice]="true" />
+
+<div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
+  <button cButton size="sm" [color]="status() === '' ? 'info' : 'light'" (click)="status.set('')">Todas ({{ runs().length }})</button>
+  <button cButton size="sm" [color]="status() === 'draft' ? 'secondary' : 'light'" (click)="status.set('draft')">Borrador ({{ count('draft') }})</button>
+  <button cButton size="sm" [color]="status() === 'approved' ? 'success' : 'light'" (click)="status.set('approved')">Aprobadas ({{ count('approved') }})</button>
+  <button cButton size="sm" [color]="status() === 'reversed' ? 'danger' : 'light'" (click)="status.set('reversed')">Reversadas ({{ count('reversed') }})</button>
+  <select cSelect class="ms-auto" style="max-width: 120px" [ngModel]="year()" (ngModelChange)="setYear($event)">
+    @for (y of years; track y) { <option [ngValue]="y">{{ y }}</option> }
+  </select>
+</div>
+
+<c-card>
+  @if (loading()) {
+    <c-card-body class="text-center py-5"><c-spinner color="primary"></c-spinner></c-card-body>
+  } @else if (error()) {
+    <c-card-body><c-alert color="warning" class="mb-0">{{ error() }}</c-alert></c-card-body>
+  } @else if (rows().length === 0) {
+    <c-card-body class="text-center text-secondary py-5">No hay nóminas en {{ year() }}.</c-card-body>
+  } @else {
+    <div class="table-responsive">
+      <table class="table table-hover mb-0 align-middle">
+        <thead>
+          <tr><th>Mes</th><th class="text-end">Empleados</th><th class="text-end">Ingresos</th><th class="text-end">Neto a pagar</th><th>Estado</th></tr>
+        </thead>
+        <tbody>
+          @for (r of rows(); track r.id) {
+            <tr role="button" (click)="open(r)">
+              <td class="fw-semibold">{{ title(r) }}</td>
+              <td class="text-end">{{ r.totals.employees }}</td>
+              <td class="text-end font-monospace">{{ money(r.totals.grossCents) }}</td>
+              <td class="text-end font-monospace">{{ money(r.totals.netCents) }}</td>
+              <td><c-badge [color]="STATUS[r.status].color">{{ STATUS[r.status].label }}</c-badge></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</c-card>
+
+<c-modal [visible]="showNew()" (visibleChange)="showNew.set($event)" backdrop="static">
+  <c-modal-header>
+    <h5 cModalTitle>Nueva nómina de {{ year() }}</h5>
+    <button type="button" class="btn-close" (click)="showNew.set(false)"></button>
+  </c-modal-header>
+  <c-modal-body>
+    <label cLabel>Mes</label>
+    <select cSelect [(ngModel)]="newMonth">
+      @for (m of months; track m; let i = $index) { <option [ngValue]="i + 1" [disabled]="isFuture(i + 1)">{{ m }}</option> }
+    </select>
+    <small class="text-secondary d-block mt-2">
+      Se calcula con los empleados activos y las novedades del mes. Queda en borrador: puedes cargar novedades y
+      recalcular antes de aprobar.
+    </small>
+  </c-modal-body>
+  <c-modal-footer>
+    <button cButton color="secondary" variant="outline" (click)="showNew.set(false)">Cancelar</button>
+    <button cButton color="primary" (click)="create()" [disabled]="creating()">
+      @if (creating()) { <c-spinner size="sm" class="me-1"></c-spinner> } Calcular
+    </button>
+  </c-modal-footer>
+</c-modal>

@@ -389,7 +389,7 @@ const modules: SeedModule[] = [
   {
     code: 'payroll', name: 'Nómina',
     description: 'Empleados, nóminas del mes, roles de pago y parámetros legales. Solo administrador y contador.',
-    url: '/payroll/runs', icon: 'cil-people', isTitle: false, parent_id: null, showInMenu: false,
+    url: '/payroll/runs', icon: 'cil-people', isTitle: false, parent_id: null, showInMenu: true,
     dependencies: ['accounting'], order: 55, state: true,
   },
 

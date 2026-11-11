@@ -1,0 +1,136 @@
+@if (loading()) {
+  <div class="text-center py-5"><c-spinner color="primary"></c-spinner></div>
+} @else if (error()) {
+  <c-alert color="warning">{{ error() }}</c-alert>
+} @else if (!run()) {
+  <c-alert color="warning">Esta nómina ya no existe. <a routerLink="/payroll/runs">Volver a Nóminas</a></c-alert>
+} @else {
+  @let r = run()!;
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+      <a routerLink="/payroll/runs" class="small">← Nóminas</a>
+      <h4 class="mb-0">Nómina de {{ title(r) }}
+        <c-badge [color]="STATUS[r.status].color" class="ms-2 align-middle">{{ STATUS[r.status].label }}</c-badge>
+      </h4>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      @if (r.status === 'draft') {
+        <button cButton color="secondary" variant="outline" size="sm" (click)="showNovelties.set(true)">Novedades del mes</button>
+        <button cButton color="secondary" variant="outline" size="sm" (click)="recalc()" [disabled]="busy() !== ''">
+          @if (busy() === 'recalc') { <c-spinner size="sm" class="me-1"></c-spinner> } Recalcular
+        </button>
+        <button cButton color="success" size="sm" (click)="openConfirm('approve')" [disabled]="busy() !== '' || r.blockingErrors.length > 0 || r.totals.employees === 0">Aprobar</button>
+      }
+      @if (r.status === 'approved') {
+        @if (r.accountingEntryId) {
+          <!-- Sin abrir el formulario de edición: el asiento es automático y no se edita a mano. -->
+          <a cButton color="secondary" variant="outline" size="sm" routerLink="/accounting/journal-entries"
+             title="Búscalo por «Nómina {{ r.period }}»">Ver en Asientos</a>
+        }
+        <button cButton color="secondary" variant="outline" size="sm" (click)="openConfirm('email')" [disabled]="busy() !== ''">Enviar por correo</button>
+        <button cButton color="danger" size="sm" (click)="openConfirm('reverse')" [disabled]="busy() !== ''">Reversar</button>
+      }
+    </div>
+  </div>
+
+  <app-payroll-tabs [showTaxNotice]="true" />
+
+  @if (r.status === 'reversed') {
+    <c-alert color="danger" class="py-2">Reversada el {{ r.reversedAt | date: 'dd/MM/yyyy' }}. Motivo: {{ r.reversalReason }}</c-alert>
+  }
+  @if (r.status === 'draft') {
+    @for (e of r.blockingErrors; track $index) { <c-alert color="danger" class="py-2 small">No se puede aprobar: {{ e }}</c-alert> }
+  }
+  @for (w of r.warnings; track $index) { <c-alert color="warning" class="py-2 small">{{ w }}</c-alert> }
+
+  <c-row class="g-3">
+    <c-col lg="8">
+      <c-card>
+        @if (slipsError()) {
+          <c-card-body><c-alert color="warning" class="mb-0">No se pudieron leer los roles: {{ slipsError() }}</c-alert></c-card-body>
+        } @else if (rows().length === 0) {
+          <c-card-body class="text-center text-secondary py-5">La nómina no tiene roles. ¿Hay empleados activos en el mes?</c-card-body>
+        } @else {
+          <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+              <thead>
+                <tr><th>Empleado</th><th class="text-end">Días</th><th class="text-end">Ingresos</th>
+                  <th class="text-end">Descuentos</th><th class="text-end">Neto</th><th>Correo</th></tr>
+              </thead>
+              <tbody>
+                @for (p of rows(); track p.id) {
+                  <tr role="button" (click)="openSlip(p)">
+                    <td>{{ p.employee.name }}<br /><small class="text-secondary">{{ p.employee.taxId }}</small></td>
+                    <td class="text-end">{{ p.workedDays }}</td>
+                    <td class="text-end font-monospace">{{ money(sum(p.earnings)) }}</td>
+                    <td class="text-end font-monospace text-danger">-{{ money(sum(p.deductions)) }}</td>
+                    <td class="text-end font-monospace fw-semibold">{{ money(p.netCents) }}</td>
+                    <td>
+                      @if (p.emailError) { <c-badge color="danger">Error</c-badge> }
+                      @else if (p.emailSent) { <c-badge color="success">Enviado</c-badge> }
+                      @else { <c-badge color="light" textColor="dark">Sin enviar</c-badge> }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </c-card>
+    </c-col>
+    <c-col lg="4">
+      <c-card>
+        <c-card-header>Resumen · {{ r.totals.employees }} empleado(s)</c-card-header>
+        <c-card-body class="small">
+          <div class="d-flex justify-content-between"><span>Ingresos</span><span class="font-monospace">{{ money(r.totals.grossCents) }}</span></div>
+          <div class="d-flex justify-content-between"><span>Descuentos</span><span class="font-monospace text-danger">-{{ money(r.totals.deductionsCents) }}</span></div>
+          <div class="d-flex justify-content-between"><span>Costo del empleador (IESS)</span><span class="font-monospace">{{ money(r.totals.employerCostsCents) }}</span></div>
+          <div class="d-flex justify-content-between"><span>Provisiones</span><span class="font-monospace">{{ money(r.totals.provisionsCents) }}</span></div>
+          <hr />
+          <div class="d-flex justify-content-between fw-semibold fs-6 text-primary"><span>Neto a pagar</span><span class="font-monospace">{{ money(r.totals.netCents) }}</span></div>
+          <p class="text-secondary mt-2 mb-0">Los valores los calcula el servidor. El pago se registra aparte, con un comprobante de egreso.</p>
+        </c-card-body>
+      </c-card>
+    </c-col>
+  </c-row>
+
+  @if (showNovelties()) {
+    <app-payroll-novelties-modal [period]="r.period" (closed)="onNoveltiesClosed($event)" />
+  }
+
+  <c-modal [visible]="confirm() !== ''" (visibleChange)="!$event && confirm.set('')" backdrop="static">
+    <c-modal-header>
+      <h5 cModalTitle>
+        {{ confirm() === 'approve' ? 'Aprobar' : confirm() === 'reverse' ? 'Reversar' : 'Enviar los roles de' }} {{ title(r) }}
+      </h5>
+      <button type="button" class="btn-close" (click)="confirm.set('')"></button>
+    </c-modal-header>
+    <c-modal-body class="small">
+      @switch (confirm()) {
+        @case ('approve') {
+          Se vuelve a calcular con las novedades y los empleados de este momento, se congelan los roles de pago y se
+          crea el asiento contable de la nómina. Si cambiaste algo después del último cálculo, pulsa antes «Recalcular» para revisarlo. Una nómina aprobada ya no se edita:
+          si algo está mal, se reversa entera y se emite otra versión del mes.
+        }
+        @case ('reverse') {
+          <p>Se anula el asiento de la nómina y los roles quedan reversados. Después puedes emitir una nómina nueva del mismo mes.</p>
+          <c-alert color="warning" class="py-2">Si ya pagaste la nómina, ese pago (comprobante de egreso o asiento manual) no se revierte solo.</c-alert>
+          <label cLabel>Motivo *</label>
+          <textarea cFormControl rows="2" [(ngModel)]="reason" placeholder="Ej.: faltaron las horas extra de Juan"></textarea>
+        }
+        @case ('email') {
+          Cada empleado recibe su rol en PDF en el correo de su ficha. Los que ya lo recibieron no se reenvían; los que no
+          tienen correo quedan sin enviar.
+        }
+      }
+    </c-modal-body>
+    <c-modal-footer>
+      <button cButton color="secondary" variant="outline" (click)="confirm.set('')">Cancelar</button>
+      @switch (confirm()) {
+        @case ('approve') { <button cButton color="success" (click)="approve()" [disabled]="busy() !== ''">@if (busy() === 'approve') { <c-spinner size="sm" class="me-1"></c-spinner> } Aprobar</button> }
+        @case ('reverse') { <button cButton color="danger" (click)="reverse()" [disabled]="busy() !== ''">@if (busy() === 'reverse') { <c-spinner size="sm" class="me-1"></c-spinner> } Reversar</button> }
+        @case ('email') { <button cButton color="primary" (click)="sendEmails()" [disabled]="busy() !== ''">@if (busy() === 'email') { <c-spinner size="sm" class="me-1"></c-spinner> } Enviar</button> }
+      }
+    </c-modal-footer>
+  </c-modal>
+}

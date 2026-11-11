@@ -107,6 +107,7 @@ export class DefaultLayoutComponent {
     'invoices', 'quotes', 'orders', 'proformas', 'retentions', 'debit_notes', 'pos',
     'purchases', 'stock', 'marketplace',
     'accounting',
+    'payroll',
     'school_wallet', 'school_accessories', 'school_setup',
     'report_invoices', 'report_purchases', 'report_products',
     'benefits', 'dashboard'

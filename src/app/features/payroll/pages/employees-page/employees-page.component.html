@@ -1,0 +1,145 @@
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h4 class="mb-0">Empleados</h4>
+    <small class="text-secondary">Las personas en la nómina de la empresa</small>
+  </div>
+  <button cButton color="primary" size="sm" (click)="openNew()">+ Nuevo empleado</button>
+</div>
+
+<app-payroll-tabs />
+
+<div class="d-flex flex-wrap gap-2 mb-3">
+  <button cButton size="sm" [color]="filter() === 'active' ? 'success' : 'light'" (click)="filter.set('active')">
+    Activos <c-badge color="light" textColor="dark" class="ms-1">{{ active().length }}</c-badge>
+  </button>
+  <button cButton size="sm" [color]="filter() === 'inactive' ? 'secondary' : 'light'" (click)="filter.set('inactive')">
+    Inactivos <c-badge color="light" textColor="dark" class="ms-1">{{ employees().length - active().length }}</c-badge>
+  </button>
+  <button cButton size="sm" [color]="filter() === '' ? 'info' : 'light'" (click)="filter.set('')">
+    Todos <c-badge color="light" textColor="dark" class="ms-1">{{ employees().length }}</c-badge>
+  </button>
+  <input cFormControl class="ms-auto" style="max-width: 320px" placeholder="Buscar por nombre, cédula o IESS…"
+         [ngModel]="search()" (ngModelChange)="search.set($event)" />
+</div>
+
+<c-card>
+  @if (loading()) {
+    <c-card-body class="text-center py-5"><c-spinner color="primary"></c-spinner></c-card-body>
+  } @else if (error()) {
+    <c-card-body><c-alert color="warning" class="mb-0">{{ error() }}</c-alert></c-card-body>
+  } @else if (rows().length === 0) {
+    <c-card-body class="text-center text-secondary py-5">
+      {{ employees().length ? 'Ningún empleado coincide con el filtro.' : 'Todavía no hay empleados en la nómina.' }}
+    </c-card-body>
+  } @else {
+    <div class="table-responsive">
+      <table class="table table-hover mb-0 align-middle">
+        <thead>
+          <tr>
+            <th>Empleado</th><th>Ingreso</th><th>Contrato</th><th>Región</th>
+            <th class="text-end">Sueldo</th><th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (e of rows(); track e.id) {
+            <tr role="button" (click)="openEdit(e)">
+              <td>{{ e.name }}<br /><small class="text-secondary">{{ e.taxId }}</small></td>
+              <td>{{ e.hireDate | date: 'dd/MM/yyyy' }}</td>
+              <td>{{ labels.CONTRACT_LABELS[e.contractType] || e.contractType }}</td>
+              <td>{{ labels.REGION_LABELS[e.region] }}</td>
+              <td class="text-end font-monospace">{{ money(e.salaryCents) }}</td>
+              <td><c-badge [color]="e.isActive ? 'success' : 'secondary'">{{ e.isActive ? 'Activo' : 'Inactivo' }}</c-badge></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</c-card>
+
+<c-alert color="info" class="mt-3 small">
+  Para dar de alta a alguien, primero márcalo como <strong>empleado</strong> en Personas. El sueldo y los datos
+  laborales solo los ven el administrador y el contador.
+</c-alert>
+
+<c-modal [visible]="showModal()" (visibleChange)="showModal.set($event)" backdrop="static" size="lg">
+  <c-modal-header>
+    <h5 cModalTitle>{{ editing() ? 'Editar empleado' : 'Nuevo empleado' }}</h5>
+    <button type="button" class="btn-close" (click)="showModal.set(false)"></button>
+  </c-modal-header>
+  <c-modal-body>
+    <form [formGroup]="form">
+      <c-row class="g-3">
+        <c-col md="12">
+          <label cLabel>Persona *</label>
+          <select cSelect formControlName="personaId" (change)="onPersona(form.controls.personaId.value)">
+            <option value="">— Elegir de Personas (marcadas como empleado) —</option>
+            @for (p of personas(); track p.id) { <option [value]="p.id">{{ p.name }} · {{ p.taxId }}</option> }
+          </select>
+        </c-col>
+        <c-col md="4"><label cLabel>Sueldo mensual (USD) *</label><input cFormControl formControlName="salary" placeholder="482,00" /></c-col>
+        <c-col md="4"><label cLabel>Fecha de ingreso *</label><input cFormControl type="date" formControlName="hireDate" /></c-col>
+        <c-col md="4"><label cLabel>Fecha de salida</label><input cFormControl type="date" formControlName="endDate" /></c-col>
+        <c-col md="4">
+          <label cLabel>Contrato</label>
+          <select cSelect formControlName="contractType">
+            @for (o of entries(labels.CONTRACT_LABELS); track o[0]) { <option [value]="o[0]">{{ o[1] }}</option> }
+          </select>
+        </c-col>
+        <c-col md="4">
+          <label cLabel>Jornada</label>
+          <select cSelect formControlName="workdayType">
+            @for (o of entries(labels.WORKDAY_LABELS); track o[0]) { <option [value]="o[0]">{{ o[1] }}</option> }
+          </select>
+        </c-col>
+        <c-col md="4">
+          <label cLabel>Región (14.º)</label>
+          <select cSelect formControlName="region">
+            @for (o of entries(labels.REGION_LABELS); track o[0]) { <option [value]="o[0]">{{ o[1] }}</option> }
+          </select>
+        </c-col>
+        <c-col md="4">
+          <label cLabel>Gasto de</label>
+          <select cSelect formControlName="expenseGroup">
+            @for (o of entries(labels.EXPENSE_LABELS); track o[0]) { <option [value]="o[0]">{{ o[1] }}</option> }
+          </select>
+        </c-col>
+        <c-col md="4"><label cLabel>Afiliación IESS</label><input cFormControl formControlName="iessNumber" /></c-col>
+        <c-col md="4"><label cLabel>Correo para el rol</label><input cFormControl type="email" formControlName="email" /></c-col>
+        <c-col md="12"><label cLabel>Cuenta bancaria del empleado</label><input cFormControl formControlName="bankAccount" /></c-col>
+        <c-col md="4">
+          <label cLabel>Décimo tercero</label>
+          <select cSelect formControlName="thirteenthMode">
+            @for (o of entries(labels.MODE_LABELS); track o[0]) { <option [value]="o[0]">{{ o[1] }}</option> }
+          </select>
+        </c-col>
+        <c-col md="4">
+          <label cLabel>Décimo cuarto</label>
+          <select cSelect formControlName="fourteenthMode">
+            @for (o of entries(labels.MODE_LABELS); track o[0]) { <option [value]="o[0]">{{ o[1] }}</option> }
+          </select>
+        </c-col>
+        <c-col md="4">
+          <label cLabel>Fondos de reserva</label>
+          <select cSelect formControlName="reserveFundMode">
+            @for (o of entries(labels.RESERVE_LABELS); track o[0]) { <option [value]="o[0]">{{ o[1] }}</option> }
+          </select>
+        </c-col>
+        <c-col md="12">
+          <small class="text-secondary">Por ley se pagan cada mes; se acumulan solo si el trabajador lo pidió por escrito.</small>
+          <c-form-check class="mt-2">
+            <input cFormCheckInput type="checkbox" id="emp-active" formControlName="isActive" />
+            <label cFormCheckLabel for="emp-active">Entra en la nómina</label>
+          </c-form-check>
+        </c-col>
+      </c-row>
+    </form>
+  </c-modal-body>
+  <c-modal-footer>
+    <button cButton color="secondary" variant="outline" (click)="showModal.set(false)">Cancelar</button>
+    <button cButton color="primary" (click)="save()" [disabled]="form.invalid || saving()">
+      @if (saving()) { <c-spinner size="sm" class="me-1"></c-spinner> }
+      {{ editing() ? 'Guardar' : 'Agregar a la nómina' }}
+    </button>
+  </c-modal-footer>
+</c-modal>

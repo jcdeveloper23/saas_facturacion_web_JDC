@@ -9,7 +9,7 @@ const APP_SEGMENTS = new Set([
   'dashboard', 'personas', 'customers', 'products', 'invoices',
   'retentions', 'debit-notes', 'stock', 'purchases', 'team-management',
   'pos', 'users', 'profiles', 'profile', 'accounting', 'settings',
-  'benefits', 'school-bar', 'api-docs', 'test-data', 'reports',
+  'benefits', 'school-bar', 'api-docs', 'test-data', 'reports', 'payroll',
   'base', 'forms', 'icons', 'notifications', 'charts', 'widgets', 'legal',
 ]);
 
@@ -197,6 +197,15 @@ export const routes: Routes = [
         data: { permissions: ['accounting.view'], module: 'accounting', featureFlag: 'accountingModule', title: 'Contabilidad' },
         loadChildren: () =>
           import('./features/accounting/accounting.routes').then(m => m.ACCOUNTING_ROUTES)
+      },
+
+      // ── Nómina (PLAN_NOMINA.md E5) ────────────────────────────────────────
+      {
+        path: 'payroll',
+        canActivate: [permissionGuard, moduleGuard],
+        data: { permissions: ['payroll.view'], module: 'payroll', title: 'Nómina' },
+        loadChildren: () =>
+          import('./features/payroll/payroll.routes').then(m => m.PAYROLL_ROUTES)
       },
 
       // ── Reports ────────────────────────────────────────────────────────────

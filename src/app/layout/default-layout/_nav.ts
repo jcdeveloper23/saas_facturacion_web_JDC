@@ -191,6 +191,18 @@ export const navItems: INavData[] = [
       { name: 'Caja Chica', url: '/accounting/petty-cash', icon: 'nav-icon-bullet' }
     ]
   },
+  // Nómina (PLAN_NOMINA.md E5): respaldo estático; el menú real sale de /modules.
+  {
+    name: 'Nómina',
+    url: '/payroll',
+    iconComponent: { name: 'cil-people' },
+    attributes: { module: 'payroll', permission: 'payroll.view' },
+    children: [
+      { name: 'Nóminas', url: '/payroll/runs', icon: 'nav-icon-bullet' },
+      { name: 'Empleados', url: '/payroll/employees', icon: 'nav-icon-bullet' },
+      { name: 'Parámetros', url: '/payroll/parameters', icon: 'nav-icon-bullet' }
+    ]
+  },
   {
     name: 'Presupuesto',
     url: '/accounting',
