@@ -36,8 +36,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.setUserCustomClaims = void 0;
 const https_1 = require("firebase-functions/v2/https");
 const admin = __importStar(require("firebase-admin"));
-// Solo super_admin puede asignar este rol.
-const SUPER_ADMIN_ONLY_ROLES = ['super_admin'];
+const channels_1 = require("../utils/channels");
+// Roles que solo puede asignar el super admin de plataforma.
+// channel_admin está acá para que el admin de un canal no pueda fabricarse otro.
+const SUPER_ADMIN_ONLY_ROLES = ['super_admin', channels_1.CHANNEL_ADMIN_ROLE];
 /**
  * Valida que un código de rol sea sintácticamente correcto.
  * No usa whitelist para no bloquear roles creados dinámicamente desde la UI.
@@ -80,8 +82,12 @@ exports.setUserCustomClaims = (0, https_1.onCall)(async (request) => {
     if (callerRole === 'admin' && callerCompanyId !== companyId) {
         throw new https_1.HttpsError('permission-denied', 'Admin can only manage users within their own company.');
     }
-    // Only admin or super_admin can call this
-    if (callerRole !== 'admin' && callerRole !== 'super_admin') {
+    // Un channel_admin solo administra usuarios de empresas de su propio canal.
+    // loadCompanyForCaller también verifica que el canal esté activo.
+    if (callerRole === channels_1.CHANNEL_ADMIN_ROLE) {
+        await (0, channels_1.loadCompanyForCaller)(admin.firestore(), (0, channels_1.readCaller)(request), companyId);
+    }
+    else if (callerRole !== 'admin' && callerRole !== 'super_admin') {
         throw new https_1.HttpsError('permission-denied', 'Insufficient permissions.');
     }
     // Set custom claims on the target user

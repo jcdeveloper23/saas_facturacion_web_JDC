@@ -37,6 +37,7 @@ exports.uploadCertificate = void 0;
 const https_1 = require("firebase-functions/v2/https");
 const admin = __importStar(require("firebase-admin"));
 const forge = __importStar(require("node-forge"));
+const cert_password_1 = require("../utils/cert-password");
 /**
  * uploadCertificate
  *
@@ -181,16 +182,29 @@ exports.uploadCertificate = (0, https_1.onCall)(async (request) => {
         console.error('[uploadCertificate] Error guardando en Storage:', err);
         throw new https_1.HttpsError('internal', 'Error al guardar el certificado en Storage.');
     }
+    // ── Guardar la contraseña ──────────────────────────────────────────────────
+    // Va a Secret Manager, no a Firestore: el documento de la empresa lo lee
+    // cualquiera de la empresa y ahí la contraseña quedaba a la vista.
+    try {
+        await (0, cert_password_1.saveCertificatePassword)(data.companyId, data.password);
+        console.log('[uploadCertificate] Contraseña guardada en Secret Manager.');
+    }
+    catch (err) {
+        console.error('[uploadCertificate] Error guardando la contraseña:', err);
+        throw new https_1.HttpsError('internal', 'Error al guardar la contraseña del certificado.');
+    }
     // ── Update Firestore ───────────────────────────────────────────────────────
+    // Solo metadatos: ruta, huella, titular y vencimiento.
     try {
         await db.collection('companies').doc(data.companyId).update({
             'sri.certificatePath': filePath,
             'sri.certificateThumbprint': thumbprint,
             'sri.certificateSubject': subject,
             'sri.certificateExpiry': admin.firestore.Timestamp.fromDate(expiryDate),
-            'sri.certificatePassword': data.password,
             updatedAt: admin.firestore.Timestamp.now(),
         });
+        // Si la empresa venía de antes, se borra la contraseña que quedó en claro.
+        await (0, cert_password_1.clearLegacyPassword)(data.companyId);
         console.log('[uploadCertificate] Firestore actualizado para companyId:', data.companyId);
     }
     catch (err) {

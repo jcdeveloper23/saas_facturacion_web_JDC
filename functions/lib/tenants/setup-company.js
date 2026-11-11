@@ -35,8 +35,11 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.setupCompany = void 0;
 const https_1 = require("firebase-functions/v2/https");
+const sri_vat_codes_1 = require("../utils/sri-vat-codes");
 const admin = __importStar(require("firebase-admin"));
 const firestore_1 = require("firebase-admin/firestore");
+const establishments_1 = require("../utils/establishments");
+const channels_1 = require("../utils/channels");
 /**
  * Roles de empresa sembrados en companies/{companyId}/roles al crear una empresa.
  * Espejo de COMPANY_DEFAULT_ROLES en roles.service.ts (frontend).
@@ -70,8 +73,13 @@ const COMPANY_DEFAULT_ROLES = [
             'retentions.view', 'retentions.create', 'retentions.edit', 'retentions.delete',
             'debit_notes.view', 'debit_notes.create', 'debit_notes.edit', 'debit_notes.delete',
             'accounting.view', 'accounting.create', 'accounting.edit',
-            'invoices.view', 'customers.view', 'suppliers.view', 'products.view',
+            'invoices.view', 'customers.view',
+            // Da de alta proveedores y el artículo de sus compras (2026-10-07).
+            'products.view', 'products.create',
+            'suppliers.view', 'suppliers.create', 'suppliers.edit',
             'sri.view', 'settings.view',
+            // Nómina (PLAN_NOMINA.md D-N2, §6.4): ve, abre, recalcula y aprueba.
+            'payroll.view', 'payroll.create', 'payroll.edit',
         ],
     },
     {
@@ -79,7 +87,11 @@ const COMPANY_DEFAULT_ROLES = [
         description: 'Opera el punto de venta, emite facturas y consulta inventario.',
         color: '#198754', icon: 'cilCash', isDefault: true, state: true,
         permissions: [
-            'customers.view', 'products.view',
+            // Crea clientes, proveedores y artículos (2026-10-08); no los edita.
+            'customers.view', 'customers.create',
+            'suppliers.view', 'suppliers.create',
+            'personas.view', 'personas.create',
+            'products.view', 'products.create',
             'invoices.view', 'invoices.create',
             'pos.view', 'pos.create',
             'stock.view', 'settings.view', 'team_management.view',
@@ -115,30 +127,51 @@ const COMPANY_DEFAULT_ROLES = [
  * Returns: { companyId }
  */
 exports.setupCompany = (0, https_1.onCall)(async (request) => {
-    if (!request.auth) {
-        throw new https_1.HttpsError('unauthenticated', 'Must be authenticated.');
-    }
-    if (request.auth.token['role'] !== 'super_admin') {
-        throw new https_1.HttpsError('permission-denied', 'Only super_admin can create companies.');
-    }
+    // Canal: un channel_admin da de alta siempre en el suyo; el super admin de
+    // plataforma puede indicar uno. Lanza si el rol no alcanza. Ver utils/channels.ts.
+    const caller = (0, channels_1.readCaller)(request);
     const data = request.data;
     if (!data.name || !data.taxId || !data.planId) {
         throw new https_1.HttpsError('invalid-argument', 'name, taxId and planId are required.');
     }
+    const channelId = (0, channels_1.resolveChannelForNewCompany)(caller, data.channelId);
+    console.log('[setupCompany] Canal de la empresa:', channelId, '| llamador:', caller.uid);
     const db = admin.firestore();
     const now = firestore_1.Timestamp.now();
+    await (0, channels_1.assertCallerChannelActive)(db, caller);
+    // ── Un RUC = una empresa en toda la plataforma ────────────────────────────
+    // Sin esto, cada canal ve solo sus empresas y puede crear el mismo RUC otra vez
+    // (pasó el 2026-11-06: 0190434990001 quedó en conecta-app y en mi-buseta).
+    // A otro canal no se le dice el id ni el canal de la empresa existente.
+    const taxId = String(data.taxId).trim();
+    const sameTaxId = await db.collection('companies').where('taxId', '==', taxId).limit(1).get();
+    if (!sameTaxId.empty) {
+        const existing = sameTaxId.docs[0];
+        const sameChannel = existing.get('channelId') === channelId;
+        console.warn('[setupCompany] RUC ya registrado:', taxId, '| empresa:', existing.id, '| canal:', existing.get('channelId'));
+        throw new https_1.HttpsError('already-exists', sameChannel
+            ? `Ya existe una empresa con el RUC ${taxId} (${existing.id}).`
+            : `El RUC ${taxId} ya tiene una empresa en la plataforma. Comuníquese con soporte.`, sameChannel ? { companyId: existing.id, sameChannel: true } : { sameChannel: false });
+    }
     // ── Load plan data (if planId provided) ────────────────────────────────────
     let planLimits = null;
     let planFeatures = null;
     let includedPackages = [];
     let includedModules = [];
+    // El nombre del plan sale del plan, no del payload: quien llama puede mandar
+    // solo el id, y un planName vacío deja la empresa «sin plan» en toda pantalla
+    // que lo muestre (pasó el 2026-09-21). Así lo hace ya assignPlanToCompany.
+    let planName = data.planName ?? '';
     if (data.planId) {
         const planSnap = await db.doc(`plans/${data.planId}`).get();
         if (planSnap.exists) {
             const plan = planSnap.data();
+            // Un plan solo se vende en su propio canal: cruzarlos rompe el cobro.
+            (0, channels_1.assertPlanMatchesCompany)(plan['channelId'], channelId);
             planLimits = plan['limits'] ?? null;
             planFeatures = plan['features'] ?? null;
             includedPackages = plan['includedPackages'] ?? [];
+            planName = plan['name'] || planName;
             // Resolver módulos desde los paquetes del plan (igual que assignPlanToCompany en el frontend)
             if (includedPackages.length > 0) {
                 const pkgsSnap = await db.collection('plugin-packages').get();
@@ -176,12 +209,9 @@ exports.setupCompany = (0, https_1.onCall)(async (request) => {
     console.log(`[setupCompany] config resolved — country: ${country}, currency: ${defaultCurrency}, vatRate: ${defaultVatRate}`);
     const taxRates = !taxRatesSnap.empty
         ? (console.log('[setupCompany] taxRates: Firestore'), taxRatesSnap.docs.map(d => d.data()).filter(d => d['isActive'] !== false))
-        : (console.log('[setupCompany] taxRates: HARDCODED fallback'), [
-            { code: 'VAT15', name: 'IVA 15%', rate: 15, sriCode: '3', isDefault: true },
-            { code: 'VAT5', name: 'IVA 5%', rate: 5, sriCode: '5', isDefault: false },
-            { code: 'VAT0', name: 'IVA 0%', rate: 0, sriCode: '2', isDefault: false },
-            { code: 'EXEMPT', name: 'Exento', rate: 0, sriCode: '6', isDefault: false },
-        ]);
+        // Respaldo con los códigos de la tabla 17 (2026-10-06): antes 15 % → '3'
+        // (14 %), 0 % → '2' (12 %) y «Exento» con el 6, que es «no objeto».
+        : (console.log('[setupCompany] taxRates: HARDCODED fallback'), sri_vat_codes_1.DEFAULT_COMPANY_TAX_RATES.map((t) => ({ ...t })));
     const paymentTerms = !paymentTermsSnap.empty
         ? (console.log('[setupCompany] paymentTerms: Firestore'), paymentTermsSnap.docs.map(d => d.data()).filter(d => d['isActive'] !== false))
         : (console.log('[setupCompany] paymentTerms: HARDCODED fallback'), [
@@ -243,6 +273,10 @@ exports.setupCompany = (0, https_1.onCall)(async (request) => {
     const { adminPassword, ...companyDataToSave } = data;
     batch.set(companyRef, {
         ...companyDataToSave,
+        // Van después del spread a propósito: el canal sale del token y el nombre
+        // del plan, del plan; ninguno se toma del payload.
+        channelId,
+        planName,
         subscriptionStart: now,
         subscriptionEnd: data.subscriptionEnd
             ? firestore_1.Timestamp.fromDate(new Date(data.subscriptionEnd))
@@ -264,6 +298,19 @@ exports.setupCompany = (0, https_1.onCall)(async (request) => {
         updatedAt: now
     });
     // ── configuration/sri ─────────────────────────────────────────────────────
+    // ── establishments/{código} ───────────────────────────────────────────────
+    // La matriz nace con la empresa, con el establecimiento y punto de emisión de
+    // sus datos SRI. Es de donde sale <dirEstablecimiento> de cada comprobante.
+    const mainEstablishment = (0, establishments_1.buildMainEstablishment)({
+        establishment: data.sri?.establishment,
+        emissionPoint: data.sri?.emissionPoint,
+        address: data.fiscalAddress,
+        city: data.city,
+        phone: data.phone,
+        now,
+        createdBy: caller.uid,
+    });
+    batch.set(db.doc(`companies/${companyId}/establishments/${mainEstablishment.id}`), mainEstablishment.data);
     const sriConfigRef = db.doc(`companies/${companyId}/configuration/sri`);
     batch.set(sriConfigRef, {
         razonSocial: data.sri?.businessName || data.name,
@@ -276,7 +323,7 @@ exports.setupCompany = (0, https_1.onCall)(async (request) => {
         contribuyenteEspecial: data.sri?.contribuyenteEspecial || '',
         additionalInfoFields: [],
         updatedAt: now,
-        updatedBy: request.auth.uid
+        updatedBy: caller.uid
     });
     // ── configuration/general ──────────────────────────────────────────────────
     const configRef = db.doc(`companies/${companyId}/configuration/general`);
@@ -292,7 +339,7 @@ exports.setupCompany = (0, https_1.onCall)(async (request) => {
         vatRate: defaultVatRate,
         fiscalYear: new Date().getFullYear(),
         updatedAt: now,
-        updatedBy: request.auth.uid
+        updatedBy: caller.uid
     });
     // ── Warehouses ─────────────────────────────────────────────────────────────
     for (const w of warehouses) {
@@ -305,7 +352,7 @@ exports.setupCompany = (0, https_1.onCall)(async (request) => {
             city: data.city,
             isActive: true,
             createdAt: now, updatedAt: now,
-            createdBy: request.auth.uid, updatedBy: request.auth.uid
+            createdBy: caller.uid, updatedBy: caller.uid
         });
     }
     // ── Tax rates ──────────────────────────────────────────────────────────────
@@ -319,7 +366,7 @@ exports.setupCompany = (0, https_1.onCall)(async (request) => {
             isDefault: tax['isDefault'] ?? false,
             isActive: true,
             createdAt: now, updatedAt: now,
-            createdBy: request.auth.uid, updatedBy: request.auth.uid
+            createdBy: caller.uid, updatedBy: caller.uid
         });
     }
     // ── Payment terms ──────────────────────────────────────────────────────────
@@ -331,7 +378,7 @@ exports.setupCompany = (0, https_1.onCall)(async (request) => {
             days: term['days'],
             isActive: true,
             createdAt: now, updatedAt: now,
-            createdBy: request.auth.uid, updatedBy: request.auth.uid
+            createdBy: caller.uid, updatedBy: caller.uid
         });
     }
     // ── Document series ────────────────────────────────────────────────────────
@@ -345,7 +392,7 @@ exports.setupCompany = (0, https_1.onCall)(async (request) => {
             emissionPoint: data.sri?.emissionPoint || '001',
             isActive: true,
             createdAt: now, updatedAt: now,
-            createdBy: request.auth.uid, updatedBy: request.auth.uid
+            createdBy: caller.uid, updatedBy: caller.uid
         });
     }
     // ── Currencies ─────────────────────────────────────────────────────────────
@@ -362,7 +409,7 @@ exports.setupCompany = (0, https_1.onCall)(async (request) => {
             isDefault: c['isDefault'] ?? false,
             isActive: true,
             createdAt: now, updatedAt: now,
-            createdBy: request.auth.uid, updatedBy: request.auth.uid
+            createdBy: caller.uid, updatedBy: caller.uid
         });
     }
     // ── Admin user record ──────────────────────────────────────────────────────
@@ -379,7 +426,7 @@ exports.setupCompany = (0, https_1.onCall)(async (request) => {
             isActive: true,
             createdAt: now,
             updatedAt: now,
-            createdBy: request.auth.uid,
+            createdBy: caller.uid,
         });
     }
     await batch.commit();
@@ -401,7 +448,7 @@ exports.setupCompany = (0, https_1.onCall)(async (request) => {
                 name: c['name'],
                 isActive: true,
                 createdAt: now, updatedAt: now,
-                createdBy: request.auth.uid, updatedBy: request.auth.uid
+                createdBy: caller.uid, updatedBy: caller.uid
             });
         }
         await countryBatch.commit();
@@ -415,7 +462,7 @@ exports.setupCompany = (0, https_1.onCall)(async (request) => {
     // super_admin y admin son roles globales de plataforma (/roles) — no se repiten aquí.
     const rolesBatch = db.batch();
     for (const roleData of COMPANY_DEFAULT_ROLES) {
-        rolesBatch.set(db.doc(`companies/${companyId}/roles/${roleData.code}`), { ...roleData, createdAt: now, updatedAt: now, createdBy: request.auth.uid });
+        rolesBatch.set(db.doc(`companies/${companyId}/roles/${roleData.code}`), { ...roleData, createdAt: now, updatedAt: now, createdBy: caller.uid });
     }
     await rolesBatch.commit();
     console.log(`[setupCompany] Company roles seeded: ${COMPANY_DEFAULT_ROLES.map(r => r.code).join(', ')}`);
