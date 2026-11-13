@@ -1247,6 +1247,27 @@ const num = v => ({ doubleValue: v });
     await expectStatus('anticipos: sus notas sí',
       await patch('companies/c1/invoices/fA2', admin, { notes: str('ok') }), S.OK);
 
+    // Anticipos a proveedores cruzados con compras (2026-11-13).
+    await seed('companies/c1/purchases', 'pA1', { status: str('received'), isPaid: bool(false), total: num(115),
+      advancesApplied: advAcc(5000, 1, 'apr1') });
+    await seed('companies/c1/purchases', 'pA2', { status: str('paid'), isPaid: bool(true), total: num(115),
+      paidBy: str('advances'), advancesApplied: advAcc(11500, 1, 'apr2') });
+    await seed('companies/c1/purchases', 'pA3', { status: str('received'), isPaid: bool(false), total: num(115) });
+    await expectStatus('anticipos a proveedores: ni el admin crea uno desde el cliente',
+      await create('companies/c1/advances', 'apr9', admin, { partyType: str('supplier'), amountCents: int(100) }), S.DENIED);
+    await expectStatus('anticipos a proveedores: el acumulado de la compra no se toca desde el cliente',
+      await patch('companies/c1/purchases/pA3', admin, { advancesApplied: advAcc(11500, 1, 'x') }), S.DENIED);
+    await expectStatus('anticipos a proveedores: una compra no nace con el acumulado',
+      await create('companies/c1/purchases', 'pA9', admin, { status: str('draft'), total: num(10),
+        advancesApplied: advAcc(1000, 1, 'x') }), S.DENIED);
+    await expectStatus('anticipos a proveedores: con cruce parcial, el resto se paga por banco',
+      await patch('companies/c1/purchases/pA1', conta, { status: str('paid'), isPaid: bool(true),
+        paidAt: ts(), paymentBankAccountId: str('b1') }), S.OK);
+    await expectStatus('anticipos a proveedores: una pagada con anticipos NO se des-paga desde el cliente',
+      await patch('companies/c1/purchases/pA2', admin, { isPaid: bool(false) }), S.DENIED);
+    await expectStatus('anticipos a proveedores: ni se le pone un banco',
+      await patch('companies/c1/purchases/pA2', admin, { paymentBankAccountId: str('b1') }), S.DENIED);
+
     // Retención recibida con anticipos: retenido + anticipos ≤ total (115,00).
     const rrA = (invoiceId, iva, renta, base) => ({
       invoiceId: str(invoiceId), invoiceNumber: str('001-001-000000011'), number: str('001-001-000000124'),

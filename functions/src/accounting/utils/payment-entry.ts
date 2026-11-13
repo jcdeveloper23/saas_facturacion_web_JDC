@@ -2,7 +2,7 @@ import * as admin from 'firebase-admin';
 import { getAccountMapping } from './get-account-mapping';
 import { retainedOnInvoice } from './received-retention';
 import { advancesAppliedCents } from '../advances/advance-logic';
-import { cashVouchersAppliedCents } from './applied-acc';
+import { appliedAccCents, cashVouchersAppliedCents } from './applied-acc';
 
 // ─── Asientos de cobro y de pago (2026-10-05) ─────────────────────────────────
 //
@@ -67,7 +67,9 @@ export function paymentAmount(kind: PaymentKind, d: Record<string, any>): number
   const vouchers = cashVouchersAppliedCents(d) / 100;
   return kind === 'invoice'
     ? round2(total - retainedOnInvoice(d) - advancesAppliedCents(d) / 100 - vouchers)
-    : round2(total - vouchers);
+    // En una compra, `total` ya va neto de la retención; se restan los
+    // anticipos a proveedores cruzados (2026-11-13) y los comprobantes.
+    : round2(total - appliedAccCents(d, 'advancesApplied') / 100 - vouchers);
 }
 
 /** Recibida (subió el stock), viva y sin su asiento. */

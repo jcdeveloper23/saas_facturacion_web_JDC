@@ -289,9 +289,15 @@ export const MODULES_SEED: ModuleSeed[] = [
     description: 'Herramienta de conciliación bancaria automática.', dependencies: ['accounting_banking'], order: 452, state: true,
   },
   {
-    code: 'accounting_advances', name: 'Anticipos',
+    code: 'accounting_advances', name: 'Anticipos de clientes',
     url: '/accounting/advances', icon: '', isTitle: false, parent_id: 'accounting_banking', showInMenu: true,
     description: 'Anticipos de clientes (solo consulta: se gestionan desde Conecta).', dependencies: ['accounting_banking'], order: 453, state: true,
+  },
+  {
+    // 2026-11-13: misma página, filtrada por partyType 'supplier'.
+    code: 'accounting_supplier_advances', name: 'Anticipos a proveedores',
+    url: '/accounting/supplier-advances', icon: '', isTitle: false, parent_id: 'accounting_banking', showInMenu: true,
+    description: 'Anticipos a proveedores (solo consulta: se registran y cruzan con compras desde Conecta).', dependencies: ['accounting_banking'], order: 453.5, state: true,
   },
   {
     code: 'accounting_petty_cash', name: 'Caja Chica',

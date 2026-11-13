@@ -30,6 +30,11 @@ describe('anular una compra recibida', () => {
     expect(voidPurchaseBlocker({ ...base, cashVouchersApplied: 5 })).toMatch(/comprobantes/);
     expect(voidPurchaseBlocker({ ...base, stockMovements: 1 })).toMatch(/inventario/);
   });
+  it('lee los acumulados como están en la compra: {cents, count, lastId}', () => {
+    expect(voidPurchaseBlocker({ ...base, advancesApplied: { cents: 5000, count: 1, lastId: 'a' } })).toMatch(/anticipos/);
+    expect(voidPurchaseBlocker({ ...base, cashVouchersApplied: { cents: 100, count: 1, lastId: 'c' } })).toMatch(/comprobantes/);
+    expect(voidPurchaseBlocker({ ...base, advancesApplied: { cents: 0, count: 0, lastId: 'a' } })).toBeNull();
+  });
 
   it('el motivo es obligatorio y corto', () => {
     expect(readVoidReason('  Factura registrada dos veces ')).toBe('Factura registrada dos veces');

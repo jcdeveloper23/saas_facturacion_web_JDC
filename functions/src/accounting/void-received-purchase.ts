@@ -28,12 +28,19 @@ export interface VoidPurchaseFacts {
   isVoid?:              boolean;
   isPaid?:              boolean;
   paymentEntryId?:      string | null;
-  advancesApplied?:     number;
-  cashVouchersApplied?: number;
+  /** Acumulados {cents, count, lastId} (o centavos sueltos, en pruebas viejas). */
+  advancesApplied?:     unknown;
+  cashVouchersApplied?: unknown;
   /** La retención ligada existe y no está anulada. */
   liveRetention:        boolean;
   /** Movimientos de inventario que salieron de esta compra. */
   stockMovements:       number;
+}
+
+/** Los centavos de un acumulado: el mapa {cents, …} o un número suelto. */
+function accCents(v: unknown): number {
+  const n = Number(v && typeof v === 'object' ? (v as { cents?: unknown }).cents ?? 0 : v ?? 0);
+  return Number.isFinite(n) ? n : 0;
 }
 
 /** Por qué no se puede anular, o null si se puede. */
@@ -44,8 +51,10 @@ export function voidPurchaseBlocker(f: VoidPurchaseFacts): string | null {
   }
   if (f.status !== 'received') return 'Solo se anula aquí una compra recibida; la de borrador o enviada se cancela.';
   if (f.liveRetention) return 'La compra tiene una retención emitida: anula primero la retención.';
-  if (Number(f.advancesApplied ?? 0) > 0) return 'La compra tiene anticipos aplicados: desaplícalos primero.';
-  if (Number(f.cashVouchersApplied ?? 0) > 0) return 'La compra tiene comprobantes de egreso: anúlalos primero.';
+  // En la compra son mapas {cents, count, lastId}: Number(mapa) daba NaN y no
+  // bloqueaba (2026-11-13).
+  if (accCents(f.advancesApplied) > 0) return 'La compra tiene anticipos aplicados: desaplícalos primero.';
+  if (accCents(f.cashVouchersApplied) > 0) return 'La compra tiene comprobantes de egreso: anúlalos primero.';
   if (f.stockMovements > 0) {
     return 'La compra ya sumó inventario y la anulación no lo devuelve: ajusta primero el stock de sus artículos.';
   }

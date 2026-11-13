@@ -9,7 +9,7 @@ import { advanceRecord } from '../advances/advance-callables';
 import { ADVANCES_FROM_CUSTOMERS, advanceNumber, buildRegisterLines, positiveCents } from '../advances/advance-logic';
 import {
   ACCOUNTS_PAYABLE, ChartAccount, VoucherInput, VoucherLinePlan, VoucherTargetType, splitCollection, canHoldCustomerCredit, buildVoucherEntryLines, docParty,
-  invoiceVoucherPendingCents, payableFromPurchaseEntry, purchasePendingCents, resolveAccountLines,
+  invoiceVoucherPendingCents, payableFromPurchaseEntry, purchasePendingCents, resolveAccountLines, resolveCreditAccount,
   resolveParty, validateVoucherInput, voidTargetProblem, voidVoucherProblem,
   voucherCounterKey, voucherNumber, voucherTargetPatch, voucherTargetProblem,
 } from './cash-voucher-logic';
@@ -122,6 +122,8 @@ async function readChart(db: admin.firestore.Firestore, companyId: string, codes
  * facturas), con o sin líneas a cuentas del plan. Entrada: {companyId, kind,
  * date: 'AAAA-MM-DD', partyId?, partyName, partyTaxId?, bankAccountId,
  * paymentMethodCode, chequeNumber?, reference?, concept, notes?,
+ * paymentMode?: 'bank' | 'account', creditAccountCode? (con 'account', solo
+ * egresos: «Cargo cuenta contable», sin bankAccountId ni paymentMethodCode),
  * applications: [{targetType, targetId, amountCents}], accountLines:
  * [{accountCode, amountCents, description?}]}. Devuelve {voucherId, number,
  * accountingEntryId}.
@@ -147,20 +149,32 @@ export const registerCashVoucher = onCall(async (request) => {
     throw new HttpsError('invalid-argument', 'Solo un recibo de caja deja saldo a favor del cliente.');
   }
 
-  // Banco o caja.
-  const bankSnap = await db.doc(`companies/${companyId}/bank_accounts/${input.bankAccountId}`).get();
-  if (!bankSnap.exists) throw new HttpsError('invalid-argument', 'La cuenta de banco o caja no existe.');
-  if (bankSnap.get('isActive') === false) fail('La cuenta de banco o caja está inactiva.');
-  const bankGl = String(bankSnap.get('linkedGlCode') ?? '');
-  if (!bankGl) fail('La cuenta de banco o caja no tiene cuenta contable: configúrala en Cuentas bancarias.');
-  const bank: AccountRef = { code: bankGl, name: String(bankSnap.get('linkedGlName') ?? bankGl) };
-  const acct = String(bankSnap.get('accountNumber') ?? '');
-  const bankAccountName = `${bankSnap.get('bankName') ?? bankSnap.get('name') ?? ''}${acct ? ` ****${acct.slice(-4)}` : ''}`
-    .trim().slice(0, 120) || bank.name;
+  // Cuentas del plan: las de las líneas sin documento y, con «Cargo cuenta
+  // contable», la del Haber.
+  const codes = [...input.accountLines.map((l) => l.accountCode), ...(input.creditAccountCode ? [input.creditAccountCode] : [])];
+  const chart = codes.length ? await readChart(db, companyId, codes) : new Map<string, ChartAccount>();
 
-  // Cuentas de las líneas sin documento.
-  const chart = input.accountLines.length
-    ? await readChart(db, companyId, input.accountLines.map((l) => l.accountCode)) : new Map();
+  // Banco o caja, o la cuenta del cargo.
+  let bank: AccountRef;
+  let bankAccountName: string;
+  if (input.creditAccountCode) {
+    const credit = resolveCreditAccount(input.creditAccountCode, chart, []);
+    if (!credit.ok) fail(credit.error);
+    bank = credit.account;
+    bankAccountName = `${bank.code} · ${bank.name}`.slice(0, 120);
+  } else {
+    const bankSnap = await db.doc(`companies/${companyId}/bank_accounts/${input.bankAccountId}`).get();
+    if (!bankSnap.exists) throw new HttpsError('invalid-argument', 'La cuenta de banco o caja no existe.');
+    if (bankSnap.get('isActive') === false) fail('La cuenta de banco o caja está inactiva.');
+    const linked = String(bankSnap.get('linkedGlCode') ?? '');
+    if (!linked) fail('La cuenta de banco o caja no tiene cuenta contable: configúrala en Cuentas bancarias.');
+    bank = { code: linked, name: String(bankSnap.get('linkedGlName') ?? linked) };
+    const acct = String(bankSnap.get('accountNumber') ?? '');
+    bankAccountName = `${bankSnap.get('bankName') ?? bankSnap.get('name') ?? ''}${acct ? ` ****${acct.slice(-4)}` : ''}`
+      .trim().slice(0, 120) || bank.name;
+  }
+  const bankGl = bank.code;
+
   const acc = resolveAccountLines(input.accountLines, chart, bankGl);
   if (!acc.ok) fail(acc.error);
 
@@ -216,6 +230,10 @@ export const registerCashVoucher = onCall(async (request) => {
       return { ...a, doc: doc!, ref: targetRefs[k], pending, account };
     });
     if (!party.ok) fail(party.error);
+    if (input.creditAccountCode) {
+      const credit = resolveCreditAccount(input.creditAccountCode, chart, plans.map((p) => p.account.code));
+      if (!credit.ok) fail(credit.error);
+    }
     if (excessCents > 0 && !canHoldCustomerCredit(party.partyTaxId ?? '')) {
       fail('El excedente queda como anticipo del cliente: hace falta su cédula o RUC (el consumidor final no '
         + 'puede quedar con saldo a favor).');
@@ -302,6 +320,7 @@ function voucherRecord(p: {
     bankAccountId: input.bankAccountId,
     bankAccountName,
     glCode: bankGl,
+    paymentMode: input.paymentMode,
     paymentMethodCode: input.paymentMethodCode,
     chequeNumber: input.chequeNumber,
     reference: input.reference,

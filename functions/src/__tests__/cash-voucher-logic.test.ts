@@ -5,7 +5,8 @@
  */
 import {
   ACCOUNTS_PAYABLE, buildVoucherEntryLines, docParty, invoiceVoucherPendingCents, payableFromPurchaseEntry,
-  purchaseGrossCents, purchasePendingCents, purchaseRetainedCents, resolveAccountLines, resolveParty, targetTypeFor,
+  purchaseGrossCents, purchasePendingCents, purchaseRetainedCents, resolveAccountLines, resolveCreditAccount, resolveParty,
+  targetTypeFor,
   validateVoucherInput, voidTargetProblem, voidVoucherProblem, voucherCounterKey, voucherNumber,
   voucherTargetPatch, voucherTargetProblem,
 } from '../accounting/cash-vouchers/cash-voucher-logic';
@@ -324,5 +325,35 @@ describe('convivencia con anticipos y con el cobro a mano', () => {
   it('lee los acumulados con ceros si faltan', () => {
     expect(readAppliedAcc({}, 'cashVouchersApplied')).toEqual({ cents: 0, count: 0, lastId: '' });
     expect(cashVouchersAppliedCents({ cashVouchersApplied: { cents: -5 } })).toBe(0);
+  });
+});
+
+describe('«Cargo cuenta contable» (2026-11-13)', () => {
+  const cargo = (over: Record<string, any> = {}) =>
+    base({ bankAccountId: undefined, paymentMethodCode: undefined, paymentMode: 'account', creditAccountCode: '2.1.04.010', ...over });
+
+  it('no pide banco ni código del SRI', () => {
+    const r = validateVoucherInput(cargo());
+    expect(r).toMatchObject({ ok: true, value: { paymentMode: 'account', creditAccountCode: '2.1.04.010',
+      bankAccountId: '', paymentMethodCode: '' } });
+  });
+  it('exige la cuenta y solo vale en egresos', () => {
+    expect(validateVoucherInput(cargo({ creditAccountCode: '' }))).toMatchObject({ ok: false });
+    expect(validateVoucherInput(cargo({ kind: 'ingreso', applications: [] , accountLines: [{ accountCode: '4.1', amountCents: 1 }] })))
+      .toMatchObject({ ok: false, error: expect.stringContaining('solo está en el comprobante de egreso') });
+    expect(validateVoucherInput(cargo({ paymentMode: 'otro' }))).toMatchObject({ ok: false });
+  });
+  it('sin paymentMode sigue como siempre: banco y Tabla 24', () => {
+    expect(validateVoucherInput(base())).toMatchObject({ ok: true, value: { paymentMode: 'bank', creditAccountCode: null } });
+    expect(validateVoucherInput(base({ bankAccountId: '' }))).toMatchObject({ ok: false });
+  });
+  it('resolveCreditAccount', () => {
+    const chart = new Map([['2.1.04.010', { name: 'Préstamo socio', allowsMovement: true }],
+      ['2.1.04', { name: 'Otras', allowsMovement: false }], ['2.1.05.001', { name: 'X', allowsMovement: true, isActive: false }]]);
+    expect(resolveCreditAccount('2.1.04.010', chart, [])).toEqual({ ok: true, account: { code: '2.1.04.010', name: 'Préstamo socio' } });
+    expect(resolveCreditAccount('2.1.04', chart, [])).toMatchObject({ ok: false });
+    expect(resolveCreditAccount('2.1.05.001', chart, [])).toMatchObject({ ok: false });
+    expect(resolveCreditAccount('9', chart, [])).toMatchObject({ ok: false });
+    expect(resolveCreditAccount('2.1.04.010', chart, ['2.1.04.010'])).toMatchObject({ ok: false });
   });
 });

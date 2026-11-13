@@ -187,6 +187,23 @@ Detalle completo en `establishments_agent.md`.
   cierra los inactivos. Llamar al SRI con `new https.Agent({ keepAlive: false })` y
   reintentar **solo** fallos de red (`bfb256c`, como `sendToSri`).
 
+## Anticipos (clientes, proveedores, devoluciones) — 2026-11-13
+
+Referencia completa: **`docs/ANTICIPOS.md`**. Lo esencial:
+
+- Todo vive en `functions/src/accounting/advances/`: callables `registerAdvance`,
+  `applyAdvance`, `registerSupplierAdvance`, `applySupplierAdvance`, `refundAdvance`,
+  `unapplyAdvance` (deshace aplicación, cruce **o** devolución), `voidAdvance`. El saldo a
+  favor de un cobro sale de `collectInvoicePayment` (`cash-vouchers/`).
+- Una sola colección `advances` para los dos tipos (`partyType`); los movimientos en
+  `advanceApplications` (`kind` + `targetType`). Centavos enteros; solo escribe el servidor.
+- Cuentas: `advancesFromCustomers` 2.1.04.008 y `advancesToSuppliers` 1.1.04.003
+  (`get-account-mapping.ts`).
+- ⛔ Los acumulados de facturas y compras (`advancesApplied`, `cashVouchersApplied`) son
+  **mapas** `{cents, count, lastId}`: leerlos con `appliedAccCents`, nunca `Number(...)`.
+- Las gestiona **Conecta**; la web solo los consulta (`/accounting/advances`,
+  `/accounting/supplier-advances`).
+
 ## Anti-patrones
 - Relanzar excepciones en triggers Firestore (causa reintentos infinitos)
 - Usar `firebase` (SDK cliente) en lugar de `firebase-admin`

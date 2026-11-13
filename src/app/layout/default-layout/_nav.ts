@@ -187,7 +187,8 @@ export const navItems: INavData[] = [
     children: [
       { name: 'Cuentas Bancarias', url: '/accounting/bank-accounts', icon: 'nav-icon-bullet' },
       { name: 'Conciliar', url: '/accounting/bank-reconciliation', icon: 'nav-icon-bullet' },
-      { name: 'Anticipos', url: '/accounting/advances', icon: 'nav-icon-bullet' },
+      { name: 'Anticipos de clientes', url: '/accounting/advances', icon: 'nav-icon-bullet' },
+      { name: 'Anticipos a proveedores', url: '/accounting/supplier-advances', icon: 'nav-icon-bullet' },
       { name: 'Caja Chica', url: '/accounting/petty-cash', icon: 'nav-icon-bullet' }
     ]
   },

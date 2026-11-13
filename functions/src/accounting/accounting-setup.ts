@@ -68,6 +68,7 @@ export const MAPPING_LABELS: Record<string, string> = {
   cogs: 'Costo de ventas',
   purchaseExpense: 'Compras que no son inventario (servicios y gastos)',
   advancesFromCustomers: 'Anticipos de clientes',
+  advancesToSuppliers: 'Anticipos a proveedores',
   retIrPayable: 'Retenciones de renta por pagar (a proveedores)',
   retIvaPayable: 'Retenciones de IVA por pagar (a proveedores)',
 };

@@ -133,7 +133,8 @@ describe('la factura', () => {
   it('el cobro por banco entra por total − retenido − anticipos', () => {
     expect(paymentAmount('invoice', inv({ advancesApplied: { cents: 50000 } }))).toBe(650);
     expect(paymentAmount('invoice', inv({ advancesApplied: { cents: 50000 }, receivedRetentions: { ivaCents: 10500, rentaCents: 2000 } }))).toBe(525);
-    expect(paymentAmount('purchase', { total: 230, advancesApplied: { cents: 100 } })).toBe(230);
+    // Compras: los anticipos a proveedores cruzados (2026-11-13) también se restan.
+    expect(paymentAmount('purchase', { total: 230, advancesApplied: { cents: 100 } })).toBe(229);
   });
 });
 

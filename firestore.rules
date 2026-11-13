@@ -143,6 +143,9 @@ service cloud.firestore {
       return ['stockProcessed', 'stockProcessedAt', 'stockError',
               'accountingEntryId', 'accountingError', 'reversalEntryId', 'reversalError',
               'paymentEntryId', 'cashVouchersApplied', 'paidBy', 'paymentVoucherId',
+              // Anticipos a proveedores (2026-11-13): el acumulado lo escriben
+              // solo applySupplierAdvance / unapplyAdvance.
+              'advancesApplied',
               // Liquidación de compra (codDoc 03, 2026-11-05): la marca, su
               // número y lo del SRI los escribe solo el servidor.
               'issuedByCompany', 'settlement', 'accessKey', 'codigoNumerico',
@@ -180,7 +183,7 @@ service cloud.firestore {
       return request.resource.data.get('stockProcessed', false) == false
           && !request.resource.data.keys().hasAny(['stockProcessedAt', 'stockError',
                'accountingEntryId', 'accountingError', 'reversalEntryId', 'paymentEntryId',
-               'cashVouchersApplied', 'paidBy', 'paymentVoucherId',
+               'cashVouchersApplied', 'paidBy', 'paymentVoucherId', 'advancesApplied',
                // La liquidación de compra la crea solo issuePurchaseSettlement (2026-11-05).
                'issuedByCompany', 'settlement'])
           && request.resource.data.get('status', 'draft') in ['draft', 'sent', 'received'];
@@ -207,7 +210,12 @@ service cloud.firestore {
           && request.resource.data.get('status', '') in [resource.data.get('status', ''), 'paid']
           // Con comprobantes de egreso (2026-10-16): ni se paga a mano el
           // resto ni se des-paga; se registra otro comprobante o se anula.
-          && cashVouchersPaymentGuard();
+          && cashVouchersPaymentGuard()
+          // Pagada con anticipos a proveedores (2026-11-13): no se des-paga a
+          // mano; se deshace el cruce con unapplyAdvance.
+          && (resource.data.get('paidBy', '') != 'advances'
+              || !request.resource.data.diff(resource.data).affectedKeys()
+                    .hasAny(['status', 'isPaid', 'paidAt', 'paymentBankAccountId']));
     }
 
     // La compra recibida queda ligada a su retención (2026-10-06): solo

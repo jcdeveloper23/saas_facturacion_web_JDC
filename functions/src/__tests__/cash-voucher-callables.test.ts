@@ -376,3 +376,43 @@ describe('recibo de caja con excedente (2026-10-29)', () => {
   });
 });
 
+
+describe('registerCashVoucher con «Cargo cuenta contable» (2026-11-13)', () => {
+  const cargo = (over: Record<string, any> = {}) => egreso({
+    bankAccountId: undefined, paymentMethodCode: undefined, chequeNumber: undefined,
+    paymentMode: 'account', creditAccountCode: '2.1.04.010', accountLines: [], ...over,
+  });
+  beforeEach(() => {
+    store.set(`${C}/chart_of_accounts/a3`, { code: '2.1.04.010', name: 'Préstamo socio', allowsMovement: true });
+  });
+
+  it('Haber la cuenta elegida, sin banco ni código del SRI; la compra queda pagada', async () => {
+    const r = await call(registerCashVoucher, cargo());
+    const v = store.get(`${C}/cashVouchers/${r.voucherId}`)!;
+    expect(v).toMatchObject({ paymentMode: 'account', bankAccountId: '', paymentMethodCode: '',
+      glCode: '2.1.04.010', bankAccountName: '2.1.04.010 · Préstamo socio', totalCents: 11270 });
+    const je = store.get(`${C}/journal_entries/${r.accountingEntryId}`)!;
+    expect(je.lines.map((l: any) => [l.accountCode, l.debit, l.credit])).toEqual([
+      ['2.1.01.001', 112.7, 0], ['2.1.04.010', 0, 112.7],
+    ]);
+    const p = store.get(`${C}/purchases/p1`)!;
+    expect(p).toMatchObject({ isPaid: true, paidBy: 'cashVoucher', paymentBankAccountId: '',
+      paymentEntryId: r.accountingEntryId });
+    expect(paymentNeedsEntry(p)).toBe(false);
+  });
+
+  it('se anula igual que los demás', async () => {
+    const r = await call(registerCashVoucher, cargo());
+    await call(voidCashVoucher, { companyId: 'c1', voucherId: r.voucherId, reason: 'Cuenta equivocada' });
+    expect(store.get(`${C}/purchases/p1`)).toMatchObject({ isPaid: false, status: 'received' });
+  });
+
+  it('rechaza una cuenta que no existe, agrupadora o la misma CxP de la compra', async () => {
+    await expect(call(registerCashVoucher, cargo({ creditAccountCode: '9.9.99' }))).rejects.toThrow('no existe');
+    store.set(`${C}/chart_of_accounts/a4`, { code: '2.1.04', name: 'Otras', allowsMovement: false });
+    await expect(call(registerCashVoucher, cargo({ creditAccountCode: '2.1.04' }))).rejects.toThrow('agrupadora');
+    store.set(`${C}/chart_of_accounts/a5`, { code: '2.1.01.001', name: 'CxP', allowsMovement: true });
+    await expect(call(registerCashVoucher, cargo({ creditAccountCode: '2.1.01.001' }))).rejects.toThrow('cuenta por pagar');
+    expect([...store.keys()].some((k) => k.includes('/cashVouchers/'))).toBe(false);
+  });
+});

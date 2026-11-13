@@ -186,7 +186,16 @@ export const ACCOUNTING_ROUTES: Routes = [
   {
     path: 'advances',
     canActivate: [moduleGuard, roleGuard],
-    data: { module: 'accounting', roles: ACCOUNTING_ROLES, title: 'Anticipos' },
+    data: { module: 'accounting', roles: ACCOUNTING_ROLES, title: 'Anticipos de clientes', partyType: 'customer' },
+    loadComponent: () =>
+      import('./pages/advances-page/advances-page.component')
+        .then(m => m.AdvancesPageComponent)
+  },
+  {
+    // Anticipos a proveedores (2026-11-13): la misma página, filtrada.
+    path: 'supplier-advances',
+    canActivate: [moduleGuard, roleGuard],
+    data: { module: 'accounting', roles: ACCOUNTING_ROLES, title: 'Anticipos a proveedores', partyType: 'supplier' },
     loadComponent: () =>
       import('./pages/advances-page/advances-page.component')
         .then(m => m.AdvancesPageComponent)

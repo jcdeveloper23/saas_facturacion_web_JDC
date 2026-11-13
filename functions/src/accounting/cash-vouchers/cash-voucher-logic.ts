@@ -41,6 +41,17 @@ export const VOUCHER_KINDS: readonly VoucherKind[] = ['egreso', 'ingreso'];
 /** Formas de pago de la Tabla 24 del SRI (las mismas que acepta paymentMethods). */
 export const SRI_PAYMENT_METHOD_CODES = ['01', '15', '16', '17', '18', '19', '20', '21'] as const;
 
+/**
+ * De dónde sale o adónde entra el dinero (2026-11-13). 'bank': una cuenta de
+ * bank_accounts (banco o caja), como siempre. 'account': «Cargo cuenta
+ * contable», solo en egresos: el Haber va a una cuenta del plan que se elige
+ * (préstamo de socio, cuenta transitoria…). No es una forma de la Tabla 24:
+ * el comprobante no lleva código del SRI ni crea movimiento de banco. Lo que
+ * va al ATS es la forma de pago de la compra, que no cambia.
+ */
+export type VoucherPaymentMode = 'bank' | 'account';
+export const PAYMENT_MODE_ACCOUNT: VoucherPaymentMode = 'account';
+
 export const MAX_VOUCHER_APPLICATIONS = 20;
 export const MAX_VOUCHER_ACCOUNT_LINES = 30;
 const MAX_TOTAL_CENTS = 100_000_000_000;
@@ -83,7 +94,12 @@ export interface VoucherInput {
   partyId: string | null;
   partyName: string;
   partyTaxId: string | null;
+  /** Vacío con paymentMode 'account'. */
   bankAccountId: string;
+  paymentMode: VoucherPaymentMode;
+  /** La cuenta del plan del Haber, solo con paymentMode 'account'. */
+  creditAccountCode: string | null;
+  /** Vacío con paymentMode 'account'. */
   paymentMethodCode: string;
   chequeNumber: string | null;
   reference: string | null;
@@ -122,10 +138,24 @@ export function validateVoucherInput(raw: Record<string, any>):
   const taxId = normalizeTaxId(raw.partyTaxId);
   if (taxId.length > 20) return bad('La identificación tiene hasta 20 caracteres.');
 
-  if (!isId(raw.bankAccountId)) return bad('Falta la cuenta de banco o caja.');
-  const paymentMethodCode = String(raw.paymentMethodCode ?? '').trim();
-  if (!(SRI_PAYMENT_METHOD_CODES as readonly string[]).includes(paymentMethodCode)) {
-    return bad('La forma de pago tiene que ser un código de la Tabla 24 del SRI.');
+  const rawMode = raw.paymentMode ?? 'bank';
+  if (rawMode !== 'bank' && rawMode !== PAYMENT_MODE_ACCOUNT) return bad("La forma de pago es 'bank' o 'account'.");
+  const paymentMode: VoucherPaymentMode = rawMode;
+  let bankAccountId = '';
+  let creditAccountCode: string | null = null;
+  let paymentMethodCode = '';
+  if (paymentMode === PAYMENT_MODE_ACCOUNT) {
+    if (kind !== 'egreso') return bad('«Cargo cuenta contable» solo está en el comprobante de egreso.');
+    const code = String(raw.creditAccountCode ?? '').trim();
+    if (!code || code.length > 40 || code.includes('/')) return bad('Elige la cuenta contable del cargo.');
+    creditAccountCode = code;
+  } else {
+    if (!isId(raw.bankAccountId)) return bad('Falta la cuenta de banco o caja.');
+    bankAccountId = raw.bankAccountId.trim();
+    paymentMethodCode = String(raw.paymentMethodCode ?? '').trim();
+    if (!(SRI_PAYMENT_METHOD_CODES as readonly string[]).includes(paymentMethodCode)) {
+      return bad('La forma de pago tiene que ser un código de la Tabla 24 del SRI.');
+    }
   }
   const concept = String(raw.concept ?? '').trim();
   if (!concept) return bad('Escribe el concepto.');
@@ -177,7 +207,7 @@ export function validateVoucherInput(raw: Record<string, any>):
     ok: true,
     value: {
       kind, date, partyId, partyName, partyTaxId: taxId || null,
-      bankAccountId: raw.bankAccountId.trim(), paymentMethodCode,
+      bankAccountId, paymentMode, creditAccountCode, paymentMethodCode,
       chequeNumber: optText(raw.chequeNumber, 30),
       reference: optText(raw.reference, 120),
       concept,
@@ -397,6 +427,25 @@ export function voucherTargetPatch(
 // ─── Cuentas de las líneas ────────────────────────────────────────────────────
 
 export interface ChartAccount { name?: string; allowsMovement?: boolean; isActive?: boolean }
+
+/**
+ * La cuenta del «Cargo cuenta contable»: existe, activa y de movimiento, y no
+ * es la CxP de las compras que paga (el asiento se anularía consigo mismo).
+ */
+export function resolveCreditAccount(
+  code: string,
+  chart: Map<string, ChartAccount>,
+  payableCodes: string[],
+): { ok: true; account: AccountRef } | { ok: false; error: string } {
+  const c = chart.get(code);
+  if (!c) return { ok: false, error: `La cuenta ${code} no existe en el plan de cuentas.` };
+  if (c.isActive === false) return { ok: false, error: `La cuenta ${code} está inactiva.` };
+  if (c.allowsMovement !== true) return { ok: false, error: `La cuenta ${code} es agrupadora: elige una de movimiento.` };
+  if (payableCodes.includes(code)) {
+    return { ok: false, error: `La cuenta ${code} es la cuenta por pagar de la compra: elige otra.` };
+  }
+  return { ok: true, account: { code, name: String(c.name ?? code) } };
+}
 
 /**
  * Las cuentas de las líneas sin documento: tienen que existir, estar activas y

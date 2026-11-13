@@ -10,6 +10,8 @@ import {
   invertLines, invoicePatchFor, parseEcuadorDate, positiveCents, sumSide, unapplyProblem,
   validateRegister, voidProblem,
 } from './advance-logic';
+import { purchasePatchFor, unapplySupplierProblem } from './supplier-advance-logic';
+import { REFUND_KIND } from './advance-refund-logic';
 
 // ─── Anticipos de clientes: callables (E1, 2026-10-14) ────────────────────────
 //
@@ -24,33 +26,33 @@ import {
 // mira: que el ejercicio del asiento no esté cerrado y que el asiento no esté
 // conciliado con el banco.
 
-const ROLES = ['admin', 'accountant'];
-const MAX_APPLICATIONS = 20;
+export const ROLES = ['admin', 'accountant'];
+export const MAX_APPLICATIONS = 20;
 
 type Tx = admin.firestore.Transaction;
 type DocRef = admin.firestore.DocumentReference;
 
-function readCompanyId(data: any): string {
+export function readCompanyId(data: any): string {
   const companyId = typeof data?.companyId === 'string' ? data.companyId.trim() : '';
   if (!companyId) throw new HttpsError('invalid-argument', 'Falta la empresa.');
   return companyId;
 }
 
-function readId(data: any, key: string, label: string): string {
+export function readId(data: any, key: string, label: string): string {
   const v = typeof data?.[key] === 'string' ? data[key].trim() : '';
   if (!v || v.includes('/')) throw new HttpsError('invalid-argument', `Falta ${label}.`);
   return v;
 }
 
-function text(v: unknown, max: number): string {
+export function text(v: unknown, max: number): string {
   return String(v ?? '').trim().slice(0, max);
 }
 
-function fail(msg: string): never {
+export function fail(msg: string): never {
   throw new HttpsError('failed-precondition', msg);
 }
 
-async function openPeriodId(tx: Tx, db: admin.firestore.Firestore, companyId: string, year: number): Promise<string> {
+export async function openPeriodId(tx: Tx, db: admin.firestore.Firestore, companyId: string, year: number): Promise<string> {
   const snap = await tx.get(db.collection(`companies/${companyId}/accounting_periods`)
     .where('year', '==', year).where('status', '==', 'open').limit(1));
   if (snap.empty) fail(`No hay un ejercicio contable abierto para ${year}.`);
@@ -58,7 +60,7 @@ async function openPeriodId(tx: Tx, db: admin.firestore.Firestore, companyId: st
 }
 
 /** El asiento automático tal como lo escriben los demás generadores. */
-function entryDoc(p: {
+export function entryDoc(p: {
   number: number; date: Date; description: string; periodId: string; periodYear: number;
   reference: string; referenceId: string; lines: EntryLineDraft[]; type?: string; reversalOf?: string;
 }) {
@@ -88,7 +90,7 @@ function entryDoc(p: {
 }
 
 /** Firestore: null → borrar el campo; Date → Timestamp. */
-function toFirestore(patch: Record<string, unknown>): Record<string, unknown> {
+export function toFirestore(patch: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(patch)) {
     out[k] = v === null ? admin.firestore.FieldValue.delete()
@@ -101,7 +103,7 @@ function toFirestore(patch: Record<string, unknown>): Record<string, unknown> {
  * Lee lo necesario para revertir un asiento y deja preparada la escritura.
  * Falla si el ejercicio está cerrado o si el asiento está conciliado.
  */
-async function prepareReversal(tx: Tx, db: admin.firestore.Firestore, companyId: string, entryId: string) {
+export async function prepareReversal(tx: Tx, db: admin.firestore.Firestore, companyId: string, entryId: string) {
   const entryRef = db.doc(`companies/${companyId}/journal_entries/${entryId}`);
   const [entry, reconciled] = await Promise.all([
     tx.get(entryRef),
@@ -123,7 +125,7 @@ function reversalDate(periodYear: number): Date {
   return ecuadorYearOf(now) === periodYear ? now : new Date(Date.UTC(periodYear, 11, 31, 17));
 }
 
-function writeReversal(
+export function writeReversal(
   tx: Tx, db: admin.firestore.Firestore, companyId: string, number: number,
   prep: { entryRef: DocRef; entry: Record<string, any> }, label: string, referenceId: string, by: string,
 ): string {
@@ -413,12 +415,20 @@ export const unapplyAdvance = onCall(async (request) => {
     const appSnap = await tx.get(appRef);
     if (!appSnap.exists) throw new HttpsError('not-found', 'La aplicación no existe.');
     const app = appSnap.data() as Record<string, any>;
+    // Anticipo a proveedor cruzado con una compra (2026-11-13) o de cliente
+    // aplicado a una factura.
+    // O una devolución por el banco (2026-11-13): sin documento que tocar.
+    const isRefund = app.kind === REFUND_KIND;
+    const isPurchase = app.targetType === 'purchase';
     const advanceRef = db.doc(`companies/${companyId}/advances/${app.advanceId}`);
-    const invRef = db.doc(`companies/${companyId}/invoices/${app.targetId}`);
-    const [advSnap, invSnap] = await Promise.all([tx.get(advanceRef), tx.get(invRef)]);
+    const invRef = isRefund ? null
+      : db.doc(`companies/${companyId}/${isPurchase ? 'purchases' : 'invoices'}/${app.targetId}`);
+    const [advSnap, invSnap] = await Promise.all([tx.get(advanceRef), invRef ? tx.get(invRef) : Promise.resolve(null)]);
     if (!advSnap.exists) fail('El anticipo ya no existe.');
-    const inv = invSnap.exists ? invSnap.data() as Record<string, any> : undefined;
-    const problem = unapplyProblem(app, inv);
+    const inv = invSnap?.exists ? invSnap.data() as Record<string, any> : undefined;
+    const problem = isRefund
+      ? (app.isVoid === true || app.status === 'void' ? 'Esa devolución ya se deshizo.' : null)
+      : isPurchase ? unapplySupplierProblem(app, inv) : unapplyProblem(app, inv);
     if (problem) fail(problem);
     const prep = app.accountingEntryId ? await prepareReversal(tx, db, companyId, app.accountingEntryId) : null;
     const jc = await tx.get(journalCounter);
@@ -430,15 +440,32 @@ export const unapplyAdvance = onCall(async (request) => {
       const jKey = `journal_${prep.entry.periodYear}`;
       const n = ((jc.data()?.[jKey] as number) ?? 0) + 1;
       tx.set(journalCounter, { [jKey]: n }, { merge: true });
+      const what = isRefund ? 'devolución' : isPurchase ? 'compra' : 'factura';
       reversalEntryId = writeReversal(tx, db, companyId, n, prep,
-        `Aplicación deshecha: anticipo ${adv.number} / factura ${app.targetNumber || app.targetId}`, applicationId, uid);
+        `${isRefund ? 'Devolución' : 'Aplicación'} deshecha: anticipo ${adv.number} / ${what} ${app.targetNumber || app.targetId}`,
+        applicationId, uid);
     }
     tx.update(appRef, {
       status: 'void', isVoid: true, voidedAt: now, voidedBy: uid, voidReason: reason,
       reversalEntryId, updatedAt: now,
     });
-    const patch = invoicePatchFor(inv!, applicationId, -Number(app.amountCents), new Date());
-    tx.update(invRef, { ...toFirestore(patch), updatedAt: now, updatedBy: uid });
+    if (isRefund) {
+      const refunded = Math.max(0, Number(adv.refundedCents ?? 0) - Number(app.amountCents));
+      const left = advanceAvailableCents({ ...adv, refundedCents: refunded });
+      tx.update(advanceRef, {
+        refundedCents: refunded,
+        availableCents: left,
+        status: adv.isVoid === true ? 'void' : advanceStatusFor(left),
+        updatedAt: now,
+        updatedBy: uid,
+      });
+      return { reversalEntryId, availableCents: left };
+    }
+    // Al deshacer no se mira el saldo de la compra (solo cuenta al cruzar).
+    const patch = isPurchase
+      ? purchasePatchFor(inv!, applicationId, -Number(app.amountCents), 1, new Date())
+      : invoicePatchFor(inv!, applicationId, -Number(app.amountCents), new Date());
+    tx.update(invRef!, { ...toFirestore(patch), updatedAt: now, updatedBy: uid });
     const applied = Number(adv.appliedCents ?? 0) - Number(app.amountCents);
     const available = advanceAvailableCents({ ...adv, appliedCents: applied });
     tx.update(advanceRef, {
