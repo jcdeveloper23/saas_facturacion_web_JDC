@@ -20,6 +20,8 @@ export {
   portalSetAddon,
   portalListPlans, portalUpsertPlan, portalListPackages, portalWhoAmI,
 } from './channel-portal/portal-callables';
+// Mi Buseta: importa al libro lo que el SRI ya autorizó (F-2, sincronización 1b)
+export { portalImportDocuments }   from './channel-portal/portal-import-documents';
 
 // Invoices / SRI
 export { uploadCertificate }        from './invoices/upload-certificate';
