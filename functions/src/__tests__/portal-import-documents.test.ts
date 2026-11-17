@@ -607,6 +607,8 @@ describe('anulación posterior a la importación', () => {
     expect(store.get(path)!.isVoid).toBe(false);
     expect(voidBlocker({ receivedRetentions: { ivaCents: 0, rentaCents: 120 } })).toMatch(/retenciones/);
     expect(voidBlocker({ cashVouchersApplied: { cents: 5 } })).toMatch(/recibos/);
+    expect(voidBlocker({ paymentEntryId: 'je-1', isPaid: true })).toMatch(/cobrada/);
+    expect(voidBlocker({ isPaid: true })).toMatch(/cobrada/);
     expect(voidBlocker({ status: 'issued' })).toBeNull();
   });
 });

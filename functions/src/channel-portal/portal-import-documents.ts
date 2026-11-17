@@ -48,7 +48,8 @@
  *     abierto, y también el del comprobante (la reversa hereda el `periodId`
  *     del asiento original): `no_open_period` / `closed_period` sin escribir;
  *   - las mismas trabas que las reglas ponen a «Anular»: sin retenciones
- *     recibidas, anticipos ni recibos de caja aplicados (`conflict`);
+ *     recibidas, anticipos ni recibos de caja aplicados, y sin cobro registrado
+ *     (`paymentEntryId` / `isPaid`, decisión del usuario 2026-11-17) (`conflict`);
  *   - viva pero aún sin asiento y recién importada (< 90 s): el trigger de
  *     asiento puede estar en curso y escribiría su `accountingEntryId` sobre
  *     la anulada sin reversa; se devuelve `internal` (reintento). Pasado ese
@@ -329,6 +330,11 @@ export function voidBlocker(d: Record<string, any>): string | null {
   if (cents(d, 'advancesApplied') > 0) return 'Tiene anticipos aplicados en FacturaEc: hay que desaplicarlos antes.';
   if (cents(d, 'cashVouchersApplied') > 0 || d['paidBy'] === 'cashVoucher') {
     return 'Tiene recibos de caja en FacturaEc: hay que anularlos antes.';
+  }
+  // Decisión del usuario (2026-11-17): cobrada (p. ej. por banco) = el asiento de cobro no se revierte solo;
+  // se bloquea para que el contador deshaga el cobro antes.
+  if (d['paymentEntryId'] || d['isPaid'] === true) {
+    return 'Está cobrada en FacturaEc: el contador debe anular el cobro antes de anular la factura.';
   }
   if (d['status'] === 'cancelled') return 'El documento está cancelado en FacturaEc.';
   return null;
