@@ -126,6 +126,8 @@ export const savePayrollNovelties = onCall(async (request) => {
     const delSnaps = delRefs.length ? await tx.getAll(...delRefs) : [];
     for (const s of delSnaps) {
       if (s.exists && s.get('period') !== p.period) fail('Esa novedad es de otro mes.');
+      // La de un anticipo registrado tiene asiento propio: se anula desde Anticipos.
+      if (s.exists && s.get('advanceId')) fail('Ese anticipo tiene asiento: anúlalo desde Anticipos.');
     }
 
     const now = admin.firestore.Timestamp.now();

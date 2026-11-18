@@ -326,7 +326,9 @@ service cloud.firestore {
         'tm-tasks', 'tm-timesheets', 'usage', 'warehouses',
         // Nómina (PLAN_NOMINA.md §6.2, E2): solo la escribe el servidor.
         'payrollEmployees', 'payrollGroups', 'payrollNovelties', 'payrollPeriods',
-        'payrollRuns', 'payslips', 'payrollBonusRuns', 'payrollLoans'
+        'payrollRuns', 'payslips', 'payrollBonusRuns', 'payrollLoans',
+        // Pago de roles y anticipos a empleados (NOMINA_PAGOS.md, 2026-11-18).
+        'payrollPayments', 'payrollAdvances'
       ];
     }
 
@@ -1744,6 +1746,14 @@ service cloud.firestore {
         allow write: if false;
       }
       match /payrollLoans/{id} {
+        allow read: if isAuthenticated() && belongsToCompany(companyId) && canReadPayroll();
+        allow write: if false;
+      }
+      match /payrollPayments/{id} {
+        allow read: if isAuthenticated() && belongsToCompany(companyId) && canReadPayroll();
+        allow write: if false;
+      }
+      match /payrollAdvances/{id} {
         allow read: if isAuthenticated() && belongsToCompany(companyId) && canReadPayroll();
         allow write: if false;
       }

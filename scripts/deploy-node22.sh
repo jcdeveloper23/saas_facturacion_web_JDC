@@ -66,3 +66,9 @@ firebase deploy --project accounting-system-a5c9f --only functions:issuePurchase
 # Callables con transacción; solo admin y contador (requirePayrollRole). Van DESPUÉS de las
 # reglas de nómina y de seed-payroll-module / grant-payroll-permissions.
 firebase deploy --project accounting-system-a5c9f --only functions:upsertPayrollEmployee,functions:savePayrollNovelties,functions:createPayrollRun,functions:recalculatePayrollRun,functions:approvePayrollRun,functions:reversePayrollRun,functions:getPayslipPdf,functions:sendPayslipEmails 2>&1 | tee deploy-node22-14-nomina.log
+
+# Tanda 15-nomina-pagos (9) — agregada el 2026-11-18: pago de roles, anticipos a empleados y
+# cuentas de nómina (docs/NOMINA_PAGOS.md). Van DESPUÉS de las reglas (payrollPayments,
+# payrollAdvances) y JUNTO con la tanda 14 otra vez: approvePayrollRun, reversePayrollRun y
+# savePayrollNovelties cambiaron.
+firebase deploy --project accounting-system-a5c9f --only functions:payPayrollRun,functions:voidPayrollPayment,functions:registerPayrollAdvance,functions:voidPayrollAdvance,functions:getPayrollAccounts,functions:savePayrollAccounts,functions:approvePayrollRun,functions:reversePayrollRun,functions:savePayrollNovelties 2>&1 | tee deploy-node22-15-nomina-pagos.log

@@ -90,9 +90,25 @@ const CREDIT: Partial<Record<Concept, PayrollAccountKey>> = {
   vacationAccrued: 'vacationProvision', reserveFundIess: 'reserveFundIessPayable',
 };
 
+/** Cómo se llama cada concepto en la pantalla Cuentas de nómina (para los mensajes). */
+export const PAYROLL_ACCOUNT_LABELS: Record<PayrollAccountKey, string> = {
+  salaryAdmin: 'Sueldos — administración', salarySales: 'Sueldos — ventas', otherTaxable: 'Otros ingresos gravados',
+  commissions: 'Comisiones', bonuses: 'Bonos', nonTaxableIncome: 'Ingresos no gravados',
+  thirteenthExpense: 'Gasto décimo tercero', fourteenthExpense: 'Gasto décimo cuarto',
+  reserveFundExpense: 'Gasto fondos de reserva', vacationExpense: 'Gasto vacaciones',
+  employerCostExpense: 'Gasto aporte patronal', netPayable: 'Sueldos por pagar', advances: 'Anticipos a empleados',
+  iessPersonalPayable: 'Aporte personal por pagar', employerCostPayable: 'Aporte patronal por pagar',
+  thirteenthProvision: 'Provisión décimo tercero', fourteenthProvision: 'Provisión décimo cuarto',
+  vacationProvision: 'Provisión vacaciones', reserveFundIessPayable: 'Fondos de reserva por pagar (IESS)',
+  companyLoan: 'Préstamos de la empresa', longTermAdvance: 'Anticipos a largo plazo',
+  iessQuirografario: 'Préstamo IESS quirografario', iessHipotecario: 'Préstamo IESS hipotecario',
+  otherDeductions: 'Otros descuentos',
+};
+
 export class PayrollEntryError extends Error {
   constructor(public readonly missing: PayrollAccountKey[]) {
-    super(`Faltan cuentas de nómina: ${missing.join(', ')}. Configúralas antes de aprobar.`);
+    super(`Faltan cuentas de nómina: ${missing.map((k) => PAYROLL_ACCOUNT_LABELS[k] ?? k).join(', ')}. ` +
+      'Configúralas en Nómina › Cuentas antes de aprobar.');
   }
 }
 

@@ -115,6 +115,10 @@ export { upsertPayrollEmployee, savePayrollNovelties } from './payroll/payroll-e
 export { createPayrollRun, recalculatePayrollRun, approvePayrollRun, reversePayrollRun } from './payroll/payroll-run-callables';
 export { getPayslipPdf } from './payroll/payroll-pdf';
 export { sendPayslipEmails } from './payroll/payroll-email';
+export { payPayrollRun, voidPayrollPayment } from './payroll/payroll-payment-callables';
+export {
+  registerPayrollAdvance, voidPayrollAdvance, getPayrollAccounts, savePayrollAccounts,
+} from './payroll/payroll-advance-callables';
 
 // Users
 export { createCompanyUser } from './users/create-company-user';

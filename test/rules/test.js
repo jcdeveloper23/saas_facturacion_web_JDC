@@ -1498,7 +1498,7 @@ const num = v => ({ doubleValue: v });
   {
     const lectura = token({ uid: 'ro2', role: 'read_only', companyId: 'c1' });
     const colecciones = ['payrollEmployees', 'payrollGroups', 'payrollNovelties', 'payrollPeriods',
-      'payrollRuns', 'payslips', 'payrollBonusRuns', 'payrollLoans'];
+      'payrollRuns', 'payslips', 'payrollBonusRuns', 'payrollLoans', 'payrollPayments', 'payrollAdvances'];
     for (const c of colecciones) await seed(`companies/c1/${c}`, 'n1', { status: str('draft'), salaryCents: num(100000) });
 
     const leen = [['admin', admin], ['contador', conta]];

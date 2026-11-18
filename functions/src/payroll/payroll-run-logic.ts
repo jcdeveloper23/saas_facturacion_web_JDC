@@ -235,6 +235,9 @@ export function approveProblem(run: Record<string, any> | undefined): string | n
 export function reverseProblem(run: Record<string, any> | undefined, reason: string): string | null {
   if (!run) return 'La nómina no existe.';
   if (run.status !== 'approved') return 'Solo se reversa una nómina aprobada.';
+  // Pago de roles (NOMINA_PAGOS.md): reversar con pagos vivos dejaría el banco
+  // descargado contra un «por pagar» que ya no existe.
+  if (Number(run.paidCents ?? 0) > 0) return 'La nómina tiene pagos registrados: anúlalos antes de reversarla.';
   if (!reason.trim()) return 'Escribe el motivo de la reversa.';
   return null;
 }

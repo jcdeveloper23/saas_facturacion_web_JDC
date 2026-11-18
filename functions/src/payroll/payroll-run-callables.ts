@@ -230,10 +230,16 @@ export const approvePayrollRun = onCall(async (request) => {
     // Roles congelados, con lo calculado ahora.
     for (const ref of stale) tx.delete(ref);
     for (const x of computed.payslips) {
-      tx.set(db.doc(`${base}/payslips/${payslipId(id, x.result.employeeId)}`), payslipDoc({
-        runId: id, period: p.period, c: x, status: 'approved', params: computed.params,
-        parametersId: computed.parametersId, now,
-      }));
+      tx.set(db.doc(`${base}/payslips/${payslipId(id, x.result.employeeId)}`), {
+        ...payslipDoc({
+          runId: id, period: p.period, c: x, status: 'approved', params: computed.params,
+          parametersId: computed.parametersId, now,
+        }),
+        // Pago de roles (NOMINA_PAGOS.md): la cuenta donde quedó el neto, para
+        // descargarla aunque después cambien las cuentas de nómina.
+        groupId: x.result.groupId, netPayableAccountCode: accountsFor(x.result).netPayable,
+        paidCents: 0, paymentStatus: 'unpaid',
+      });
     }
     // Préstamos: baja la cuota; si ya llegó a cero, se cierra (D-N12).
     for (const x of computed.payslips) {
@@ -248,7 +254,7 @@ export const approvePayrollRun = onCall(async (request) => {
       }
     }
     tx.update(runRef, stripUndefined({
-      ...runFields(computed), status: 'approved', accountingEntryId: entryRef.id,
+      ...runFields(computed), status: 'approved', accountingEntryId: entryRef.id, paidCents: 0, paymentStatus: 'unpaid',
       parametersSnapshot: computed.params, approvedAt: now, approvedBy: uid, updatedAt: now,
     }));
     tx.set(periodRef, { status: 'approved', updatedAt: now }, { merge: true });
