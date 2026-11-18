@@ -41,6 +41,14 @@ Copia corta. **La versión principal y el plan viven en el panel:**
 - **E5 (pantallas en la web) hecha en código, sin desplegar** (2026-11-11): `src/app/features/payroll/` (Nóminas,
   ficha de la nómina, rol, Empleados, Parámetros), ruta `/payroll`, menú con `showInMenu: true` y `payroll` en
   `PERM_MODULES`. `ng build` en verde; **no probada en pantalla** (la web no usa emulador). Detalle: `docs/NOMINA_E5.md`.
+- **Desplegado en producción (2026-11-11/13):** reglas, `seed-payroll-module`, `grant-payroll-permissions`,
+  `checkPlanLimit`/`setupCompany`, tanda 14-nomina y `payrollParameters/2026_v1` publicado (IECE, SECAP y divisor
+  240 por criterio). Jessica Zari confirmó: 13.º = lo ganado ÷ 12; 14.º = SBU ÷ 12 aunque gane más (ya era así).
+- **Punto 1 de lo que faltaba frente al sistema actual (2026-11-18), SIN desplegar:** pago de roles (D-N6
+  adelantado de E6), anticipos a empleados y cuentas de nómina. Servidor hecho y probado (Jest 89/89, integración 8/8,
+  reglas 808/808); pantallas web y de Conectate en curso. **Contrato y detalle: `docs/NOMINA_PAGOS.md`.** Tanda
+  `15-nomina-pagos`. Siguen: grupos y préstamos (punto 2), pago de décimos y vacaciones (3), campos de Colaborador
+  (4), reportes y E6 (5).
 - **Siguiente:** desplegar cuando lo ordene el usuario (reglas → scripts → tanda 14-nomina; encender `pkg_hr` en
   LEANDRO LEÓN y subir `employeesTotal`) y probar en pantalla con Conecta; o completar préstamos, grupos y décimos.
 
