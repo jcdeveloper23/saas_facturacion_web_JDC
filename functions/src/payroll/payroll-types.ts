@@ -52,6 +52,8 @@ export interface PayrollEmployeeInput {
   reserveFundMode: PayMode;
   /** Días trabajados antes con el mismo empleador (reingreso, art. 197). */
   priorServiceDays?: number;
+  /** La empresa paga el aporte personal (no se descuenta al empleado). */
+  assumesIessPersonal?: boolean;
 }
 
 export type NoveltyType =
@@ -90,6 +92,8 @@ export type Concept =
   | 'iessPersonal' | 'advance' | 'otherDeduction' | 'loan'
   // costo del empleador
   | 'iessEmployer' | 'iece' | 'secap'
+  // la empresa asume el aporte personal (punto 4, NOMINA_COLABORADOR.md)
+  | 'iessPersonalAssumed'
   // provisiones (no suman al neto, §4.4 regla 1)
   | 'thirteenthAccrued' | 'fourteenthAccrued' | 'vacationAccrued' | 'reserveFundIess';
 
@@ -142,6 +146,7 @@ export const CONCEPT_LABELS: Record<Concept, string> = {
   iessEmployer: 'Aporte patronal IESS',
   iece: 'IECE',
   secap: 'SECAP',
+  iessPersonalAssumed: 'Aporte personal IESS asumido por la empresa',
   thirteenthAccrued: 'Provisión décimo tercero',
   fourteenthAccrued: 'Provisión décimo cuarto',
   vacationAccrued: 'Provisión vacaciones',

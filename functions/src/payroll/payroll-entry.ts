@@ -20,7 +20,8 @@ export type PayrollAccountKey =
   | 'reserveFundExpense' | 'vacationExpense' | 'employerCostExpense'
   | 'netPayable' | 'advances' | 'iessPersonalPayable' | 'employerCostPayable'
   | 'thirteenthProvision' | 'fourteenthProvision' | 'vacationProvision' | 'reserveFundIessPayable'
-  | 'companyLoan' | 'longTermAdvance' | 'iessQuirografario' | 'iessHipotecario' | 'otherDeductions';
+  | 'companyLoan' | 'longTermAdvance' | 'iessQuirografario' | 'iessHipotecario' | 'otherDeductions'
+  | 'assumedIessExpense';
 
 /**
  * §5.2 y D-N10. Vacías a propósito, con caída a otra cuenta:
@@ -56,12 +57,13 @@ export const DEFAULT_PAYROLL_ACCOUNTS: Record<PayrollAccountKey, string> = {
   iessQuirografario: '',
   iessHipotecario: '',
   otherDeductions: '',
+  assumedIessExpense: '',
 };
 
 /** Clave con caída: si la empresa no configuró la propia, la de respaldo. */
 const FALLBACK: Partial<Record<PayrollAccountKey, PayrollAccountKey>> = {
   commissions: 'otherTaxable', bonuses: 'otherTaxable', nonTaxableIncome: 'otherTaxable',
-  longTermAdvance: 'advances',
+  longTermAdvance: 'advances', assumedIessExpense: 'employerCostExpense',
 };
 
 const pick = (a: Record<PayrollAccountKey, string>, key: PayrollAccountKey): string =>
@@ -81,11 +83,13 @@ const DEBIT: Partial<Record<Concept, PayrollAccountKey>> = {
   reserveFundMonthly: 'reserveFundExpense', reserveFundIess: 'reserveFundExpense',
   vacationAccrued: 'vacationExpense',
   iessEmployer: 'employerCostExpense', iece: 'employerCostExpense', secap: 'employerCostExpense',
+  iessPersonalAssumed: 'assumedIessExpense',
 };
 
 const CREDIT: Partial<Record<Concept, PayrollAccountKey>> = {
   iessPersonal: 'iessPersonalPayable', advance: 'advances',
   iessEmployer: 'employerCostPayable', iece: 'employerCostPayable', secap: 'employerCostPayable',
+  iessPersonalAssumed: 'iessPersonalPayable',
   thirteenthAccrued: 'thirteenthProvision', fourteenthAccrued: 'fourteenthProvision',
   vacationAccrued: 'vacationProvision', reserveFundIess: 'reserveFundIessPayable',
 };
@@ -103,6 +107,7 @@ export const PAYROLL_ACCOUNT_LABELS: Record<PayrollAccountKey, string> = {
   companyLoan: 'Préstamos de la empresa', longTermAdvance: 'Anticipos a largo plazo',
   iessQuirografario: 'Préstamo IESS quirografario', iessHipotecario: 'Préstamo IESS hipotecario',
   otherDeductions: 'Otros descuentos',
+  assumedIessExpense: 'Gasto aporte personal asumido',
 };
 
 export class PayrollEntryError extends Error {

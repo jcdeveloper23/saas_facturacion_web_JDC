@@ -90,3 +90,15 @@ it('préstamos: entrega con asiento, empieza en su mes, baja con el rol, vuelve 
   expect((await doc(`payrollLoans/${l.loanId}`)).status).toBe('cancelled');
   await expect(call(cancelPayrollLoan, { loanId: l.loanId, reason: 'otra' })).rejects.toMatchObject({ code: 'failed-precondition' });
 });
+
+it('ficha: los campos nuevos se guardan planos y editar sin ellos no los borra', async () => {
+  await call(upsertPayrollEmployee, { personaId: 'p1', employee: { ...emp, assumesIessPersonal: true, disabilityPct: 40,
+    familyDependents: 2, maritalStatus: 'married', bankName: 'Pichincha', bankAccountType: 'savings' } });
+  await call(upsertPayrollEmployee, { personaId: 'p1', employee: { ...emp, salaryCents: 110000 } });
+  const e = await doc('payrollEmployees/p1');
+  expect(e).toMatchObject({ assumesIessPersonal: true, disabilityPct: 40, familyDependents: 2, maritalStatus: 'married',
+    bankName: 'Pichincha', bankAccountType: 'savings', salaryCents: 110000 });
+  expect(e.profile).toBeUndefined();
+  await expect(call(upsertPayrollEmployee, { personaId: 'p1', employee: { ...emp, disabilityPct: 150 } }))
+    .rejects.toMatchObject({ code: 'invalid-argument' });
+});

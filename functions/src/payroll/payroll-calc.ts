@@ -130,6 +130,8 @@ export function calculatePayslip(input: {
     line('iessEmployer', pct(taxable, p.iess.employerPct!)),
     line('iece', pct(taxable, p.iess.iecePct!)),
     line('secap', pct(taxable, p.iess.secapPct!)),
+    // Aporte asumido (criterio provisional, NOMINA_COLABORADOR.md): costo de la empresa, no descuento.
+    ...(e.assumesIessPersonal ? [line('iessPersonalAssumed', pct(taxable, p.iess.personalPct!))] : []),
   ].filter(l => l.amountCents > 0);
   const thirteenth = roundCents(taxable / p.thirteenth.divisor!);
   const fourteenth = roundCents(sbuCents / p.fourteenth.divisor! * workedDays / 30);
@@ -160,7 +162,7 @@ export function calculatePayslip(input: {
   if (nonTaxable > 0) earnings.push(line('bonusNonTaxable', nonTaxable));
 
   // ── Descuentos ─────────────────────────────────────────────────────────
-  const deductions: PayslipLine[] = [line('iessPersonal', pct(taxable, p.iess.personalPct!))];
+  const deductions: PayslipLine[] = e.assumesIessPersonal ? [] : [line('iessPersonal', pct(taxable, p.iess.personalPct!))];
   const advances = n.filter(x => x.type === 'advance').reduce((s, x) => s + (x.amountCents ?? 0), 0);
   // Regla 3: tope del art. 90 sobre la remuneración del mes → rechazo con mensaje.
   // Cuenta también la cuota de los anticipos a largo plazo (D-N12: el tope sigue

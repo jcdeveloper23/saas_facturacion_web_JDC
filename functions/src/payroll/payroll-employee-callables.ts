@@ -31,6 +31,7 @@ export const upsertPayrollEmployee = onCall(async (request) => {
   const v = validateEmployee(data.employee);
   if (!v.ok) throw new HttpsError('invalid-argument', v.error);
   const e = v.value;
+  const { profile: _profile, ...fields } = e;
 
   const personaSnap = await db.doc(`companies/${companyId}/personas/${personaId}`).get();
   if (!personaSnap.exists) throw new HttpsError('not-found', 'La persona no existe en Clientes y proveedores.');
@@ -63,7 +64,9 @@ export const upsertPayrollEmployee = onCall(async (request) => {
     const todayIso = now.toDate().toISOString().slice(0, 10);
     tx.set(empRef, stripUndefined({
       personaId,
-      ...e,
+      ...fields,
+      // La ficha (punto 4): solo los campos que vinieron; el resto se conserva (merge).
+      ...e.profile,
       // El nombre y la cédula salen de la persona, no de lo que llegue.
       name: String(personaSnap.get('legalName') || personaSnap.get('name') || e.name),
       taxId: String(personaSnap.get('taxId') ?? e.taxId),

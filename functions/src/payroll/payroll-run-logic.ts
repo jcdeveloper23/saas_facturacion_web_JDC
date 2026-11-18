@@ -85,6 +85,77 @@ export interface EmployeeWrite {
   priorServiceDays?: number;
   bankAccount: string;
   isActive: boolean;
+  /** Ficha del colaborador (punto 4, NOMINA_COLABORADOR.md): solo lo que vino. */
+  profile: EmployeeProfile;
+}
+
+export const MARITAL_STATUSES = ['single', 'married', 'divorced', 'widowed', 'freeUnion'];
+export const EDUCATION_LEVELS = ['none', 'primary', 'secondary', 'technical', 'university', 'postgraduate'];
+export const BANK_ACCOUNT_TYPES = ['savings', 'checking'];
+
+export interface EmployeeProfile {
+  assumesIessPersonal?: boolean;
+  disabilityPct?: number;
+  familyDependents?: number;
+  birthDate?: string;
+  sex?: string;
+  maritalStatus?: string;
+  bloodType?: string;
+  address?: string;
+  phone?: string;
+  mobile?: string;
+  education?: string;
+  title?: string;
+  bankName?: string;
+  bankAccountType?: string;
+  notes?: string;
+}
+
+/**
+ * Los campos de la ficha que vinieron (los que no vienen no se tocan al editar).
+ * Un texto vacío borra el valor; los números y el booleano se validan.
+ */
+export function validateProfile(e: Record<string, any>): Ok<EmployeeProfile> {
+  const out: EmployeeProfile = {};
+  const has = (k: string) => e[k] !== undefined;
+  if (has('assumesIessPersonal')) {
+    if (typeof e.assumesIessPersonal !== 'boolean') return { ok: false, error: '«Asumir aporte IESS» es sí o no.' };
+    out.assumesIessPersonal = e.assumesIessPersonal;
+  }
+  if (has('disabilityPct')) {
+    const v = e.disabilityPct;
+    if (!Number.isInteger(v) || v < 0 || v > 100) return { ok: false, error: 'El porcentaje de discapacidad va de 0 a 100.' };
+    out.disabilityPct = v;
+  }
+  if (has('familyDependents')) {
+    const v = e.familyDependents;
+    if (!Number.isInteger(v) || v < 0 || v > 30) return { ok: false, error: 'Las cargas familiares van de 0 a 30.' };
+    out.familyDependents = v;
+  }
+  if (has('birthDate')) {
+    const v = text(e.birthDate, 10);
+    if (v && !parseYmd(v)) return { ok: false, error: 'La fecha de nacimiento tiene que ser AAAA-MM-DD.' };
+    out.birthDate = v;
+  }
+  const choice = (k: keyof EmployeeProfile, allowed: string[], label: string): string | null => {
+    if (!has(k)) return null;
+    const v = text(e[k], 20);
+    if (v && !allowed.includes(v)) return `${label} no es válido.`;
+    (out as any)[k] = v;
+    return null;
+  };
+  const errs = [
+    choice('sex', ['M', 'F'], 'El sexo'),
+    choice('maritalStatus', MARITAL_STATUSES, 'El estado civil'),
+    choice('education', EDUCATION_LEVELS, 'El nivel de instrucción'),
+    choice('bankAccountType', BANK_ACCOUNT_TYPES, 'El tipo de cuenta'),
+  ].filter(Boolean);
+  if (errs.length) return { ok: false, error: errs[0]! };
+  for (const [k, max] of [['bloodType', 5], ['address', 200], ['phone', 30], ['mobile', 30], ['title', 120],
+    ['bankName', 80], ['notes', 500]] as const) {
+    if (has(k)) (out as any)[k] = text(e[k], max);
+  }
+  return { ok: true, value: out };
 }
 
 const text = (v: unknown, max = 200) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
@@ -128,6 +199,8 @@ export function validateEmployee(e: any): Ok<EmployeeWrite> {
   }
   const groupId = e.groupId === undefined ? undefined : text(e.groupId, 80);
   if (groupId?.includes('/')) return { ok: false, error: 'Grupo de colaboradores inválido.' };
+  const profile = validateProfile(e);
+  if (!profile.ok) return profile;
   return { ok: true, value: {
     name: text(e.name), taxId: text(e.taxId, 20), email, iessNumber: text(e.iessNumber, 30),
     hireDate, endDate, contractType, salaryCents,
@@ -138,6 +211,7 @@ export function validateEmployee(e: any): Ok<EmployeeWrite> {
     ...(prior !== undefined ? { priorServiceDays: prior } : {}),
     ...(groupId !== undefined ? { groupId } : {}),
     bankAccount: text(e.bankAccount, 120), isActive: e.isActive !== false,
+    profile: profile.value,
   } };
 }
 
@@ -170,6 +244,7 @@ export function toEmployeeInput(id: string, d: Record<string, any>, lastDay: str
     fourteenthMode: d.fourteenthMode ?? 'monthly',
     reserveFundMode: d.reserveFundMode ?? 'monthly',
     priorServiceDays: Number(d.priorServiceDays ?? 0),
+    assumesIessPersonal: d.assumesIessPersonal === true,
   };
 }
 

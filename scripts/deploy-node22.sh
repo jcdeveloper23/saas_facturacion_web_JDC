@@ -82,3 +82,8 @@ firebase deploy --project accounting-system-a5c9f --only functions:upsertPayroll
 # vacaciones (docs/NOMINA_DECIMOS.md). Antes, las reglas (payrollVacations). reversePayrollRun
 # cambió (no se reversa un mes con décimo pagado); createPayrollLoan, por el tope del anticipo a largo plazo.
 firebase deploy --project accounting-system-a5c9f --only functions:createPayrollBonusRun,functions:recalculatePayrollBonusRun,functions:payPayrollBonusRun,functions:voidPayrollBonusRun,functions:getPayrollVacationBalance,functions:registerPayrollVacation,functions:voidPayrollVacation,functions:reversePayrollRun,functions:createPayrollLoan 2>&1 | tee deploy-node22-17-nomina-decimos.log
+
+# Tanda 18-nomina-colaborador (6) — agregada el 2026-11-18: ficha del colaborador y aporte IESS asumido
+# (docs/NOMINA_COLABORADOR.md). Sin reglas nuevas. Cambian el alta del empleado, el cálculo y la clave
+# de cuentas assumedIessExpense.
+firebase deploy --project accounting-system-a5c9f --only functions:upsertPayrollEmployee,functions:createPayrollRun,functions:recalculatePayrollRun,functions:approvePayrollRun,functions:savePayrollAccounts,functions:getPayrollAccounts 2>&1 | tee deploy-node22-18-nomina-colaborador.log
