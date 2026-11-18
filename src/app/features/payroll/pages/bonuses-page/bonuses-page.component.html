@@ -1,0 +1,58 @@
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h4 class="mb-0">Décimos acumulados</h4>
+    <small class="text-secondary">El pago del 13.º y el 14.º de quienes los acumulan</small>
+  </div>
+  <button cButton color="primary" size="sm" (click)="showNew.set(true)">+ Generar décimo</button>
+</div>
+
+<app-payroll-tabs />
+
+<c-alert color="info" class="py-2 small mb-3">
+  Quien cobra el décimo mensualizado ya lo recibe en cada rol. Quien lo acumula deja una provisión en cada nómina
+  aprobada; aquí se paga al final del periodo y el asiento descarga esa provisión.
+</c-alert>
+
+<div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
+  <label class="small text-secondary">Año</label>
+  <select cSelect style="max-width: 120px" [ngModel]="year()" (ngModelChange)="setYear($event)">
+    @for (y of years; track y) { <option [ngValue]="y">{{ y }}</option> }
+  </select>
+</div>
+
+<c-card>
+  @if (loading()) {
+    <c-card-body class="text-center py-5"><c-spinner color="primary"></c-spinner></c-card-body>
+  } @else if (error()) {
+    <c-card-body><c-alert color="warning" class="mb-0">{{ error() }}</c-alert></c-card-body>
+  } @else if (rows().length === 0) {
+    <c-card-body class="text-center text-secondary py-5">No hay lotes de décimos en {{ year() }}.</c-card-body>
+  } @else {
+    <div class="table-responsive">
+      <table class="table table-hover mb-0 align-middle">
+        <thead>
+          <tr><th>Décimo</th><th>Estado</th><th class="text-end">Empleados</th><th class="text-end">A pagar</th>
+            <th>Fecha del pago</th><th>Asiento</th></tr>
+        </thead>
+        <tbody>
+          @for (r of rows(); track r.id) {
+            <tr role="button" (click)="open(r)">
+              <td>{{ r.label }}@if (r.version > 1) { <small class="text-secondary"> · v{{ r.version }}</small> }</td>
+              <td><c-badge [color]="STATUS[r.status].color">{{ STATUS[r.status].label }}</c-badge></td>
+              <td class="text-end">{{ r.totals.employees }}</td>
+              <td class="text-end font-monospace fw-semibold">{{ money(toPay(r)) }}</td>
+              <td>{{ r.paymentDate ? day(r.paymentDate) : '—' }}</td>
+              <td class="small">
+                @if (r.entryId) { {{ r.reversalEntryId ? 'Reversado' : 'Registrado' }} } @else { <span class="text-secondary">—</span> }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</c-card>
+
+@if (showNew()) {
+  <app-payroll-bonus-generate-modal [defaultYear]="year()" (closed)="onGenerated($event)" />
+}

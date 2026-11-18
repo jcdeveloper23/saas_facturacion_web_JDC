@@ -142,7 +142,8 @@
         }
         @case ('reverse') {
           <p>Se anula el asiento de la nómina y los roles quedan reversados. Después puedes emitir una nómina nueva del mismo mes.</p>
-          <c-alert color="warning" class="py-2">Los pagos hechos con comprobante de egreso o asiento manual no se revierten solos.</c-alert>
+          <c-alert color="warning" class="py-2">Los pagos hechos con comprobante de egreso o asiento manual no se revierten solos.
+            Tampoco se puede reversar un mes que cubre un décimo pagado: anula antes ese pago en Décimos.</c-alert>
           <label cLabel>Motivo *</label>
           <textarea cFormControl rows="2" [(ngModel)]="reason" placeholder="Ej.: faltaron las horas extra de Juan"></textarea>
         }

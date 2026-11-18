@@ -27,6 +27,18 @@ export const PAYROLL_ROUTES: Routes = [
     loadComponent: () => import('./pages/payslip-page/payslip-page.component').then(m => m.PayslipPageComponent),
   },
   {
+    path: 'bonuses', ...guards, data: data('Décimos'),
+    loadComponent: () => import('./pages/bonuses-page/bonuses-page.component').then(m => m.BonusesPageComponent),
+  },
+  {
+    path: 'bonuses/:bonusRunId', ...guards, data: data('Lote de décimos'),
+    loadComponent: () => import('./pages/bonus-detail-page/bonus-detail-page.component').then(m => m.BonusDetailPageComponent),
+  },
+  {
+    path: 'vacations', ...guards, data: data('Vacaciones'),
+    loadComponent: () => import('./pages/vacations-page/vacations-page.component').then(m => m.VacationsPageComponent),
+  },
+  {
     path: 'groups', ...guards, data: data('Grupos de colaboradores'),
     loadComponent: () => import('./pages/groups-page/groups-page.component').then(m => m.GroupsPageComponent),
   },

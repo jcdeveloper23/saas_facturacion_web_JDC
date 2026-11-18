@@ -1,0 +1,105 @@
+@if (loading()) {
+  <div class="text-center py-5"><c-spinner color="primary"></c-spinner></div>
+} @else if (error()) {
+  <c-alert color="warning">{{ error() }}</c-alert>
+} @else if (!run()) {
+  <c-alert color="warning">Este lote ya no existe. <a routerLink="/payroll/bonuses">Volver a Décimos</a></c-alert>
+} @else {
+  @let r = run()!;
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+      <a routerLink="/payroll/bonuses" class="small">← Décimos</a>
+      <h4 class="mb-0">{{ r.label }}@if (r.version > 1) { <small class="text-secondary"> · v{{ r.version }}</small> }
+        <c-badge [color]="STATUS[r.status].color" class="ms-2 align-middle">{{ STATUS[r.status].label }}</c-badge>
+      </h4>
+      <small class="text-secondary">Periodo {{ day(r.from) }} – {{ day(r.to) }}
+        @if (r.calculatedFor) { · calculado al {{ day(r.calculatedFor) }} }</small>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      @if (r.status === 'draft') {
+        <button cButton color="secondary" variant="outline" size="sm" (click)="recalc()" [disabled]="busy()">
+          @if (busy()) { <c-spinner size="sm" class="me-1"></c-spinner> } Recalcular
+        </button>
+        <button cButton color="success" size="sm" (click)="showPay.set(true)"
+                [disabled]="busy() || errorCount() > 0 || r.totals.balanceCents <= 0">Pagar</button>
+        <button cButton color="danger" variant="outline" size="sm" (click)="showVoid.set(true)" [disabled]="busy()">Descartar</button>
+      }
+      @if (r.status === 'paid') {
+        <a cButton color="secondary" variant="outline" size="sm" routerLink="/accounting/journal-entries"
+           [title]="'Búscalo por «Pago ' + r.label + '»'">Ver en Asientos</a>
+        <button cButton color="danger" size="sm" (click)="showVoid.set(true)" [disabled]="busy()">Anular pago</button>
+      }
+    </div>
+  </div>
+
+  <app-payroll-tabs />
+
+  @if (r.status === 'draft' && errorCount() > 0) {
+    <c-alert color="danger" class="py-2 small">{{ errorCount() }} empleado(s) con errores: corrígelos y recalcula antes de pagar.</c-alert>
+  }
+  @if (r.status === 'paid') {
+    <c-alert color="success" class="py-2 small">
+      Pagado el {{ day(r.paymentDate) }} · {{ money(r.paidCents) }} desde {{ r.sourceLabel }}@if (r.chequeNumber) { (cheque {{ r.chequeNumber }}) }.
+      Mientras esté pagado, las nóminas de los meses que cubre no se pueden reversar.
+    </c-alert>
+  }
+  @if (r.status === 'voided') {
+    <c-alert color="danger" class="py-2 small">Anulado. Motivo: {{ r.voidReason }}</c-alert>
+  }
+
+  <c-card>
+    @if (rows().length === 0) {
+      <c-card-body class="text-center text-secondary py-5">Ningún empleado acumula este décimo en el periodo.</c-card-body>
+    } @else {
+      <div class="table-responsive">
+        <table class="table table-sm table-hover mb-0 align-middle">
+          <thead>
+            <tr><th>Empleado</th><th class="text-end">Meses trabajados</th><th class="text-end">Meses acumulados</th>
+              @if (r.kind === 'thirteenth') { <th class="text-end">Total ingresos</th> }
+              <th class="text-end">Valor</th><th class="text-end">Provisionado</th><th class="text-end">Ajuste</th>
+              <th class="text-end">Pagado a cuenta</th><th class="text-end">Saldo</th></tr>
+          </thead>
+          <tbody>
+            @for (l of rows(); track l.employeeId) {
+              <tr [class.table-danger]="l.errors.length > 0">
+                <td>{{ l.employeeName }}
+                  @for (e of l.errors; track $index) { <br /><small class="text-danger">{{ e }}</small> }
+                </td>
+                <td class="text-end">{{ l.monthsWorked }}</td>
+                <td class="text-end">{{ l.monthsAccumulated }}</td>
+                @if (r.kind === 'thirteenth') { <td class="text-end font-monospace">{{ money(l.totalIncomeCents) }}</td> }
+                <td class="text-end font-monospace">{{ money(l.amountCents) }}</td>
+                <td class="text-end font-monospace">{{ money(l.provisionedCents) }}</td>
+                <td class="text-end font-monospace" [class.text-danger]="l.adjustmentCents < 0">{{ money(l.adjustmentCents) }}</td>
+                <td class="text-end font-monospace">{{ money(l.alreadyPaidCents) }}</td>
+                <td class="text-end font-monospace fw-semibold">{{ money(l.balanceCents) }}</td>
+              </tr>
+            }
+          </tbody>
+          <tfoot>
+            <tr class="fw-semibold">
+              <td [attr.colspan]="r.kind === 'thirteenth' ? 4 : 3">Total · {{ r.totals.employees }} empleado(s)</td>
+              <td class="text-end font-monospace">{{ money(r.totals.amountCents) }}</td>
+              <td class="text-end font-monospace">{{ money(r.totals.provisionedCents) }}</td>
+              <td class="text-end font-monospace">{{ money(r.totals.adjustmentCents) }}</td>
+              <td></td>
+              <td class="text-end font-monospace">{{ money(r.totals.balanceCents) }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    }
+  </c-card>
+  <p class="small text-secondary mt-2">
+    El valor legal no es la suma de las provisiones (cada una se redondeó y usó el salario básico de su mes): la
+    diferencia es el ajuste, que el asiento del pago lleva al gasto del décimo.
+  </p>
+
+  @if (showPay()) {
+    <app-payroll-bonus-pay-modal [run]="r" (closed)="showPay.set(false)" />
+  }
+  @if (showVoid()) {
+    <app-payroll-void-reason-modal [title]="voidTitle(r)" [text]="voidText(r)" [busy]="busy()"
+      [confirmLabel]="r.status === 'paid' ? 'Anular pago' : 'Descartar'" (confirmed)="confirmVoid($event)" (cancelled)="showVoid.set(false)" />
+  }
+}

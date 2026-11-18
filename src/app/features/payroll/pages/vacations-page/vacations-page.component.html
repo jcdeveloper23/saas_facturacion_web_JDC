@@ -1,0 +1,95 @@
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h4 class="mb-0">Vacaciones</h4>
+    <small class="text-secondary">Días ganados, gozados y disponibles de cada empleado</small>
+  </div>
+  <button cButton color="primary" size="sm" (click)="showNew.set(true)" [disabled]="!employee()?.isActive">+ Registrar vacaciones</button>
+</div>
+
+<app-payroll-tabs />
+
+<c-alert color="info" class="py-2 small mb-3">
+  15 días por cada año completo de servicio, más 1 por año después del quinto (hasta 15 más; art. 69). Se cuentan días
+  corridos. No crea asiento: el sueldo de las vacaciones se paga en la nómina del mes como siempre. Los permisos sin
+  sueldo siguen siendo la novedad «Permiso sin sueldo».
+</c-alert>
+
+<div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
+  <select cSelect style="max-width: 320px" [ngModel]="employeeId()" (ngModelChange)="select($event)">
+    <option value="">Elegir empleado</option>
+    @for (e of sorted(); track e.id) { <option [value]="e.id">{{ e.name }}{{ e.isActive ? '' : ' (inactivo)' }}</option> }
+  </select>
+</div>
+
+@if (!employeeId()) {
+  <p class="text-secondary">Elige un empleado para ver su saldo de vacaciones.</p>
+} @else {
+  <c-row class="g-3">
+    <c-col lg="4">
+      <c-card>
+        <c-card-header>Saldo a hoy</c-card-header>
+        <c-card-body class="small">
+          @if (loadingBalance()) {
+            <div class="text-center py-3"><c-spinner size="sm" color="primary"></c-spinner></div>
+          } @else if (balanceError()) {
+            <c-alert color="warning" class="py-2 mb-0">{{ balanceError() }}</c-alert>
+          } @else if (balance(); as b) {
+            <div class="d-flex justify-content-between"><span>Servicio desde</span><span>{{ day(b.serviceStart) }}</span></div>
+            <div class="d-flex justify-content-between"><span>Años completos</span><span>{{ b.completedYears }}</span></div>
+            <div class="d-flex justify-content-between"><span>Días ganados</span><span>{{ b.earnedDays }}</span></div>
+            <div class="d-flex justify-content-between"><span>Días gozados</span><span>{{ b.takenDays }}</span></div>
+            <hr />
+            <div class="d-flex justify-content-between fw-semibold fs-6" [class.text-danger]="b.availableDays < 0">
+              <span>Disponibles</span><span>{{ b.availableDays }}</span></div>
+            <div class="d-flex justify-content-between text-secondary mt-2"><span>Proporcional del año en curso</span><span>{{ b.accruingDays }}</span></div>
+            <div class="d-flex justify-content-between text-secondary"><span>Próximo aniversario</span><span>{{ day(b.nextAnniversary) }}</span></div>
+          }
+        </c-card-body>
+      </c-card>
+    </c-col>
+    <c-col lg="8">
+      <c-card>
+        <c-card-header>Registros</c-card-header>
+        @if (listError()) {
+          <c-card-body><c-alert color="warning" class="mb-0">{{ listError() }}</c-alert></c-card-body>
+        } @else if (rows().length === 0) {
+          <c-card-body class="text-center text-secondary py-4">Sin vacaciones registradas.</c-card-body>
+        } @else {
+          <div class="table-responsive">
+            <table class="table table-sm mb-0 align-middle">
+              <thead><tr><th>Desde</th><th>Hasta</th><th class="text-end">Días</th><th>Estado</th><th>Notas</th><th></th></tr></thead>
+              <tbody>
+                @for (v of rows(); track v.id) {
+                  <tr>
+                    <td>{{ day(v.from) }}</td>
+                    <td>{{ day(v.to) }}</td>
+                    <td class="text-end">{{ v.days }}</td>
+                    <td>
+                      <c-badge [color]="v.status === 'posted' ? 'success' : 'danger'">{{ v.status === 'posted' ? 'Registrado' : 'Anulado' }}</c-badge>
+                      @if (v.isAdvance) { <c-badge color="warning" class="ms-1">Adelanto</c-badge> }
+                      @if (v.voidReason) { <br /><small class="text-secondary">{{ v.voidReason }}</small> }
+                    </td>
+                    <td class="small text-secondary">{{ v.notes }}</td>
+                    <td class="text-end">
+                      <button cButton color="danger" variant="ghost" size="sm" (click)="voiding.set(v)" [disabled]="v.status === 'voided'"
+                              [title]="v.status === 'voided' ? 'Ya está anulado.' : ''">Anular</button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </c-card>
+    </c-col>
+  </c-row>
+}
+
+@if (showNew() && employee(); as e) {
+  <app-payroll-vacation-modal [employeeId]="e.id" [employeeName]="e.name" (closed)="onRegistered()" />
+}
+
+@if (voiding(); as v) {
+  <app-payroll-void-reason-modal [title]="'Anular vacaciones del ' + day(v.from) + ' al ' + day(v.to)" [busy]="busy()"
+    text="Los días vuelven al saldo del empleado." (confirmed)="confirmVoid(v, $event)" (cancelled)="voiding.set(null)" />
+}

@@ -204,6 +204,8 @@ export const navItems: INavData[] = [
       { name: 'Grupos', url: '/payroll/groups', icon: 'nav-icon-bullet' },
       { name: 'Anticipos', url: '/payroll/advances', icon: 'nav-icon-bullet' },
       { name: 'Préstamos', url: '/payroll/loans', icon: 'nav-icon-bullet' },
+      { name: 'Décimos', url: '/payroll/bonuses', icon: 'nav-icon-bullet' },
+      { name: 'Vacaciones', url: '/payroll/vacations', icon: 'nav-icon-bullet' },
       { name: 'Cuentas', url: '/payroll/accounts', icon: 'nav-icon-bullet' },
       { name: 'Parámetros', url: '/payroll/parameters', icon: 'nav-icon-bullet' }
     ]
