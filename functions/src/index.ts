@@ -119,6 +119,9 @@ export { payPayrollRun, voidPayrollPayment } from './payroll/payroll-payment-cal
 export {
   registerPayrollAdvance, voidPayrollAdvance, getPayrollAccounts, savePayrollAccounts,
 } from './payroll/payroll-advance-callables';
+export {
+  upsertPayrollGroup, deletePayrollGroup, createPayrollLoan, updatePayrollLoan, cancelPayrollLoan,
+} from './payroll/payroll-group-loan-callables';
 
 // Users
 export { createCompanyUser } from './users/create-company-user';

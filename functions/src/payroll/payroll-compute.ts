@@ -12,6 +12,7 @@ import { pickParameters } from './payroll-dates';
 import { AccountsFor, DEFAULT_PAYROLL_ACCOUNTS, PayrollAccountKey } from './payroll-entry';
 import { toEmployeeInput } from './payroll-run-logic';
 import { PayrollLoanInput, PayrollNoveltyInput, PayrollParameters, PayslipResult } from './payroll-types';
+import { loanAppliesTo } from './payroll-loan-logic';
 
 type Db = admin.firestore.Firestore;
 
@@ -77,7 +78,9 @@ export async function computeRun(db: Db, companyId: string, year: number, month:
   const byId = new Map([...activeSnap.docs, ...leftSnap.docs].map((d) => [d.id, d]));
   const employees = [...byId.values()];
   const novelties = novSnap.docs.map((d) => d.data() as PayrollNoveltyInput);
-  const loans = loanSnap.docs.map((d) => ({ id: d.id, ...d.data() } as PayrollLoanInput));
+  // Solo los que ya empezaron (startPeriod, NOMINA_GRUPOS_PRESTAMOS.md); los viejos sin fecha, siempre.
+  const loans = loanSnap.docs.filter((d) => loanAppliesTo(d.data(), period))
+    .map((d) => ({ id: d.id, ...d.data() } as PayrollLoanInput));
 
   // El cargo sigue en la persona (D-N8).
   const personaRefs = employees.map((d) => db.doc(`${base}/personas/${d.id}`));

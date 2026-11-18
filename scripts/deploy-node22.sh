@@ -72,3 +72,8 @@ firebase deploy --project accounting-system-a5c9f --only functions:upsertPayroll
 # payrollAdvances) y JUNTO con la tanda 14 otra vez: approvePayrollRun, reversePayrollRun y
 # savePayrollNovelties cambiaron.
 firebase deploy --project accounting-system-a5c9f --only functions:payPayrollRun,functions:voidPayrollPayment,functions:registerPayrollAdvance,functions:voidPayrollAdvance,functions:getPayrollAccounts,functions:savePayrollAccounts,functions:approvePayrollRun,functions:reversePayrollRun,functions:savePayrollNovelties 2>&1 | tee deploy-node22-15-nomina-pagos.log
+
+# Tanda 16-nomina-grupos (5 + 3) — agregada el 2026-11-18: grupos de colaboradores y préstamos
+# (docs/NOMINA_GRUPOS_PRESTAMOS.md). Las reglas no cambian (payrollGroups y payrollLoans ya
+# estaban). Se redespliegan las del cálculo porque ahora el préstamo empieza en startPeriod.
+firebase deploy --project accounting-system-a5c9f --only functions:upsertPayrollGroup,functions:deletePayrollGroup,functions:createPayrollLoan,functions:updatePayrollLoan,functions:cancelPayrollLoan,functions:createPayrollRun,functions:recalculatePayrollRun,functions:approvePayrollRun 2>&1 | tee deploy-node22-16-nomina-grupos.log
