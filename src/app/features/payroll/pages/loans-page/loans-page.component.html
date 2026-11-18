@@ -1,0 +1,90 @@
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h4 class="mb-0">Préstamos a empleados</h4>
+    <small class="text-secondary">Se descuentan solos en cada rol hasta quedar en cero</small>
+  </div>
+  <button cButton color="primary" size="sm" (click)="showNew.set(true)">+ Nuevo préstamo</button>
+</div>
+
+<app-payroll-tabs />
+
+<c-alert color="info" class="py-2 small mb-3">
+  Los préstamos del IESS (quirografario e hipotecario) no tienen entrega: el dinero lo paga el IESS y la empresa solo
+  retiene la cuota. Las cuotas de un anticipo a largo plazo cuentan en el tope del 10 % del sueldo (art. 90).
+</c-alert>
+
+<div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
+  <button cButton size="sm" [color]="status() === 'active' ? 'success' : 'light'" (click)="setStatus('active')">Activos</button>
+  <button cButton size="sm" [color]="status() === 'paid' ? 'secondary' : 'light'" (click)="setStatus('paid')">Pagados</button>
+  <button cButton size="sm" [color]="status() === 'cancelled' ? 'danger' : 'light'" (click)="setStatus('cancelled')">Cancelados</button>
+  <button cButton size="sm" [color]="status() === '' ? 'info' : 'light'" (click)="setStatus('')">Todos</button>
+  <select cSelect style="max-width: 260px" [ngModel]="employeeId()" (ngModelChange)="setEmployee($event)">
+    <option value="">Todos los empleados</option>
+    @for (e of allEmployees(); track e.id) { <option [value]="e.id">{{ e.name }}</option> }
+  </select>
+  <span class="ms-auto small text-secondary">Saldo activo: {{ money(totalBalance()) }}</span>
+</div>
+
+<c-card>
+  @if (loading()) {
+    <c-card-body class="text-center py-5"><c-spinner color="primary"></c-spinner></c-card-body>
+  } @else if (error()) {
+    <c-card-body><c-alert color="warning" class="mb-0">{{ error() }}</c-alert></c-card-body>
+  } @else if (rows().length === 0) {
+    <c-card-body class="text-center text-secondary py-5">No hay préstamos con este filtro.</c-card-body>
+  } @else {
+    <div class="table-responsive">
+      <table class="table table-hover mb-0 align-middle">
+        <thead>
+          <tr><th>Número</th><th>Empleado</th><th>Tipo</th><th class="text-end">Monto</th><th class="text-end">Saldo</th>
+            <th class="text-end">Cuota</th><th>Desde</th><th>Estado</th><th>Entrega</th><th></th></tr>
+        </thead>
+        <tbody>
+          @for (l of rows(); track l.id) {
+            <tr>
+              <td class="font-monospace">{{ l.number }}</td>
+              <td>{{ l.employeeName }}</td>
+              <td class="small">{{ TYPES[l.type] || l.type }}</td>
+              <td class="text-end font-monospace">{{ money(l.amountCents) }}</td>
+              <td class="text-end font-monospace fw-semibold">{{ money(l.balanceCents) }}</td>
+              <td class="text-end font-monospace">{{ money(l.installmentCents) }}</td>
+              <td class="small">{{ l.startPeriod ? period(l.startPeriod) : '—' }}</td>
+              <td>
+                <c-badge [color]="STATUS[l.status].color">{{ STATUS[l.status].label }}</c-badge>
+                @if (l.cancelReason) { <br /><small class="text-secondary">{{ l.cancelReason }}</small> }
+              </td>
+              <td class="small">
+                @if (l.disbursement) {
+                  {{ day(l.disbursement.date) }} · {{ l.disbursement.sourceLabel }}
+                  @if (l.disbursement.reversalEntryId) { <br /><span class="text-danger">Asiento reversado</span> }
+                } @else { <span class="text-secondary">—</span> }
+              </td>
+              <td class="text-end text-nowrap">
+                @if (l.status === 'active') {
+                  <button cButton color="secondary" variant="ghost" size="sm" (click)="editing.set({ loan: l, mode: 'installment' })">Cambiar cuota</button>
+                  @if (iess(l.type)) {
+                    <button cButton color="secondary" variant="ghost" size="sm" (click)="editing.set({ loan: l, mode: 'balance' })">Cambiar saldo</button>
+                  }
+                  <button cButton color="danger" variant="ghost" size="sm" (click)="cancelling.set(l)">Cancelar</button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</c-card>
+
+@if (showNew()) {
+  <app-payroll-loan-modal [employees]="activeEmployees()" [accounts]="accounts()" (closed)="showNew.set(false)" />
+}
+
+@if (editing(); as e) {
+  <app-payroll-loan-edit-modal [loan]="e.loan" [mode]="e.mode" (closed)="editing.set(null)" />
+}
+
+@if (cancelling(); as l) {
+  <app-payroll-void-reason-modal [title]="'Cancelar el préstamo ' + l.number" [text]="cancelText(l)" [busy]="busy()"
+    confirmLabel="Cancelar préstamo" (confirmed)="confirmCancel(l, $event)" (cancelled)="cancelling.set(null)" />
+}

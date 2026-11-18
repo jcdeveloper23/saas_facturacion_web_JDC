@@ -1,15 +1,15 @@
-import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
-import { AlertModule, ButtonModule, CardModule, FormModule, SpinnerModule } from '@coreui/angular';
+import { AlertModule, ButtonModule, CardModule, SpinnerModule } from '@coreui/angular';
 
 import { NotificationService } from '../../../../core/services/notification.service';
 import { ChartOfAccountsService } from '../../../accounting/services/chart-of-accounts.service';
 import { Account } from '../../../accounting/models/account.interface';
 import { PayrollTabsComponent } from '../../components/payroll-tabs.component';
+import { AccountBaseline, PayrollAccountTableComponent } from '../../components/payroll-account-table.component';
 import {
-  PAYROLL_ACCOUNT_FALLBACK, PAYROLL_ACCOUNT_GROUPS, PAYROLL_ACCOUNT_LABELS, PayrollAccountKey, PayrollAccountsView,
+  PAYROLL_ACCOUNT_FALLBACK, PAYROLL_ACCOUNT_LABELS, PayrollAccountKey, PayrollAccountsView,
 } from '../../models/payroll-payments.models';
 import { PayrollPaymentsService } from '../../services/payroll-payments.service';
 import { payrollErrorMessage } from '../../services/payroll.service';
@@ -23,7 +23,8 @@ import { payrollErrorMessage } from '../../services/payroll.service';
   selector: 'app-payroll-accounts-page',
   standalone: true,
   templateUrl: './accounts-page.component.html',
-  imports: [CommonModule, FormsModule, AlertModule, ButtonModule, CardModule, FormModule, SpinnerModule, PayrollTabsComponent],
+  imports: [CommonModule, AlertModule, ButtonModule, CardModule, SpinnerModule, PayrollTabsComponent,
+    PayrollAccountTableComponent],
 })
 export class AccountsPageComponent implements OnInit, OnDestroy {
   private svc = inject(PayrollPaymentsService);
@@ -39,9 +40,7 @@ export class AccountsPageComponent implements OnInit, OnDestroy {
   /** Lo que se edita: clave → código ('' = la sugerida). */
   edits: Partial<Record<PayrollAccountKey, string>> = {};
 
-  readonly groups = PAYROLL_ACCOUNT_GROUPS;
   readonly labels = PAYROLL_ACCOUNT_LABELS;
-  private readonly byCode = computed(() => new Map(this.accounts().map((a) => [a.code, a.name])));
 
   ngOnInit(): void {
     this.load();
@@ -70,15 +69,13 @@ export class AccountsPageComponent implements OnInit, OnDestroy {
     this.edits = Object.fromEntries(Object.keys(PAYROLL_ACCOUNT_LABELS).map((k) => [k, v.saved?.[k as PayrollAccountKey] ?? '']));
   }
 
-  accountName(code: string | undefined): string { return code ? this.byCode().get(code.trim()) ?? '' : ''; }
-
   /** La sugerida, o de qué clave toma la cuenta si no tiene. */
-  suggested(key: PayrollAccountKey): { code: string; note: string } {
+  readonly baseline: AccountBaseline = (key) => {
     const code = this.view()?.defaults?.[key] ?? '';
-    if (code) return { code, note: this.accountName(code) };
+    if (code) return { code, note: '' };
     const fb = PAYROLL_ACCOUNT_FALLBACK[key];
     return fb ? { code: '', note: `(usa la de «${this.labels[fb]}»)` } : { code: '', note: 'Sin sugerida: elígela si la usas' };
-  }
+  };
 
   /** Las claves cuyo código cambió frente a lo guardado. */
   changed(): Partial<Record<PayrollAccountKey, string>> {
@@ -91,14 +88,7 @@ export class AccountsPageComponent implements OnInit, OnDestroy {
     return out;
   }
 
-  isChanged(k: PayrollAccountKey): boolean { return String(this.edits[k] ?? '').trim() !== (this.view()?.saved?.[k] ?? ''); }
   changedCount(): number { return Object.keys(this.changed()).length; }
-
-  /** Un código que no es cuenta de movimiento activa (aviso; el servidor rechaza). */
-  unknown(k: PayrollAccountKey): boolean {
-    const code = String(this.edits[k] ?? '').trim();
-    return !!code && this.accounts().length > 0 && !this.byCode().has(code);
-  }
 
   discard(): void { const v = this.view(); if (v) this.apply(v); }
 

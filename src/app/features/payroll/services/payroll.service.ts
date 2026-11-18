@@ -140,6 +140,7 @@ function toEmployee(id: string, d: Record<string, any>): PayrollEmployee {
     region: d['region'] === 'costa' ? 'costa' : 'sierra', expenseGroup: d['expenseGroup'] === 'sales' ? 'sales' : 'admin',
     thirteenthMode: d['thirteenthMode'] ?? 'monthly', fourteenthMode: d['fourteenthMode'] ?? 'monthly',
     reserveFundMode: d['reserveFundMode'] ?? 'monthly', bankAccount: str(d['bankAccount']), isActive: d['isActive'] !== false,
+    groupId: str(d['groupId']),
   };
 }
 

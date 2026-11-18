@@ -13,6 +13,8 @@ import {
   money, parseMoneyCents,
 } from '../../models/payroll.models';
 import { PayrollService, payrollErrorMessage } from '../../services/payroll.service';
+import { PayrollLoansService } from '../../services/payroll-loans.service';
+import { PayrollGroup } from '../../models/payroll-loans.models';
 
 /** Nómina › Empleados (§7.2): lista con contadores y ficha en modal. Guarda con upsertPayrollEmployee. */
 @Component({
@@ -24,6 +26,7 @@ import { PayrollService, payrollErrorMessage } from '../../services/payroll.serv
 })
 export class EmployeesPageComponent implements OnInit, OnDestroy {
   private svc = inject(PayrollService);
+  private loansSvc = inject(PayrollLoansService);
   private notifications = inject(NotificationService);
   private fb = inject(FormBuilder);
   private sub = new Subscription();
@@ -36,6 +39,18 @@ export class EmployeesPageComponent implements OnInit, OnDestroy {
   readonly showModal = signal(false);
   readonly saving = signal(false);
   readonly editing = signal<PayrollEmployee | null>(null);
+  readonly groups = signal<PayrollGroup[]>([]);
+  /** Los activos, más el que ya tiene el empleado aunque esté inactivo (para no perderlo al editar). */
+  readonly groupOptions = computed(() => {
+    const current = this.editing()?.groupId ?? '';
+    return this.groups().filter((g) => g.isActive || g.id === current).sort((a, b) => a.name.localeCompare(b.name));
+  });
+  /** El grupo actual del empleado si no está en la lista (no cargó o se borró): se conserva igual. */
+  missingGroup(): string {
+    const id = this.editing()?.groupId ?? '';
+    return id && !this.groupOptions().some((g) => g.id === id) ? id : '';
+  }
+  groupName(id: string): string { return id ? this.groups().find((g) => g.id === id)?.name ?? '(grupo borrado)' : ''; }
   readonly personas = signal<{ id: string; name: string; taxId: string; email: string }[]>([]);
 
   readonly labels = { CONTRACT_LABELS, WORKDAY_LABELS, REGION_LABELS, EXPENSE_LABELS, MODE_LABELS, RESERVE_LABELS };
@@ -68,6 +83,7 @@ export class EmployeesPageComponent implements OnInit, OnDestroy {
     fourteenthMode: ['monthly'],
     reserveFundMode: ['monthly'],
     isActive: [true],
+    groupId: [''],
   });
 
   ngOnInit(): void {
@@ -75,6 +91,7 @@ export class EmployeesPageComponent implements OnInit, OnDestroy {
       next: (e) => { this.employees.set(e); this.loading.set(false); },
       error: (err) => { this.error.set(payrollErrorMessage(err)); this.loading.set(false); },
     }));
+    this.sub.add(this.loansSvc.groups().subscribe({ next: (g) => this.groups.set(g), error: () => {} }));
   }
 
   ngOnDestroy(): void { this.sub.unsubscribe(); }
@@ -99,7 +116,7 @@ export class EmployeesPageComponent implements OnInit, OnDestroy {
       personaId: e.id, salary: (e.salaryCents / 100).toFixed(2), hireDate: e.hireDate, endDate: e.endDate ?? '',
       contractType: e.contractType, workdayType: e.workdayType, region: e.region, expenseGroup: e.expenseGroup,
       iessNumber: e.iessNumber, email: e.email, bankAccount: e.bankAccount, thirteenthMode: e.thirteenthMode,
-      fourteenthMode: e.fourteenthMode, reserveFundMode: e.reserveFundMode, isActive: e.isActive,
+      fourteenthMode: e.fourteenthMode, reserveFundMode: e.reserveFundMode, isActive: e.isActive, groupId: e.groupId,
     });
     this.form.controls.personaId.disable();
     this.showModal.set(true);
@@ -125,6 +142,8 @@ export class EmployeesPageComponent implements OnInit, OnDestroy {
         expenseGroup: v.expenseGroup as 'admin' | 'sales', thirteenthMode: v.thirteenthMode as any,
         fourteenthMode: v.fourteenthMode as any, reserveFundMode: v.reserveFundMode as any,
         bankAccount: v.bankAccount.trim(), isActive: v.isActive,
+        // Siempre se manda: '' = sin grupo. Al editar viene precargado, así que no se pierde.
+        groupId: v.groupId,
       });
       this.notifications.success(this.editing() ? 'Empleado actualizado' : 'Empleado agregado a la nómina');
       this.showModal.set(false);

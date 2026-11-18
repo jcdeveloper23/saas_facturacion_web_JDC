@@ -28,6 +28,8 @@ export interface PayrollEmployee {
   reserveFundMode: PayMode;
   bankAccount: string;
   isActive: boolean;
+  /** Grupo de colaboradores (payrollGroups); '' = sin grupo. */
+  groupId: string;
 }
 
 /** Lo que se manda en `employee` a upsertPayrollEmployee (validateEmployee). */

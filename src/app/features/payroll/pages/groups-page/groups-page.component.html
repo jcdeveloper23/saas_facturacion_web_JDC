@@ -1,0 +1,70 @@
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h4 class="mb-0">Grupos de colaboradores</h4>
+    <small class="text-secondary">Cuentas contables propias para un grupo de empleados</small>
+  </div>
+  <button cButton color="primary" size="sm" (click)="editing.set(null)">+ Nuevo grupo</button>
+</div>
+
+<app-payroll-tabs />
+
+<c-alert color="info" class="py-2 small mb-3">
+  Al aprobar la nómina, el rol de cada empleado usa las cuentas de su grupo y, donde el grupo no tiene, las de la
+  empresa. El grupo se elige en la ficha del empleado. La nómina sigue siendo una sola por mes para toda la empresa.
+</c-alert>
+
+<c-card>
+  @if (loading()) {
+    <c-card-body class="text-center py-5"><c-spinner color="primary"></c-spinner></c-card-body>
+  } @else if (error()) {
+    <c-card-body><c-alert color="warning" class="mb-0">{{ error() }}</c-alert></c-card-body>
+  } @else if (rows().length === 0) {
+    <c-card-body class="text-center text-secondary py-5">Todavía no hay grupos. Sin grupo, todos usan las cuentas de la empresa.</c-card-body>
+  } @else {
+    <div class="table-responsive">
+      <table class="table table-hover mb-0 align-middle">
+        <thead>
+          <tr><th>Nombre</th><th>Descripción</th><th class="text-end">Empleados</th><th class="text-end">Cuentas propias</th><th>Estado</th><th></th></tr>
+        </thead>
+        <tbody>
+          @for (g of rows(); track g.id) {
+            <tr>
+              <td class="fw-semibold">{{ g.name }}</td>
+              <td class="small text-secondary">{{ g.description }}</td>
+              <td class="text-end">{{ count(g) }}</td>
+              <td class="text-end">{{ overrides(g) }}</td>
+              <td><c-badge [color]="g.isActive ? 'success' : 'secondary'">{{ g.isActive ? 'Activo' : 'Inactivo' }}</c-badge></td>
+              <td class="text-end text-nowrap">
+                <button cButton color="secondary" variant="ghost" size="sm" (click)="editing.set(g)">Editar</button>
+                <button cButton color="danger" variant="ghost" size="sm" (click)="deleting.set(g)"
+                        [title]="count(g) > 0 ? 'Tiene empleados: cámbialos de grupo o desactívalo' : ''">Borrar</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</c-card>
+
+@if (editing() !== undefined) {
+  <app-payroll-group-modal [group]="editing() ?? null" [companyAccounts]="companyAccounts()" [companyError]="companyError()"
+    [accounts]="accounts()" (closed)="editing.set(undefined)" />
+}
+
+<c-modal [visible]="deleting() !== null" (visibleChange)="!$event && deleting.set(null)" backdrop="static">
+  <c-modal-header>
+    <h5 cModalTitle>Borrar el grupo «{{ deleting()?.name }}»</h5>
+    <button type="button" class="btn-close" (click)="deleting.set(null)"></button>
+  </c-modal-header>
+  <c-modal-body class="small">
+    Solo se borra un grupo sin empleados. Si tiene, cámbialos de grupo en su ficha o desactiva el grupo.
+    Las nóminas ya aprobadas no cambian.
+  </c-modal-body>
+  <c-modal-footer>
+    <button cButton color="secondary" variant="outline" (click)="deleting.set(null)">Cancelar</button>
+    <button cButton color="danger" (click)="remove(deleting()!)" [disabled]="busy()">
+      @if (busy()) { <c-spinner size="sm" class="me-1"></c-spinner> } Borrar
+    </button>
+  </c-modal-footer>
+</c-modal>

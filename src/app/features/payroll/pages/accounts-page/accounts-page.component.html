@@ -18,46 +18,12 @@
   para las nóminas que se aprueben desde ahora; las ya aprobadas conservan su asiento.
 </c-alert>
 
-<datalist id="payroll-movement-accounts">
-  @for (a of accounts(); track a.id) { <option [value]="a.code">{{ a.name }}</option> }
-</datalist>
-
 @if (loading()) {
   <div class="text-center py-5"><c-spinner color="primary"></c-spinner></div>
 } @else if (error()) {
   <c-alert color="warning">{{ error() }}</c-alert>
 } @else {
-  @for (g of groups; track g.title) {
-    <c-card class="mb-3">
-      <c-card-header>{{ g.title }}</c-card-header>
-      <div class="table-responsive">
-        <table class="table table-sm mb-0 align-middle">
-          <thead>
-            <tr><th style="width: 32%">Concepto</th><th style="width: 30%">Sugerida</th><th>Cuenta de la empresa</th></tr>
-          </thead>
-          <tbody>
-            @for (k of g.keys; track k) {
-              @let s = suggested(k);
-              <tr [class.table-warning]="isChanged(k)">
-                <td>{{ labels[k] }}</td>
-                <td class="small">
-                  @if (s.code) { <span class="font-monospace">{{ s.code }}</span> }
-                  <span class="text-secondary"> {{ s.note }}</span>
-                </td>
-                <td>
-                  <input cFormControl sizing="sm" class="font-monospace" list="payroll-movement-accounts"
-                         [(ngModel)]="edits[k]" [placeholder]="s.code || 'Vacío = sugerida'" />
-                  @if (unknown(k)) {
-                    <small class="text-danger">No es una cuenta de movimiento activa del plan.</small>
-                  } @else if (accountName(edits[k])) {
-                    <small class="text-secondary">{{ accountName(edits[k]) }}</small>
-                  }
-                </td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-    </c-card>
-  }
+  <c-card>
+    <app-payroll-account-table [edits]="edits" [baseline]="baseline" [saved]="view()?.saved ?? {}" [accounts]="accounts()" />
+  </c-card>
 }

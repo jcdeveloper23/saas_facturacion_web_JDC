@@ -27,6 +27,14 @@ export const PAYROLL_ROUTES: Routes = [
     loadComponent: () => import('./pages/payslip-page/payslip-page.component').then(m => m.PayslipPageComponent),
   },
   {
+    path: 'groups', ...guards, data: data('Grupos de colaboradores'),
+    loadComponent: () => import('./pages/groups-page/groups-page.component').then(m => m.GroupsPageComponent),
+  },
+  {
+    path: 'loans', ...guards, data: data('Préstamos a empleados'),
+    loadComponent: () => import('./pages/loans-page/loans-page.component').then(m => m.LoansPageComponent),
+  },
+  {
     path: 'advances', ...guards, data: data('Anticipos a empleados'),
     loadComponent: () => import('./pages/advances-page/advances-page.component').then(m => m.AdvancesPageComponent),
   },

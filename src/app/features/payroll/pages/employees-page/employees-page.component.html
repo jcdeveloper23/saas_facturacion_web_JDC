@@ -37,7 +37,7 @@
         <thead>
           <tr>
             <th>Empleado</th><th>Ingreso</th><th>Contrato</th><th>Región</th>
-            <th class="text-end">Sueldo</th><th>Estado</th>
+            <th>Grupo</th><th class="text-end">Sueldo</th><th>Estado</th>
           </tr>
         </thead>
         <tbody>
@@ -47,6 +47,7 @@
               <td>{{ e.hireDate | date: 'dd/MM/yyyy' }}</td>
               <td>{{ labels.CONTRACT_LABELS[e.contractType] || e.contractType }}</td>
               <td>{{ labels.REGION_LABELS[e.region] }}</td>
+              <td class="small">{{ groupName(e.groupId) || '—' }}</td>
               <td class="text-end font-monospace">{{ money(e.salaryCents) }}</td>
               <td><c-badge [color]="e.isActive ? 'success' : 'secondary'">{{ e.isActive ? 'Activo' : 'Inactivo' }}</c-badge></td>
             </tr>
@@ -102,6 +103,14 @@
           <label cLabel>Gasto de</label>
           <select cSelect formControlName="expenseGroup">
             @for (o of entries(labels.EXPENSE_LABELS); track o[0]) { <option [value]="o[0]">{{ o[1] }}</option> }
+          </select>
+        </c-col>
+        <c-col md="4">
+          <label cLabel>Grupo</label>
+          <select cSelect formControlName="groupId">
+            <option value="">Sin grupo</option>
+            @if (missingGroup()) { <option [value]="missingGroup()">{{ groupName(missingGroup()) }}</option> }
+            @for (g of groupOptions(); track g.id) { <option [value]="g.id">{{ g.name }}{{ g.isActive ? '' : ' (inactivo)' }}</option> }
           </select>
         </c-col>
         <c-col md="4"><label cLabel>Afiliación IESS</label><input cFormControl formControlName="iessNumber" /></c-col>

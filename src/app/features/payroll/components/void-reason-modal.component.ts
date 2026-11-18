@@ -22,9 +22,9 @@ import { ButtonModule, FormModule, ModalModule, SpinnerModule } from '@coreui/an
     <textarea cFormControl rows="2" [(ngModel)]="reason" maxlength="300"></textarea>
   </c-modal-body>
   <c-modal-footer>
-    <button cButton color="secondary" variant="outline" (click)="cancelled.emit()">Cancelar</button>
+    <button cButton color="secondary" variant="outline" (click)="cancelled.emit()">Volver</button>
     <button cButton color="danger" (click)="confirmed.emit(reason.trim())" [disabled]="busy || !reason.trim()">
-      @if (busy) { <c-spinner size="sm" class="me-1"></c-spinner> } Anular
+      @if (busy) { <c-spinner size="sm" class="me-1"></c-spinner> } {{ confirmLabel }}
     </button>
   </c-modal-footer>
 </c-modal>`,
@@ -33,6 +33,7 @@ export class VoidReasonModalComponent {
   @Input({ required: true }) title = '';
   @Input() text = '';
   @Input() busy = false;
+  @Input() confirmLabel = 'Anular';
   @Output() confirmed = new EventEmitter<string>();
   @Output() cancelled = new EventEmitter<void>();
   reason = '';
