@@ -61,20 +61,33 @@ export const registerPayrollVacation = onCall(async (request) => {
   const v = validateVacationInput(data);
   if (!v.ok) throw new HttpsError('invalid-argument', v.error);
   const x = v.value;
-  const { emp, live, b } = await balanceOf(db, base, x.employeeId, x.from);
-  if (emp.get('isActive') !== true) fail('El empleado está inactivo en la nómina.');
-  if (x.from < String(emp.get('hireDate') ?? '')) fail('Las vacaciones no pueden ser antes del ingreso.');
-  const clash = live.find((d) => overlaps(x, { from: String(d.get('from')), to: String(d.get('to')) }));
-  if (clash) fail(`Se cruza con otras vacaciones del ${clash.get('from')} al ${clash.get('to')}.`);
-  const problem = vacationProblem(b, x.days, x.allowAdvance);
-  if (problem) fail(problem);
+  const baseDays = await baseDaysAt(db, x.from);
+  const empRef = db.doc(`${base}/payrollEmployees/${x.employeeId}`);
+  const mine = db.collection(`${base}/payrollVacations`).where('employeeId', '==', x.employeeId);
   const ref = db.collection(`${base}/payrollVacations`).doc();
-  const now = admin.firestore.Timestamp.now();
-  await ref.set({
-    employeeId: x.employeeId, employeeName: String(emp.get('name') ?? ''), from: x.from, to: x.to, days: x.days,
-    isAdvance: x.days > b.availableDays, status: 'posted', notes: x.notes, createdAt: now, createdBy: uid, updatedAt: now,
+  // En una transacción: dos registros simultáneos no se cruzan ni gastan el mismo saldo.
+  return db.runTransaction(async (tx) => {
+    const [emp, taken] = await Promise.all([tx.get(empRef), tx.get(mine)]);
+    if (!emp.exists) fail('El empleado no está en la nómina.');
+    if (emp.get('isActive') !== true) fail('El empleado está inactivo en la nómina.');
+    const hireDate = String(emp.get('hireDate') ?? '');
+    if (x.from < hireDate) fail('Las vacaciones no pueden ser antes del ingreso.');
+    const live = taken.docs.filter((d) => d.get('status') === 'posted');
+    const clash = live.find((d) => overlaps(x, { from: String(d.get('from')), to: String(d.get('to')) }));
+    if (clash) fail(`Se cruza con otras vacaciones del ${clash.get('from')} al ${clash.get('to')}.`);
+    const b = vacationBalance({
+      hireDate, priorServiceDays: Number(emp.get('priorServiceDays') ?? 0), asOf: x.from, baseDays,
+      takenDays: live.reduce((s, d) => s + Number(d.get('days') ?? 0), 0),
+    });
+    const problem = vacationProblem(b, x.days, x.allowAdvance);
+    if (problem) fail(problem);
+    const now = admin.firestore.Timestamp.now();
+    tx.set(ref, {
+      employeeId: x.employeeId, employeeName: String(emp.get('name') ?? ''), from: x.from, to: x.to, days: x.days,
+      isAdvance: x.days > b.availableDays, status: 'posted', notes: x.notes, createdAt: now, createdBy: uid, updatedAt: now,
+    });
+    return { vacationId: ref.id, days: x.days, balance: { ...b, takenDays: b.takenDays + x.days, availableDays: b.availableDays - x.days } };
   });
-  return { vacationId: ref.id, days: x.days, balance: { ...b, takenDays: b.takenDays + x.days, availableDays: b.availableDays - x.days } };
 });
 
 /** Entrada: {companyId, vacationId, reason}. */
