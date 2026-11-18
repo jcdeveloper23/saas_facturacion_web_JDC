@@ -45,6 +45,32 @@ function readId(data: any, key: string, label: string): string {
   return v;
 }
 
+const NO_EXCESS_WITH_CHARGE =
+  'Con «Cargo cuenta contable» no puede quedar saldo a favor del cliente: registra solo lo que cubre las facturas.';
+
+/**
+ * La cuenta del Haber (egreso) o del Debe (ingreso): la del banco o caja, o
+ * con «Cargo cuenta contable» la cuenta del plan elegida.
+ */
+async function resolveMoneyAccount(db: admin.firestore.Firestore, companyId: string, input: VoucherInput,
+  chart: Map<string, ChartAccount>): Promise<{ bank: AccountRef; bankAccountName: string }> {
+  if (input.creditAccountCode) {
+    const credit = resolveCreditAccount(input.creditAccountCode, chart, []);
+    if (!credit.ok) fail(credit.error);
+    return { bank: credit.account, bankAccountName: `${credit.account.code} · ${credit.account.name}`.slice(0, 120) };
+  }
+  const bankSnap = await db.doc(`companies/${companyId}/bank_accounts/${input.bankAccountId}`).get();
+  if (!bankSnap.exists) throw new HttpsError('invalid-argument', 'La cuenta de banco o caja no existe.');
+  if (bankSnap.get('isActive') === false) fail('La cuenta de banco o caja está inactiva.');
+  const linked = String(bankSnap.get('linkedGlCode') ?? '');
+  if (!linked) fail('La cuenta de banco o caja no tiene cuenta contable: configúrala en Cuentas bancarias.');
+  const bank: AccountRef = { code: linked, name: String(bankSnap.get('linkedGlName') ?? linked) };
+  const acct = String(bankSnap.get('accountNumber') ?? '');
+  const bankAccountName = `${bankSnap.get('bankName') ?? bankSnap.get('name') ?? ''}${acct ? ` ****${acct.slice(-4)}` : ''}`
+    .trim().slice(0, 120) || bank.name;
+  return { bank, bankAccountName };
+}
+
 function fail(msg: string): never {
   throw new HttpsError('failed-precondition', msg);
 }
@@ -122,8 +148,8 @@ async function readChart(db: admin.firestore.Firestore, companyId: string, codes
  * facturas), con o sin líneas a cuentas del plan. Entrada: {companyId, kind,
  * date: 'AAAA-MM-DD', partyId?, partyName, partyTaxId?, bankAccountId,
  * paymentMethodCode, chequeNumber?, reference?, concept, notes?,
- * paymentMode?: 'bank' | 'account', creditAccountCode? (con 'account', solo
- * egresos: «Cargo cuenta contable», sin bankAccountId ni paymentMethodCode),
+ * paymentMode?: 'bank' | 'account', creditAccountCode? (con 'account':
+ * «Cargo cuenta contable», sin bankAccountId ni paymentMethodCode ni excedente),
  * applications: [{targetType, targetId, amountCents}], accountLines:
  * [{accountCode, amountCents, description?}]}. Devuelve {voucherId, number,
  * accountingEntryId}.
@@ -148,6 +174,7 @@ export const registerCashVoucher = onCall(async (request) => {
   if (excessCents > 0 && input.kind !== 'ingreso') {
     throw new HttpsError('invalid-argument', 'Solo un recibo de caja deja saldo a favor del cliente.');
   }
+  if (excessCents > 0 && input.creditAccountCode) fail(NO_EXCESS_WITH_CHARGE);
 
   // Cuentas del plan: las de las líneas sin documento y, con «Cargo cuenta
   // contable», la del Haber.
@@ -155,24 +182,7 @@ export const registerCashVoucher = onCall(async (request) => {
   const chart = codes.length ? await readChart(db, companyId, codes) : new Map<string, ChartAccount>();
 
   // Banco o caja, o la cuenta del cargo.
-  let bank: AccountRef;
-  let bankAccountName: string;
-  if (input.creditAccountCode) {
-    const credit = resolveCreditAccount(input.creditAccountCode, chart, []);
-    if (!credit.ok) fail(credit.error);
-    bank = credit.account;
-    bankAccountName = `${bank.code} · ${bank.name}`.slice(0, 120);
-  } else {
-    const bankSnap = await db.doc(`companies/${companyId}/bank_accounts/${input.bankAccountId}`).get();
-    if (!bankSnap.exists) throw new HttpsError('invalid-argument', 'La cuenta de banco o caja no existe.');
-    if (bankSnap.get('isActive') === false) fail('La cuenta de banco o caja está inactiva.');
-    const linked = String(bankSnap.get('linkedGlCode') ?? '');
-    if (!linked) fail('La cuenta de banco o caja no tiene cuenta contable: configúrala en Cuentas bancarias.');
-    bank = { code: linked, name: String(bankSnap.get('linkedGlName') ?? linked) };
-    const acct = String(bankSnap.get('accountNumber') ?? '');
-    bankAccountName = `${bankSnap.get('bankName') ?? bankSnap.get('name') ?? ''}${acct ? ` ****${acct.slice(-4)}` : ''}`
-      .trim().slice(0, 120) || bank.name;
-  }
+  const { bank, bankAccountName } = await resolveMoneyAccount(db, companyId, input, chart);
   const bankGl = bank.code;
 
   const acc = resolveAccountLines(input.accountLines, chart, bankGl);
@@ -419,6 +429,7 @@ export const collectInvoicePayment = onCall(async (request) => {
   const v = validateVoucherInput({
     kind: 'ingreso', date: data.date, partyName: '', bankAccountId: data.bankAccountId,
     paymentMethodCode: data.paymentMethodCode, reference: data.reference, notes: data.notes,
+    paymentMode: data.paymentMode, creditAccountCode: data.creditAccountCode,
     concept: 'Cobro de factura',
     applications: [{ targetType: 'invoice', targetId: invoiceId, amountCents: data.amountCents }],
   });
@@ -426,15 +437,10 @@ export const collectInvoicePayment = onCall(async (request) => {
   const received = v.value.applications[0].amountCents;
   const year = ecuadorYearOf(v.value.date);
 
-  const bankSnap = await db.doc(`companies/${companyId}/bank_accounts/${v.value.bankAccountId}`).get();
-  if (!bankSnap.exists) throw new HttpsError('invalid-argument', 'La cuenta de banco o caja no existe.');
-  if (bankSnap.get('isActive') === false) fail('La cuenta de banco o caja está inactiva.');
-  const bankGl = String(bankSnap.get('linkedGlCode') ?? '');
-  if (!bankGl) fail('La cuenta de banco o caja no tiene cuenta contable: configúrala en Cuentas bancarias.');
-  const bank: AccountRef = { code: bankGl, name: String(bankSnap.get('linkedGlName') ?? bankGl) };
-  const acct = String(bankSnap.get('accountNumber') ?? '');
-  const bankAccountName = `${bankSnap.get('bankName') ?? bankSnap.get('name') ?? ''}${acct ? ` ****${acct.slice(-4)}` : ''}`
-    .trim().slice(0, 120) || bank.name;
+  const chart = v.value.creditAccountCode
+    ? await readChart(db, companyId, [v.value.creditAccountCode]) : new Map<string, ChartAccount>();
+  const { bank, bankAccountName } = await resolveMoneyAccount(db, companyId, v.value, chart);
+  const bankGl = bank.code;
 
   const mapping = await getAccountMapping(companyId);
   const advancesAcc: AccountRef = mapping.advancesFromCustomers ?? ADVANCES_FROM_CUSTOMERS;
@@ -462,6 +468,7 @@ export const collectInvoicePayment = onCall(async (request) => {
     const { appliedCents, excessCents } = splitCollection(received, pending);
     const problem = voucherTargetProblem('invoice', inv, appliedCents, v.value.date, pending);
     if (problem) fail(problem);
+    if (excessCents > 0 && v.value.creditAccountCode) fail(NO_EXCESS_WITH_CHARGE);
     const party = resolveParty('ingreso', { partyName: '', partyTaxId: null }, null, [docParty('invoice', inv!)]);
     if (!party.ok) fail(party.error);
     if (excessCents > 0 && !canHoldCustomerCredit(party.partyTaxId ?? '')) {
@@ -470,6 +477,10 @@ export const collectInvoicePayment = onCall(async (request) => {
     }
     const receivable = receivableFromSaleEntry(saleSnap?.exists ? saleSnap.get('lines') : undefined)
       ?? mapping.accountsReceivable;
+    if (v.value.creditAccountCode) {
+      const credit = resolveCreditAccount(v.value.creditAccountCode, chart, [receivable.code]);
+      if (!credit.ok) fail(credit.error);
+    }
 
     // Recibo de caja por lo aplicado.
     const jKey = `journal_${year}`;

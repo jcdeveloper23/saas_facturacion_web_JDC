@@ -104,6 +104,14 @@ export interface CreateInvoicePayload {
    */
   replacesInvoiceId?: string;
   replacesInvoiceNumber?: string;
+  /**
+   * Centro de costo de la factura (`cost_centers/{id}`). El asiento que genera
+   * `generateJournalEntryFromInvoice` lo copia en todas sus líneas. Se guarda
+   * solo si existe en la empresa y está activo, con su nombre de la ficha; si
+   * no, la factura se emite igual, sin centro. `costCenterName` se ignora.
+   */
+  costCenterId?: string;
+  costCenterName?: string;
   lines: ExternalInvoiceLine[];
   paymentMethods?: ExternalPaymentMethod[];
   notes?: string;
@@ -410,6 +418,16 @@ export const createAndEmitInvoice = onCall(
       const anterior = await db.doc(`companies/${companyId}/invoices/${pedidoReemplazo}`).get();
       if (anterior.exists) replacesInvoiceId = pedidoReemplazo;
     }
+    const pedidoCentro = `${data.costCenterId ?? ''}`.trim();
+    let costCenter: { id: string; name: string } | null = null;
+    if (pedidoCentro && !pedidoCentro.includes('/')) {
+      const centro = await db.doc(`companies/${companyId}/cost_centers/${pedidoCentro}`).get();
+      if (centro.exists && centro.data()?.['isActive'] !== false) {
+        costCenter = { id: pedidoCentro, name: `${centro.data()?.['name'] ?? ''}` };
+      } else {
+        console.warn('[createAndEmitInvoice] costCenterId inexistente o inactivo, se ignora');
+      }
+    }
 
     if (!sri?.establishment || !sri?.emissionPoint) {
       throw new HttpsError(
@@ -504,6 +522,7 @@ export const createAndEmitInvoice = onCall(
         customerTaxIdType:   data.customer.taxIdType,
         customerEmail:       data.customer.email  ?? null,
         customerAddress:     data.customer.address ?? null,
+        ...(costCenter ? { costCenterId: costCenter.id, costCenterName: costCenter.name } : {}),
 
         // ── Líneas ──────────────────────────────────────────────────────────
         lines: mappedLines.map(l => ({

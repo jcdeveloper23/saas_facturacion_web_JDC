@@ -412,7 +412,46 @@ describe('registerCashVoucher con «Cargo cuenta contable» (2026-11-13)', () =>
     store.set(`${C}/chart_of_accounts/a4`, { code: '2.1.04', name: 'Otras', allowsMovement: false });
     await expect(call(registerCashVoucher, cargo({ creditAccountCode: '2.1.04' }))).rejects.toThrow('agrupadora');
     store.set(`${C}/chart_of_accounts/a5`, { code: '2.1.01.001', name: 'CxP', allowsMovement: true });
-    await expect(call(registerCashVoucher, cargo({ creditAccountCode: '2.1.01.001' }))).rejects.toThrow('cuenta por pagar');
+    await expect(call(registerCashVoucher, cargo({ creditAccountCode: '2.1.01.001' }))).rejects.toThrow('la del documento');
     expect([...store.keys()].some((k) => k.includes('/cashVouchers/'))).toBe(false);
+  });
+});
+
+describe('cobros con «Cargo cuenta contable» (2026-11-17)', () => {
+  beforeEach(() => {
+    store.set(`${C}/chart_of_accounts/a3`, { code: '2.1.04.010', name: 'Préstamo socio', allowsMovement: true });
+  });
+  const reciboCargo = (over: Record<string, any> = {}) => ({
+    companyId: 'c1', kind: 'ingreso', date: '2026-10-16', partyName: '', concept: 'Cobro',
+    paymentMode: 'account', creditAccountCode: '2.1.04.010',
+    applications: [{ targetType: 'invoice', targetId: 'f1', amountCents: 23000 }], accountLines: [], ...over,
+  });
+
+  it('recibo de caja: Debe la cuenta elegida, Haber la CxC; la factura queda cobrada', async () => {
+    const r = await call(registerCashVoucher, reciboCargo());
+    const je = store.get(`${C}/journal_entries/${r.accountingEntryId}`)!;
+    expect(je.lines.map((l: any) => [l.accountCode, l.debit, l.credit])).toEqual([
+      ['2.1.04.010', 230, 0], ['1.1.02.005', 0, 230],
+    ]);
+    expect(store.get(`${C}/cashVouchers/${r.voucherId}`)).toMatchObject({ paymentMode: 'account', bankAccountId: '' });
+    expect(store.get(`${C}/invoices/f1`)).toMatchObject({ isPaid: true, paidBy: 'cashVoucher' });
+  });
+
+  it('recibo de caja: sin excedente a anticipos', async () => {
+    await expect(call(registerCashVoucher, reciboCargo({ excessToAdvanceCents: 100 }))).rejects.toThrow('saldo a favor');
+  });
+
+  it('collectInvoicePayment: cobro y abono contra la cuenta; sin excedente; no la CxC', async () => {
+    const base = { companyId: 'c1', invoiceId: 'f1', date: '2026-10-16', paymentMode: 'account', creditAccountCode: '2.1.04.010' };
+    await expect(call(collectInvoicePayment, { ...base, amountCents: 23100 })).rejects.toThrow('saldo a favor');
+    store.set(`${C}/chart_of_accounts/a6`, { code: '1.1.02.005', name: 'CxC', allowsMovement: true });
+    await expect(call(collectInvoicePayment, { ...base, creditAccountCode: '1.1.02.005', amountCents: 1000 }))
+      .rejects.toThrow('la del documento');
+    const r = await call(collectInvoicePayment, { ...base, amountCents: 10000 });
+    const je = store.get(`${C}/journal_entries/${r.accountingEntryId}`)!;
+    expect(je.lines.map((l: any) => [l.accountCode, l.debit, l.credit])).toEqual([
+      ['2.1.04.010', 100, 0], ['1.1.02.005', 0, 100],
+    ]);
+    expect(r).toMatchObject({ appliedCents: 10000, pendingAfterCents: 13000 });
   });
 });

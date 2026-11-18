@@ -337,10 +337,10 @@ describe('«Cargo cuenta contable» (2026-11-13)', () => {
     expect(r).toMatchObject({ ok: true, value: { paymentMode: 'account', creditAccountCode: '2.1.04.010',
       bankAccountId: '', paymentMethodCode: '' } });
   });
-  it('exige la cuenta y solo vale en egresos', () => {
+  it('exige la cuenta; vale en egresos e ingresos', () => {
     expect(validateVoucherInput(cargo({ creditAccountCode: '' }))).toMatchObject({ ok: false });
-    expect(validateVoucherInput(cargo({ kind: 'ingreso', applications: [] , accountLines: [{ accountCode: '4.1', amountCents: 1 }] })))
-      .toMatchObject({ ok: false, error: expect.stringContaining('solo está en el comprobante de egreso') });
+    expect(validateVoucherInput(cargo({ kind: 'ingreso', applications: [], accountLines: [{ accountCode: '4.1', amountCents: 1 }] })))
+      .toMatchObject({ ok: true, value: { kind: 'ingreso', paymentMode: 'account' } });
     expect(validateVoucherInput(cargo({ paymentMode: 'otro' }))).toMatchObject({ ok: false });
   });
   it('sin paymentMode sigue como siempre: banco y Tabla 24', () => {

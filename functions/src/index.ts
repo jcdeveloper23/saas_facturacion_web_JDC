@@ -92,6 +92,8 @@ export { registerAdvance, applyAdvance, unapplyAdvance, voidAdvance } from './ac
 export { registerSupplierAdvance, applySupplierAdvance } from './accounting/advances/supplier-advance-callables';
 export { refundAdvance } from './accounting/advances/advance-refund-callables';
 export { registerCashVoucher, voidCashVoucher, collectInvoicePayment } from './accounting/cash-vouchers/cash-voucher-callables';
+// Corregir fecha, referencia y notas de un cobro o pago (2026-11-16).
+export { editPaymentDetails } from './accounting/payments/edit-payment-callables';
 export { generateJournalEntryFromCreditNote }   from './accounting/generate-journal-entry-from-credit-note';
 export { generateJournalEntryFromDebitNote }    from './accounting/generate-journal-entry-from-debit-note';
 export { generateReversalFromInvoice, generateReversalFromDebitNote, generateReversalFromRetention, generateReversalFromPurchase, generateReversalFromReceivedRetention } from './accounting/generate-reversal-entry';

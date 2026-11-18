@@ -44,8 +44,9 @@ export const SRI_PAYMENT_METHOD_CODES = ['01', '15', '16', '17', '18', '19', '20
 /**
  * De dónde sale o adónde entra el dinero (2026-11-13). 'bank': una cuenta de
  * bank_accounts (banco o caja), como siempre. 'account': «Cargo cuenta
- * contable», solo en egresos: el Haber va a una cuenta del plan que se elige
- * (préstamo de socio, cuenta transitoria…). No es una forma de la Tabla 24:
+ * contable»: en un egreso el Haber, y en un ingreso el Debe, va a una cuenta
+ * del plan que se elige (préstamo de socio, cuenta transitoria…). Sin
+ * excedente a anticipos: ese asiento necesita un banco. No es una forma de la Tabla 24:
  * el comprobante no lleva código del SRI ni crea movimiento de banco. Lo que
  * va al ATS es la forma de pago de la compra, que no cambia.
  */
@@ -145,7 +146,6 @@ export function validateVoucherInput(raw: Record<string, any>):
   let creditAccountCode: string | null = null;
   let paymentMethodCode = '';
   if (paymentMode === PAYMENT_MODE_ACCOUNT) {
-    if (kind !== 'egreso') return bad('«Cargo cuenta contable» solo está en el comprobante de egreso.');
     const code = String(raw.creditAccountCode ?? '').trim();
     if (!code || code.length > 40 || code.includes('/')) return bad('Elige la cuenta contable del cargo.');
     creditAccountCode = code;
@@ -430,7 +430,7 @@ export interface ChartAccount { name?: string; allowsMovement?: boolean; isActiv
 
 /**
  * La cuenta del «Cargo cuenta contable»: existe, activa y de movimiento, y no
- * es la CxP de las compras que paga (el asiento se anularía consigo mismo).
+ * es la CxP o CxC de los documentos (el asiento se anularía consigo mismo).
  */
 export function resolveCreditAccount(
   code: string,
@@ -442,7 +442,7 @@ export function resolveCreditAccount(
   if (c.isActive === false) return { ok: false, error: `La cuenta ${code} está inactiva.` };
   if (c.allowsMovement !== true) return { ok: false, error: `La cuenta ${code} es agrupadora: elige una de movimiento.` };
   if (payableCodes.includes(code)) {
-    return { ok: false, error: `La cuenta ${code} es la cuenta por pagar de la compra: elige otra.` };
+    return { ok: false, error: `La cuenta ${code} es la del documento que se paga o cobra: elige otra.` };
   }
   return { ok: true, account: { code, name: String(c.name ?? code) } };
 }
