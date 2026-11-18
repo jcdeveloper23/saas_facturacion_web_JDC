@@ -328,7 +328,9 @@ service cloud.firestore {
         'payrollEmployees', 'payrollGroups', 'payrollNovelties', 'payrollPeriods',
         'payrollRuns', 'payslips', 'payrollBonusRuns', 'payrollLoans',
         // Pago de roles y anticipos a empleados (NOMINA_PAGOS.md, 2026-11-18).
-        'payrollPayments', 'payrollAdvances'
+        'payrollPayments', 'payrollAdvances',
+        // Vacaciones (registro de días, NOMINA_DECIMOS.md).
+        'payrollVacations'
       ];
     }
 
@@ -1754,6 +1756,10 @@ service cloud.firestore {
         allow write: if false;
       }
       match /payrollAdvances/{id} {
+        allow read: if isAuthenticated() && belongsToCompany(companyId) && canReadPayroll();
+        allow write: if false;
+      }
+      match /payrollVacations/{id} {
         allow read: if isAuthenticated() && belongsToCompany(companyId) && canReadPayroll();
         allow write: if false;
       }

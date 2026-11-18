@@ -122,6 +122,10 @@ export {
 export {
   upsertPayrollGroup, deletePayrollGroup, createPayrollLoan, updatePayrollLoan, cancelPayrollLoan,
 } from './payroll/payroll-group-loan-callables';
+export {
+  createPayrollBonusRun, recalculatePayrollBonusRun, payPayrollBonusRun, voidPayrollBonusRun,
+} from './payroll/payroll-bonus-run-callables';
+export { getPayrollVacationBalance, registerPayrollVacation, voidPayrollVacation } from './payroll/payroll-vacation-callables';
 
 // Users
 export { createCompanyUser } from './users/create-company-user';

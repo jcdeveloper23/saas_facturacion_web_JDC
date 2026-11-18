@@ -77,3 +77,8 @@ firebase deploy --project accounting-system-a5c9f --only functions:payPayrollRun
 # (docs/NOMINA_GRUPOS_PRESTAMOS.md). Las reglas no cambian (payrollGroups y payrollLoans ya
 # estaban). Se redespliegan las del cálculo porque ahora el préstamo empieza en startPeriod.
 firebase deploy --project accounting-system-a5c9f --only functions:upsertPayrollGroup,functions:deletePayrollGroup,functions:createPayrollLoan,functions:updatePayrollLoan,functions:cancelPayrollLoan,functions:createPayrollRun,functions:recalculatePayrollRun,functions:approvePayrollRun 2>&1 | tee deploy-node22-16-nomina-grupos.log
+
+# Tanda 17-nomina-decimos (7 + 1) — agregada el 2026-11-18: pago de décimos acumulados y registro de
+# vacaciones (docs/NOMINA_DECIMOS.md). Antes, las reglas (payrollVacations). reversePayrollRun
+# cambió (no se reversa un mes con décimo pagado); createPayrollLoan, por el tope del anticipo a largo plazo.
+firebase deploy --project accounting-system-a5c9f --only functions:createPayrollBonusRun,functions:recalculatePayrollBonusRun,functions:payPayrollBonusRun,functions:voidPayrollBonusRun,functions:getPayrollVacationBalance,functions:registerPayrollVacation,functions:voidPayrollVacation,functions:reversePayrollRun,functions:createPayrollLoan 2>&1 | tee deploy-node22-17-nomina-decimos.log

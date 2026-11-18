@@ -289,6 +289,10 @@ export const reversePayrollRun = onCall(async (request) => {
     const run = runSnap.exists ? runSnap.data() as Record<string, any> : undefined;
     const problem = reverseProblem(run, reason);
     if (problem) fail(problem);
+    // Un décimo pagado ya descargó las provisiones de este mes (NOMINA_DECIMOS.md).
+    const monthLock = await tx.get(db.doc(`${base}/payrollPeriods/${run!.period}`));
+    const bonusIds: unknown[] = monthLock.get('bonusRunIds') ?? [];
+    if (bonusIds.length) fail('Un décimo que cubre este mes ya está pagado: anula ese pago antes de reversar la nómina.');
     const entryId = String(run!.accountingEntryId ?? '');
     if (!entryId || entryId.includes('/')) fail('La nómina no tiene asiento: no se puede reversar.');
     const entryRef = db.doc(`${base}/journal_entries/${entryId}`);

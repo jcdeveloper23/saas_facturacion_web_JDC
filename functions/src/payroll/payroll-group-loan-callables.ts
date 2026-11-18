@@ -13,11 +13,13 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import { ecuadorYearOf } from '../accounting/advances/advance-logic';
 import { fail, readCompanyId, readId, requirePayrollModule, requirePayrollRole } from './payroll-auth';
-import { INPUTS_SEQ_INCREMENT, loadAccountsFor } from './payroll-compute';
+import { INPUTS_SEQ_INCREMENT, loadAccountsFor, loadAllParameters } from './payroll-compute';
+import { pickParameters } from './payroll-dates';
+import { lastDayOfPeriod, salaryAt } from './payroll-run-logic';
 import {
   cancelLoanPlan, duplicateGroupName, isIessLoan, loanNumber, validateGroupInput, validateLoanInput, validateLoanUpdate,
 } from './payroll-loan-logic';
-import { futureDateProblem } from './payroll-payment-logic';
+import { advanceCapProblem, futureDateProblem } from './payroll-payment-logic';
 import { openPeriodIn, payrollEntryDoc, prepareReversal, requireMovementAccounts, resolveSource } from './payroll-posting';
 
 type Tx = admin.firestore.Transaction;
@@ -112,6 +114,16 @@ export const createPayrollLoan = onCall(async (request) => {
     fail(isIessLoan(l.type)
       ? 'Elige la cuenta del préstamo (la deuda con el IESS) o configúrala en Cuentas de nómina.'
       : 'Elige la cuenta del préstamo o configúrala en Cuentas de nómina.');
+  }
+  // Anticipo a largo plazo: su cuota cuenta en el tope del art. 90; se avisa ya, no al aprobar.
+  if (l.type === 'longTermAdvance') {
+    const [y, m] = l.startPeriod.split('-').map(Number);
+    const params = pickParameters((await loadAllParameters(db)).map((x) => x.p), y, m);
+    if (params) {
+      const salary = salaryAt(emp.data()!, lastDayOfPeriod(y, m));
+      const cap = advanceCapProblem(salary, Number(params.advanceCapPct ?? 0), 0, l.installmentCents);
+      if (cap) fail(`La cuota ${cap.charAt(0).toLowerCase()}${cap.slice(1)}`);
+    }
   }
   const source = l.disbursement ? await resolveSource(db, companyId, l.disbursement.source) : null;
   if (source && source.accountCode === account) fail('La cuenta del préstamo no puede ser la misma de donde sale el dinero.');
