@@ -7,10 +7,13 @@
  * payroll-run-callables.ts y payroll-compute.ts (payslipDoc).
  */
 
+import { EmployeeProfile } from './payroll-employee-profile.models';
+
 export type RunStatus = 'draft' | 'approved' | 'reversed';
 export type PayMode = 'monthly' | 'accumulated';
 
-export interface PayrollEmployee {
+/** Con la ficha del colaborador (NOMINA_COLABORADOR.md), en campos planos. */
+export interface PayrollEmployee extends EmployeeProfile {
   id: string;
   name: string;
   taxId: string;

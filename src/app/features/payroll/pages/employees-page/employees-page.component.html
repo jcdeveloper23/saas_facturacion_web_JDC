@@ -49,7 +49,10 @@
               <td>{{ labels.REGION_LABELS[e.region] }}</td>
               <td class="small">{{ groupName(e.groupId) || '—' }}</td>
               <td class="text-end font-monospace">{{ money(e.salaryCents) }}</td>
-              <td><c-badge [color]="e.isActive ? 'success' : 'secondary'">{{ e.isActive ? 'Activo' : 'Inactivo' }}</c-badge></td>
+              <td>
+                <c-badge [color]="e.isActive ? 'success' : 'secondary'">{{ e.isActive ? 'Activo' : 'Inactivo' }}</c-badge>
+                @if (e.assumesIessPersonal) { <c-badge color="info" class="ms-1" title="La empresa paga el aporte personal">Aporte asumido</c-badge> }
+              </td>
             </tr>
           }
         </tbody>
@@ -69,7 +72,19 @@
     <button type="button" class="btn-close" (click)="showModal.set(false)"></button>
   </c-modal-header>
   <c-modal-body>
-    <form [formGroup]="form">
+    <ul class="nav nav-tabs mb-3">
+      @for (t of sections; track t.id) {
+        <li class="nav-item">
+          <button type="button" class="nav-link" [class.active]="section() === t.id" (click)="section.set(t.id)">{{ t.label }}</button>
+        </li>
+      }
+    </ul>
+    @if (section() === 'personal') {
+      <app-payroll-employee-personal-fields [group]="form" />
+    } @else if (section() === 'bank' || section() === 'iess') {
+      <app-payroll-employee-bank-iess-fields [group]="form" [section]="section() === 'bank' ? 'bank' : 'iess'" />
+    }
+    <form [formGroup]="form" [hidden]="section() !== 'contract'">
       <c-row class="g-3">
         <c-col md="12">
           <label cLabel>Persona *</label>
@@ -113,9 +128,7 @@
             @for (g of groupOptions(); track g.id) { <option [value]="g.id">{{ g.name }}{{ g.isActive ? '' : ' (inactivo)' }}</option> }
           </select>
         </c-col>
-        <c-col md="4"><label cLabel>Afiliación IESS</label><input cFormControl formControlName="iessNumber" /></c-col>
-        <c-col md="4"><label cLabel>Correo para el rol</label><input cFormControl type="email" formControlName="email" /></c-col>
-        <c-col md="12"><label cLabel>Cuenta bancaria del empleado</label><input cFormControl formControlName="bankAccount" /></c-col>
+        <c-col md="8"><label cLabel>Correo para el rol</label><input cFormControl type="email" formControlName="email" /></c-col>
         <c-col md="4">
           <label cLabel>Décimo tercero</label>
           <select cSelect formControlName="thirteenthMode">

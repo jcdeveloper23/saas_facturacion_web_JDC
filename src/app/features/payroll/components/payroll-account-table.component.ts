@@ -11,7 +11,7 @@ import {
 export type AccountBaseline = (key: PayrollAccountKey) => { code: string; note: string };
 
 /**
- * Las 24 claves de cuentas de nómina en grupos (Ingresos y gasto, Por pagar,
+ * Las 25 claves de cuentas de nómina en grupos (Ingresos y gasto, Por pagar,
  * Provisiones, Descuentos y préstamos), con un código editable elegido de las
  * cuentas de movimiento del plan. La usan Cuentas de nómina y los grupos de
  * colaboradores. Edita el objeto `edits` que le pasan.

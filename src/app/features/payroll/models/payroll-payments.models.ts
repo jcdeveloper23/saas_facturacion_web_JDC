@@ -121,7 +121,7 @@ export function nextPeriod(period: string): string {
 
 export type PayrollAccountKey =
   | 'salaryAdmin' | 'salarySales' | 'otherTaxable' | 'commissions' | 'bonuses' | 'nonTaxableIncome'
-  | 'thirteenthExpense' | 'fourteenthExpense' | 'reserveFundExpense' | 'vacationExpense' | 'employerCostExpense'
+  | 'thirteenthExpense' | 'fourteenthExpense' | 'reserveFundExpense' | 'vacationExpense' | 'employerCostExpense' | 'assumedIessExpense'
   | 'netPayable' | 'advances' | 'iessPersonalPayable' | 'employerCostPayable'
   | 'thirteenthProvision' | 'fourteenthProvision' | 'vacationProvision' | 'reserveFundIessPayable'
   | 'companyLoan' | 'longTermAdvance' | 'iessQuirografario' | 'iessHipotecario' | 'otherDeductions';
@@ -143,6 +143,7 @@ export const PAYROLL_ACCOUNT_LABELS: Record<PayrollAccountKey, string> = {
   reserveFundExpense: 'Fondos de reserva (gasto)',
   vacationExpense: 'Vacaciones (gasto)',
   employerCostExpense: 'Aporte patronal IESS (gasto)',
+  assumedIessExpense: 'Gasto aporte personal asumido',
   netPayable: 'Sueldos por pagar (neto a pagar)',
   advances: 'Anticipos a empleados',
   iessPersonalPayable: 'Aporte personal IESS por pagar',
@@ -161,14 +162,15 @@ export const PAYROLL_ACCOUNT_LABELS: Record<PayrollAccountKey, string> = {
 /** Las claves sin sugerida que caen a otra (payroll-entry.ts → FALLBACK). */
 export const PAYROLL_ACCOUNT_FALLBACK: Partial<Record<PayrollAccountKey, PayrollAccountKey>> = {
   commissions: 'otherTaxable', bonuses: 'otherTaxable', nonTaxableIncome: 'otherTaxable',
-  longTermAdvance: 'advances',
+  longTermAdvance: 'advances', assumedIessExpense: 'employerCostExpense',
 };
 
 export const PAYROLL_ACCOUNT_GROUPS: { title: string; keys: PayrollAccountKey[] }[] = [
   {
     title: 'Ingresos y gasto',
     keys: ['salaryAdmin', 'salarySales', 'otherTaxable', 'commissions', 'bonuses', 'nonTaxableIncome',
-      'thirteenthExpense', 'fourteenthExpense', 'reserveFundExpense', 'vacationExpense', 'employerCostExpense'],
+      'thirteenthExpense', 'fourteenthExpense', 'reserveFundExpense', 'vacationExpense', 'employerCostExpense',
+      'assumedIessExpense'],
   },
   { title: 'Por pagar', keys: ['netPayable', 'iessPersonalPayable', 'employerCostPayable', 'reserveFundIessPayable'] },
   { title: 'Provisiones', keys: ['thirteenthProvision', 'fourteenthProvision', 'vacationProvision'] },

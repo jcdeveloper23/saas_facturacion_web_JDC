@@ -15,6 +15,9 @@ import {
 import { PayrollService, payrollErrorMessage } from '../../services/payroll.service';
 import { PayrollLoansService } from '../../services/payroll-loans.service';
 import { PayrollGroup } from '../../models/payroll-loans.models';
+import { profilePayload, toEmployeeProfile } from '../../models/payroll-employee-profile.models';
+import { EmployeePersonalFieldsComponent } from '../../components/employee-personal-fields.component';
+import { EmployeeBankIessFieldsComponent } from '../../components/employee-bank-iess-fields.component';
 
 /** Nómina › Empleados (§7.2): lista con contadores y ficha en modal. Guarda con upsertPayrollEmployee. */
 @Component({
@@ -22,7 +25,8 @@ import { PayrollGroup } from '../../models/payroll-loans.models';
   standalone: true,
   templateUrl: './employees-page.component.html',
   imports: [CommonModule, FormsModule, ReactiveFormsModule, AlertModule, BadgeModule, ButtonModule, CardModule,
-    FormModule, GridModule, ModalModule, SpinnerModule, PayrollTabsComponent],
+    FormModule, GridModule, ModalModule, SpinnerModule, PayrollTabsComponent, EmployeePersonalFieldsComponent,
+    EmployeeBankIessFieldsComponent],
 })
 export class EmployeesPageComponent implements OnInit, OnDestroy {
   private svc = inject(PayrollService);
@@ -51,6 +55,12 @@ export class EmployeesPageComponent implements OnInit, OnDestroy {
     return id && !this.groupOptions().some((g) => g.id === id) ? id : '';
   }
   groupName(id: string): string { return id ? this.groups().find((g) => g.id === id)?.name ?? '(grupo borrado)' : ''; }
+  /** La pestaña del formulario del empleado. */
+  readonly section = signal<'contract' | 'personal' | 'bank' | 'iess'>('contract');
+  readonly sections = [
+    { id: 'contract', label: 'Contrato y sueldo' }, { id: 'personal', label: 'Datos personales' },
+    { id: 'bank', label: 'Banco' }, { id: 'iess', label: 'IESS e impuesto a la renta' },
+  ] as const;
   readonly personas = signal<{ id: string; name: string; taxId: string; email: string }[]>([]);
 
   readonly labels = { CONTRACT_LABELS, WORKDAY_LABELS, REGION_LABELS, EXPENSE_LABELS, MODE_LABELS, RESERVE_LABELS };
@@ -84,7 +94,15 @@ export class EmployeesPageComponent implements OnInit, OnDestroy {
     reserveFundMode: ['monthly'],
     isActive: [true],
     groupId: [''],
+    // Ficha del colaborador (NOMINA_COLABORADOR.md §2).
+    ...this.profileControls(),
   });
+
+  private profileControls() {
+    const p = toEmployeeProfile({});
+    // Sin validadores: los rangos se avisan al guardar (un error en otra pestaña no se vería).
+    return Object.fromEntries(Object.entries(p).map(([k, v]) => [k, [v as any]])) as Record<keyof typeof p, any>;
+  }
 
   ngOnInit(): void {
     this.sub.add(this.svc.employees().subscribe({
@@ -100,6 +118,7 @@ export class EmployeesPageComponent implements OnInit, OnDestroy {
     this.editing.set(null);
     this.form.reset();
     this.form.controls.personaId.enable();
+    this.section.set('contract');
     this.showModal.set(true);
     try {
       const taken = new Set(this.employees().map((e) => e.id));
@@ -117,7 +136,9 @@ export class EmployeesPageComponent implements OnInit, OnDestroy {
       contractType: e.contractType, workdayType: e.workdayType, region: e.region, expenseGroup: e.expenseGroup,
       iessNumber: e.iessNumber, email: e.email, bankAccount: e.bankAccount, thirteenthMode: e.thirteenthMode,
       fourteenthMode: e.fourteenthMode, reserveFundMode: e.reserveFundMode, isActive: e.isActive, groupId: e.groupId,
+      ...toEmployeeProfile(e as unknown as Record<string, any>),
     });
+    this.section.set('contract');
     this.form.controls.personaId.disable();
     this.showModal.set(true);
   }
@@ -132,6 +153,10 @@ export class EmployeesPageComponent implements OnInit, OnDestroy {
     const salaryCents = parseMoneyCents(v.salary);
     if (!salaryCents) { this.notifications.warning('Escribe el sueldo con decimales, sin separador de miles: p. ej. 1234,56.'); return; }
     if (v.endDate && v.endDate < v.hireDate) { this.notifications.warning('La salida no puede ser antes del ingreso.'); return; }
+    const dis = Number(v.disabilityPct || 0);
+    const deps = Number(v.familyDependents || 0);
+    if (!Number.isInteger(dis) || dis < 0 || dis > 100) { this.notifications.warning('La discapacidad va de 0 a 100 %, sin decimales.'); return; }
+    if (!Number.isInteger(deps) || deps < 0 || deps > 30) { this.notifications.warning('Las cargas familiares van de 0 a 30.'); return; }
     const p = this.personas().find((x) => x.id === v.personaId);
     this.saving.set(true);
     try {
@@ -144,6 +169,8 @@ export class EmployeesPageComponent implements OnInit, OnDestroy {
         bankAccount: v.bankAccount.trim(), isActive: v.isActive,
         // Siempre se manda: '' = sin grupo. Al editar viene precargado, así que no se pierde.
         groupId: v.groupId,
+        // Siempre se manda toda la ficha: un texto vacío la borra (validateProfile).
+        ...profilePayload(v),
       });
       this.notifications.success(this.editing() ? 'Empleado actualizado' : 'Empleado agregado a la nómina');
       this.showModal.set(false);

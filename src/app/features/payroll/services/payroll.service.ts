@@ -6,6 +6,7 @@ import { Functions, httpsCallable } from '@angular/fire/functions';
 import { Observable } from 'rxjs';
 
 import { TenantService } from '../../../core/services/tenant.service';
+import { toEmployeeProfile } from '../models/payroll-employee-profile.models';
 import {
   PayrollEmployee, PayrollEmployeeInput, PayrollNovelty, PayrollRun, Payslip, NoveltyType, PaymentStatus,
 } from '../models/payroll.models';
@@ -141,6 +142,7 @@ function toEmployee(id: string, d: Record<string, any>): PayrollEmployee {
     thirteenthMode: d['thirteenthMode'] ?? 'monthly', fourteenthMode: d['fourteenthMode'] ?? 'monthly',
     reserveFundMode: d['reserveFundMode'] ?? 'monthly', bankAccount: str(d['bankAccount']), isActive: d['isActive'] !== false,
     groupId: str(d['groupId']),
+    ...toEmployeeProfile(d),
   };
 }
 
