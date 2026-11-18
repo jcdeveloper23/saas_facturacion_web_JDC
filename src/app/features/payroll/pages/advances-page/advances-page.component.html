@@ -1,0 +1,82 @@
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h4 class="mb-0">Anticipos a empleados</h4>
+    <small class="text-secondary">La entrega del dinero y su descuento en el rol</small>
+  </div>
+  <button cButton color="primary" size="sm" (click)="showNew.set(true)">+ Nuevo anticipo</button>
+</div>
+
+<app-payroll-tabs />
+
+<c-alert color="info" class="py-2 small mb-3">
+  Cada anticipo crea su asiento (Debe Anticipos a empleados / Haber la cuenta de donde sale el dinero) y se descuenta
+  solo en la nómina del mes elegido. Los anticipos del mes no pasan del 10 % del sueldo (art. 90 del Código del Trabajo).
+</c-alert>
+
+<div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
+  <select cSelect style="max-width: 160px" [ngModel]="month()" (ngModelChange)="setMonth($event)" [disabled]="recent()">
+    @for (m of months; track $index) { <option [ngValue]="$index + 1">{{ m }}</option> }
+  </select>
+  <select cSelect style="max-width: 110px" [ngModel]="year()" (ngModelChange)="setYear($event)" [disabled]="recent()">
+    @for (y of years; track y) { <option [ngValue]="y">{{ y }}</option> }
+  </select>
+  <div class="form-check ms-2">
+    <input class="form-check-input" type="checkbox" id="adv-recent" [ngModel]="recent()" (ngModelChange)="setRecent($event)" />
+    <label class="form-check-label" for="adv-recent">Ver los últimos {{ recentLimit }} registrados</label>
+  </div>
+  @if (!recent()) {
+    <span class="ms-auto small text-secondary">Se descuenta en {{ label(period()) }} · {{ money(totalPosted()) }}</span>
+  }
+</div>
+
+<c-card>
+  @if (loading()) {
+    <c-card-body class="text-center py-5"><c-spinner color="primary"></c-spinner></c-card-body>
+  } @else if (error()) {
+    <c-card-body><c-alert color="warning" class="mb-0">{{ error() }}</c-alert></c-card-body>
+  } @else if (rows().length === 0) {
+    <c-card-body class="text-center text-secondary py-5">
+      {{ recent() ? 'Todavía no hay anticipos.' : 'No hay anticipos que se descuenten en ' + label(period()) + '.' }}
+    </c-card-body>
+  } @else {
+    <div class="table-responsive">
+      <table class="table table-hover mb-0 align-middle">
+        <thead>
+          <tr><th>Número</th><th>Empleado</th><th>Fecha</th><th class="text-end">Valor</th><th>Se descuenta en</th>
+            <th>Origen</th><th>Estado</th><th></th></tr>
+        </thead>
+        <tbody>
+          @for (a of rows(); track a.id) {
+            <tr>
+              <td class="font-monospace">{{ a.number }}</td>
+              <td>{{ a.employeeName }}</td>
+              <td>{{ day(a.date) }}</td>
+              <td class="text-end font-monospace">{{ money(a.amountCents) }}</td>
+              <td>{{ label(a.period) }}</td>
+              <td class="small">{{ a.sourceLabel }}@if (a.chequeNumber) { · cheque {{ a.chequeNumber }} }
+                @if (a.reference) { <br /><span class="text-secondary">{{ a.reference }}</span> }</td>
+              <td>
+                <c-badge [color]="STATUS[a.status].color">{{ STATUS[a.status].label }}</c-badge>
+                @if (a.voidReason) { <br /><small class="text-secondary">{{ a.voidReason }}</small> }
+              </td>
+              <td class="text-end">
+                <button cButton color="danger" variant="ghost" size="sm" (click)="voiding.set(a)" [disabled]="a.status === 'voided'"
+                        [title]="a.status === 'voided' ? 'Este anticipo ya está anulado.' : ''">Anular</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</c-card>
+
+@if (showNew()) {
+  <app-payroll-advance-modal (closed)="showNew.set(false)" />
+}
+
+@if (voiding(); as a) {
+  <app-payroll-void-reason-modal [title]="'Anular el anticipo ' + a.number" [busy]="busy()"
+    text="Se crea la reversa del asiento y se quita el descuento del rol. Si la nómina de ese mes ya está aprobada, revérsala antes."
+    (confirmed)="confirmVoid(a, $event)" (cancelled)="voiding.set(null)" />
+}

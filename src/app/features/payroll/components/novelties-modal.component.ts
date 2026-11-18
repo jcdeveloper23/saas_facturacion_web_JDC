@@ -68,8 +68,14 @@ import { PayrollService, payrollErrorMessage } from '../services/payroll.service
               <td>{{ nameOf(n.employeeId) }}</td>
               <td>{{ info(n.type)?.label ?? n.type }}</td>
               <td class="text-end font-monospace">{{ n.amountCents != null ? money(n.amountCents) : (n.qty + (info(n.type)?.unit === 'days' ? ' día(s)' : ' h')) }}</td>
-              <td class="small text-secondary">{{ n.note }}</td>
-              <td class="text-end"><button cButton color="danger" variant="ghost" size="sm" (click)="remove(n)" [disabled]="saving()">Quitar</button></td>
+              <td class="small text-secondary">
+                @if (n.advanceId) { {{ advanceLabel(n) }} } @else { {{ n.note }} }
+              </td>
+              <td class="text-end">
+                @if (!n.advanceId) {
+                  <button cButton color="danger" variant="ghost" size="sm" (click)="remove(n)" [disabled]="saving()">Quitar</button>
+                }
+              </td>
             </tr>
           }
         </tbody>
@@ -110,6 +116,11 @@ export class NoveltiesModalComponent implements OnInit, OnDestroy {
   note = '';
 
   unit() { return noveltyInfo(this.type)?.unit ?? 'amount'; }
+  /** La novedad de un anticipo (NOMINA_PAGOS.md): savePayrollNovelties no la deja borrar. */
+  advanceLabel(n: PayrollNovelty): string {
+    // El servidor escribe la nota «Anticipo ANE-AAAA-NNNNNN» (payroll-advance-callables.ts).
+    return `${String(n.note ?? '').trim() || 'Anticipo'} — se anula desde Anticipos`;
+  }
   nameOf(id: string) { return this.allEmployees().find((e) => e.id === id)?.name ?? id; }
 
   ngOnInit(): void {

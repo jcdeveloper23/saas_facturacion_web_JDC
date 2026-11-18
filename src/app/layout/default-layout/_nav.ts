@@ -201,6 +201,8 @@ export const navItems: INavData[] = [
     children: [
       { name: 'Nóminas', url: '/payroll/runs', icon: 'nav-icon-bullet' },
       { name: 'Empleados', url: '/payroll/employees', icon: 'nav-icon-bullet' },
+      { name: 'Anticipos', url: '/payroll/advances', icon: 'nav-icon-bullet' },
+      { name: 'Cuentas', url: '/payroll/accounts', icon: 'nav-icon-bullet' },
       { name: 'Parámetros', url: '/payroll/parameters', icon: 'nav-icon-bullet' }
     ]
   },

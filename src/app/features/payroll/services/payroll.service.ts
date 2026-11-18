@@ -7,7 +7,7 @@ import { Observable } from 'rxjs';
 
 import { TenantService } from '../../../core/services/tenant.service';
 import {
-  PayrollEmployee, PayrollEmployeeInput, PayrollNovelty, PayrollRun, Payslip, NoveltyType,
+  PayrollEmployee, PayrollEmployeeInput, PayrollNovelty, PayrollRun, Payslip, NoveltyType, PaymentStatus,
 } from '../models/payroll.models';
 
 /**
@@ -128,6 +128,8 @@ export function payrollErrorMessage(err: unknown): string {
 const str = (v: unknown) => (v == null ? '' : String(v));
 const num = (v: unknown) => Number(v ?? 0) || 0;
 const date = (v: any): Date | null => (v?.toDate ? v.toDate() : null);
+/** Las nóminas aprobadas antes de NOMINA_PAGOS no tienen el campo: por pagar. */
+const payStatus = (v: unknown): PaymentStatus => (v === 'partial' || v === 'paid' ? v : 'unpaid');
 
 function toEmployee(id: string, d: Record<string, any>): PayrollEmployee {
   return {
@@ -153,6 +155,7 @@ function toRun(id: string, d: Record<string, any>): PayrollRun {
     blockingErrors: (d['blockingErrors'] ?? []).map(str).filter(Boolean),
     accountingEntryId: d['accountingEntryId'] ?? null, reversalEntryId: d['reversalEntryId'] ?? null,
     reversalReason: str(d['reversalReason']), approvedAt: date(d['approvedAt']), reversedAt: date(d['reversedAt']),
+    paidCents: num(d['paidCents']), paymentStatus: payStatus(d['paymentStatus']),
   };
 }
 
@@ -164,5 +167,6 @@ function toPayslip(id: string, d: Record<string, any>): Payslip {
     workedDays: num(d['workedDays']),
     earnings: d['earnings'] ?? [], deductions: d['deductions'] ?? [], employerCosts: d['employerCosts'] ?? [], provisions: d['provisions'] ?? [],
     netCents: num(d['netCents']), emailSent: d['emailSent'] === true, emailTo: str(d['emailTo']), emailError: str(d['emailError']),
+    paidCents: num(d['paidCents']), paymentStatus: payStatus(d['paymentStatus']),
   };
 }

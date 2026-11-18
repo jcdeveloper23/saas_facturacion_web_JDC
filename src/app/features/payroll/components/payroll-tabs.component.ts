@@ -4,7 +4,7 @@ import { AlertModule } from '@coreui/angular';
 
 import { INCOME_TAX_NOTICE } from '../models/payroll.models';
 
-/** Pestañas de Nómina (Nóminas, Empleados, Parámetros) y el aviso fijo del IR (§4.4, regla 9). */
+/** Pestañas de Nómina (Nóminas, Empleados, Anticipos, Cuentas, Parámetros) y el aviso fijo del IR (§4.4, regla 9). */
 @Component({
   selector: 'app-payroll-tabs',
   standalone: true,
@@ -13,6 +13,8 @@ import { INCOME_TAX_NOTICE } from '../models/payroll.models';
     <ul class="nav nav-tabs mb-3">
       <li class="nav-item"><a class="nav-link" routerLink="/payroll/runs" routerLinkActive="active">Nóminas</a></li>
       <li class="nav-item"><a class="nav-link" routerLink="/payroll/employees" routerLinkActive="active">Empleados</a></li>
+      <li class="nav-item"><a class="nav-link" routerLink="/payroll/advances" routerLinkActive="active">Anticipos</a></li>
+      <li class="nav-item"><a class="nav-link" routerLink="/payroll/accounts" routerLinkActive="active">Cuentas</a></li>
       <li class="nav-item"><a class="nav-link" routerLink="/payroll/parameters" routerLinkActive="active">Parámetros</a></li>
     </ul>
     @if (showTaxNotice) {

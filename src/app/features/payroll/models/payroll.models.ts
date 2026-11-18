@@ -55,7 +55,12 @@ export interface PayrollRun {
   reversalReason: string;
   approvedAt: Date | null;
   reversedAt: Date | null;
+  /** Lo pagado de la nómina (NOMINA_PAGOS.md §4); 0 si nunca se pagó. */
+  paidCents: number;
+  paymentStatus: PaymentStatus;
 }
+
+export type PaymentStatus = 'unpaid' | 'partial' | 'paid';
 
 export interface PayslipLine {
   concept: string;
@@ -80,6 +85,8 @@ export interface Payslip {
   emailSent: boolean;
   emailTo: string;
   emailError: string;
+  paidCents: number;
+  paymentStatus: PaymentStatus;
 }
 
 export interface PayrollNovelty {
@@ -91,6 +98,8 @@ export interface PayrollNovelty {
   amountCents?: number;
   accountCode: string;
   note: string;
+  /** La novedad la creó un anticipo (payrollAdvances): no se quita aquí. */
+  advanceId?: string;
 }
 
 export type NoveltyType =

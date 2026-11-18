@@ -8,6 +8,9 @@ import { AlertModule, BadgeModule, ButtonModule, CardModule, FormModule, GridMod
 import { NotificationService } from '../../../../core/services/notification.service';
 import { PayrollTabsComponent } from '../../components/payroll-tabs.component';
 import { NoveltiesModalComponent } from '../../components/novelties-modal.component';
+import { PayRunModalComponent } from '../../components/pay-run-modal.component';
+import { RunPaymentsCardComponent } from '../../components/run-payments-card.component';
+import { PAYMENT_STATUS } from '../../models/payroll-payments.models';
 import { PayrollRun, Payslip, RUN_STATUS, money, runTitle, sumLines } from '../../models/payroll.models';
 import { PayrollService, payrollErrorMessage } from '../../services/payroll.service';
 
@@ -22,7 +25,8 @@ type Busy = '' | 'recalc' | 'approve' | 'reverse' | 'email';
   standalone: true,
   templateUrl: './run-detail-page.component.html',
   imports: [CommonModule, FormsModule, RouterLink, AlertModule, BadgeModule, ButtonModule, CardModule, FormModule,
-    GridModule, ModalModule, SpinnerModule, PayrollTabsComponent, NoveltiesModalComponent],
+    GridModule, ModalModule, SpinnerModule, PayrollTabsComponent, NoveltiesModalComponent, PayRunModalComponent,
+    RunPaymentsCardComponent],
 })
 export class RunDetailPageComponent implements OnInit, OnDestroy {
   private svc = inject(PayrollService);
@@ -38,10 +42,14 @@ export class RunDetailPageComponent implements OnInit, OnDestroy {
   readonly busy = signal<Busy>('');
   readonly confirm = signal<'' | 'approve' | 'reverse' | 'email'>('');
   readonly showNovelties = signal(false);
+  readonly showPay = signal(false);
   readonly slipsError = signal('');
   reason = '';
 
   readonly STATUS = RUN_STATUS;
+  readonly PAY = PAYMENT_STATUS;
+  /** reversePayrollRun rechaza la reversa con pagos (NOMINA_PAGOS.md §3). */
+  readonly reverseBlocked = 'Para reversar la nómina, anula antes sus pagos.';
   readonly money = money;
   readonly title = runTitle;
   readonly sum = sumLines;

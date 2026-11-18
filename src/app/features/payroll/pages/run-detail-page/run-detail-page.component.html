@@ -11,6 +11,9 @@
       <a routerLink="/payroll/runs" class="small">← Nóminas</a>
       <h4 class="mb-0">Nómina de {{ title(r) }}
         <c-badge [color]="STATUS[r.status].color" class="ms-2 align-middle">{{ STATUS[r.status].label }}</c-badge>
+        @if (r.status === 'approved') {
+          <c-badge [color]="PAY[r.paymentStatus].color" class="ms-1 align-middle">{{ PAY[r.paymentStatus].label }}</c-badge>
+        }
       </h4>
     </div>
     <div class="d-flex flex-wrap gap-2">
@@ -27,8 +30,10 @@
           <a cButton color="secondary" variant="outline" size="sm" routerLink="/accounting/journal-entries"
              title="Búscalo por «Nómina {{ r.period }}»">Ver en Asientos</a>
         }
+        <button cButton color="success" size="sm" (click)="showPay.set(true)" [disabled]="busy() !== '' || r.paymentStatus === 'paid'">Pagar roles</button>
         <button cButton color="secondary" variant="outline" size="sm" (click)="openConfirm('email')" [disabled]="busy() !== ''">Enviar por correo</button>
-        <button cButton color="danger" size="sm" (click)="openConfirm('reverse')" [disabled]="busy() !== ''">Reversar</button>
+        <button cButton color="danger" size="sm" (click)="openConfirm('reverse')" [disabled]="busy() !== '' || r.paidCents > 0"
+                [title]="r.paidCents > 0 ? reverseBlocked : ''">Reversar</button>
       }
     </div>
   </div>
@@ -42,6 +47,9 @@
     @for (e of r.blockingErrors; track $index) { <c-alert color="danger" class="py-2 small">No se puede aprobar: {{ e }}</c-alert> }
   }
   @for (w of r.warnings; track $index) { <c-alert color="warning" class="py-2 small">{{ w }}</c-alert> }
+  @if (r.status === 'approved' && r.paidCents > 0) {
+    <c-alert color="info" class="py-2 small">Pagado {{ money(r.paidCents) }} de {{ money(r.totals.netCents) }}. {{ reverseBlocked }}</c-alert>
+  }
 
   <c-row class="g-3">
     <c-col lg="8">
@@ -55,7 +63,9 @@
             <table class="table table-hover mb-0 align-middle">
               <thead>
                 <tr><th>Empleado</th><th class="text-end">Días</th><th class="text-end">Ingresos</th>
-                  <th class="text-end">Descuentos</th><th class="text-end">Neto</th><th>Correo</th></tr>
+                  <th class="text-end">Descuentos</th><th class="text-end">Neto</th>
+                  @if (r.status === 'approved') { <th>Pago</th> }
+                  <th>Correo</th></tr>
               </thead>
               <tbody>
                 @for (p of rows(); track p.id) {
@@ -65,6 +75,12 @@
                     <td class="text-end font-monospace">{{ money(sum(p.earnings)) }}</td>
                     <td class="text-end font-monospace text-danger">-{{ money(sum(p.deductions)) }}</td>
                     <td class="text-end font-monospace fw-semibold">{{ money(p.netCents) }}</td>
+                    @if (r.status === 'approved') {
+                      <td>
+                        <c-badge [color]="PAY[p.paymentStatus].color">{{ PAY[p.paymentStatus].label }}</c-badge>
+                        @if (p.paymentStatus === 'partial') { <br /><small class="text-secondary">Falta {{ money(p.netCents - p.paidCents) }}</small> }
+                      </td>
+                    }
                     <td>
                       @if (p.emailError) { <c-badge color="danger">Error</c-badge> }
                       @else if (p.emailSent) { <c-badge color="success">Enviado</c-badge> }
@@ -88,11 +104,23 @@
           <div class="d-flex justify-content-between"><span>Provisiones</span><span class="font-monospace">{{ money(r.totals.provisionsCents) }}</span></div>
           <hr />
           <div class="d-flex justify-content-between fw-semibold fs-6 text-primary"><span>Neto a pagar</span><span class="font-monospace">{{ money(r.totals.netCents) }}</span></div>
-          <p class="text-secondary mt-2 mb-0">Los valores los calcula el servidor. El pago se registra aparte, con un comprobante de egreso.</p>
+          @if (r.status === 'approved') {
+            <div class="d-flex justify-content-between"><span>Pagado</span><span class="font-monospace">{{ money(r.paidCents) }}</span></div>
+            <div class="d-flex justify-content-between fw-semibold"><span>Por pagar</span><span class="font-monospace">{{ money(r.totals.netCents - r.paidCents) }}</span></div>
+          }
+          <p class="text-secondary mt-2 mb-0">Los valores los calcula el servidor. El neto se paga con «Pagar roles» (o con un comprobante de egreso, como antes).</p>
         </c-card-body>
       </c-card>
     </c-col>
   </c-row>
+
+  @if (r.status !== 'draft') {
+    <app-payroll-run-payments-card [runId]="r.id" />
+  }
+
+  @if (showPay()) {
+    <app-payroll-pay-run-modal [run]="r" [payslips]="slips()" (closed)="showPay.set(false)" />
+  }
 
   @if (showNovelties()) {
     <app-payroll-novelties-modal [period]="r.period" (closed)="onNoveltiesClosed($event)" />
@@ -114,7 +142,7 @@
         }
         @case ('reverse') {
           <p>Se anula el asiento de la nómina y los roles quedan reversados. Después puedes emitir una nómina nueva del mismo mes.</p>
-          <c-alert color="warning" class="py-2">Si ya pagaste la nómina, ese pago (comprobante de egreso o asiento manual) no se revierte solo.</c-alert>
+          <c-alert color="warning" class="py-2">Los pagos hechos con comprobante de egreso o asiento manual no se revierten solos.</c-alert>
           <label cLabel>Motivo *</label>
           <textarea cFormControl rows="2" [(ngModel)]="reason" placeholder="Ej.: faltaron las horas extra de Juan"></textarea>
         }
