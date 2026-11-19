@@ -40,7 +40,12 @@ export interface PayrollEmployee extends EmployeeProfile {
 }
 
 /** Lo que se manda en `employee` a upsertPayrollEmployee (validateEmployee). */
-export type PayrollEmployeeInput = Omit<PayrollEmployee, 'id' | 'taxIdType' | 'firstNames' | 'lastNames'>;
+/**
+ * Lo que manda la web. Sin contrato, jornada, gasto ni región (NOMINA_COLABORADOR.md §6): el servidor conserva lo
+ * guardado (por defecto jornada completa y administración) y la región es una por empresa.
+ */
+export type PayrollEmployeeInput = Omit<PayrollEmployee,
+  'id' | 'taxIdType' | 'firstNames' | 'lastNames' | 'contractType' | 'workdayType' | 'region' | 'expenseGroup'>;
 
 /** La identidad que va en `person` a upsertPayrollEmployee (validatePersonInput). */
 export interface PayrollPersonInput {

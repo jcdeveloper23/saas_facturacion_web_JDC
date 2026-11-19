@@ -7,6 +7,7 @@ import { periodLabel } from '../models/payroll.models';
 import { ecuadorToday } from '../models/payroll-payments.models';
 import { BonusKind, BonusRegion, bonusLastMonth, bonusPeriodHint } from '../models/payroll-bonus.models';
 import { PayrollBonusService } from '../services/payroll-bonus.service';
+import { PayrollPaymentsService } from '../services/payroll-payments.service';
 import { payrollErrorMessage } from '../services/payroll.service';
 
 /** «Generar décimo» (createPayrollBonusRun): abre el lote en borrador. */
@@ -42,6 +43,7 @@ import { payrollErrorMessage } from '../services/payroll.service';
             <option value="sierra">Sierra y Amazonía</option>
             <option value="costa">Costa e Insular</option>
           </select>
+          <small class="text-secondary">La de la empresa está en Parámetros.</small>
         </c-col>
       }
     </c-row>
@@ -71,6 +73,7 @@ export class BonusGenerateModalComponent implements OnInit {
 
   private svc = inject(PayrollBonusService);
   private notifications = inject(NotificationService);
+  private accounts = inject(PayrollPaymentsService);
   readonly saving = signal(false);
   readonly label = periodLabel;
   private readonly thisMonth = ecuadorToday().slice(0, 7);
@@ -80,7 +83,11 @@ export class BonusGenerateModalComponent implements OnInit {
   year = this.years[0];
   region: BonusRegion = 'sierra';
 
-  ngOnInit(): void { if (this.years.includes(this.defaultYear)) this.year = this.defaultYear; }
+  ngOnInit(): void {
+    if (this.years.includes(this.defaultYear)) this.year = this.defaultYear;
+    // La región de la empresa (Parámetros); si no se puede leer, queda Sierra (la de por defecto del servidor).
+    this.accounts.getAccounts().then((v) => { if (v.region === 'costa') this.region = 'costa'; }).catch(() => {});
+  }
 
   hint(): string { return bonusPeriodHint(this.kind, this.year, this.region); }
   lastMonth(): string { return bonusLastMonth(this.kind, this.year, this.region); }

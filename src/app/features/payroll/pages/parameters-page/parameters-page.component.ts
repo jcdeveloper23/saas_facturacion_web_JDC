@@ -5,6 +5,7 @@ import { Subscription } from 'rxjs';
 import { AlertModule, BadgeModule, CardModule, FormModule, SpinnerModule } from '@coreui/angular';
 
 import { PayrollTabsComponent } from '../../components/payroll-tabs.component';
+import { PayrollRegionCardComponent } from '../../components/payroll-region-card.component';
 import { money } from '../../models/payroll.models';
 import { PayrollService, payrollErrorMessage } from '../../services/payroll.service';
 
@@ -38,13 +39,15 @@ const at = (o: any, path: string) => path.split('.').reduce((x, k) => (x == null
 @Component({
   selector: 'app-payroll-parameters-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, AlertModule, BadgeModule, CardModule, FormModule, SpinnerModule, PayrollTabsComponent],
+  imports: [CommonModule, FormsModule, AlertModule, BadgeModule, CardModule, FormModule, SpinnerModule, PayrollTabsComponent,
+    PayrollRegionCardComponent],
   template: `
 <div class="mb-3">
-  <h4 class="mb-0">Parámetros de nómina</h4>
+  <h4 class="mb-0">Constantes Cálculo Rol</h4>
   <small class="text-secondary">Valores legales con los que se calcula cada mes</small>
 </div>
 <app-payroll-tabs />
+<app-payroll-region-card />
 @if (loading()) {
   <div class="text-center py-5"><c-spinner color="primary"></c-spinner></div>
 } @else if (error()) {

@@ -129,6 +129,8 @@ export type PayrollAccountKey =
 export interface PayrollAccountsView {
   defaults: Partial<Record<PayrollAccountKey, string>>;
   saved: Partial<Record<PayrollAccountKey, string>>;
+  /** La región de la empresa para el 14.º (NOMINA_COLABORADOR.md §6); por defecto Sierra. */
+  region?: 'sierra' | 'costa';
 }
 
 export const PAYROLL_ACCOUNT_LABELS: Record<PayrollAccountKey, string> = {

@@ -78,6 +78,9 @@ export class PayrollPaymentsService {
 
   getAccounts() { return this.call<PayrollAccountsView>('getPayrollAccounts', {}); }
 
+  /** Una región por empresa para el 14.º (cambia el periodo de los borradores). */
+  saveRegion(region: 'sierra' | 'costa') { return this.call<PayrollAccountsView>('savePayrollRegion', { region }); }
+
   /** Solo las claves que cambian; '' vuelve a la sugerida. */
   saveAccounts(accounts: Partial<Record<PayrollAccountKey, string>>) {
     return this.call<PayrollAccountsView>('savePayrollAccounts', { accounts });

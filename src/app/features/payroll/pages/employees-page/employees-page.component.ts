@@ -6,7 +6,7 @@ import { AlertModule, BadgeModule, ButtonModule, CardModule, FormModule, Spinner
 
 import { PayrollTabsComponent } from '../../components/payroll-tabs.component';
 import { EmployeeFormModalComponent } from '../../components/employee-form/employee-form-modal.component';
-import { CONTRACT_LABELS, PayrollEmployee, REGION_LABELS, money } from '../../models/payroll.models';
+import { PayrollEmployee, money } from '../../models/payroll.models';
 import { PayrollGroup } from '../../models/payroll-loans.models';
 import { PayrollService, payrollErrorMessage } from '../../services/payroll.service';
 import { PayrollLoansService } from '../../services/payroll-loans.service';
@@ -36,7 +36,6 @@ export class EmployeesPageComponent implements OnInit, OnDestroy {
   readonly showModal = signal(false);
   readonly editing = signal<PayrollEmployee | null>(null);
 
-  readonly labels = { CONTRACT_LABELS, REGION_LABELS };
   readonly money = money;
 
   readonly active = computed(() => this.employees().filter((e) => e.isActive));

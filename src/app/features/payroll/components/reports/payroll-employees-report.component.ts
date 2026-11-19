@@ -1,7 +1,7 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 
 import {
-  CONTRACT_LABELS, MODE_LABELS, PayrollEmployee, REGION_LABELS, RESERVE_LABELS,
+  MODE_LABELS, PayrollEmployee, RESERVE_LABELS,
 } from '../../models/payroll.models';
 import { BANK_ACCOUNT_TYPE_LABELS } from '../../models/payroll-employee-profile.models';
 import { ReportColumn, ReportRow } from '../../models/payroll-reports.models';
@@ -11,7 +11,7 @@ import { ReportTableComponent } from './report-table.component';
 
 const COLUMNS: ReportColumn[] = [
   { key: 'name', label: 'Nombre' }, { key: 'taxId', label: 'Cédula' }, { key: 'hireDate', label: 'Ingreso' },
-  { key: 'salary', label: 'Sueldo', kind: 'money' }, { key: 'contract', label: 'Contrato' }, { key: 'region', label: 'Región' },
+  { key: 'salary', label: 'Sueldo', kind: 'money' },
   { key: 'group', label: 'Grupo' }, { key: 'thirteenth', label: '13.º' }, { key: 'fourteenth', label: '14.º' },
   { key: 'reserve', label: 'Fondos de reserva' }, { key: 'assumed', label: 'Aporte asumido' },
   { key: 'disability', label: 'Discapacidad %', kind: 'number' }, { key: 'dependents', label: 'Cargas', kind: 'number' },
@@ -64,7 +64,6 @@ export class PayrollEmployeesReportComponent implements OnInit {
   private toRow(e: PayrollEmployee): ReportRow {
     return {
       name: e.name, taxId: e.taxId, hireDate: e.hireDate.split('-').reverse().join('/'), salary: e.salaryCents,
-      contract: CONTRACT_LABELS[e.contractType] ?? e.contractType, region: REGION_LABELS[e.region] ?? e.region,
       group: e.groupId ? this.groupNames().get(e.groupId) ?? '' : '', thirteenth: MODE_LABELS[e.thirteenthMode] ?? '',
       fourteenth: MODE_LABELS[e.fourteenthMode] ?? '', reserve: RESERVE_LABELS[e.reserveFundMode] ?? '',
       assumed: e.assumesIessPersonal ? 'Sí' : 'No', disability: e.disabilityPct, dependents: e.familyDependents,

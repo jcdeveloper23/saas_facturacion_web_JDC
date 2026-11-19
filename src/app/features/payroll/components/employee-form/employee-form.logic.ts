@@ -15,8 +15,7 @@ export const EMAIL_PATTERN = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 export function emptyEmployeeForm() {
   return {
     taxIdType: 'CI' as string, taxId: '', firstNames: '', lastNames: '', email: '', position: '', groupId: '',
-    hireDate: '', endDate: '', salary: '', contractType: 'indefinite', workdayType: 'full', region: 'sierra',
-    expenseGroup: 'admin', isActive: true, iessNumber: '', bankAccount: '',
+    hireDate: '', endDate: '', salary: '', isActive: true, iessNumber: '', bankAccount: '',
     accReserve: false, accThirteenth: false, accFourteenth: false,
     ...toEmployeeProfile({}),
   };
@@ -46,7 +45,6 @@ export function formFromEmployee(e: PayrollEmployee, position: string): Employee
     firstNames: split ? e.firstNames : e.name, lastNames: split ? e.lastNames : '',
     email: e.email, position, groupId: e.groupId,
     hireDate: e.hireDate, endDate: e.endDate ?? '', salary: (e.salaryCents / 100).toFixed(2),
-    contractType: e.contractType, workdayType: e.workdayType, region: e.region, expenseGroup: e.expenseGroup,
     isActive: e.isActive, iessNumber: e.iessNumber, bankAccount: e.bankAccount,
     accReserve: e.reserveFundMode === 'accumulated', accThirteenth: e.thirteenthMode === 'accumulated',
     accFourteenth: e.fourteenthMode === 'accumulated',
@@ -98,9 +96,7 @@ export function toUpsertPayload(v: EmployeeFormValue): { person: PayrollPersonIn
     // El servidor toma nombre y cédula de la persona; van por compatibilidad con validateEmployee.
     name: `${person.lastNames} ${person.firstNames}`.trim(), taxId,
     email: v.email.trim(), iessNumber: v.iessNumber.trim(), hireDate: v.hireDate, endDate: v.endDate || null,
-    contractType: v.contractType, salaryCents: parseMoneyCents(v.salary)!,
-    workdayType: v.workdayType as 'full' | 'efficient', region: v.region as 'sierra' | 'costa',
-    expenseGroup: v.expenseGroup as 'admin' | 'sales',
+    salaryCents: parseMoneyCents(v.salary)!,
     thirteenthMode: mode(v.accThirteenth), fourteenthMode: mode(v.accFourteenth), reserveFundMode: mode(v.accReserve),
     bankAccount: v.bankAccount.trim(), isActive: v.isActive, groupId: v.groupId,
   };

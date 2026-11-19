@@ -36,7 +36,7 @@
       <table class="table table-hover mb-0 align-middle">
         <thead>
           <tr>
-            <th>Empleado</th><th>Ingreso</th><th>Contrato</th><th>Región</th>
+            <th>Empleado</th><th>Ingreso</th>
             <th>Grupo</th><th class="text-end">Sueldo</th><th>Estado</th>
           </tr>
         </thead>
@@ -45,8 +45,6 @@
             <tr role="button" (click)="openEdit(e)">
               <td>{{ e.name }}<br /><small class="text-secondary">{{ e.taxId }}</small></td>
               <td>{{ e.hireDate | date: 'dd/MM/yyyy' }}</td>
-              <td>{{ labels.CONTRACT_LABELS[e.contractType] || e.contractType }}</td>
-              <td>{{ labels.REGION_LABELS[e.region] }}</td>
               <td class="small">{{ groupName(e.groupId) || '—' }}</td>
               <td class="text-end font-monospace">{{ money(e.salaryCents) }}</td>
               <td>
