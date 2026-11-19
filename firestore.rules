@@ -528,6 +528,20 @@ service cloud.firestore {
           && get(ajustes).data.get('accountantCanIssueCreditNotes', false) == true;
     }
 
+    // El contador emite facturas si su empresa lo permite (2026-11-19):
+    // settings/permissions.accountantCanIssueInvoices, apagado por defecto, lo
+    // escribe el admin. La factura la crea createAndEmitInvoice (Admin SDK),
+    // que mira el mismo campo; aquí cuenta para dar de alta al cliente nuevo
+    // desde la factura («Guardar en Clientes» de Conecta): una persona que es
+    // solo cliente. Editar fichas de clientes sigue sin poder.
+    function accountantMayCreateCustomers(companyId) {
+      let ajustes = /databases/$(database)/documents/companies/$(companyId)/settings/permissions;
+      return isAccountant()
+          && request.resource.data.get('roles', []) == ['customer']
+          && exists(ajustes)
+          && get(ajustes).data.get('accountantCanIssueInvoices', false) == true;
+    }
+
     function isNewCreditNote() {
       return request.resource.data.get('isCreditNote', false) == true
           && request.resource.data.get('documentType', '') == 'creditNote'
@@ -1015,10 +1029,12 @@ service cloud.firestore {
         allow read: if isAuthenticated() && belongsToCompany(companyId);
         // Crear: admin, vendedor y cajero (clientes y proveedores; el cajero
         // da de alta al cliente al cobrar y al proveedor desde «Clientes y
-        // proveedores», 2026-10-08) y el contador (solo proveedores).
+        // proveedores», 2026-10-08) y el contador (proveedores; y clientes si
+        // su empresa le deja emitir facturas, 2026-11-19).
         allow create: if isAuthenticated() && belongsToCompany(companyId)
                       && hasNoPayrollData()
-                      && (canWrite() || accountantCreatesSupplier());
+                      && (canWrite() || accountantCreatesSupplier()
+                          || accountantMayCreateCustomers(companyId));
         // Editar: admin y vendedor, y el contador sus proveedores. El cajero
         // no edita fichas que ya existen (2026-10-08): ninguna pantalla suya
         // las actualiza; antes canWrite() se lo dejaba con el SDK.

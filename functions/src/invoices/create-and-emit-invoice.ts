@@ -24,6 +24,7 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import { AdditionalInfoField, validateAdditionalInfoInput } from '../utils/additional-info';
 import { buyerTaxIdProblem } from '../utils/ecuador-tax-id';
+import { callerMayIssueInvoices } from './invoice-issuer';
 import {
   canUseEmissionPoint,
   formatEmissionPoint,
@@ -355,11 +356,22 @@ export const createAndEmitInvoice = onCall(
     }
 
     const companyId = data.companyId;
+    const db  = admin.firestore();
+
+    // Ser de la empresa no basta: emiten los roles de canWrite() y el
+    // contador si su empresa lo permite (2026-11-19, invoice-issuer.ts).
+    if (!(await callerMayIssueInvoices(db, companyId, callerRole))) {
+      throw new HttpsError(
+        'permission-denied',
+        callerRole === 'accountant'
+          ? 'Tu empresa no permite que los contadores emitan facturas. El administrador lo activa en «Permisos de la empresa».'
+          : 'Tu rol no puede emitir facturas.',
+      );
+    }
 
     // ── 2. Validar payload ───────────────────────────────────────────────────
     validatePayload(data);
 
-    const db  = admin.firestore();
     const now = admin.firestore.Timestamp.now();
 
     // La información adicional se valida contra el tope del SRI contando los

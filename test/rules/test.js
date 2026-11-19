@@ -1489,6 +1489,30 @@ const num = v => ({ doubleValue: v });
       await create('companies/c1/invoices', 'cn6', token({ uid: 'ro1', role: 'read_only', companyId: 'c1' }), nc()), S.DENIED);
   }
 
+  // ── el contador da de alta clientes si su empresa le deja facturar (2026-11-19) ─
+  {
+    const persona = (roles) => ({ taxId: str('0102030405'), name: str('CLIENTE NUEVO'), roles: list(roles) });
+    await seed('companies/c1/settings', 'permissions', { accountantCanIssueCreditNotes: bool(true) });
+    await expectStatus('contador NO crea un cliente sin su permiso (el de NC no le vale)',
+      await create('companies/c1/personas', 'cliF1', conta, persona(['customer'])), S.DENIED);
+    await expectStatus('el contador NO enciende su permiso de facturar',
+      await patch('companies/c1/settings/permissions', conta, { accountantCanIssueInvoices: bool(true) }), S.DENIED);
+    await expectStatus('el admin enciende el permiso de facturar del contador',
+      await patch('companies/c1/settings/permissions', admin, { accountantCanIssueInvoices: bool(true) }), S.OK);
+    await expectStatus('con el permiso, el contador crea un cliente',
+      await create('companies/c1/personas', 'cliF2', conta, persona(['customer'])), S.OK);
+    await expectStatus('con el permiso, el contador NO crea un cliente-proveedor',
+      await create('companies/c1/personas', 'cliF3', conta, persona(['customer', 'supplier'])), S.DENIED);
+    await expectStatus('con el permiso, el contador NO crea un cliente con datos de nómina',
+      await create('companies/c1/personas', 'cliF4', conta, {
+        ...persona(['customer']), employeeData: { mapValue: { fields: { salary: { doubleValue: 500 } } } } }), S.DENIED);
+    await expectStatus('con el permiso, el contador sigue sin editar la ficha de un cliente',
+      await patch('companies/c1/personas/cliF2', conta, { name: str('OTRO NOMBRE') }), S.DENIED);
+    await expectStatus('el permiso es del contador: solo lectura sigue sin crear clientes',
+      await create('companies/c1/personas', 'cliF5', token({ uid: 'ro1', role: 'read_only', companyId: 'c1' }),
+        persona(['customer'])), S.DENIED);
+  }
+
   // ── nómina: la leen admin y contador, nadie la escribe (PLAN_NOMINA.md §6.3, E2) ─
   // Sueldos y roles: el vendedor, el cajero y solo lectura no los ven (D-N2), y
   // tampoco el super admin ni el admin del canal (sus tokens no llevan
