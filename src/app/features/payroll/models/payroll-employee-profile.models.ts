@@ -21,7 +21,21 @@ export interface EmployeeProfile {
   bankName: string;
   bankAccountType: '' | 'savings' | 'checking';
   notes: string;
+  /** Solo clasifica (sistema actual): no cambia el cálculo. */
+  collaboratorType: string;
+  description: string;
 }
+
+/** Tipo de colaborador, en el orden del sistema actual. */
+export const COLLABORATOR_TYPE_LABELS: Record<string, string> = {
+  shareholder: 'Accionistas', regular: 'Comunes', intern: 'Pasantes', partTime: 'Tiempo parcial', construction: 'Construcción',
+};
+
+/** Sin RUC: un colaborador es persona natural (payroll-person-logic.ts). */
+export const PERSON_ID_TYPE_LABELS: Record<string, string> = {
+  CI: 'Cédula', PASAPORTE: 'Pasaporte', EXTERIOR: 'Identificación del exterior',
+};
+export type PersonIdType = 'CI' | 'PASAPORTE' | 'EXTERIOR';
 
 export const SEX_LABELS: Record<string, string> = { M: 'Masculino', F: 'Femenino' };
 
@@ -61,6 +75,8 @@ export function toEmployeeProfile(d: Record<string, any>): EmployeeProfile {
     bankName: str(d['bankName'], 80),
     bankAccountType: pick(d['bankAccountType'], ['savings', 'checking'] as const),
     notes: str(d['notes'], 500),
+    collaboratorType: pick(d['collaboratorType'], Object.keys(COLLABORATOR_TYPE_LABELS)),
+    description: str(d['description'], 500),
   };
 }
 

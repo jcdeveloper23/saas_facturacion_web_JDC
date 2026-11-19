@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import {
-  Firestore, collection, doc, documentId, getDocs, limit, onSnapshot, query, where,
+  Firestore, collection, doc, documentId, getDoc, getDocs, limit, onSnapshot, query, where,
 } from '@angular/fire/firestore';
 import { Functions, httpsCallable } from '@angular/fire/functions';
 import { Observable } from 'rxjs';
@@ -8,7 +8,7 @@ import { Observable } from 'rxjs';
 import { TenantService } from '../../../core/services/tenant.service';
 import { toEmployeeProfile } from '../models/payroll-employee-profile.models';
 import {
-  PayrollEmployee, PayrollEmployeeInput, PayrollNovelty, PayrollRun, Payslip, NoveltyType, PaymentStatus,
+  PayrollEmployee, PayrollEmployeeInput, PayrollPersonInput, PayrollNovelty, PayrollRun, Payslip, NoveltyType, PaymentStatus,
 } from '../models/payroll.models';
 
 /**
@@ -89,7 +89,25 @@ export class PayrollService {
     return r.data as T;
   }
 
-  upsertEmployee(personaId: string, employee: PayrollEmployeeInput) { return this.call('upsertPayrollEmployee', { personaId, employee }); }
+  /**
+   * Alta (sin personaId: el servidor busca o crea la persona por su identificación) o edición (con personaId; la
+   * identificación no cambia). NOMINA_COLABORADOR.md §5.
+   */
+  upsertEmployee(input: { personaId?: string; person: PayrollPersonInput; employee: PayrollEmployeeInput }) {
+    return this.call<{ employeeId: string; created: boolean; personaCreated: boolean }>('upsertPayrollEmployee', {
+      ...(input.personaId ? { personaId: input.personaId } : {}), person: input.person, employee: input.employee,
+    });
+  }
+
+  /** El cargo vive en la persona (employeeData.position, D-N8). '' si no se puede leer. */
+  async personaPosition(personaId: string): Promise<string> {
+    try {
+      const d = await getDoc(doc(this.firestore, this.path('personas'), personaId));
+      return String(d.get('employeeData.position') ?? '');
+    } catch {
+      return '';
+    }
+  }
   addNovelty(period: string, n: { employeeId: string; type: NoveltyType; qty?: number; amountCents?: number; accountCode?: string; note?: string }) {
     return this.call('savePayrollNovelties', { period, add: [n] });
   }
@@ -141,7 +159,7 @@ export function toEmployee(id: string, d: Record<string, any>): PayrollEmployee 
     region: d['region'] === 'costa' ? 'costa' : 'sierra', expenseGroup: d['expenseGroup'] === 'sales' ? 'sales' : 'admin',
     thirteenthMode: d['thirteenthMode'] ?? 'monthly', fourteenthMode: d['fourteenthMode'] ?? 'monthly',
     reserveFundMode: d['reserveFundMode'] ?? 'monthly', bankAccount: str(d['bankAccount']), isActive: d['isActive'] !== false,
-    groupId: str(d['groupId']),
+    groupId: str(d['groupId']), taxIdType: str(d['taxIdType']), firstNames: str(d['firstNames']), lastNames: str(d['lastNames']),
     ...toEmployeeProfile(d),
   };
 }

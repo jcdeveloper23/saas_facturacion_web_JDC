@@ -33,10 +33,26 @@ export interface PayrollEmployee extends EmployeeProfile {
   isActive: boolean;
   /** Grupo de colaboradores (payrollGroups); '' = sin grupo. */
   groupId: string;
+  /** Identidad escrita desde la nómina (NOMINA_COLABORADOR.md §5); vacíos en los antiguos. */
+  taxIdType: string;
+  firstNames: string;
+  lastNames: string;
 }
 
 /** Lo que se manda en `employee` a upsertPayrollEmployee (validateEmployee). */
-export type PayrollEmployeeInput = Omit<PayrollEmployee, 'id'>;
+export type PayrollEmployeeInput = Omit<PayrollEmployee, 'id' | 'taxIdType' | 'firstNames' | 'lastNames'>;
+
+/** La identidad que va en `person` a upsertPayrollEmployee (validatePersonInput). */
+export interface PayrollPersonInput {
+  taxIdType: 'CI' | 'PASAPORTE' | 'EXTERIOR';
+  taxId: string;
+  firstNames: string;
+  lastNames: string;
+  email?: string;
+  phone?: string;
+  mobile?: string;
+  position?: string;
+}
 
 export interface PayrollTotals {
   employees: number;

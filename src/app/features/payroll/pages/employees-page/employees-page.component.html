@@ -3,7 +3,7 @@
     <h4 class="mb-0">Empleados</h4>
     <small class="text-secondary">Las personas en la nómina de la empresa</small>
   </div>
-  <button cButton color="primary" size="sm" (click)="openNew()">+ Nuevo empleado</button>
+  <button cButton color="primary" size="sm" (click)="openNew()">+ Nuevo colaborador</button>
 </div>
 
 <app-payroll-tabs />
@@ -62,106 +62,10 @@
 </c-card>
 
 <c-alert color="info" class="mt-3 small">
-  Para dar de alta a alguien, primero márcalo como <strong>empleado</strong> en Personas. El sueldo y los datos
-  laborales solo los ven el administrador y el contador.
+  Al dar de alta a un colaborador se crea (o se reutiliza, si ya existe la identificación) su ficha en Clientes y
+  proveedores. El sueldo y los datos laborales solo los ven el administrador y el contador.
 </c-alert>
 
-<c-modal [visible]="showModal()" (visibleChange)="showModal.set($event)" backdrop="static" size="lg">
-  <c-modal-header>
-    <h5 cModalTitle>{{ editing() ? 'Editar empleado' : 'Nuevo empleado' }}</h5>
-    <button type="button" class="btn-close" (click)="showModal.set(false)"></button>
-  </c-modal-header>
-  <c-modal-body>
-    <ul class="nav nav-tabs mb-3">
-      @for (t of sections; track t.id) {
-        <li class="nav-item">
-          <button type="button" class="nav-link" [class.active]="section() === t.id" (click)="section.set(t.id)">{{ t.label }}</button>
-        </li>
-      }
-    </ul>
-    @if (section() === 'personal') {
-      <app-payroll-employee-personal-fields [group]="form" />
-    } @else if (section() === 'bank' || section() === 'iess') {
-      <app-payroll-employee-bank-iess-fields [group]="form" [section]="section() === 'bank' ? 'bank' : 'iess'" />
-    }
-    <form [formGroup]="form" [hidden]="section() !== 'contract'">
-      <c-row class="g-3">
-        <c-col md="12">
-          <label cLabel>Persona *</label>
-          <select cSelect formControlName="personaId" (change)="onPersona(form.controls.personaId.value)">
-            <option value="">— Elegir de Personas (marcadas como empleado) —</option>
-            @for (p of personas(); track p.id) { <option [value]="p.id">{{ p.name }} · {{ p.taxId }}</option> }
-          </select>
-        </c-col>
-        <c-col md="4"><label cLabel>Sueldo mensual (USD) *</label><input cFormControl formControlName="salary" placeholder="482,00" /></c-col>
-        <c-col md="4"><label cLabel>Fecha de ingreso *</label><input cFormControl type="date" formControlName="hireDate" /></c-col>
-        <c-col md="4"><label cLabel>Fecha de salida</label><input cFormControl type="date" formControlName="endDate" /></c-col>
-        <c-col md="4">
-          <label cLabel>Contrato</label>
-          <select cSelect formControlName="contractType">
-            @for (o of entries(labels.CONTRACT_LABELS); track o[0]) { <option [value]="o[0]">{{ o[1] }}</option> }
-          </select>
-        </c-col>
-        <c-col md="4">
-          <label cLabel>Jornada</label>
-          <select cSelect formControlName="workdayType">
-            @for (o of entries(labels.WORKDAY_LABELS); track o[0]) { <option [value]="o[0]">{{ o[1] }}</option> }
-          </select>
-        </c-col>
-        <c-col md="4">
-          <label cLabel>Región (14.º)</label>
-          <select cSelect formControlName="region">
-            @for (o of entries(labels.REGION_LABELS); track o[0]) { <option [value]="o[0]">{{ o[1] }}</option> }
-          </select>
-        </c-col>
-        <c-col md="4">
-          <label cLabel>Gasto de</label>
-          <select cSelect formControlName="expenseGroup">
-            @for (o of entries(labels.EXPENSE_LABELS); track o[0]) { <option [value]="o[0]">{{ o[1] }}</option> }
-          </select>
-        </c-col>
-        <c-col md="4">
-          <label cLabel>Grupo</label>
-          <select cSelect formControlName="groupId">
-            <option value="">Sin grupo</option>
-            @if (missingGroup()) { <option [value]="missingGroup()">{{ groupName(missingGroup()) }}</option> }
-            @for (g of groupOptions(); track g.id) { <option [value]="g.id">{{ g.name }}{{ g.isActive ? '' : ' (inactivo)' }}</option> }
-          </select>
-        </c-col>
-        <c-col md="8"><label cLabel>Correo para el rol</label><input cFormControl type="email" formControlName="email" /></c-col>
-        <c-col md="4">
-          <label cLabel>Décimo tercero</label>
-          <select cSelect formControlName="thirteenthMode">
-            @for (o of entries(labels.MODE_LABELS); track o[0]) { <option [value]="o[0]">{{ o[1] }}</option> }
-          </select>
-        </c-col>
-        <c-col md="4">
-          <label cLabel>Décimo cuarto</label>
-          <select cSelect formControlName="fourteenthMode">
-            @for (o of entries(labels.MODE_LABELS); track o[0]) { <option [value]="o[0]">{{ o[1] }}</option> }
-          </select>
-        </c-col>
-        <c-col md="4">
-          <label cLabel>Fondos de reserva</label>
-          <select cSelect formControlName="reserveFundMode">
-            @for (o of entries(labels.RESERVE_LABELS); track o[0]) { <option [value]="o[0]">{{ o[1] }}</option> }
-          </select>
-        </c-col>
-        <c-col md="12">
-          <small class="text-secondary">Por ley se pagan cada mes; se acumulan solo si el trabajador lo pidió por escrito.</small>
-          <c-form-check class="mt-2">
-            <input cFormCheckInput type="checkbox" id="emp-active" formControlName="isActive" />
-            <label cFormCheckLabel for="emp-active">Entra en la nómina</label>
-          </c-form-check>
-        </c-col>
-      </c-row>
-    </form>
-  </c-modal-body>
-  <c-modal-footer>
-    <button cButton color="secondary" variant="outline" (click)="showModal.set(false)">Cancelar</button>
-    <button cButton color="primary" (click)="save()" [disabled]="form.invalid || saving()">
-      @if (saving()) { <c-spinner size="sm" class="me-1"></c-spinner> }
-      {{ editing() ? 'Guardar' : 'Agregar a la nómina' }}
-    </button>
-  </c-modal-footer>
-</c-modal>
+@if (showModal()) {
+  <app-payroll-employee-form-modal [employee]="editing()" [groups]="groups()" (closed)="showModal.set(false)" />
+}
