@@ -94,6 +94,8 @@ export const EDUCATION_LEVELS = ['none', 'primary', 'secondary', 'technical', 'u
 export const BANK_ACCOUNT_TYPES = ['savings', 'checking'];
 
 export interface EmployeeProfile {
+  collaboratorType?: string;
+  description?: string;
   assumesIessPersonal?: boolean;
   disabilityPct?: number;
   familyDependents?: number;
@@ -149,10 +151,11 @@ export function validateProfile(e: Record<string, any>): Ok<EmployeeProfile> {
     choice('maritalStatus', MARITAL_STATUSES, 'El estado civil'),
     choice('education', EDUCATION_LEVELS, 'El nivel de instrucción'),
     choice('bankAccountType', BANK_ACCOUNT_TYPES, 'El tipo de cuenta'),
+    choice('collaboratorType', ['shareholder', 'regular', 'intern', 'partTime', 'construction'], 'El tipo de colaborador'),
   ].filter(Boolean);
   if (errs.length) return { ok: false, error: errs[0]! };
   for (const [k, max] of [['bloodType', 5], ['address', 200], ['phone', 30], ['mobile', 30], ['title', 120],
-    ['bankName', 80], ['notes', 500]] as const) {
+    ['bankName', 80], ['notes', 500], ['description', 500]] as const) {
     if (has(k)) (out as any)[k] = text(e[k], max);
   }
   return { ok: true, value: out };

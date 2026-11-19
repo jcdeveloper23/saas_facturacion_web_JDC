@@ -32,6 +32,8 @@ Nueva clave de cuentas: `assumedIessExpense` (25 en total; sin sugerida, cae a `
 | `title` | texto (120) | Título |
 | `bankName`, `bankAccountType` (`savings`\|`checking`) | texto (80) / lista | Junto al `bankAccount` que ya existía |
 | `notes` | texto (500) | Observación |
+| `collaboratorType` | `shareholder, regular, intern, partTime, construction` \| `''` | Los del sistema actual: Accionistas, Comunes, Pasantes, Tiempo parcial, Construcción. **Solo clasifica**: no cambia el cálculo (la jornada parcial sigue sin calcularse, L7) |
+| `description` | texto (500) | Descripción |
 
 Van en el mismo `employee` de `upsertPayrollEmployee`. **Solo se escriben los que vienen**: una pantalla que no los
 manda no los borra (como `groupId` y `priorServiceDays`). Un texto vacío borra el valor.
@@ -39,7 +41,7 @@ manda no los borra (como `groupId` y `priorServiceDays`). Un texto vacío borra 
 **No se agregó:**
 - **«Es freelance»**: un freelance no está en relación de dependencia (factura sus servicios): no va en la nómina.
 - **Cargo**: sigue en la persona (`personas.employeeData.position`, D-N8).
-- **Tipo e identificación, nombres, apellidos, correo**: salen de la persona (Clientes y proveedores).
+- **Tipo e identificación, nombres, apellidos, correo**: siguen viviendo en la persona, pero ahora se escriben desde la nómina (§5).
 - **Código IESS**: ya existía (`iessNumber`).
 
 ## 3. Pruebas
@@ -52,3 +54,27 @@ manda no los borra (como `groupId` y `priorServiceDays`). Un texto vacío borra 
 
 Tanda `18-nomina-colaborador` de `scripts/deploy-node22.sh` (sin reglas nuevas): `upsertPayrollEmployee` y las que
 calculan (`createPayrollRun`, `recalculatePayrollRun`, `approvePayrollRun`) y `savePayrollAccounts` (clave nueva).
+
+## 5. Alta del colaborador con sus datos (2026-11-19)
+
+Como en el sistema actual, el colaborador nuevo **no se elige de una lista de personas**: se escriben tipo y número de
+identificación, nombres y apellidos. `upsertPayrollEmployee` acepta `person`:
+
+```
+{companyId, person: {taxIdType: 'CI'|'PASAPORTE'|'EXTERIOR', taxId, firstNames, lastNames, email?, phone?, mobile?,
+ position?}, employee: {…}}   → {employeeId, created, personaCreated}
+```
+
+- La **cédula** se valida con su dígito verificador (`isValidCedula`, el mismo de facturación). Sin RUC: un colaborador
+  es persona natural.
+- Se busca la persona por identificación (la cédula también encuentra su RUC de persona natural, `cédula + 001`), en la
+  misma transacción del alta: **no se duplica**. Si no existe se crea en `personas` con el rol `employee`, código de
+  empleado siguiente (`000001…`, la misma secuencia de la web de Personas), `name = APELLIDOS NOMBRES` y
+  `createdFrom: 'payroll'`. Si existe (p. ej. ya era cliente), gana el rol y conserva su código y su correo.
+- Si esa persona **ya está en la nómina**, se rechaza («búscalo en Colaboradores y edítalo»).
+- **Edición** (`personaId` + `person`): actualiza nombres, contacto y cargo de la persona; la identificación no se cambia
+  desde la nómina.
+- Sigue valiendo el alta con `personaId` de una persona ya marcada como empleado.
+
+Pruebas: Jest **139/139**; integración **15/15** (crear, repetir, reusar un cliente con RUC, editar, cédula inválida).
+Despliegue: solo `upsertPayrollEmployee` (va en la tanda 18).

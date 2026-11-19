@@ -102,3 +102,27 @@ it('ficha: los campos nuevos se guardan planos y editar sin ellos no los borra',
   await expect(call(upsertPayrollEmployee, { personaId: 'p1', employee: { ...emp, disabilityPct: 150 } }))
     .rejects.toMatchObject({ code: 'invalid-argument' });
 });
+
+it('alta como el sistema actual: crea la persona, reusa la que ya existe, no duplica', async () => {
+  const person = { taxIdType: 'CI', taxId: '0102030400', firstNames: 'Juan Carlos', lastNames: 'Rojas Paz', position: 'Bodeguero' };
+  const r = await call(upsertPayrollEmployee, { person, employee: { ...emp, collaboratorType: 'regular' } });
+  expect(r).toMatchObject({ created: true, personaCreated: true });
+  const p = await doc(`personas/${r.employeeId}`);
+  expect(p).toMatchObject({ roles: ['employee'], taxId: '0102030400', name: 'ROJAS PAZ JUAN CARLOS', employeeData: { position: 'Bodeguero' } });
+  expect(p.employeeData.code).toMatch(/^\d{6}$/);
+  expect(await doc(`payrollEmployees/${r.employeeId}`)).toMatchObject({ name: 'ROJAS PAZ JUAN CARLOS', collaboratorType: 'regular', firstNames: 'Juan Carlos' });
+  // Otra vez la misma cédula: ya está en la nómina.
+  await expect(call(upsertPayrollEmployee, { person, employee: emp })).rejects.toMatchObject({ code: 'failed-precondition' });
+  // Un cliente con RUC de persona natural: gana el rol, no se duplica.
+  await db.doc(`companies/${C}/personas/cli1`).set({ name: 'LUISA MORA', taxId: '1710034065001', roles: ['customer'], email: 'l@x.ec' });
+  const r2 = await call(upsertPayrollEmployee, { person: { taxIdType: 'CI', taxId: '1710034065', firstNames: 'Luisa', lastNames: 'Mora' }, employee: emp });
+  expect(r2).toMatchObject({ employeeId: 'cli1', personaCreated: false });
+  expect((await doc('personas/cli1')).roles).toEqual(['customer', 'employee']);
+  // Edición: nombres y cargo cambian; la identificación no.
+  await call(upsertPayrollEmployee, { personaId: r.employeeId, person: { ...person, firstNames: 'Juan' }, employee: emp });
+  expect((await doc(`personas/${r.employeeId}`)).name).toBe('ROJAS PAZ JUAN');
+  await expect(call(upsertPayrollEmployee, { personaId: r.employeeId, person: { ...person, taxId: '1710034065' }, employee: emp }))
+    .rejects.toMatchObject({ code: 'failed-precondition' });
+  await expect(call(upsertPayrollEmployee, { person: { ...person, taxId: '0102030401' }, employee: emp }))
+    .rejects.toMatchObject({ code: 'invalid-argument' });
+});

@@ -43,7 +43,7 @@ it('roles: vendedor, super admin y otra empresa reciben denegado', async () => {
 it('empleado: solo si la persona es empleado; lleva el contador', async () => {
   await expect(call(upsertPayrollEmployee, { personaId: 'p2', employee: emp }, admin1)).rejects.toMatchObject({ code: 'failed-precondition' });
   const r = await call(upsertPayrollEmployee, { personaId: 'p1', employee: emp }, conta);
-  expect(r).toEqual({ employeeId: 'p1', created: true });
+  expect(r).toEqual({ employeeId: 'p1', created: true, personaCreated: false });
   const e = (await db.doc(`companies/${C}/payrollEmployees/p1`).get()).data()!;
   expect(e.name).toBe('ANA PÉREZ');
   expect(e.salaryHistory).toHaveLength(1);

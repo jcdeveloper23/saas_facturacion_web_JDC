@@ -9,15 +9,26 @@ import { employeeLimitDecision } from './payroll-limits';
 import { fail, readCompanyId, readId, requirePayrollModule, requirePayrollRole } from './payroll-auth';
 import { parsePeriod, validateEmployee, validateNovelty } from './payroll-run-logic';
 import { INPUTS_SEQ_INCREMENT, stripUndefined } from './payroll-compute';
+import {
+  PersonInput, existingPersonPatch, newPersonDoc, nextEmployeeCode, personName, sameIdCandidates, validatePersonInput,
+} from './payroll-person-logic';
 
 // ─── upsertPayrollEmployee ───────────────────────────────────────────────────
 
 /**
- * Alta o edición de un empleado. Entrada: {companyId, personaId, employee:
- * {…}} (payroll_service.dart). El id es el de la persona, que tiene que estar
- * marcada como empleado en «Clientes y proveedores». Aplica el cupo
- * employeesTotal del plan (D-N9) y lleva el contador
- * `companies/{cid}.totalPayrollEmployeesActive`. Devuelve {employeeId, created}.
+ * Alta o edición de un colaborador. Entrada: {companyId, personaId?, person?,
+ * employee: {…}}.
+ *   · Alta como en el sistema actual (NOMINA_COLABORADOR.md §5): sin
+ *     `personaId` y con `person` {taxIdType, taxId, firstNames, lastNames,
+ *     email?, phone?, mobile?, position?}. Se busca la persona por
+ *     identificación (también cédula + 001); si no existe se crea en
+ *     Clientes y proveedores con el rol `employee`; si existe, gana el rol.
+ *   · Alta con una persona ya creada, o edición: con `personaId`. En la
+ *     edición, `person` actualiza nombres, contacto y cargo (la
+ *     identificación no se cambia aquí).
+ * El id del colaborador es el de la persona. Aplica el cupo employeesTotal
+ * (D-N9) y lleva `companies/{cid}.totalPayrollEmployeesActive`.
+ * Devuelve {employeeId, created, personaCreated}.
  */
 export const upsertPayrollEmployee = onCall(async (request) => {
   const data = request.data ?? {};
@@ -26,31 +37,61 @@ export const upsertPayrollEmployee = onCall(async (request) => {
   const db = admin.firestore();
   const company = await requirePayrollModule(db, companyId);
   const uid = request.auth?.uid ?? 'system';
-  const personaId = readId(data, 'personaId', 'la persona');
+  const givenId = typeof data.personaId === 'string' && data.personaId.trim() ? readId(data, 'personaId', 'la persona') : '';
 
   const v = validateEmployee(data.employee);
   if (!v.ok) throw new HttpsError('invalid-argument', v.error);
   const e = v.value;
   const { profile: _profile, ...fields } = e;
-
-  const personaSnap = await db.doc(`companies/${companyId}/personas/${personaId}`).get();
-  if (!personaSnap.exists) throw new HttpsError('not-found', 'La persona no existe en Clientes y proveedores.');
-  const roles: unknown[] = personaSnap.get('roles') ?? [];
-  if (!roles.includes('employee')) fail('Marca primero a la persona como Empleado en Clientes y proveedores.');
+  let person: PersonInput | null = null;
+  if (data.person !== undefined && data.person !== null) {
+    const pv = validatePersonInput(data.person);
+    if (!pv.ok) throw new HttpsError('invalid-argument', pv.error);
+    person = pv.value;
+  }
+  if (!givenId && !person) throw new HttpsError('invalid-argument', 'Faltan la identificación y los nombres del colaborador.');
   if (e.groupId) {
     const g = await db.doc(`companies/${companyId}/payrollGroups/${e.groupId}`).get();
     if (!g.exists) throw new HttpsError('invalid-argument', 'El grupo de colaboradores no existe.');
   }
 
-  const empRef = db.doc(`companies/${companyId}/payrollEmployees/${personaId}`);
-  const companyRef = db.doc(`companies/${companyId}`);
-  const activos = db.collection(`companies/${companyId}/payrollEmployees`).where('isActive', '==', true);
+  const base = `companies/${companyId}`;
+  const personas = db.collection(`${base}/personas`);
+  const companyRef = db.doc(base);
+  const activos = db.collection(`${base}/payrollEmployees`).where('isActive', '==', true);
+  const employeeCodes = personas.where('roles', 'array-contains', 'employee').limit(2000);
 
   return db.runTransaction(async (tx) => {
-    // Leer la empresa en la transacción hace chocar dos altas simultáneas: la
-    // segunda se reintenta y ya ve el conteo nuevo (el cupo no se pasa).
-    const [snap, count] = await Promise.all([tx.get(empRef), tx.get(activos.count()), tx.get(companyRef)]);
+    // 1) La persona: la dada, la que ya tiene esa identificación o una nueva.
+    let personaRef = givenId ? personas.doc(givenId) : null;
+    let personaSnap = personaRef ? await tx.get(personaRef) : null;
+    if (personaRef && !personaSnap!.exists) throw new HttpsError('not-found', 'La persona no existe en Clientes y proveedores.');
+    if (!personaRef && person) {
+      const found = await tx.get(personas.where('taxId', 'in', sameIdCandidates(person.taxId)).limit(1));
+      if (!found.empty) { personaRef = found.docs[0].ref; personaSnap = found.docs[0]; }
+    }
+    const creatingPersona = !personaRef;
+    if (!personaRef) personaRef = personas.doc();
+    if (givenId && person && personaSnap!.exists) {
+      const stored = String(personaSnap!.get('taxId') ?? '');
+      if (stored && !sameIdCandidates(person.taxId).includes(stored)) {
+        fail('La identificación no se cambia desde la nómina: corrígela en Clientes y proveedores.');
+      }
+    }
+    if (givenId && !person) {
+      const roles: unknown[] = personaSnap!.get('roles') ?? [];
+      if (!roles.includes('employee')) fail('Marca primero a la persona como Empleado en Clientes y proveedores.');
+    }
+    const empRef = db.doc(`${base}/payrollEmployees/${personaRef.id}`);
+    const needCode = creatingPersona || !personaSnap?.get('employeeData.code');
+    const [snap, count, , codes] = await Promise.all([
+      tx.get(empRef), tx.get(activos.count()), tx.get(companyRef), needCode ? tx.get(employeeCodes) : Promise.resolve(null),
+    ]);
     const before = snap.exists ? snap.data() as Record<string, any> : null;
+    // Alta sin personaId de alguien que ya está en la nómina: no se pisa su ficha.
+    if (!givenId && before) {
+      fail(`${String(before.name ?? 'Esa persona')} ya está en la nómina: búscalo en Colaboradores y edítalo.`);
+    }
     const wasActive = before ? before.isActive !== false : false;
     const current = count.data().count;
     // El cupo solo se mira al sumar un activo (alta o reactivación).
@@ -59,17 +100,37 @@ export const upsertPayrollEmployee = onCall(async (request) => {
       if (!d.allowed) fail(d.reason ?? 'El plan no permite más empleados en nómina.');
     }
     const now = admin.firestore.Timestamp.now();
+    const code = needCode ? nextEmployeeCode((codes?.docs ?? []).map((d) => d.get('employeeData.code'))) : '';
+    if (creatingPersona) {
+      tx.set(personaRef, newPersonDoc(person!, code, now));
+    } else if (person) {
+      const existing = personaSnap!.data() as Record<string, any>;
+      const name = personName(person);
+      tx.set(personaRef, stripUndefined({
+        ...existingPersonPatch(existing, person, code, now),
+        // En la edición desde la nómina, los nombres y el contacto también se actualizan.
+        ...(givenId ? { name, legalName: name, firstNames: person.firstNames, lastNames: person.lastNames,
+          ...(person.email ? { email: person.email } : {}), ...(person.phone ? { phone1: person.phone } : {}),
+          ...(person.mobile ? { phone2: person.mobile } : {}) } : {}),
+      }), { merge: true });
+    }
+    const pName = creatingPersona || (person && givenId) ? personName(person!)
+      : String(personaSnap!.get('legalName') || personaSnap!.get('name') || e.name);
+    const pTaxId = creatingPersona ? person!.taxId : String(personaSnap!.get('taxId') ?? e.taxId);
+
     const history: any[] = Array.isArray(before?.salaryHistory) ? before!.salaryHistory : [];
     const salaryChanged = !before || Number(before.salaryCents) !== e.salaryCents;
     const todayIso = now.toDate().toISOString().slice(0, 10);
     tx.set(empRef, stripUndefined({
-      personaId,
+      personaId: personaRef.id,
       ...fields,
       // La ficha (punto 4): solo los campos que vinieron; el resto se conserva (merge).
       ...e.profile,
       // El nombre y la cédula salen de la persona, no de lo que llegue.
-      name: String(personaSnap.get('legalName') || personaSnap.get('name') || e.name),
-      taxId: String(personaSnap.get('taxId') ?? e.taxId),
+      name: pName,
+      taxId: pTaxId,
+      ...(person ? { taxIdType: person.taxIdType, firstNames: person.firstNames, lastNames: person.lastNames } : {}),
+      ...(person?.email && !e.email ? { email: person.email } : {}),
       salaryHistory: salaryChanged
         ? [...history, { salaryCents: e.salaryCents, validFrom: before ? todayIso : e.hireDate, changedBy: uid }]
         : history,
@@ -79,7 +140,7 @@ export const upsertPayrollEmployee = onCall(async (request) => {
     }), { merge: true });
     const delta = (e.isActive ? 1 : 0) - (wasActive ? 1 : 0);
     tx.update(companyRef, { totalPayrollEmployeesActive: current + delta, payrollInputsSeq: INPUTS_SEQ_INCREMENT() });
-    return { employeeId: personaId, created: !before };
+    return { employeeId: personaRef.id, created: !before, personaCreated: creatingPersona };
   });
 });
 
