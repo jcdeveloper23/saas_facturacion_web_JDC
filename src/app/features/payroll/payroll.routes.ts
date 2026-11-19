@@ -55,6 +55,10 @@ export const PAYROLL_ROUTES: Routes = [
     loadComponent: () => import('./pages/accounts-page/accounts-page.component').then(m => m.AccountsPageComponent),
   },
   {
+    path: 'reports', ...guards, data: data('Reportes de nómina'),
+    loadComponent: () => import('./pages/reports-page/reports-page.component').then(m => m.ReportsPageComponent),
+  },
+  {
     path: 'parameters', ...guards, data: data('Parámetros de nómina'),
     loadComponent: () => import('./pages/parameters-page/parameters-page.component').then(m => m.ParametersPageComponent),
   },

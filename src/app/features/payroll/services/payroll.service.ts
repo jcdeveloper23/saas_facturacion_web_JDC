@@ -132,7 +132,7 @@ const date = (v: any): Date | null => (v?.toDate ? v.toDate() : null);
 /** Las nóminas aprobadas antes de NOMINA_PAGOS no tienen el campo: por pagar. */
 const payStatus = (v: unknown): PaymentStatus => (v === 'partial' || v === 'paid' ? v : 'unpaid');
 
-function toEmployee(id: string, d: Record<string, any>): PayrollEmployee {
+export function toEmployee(id: string, d: Record<string, any>): PayrollEmployee {
   return {
     id, name: str(d['name']), taxId: str(d['taxId']), email: str(d['email']), iessNumber: str(d['iessNumber']),
     hireDate: str(d['hireDate']), endDate: d['endDate'] ? str(d['endDate']) : null,
@@ -162,7 +162,7 @@ function toRun(id: string, d: Record<string, any>): PayrollRun {
   };
 }
 
-function toPayslip(id: string, d: Record<string, any>): Payslip {
+export function toPayslip(id: string, d: Record<string, any>): Payslip {
   const e = d['employee'] ?? {};
   return {
     id, runId: str(d['runId']), period: str(d['period']), employeeId: str(d['employeeId']), status: d['status'] ?? 'draft',

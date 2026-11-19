@@ -79,7 +79,7 @@ export class PayrollLoansService {
 const str = (v: unknown) => (v == null ? '' : String(v));
 const num = (v: unknown) => Number(v ?? 0) || 0;
 
-function toGroup(id: string, d: Record<string, any>): PayrollGroup {
+export function toGroup(id: string, d: Record<string, any>): PayrollGroup {
   const a = d['accounts'] && typeof d['accounts'] === 'object' ? d['accounts'] : {};
   return {
     id, name: str(d['name']), description: str(d['description']), isActive: d['isActive'] !== false,
@@ -87,7 +87,7 @@ function toGroup(id: string, d: Record<string, any>): PayrollGroup {
   };
 }
 
-function toLoan(id: string, d: Record<string, any>): PayrollLoan {
+export function toLoan(id: string, d: Record<string, any>): PayrollLoan {
   const x = d['disbursement'];
   const status = d['status'] === 'paid' || d['status'] === 'cancelled' ? d['status'] : 'active';
   return {

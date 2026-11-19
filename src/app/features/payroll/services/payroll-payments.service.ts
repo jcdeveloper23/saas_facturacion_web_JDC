@@ -102,7 +102,7 @@ function toPayment(id: string, d: Record<string, any>): PayrollPayment {
   };
 }
 
-function toAdvance(id: string, d: Record<string, any>): PayrollAdvance {
+export function toAdvance(id: string, d: Record<string, any>): PayrollAdvance {
   return {
     id, number: str(d['number']), employeeId: str(d['employeeId']), employeeName: str(d['employeeName']),
     date: str(d['date']), period: str(d['period']), amountCents: num(d['amountCents']), status: docStatus(d['status']),

@@ -207,6 +207,7 @@ export const navItems: INavData[] = [
       { name: 'Décimos', url: '/payroll/bonuses', icon: 'nav-icon-bullet' },
       { name: 'Vacaciones', url: '/payroll/vacations', icon: 'nav-icon-bullet' },
       { name: 'Cuentas', url: '/payroll/accounts', icon: 'nav-icon-bullet' },
+      { name: 'Reportes', url: '/payroll/reports', icon: 'nav-icon-bullet' },
       { name: 'Parámetros', url: '/payroll/parameters', icon: 'nav-icon-bullet' }
     ]
   },
