@@ -59,9 +59,10 @@ describe('validar lo que manda Conecta', () => {
     const r = validateEmployee(base);
     expect(r.ok).toBe(true);
     if (r.ok) {
-      expect(r.value.workdayType).toBe('full');
+      // Jornada y región ya no se escriben si no vienen (2026-11-19): los pone toEmployeeInput.
+      expect(r.value.workdayType).toBeUndefined();
       expect(r.value.thirteenthMode).toBe('monthly');
-      expect(r.value.region).toBe('sierra');
+      expect(r.value.region).toBeUndefined();
       expect(r.value.isActive).toBe(true);
     }
   });

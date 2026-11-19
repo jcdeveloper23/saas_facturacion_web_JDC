@@ -10,7 +10,7 @@ import * as admin from 'firebase-admin';
 import { calculatePayslip, PayrollEmployeeDataError, PayrollParametersError } from './payroll-calc';
 import { pickParameters } from './payroll-dates';
 import { AccountsFor, DEFAULT_PAYROLL_ACCOUNTS, PayrollAccountKey } from './payroll-entry';
-import { toEmployeeInput } from './payroll-run-logic';
+import { companyRegionOf, toEmployeeInput } from './payroll-run-logic';
 import { PayrollLoanInput, PayrollNoveltyInput, PayrollParameters, PayslipResult } from './payroll-types';
 import { loanAppliesTo } from './payroll-loan-logic';
 
@@ -62,6 +62,7 @@ export async function computeRun(db: Db, companyId: string, year: number, month:
   const firstDay = `${period}-01`;
   const lastDay = `${period}-${String(new Date(Date.UTC(year, month, 0)).getUTCDate()).padStart(2, '0')}`;
   const inputsSeq = inputsSeqOf((await db.doc(base).get()).data());
+  const region = companyRegionOf((await db.doc(`${base}/settings/accounting`).get()).data());
 
   // Activos, y también quien salió desde el inicio del mes (su último rol).
   // Dos consultas de un solo campo: sin índices compuestos.
@@ -93,13 +94,13 @@ export async function computeRun(db: Db, companyId: string, year: number, month:
   for (const d of employees) {
     const data = d.data();
     try {
-      const r = calculatePayslip({ params, year, month, employee: toEmployeeInput(d.id, data, lastDay), novelties, loans });
+      const r = calculatePayslip({ params, year, month, employee: toEmployeeInput(d.id, data, lastDay, region), novelties, loans });
       if (!r) continue; // no trabajó en el mes
       warnings.push(...r.warnings);
       blockingErrors.push(...r.errors);
       payslips.push({
         result: { ...r, expenseGroup: (data.expenseGroup ?? 'admin'), groupId: String(data.groupId ?? '') },
-        employee: data,
+        employee: { ...data, region },
         position: positionOf.get(d.id) ?? '',
       });
     } catch (e) {

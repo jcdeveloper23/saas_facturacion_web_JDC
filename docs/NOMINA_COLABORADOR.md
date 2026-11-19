@@ -78,3 +78,19 @@ identificación, nombres y apellidos. `upsertPayrollEmployee` acepta `person`:
 
 Pruebas: Jest **139/139**; integración **15/15** (crear, repetir, reusar un cliente con RUC, editar, cédula inválida).
 Despliegue: solo `upsertPayrollEmployee` (va en la tanda 18).
+
+## 6. Campos que el formulario actual no pide (2026-11-19)
+
+El plan dejó en el colaborador **tipo de contrato, jornada, gasto (administración/ventas) y región**. El formulario de
+la empresa no los tiene, así que salen de la ficha:
+
+| Campo | Uso | Ahora |
+|---|---|---|
+| `contractType` | Ninguno en el cálculo (solo se guardaba) | No se pide; sin valor |
+| `workdayType` | Aviso de sueldo < SBU y rechazo de la jornada parcial | No se pide; vale **completa**. «Tiempo parcial» es un tipo de colaborador (solo clasifica) |
+| `expenseGroup` | Cuenta del sueldo: `salaryAdmin` o `salarySales` | No se pide; vale **administración**. La cuenta de sueldos de un área se pone en su **grupo de colaboradores** (como el sistema actual: ADMINISTRACIÓN, VENTAS…) |
+| `region` | **Periodo y pago del 14.º** (Sierra ago–jul, Costa mar–feb) | **Una sola por empresa**: `settings/accounting.payrollRegion`, por defecto Sierra. Manda sobre la del colaborador al calcular (`toEmployeeInput(..., companyRegion)`); cada rol guarda la de su mes |
+
+`validateEmployee` escribe esos cuatro **solo si vienen** (una pantalla vieja que los manda sigue funcionando; una nueva
+que no los manda no los borra). Callable nueva: `savePayrollRegion({companyId, region})`; `getPayrollAccounts` devuelve
+además `region`. Pruebas: Jest **142/142**, integración **15/15**.

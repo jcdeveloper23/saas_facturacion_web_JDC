@@ -86,4 +86,4 @@ firebase deploy --project accounting-system-a5c9f --only functions:createPayroll
 # Tanda 18-nomina-colaborador (6) — agregada el 2026-11-18: ficha del colaborador y aporte IESS asumido
 # (docs/NOMINA_COLABORADOR.md). Sin reglas nuevas. Cambian el alta del empleado, el cálculo y la clave
 # de cuentas assumedIessExpense.
-firebase deploy --project accounting-system-a5c9f --only functions:upsertPayrollEmployee,functions:createPayrollRun,functions:recalculatePayrollRun,functions:approvePayrollRun,functions:savePayrollAccounts,functions:getPayrollAccounts 2>&1 | tee deploy-node22-18-nomina-colaborador.log
+firebase deploy --project accounting-system-a5c9f --only functions:upsertPayrollEmployee,functions:createPayrollRun,functions:recalculatePayrollRun,functions:approvePayrollRun,functions:savePayrollAccounts,functions:getPayrollAccounts,functions:savePayrollRegion,functions:payPayrollBonusRun,functions:createPayrollBonusRun,functions:recalculatePayrollBonusRun 2>&1 | tee deploy-node22-18-nomina-colaborador.log

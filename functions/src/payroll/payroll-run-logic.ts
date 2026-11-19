@@ -71,11 +71,16 @@ export interface EmployeeWrite {
   iessNumber: string;
   hireDate: string;
   endDate: string | null;
-  contractType: string;
   salaryCents: number;
-  workdayType: 'full' | 'efficient';
-  region: 'sierra' | 'costa';
-  expenseGroup: 'admin' | 'sales';
+  /**
+   * Solo si vinieron (2026-11-19): el formulario del sistema actual no los pide.
+   * Sin ellos valen los de toEmployeeInput: jornada completa, gasto de
+   * administración (la cuenta la da el grupo) y la región de la empresa.
+   */
+  contractType?: string;
+  workdayType?: 'full' | 'efficient';
+  region?: 'sierra' | 'costa';
+  expenseGroup?: 'admin' | 'sales';
   /** Solo si vino en la entrada: si no, se conserva lo guardado. */
   groupId?: string;
   thirteenthMode: 'monthly' | 'accumulated';
@@ -163,6 +168,10 @@ export function validateProfile(e: Record<string, any>): Ok<EmployeeProfile> {
 
 const text = (v: unknown, max = 200) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
 
+/** La región de la empresa (`settings/accounting.payrollRegion`); por defecto Sierra. */
+export const companyRegionOf = (settings: Record<string, any> | undefined): 'sierra' | 'costa' =>
+  settings?.payrollRegion === 'costa' ? 'costa' : 'sierra';
+
 /** Lo que manda Conecta en `employee` (payroll_service.dart). */
 export function validateEmployee(e: any): Ok<EmployeeWrite> {
   if (!e || typeof e !== 'object') return { ok: false, error: 'Faltan los datos del empleado.' };
@@ -177,6 +186,7 @@ export function validateEmployee(e: any): Ok<EmployeeWrite> {
   if (endDate !== null && endDate < hireDate) {
     return { ok: false, error: 'La fecha de salida no puede ser anterior a la de ingreso.' };
   }
+  const has = (k: string) => e[k] !== undefined && e[k] !== null && e[k] !== '';
   const workdayType = text(e.workdayType) || 'full';
   if (!WORKDAY_TYPES.includes(workdayType)) return { ok: false, error: 'Tipo de jornada desconocido.' };
   // L7 y §4.4 regla 5: se rechaza crear el empleado.
@@ -206,9 +216,11 @@ export function validateEmployee(e: any): Ok<EmployeeWrite> {
   if (!profile.ok) return profile;
   return { ok: true, value: {
     name: text(e.name), taxId: text(e.taxId, 20), email, iessNumber: text(e.iessNumber, 30),
-    hireDate, endDate, contractType, salaryCents,
-    workdayType: workdayType as 'full' | 'efficient', region: region as 'sierra' | 'costa',
-    expenseGroup: expenseGroup as 'admin' | 'sales',
+    hireDate, endDate, salaryCents,
+    ...(has('contractType') ? { contractType } : {}),
+    ...(has('workdayType') ? { workdayType: workdayType as 'full' | 'efficient' } : {}),
+    ...(has('region') ? { region: region as 'sierra' | 'costa' } : {}),
+    ...(has('expenseGroup') ? { expenseGroup: expenseGroup as 'admin' | 'sales' } : {}),
     thirteenthMode: modes.thirteenthMode as any, fourteenthMode: modes.fourteenthMode as any,
     reserveFundMode: modes.reserveFundMode as any,
     ...(prior !== undefined ? { priorServiceDays: prior } : {}),
@@ -233,7 +245,13 @@ export function salaryAt(d: Record<string, any>, lastDay: string | null): number
 }
 
 /** El documento de payrollEmployees → lo que necesita el cálculo del mes que cierra en [lastDay]. */
-export function toEmployeeInput(id: string, d: Record<string, any>, lastDay: string | null = null): PayrollEmployeeInput {
+/**
+ * `companyRegion`: la de la empresa (NOMINA_COLABORADOR.md §6). Manda sobre la
+ * guardada en el colaborador: una sola región por empresa.
+ */
+export function toEmployeeInput(
+  id: string, d: Record<string, any>, lastDay: string | null = null, companyRegion?: 'sierra' | 'costa',
+): PayrollEmployeeInput {
   return {
     id,
     name: String(d.name ?? ''),
@@ -241,7 +259,7 @@ export function toEmployeeInput(id: string, d: Record<string, any>, lastDay: str
     hireDate: String(d.hireDate ?? ''),
     endDate: d.endDate ? String(d.endDate) : null,
     workdayType: (d.workdayType ?? 'full') as PayrollEmployeeInput['workdayType'],
-    region: (d.region ?? 'sierra') as PayrollEmployeeInput['region'],
+    region: (companyRegion ?? d.region ?? 'sierra') as PayrollEmployeeInput['region'],
     expenseGroup: (d.expenseGroup ?? 'admin') as PayrollEmployeeInput['expenseGroup'],
     thirteenthMode: d.thirteenthMode ?? 'monthly',
     fourteenthMode: d.fourteenthMode ?? 'monthly',

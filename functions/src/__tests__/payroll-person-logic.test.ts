@@ -59,3 +59,23 @@ describe('tipo de colaborador', () => {
     expect(validateProfile({ collaboratorType: 'pasante' }).ok).toBe(false);
   });
 });
+
+describe('campos que el formulario actual no pide (2026-11-19)', () => {
+  const { validateEmployee, toEmployeeInput, companyRegionOf } = require('../payroll/payroll-run-logic');
+  it('sin contrato, jornada, región ni gasto: no se escriben (se conserva lo guardado)', () => {
+    const r = validateEmployee({ salaryCents: 100000, hireDate: '2024-03-01' });
+    expect(r.ok).toBe(true);
+    for (const k of ['contractType', 'workdayType', 'region', 'expenseGroup']) expect(k in r.value).toBe(false);
+  });
+  it('si vienen, se validan como antes', () => {
+    expect(validateEmployee({ salaryCents: 1, hireDate: '2024-03-01', region: 'oriente' }).ok).toBe(false);
+    expect(validateEmployee({ salaryCents: 1, hireDate: '2024-03-01', expenseGroup: 'sales' }).value.expenseGroup).toBe('sales');
+  });
+  it('la región de la empresa manda; sin configurar, Sierra', () => {
+    expect(companyRegionOf(undefined)).toBe('sierra');
+    expect(companyRegionOf({ payrollRegion: 'costa' })).toBe('costa');
+    expect(toEmployeeInput('e1', { region: 'sierra', salaryCents: 1 }, null, 'costa').region).toBe('costa');
+    expect(toEmployeeInput('e1', { salaryCents: 1 }).region).toBe('sierra');
+    expect(toEmployeeInput('e1', { salaryCents: 1 })).toMatchObject({ workdayType: 'full', expenseGroup: 'admin' });
+  });
+});

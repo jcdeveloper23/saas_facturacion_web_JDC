@@ -117,7 +117,7 @@ export { getPayslipPdf } from './payroll/payroll-pdf';
 export { sendPayslipEmails } from './payroll/payroll-email';
 export { payPayrollRun, voidPayrollPayment } from './payroll/payroll-payment-callables';
 export {
-  registerPayrollAdvance, voidPayrollAdvance, getPayrollAccounts, savePayrollAccounts,
+  registerPayrollAdvance, voidPayrollAdvance, getPayrollAccounts, savePayrollAccounts, savePayrollRegion,
 } from './payroll/payroll-advance-callables';
 export {
   upsertPayrollGroup, deletePayrollGroup, createPayrollLoan, updatePayrollLoan, cancelPayrollLoan,

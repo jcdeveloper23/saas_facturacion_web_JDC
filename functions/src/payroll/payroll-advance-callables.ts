@@ -24,7 +24,7 @@ import {
   PAYROLL_ACCOUNT_KEYS, advanceCapProblem, futureDateProblem, advanceNumber, validateAccountsInput, validateAdvanceInput, voidAdvanceProblem,
 } from './payroll-payment-logic';
 import { openPeriodIn, payrollEntryDoc, prepareReversal, requireMovementAccounts, resolveSource } from './payroll-posting';
-import { lastDayOfPeriod, parsePeriod, salaryAt } from './payroll-run-logic';
+import { companyRegionOf, lastDayOfPeriod, parsePeriod, salaryAt } from './payroll-run-logic';
 
 type Tx = admin.firestore.Transaction;
 
@@ -171,8 +171,31 @@ async function payrollAccountsView(db: admin.firestore.Firestore, companyId: str
   const saved = Object.fromEntries(PAYROLL_ACCOUNT_KEYS
     .map((k) => [k, typeof raw[k] === 'string' ? String(raw[k]).trim() : ''])
     .filter(([, v]) => v));
-  return { defaults: DEFAULT_PAYROLL_ACCOUNTS, saved };
+  return { defaults: DEFAULT_PAYROLL_ACCOUNTS, saved, region: companyRegionOf(snap.data()) };
 }
+
+/**
+ * La región de la empresa para el décimo cuarto (NOMINA_COLABORADOR.md §6):
+ * una sola para todos los colaboradores. Entrada: {companyId, region:
+ * 'sierra'|'costa'}. Devuelve lo mismo que getPayrollAccounts.
+ */
+export const savePayrollRegion = onCall(async (request) => {
+  const data = request.data ?? {};
+  const companyId = readCompanyId(data);
+  requirePayrollRole(request, companyId);
+  const db = admin.firestore();
+  await requirePayrollModule(db, companyId);
+  if (data.region !== 'sierra' && data.region !== 'costa') {
+    throw new HttpsError('invalid-argument', "La región es 'sierra' (Sierra y Amazonía) o 'costa' (Costa e Insular).");
+  }
+  await db.doc(`companies/${companyId}/settings/accounting`).set({
+    payrollRegion: data.region, payrollRegionUpdatedAt: admin.firestore.Timestamp.now(),
+    payrollRegionUpdatedBy: request.auth?.uid ?? 'system',
+  }, { merge: true });
+  // Cambia el periodo del 14.º de los borradores: que se recalculen.
+  await db.doc(`companies/${companyId}`).update({ payrollInputsSeq: INPUTS_SEQ_INCREMENT() });
+  return payrollAccountsView(db, companyId);
+});
 
 /**
  * Las cuentas de nómina de la empresa: las sugeridas y las que guardó.
